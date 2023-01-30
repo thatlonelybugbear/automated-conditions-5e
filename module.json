@@ -1,0 +1,39 @@
+{
+    "id": "bugbear-automated-conditions",
+    "title": "Automated Conditions 5e",
+    "description": "A module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions",
+    "version": "10.0.0",
+    "authors": [
+        {
+            "name": "thatlonelybugbear",
+            "url": "https://https://github.com/thatlonelybugbear/Automated-Conditions-5e",
+            "discord": "thatlonelybugbear#4394",
+            "ko-fi": "https://ko-fi.com/thatlonelybugbear"
+        }
+    ],
+    "compatibility": {
+        "minimum": "10",
+        "maximum": "10",
+        "verified": "10.291"
+    },
+    "esmodules": [
+        "scripts/main.mjs"
+    ],
+    "relationships": {
+        "systems": [
+            {
+                "id": "dnd5e",
+                "type": "system",
+                "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
+                "compatibility": {}
+            }
+        ], 
+    },
+    "bugs": "https://https://github.com/thatlonelybugbear/Automated-Conditions-5e/issues",
+    "flags": {
+        "allowBugReporter": true
+    },
+    "url": "https://https://github.com/thatlonelybugbear/Automated-Conditions-5e",
+    "manifest": "https://raw.githubusercontent.com/thatlonelybugbear/Automated-Conditions-5e/master/module.json",
+    "download": "https://github.com/thatlonelybugbear/Automated-Conditions-5e/archive/refs/heads/master.zip"
+}
