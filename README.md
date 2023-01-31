@@ -27,6 +27,14 @@ Using a module altering Core's Roll functions and maybe fastForwarding should ro
 
 Early stage of developemt so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
 
+# Compatibility
+Tested for core dnd5e and seems to be working fine.
+
+MidiQOL also seems to work OK.
+
+I haven't tested with other rolling modules yet.
+
+DFreds CE and CUB might have duplicated functionality. More tests needed.
 
 # Credits
 Special thanks to Zhell <https://github.com/krbz999> for using some of his code from <https://github.com/krbz999/babonus>
