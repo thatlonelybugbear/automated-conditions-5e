@@ -34,6 +34,7 @@
         "allowBugReporter": true
     },
     "url": "https://https://github.com/thatlonelybugbear/Automated-Conditions-5e",
+    "licence": "https://github.com/thatlonelybugbear/Automated-Conditions-5e/blob/main/LICENSE",
     "manifest": "https://raw.githubusercontent.com/thatlonelybugbear/Automated-Conditions-5e/master/module.json",
     "download": "https://github.com/thatlonelybugbear/Automated-Conditions-5e/archive/refs/heads/master.zip"
 }
