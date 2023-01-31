@@ -70,7 +70,7 @@ export function _preRollAttack(item, config) {
   let singleTargetEffects;
   let singleTargetActor = game.user.targets?.first()?.actor;
   let singleTargetToken = game.user.targets?.first();
-  if (singleTargetActor?.size === 1) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
+  if (game.user.targets?.size === 1) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
 
   //Blinded condition
   if (sourceActorEffects?.find(eff=>eff.label === "Blinded")) dis = true;
@@ -124,7 +124,7 @@ export function _preRollDamage(item, config) {
   let singleTargetEffects;
   let singleTargetActor = game.user.targets?.first()?.actor;
   let singleTargetToken = game.user.targets?.first();
-  if (singleTargetActor?.size === 1) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
+  if (game.user.targets?.size === 1) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
 
   //Paralysed condition.
   if (singleTargetEffects?.find(eff=>eff.label === "Paralysed" || eff.label === "Paralyzed") && _getMinimumDistanceBetweenTokens(sourceActorToken,singleTargetToken)<=5) crit = true; 
