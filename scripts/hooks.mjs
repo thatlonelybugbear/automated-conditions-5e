@@ -2,7 +2,7 @@ import {
   _getMinimumDistanceBetweenTokens
 } from "./helpers.mjs";
 
-export function _preRollAttack(actor,config,abilityId) {
+export function _preRollAbilitySave(actor,config,abilityId) {
   let adv = false;
   let dis = false;
   const sourceActorEffects = actor.effects.filter(eff=>!eff.disabled);
