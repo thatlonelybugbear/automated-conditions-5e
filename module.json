@@ -1,36 +1,36 @@
 {
-    "id": "automated-conditions-5e",
-    "title": "Automated Conditions 5e",
-    "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
-    "version": "10.0.0",
-    "authors": [
-        {
-            "name": "thatlonelybugbear",
-            "url": "https://github.com/thatlonelybugbear/Automated-Conditions-5e",
-            "discord": "thatlonelybugbear#4394",
-            "ko-fi": "https://ko-fi.com/thatlonelybugbear"
-        }
-    ],
-    "compatibility": {
-        "minimum": "10",
-        "maximum": "10",
-        "verified": "10.291"
-    },
-    "esmodules": [
-        "setup.mjs"
-    ],
-    "relationships": {
-        "systems": [
-            {
-                "id": "dnd5e",
-                "type": "system",
-                "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
-                "compatibility": {}
-            }
-        ], 
-    },
-    "url": "https://github.com/thatlonelybugbear/Automated-Conditions-5e",
-    "license": "https://raw.githubusercontent.com/thatlonelybugbear/Automated-Conditions-5e/main/LICENSE",
-    "manifest": "https://github.com/thatlonelybugbear/Automated-Conditions-5e/releases/latest/download/module.json",
-    "download": "https://github.com/thatlonelybugbear/Automated-Conditions-5e/releases/download/v10.0.0/module.zip"
+  "id": "automated-conditions-5e",
+  "title": "Automated Conditions 5e",
+  "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
+  "version": "10.0.0",
+  "authors": [
+      {
+          "name": "thatlonelybugbear",
+          "url": "https://github.com/thatlonelybugbear",
+          "discord": "thatlonelybugbear#4394",
+          "ko-fi": "https://ko-fi.com/thatlonelybugbear"
+      }
+  ],
+  "compatibility": {
+      "minimum": "10",
+      "maximum": "10",
+      "verified": "10.291"
+  },
+  "esmodules": [
+      "setup.mjs"
+  ],
+  "relationships": {
+      "systems": [
+          {
+              "id": "dnd5e",
+              "type": "system",
+              "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
+              "compatibility": {}
+          }
+      ] 
+  },
+  "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
+  "license": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/LICENSE",
+  "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json",
+  "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v10.0.0/module.zip"
 }
