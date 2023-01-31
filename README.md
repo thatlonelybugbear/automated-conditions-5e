@@ -26,3 +26,7 @@ Rolling with Core, will (hopefully) indicate the correct button to press, on Att
 Using a module altering Core's Roll functions and maybe fastForwarding should roll with the correct advantage/disadvantage/critical options selected.
 
 Early stage of developemt so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
+
+
+# Credits
+Special thanks to Zhell <https://github.com/krbz999> for using some of his code from <https://github.com/krbz999/babonus>
