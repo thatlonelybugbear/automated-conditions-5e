@@ -37,4 +37,4 @@ I haven't tested with other rolling modules yet.
 DFreds CE and CUB might have duplicated functionality. More tests needed.
 
 # Credits
-Special thanks to Zhell <https://github.com/krbz999> for using some of his code from <https://github.com/krbz999/babonus>
+- Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
