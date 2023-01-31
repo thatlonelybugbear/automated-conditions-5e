@@ -1,7 +1,7 @@
 {
-    "id": "bugbear-automated-conditions",
+    "id": "automated-conditions-5e",
     "title": "Automated Conditions 5e",
-    "description": "A module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions",
+    "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions",
     "version": "10.0.0",
     "authors": [
         {
@@ -17,7 +17,7 @@
         "verified": "10.291"
     },
     "esmodules": [
-        "scripts/main.mjs"
+        "setup.mjs"
     ],
     "relationships": {
         "systems": [
