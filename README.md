@@ -25,7 +25,7 @@ Rolling with Core, will (hopefully) indicate the correct button to press, on Att
 
 Using a module altering Core's Roll functions and maybe fastForwarding should roll with the correct advantage/disadvantage/critical options selected.
 
-Early stage of developemt so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
+Early stage of development so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
 
 # Compatibility
 Tested for core dnd5e and seems to be working fine.
