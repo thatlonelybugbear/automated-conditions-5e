@@ -21,20 +21,19 @@ Create an effect on a token with one of the following labels:
 - Stunned
 - Unconscious
 
-Rolling with Core, will (hopefully) indicate the correct button to press, on Attack Rolls, Saving Throws, Ability Checks, Skill Checks and Damage Rolls, according to the 5e ruleset.
-
-Using a module altering Core's Roll functions and maybe fastForwarding should roll with the correct advantage/disadvantage/critical options selected.
+Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
+Fast Forwarding the rolls (pressing SHIFT) will roll with advantage/disadvantage or critical correctly.
 
 Early stage of development so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
 
 # Compatibility
 Tested for core dnd5e and seems to be working fine.
 
-MidiQOL also seems to work OK.
+MidiQOL also seems to work OK (no attribution.
 
 I haven't tested with other rolling modules yet.
 
-DFreds CE and CUB might have duplicated functionality. More tests needed.
+I will need to think on how to better integrate (if possible) with Monks Little Details, DFreds CE and maybe CUB, which could change default DND5e conditions.
 
 # Credits
 - Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
