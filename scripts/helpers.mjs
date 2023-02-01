@@ -12,7 +12,7 @@ export function _getMinimumDistanceBetweenTokens(tokenA, tokenB) {
   });
   const dist = canvas.scene.grid.distance; // 5ft.
   const distances = canvas.grid.measureDistances(rays, {
-    gridSpaces: false
+    gridSpaces: true
   }).map(d => Math.round(d / dist) * dist);
   const eles = [tokenA, tokenB].map(t => t.document.elevation);
   const elevationDiff = Math.abs(eles[0] - eles[1]);
