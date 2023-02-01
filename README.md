@@ -1,8 +1,10 @@
 # Automated Conditions 5e
 A small module for Foundry and Dnd5e which uses dnd5e system Hooks to add the correct config options for Rolls, trying to automate the most common Dnd5e Conditions.
 
-# Usage
-Create an effect on a token with one of the following labels:
+Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
+Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
+
+# Dnd5e Conditions supported
 - Blinded
 - Deafened
 - Exhaustion 1
@@ -19,9 +21,6 @@ Create an effect on a token with one of the following labels:
 - Restrained
 - Stunned
 - Unconscious
-
-Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
-Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
 
 ** Early stage of development so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
 
