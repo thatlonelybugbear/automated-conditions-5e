@@ -5,7 +5,7 @@ Rolling with Core, will indicate the correct button to press, on Attack Rolls, D
 Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
 
 # Dnd5e Conditions supported
-- **Blinded**: <Disadvantage on attacks and grants Advantage to attacks from others>
+- Blinded: <Disadvantage on attacks and grants Advantage to attacks from others>
 - Exhaustion 1: <Disadvantage on ability checks (and skill checks as a result)>
 - Exhaustion 2: <==> 
 - Exhaustion 3: <++ Disadvantage on attacks and saving throws>
