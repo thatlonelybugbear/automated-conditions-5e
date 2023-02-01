@@ -92,7 +92,7 @@ const exhaustion = [CONFIG.DND5E.conditionTypes.exhaustion+" 3", CONFIG.DND5E.co
     if (_getMinimumDistanceBetweenTokens(sourceActorToken,singleTargetToken)<=5) adv = true;     //mock test for thrown weapons - might revisit this later.
     else dis = true;
   };
-  if (!!singleTargetEffects && getEffects(CONFIG.DND5E.conditionTypes.prone, singleTargetEffects) && ["rwak","rsak"].includes(item.system.actionType)) adv = true;
+  if (!!singleTargetEffects && getEffects(CONFIG.DND5E.conditionTypes.prone, singleTargetEffects) && ["rwak","rsak"].includes(item.system.actionType)) dis = true;
   if (!!sourceActorEffects && getEffects(CONFIG.DND5E.conditionTypes.prone, sourceActorEffects)) dis = true;
 //Restrained condition
   if (!!sourceActorEffects && getEffects(CONFIG.DND5E.conditionTypes.restrained, sourceActorEffects)) dis = true;
