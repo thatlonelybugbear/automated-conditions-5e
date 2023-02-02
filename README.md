@@ -26,7 +26,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 # Compatibility
 Tested for core dnd5e and seems to be working fine.
 
-MidiQOL also seems to work OK (no attribution.
+MidiQOL also seems to work OK (no attribution).
 
 I haven't tested with other rolling modules yet.
 
