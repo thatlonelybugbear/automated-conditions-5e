@@ -12,7 +12,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - Exhaustion 4: <==>
 - Exhaustion 5: <==>
 - Frightened: <Disadvantage on ability checks and attack rolls; v10.0.3 will be testing for Visibility of origin if available to add this or not>
-- Invisible: <Advantage on attacks and grants Disadvantage to attacks by others>
+- Invisible: < Advantage on attacks and grants Disadvantage to attacks by others >
 - Paralyzed (or Paralysed): <Auto fail (-99) strength/dexterity saves and attacker within 5ft of the creature deals critical damage>
 - Petrified: <Grants Advantage on attacks by others, auto fail strength/dexterity saves>
 - Poisoned: < Disadvantage on attacks and ability checks >
