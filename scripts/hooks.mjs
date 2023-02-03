@@ -62,14 +62,13 @@ export function _preRollAttack(item, config) {
   let adv = false;
   let dis = false;
   const sourceActorEffects = item.actor.effects.filter(eff=>!eff.disabled);
-  const sourceActorToken = item.actor.token ?? canvas.tokens.placeables.find(t => t.actor?.id === item.actor.id);
+  const sourceActorToken = item.actor.token?.object ?? item.actor.getActiveTokens()[0]; //canvas.tokens.placeables.find(t => t.actor?.id === item.actor.id);
   let singleTargetEffects;
   const singleTargetActor = game.user.targets?.first()?.actor;
   const singleTargetToken = game.user.targets?.first();
   if (singleTargetActor) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
   if (sourceActorEffects.length === 0 && singleTargetEffects?.length === 0) return true;
   //to-do: Warning if more than one target selected.
-//if (game.user.targets?.size === 1) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled); 
 //Blinded condition
   if (!!sourceActorEffects && getEffects(CONFIG.DND5E.conditionTypes.blinded, sourceActorEffects)) dis = true;
   if (!!singleTargetEffects && getEffects(CONFIG.DND5E.conditionTypes.blinded, singleTargetEffects)) adv = true;
@@ -110,14 +109,13 @@ const exhaustion = [CONFIG.DND5E.conditionTypes.exhaustion+" 3", CONFIG.DND5E.co
 export function _preRollDamage(item, config) {
   let crit = false;
   const sourceActorEffects = item.actor.effects.filter(eff=>!eff.disabled);
-  const sourceActorToken = item.actor.token ?? item.actor.getActiveTokens()[0];
+  const sourceActorToken = item.actor.token?.object ?? item.actor.getActiveTokens()[0]; //
   let singleTargetEffects;
   const singleTargetActor = game.user.targets?.first()?.actor;
   const singleTargetToken = game.user.targets?.first();
   if (singleTargetActor) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
   if (sourceActorEffects.length === 0 && singleTargetEffects?.length === 0) return true;
   //to-do: Warning if more than one target selected.
-//if (game.user.targets?.size === 1) singleTargetEffects = singleTargetActor.effects.filter(eff=>!eff.disabled);
 //Paralysed condition.
   if (!!singleTargetEffects && getEffects(["Paralysed",CONFIG.DND5E.conditionTypes.paralyzed], singleTargetEffects) && _getMinimumDistanceBetweenTokens(sourceActorToken,singleTargetToken)<=5) crit = true;
 //Unconscious condition
