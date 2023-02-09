@@ -37,3 +37,30 @@ export function _getAllTokenGridSpaces(tokenDoc) {
   }
   return centers;
 }
+
+export function _playerForActor(actor) { //From tposney's code for MidiQOL.
+  if (!actor) return undefined;
+  let user;
+  // find an active user whose character is the actor
+  if (actor.hasPlayerOwner) user = game.users?.find((u) => u.data.character === actor?.id && u.active);
+  if (!user)
+    // no controller - find the first owner who is active
+    user = game.users?.players.find(
+      (p) => p.active && actor?.data.permission[p.id ?? ""] === CONST.DOCUMENT_PERMISSION_LEVELS.OWNER
+    );
+  if (!user)
+    // find a non-active owner
+    user = game.users?.players.find((p) => p.character?.id === actor?.id);
+  if (!user)
+    // no controlled - find an owner that is not active
+    user = game.users?.players.find((p) => actor?.data.permission[p.id ?? ""] === CONST.DOCUMENT_PERMISSION_LEVELS.OWNER);
+  if (!user && actor?.data.permission.default === CONST.DOCUMENT_PERMISSION_LEVELS.OWNER) {
+    // does anyone have default owner permission who is active
+    user = game.users?.players.find(
+      (p) => p.active && actor?.data.permission.default === CONST.DOCUMENT_PERMISSION_LEVELS.OWNER
+    );
+  }
+  // if all else fails it's and active gm.
+  if (!user) user = game.users?.find((p) => p.isGM && p.active);
+  return user;
+} 
