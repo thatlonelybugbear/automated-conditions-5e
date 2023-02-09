@@ -24,11 +24,9 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 ** Early stage of development so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
 
 # Compatibility
-Tested for core dnd5e and seems to be working fine.
+Works 100% with Core, highlightning the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
 
-MidiQOL also seems to work OK (no attribution).
-
-I haven't tested with other rolling modules yet.
+No other Rolling modules work adequatly for now.
 
 I will need to think on how to better integrate (if possible) with Monks Little Details, DFreds CE and maybe CUB, which could change default DND5e conditions.
 
