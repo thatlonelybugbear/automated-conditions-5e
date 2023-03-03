@@ -26,7 +26,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 # Compatibility
 Works 100% with Core, highlightning the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
 
-No other Rolling modules work adequatly for now.
+No other Rolling modules work adequately for now.
 
 I will need to think on how to better integrate (if possible) with Monks Little Details, DFreds CE and maybe CUB, which could change default DND5e conditions.
 
