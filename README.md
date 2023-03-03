@@ -1,4 +1,6 @@
 # Automated Conditions 5e
+![](https://img.shields.io/badge/Foundry-v10.291-informational) ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/thatlonelybugbear/automated-conditions-5e) ![GitHub Releases](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total) ![GitHub Releases](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total) ![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fautomated-conditions-5e&colorB=4aa94a) 
+
 A small module for Foundry and Dnd5e which uses dnd5e system Hooks to add the correct config options for Rolls, trying to automate the most common Dnd5e Conditions.
 
 Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
