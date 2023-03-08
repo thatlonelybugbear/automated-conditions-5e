@@ -10,15 +10,21 @@ export function _preRollAbilitySave(actor,config,abilityId) {
   if ([CONFIG.DND5E.conditionTypes.exhaustion+" 3", CONFIG.DND5E.conditionTypes.exhaustion+" 4", CONFIG.DND5E.conditionTypes.exhaustion+" 5"].some(i=>sourceActorEffects?.find(eff=>eff.label.includes(i)))) dis = true;
 //Paralysed, Petrified, Stunned, Unconscious conditions
   if (sourceActorEffects?.some(eff=>[CONFIG.DND5E.conditionTypes.paralyzed, "Paralysed", CONFIG.DND5E.conditionTypes.petrified, CONFIG.DND5E.conditionTypes.stunned, CONFIG.DND5E.conditionTypes.unconscious].includes(eff.label)) && (abilityId === "dex" || abilityId === "str")) {
-      let newParts = duplicate(config.parts);
-      newParts = newParts.concat("-99");
-      foundry.utils.setProperty(config, "parts", newParts);
+    config.parts.push("-99")'
   }
 //Restrained condition
   if (sourceActorEffects?.find(eff=>eff.label === CONFIG.DND5E.conditionTypes.restrained) && abilityId === "dex") dis = true;
 //totals calc
-  if (adv === true && dis === false) foundry.utils.setProperty(config, "advantage", true);
-  else if (adv === false && dis === true) foundry.utils.setProperty(config, "disadvantage", true);
+  if (adv === true && dis === false) {
+    if (config.advantage && !config.disadvantage) return;
+    else if (!config.advantage && config.disadvantage) config.disadvantage = false;
+    else config.advantage = true;
+  }
+  else if (adv === false && dis === true) {
+    if (config.advantage && !config.disadvantage) config.advantage = false;
+    else if (!config.advantage && config.disadvantage) return;
+    else config.disadvantage = true;
+  }
   else return true;
 }
 
@@ -35,8 +41,16 @@ export function _preRollSkill(actor,config,abilityId) {
 //Poisoned condition
   if (getEffects(CONFIG.DND5E.conditionTypes.poisoned, sourceActorEffects)) dis = true;
 //totals calc
-  if (adv === true && dis === false) foundry.utils.setProperty(config, "advantage", true);
-  else if (adv === false && dis === true) foundry.utils.setProperty(config, "disadvantage", true);
+  if (adv === true && dis === false) {
+    if (config.advantage && !config.disadvantage) return;
+    else if (!config.advantage && config.disadvantage) config.disadvantage = false;
+    else config.advantage = true;
+  }
+  else if (adv === false && dis === true) {
+    if (config.advantage && !config.disadvantage) config.advantage = false;
+    else if (!config.advantage && config.disadvantage) return;
+    else config.disadvantage = true;
+  }
   else return true;
 }
 
@@ -53,8 +67,16 @@ export function _preRollAbilityTest(actor,config,abilityId) {
 //Poisoned condition
   if (getEffects(CONFIG.DND5E.conditionTypes.poisoned, sourceActorEffects)) dis = true;
 //totals calc
-  if (adv === true && dis === false) foundry.utils.setProperty(config, "advantage", true);
-  else if (adv === false && dis === true) foundry.utils.setProperty(config, "disadvantage", true);
+  if (adv === true && dis === false) {
+    if (config.advantage && !config.disadvantage) return;
+    else if (!config.advantage && config.disadvantage) config.disadvantage = false;
+    else config.advantage = true;
+  }
+  else if (adv === false && dis === true) {
+    if (config.advantage && !config.disadvantage) config.advantage = false;
+    else if (!config.advantage && config.disadvantage) return;
+    else config.disadvantage = true;
+  }
   else return true;
 }
 
@@ -101,8 +123,16 @@ const exhaustion = [CONFIG.DND5E.conditionTypes.exhaustion+" 3", CONFIG.DND5E.co
 //Unconscious condition
   if (!!singleTargetEffects && getEffects(CONFIG.DND5E.conditionTypes.unconscious, singleTargetEffects)) adv = true;
 //totals calc
-  if (adv === true && dis === false) foundry.utils.setProperty(config, "advantage", true);
-  else if (adv === false && dis === true) foundry.utils.setProperty(config, "disadvantage", true);
+  if (adv === true && dis === false) {
+    if (config.advantage && !config.disadvantage) return;
+    else if (!config.advantage && config.disadvantage) config.disadvantage = false;
+    else config.advantage = true;
+  }
+  else if (adv === false && dis === true) {
+    if (config.advantage && !config.disadvantage) config.advantage = false;
+    else if (!config.advantage && config.disadvantage) return;
+    else config.disadvantage = true;
+  }
   else return true;
 }
 
@@ -121,7 +151,7 @@ export function _preRollDamage(item, config) {
 //Unconscious condition
   if (!!singleTargetEffects && getEffects(CONFIG.DND5E.conditionTypes.unconscious, singleTargetEffects) && _getMinimumDistanceBetweenTokens(sourceActorToken,singleTargetToken)<=5) crit = true;
 //totals calc
-  if (crit) foundry.utils.setProperty(config, "critical", true);
+  if (crit) config.critical = true;
   else return true;
 }
 
@@ -134,8 +164,16 @@ export function _preRollDeathSave(actor, config) {
   const exhaustion = [CONFIG.DND5E.conditionTypes.exhaustion+" 3", CONFIG.DND5E.conditionTypes.exhaustion+" 4", CONFIG.DND5E.conditionTypes.exhaustion+" 5"];
   if (!!sourceActorEffects && getEffects(exhaustion, sourceActorEffects)) dis = true;
 //totals calc
-  if (adv === true && dis === false) foundry.utils.setProperty(config, "advantage", true);
-  else if (adv === false && dis === true) foundry.utils.setProperty(config, "disadvantage", true);
+ if (adv === true && dis === false) {
+    if (config.advantage && !config.disadvantage) return;
+    else if (!config.advantage && config.disadvantage) config.disadvantage = false;
+    else config.advantage = true;
+  }
+  else if (adv === false && dis === true) {
+    if (config.advantage && !config.disadvantage) config.advantage = false;
+    else if (!config.advantage && config.disadvantage) return;
+    else config.disadvantage = true;
+  }
   else return true;
 }
 
