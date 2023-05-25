@@ -1,3 +1,6 @@
+## v11.0.0 <hl>
+- Compatibility bump for Foundry v11.
+
 ## v10.0.3 <hl>
 - Quick fix for unlinked tokens.
 
