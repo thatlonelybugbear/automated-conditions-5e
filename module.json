@@ -27,7 +27,13 @@
               "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
               "compatibility": {"minimum": "2.0.1", "verified":"2.2.1"}
           }
-      ] 
+      ],
+      "requires": [
+      {
+        "id": "dnd5e",
+        "type": "system"
+      }
+    ]
   },
   "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
   "flags": { "allowBugReporter": true },
