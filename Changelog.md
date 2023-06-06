@@ -1,3 +1,6 @@
+## v11.0.1 <hl>
+- Compatibility bump for Foundry v11.300 and make system dnd5e required with minimum version 2.1.0.
+
 ## v11.0.0 <hl>
 - Compatibility bump for Foundry v11.
 
