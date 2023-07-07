@@ -4,33 +4,38 @@
   "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
   "version": "11.0.2",
   "authors": [
-      {
-          "name": "thatlonelybugbear",
-          "url": "https://github.com/thatlonelybugbear",
-          "discord": "thatlonelybugbear#4394",
-          "ko-fi": "https://ko-fi.com/thatlonelybugbear"
-      }
+    {
+      "name": "thatlonelybugbear",
+      "url": "https://github.com/thatlonelybugbear",
+      "discord": "thatlonelybugbear#4394",
+      "ko-fi": "https://ko-fi.com/thatlonelybugbear"
+    }
   ],
   "compatibility": {
-      "minimum": "10",
-      "maximum": "11",
-      "verified": "11.305"
+    "minimum": "10",
+    "maximum": "11",
+    "verified": "11.305"
   },
   "esmodules": [
-      "setup.mjs"
+    "setup.mjs"
   ],
   "relationships": {
-      "systems": [
-          {
-              "id": "dnd5e",
-              "type": "system",
-              "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
-              "compatibility": {"minimum": "2.0.1", "verified":"2.2.2"}
-          }
-      ]
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
+        "compatibility": {
+          "minimum": "2.0.1",
+          "verified": "2.2.2"
+        }
+      }
+    ]
   },
   "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
-  "flags": { "allowBugReporter": true },
+  "flags": {
+    "allowBugReporter": true
+  },
   "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
   "license": "https://github.com/thatlonelybugbear/automated-conditions-5e/blob/main/LICENSE",
   "manifest": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/master/module.json",
