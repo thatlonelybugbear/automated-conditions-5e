@@ -33,7 +33,7 @@
   "flags": { "allowBugReporter": true },
   "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
   "license": "https://github.com/thatlonelybugbear/automated-conditions-5e/blob/main/LICENSE",
-  "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/downloads/v11.0.10/module.json",
-  "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/downloads/v11.0.10/module.zip",
+  "manifest": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/master/module.json",
+  "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/archive/refs/heads/master.zip",,
   "changelog": "https://github.com/thatlonelybugbear/automated-conditions-5e/blob/master/Changelog.md"
 }
