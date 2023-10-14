@@ -104,7 +104,7 @@ export function _preRollAttack(item, config) {
 	const sourceActorEffects = item.actor.effects.filter((eff) => !eff.disabled);
 	const sourceActorToken =
 		item.actor.token?.object ?? item.actor.getActiveTokens()[0]; //canvas.tokens.placeables.find(t => t.actor?.id === item.actor.id);
-	let singleTar_getEffects;
+	let singleTargetEffects;
 	const singleTargetActor = game.user.targets?.first()?.actor;
 	const singleTargetToken = game.user.targets?.first();
 	if (singleTargetActor)
