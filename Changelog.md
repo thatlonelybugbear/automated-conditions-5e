@@ -1,3 +1,6 @@
+## v11.11.1 <hl>
+- Bump for v11 only branch and some small additions. More things to come :)
+
 ## v11.0.11 <hl>
 - Hotfix for v10.
 
