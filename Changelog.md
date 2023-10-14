@@ -1,3 +1,7 @@
+## v11.11.2 <hl>
+- Make sure that `config.parts:<string>`
+- Use falsy checks for `!Array.length`
+
 ## v11.11.1 <hl>
 - Bump for v11 only branch and some small additions. More things to come :)
 
