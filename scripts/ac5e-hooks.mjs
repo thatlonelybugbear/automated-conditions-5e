@@ -59,7 +59,7 @@ export function _preRollSkill(actor, config, abilityId) {
 		_getConditionName('Exhaustion') + ' 4',
 		_getConditionName('Exhaustion') + ' 5',
 	];
-	if (_getEffects(exhaustion, sourceActorEffects)) dis = true;
+	if (_getEffects(_getConditionName('Exhaustion'), sourceActorEffects)) dis = true;
 	//Frightened condition
 	if (_getEffects(_getConditionName('Frightened'), sourceActorEffects))
 		dis = true;
@@ -85,7 +85,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		_getConditionName('Exhaustion') + ' 4',
 		_getConditionName('Exhaustion') + ' 5',
 	];
-	if (_getEffects(exhaustion, sourceActorEffects)) dis = true;
+	if (_getEffects(_getConditionName('Exhaustion'), sourceActorEffects)) dis = true;
 	//Frightened condition
 	if (_getEffects(_getConditionName('Frightened'), sourceActorEffects))
 		dis = true;
@@ -131,7 +131,7 @@ export function _preRollAttack(item, config) {
 		_getConditionName('Exhaustion') + ' 4',
 		_getConditionName('Exhaustion') + ' 5',
 	];
-	if (!!sourceActorEffects && _getEffects(exhaustion, sourceActorEffects))
+	if (!!sourceActorEffects && _getEffects(_getConditionName('Exhaustion'), sourceActorEffects))
 		dis = true;
 	//Frightened condition
 	if (
@@ -271,7 +271,7 @@ export function _preRollDeathSave(actor, config) {
 		_getConditionName('Exhaustion') + ' 4',
 		_getConditionName('Exhaustion') + ' 5',
 	];
-	if (!!sourceActorEffects && _getEffects(exhaustion, sourceActorEffects))
+	if (!!sourceActorEffects && _getEffects(_getConditionName('Exhaustion'), sourceActorEffects))
 		dis = true;
 	//totals calc
 	if (adv === true && dis === false) config.advantage = true;
