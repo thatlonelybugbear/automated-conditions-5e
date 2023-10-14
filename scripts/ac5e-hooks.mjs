@@ -30,7 +30,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		) &&
 		(abilityId === 'dex' || abilityId === 'str')
 	) {
-		config.parts = config.parts.concat(-99);
+		config.parts = config.parts.concat('-99');
 	}
 	//Restrained condition
 	if (
@@ -50,7 +50,7 @@ export function _preRollSkill(actor, config, abilityId) {
 	let adv = false;
 	let dis = false;
 	const sourceActorEffects = actor.effects.filter((eff) => !eff.disabled);
-	if (sourceActorEffects.length === 0) return true;
+	if (!sourceActorEffects.length) return true;
 	//Exhaustion 1-5
 	const exhaustion = [
 		_getConditionName('Exhaustion') + ' 1',
@@ -76,7 +76,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	let adv = false;
 	let dis = false;
 	const sourceActorEffects = actor.effects.filter((eff) => !eff.disabled);
-	if (sourceActorEffects.length === 0) return true;
+	if (!sourceActorEffects.length) return true;
 	//Exhaustion 1-5
 	const exhaustion = [
 		_getConditionName('Exhaustion') + ' 1',
@@ -111,7 +111,7 @@ export function _preRollAttack(item, config) {
 		singleTargetEffects = singleTargetActor.effects.filter(
 			(eff) => !eff.disabled
 		);
-	if (sourceActorEffects.length === 0 && singleTargetEffects?.length === 0)
+	if (!sourceActorEffects.length && !singleTargetEffects?.length)
 		return true;
 	//to-do: Warning if more than one target selected.
 	//Blinded condition
@@ -235,7 +235,7 @@ export function _preRollDamage(item, config) {
 		singleTargetEffects = singleTargetActor.effects.filter(
 			(eff) => !eff.disabled
 		);
-	if (sourceActorEffects.length === 0 && singleTargetEffects?.length === 0)
+	if (!sourceActorEffects.length && !singleTargetEffects?.length)
 		return true;
 	//to-do: Warning if more than one target selected.
 	//Paralysed condition.
@@ -264,7 +264,7 @@ export function _preRollDeathSave(actor, config) {
 	let adv = false;
 	let dis = false;
 	const sourceActorEffects = actor.effects.filter((eff) => !eff.disabled);
-	if (sourceActorEffects.length === 0) return true;
+	if (!sourceActorEffects.length) return true;
 	//Exhaustion 3-5
 	const exhaustion = [
 		_getConditionName('Exhaustion') + ' 3',
