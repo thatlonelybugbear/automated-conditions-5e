@@ -1,3 +1,6 @@
+## v11.0.11 <hl>
+- Hotfix for v10.
+
 ## v11.0.10 <hl>
 - Version bump that will be the last v10 compatible one.
 
