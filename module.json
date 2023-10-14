@@ -2,7 +2,7 @@
   "id": "automated-conditions-5e",
   "title": "Automated Conditions 5e",
   "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
-  "version": "11.11.1",
+  "version": "11.11.2",
   "authors": [
       {
           "name": "thatlonelybugbear",
@@ -24,7 +24,7 @@
               "id": "dnd5e",
               "type": "system",
               "manifest": "https://raw.githubusercontent.com/foundryvtt/dnd5e/master/system.json",
-              "compatibility": {"minimum": "2.3.1", "verified":"2.3.1"}
+              "compatibility": {"minimum": "2.0.1", "verified":"2.3.1"}
           }
       ] 
   },
