@@ -142,12 +142,12 @@ export function _preRollAttack(item, config) {
 	//Invisible condition
 	if (
 		!!sourceActorEffects &&
-		_getEffects(_getConditionName('Invisiblle'), sourceActorEffects)
+		_getEffects(_getConditionName('Invisible'), sourceActorEffects)
 	)
 		adv = true;
 	if (
 		!!singleTargetEffects &&
-		_getEffects(_getConditionName('Invisiblle'), singleTargetEffects)
+		_getEffects(_getConditionName('Invisible'), singleTargetEffects)
 	)
 		dis = true;
 	//Paralyzed condition
