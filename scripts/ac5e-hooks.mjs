@@ -122,7 +122,7 @@ export function _preRollAttack(item, config) {
 		dis = true;
 	if (
 		!!singleTargetEffects &&
-		_getEffects(C_getConditionName('Blinded'), singleTargetEffects)
+		_getEffects(_getConditionName('Blinded'), singleTargetEffects)
 	)
 		adv = true;
 	//Exhaustion 3-5
