@@ -13,7 +13,7 @@
   ],
   "compatibility": {
       "minimum": "11",
-      "verified": "11.313"
+      "verified": "11.314"
   },
   "esmodules": [
       "ac5e-setup.mjs"
