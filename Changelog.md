@@ -1,3 +1,8 @@
+## v11.315.304 <hl>
+- Move to dnd5e v3.x, dropped compatibility for v2.x
+- Added tooltips on roll dialogs to indicate the reasons why AC5E suggests the specific roll.
+- Moved to using the `Actor5e#statuses`
+
 ## v11.11.2 <hl>
 - Make sure that `config.parts:<string>`
 - Use falsy checks for `!Array.length`
