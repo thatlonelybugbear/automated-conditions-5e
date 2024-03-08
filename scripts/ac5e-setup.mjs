@@ -7,7 +7,7 @@ import {
 	_preRollDeathSave,
 	_renderDialog,
 	/*_rollAttack*/
-} from './scripts/ac5e-hooks.mjs';
+} from './ac5e-hooks.mjs';
 
 Hooks.once('init', () => {
 	const preRollAbilitySave = Hooks.on('dnd5e.preRollAbilitySave',	_preRollAbilitySave);
