@@ -5,7 +5,7 @@ import {
 	_preRollAttack,
 	_preRollDamage,
 	_preRollDeathSave,
-} from './scripts/ac5e-hooks.mjs';
+} from './ac5e-hooks.mjs';
 
 Hooks.once('init', () => {
 	console.log("Bugbear's Automated Conditions for 5e spinning up!");
