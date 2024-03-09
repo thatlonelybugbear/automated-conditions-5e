@@ -1,5 +1,14 @@
+## v11.315.241.1 <hl>
+- Changing branches, making the main be compatible with dnd5 v3.x only.
+  - For dnd5e v3.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json>
+  - For dnd5e v2.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
+- to-do: backport some changes later from the v3.x branch.
+- to-do: make sure that all is working.
+
 ## v11.315.304 <hl>
-- Move to dnd5e v3.x, dropped compatibility for v2.x
+- Move to dnd5e v3.x.
+  - For dnd5e v3.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json>
+  - For dnd5e v2.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
 - Added tooltips on roll dialogs to indicate the reasons why AC5E suggests the specific roll.
 - Moved to using the `Actor5e#statuses`
 
