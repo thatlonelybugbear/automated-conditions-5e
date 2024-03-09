@@ -1,4 +1,4 @@
-## v11.315.304 <hl>
+## v11.315.304.1 <hl>
 - Move to dnd5e v3.x.
   - For dnd5e v3.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json>
   - For dnd5e v2.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
