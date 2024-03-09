@@ -23,8 +23,6 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - Stunned: <Auto fail strength/dexterity saves, grants advantage on attacks by others>
 - Unconscious: <Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone>
 
-** Early stage of development so reach out either here by creating an Issue or in Foundry's discord (thatlonelybugbear#4393).
-
 # Compatibility
 Works with Core rolling, highlightning the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
 
