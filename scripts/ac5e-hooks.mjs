@@ -126,18 +126,18 @@ export function _preRollAttack(item, config) {
 	}
 	//on Target - Prone special case
 	statuses = ['prone'];
-	if (_hasStatuses(singleTargetActor, statuses).length && ['mwak', 'msak'].includes(item.system.actionType)) {
-		if (_getMinimumDistanceBetweenTokens(sourceToken, singleTargetToken) <= 5) {
-			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(melee)').join(' '));
-			change = true;
-		} else {
-			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(melee)').join(' '));
+	if (_hasStatuses(singleTargetActor, statuses).length {
+		if (['rwak', 'rsak'].includes(item.system.actionType)) {
+			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(ranged)').join(' '));
 			change = true;
 		}
-	}
-	if (_hasStatuses(singleTargetActor, statuses).length && ['rwak', 'rsak'].includes(item.system.actionType)) {
-		ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(ranged)').join(' '));
-		change = true;
+		if (_getMinimumDistanceBetweenTokens(sourceToken, singleTargetToken) <= 5) {
+			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(<=5ft)').join(' '));
+			change = true;
+		} else if (_getMinimumDistanceBetweenTokens(sourceToken, singleTargetToken) >= 5 && ['mwak', 'msak'].includes(item.system.actionType)) {
+			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(>5ft)').join(' '));
+			change = true;
+		}
 	}
 	/*ac5eConfig.type = 'isAttack';*/
 	if (change || ac5eConfig.critical.length)
