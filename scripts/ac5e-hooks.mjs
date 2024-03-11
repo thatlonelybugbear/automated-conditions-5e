@@ -157,7 +157,7 @@ export function _rollAttack(item, roll) {
 
 export function _preRollDamage(item, config) {
 	const { actor: sourceActor, critical, messageData: { speaker: { token: sourceTokenID } } } = config;
-	if (config.event?.altKey || crtitical) return true;
+	if (config.event?.altKey || critical) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const sourceToken = canvas.tokens.get(sourceTokenID);
