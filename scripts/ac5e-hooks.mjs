@@ -78,8 +78,8 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 }
 
 export function _preRollAttack(item, config) {
-	const { actor: sourceActor, event: {altKey,ctrlKey,shiftKey}, fastForward, messageData: {speaker: {token: sourceTokenID}} } = config;
-	if (altKey || ctrlKey) return true;
+	const { actor: sourceActor, fastForward, messageData: {speaker: {token: sourceTokenID}} } = config;
+	if (config.event?.altKey || config.event?.ctrlKey) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	ac5eConfig.advantage = ac5eConfig.advantage ? {source: ['default']} : {source: []};
@@ -156,8 +156,8 @@ export function _rollAttack(item, roll) {
 */
 
 export function _preRollDamage(item, config) {
-	const { actor: sourceActor, critical, messageData: { speaker: { token: sourceTokenID } }, event: { altKey } } = config;
-	if (altKey || critical) return true;
+	const { actor: sourceActor, critical, messageData: { speaker: { token: sourceTokenID } } } = config;
+	if (config.event?.altKey || crtitical) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const sourceToken = canvas.tokens.get(sourceTokenID);
