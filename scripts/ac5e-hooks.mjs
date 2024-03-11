@@ -126,7 +126,7 @@ export function _preRollAttack(item, config) {
 	}
 	//on Target - Prone special case
 	statuses = ['prone'];
-	if (_hasStatuses(singleTargetActor, statuses).length {
+	if (_hasStatuses(singleTargetActor, statuses).length) {
 		if (['rwak', 'rsak'].includes(item.system.actionType)) {
 			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(_hasStatuses(singleTargetActor, statuses).concat('(ranged)').join(' '));
 			change = true;
