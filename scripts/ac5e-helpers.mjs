@@ -57,7 +57,7 @@ export function _hasEffectsActive(actor, effectNames) {
 	);
 }
 
-export function _hasStatuses(actor, statuses /*, checked = undefined*/) {
+export function _hasStatuses(actor, statuses) {
 	if (!actor) return false;
 	if (typeof statuses === 'string') statuses = [statuses];
 	const endsWithNumber = (str) => /\d+$/.test(str);
