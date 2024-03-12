@@ -98,15 +98,6 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
 
-export function _upperCaseFirst(array) {
-	return array.map((element, index) => {
-		/*const firstLetterUppercase =*/ return (
-			element.charAt(0).toUpperCase() + element.slice(1)
-		);
-		//return index === 0 ? firstLetterUppercase : ' ' + firstLetterUppercase;
-	});
-}
-
 export function _calcAdvantageMode(ac5eConfig, config) {
 	if (
 		ac5eConfig.advantage.source?.length ||
