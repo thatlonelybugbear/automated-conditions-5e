@@ -57,7 +57,7 @@ export function _hasEffectsActive(actor, effectNames) {
 	);
 }
 
-export function _hasStatuses(actor, statuses /*checked = undefined*/) {
+export function _hasStatuses(actor, statuses /*, checked = undefined*/) {
 	if (!actor) return false;
 	if (typeof statuses === 'string') statuses = [statuses];
 	const endsWithNumber = (str) => /\d+$/.test(str);
@@ -70,16 +70,18 @@ export function _hasStatuses(actor, statuses /*checked = undefined*/) {
 				exhaustionNumberedStatus.split('exhaustion')[1]
 			)
 		)
-			return _upperCaseFirst(
-				[...actor.statuses]
-					.filter((s) => statuses.includes(s))
-					.concat(`exhaustion ${_getExhaustionLevel(actor)}`)
-					.sort()
-			);
+			return [...actor.statuses]
+				.filter((s) => statuses.includes(s))
+				.map((el) => _getConditionName(el.capitalize()))
+				.concat(
+					`${_getConditionName('Exhaustion')} ${_getExhaustionLevel(actor)}`
+				)
+				.sort();
 	}
-	return _upperCaseFirst(
-		[...actor.statuses].filter((s) => statuses.includes(s)).sort()
-	);
+	return [...actor.statuses]
+		.filter((s) => statuses.includes(s))
+		.map((el) => _getConditionName(el.capitalize()))
+		.sort();
 }
 
 export function _hasAppliedEffects(actor) {
@@ -89,7 +91,9 @@ export function _hasAppliedEffects(actor) {
 export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	if (!actor) return false;
 	let exhaustionLevel = '';
-	const hasExhaustion = actor.statuses.has('exhaustion');
+	const hasExhaustion =
+		actor.statuses.has('exhaustion') ||
+		actor.flags?.['automated-conditions-5e']?.statuses;
 	if (hasExhaustion) exhaustionLevel = actor.system.attributes.exhaustion;
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
