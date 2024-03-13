@@ -4,6 +4,8 @@ import {
 	_hasAppliedEffects,
 	_hasStatuses,
 	_i18n5e,
+	_findNearby,
+	_dispositionCheck
 } from './ac5e-helpers.mjs';
 
 const getConfig = (config) => {
