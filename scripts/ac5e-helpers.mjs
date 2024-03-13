@@ -48,7 +48,7 @@ export function _i18nConditions(name) {
 }
 
 export function _i18n5e(string) {
-	return game.i18n.translations.DND5E[string]
+	return game.i18n.translations.DND5E[string];
 }
 
 export function _hasStatuses(actor, statuses) {
