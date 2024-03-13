@@ -40,31 +40,42 @@ export function _getAllTokenGridSpaces(tokenDoc) {
 	return centers;
 }
 
-export function _getConditionName(name) {
-	return eval(`game.i18n.translations.DND5E.Con${name}`);
-}
-
-export function _hasEffectsActive(actor, effectNames) {
-	if (!actor) return false;
-	if (typeof effectNames === 'string') effectNames = [effectNames];
-	return effectNames.filter((n) =>
-		actor.effects.some(
-			(eff) => !eff.disabled && [_getConditionName(n),n].includes(eff.name)
-		)
+export function _i18nConditions(name) {
+	return (
+		eval(`game.i18n.translations.EFFECT.DND5E.Status${name}`) ??
+		eval(`game.i18n.translations.DND5E.Con${name}`)
 	);
 }
 
-export function _hasStatuses(actor, statuses, /*checked = undefined*/) {
+export function _i18n5e(string) {
+	return game.i18n.translations.DND5E[string];
+}
+
+export function _hasStatuses(actor, statuses) {
 	if (!actor) return false;
 	if (typeof statuses === 'string') statuses = [statuses];
-	const endsWithNumber = str => /\d+$/.test(str);
+	const endsWithNumber = (str) => /\d+$/.test(str);
 	const exhaustionNumberedStatus = statuses.find((s) => endsWithNumber(s));
 	if (exhaustionNumberedStatus) {
 		statuses = statuses.filter((s) => !endsWithNumber(s));
-		if (_getExhaustionLevel(actor, exhaustionNumberedStatus.split('exhaustion')[1]))
-			return _upperCaseFirst([...actor.statuses].filter((s) => statuses.includes(s)).concat(`exhaustion ${_getExhaustionLevel(actor)}`).sort());
+		if (
+			_getExhaustionLevel(
+				actor,
+				exhaustionNumberedStatus.split('exhaustion')[1]
+			)
+		)
+			return [...actor.statuses]
+				.filter((s) => statuses.includes(s))
+				.map((el) => _i18nConditions(el.capitalize()))
+				.concat(
+					`${_i18nConditions('Exhaustion')} ${_getExhaustionLevel(actor)}`
+				)
+				.sort();
 	}
-	return _upperCaseFirst([...actor.statuses].filter((s) => statuses.includes(s)).sort());
+	return [...actor.statuses]
+		.filter((s) => statuses.includes(s))
+		.map((el) => _i18nConditions(el.capitalize()))
+		.sort();
 }
 
 export function _hasAppliedEffects(actor) {
@@ -74,26 +85,28 @@ export function _hasAppliedEffects(actor) {
 export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	if (!actor) return false;
 	let exhaustionLevel = '';
-	const hasExhaustion = actor.statuses.has('exhaustion');
-	if (hasExhaustion)
-		exhaustionLevel = actor.system.attributes.exhaustion;
+	const hasExhaustion =
+		actor.statuses.has('exhaustion') ||
+		actor.flags?.['automated-conditions-5e']?.statuses;
+	if (hasExhaustion) exhaustionLevel = actor.system.attributes.exhaustion;
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
 
-export function _upperCaseFirst(array) {
-	return array.map((element, index) => {
-		/*const firstLetterUppercase =*/ return element.charAt(0).toUpperCase() + element.slice(1);
-		//return index === 0 ? firstLetterUppercase : ' ' + firstLetterUppercase;
-	});
-}
-
 export function _calcAdvantageMode(ac5eConfig, config) {
-	if (ac5eConfig.advantage.source?.length || ac5eConfig.advantage.target?.length) config.advantage = true;
-	if (ac5eConfig.disadvantage.source?.length || ac5eConfig.disadvantage.target?.length) config.disadvantage = true;
+	if (
+		ac5eConfig.advantage.source?.length ||
+		ac5eConfig.advantage.target?.length
+	)
+		config.advantage = true;
+	if (
+		ac5eConfig.disadvantage.source?.length ||
+		ac5eConfig.disadvantage.target?.length
+	)
+		config.disadvantage = true;
 	if (ac5eConfig.advantage.length) config.advantage = true;
 	if (ac5eConfig.disadvantage.length) config.disadvantage = true;
 	if (config.advantage === true && config.disadvantage === true) {
 		config.advantage = false;
 		config.disadvantage = false;
-	};
+	}
 }
