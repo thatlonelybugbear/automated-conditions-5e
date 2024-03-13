@@ -8,8 +8,10 @@ import {
 	_renderDialog,
 	/*_rollAttack*/
 } from './ac5e-hooks.mjs';
+import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', () => {
+	new Settings().registerSettings();
 	const preRollAbilitySave = Hooks.on('dnd5e.preRollAbilitySave',	_preRollAbilitySave);
 	const preRollAbilityTest = Hooks.on('dnd5e.preRollAbilityTest',	_preRollAbilityTest);
 	const preRollAttack = Hooks.on('dnd5e.preRollAttack', _preRollAttack);
