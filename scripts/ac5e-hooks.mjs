@@ -5,7 +5,7 @@ import {
 	_hasStatuses,
 	_i18n5e,
 	_autoRanged,
-	_autoArmor
+	_autoArmor,
 } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -58,7 +58,11 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		change = true;
 	}
 	//check Auto Armor
-	if (settings.autoArmor && ['dex', 'str'].includes(abilityId) && _autoArmor(actor, 'prof')) {
+	if (
+		settings.autoArmor &&
+		['dex', 'str'].includes(abilityId) &&
+		_autoArmor(actor, 'prof')
+	) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_i18n5e(TraitArmorProf))
 			: _i18n5e(TraitArmorProf);
@@ -93,16 +97,20 @@ export function _preRollSkill(actor, config, skillId) {
 		const { defaultAbility } = config.data;
 		if (['dex', 'str'].includes(defaultAbility) && _autoArmor(actor, 'prof')) {
 			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(`${_i18n5e('TraitArmorProf')} (${defaultAbility})`)
-			: `${_i18n5e('TraitArmorProf')} (${defaultAbility})`;
+				? ac5eConfig.disadvantage.concat(
+						`${_i18n5e('TraitArmorProf')} (${defaultAbility})`
+				  )
+				: `${_i18n5e('TraitArmorProf')} (${defaultAbility})`;
 			change = true;
 		}
-		if (skillId = 'ste' && _autoArmor(actor, 'stealth') {
+		if ((skillId = 'ste' && _autoArmor(actor, 'stealth'))) {
 			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`)
-			: `${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`;
+				? ac5eConfig.disadvantage.concat(
+						`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`
+				  )
+				: `${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`;
 			change = true;
-		}		
+		}
 	}
 	if (change)
 		foundry.utils.setProperty(
@@ -128,7 +136,11 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		change = true;
 	}
 	//check Auto Armor
-	if (settings.autoArmor && ['dex', 'str'].includes(abilityId) && _autoArmor(actor, 'prof')) {
+	if (
+		settings.autoArmor &&
+		['dex', 'str'].includes(abilityId) &&
+		_autoArmor(actor, 'prof')
+	) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
 			: _i18n5e('TraitArmorProf');
@@ -224,10 +236,7 @@ export function _preRollAttack(item, config) {
 	//on Target - Prone special case
 	statuses = ['prone'];
 	if (_hasStatuses(singleTargetActor, statuses).length) {
-		const distance = _getDistance(
-			sourceToken,
-			singleTargetToken
-		);
+		const distance = _getDistance(sourceToken, singleTargetToken);
 		if (distance <= 5) {
 			//Attacking a prone character from up to 5ft away has advantage.
 			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
@@ -247,7 +256,11 @@ export function _preRollAttack(item, config) {
 		}
 	}
 	//check Auto Armor
-	if (settings.autoArmor && ['dex', 'str'].includes(item.abilityMod) && _autoArmor(actor, 'prof')) {
+	if (
+		settings.autoArmor &&
+		['dex', 'str'].includes(item.abilityMod) &&
+		_autoArmor(actor, 'prof')
+	) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
 			: _i18n5e('TraitArmorProf');
@@ -255,7 +268,11 @@ export function _preRollAttack(item, config) {
 	}
 	//check Auto Range
 	if (settings.autoRange && item.system.actionType?.includes('r')) {
-		const { inRange, nearbyFoe } = _checkRanged(item, sourceToken, singleTargetToken);
+		const { inRange, nearbyFoe } = _checkRanged(
+			item,
+			sourceToken,
+			singleTargetToken
+		);
 		if (!inRange) {
 			ac5eConfig.fail = `<span style="display: block; text-align: left;">Out of Range</span>`; //to-do: clean that
 			config.parts = config.parts.concat('-99');
@@ -263,11 +280,14 @@ export function _preRollAttack(item, config) {
 			change = true;
 		}
 		if (inRange.long) {
-			ac5eConfig.disadvantage.source =  ac5eConfig.disadvantage.target.concat(_i18n5e('RangeLong'));
+			ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.target.concat(
+				_i18n5e('RangeLong')
+			);
 			change = true;
 		}
 		if (nearbyFoe) {
-			ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat('Nearby Foe');
+			ac5eConfig.disadvantage.source =
+				ac5eConfig.disadvantage.source.concat('Nearby Foe');
 			change = true;
 		}
 	}
