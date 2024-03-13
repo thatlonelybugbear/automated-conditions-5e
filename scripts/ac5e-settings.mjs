@@ -1,4 +1,4 @@
-import Constants from './ac5e-constants.js';
+import Constants from './ac5e-constants.mjs';
 
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
