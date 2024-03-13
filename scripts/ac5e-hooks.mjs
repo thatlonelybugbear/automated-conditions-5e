@@ -259,7 +259,7 @@ export function _preRollAttack(item, config) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(item.abilityMod) &&
-		_autoArmor(actor, 'prof')
+		_autoArmor(sourceActor, 'prof')
 	) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
