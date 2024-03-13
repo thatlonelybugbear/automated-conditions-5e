@@ -1,8 +1,10 @@
+import Constants from './ac5e-constants.mjs';
+
 /**
  * Gets the minimum distance between two tokens,
  * evaluating all grid spaces they occupy, by Zhell.
  */
-export function _getMinimumDistanceBetweenTokens(tokenA, tokenB) {
+export function _getDistance(tokenA, tokenB) {
 	const A = _getAllTokenGridSpaces(tokenA.document);
 	const B = _getAllTokenGridSpaces(tokenB.document);
 	const rays = A.flatMap((a) => {
@@ -113,7 +115,7 @@ export function _calcAdvantageMode(ac5eConfig, config) {
 
 //check for 'same' 'different' or 'all' (=false) dispositions
 //t1, t2 Token5e or Token5e#Document
-export function _dispositionCheck(t1, t2, check = false) {     
+export function _dispositionCheck(t1, t2, check = false) {
 	if (!t1 || !t2) return false;
 	t1 = t1 instanceof Object ? t1.document : t1;
 	t2 = t2 instanceof Object ? t2.document : t2;
@@ -124,20 +126,61 @@ export function _dispositionCheck(t1, t2, check = false) {
 }
 
 export function _findNearby(
-	token,                 //Token5e or Token5e#Document to find nearby around.
-	disposition = 'all',   //'all', 'same', 'differemt'
-	radius = 5,            //default radius 5
-	lengthTest = false,    //false or integer which will test the length of the array against that number and return true/false.
-	includeToken = true    //includes or exclude source token
+	token, //Token5e or Token5e#Document to find nearby around.
+	disposition = 'all', //'all', 'same', 'differemt'
+	radius = 5, //default radius 5
+	lengthTest = false, //false or integer which will test the length of the array against that number and return true/false.
+	includeToken = true //includes or exclude source token
 ) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const validTokens = canvas.tokens.placeables.filter(
 		(placeable) =>
 			_dispositionCheck(token, placeable, disposition) &&
-			_getMinimumDistanceBetweenTokens(token, placeable) <= radius
+			_getDistance(token, placeable) <= radius
 	);
 	if (lengthTest && includeToken) return validTokens.length >= lengthTest;
 	if (lengthTest && !includeToken) return validTokens.length > lengthTest;
 	if (includeToken) return validTokens;
 	return validTokens.filter((placeable) => placeable !== token);
+}
+
+export function _autoArmor(actor, test = 'both') {
+	//'both','prof','stealth' : test for actor being proficient on the piece of armor and if it has stealth disadvantage property. returns rollAdvantageMode
+	if (!actor) return undefined;
+	const hasArmor = actor.armor;
+	if (!hasArmor) return null;
+	const stealth = hasArmor.system.properties.has('stealthDisadvantage');
+	const prof = hasArmor.system.proficient ?? hasArmor.system.prof.multiplier;
+	if (test === 'both')
+		return { stealthDisadvantage: !!stealth, proficient: !!prof };
+	if (test === 'prof') return !!prof;
+	if (test === 'stealth') return !!stealth;
+}
+
+export function _autoRanged(item, token, target) {
+	if (!item || !token) return undefined;
+	let {
+		actionType,
+		range: { value: short, long },
+	} = item.system;
+	const flags = token.actor?.flags?.[Constants.MODULE_ID];
+	const sharpShooter =
+		flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
+	if (sharpShooter && long) short = long;
+	const crossbowExpert =
+		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
+	const distance = _getDistance(token, target);
+	const nearbyFoe =
+		actionType.includes('r') &&
+		_findNearby(token, 'different', 5, 1) &&
+		!crossbowExpert;
+	const inRange =
+		distance <= short ? 'short' : distance <= long ? 'long' : false;
+	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
+}
+
+export function _hasItem(actor, itemName) {
+	return actor?.items.some((item) =>
+		item.name.toLocaleLowerCase().includes(itemName)
+	);
 }

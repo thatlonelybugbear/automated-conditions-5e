@@ -1,11 +1,11 @@
 import {
 	_calcAdvantageMode,
-	_getMinimumDistanceBetweenTokens,
+	_getDistance,
 	_hasAppliedEffects,
 	_hasStatuses,
 	_i18n5e,
-	_findNearby,
-	_dispositionCheck,
+	_autoRanged,
+	_autoArmor,
 } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -57,6 +57,17 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		config.critical = 21; //make it not crit
 		change = true;
 	}
+	//check Auto Armor
+	if (
+		settings.autoArmor &&
+		['dex', 'str'].includes(abilityId) &&
+		_autoArmor(actor, 'prof')
+	) {
+		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
+			? ac5eConfig.disadvantage.concat(_i18n5e(TraitArmorProf))
+			: [_i18n5e(TraitArmorProf)];
+		change = true;
+	}
 	if (change)
 		foundry.utils.setProperty(
 			config,
@@ -67,7 +78,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	return _calcAdvantageMode(ac5eConfig, config);
 }
 
-export function _preRollSkill(actor, config, abilityId) {
+export function _preRollSkill(actor, config, skillId) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
@@ -80,6 +91,26 @@ export function _preRollSkill(actor, config, abilityId) {
 			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
 			: _hasStatuses(actor, statuses);
 		change = true;
+	}
+	//check Auto Armor
+	if (settings.autoArmor) {
+		const { defaultAbility } = config.data;
+		if (['dex', 'str'].includes(defaultAbility) && _autoArmor(actor, 'prof')) {
+			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
+				? ac5eConfig.disadvantage.concat(
+						`${_i18n5e('TraitArmorProf')} (${defaultAbility})`
+				  )
+				: [`${_i18n5e('TraitArmorProf')} (${defaultAbility})`];
+			change = true;
+		}
+		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
+			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
+				? ac5eConfig.disadvantage.concat(
+						`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`
+				  )
+				: [`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`];
+			change = true;
+		}
 	}
 	if (change)
 		foundry.utils.setProperty(
@@ -102,6 +133,17 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
 			: _hasStatuses(actor, statuses);
+		change = true;
+	}
+	//check Auto Armor
+	if (
+		settings.autoArmor &&
+		['dex', 'str'].includes(abilityId) &&
+		_autoArmor(actor, 'prof')
+	) {
+		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
+			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
+			: [_i18n5e('TraitArmorProf')];
 		change = true;
 	}
 	if (change)
@@ -194,10 +236,7 @@ export function _preRollAttack(item, config) {
 	//on Target - Prone special case
 	statuses = ['prone'];
 	if (_hasStatuses(singleTargetActor, statuses).length) {
-		const distance = _getMinimumDistanceBetweenTokens(
-			sourceToken,
-			singleTargetToken
-		);
+		const distance = _getDistance(sourceToken, singleTargetToken);
 		if (distance <= 5) {
 			//Attacking a prone character from up to 5ft away has advantage.
 			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
@@ -216,15 +255,41 @@ export function _preRollAttack(item, config) {
 			change = true;
 		}
 	}
-	//check for ranged in melee with enemies around
+	//check Auto Armor
 	if (
-		item.system.actionType?.includes('r') && //ranged attacks rwak, rsak
-		_findNearby(sourceToken, 'enemy', 5, 1)
+		settings.autoArmor &&
+		['dex', 'str'].includes(item.abilityMod) &&
+		!_autoArmor(sourceActor, 'prof')
 	) {
-		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.target.concat(
-			'Nearby Foe (ranged)'
+		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
+			_i18n5e('TraitArmorProf')
 		);
 		change = true;
+	}
+	//check Auto Range
+	if (settings.autoRanged && item.system.actionType?.includes('r')) {
+		const { inRange, range, nearbyFoe } = _autoRanged(
+			item,
+			sourceToken,
+			singleTargetToken
+		);
+		if (!inRange) {
+			ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail: Out of Range</span>`; //to-do: clean that
+			config.parts = config.parts.concat('-99');
+			config.critical = 21; //make it not crit
+			change = true;
+		}
+		if (range === 'long') {
+			ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
+				_i18n5e('RangeLong')
+			);
+			change = true;
+		}
+		if (nearbyFoe) {
+			ac5eConfig.disadvantage.source =
+				ac5eConfig.disadvantage.source.concat('Nearby Foe');
+			change = true;
+		}
 	}
 	if (change || ac5eConfig.critical.length)
 		foundry.utils.setProperty(
@@ -273,7 +338,7 @@ export function _preRollDamage(item, config) {
 	let statuses = ['paralyzed', 'unconscious'];
 	if (
 		_hasStatuses(singleTargetActor, statuses).length &&
-		_getMinimumDistanceBetweenTokens(sourceToken, singleTargetToken) <= 5
+		_getDistance(sourceToken, singleTargetToken) <= 5
 	) {
 		ac5eConfig.critical = ac5eConfig.critical
 			? ac5eConfig.critical.concat(_hasStatuses(singleTargetActor, statuses))
