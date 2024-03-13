@@ -31,8 +31,23 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - **Stunned**: Auto fail strength/dexterity saves, grants advantage on attacks by others
 - **Unconscious**: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
 
+# Settings added for:
+- Armor automation (default off)
+  - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
+  - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
+- Range automation (default off)
+  - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
+  - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
+  - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (Out of Range).
+  - Crossbow Expert flag on the Actor (`flags.automated-conditions-5e.crossbowExport | Override | 1`) or an Item named `Crossbow Expert`, ignored Nearby Foe.
+  - Sharpshooter flag (`flags.automated-conditions-5e.sharpShooter | Override | 1`) or an Item named `Sharpshooter`, ignored Long range disadvantage.
+- Show/hide roll dialog tooltips (default on)
+
 # Compatibility
-Works with Core rolling, highlightning the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
+- [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
+- [ ] MidiQOL semi-compatible (needs tweaks)
+- [ ] Ready Set Rolls semi-compatible (needs tweaks)
+- [ ] Roll Groups, not tested.
 
 # Credits
 - Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
