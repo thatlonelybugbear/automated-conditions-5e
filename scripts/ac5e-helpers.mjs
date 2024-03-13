@@ -157,7 +157,7 @@ export function _autoArmor(actor, test = 'both') {
 	if (test === 'stealth') return !!stealth;
 }
 
-export function _checkRanged(item, token, target) {
+export function _autoRanged(item, token, target) {
 	if (!item || !token) return undefined;
 	let {
 		actionType,
