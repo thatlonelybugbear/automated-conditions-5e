@@ -47,16 +47,6 @@ export function _getConditionName(name) {
 	);
 }
 
-export function _hasEffectsActive(actor, effectNames) {
-	if (!actor) return false;
-	if (typeof effectNames === 'string') effectNames = [effectNames];
-	return effectNames.filter((n) =>
-		actor.effects.some(
-			(eff) => !eff.disabled && [_getConditionName(n), n].includes(eff.name)
-		)
-	);
-}
-
 export function _hasStatuses(actor, statuses) {
 	if (!actor) return false;
 	if (typeof statuses === 'string') statuses = [statuses];
