@@ -172,7 +172,7 @@ export function _autoRanged(item, token, target) {
 	const distance = _getDistance(token, target);
 	const nearbyFoe =
 		actionType.includes('r') &&
-		_findNearby(sourceToken, 'enemy', 5, 1) &&
+		_findNearby(token, 'different', 5, 1) &&
 		!crossbowExpert;
 	const inRange =
 		distance <= short ? 'short' : distance <= long ? 'long' : false;
