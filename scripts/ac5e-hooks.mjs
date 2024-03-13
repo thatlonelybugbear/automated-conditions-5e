@@ -65,7 +65,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_i18n5e(TraitArmorProf))
-			: _i18n5e(TraitArmorProf);
+			: [_i18n5e(TraitArmorProf)];
 		change = true;
 	}
 	if (change)
@@ -100,7 +100,7 @@ export function _preRollSkill(actor, config, skillId) {
 				? ac5eConfig.disadvantage.concat(
 						`${_i18n5e('TraitArmorProf')} (${defaultAbility})`
 				  )
-				: `${_i18n5e('TraitArmorProf')} (${defaultAbility})`;
+				: [`${_i18n5e('TraitArmorProf')} (${defaultAbility})`];
 			change = true;
 		}
 		if ((skillId === 'ste' && _autoArmor(actor, 'stealth'))) {
@@ -108,7 +108,7 @@ export function _preRollSkill(actor, config, skillId) {
 				? ac5eConfig.disadvantage.concat(
 						`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`
 				  )
-				: `${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`;
+				: [`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`];
 			change = true;
 		}
 	}
@@ -143,7 +143,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
-			: _i18n5e('TraitArmorProf');
+			: [_i18n5e('TraitArmorProf')];
 		change = true;
 	}
 	if (change)
