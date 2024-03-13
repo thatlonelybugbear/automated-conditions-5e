@@ -110,3 +110,34 @@ export function _calcAdvantageMode(ac5eConfig, config) {
 		config.disadvantage = false;
 	}
 }
+
+//check for 'same' 'different' or 'all' (=false) dispositions
+//t1, t2 Token5e or Token5e#Document
+export function _dispositionCheck(t1, t2, check = false) {     
+	if (!t1 || !t2) return false;
+	t1 = t1 instanceof Object ? t1.document : t1;
+	t2 = t2 instanceof Object ? t2.document : t2;
+	if (check == 'different') return t1.disposition !== t2.disposition;
+	if (check == 'same') return t1.disposition === t2.disposition;
+	if (!check || check == 'all) return true;
+	//to-do: 1. what about secret? 2. might need more granular checks in the future.
+}
+
+export function _findNearby(
+	token,                 //Token5e or Token5e#Document to find nearby around.
+	disposition = 'all',   //'all', 'same', 'differemt'
+	radius = 5,            //default radius 5
+	lengthTest = false,    //false or integer which will test the length of the array against that number and return true/false.
+	includeToken = true    //includes or exclude source token
+) {
+	if (!canvas || !canvas.tokens?.placeables) return false;
+	const validTokens = canvas.tokens.placeables.filter(
+		(placeable) =>
+			_dispositionCheck(token, placeable, disposition) &&
+			_getMinimumDistanceBetweenTokens(token, placeable) <= radius
+	);
+	if (lengthTest && includeToken) return validTokens.length >= lengthTest;
+	if (lengthTest && !includeToken) return validTokens.length > lengthTest;
+	if (includeToken) return validTokens;
+	return validTokens.filter((placeable) => placeable !== token);
+}
