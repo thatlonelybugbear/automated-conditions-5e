@@ -9,6 +9,8 @@ import {
 } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 
+const settings = new Settings();
+
 const getConfig = (config) => {
 	return {
 		advantage: config.advantage ? ['default'] : false,
@@ -311,6 +313,7 @@ export function _preRollDeathSave(actor, config) {
 }
 
 export function _renderDialog(dialog, elem) {
+	if (!settings.dialogTooltips) return true;
 	const getConfigAC5E = foundry.utils.getProperty(
 		dialog?.options,
 		Constants.MODULE_ID
