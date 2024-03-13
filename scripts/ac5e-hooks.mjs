@@ -3,7 +3,7 @@ import {
 	_getMinimumDistanceBetweenTokens,
 	_hasAppliedEffects,
 	_hasStatuses,
-	_upperCaseFirst,
+	_i18n5e,
 } from './ac5e-helpers.mjs';
 
 const getConfig = (config) => {
@@ -34,7 +34,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
     //Paralysed, Petrified, Stunned, Unconscious conditions, fail the save
 	statuses = ['paralyzed', 'petrified', 'stunned', 'unconscious'];
 	if (['dex', 'str'].includes(abilityId) && _hasStatuses(actor, statuses).length) {
-		ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail (${abilityId}): ${_upperCaseFirst(_hasStatuses(actor, statuses, true)).join(', ')}</span>`; //to-do: clean that
+		ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail (${abilityId}): ${(_hasStatuses(actor, statuses))}</span>`; //to-do: clean that
 		config.parts = config.parts.concat('-99');
 		config.critical = 21; //make it not crit
 		change = true;
@@ -208,14 +208,14 @@ export function _renderDialog(dialog, elem) {
 	const getHighlightedButton = elem[0].querySelector(`.dialog-button.${dialog.data.default}`);
 	//to-do: clean this mess up
 	let tooltip = '<center><strong>Automated Conditions 5e</strong></center>';
-	if (getConfigAC5E.critical.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Critical: ${getConfigAC5E.critical.join(', ')}</span>`);
-	if (getConfigAC5E.advantage?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Advantage: ${getConfigAC5E.advantage.join(', ')}</span>`);
-	if (getConfigAC5E.disadvantage?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Disadvantage: ${getConfigAC5E.disadvantage.join(', ')}</span>`);
+	if (getConfigAC5E.critical.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">${_i18n5e('Critical')}: ${getConfigAC5E.critical.join(', ')}</span>`);
+	if (getConfigAC5E.advantage?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">${_i18n5e('Advantage')}: ${getConfigAC5E.advantage.join(', ')}</span>`);
+	if (getConfigAC5E.disadvantage?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">${_i18n5e('Disadvantage')}: ${getConfigAC5E.disadvantage.join(', ')}</span>`);
 	if (getConfigAC5E.fail) tooltip = tooltip.concat(`<br>${getConfigAC5E.fail}`);
-	if (getConfigAC5E.advantage?.source?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Attacker adv: ${getConfigAC5E.advantage.source.join(', ')}</span>`);
-	if (getConfigAC5E.advantage?.target?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Target grants adv: ${getConfigAC5E.advantage.target.join(', ')}</span>`);
-	if (getConfigAC5E.disadvantage?.source?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Attacker dis: ${getConfigAC5E.disadvantage.source.join(', ')}</span>`);
-	if (getConfigAC5E.disadvantage?.target?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Target grants dis: ${getConfigAC5E.disadvantage.target.join(', ')}</span>`);
+	if (getConfigAC5E.advantage?.source?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Attacker ${_i18n5e('Advantage').substring(0,3).toLocaleLowerCase()}: ${getConfigAC5E.advantage.source.join(', ')}</span>`);
+	if (getConfigAC5E.advantage?.target?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">${_i18n5e('Target')} grants ${_i18n5e('Advantage').substring(0,3).toLocaleLowerCase()}: ${getConfigAC5E.advantage.target.join(', ')}</span>`);
+	if (getConfigAC5E.disadvantage?.source?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">Attacker ${_i18n5e('Disadvantage').substring(0,3).toLocaleLowerCase()}: ${getConfigAC5E.disadvantage.source.join(', ')}</span>`);
+	if (getConfigAC5E.disadvantage?.target?.length) tooltip = tooltip.concat(`<br><span style="display: block; text-align: left;">${_i18n5e('Target')} grants ${_i18n5e('Disadvantage').substring(0,3).toLocaleLowerCase()}: ${getConfigAC5E.disadvantage.target.join(', ')}</span>`);
 	if (tooltip === '<center><strong>Automated Conditions 5e</strong></center>') return true;
 	getHighlightedButton.setAttribute('data-tooltip', tooltip);
 }
