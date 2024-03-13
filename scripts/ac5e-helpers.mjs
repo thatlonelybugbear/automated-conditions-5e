@@ -4,7 +4,7 @@ import Constants from './ac5e-constants.mjs';
  * Gets the minimum distance between two tokens,
  * evaluating all grid spaces they occupy, by Zhell.
  */
-export function _getMinimumDistanceBetweenTokens(tokenA, tokenB) {
+export function _getDistance(tokenA, tokenB) {
 	const A = _getAllTokenGridSpaces(tokenA.document);
 	const B = _getAllTokenGridSpaces(tokenB.document);
 	const rays = A.flatMap((a) => {
@@ -136,7 +136,7 @@ export function _findNearby(
 	const validTokens = canvas.tokens.placeables.filter(
 		(placeable) =>
 			_dispositionCheck(token, placeable, disposition) &&
-			_getMinimumDistanceBetweenTokens(token, placeable) <= radius
+			_getDistance(token, placeable) <= radius
 	);
 	if (lengthTest && includeToken) return validTokens.length >= lengthTest;
 	if (lengthTest && !includeToken) return validTokens.length > lengthTest;
@@ -169,7 +169,7 @@ export function _autoRanged(item, token, target) {
 	if (sharpShooter && long) short = long;
 	const crossbowExpert =
 		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
-	const distance = _getMinimumDistanceBetweenTokens(token, target);
+	const distance = _getDistance(token, target);
 	const nearbyFoe =
 		actionType.includes('r') &&
 		_findNearby(sourceToken, 'enemy', 5, 1) &&
