@@ -190,28 +190,38 @@ export function _preRollAttack(item, config) {
 	//on Target - Prone special case
 	statuses = ['prone'];
 	if (_hasStatuses(singleTargetActor, statuses).length) {
-		if (['rwak', 'rsak'].includes(item.system.actionType)) {
-			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
-				_hasStatuses(singleTargetActor, statuses).concat('(ranged)').join(' ')
-			);
-			change = true;
-		}
-		if (_getMinimumDistanceBetweenTokens(sourceToken, singleTargetToken) <= 5) {
+		const distance = _getMinimumDistanceBetweenTokens(
+			sourceToken,
+			singleTargetToken
+		);
+		if (distance <= 5) {
+			//Attacking a prone character from up to 5ft away has advantage.
 			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
-				_hasStatuses(singleTargetActor, statuses).concat('(<=5ft)').join(' ')
+				_hasStatuses(singleTargetActor, statuses)
+					.concat(`(${distance}ft)`)
+					.join(' ')
 			);
 			change = true;
-		} else if (
-			_getMinimumDistanceBetweenTokens(sourceToken, singleTargetToken) >= 5 &&
-			['mwak', 'msak'].includes(item.system.actionType)
-		) {
+		} else {
+			//Attacking a prone character from more than 5ft away has disadvantage.
 			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
-				_hasStatuses(singleTargetActor, statuses).concat('(>5ft)').join(' ')
+				_hasStatuses(singleTargetActor, statuses)
+					.concat(`(${distance}ft)`)
+					.join(' ')
 			);
 			change = true;
 		}
 	}
-	/*ac5eConfig.type = 'isAttack';*/
+	//check for ranged in melee with enemies around
+	if (
+		item.system.actionType?.includes('r') && //ranged attacks rwak, rsak
+		_findNearby(sourceToken, 'enemy', 5, 1)
+	) {
+		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.target.concat(
+			'Nearby Foe (ranged)'
+		);
+		change = true;
+	}
 	if (change || ac5eConfig.critical.length)
 		foundry.utils.setProperty(
 			config,
