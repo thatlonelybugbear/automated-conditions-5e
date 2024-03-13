@@ -161,7 +161,7 @@ export function _autoRanged(item, token, target) {
 	if (!item || !token) return undefined;
 	let {
 		actionType,
-		range: { value: short, max: long },
+		range: { value: short, long },
 	} = item.system;
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const sharpShooter =
