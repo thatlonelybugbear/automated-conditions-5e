@@ -119,7 +119,7 @@ export function _dispositionCheck(t1, t2, check = false) {
 	t2 = t2 instanceof Object ? t2.document : t2;
 	if (check == 'different') return t1.disposition !== t2.disposition;
 	if (check == 'same') return t1.disposition === t2.disposition;
-	if (!check || check == 'all) return true;
+	if (!check || check == 'all') return true;
 	//to-do: 1. what about secret? 2. might need more granular checks in the future.
 }
 
