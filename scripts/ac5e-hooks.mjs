@@ -259,16 +259,14 @@ export function _preRollAttack(item, config) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(item.abilityMod) &&
-		_autoArmor(sourceActor, 'prof')
+		!_autoArmor(sourceActor, 'prof')
 	) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
-			: _i18n5e('TraitArmorProf');
+		ac5eConfig.disadvantage.source =  ac5eConfig.disadvantage.source.concat(_i18n5e('TraitArmorProf'));
 		change = true;
 	}
 	//check Auto Range
-	if (settings.autoRange && item.system.actionType?.includes('r')) {
-		const { inRange, nearbyFoe } = _checkRanged(
+	if (settings.autoRanged && item.system.actionType?.includes('r')) {
+		const { inRange, nearbyFoe } = _autoRanged(
 			item,
 			sourceToken,
 			singleTargetToken
