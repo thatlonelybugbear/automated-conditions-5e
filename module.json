@@ -16,7 +16,7 @@
         "maximum": "11",
         "verified": "11.315"
     },
-    "esmodules": ["scripts/ac5e-setup.mjs"],
+    "esmodules": ["scripts/ac5e-main.mjs"],
     "relationships": {
         "systems": [
             {
