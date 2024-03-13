@@ -7,6 +7,7 @@ import {
 	_findNearby,
 	_dispositionCheck,
 } from './ac5e-helpers.mjs';
+import Constants from './ac5e-constants.mjs';
 
 const getConfig = (config) => {
 	return {
@@ -56,7 +57,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	if (change)
 		foundry.utils.setProperty(
 			config,
-			`dialogOptions.automated-conditions-5e`,
+			`dialogOptions.${Constants.MODULE_ID}`,
 			ac5eConfig
 		);
 
@@ -80,7 +81,7 @@ export function _preRollSkill(actor, config, abilityId) {
 	if (change)
 		foundry.utils.setProperty(
 			config,
-			`dialogOptions.automated-conditions-5e`,
+			`dialogOptions.${Constants.MODULE_ID}`,
 			ac5eConfig
 		);
 	return _calcAdvantageMode(ac5eConfig, config);
@@ -103,7 +104,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	if (change)
 		foundry.utils.setProperty(
 			config,
-			`dialogOptions.automated-conditions-5e`,
+			`dialogOptions.${Constants.MODULE_ID}`,
 			ac5eConfig
 		);
 	return _calcAdvantageMode(ac5eConfig, config);
@@ -225,7 +226,7 @@ export function _preRollAttack(item, config) {
 	if (change || ac5eConfig.critical.length)
 		foundry.utils.setProperty(
 			config,
-			`dialogOptions.automated-conditions-5e`,
+			`dialogOptions.${Constants.MODULE_ID}`,
 			ac5eConfig
 		);
 	return _calcAdvantageMode(ac5eConfig, config);
@@ -233,7 +234,7 @@ export function _preRollAttack(item, config) {
 
 /*to-do: Implement a way for an attack which crits to affect the next damage roll to be crit.
 export function _rollAttack(item, roll) {
-	const getConfigAC5E = foundry.utils.getProperty(roll.options, 'automated-conditions-5e');
+	const getConfigAC5E = foundry.utils.getProperty(roll.options, '${Constants.MODULE_ID}');
 	if (!getConfigAC5E) return true;
 	if (roll.isCritical) getConfigAC5E.critical = 'isCritical';
 	else getConfigAC5E.critical = 'notCritical';
@@ -279,7 +280,7 @@ export function _preRollDamage(item, config) {
 	if (change) {
 		foundry.utils.setProperty(
 			config,
-			`dialogOptions.automated-conditions-5e`,
+			`dialogOptions.${Constants.MODULE_ID}`,
 			ac5eConfig
 		);
 		config.critical = true;
@@ -303,7 +304,7 @@ export function _preRollDeathSave(actor, config) {
 	if (change)
 		foundry.utils.setProperty(
 			config,
-			`dialogOptions.automated-conditions-5e`,
+			`dialogOptions.${Constants.MODULE_ID}`,
 			ac5eConfig
 		);
 	return _calcAdvantageMode(ac5eConfig, config);
@@ -312,7 +313,7 @@ export function _preRollDeathSave(actor, config) {
 export function _renderDialog(dialog, elem) {
 	const getConfigAC5E = foundry.utils.getProperty(
 		dialog?.options,
-		'automated-conditions-5e'
+		Constants.MODULE_ID
 	);
 	/*
 	//to-do: might be needed for adding proper handling of attack rolls based critical damage addition
