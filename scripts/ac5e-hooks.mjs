@@ -103,7 +103,7 @@ export function _preRollSkill(actor, config, skillId) {
 				: [`${_i18n5e('TraitArmorProf')} (${defaultAbility})`];
 			change = true;
 		}
-		if ((skillId === 'ste' && _autoArmor(actor, 'stealth'))) {
+		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
 			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 				? ac5eConfig.disadvantage.concat(
 						`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`
@@ -261,24 +261,26 @@ export function _preRollAttack(item, config) {
 		['dex', 'str'].includes(item.abilityMod) &&
 		!_autoArmor(sourceActor, 'prof')
 	) {
-		ac5eConfig.disadvantage.source =  ac5eConfig.disadvantage.source.concat(_i18n5e('TraitArmorProf'));
+		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
+			_i18n5e('TraitArmorProf')
+		);
 		change = true;
 	}
 	//check Auto Range
 	if (settings.autoRanged && item.system.actionType?.includes('r')) {
-		const { inRange, nearbyFoe } = _autoRanged(
+		const { inRange, range, nearbyFoe } = _autoRanged(
 			item,
 			sourceToken,
 			singleTargetToken
 		);
 		if (!inRange) {
-			ac5eConfig.fail = `<span style="display: block; text-align: left;">Out of Range</span>`; //to-do: clean that
+			ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail: Out of Range</span>`; //to-do: clean that
 			config.parts = config.parts.concat('-99');
 			config.critical = 21; //make it not crit
 			change = true;
 		}
-		if (inRange.long) {
-			ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.target.concat(
+		if (range === 'long') {
+			ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 				_i18n5e('RangeLong')
 			);
 			change = true;
