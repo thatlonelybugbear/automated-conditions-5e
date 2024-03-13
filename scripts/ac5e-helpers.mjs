@@ -40,11 +40,15 @@ export function _getAllTokenGridSpaces(tokenDoc) {
 	return centers;
 }
 
-export function _getConditionName(name) {
+export function _i18nConditions(name) {
 	return (
 		eval(`game.i18n.translations.EFFECT.DND5E.Status${name}`) ??
 		eval(`game.i18n.translations.DND5E.Con${name}`)
 	);
+}
+
+export function _i18n5e(string) {
+	return game.i18n.translations.DND5E[string]
 }
 
 export function _hasStatuses(actor, statuses) {
@@ -62,15 +66,15 @@ export function _hasStatuses(actor, statuses) {
 		)
 			return [...actor.statuses]
 				.filter((s) => statuses.includes(s))
-				.map((el) => _getConditionName(el.capitalize()))
+				.map((el) => _i18nConditions(el.capitalize()))
 				.concat(
-					`${_getConditionName('Exhaustion')} ${_getExhaustionLevel(actor)}`
+					`${_i18nConditions('Exhaustion')} ${_getExhaustionLevel(actor)}`
 				)
 				.sort();
 	}
 	return [...actor.statuses]
 		.filter((s) => statuses.includes(s))
-		.map((el) => _getConditionName(el.capitalize()))
+		.map((el) => _i18nConditions(el.capitalize()))
 		.sort();
 }
 
