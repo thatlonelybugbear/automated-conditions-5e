@@ -1,3 +1,10 @@
+## v11.315.304.5 <hl>
+* Use game.i18n.translations as a first step by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/27
+* Add helpers for disposition and checking nearby tokens by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/29
+* Prone fix and nearby foes for ranged attacks check by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/31
+* Dialog tooltip show/hide settings by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/32
+* Settings and logic for armor and range automation by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/33
+
 ## v11.315.304.1 <hl>
 - Move to dnd5e v3.x.
   - For dnd5e v3.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json>
