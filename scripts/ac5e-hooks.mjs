@@ -103,7 +103,7 @@ export function _preRollSkill(actor, config, skillId) {
 				: `${_i18n5e('TraitArmorProf')} (${defaultAbility})`;
 			change = true;
 		}
-		if ((skillId = 'ste' && _autoArmor(actor, 'stealth'))) {
+		if ((skillId === 'ste' && _autoArmor(actor, 'stealth'))) {
 			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 				? ac5eConfig.disadvantage.concat(
 						`${_i18n5e('ItemEquipmentStealthDisav')} (${_i18n5e('SkillSte')}`
