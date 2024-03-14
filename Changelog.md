@@ -1,3 +1,7 @@
+### v11.315.304.5.1 and v11.315.304.5.2 <hl>
+- Some typos
+- Sharpshooter: limit to only `rwak`
+
 ## v11.315.304.5 <hl>
 * Use game.i18n.translations as a first step by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/27
 * Add helpers for disposition and checking nearby tokens by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/29
