@@ -3,7 +3,7 @@
 
 
 ## For dnd5e v3.x, use manifest: 
-<https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json>
+<https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json>
 ## For dnd5e v2.x, use manifest: 
 <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
 
