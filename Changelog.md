@@ -1,5 +1,5 @@
 ### v11.315.304.5.3 <hl>
-- Added a setting for automating Exhaustion 5e rules or not. 
+- Added a setting for automating Exhaustion 5e rules or not. Closing: <https://github.com/thatlonelybugbear/automated-conditions-5e/issues/37>
   - Should allow for compatibility with modules offering alternative rules for exhaustion (will add the dndOne rules as an option soon).
  
 ### v11.315.304.5.1 and v11.315.304.5.2 <hl>
