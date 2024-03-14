@@ -39,8 +39,12 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
   - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
   - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
   - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (Out of Range).
-  - Crossbow Expert flag on the Actor (`flags.automated-conditions-5e.crossbowExpert | Override | 1`) or an Item named `Crossbow Expert`, ignored Nearby Foe.
-  - Sharpshooter flag (`flags.automated-conditions-5e.sharpShooter | Override | 1`) or an Item named `Sharpshooter`, ignored Long range disadvantage.
+  - Crossbow Expert: Ignores Nearby Foes with
+    - A flag on the Actor `flags.automated-conditions-5e.crossbowExpert | Override | 1` or
+    - An Item named `Crossbow Expert`.
+  - Sharpshooter: No disadvantage when shooting at long range with
+    - A flag on the Actor `flags.automated-conditions-5e.sharpShooter | Override | 1` or
+    - An Item named `Sharpshooter`.
 - Show/hide roll dialog tooltips (default on)
 
 # Compatibility
