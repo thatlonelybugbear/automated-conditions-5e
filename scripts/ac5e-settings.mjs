@@ -60,7 +60,7 @@ export default class Settings {
 			Settings.AUTOMATE_EXHAUSTION,
 			{
 				name: 'AC5e exhaustion automation.',
-				hint: 'When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you don`t want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).',
+				hint: 'When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).',
 				scope: 'world',
 				config: true,
 				default: true,
