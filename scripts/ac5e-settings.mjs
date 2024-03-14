@@ -5,7 +5,8 @@ export default class Settings {
 	static SHOW_TOOLTIPS_ROLL_DIALOG = 'showDialogTooltips';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
-
+	static AUTOMATE_EXHAUSTION = 'autoExhaustion';    //to-do: add module solution for dndone exhaustion.
+	
 	registerSettings() {
 		this._registerWorldSettings();
 	}
@@ -54,6 +55,18 @@ export default class Settings {
 				type: Boolean,
 			}
 		);
+		game.settings.register(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_EXHAUSTION,
+			{
+				name: 'AC5e exhaustion automation.',
+				hint: 'When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you don`t want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).',
+				scope: 'world',
+				config: true,
+				default: true,
+				type: Boolean,
+			}
+		);
 	}
 	get dialogTooltips() {
 		return game.settings.get(
@@ -71,6 +84,12 @@ export default class Settings {
 		return game.settings.get(
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_RANGED_ATTACKS
+		);
+	}
+	get autoExhaustion() {
+		return game.settings.get(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_EXHAUSTION
 		);
 	}
 }
