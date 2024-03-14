@@ -166,7 +166,7 @@ export function _autoRanged(item, token, target) {
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const sharpShooter =
 		flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
-	if (sharpShooter && long) short = long;
+	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert =
 		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
 	const distance = _getDistance(token, target);
