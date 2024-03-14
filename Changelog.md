@@ -1,4 +1,4 @@
-### v11.315.304.5.3
+### v11.315.304.5.3 <hl>
 - Added a setting for automating Exhaustion 5e rules or not. 
   - Should allow for compatibility with modules offering alternative rules for exhaustion (will add the dndOne rules as an option soon).
  
