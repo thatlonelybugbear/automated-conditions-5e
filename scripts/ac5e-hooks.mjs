@@ -35,7 +35,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
 		return true; //to-do: return any dis/advantage already present on the roll till that point for attribution.
 	//Exhaustion 3-5, Restrained for dex
-	let statuses = ['exhaustion3'];
+	let statuses = settings.autoExhaustion ? ['exhaustion3'] : [];
 	if (abilityId === 'dex') statuses.push('restrained');
 	if (!!_hasStatuses(actor, statuses)) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
@@ -85,7 +85,9 @@ export function _preRollSkill(actor, config, skillId) {
 	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
 		return true;
 	//Exhaustion 1-5, Frightened, Poisoned conditions
-	let statuses = ['exhaustion', 'frightened', 'poisoned'];
+	let statuses = settings.autoExhaustion
+		? ['exhaustion', 'frightened', 'poisoned']
+		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
@@ -128,7 +130,9 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
 		return true;
 	//Exhaustion 1-5, Frightened, Poisoned conditions
-	let statuses = ['exhaustion', 'frightened', 'poisoned'];
+	let statuses = settings.autoExhaustion
+		? ['exhaustion', 'frightened', 'poisoned']
+		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
@@ -194,7 +198,9 @@ export function _preRollAttack(item, config) {
 	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
-	let statuses = ['blinded', 'exhaustion3', 'poisoned', 'prone', 'restrained'];
+	let statuses = settings.autoExhaustion
+		? ['blinded', 'exhaustion3', 'poisoned', 'prone', 'restrained']
+		: ['blinded', 'poisoned', 'prone', 'restrained'];
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			_hasStatuses(sourceActor, statuses)
@@ -359,7 +365,11 @@ export function _preRollDeathSave(actor, config) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
-	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
+	if (
+		!_hasAppliedEffects(actor) &&
+		!actor.statuses.has('exhaustion') &&
+		!settings.autoExhaustion
+	)
 		return true;
 	//Exhaustion 3-5
 	let statuses = ['exhaustion3'];
