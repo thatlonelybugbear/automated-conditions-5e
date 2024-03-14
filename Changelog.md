@@ -3,11 +3,25 @@
 - Sharpshooter: limit to only `rwak`
 
 ## v11.315.304.5 <hl>
-* Use game.i18n.translations as a first step by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/27
-* Add helpers for disposition and checking nearby tokens by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/29
-* Prone fix and nearby foes for ranged attacks check by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/31
-* Dialog tooltip show/hide settings by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/32
-* Settings and logic for armor and range automation by @thatlonelybugbear in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/33
+- Use game.i18n.translations as a first step in <https://github.com/thatlonelybugbear/automated-conditions-5e/pull/27>
+- Add helpers for disposition and checking nearby tokens <https://github.com/thatlonelybugbear/automated-conditions-5e/pull/29>
+- Prone fix and nearby foes for ranged attacks check <https://github.com/thatlonelybugbear/automated-conditions-5e/pull/31>
+- Dialog tooltip show/hide settings <https://github.com/thatlonelybugbear/automated-conditions-5e/pull/32>
+- Settings and logic for armor and range automation <https://github.com/thatlonelybugbear/automated-conditions-5e/pull/33>
+  - Armor automation (default off)
+    - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
+    - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
+  - Range automation (default off)
+    - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
+    - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
+    - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (Out of Range).
+    - Crossbow Expert: Ignores Nearby Foes with
+      - A flag on the Actor `flags.automated-conditions-5e.crossbowExpert | Override | 1` or
+      - An Item named `Crossbow Expert`.
+    - Sharpshooter: No disadvantage when shooting at long range with
+      - A flag on the Actor `flags.automated-conditions-5e.sharpShooter | Override | 1` or
+      - An Item named `Sharpshooter`.
+  - Show/hide roll dialog tooltips (default on)
 
 ## v11.315.304.1 <hl>
 - Move to dnd5e v3.x.
