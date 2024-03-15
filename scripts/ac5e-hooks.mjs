@@ -91,7 +91,7 @@ export function _preRollSkill(actor, config, skillId) {
 	//check Auto Armor
 	if (settings.autoArmor) {
 		const { defaultAbility } = config.data;
-		if (['dex', 'str'].some(e=>e==defaultAbility) && !_autoArmor(actor, 'prof')) {
+		if (['dex', 'str'].includes(defaultAbility) && !_autoArmor(actor, 'prof')) {
 			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage ,`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 			change = true;
 		}
