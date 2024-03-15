@@ -177,8 +177,8 @@ export function _preRollAttack(item, config) {
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
 	let statuses = settings.autoExhaustion
-		? ['blinded', 'exhaustion3', 'poisoned', 'prone', 'restrained']
-		: ['blinded', 'poisoned', 'prone', 'restrained'];
+		? ['blinded', 'exhaustion3', 'frightened', 'poisoned', 'prone', 'restrained']
+		: ['blinded', 'frightened', 'poisoned', 'prone', 'restrained'];
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			_hasStatuses(sourceActor, statuses)
@@ -202,7 +202,7 @@ export function _preRollAttack(item, config) {
 		);
 		change = true;
 	}
-	//on Target advantage - Blinded, Paralysed, Paralyzed, Petrified, Restrained, Stunned, Unconscious
+	//on Target advantage - Blinded, Paralyzed, Petrified, Restrained, Stunned, Unconscious
 	statuses = [
 		'blinded',
 		'paralyzed',
