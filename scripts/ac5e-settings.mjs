@@ -23,8 +23,8 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.SHOW_TOOLTIPS_ROLL_DIALOG,
 			{
-				name: 'AC5e tooltips on Roll Dialogs.',
-				hint: 'When checked, AC5e will show a helpful tooltip when hovering over the suggested Roll button, summing up the reasons for that suggestion.',
+				name: 'AC5E.ShowDialogTooltipsName',
+				hint: 'AC5E.ShowDialogTooltipsHint',
 				scope: 'client',
 				config: true,
 				default: true,
@@ -35,8 +35,8 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_ARMOR_PROF_STEALTH,
 			{
-				name: 'AC5e armor automation.',
-				hint: 'When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and stealth disadvantage property.',
+				name: 'AC5E.AutoArmorName',
+				hint: 'AC5E.AutoArmorHint',
 				scope: 'world',
 				config: true,
 				default: false,
@@ -47,8 +47,8 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_RANGED_ATTACKS,
 			{
-				name: 'AC5e ranged attacks automation.',
-				hint: 'When checked, AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack.',
+				name: 'AC5E.AutoRangedAttacksName',
+				hint: 'AC5E.AutoRangedAttacksHint',
 				scope: 'world',
 				config: true,
 				default: false,
@@ -59,8 +59,8 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_EXHAUSTION,
 			{
-				name: 'AC5e exhaustion automation.',
-				hint: 'When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).',
+				name: 'AC5e.AutoExhaustionName',
+				hint: 'AC5e.AutoExhaustionHint',
 				scope: 'world',
 				config: true,
 				default: true,
