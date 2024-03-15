@@ -14,8 +14,8 @@ const settings = new Settings();
 
 const getConfig = (config) => {
 	return {
-		advantage: config.advantage ? ['default'] : false,
-		disadvantage: config.disadvantage ? ['default'] : false,
+		advantage: config.advantage ? ['default'] : [],
+		disadvantage: config.disadvantage ? ['default'] : [],
 		fail: false,
 		critical: config.critical
 			? typeof config.critical === 'number'
@@ -38,9 +38,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	let statuses = settings.autoExhaustion ? ['exhaustion3'] : [];
 	if (abilityId === 'dex') statuses.push('restrained');
 	if (!!_hasStatuses(actor, statuses)) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
-			: _hasStatuses(actor, statuses);
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
 	//Paralysed, Petrified, Stunned, Unconscious conditions, fail the save
@@ -63,9 +61,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_i18n5e(TraitArmorProf))
-			: [_i18n5e(TraitArmorProf)];
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
 	}
 	if (change)
@@ -89,28 +85,19 @@ export function _preRollSkill(actor, config, skillId) {
 		? ['exhaustion', 'frightened', 'poisoned']
 		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
-			: _hasStatuses(actor, statuses);
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
 	//check Auto Armor
 	if (settings.autoArmor) {
 		const { defaultAbility } = config.data;
-		if (['dex', 'str'].includes(defaultAbility) && _autoArmor(actor, 'prof')) {
-			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-				? ac5eConfig.disadvantage.concat(
-						`${_i18n5e('TraitArmorProf')} (${defaultAbility})`
-				  )
-				: [`${_i18n5e('TraitArmorProf')} (${defaultAbility})`];
+		console.log(defaultAbility, _autoArmor(actor, 'prof'))
+		if (['dex', 'str'].some(e=>e==defaultAbility) && !_autoArmor(actor, 'prof')) {
+			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage ,`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 			change = true;
 		}
 		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
-			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-				? ac5eConfig.disadvantage.concat(
-						`${_i18n5e('NotProficient')} (${_i18n5e('Armor')})`
-				  )
-				: [`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('ItemEquipmentStealthDisav')})`];
 			change = true;
 		}
 	}
@@ -134,20 +121,17 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		? ['exhaustion', 'frightened', 'poisoned']
 		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
-			: _hasStatuses(actor, statuses);
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
+	console.log(settings.autoArmor && ['dex', 'str'].includes(abilityId) && !_autoArmor(actor, 'prof'))
 	//check Auto Armor
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor, 'prof')
+		!_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
-			: [_i18n5e('TraitArmorProf')];
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
 	}
 	if (change)
