@@ -1,0 +1,11 @@
+{
+	"AC5E.ShowDialogTooltipsName": "AC5e tooltips on Roll Dialogs.",
+	"AC5E.ShowDialogTooltipsHint": "When checked, AC5e will show a helpful tooltip when hovering over the suggested Roll button, summing up the reasons for that suggestion.",
+	"AC5E.AutoArmorName": "AC5e armor automation.",
+	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and stealth disadvantage property.",
+	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation.",
+	"AC5E.AutoRangedAttacksHint": "When checked, AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack.",
+	"AC5E.AutoExhaustionName": "AC5e exhaustion automation.",
+	"AC5E.AutoExhaustionHint": "When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).",
+	"AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed."
+}

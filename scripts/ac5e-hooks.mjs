@@ -14,8 +14,8 @@ const settings = new Settings();
 
 const getConfig = (config) => {
 	return {
-		advantage: config.advantage ? ['default'] : false,
-		disadvantage: config.disadvantage ? ['default'] : false,
+		advantage: config.advantage ? ['default'] : [],
+		disadvantage: config.disadvantage ? ['default'] : [],
 		fail: false,
 		critical: config.critical
 			? typeof config.critical === 'number'
@@ -38,9 +38,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	let statuses = settings.autoExhaustion ? ['exhaustion3'] : [];
 	if (abilityId === 'dex') statuses.push('restrained');
 	if (!!_hasStatuses(actor, statuses)) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
-			: _hasStatuses(actor, statuses);
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
 	//Paralysed, Petrified, Stunned, Unconscious conditions, fail the save
@@ -63,9 +61,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_i18n5e(TraitArmorProf))
-			: [_i18n5e(TraitArmorProf)];
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
 	}
 	if (change)
@@ -89,28 +85,18 @@ export function _preRollSkill(actor, config, skillId) {
 		? ['exhaustion', 'frightened', 'poisoned']
 		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
-			: _hasStatuses(actor, statuses);
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
 	//check Auto Armor
 	if (settings.autoArmor) {
 		const { defaultAbility } = config.data;
-		if (['dex', 'str'].includes(defaultAbility) && _autoArmor(actor, 'prof')) {
-			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-				? ac5eConfig.disadvantage.concat(
-						`${_i18n5e('TraitArmorProf')} (${defaultAbility})`
-				  )
-				: [`${_i18n5e('TraitArmorProf')} (${defaultAbility})`];
+		if (['dex', 'str'].includes(defaultAbility) && !_autoArmor(actor, 'prof')) {
+			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage ,`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 			change = true;
 		}
 		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
-			ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-				? ac5eConfig.disadvantage.concat(
-						`${_i18n5e('NotProficient')} (${_i18n5e('Armor')})`
-				  )
-				: [`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('ItemEquipmentStealthDisav')})`];
 			change = true;
 		}
 	}
@@ -134,20 +120,16 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		? ['exhaustion', 'frightened', 'poisoned']
 		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
-			: _hasStatuses(actor, statuses);
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
 	//check Auto Armor
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor, 'prof')
+		!_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
-			? ac5eConfig.disadvantage.concat(_i18n5e('TraitArmorProf'))
-			: [_i18n5e('TraitArmorProf')];
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
 	}
 	if (change)
@@ -189,18 +171,14 @@ export function _preRollAttack(item, config) {
 		return true;
 	//to-do: Warning if more than one target selected. Think about more than one targets
 	if (game.user.targets.size > 1) {
-		ui.notifications.warn(
-			'Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.'
-		);
-		console.warn(
-			'Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.'
-		);
+		ui.notifications.warn(game.i18n.localize("AC5E.MultipleTargetsAttackWarn"));
+		console.warn(game.i18n.localize("AC5E.MultipleTargetsAttackWarn"));
 	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
 	let statuses = settings.autoExhaustion
-		? ['blinded', 'exhaustion3', 'poisoned', 'prone', 'restrained']
-		: ['blinded', 'poisoned', 'prone', 'restrained'];
+		? ['blinded', 'exhaustion3', 'frightened', 'poisoned', 'prone', 'restrained']
+		: ['blinded', 'frightened', 'poisoned', 'prone', 'restrained'];
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			_hasStatuses(sourceActor, statuses)
@@ -224,7 +202,7 @@ export function _preRollAttack(item, config) {
 		);
 		change = true;
 	}
-	//on Target advantage - Blinded, Paralysed, Paralyzed, Petrified, Restrained, Stunned, Unconscious
+	//on Target advantage - Blinded, Paralyzed, Petrified, Restrained, Stunned, Unconscious
 	statuses = [
 		'blinded',
 		'paralyzed',
@@ -268,7 +246,7 @@ export function _preRollAttack(item, config) {
 		!_autoArmor(sourceActor, 'prof')
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			_i18n5e('TraitArmorProf')
+			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`
 		);
 		change = true;
 	}
