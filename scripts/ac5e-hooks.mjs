@@ -91,7 +91,6 @@ export function _preRollSkill(actor, config, skillId) {
 	//check Auto Armor
 	if (settings.autoArmor) {
 		const { defaultAbility } = config.data;
-		console.log(defaultAbility, _autoArmor(actor, 'prof'))
 		if (['dex', 'str'].some(e=>e==defaultAbility) && !_autoArmor(actor, 'prof')) {
 			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage ,`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 			change = true;
@@ -124,7 +123,6 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
 		change = true;
 	}
-	console.log(settings.autoArmor && ['dex', 'str'].includes(abilityId) && !_autoArmor(actor, 'prof'))
 	//check Auto Armor
 	if (
 		settings.autoArmor &&
@@ -173,12 +171,8 @@ export function _preRollAttack(item, config) {
 		return true;
 	//to-do: Warning if more than one target selected. Think about more than one targets
 	if (game.user.targets.size > 1) {
-		ui.notifications.warn(
-			'Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.'
-		);
-		console.warn(
-			'Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.'
-		);
+		ui.notifications.warn(game.i18n.localize("AC5E.MutlipleTargetsAttackWarn"));
+		console.warn(game.i18n.localize("AC5E.MutlipleTargetsAttackWarn"));
 	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
