@@ -171,8 +171,8 @@ export function _preRollAttack(item, config) {
 		return true;
 	//to-do: Warning if more than one target selected. Think about more than one targets
 	if (game.user.targets.size > 1) {
-		ui.notifications.warn(game.i18n.localize("AC5E.MutlipleTargetsAttackWarn"));
-		console.warn(game.i18n.localize("AC5E.MutlipleTargetsAttackWarn"));
+		ui.notifications.warn(game.i18n.localize("AC5E.MultipleTargetsAttackWarn"));
+		console.warn(game.i18n.localize("AC5E.MultipleTargetsAttackWarn"));
 	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
