@@ -252,7 +252,7 @@ export function _preRollAttack(item, config) {
 		!_autoArmor(sourceActor, 'prof')
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			_i18n5e('TraitArmorProf')
+			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`
 		);
 		change = true;
 	}
