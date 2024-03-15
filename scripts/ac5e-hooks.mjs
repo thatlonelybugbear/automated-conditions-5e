@@ -61,7 +61,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
 	}
 	if (change)
@@ -131,7 +131,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		!_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
 	}
 	if (change)
