@@ -152,12 +152,8 @@ export function _preRollAttack(item, config) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
-	ac5eConfig.advantage = ac5eConfig.advantage
-		? { source: ['default'] }
-		: { source: [] };
-	ac5eConfig.disadvantage = ac5eConfig.disadvantage
-		? { source: ['default'] }
-		: { source: [] };
+	ac5eConfig.advantage = { source: ac5eConfig.advantage };
+	ac5eConfig.disadvantage = { source: ac5eConfig.disadvantage };
 	ac5eConfig.advantage.target = [];
 	ac5eConfig.disadvantage.target = [];
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
