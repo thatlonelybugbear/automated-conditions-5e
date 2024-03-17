@@ -4,8 +4,10 @@ import {
 	_hasAppliedEffects,
 	_hasStatuses,
 	_i18n5e,
-	_autoRanged,
+	_i18nConditions,
 	_autoArmor,
+	_autoEncumbrance,
+	_autoRanged,
 } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -70,6 +72,13 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		];
 		change = true;
 	}
+	if (_autoEncumbrance(actor, abilityId)) {
+		ac5eConfig.disadvantage = [
+		    ...ac5eConfig.disadvantage,
+		    `${_i18nConditions('HeavilyEncumbered')}`,
+		];
+		change = true;
+	}
 	if (change)
 		foundry.utils.setProperty(
 			config,
@@ -84,6 +93,7 @@ export function _preRollSkill(actor, config, skillId) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
+	const { defaultAbility } = config.data;
 	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
 		return true;
 	//Exhaustion 1-5, Frightened, Poisoned conditions
@@ -99,7 +109,6 @@ export function _preRollSkill(actor, config, skillId) {
 	}
 	//check Auto Armor
 	if (settings.autoArmor) {
-		const { defaultAbility } = config.data;
 		if (['dex', 'str'].includes(defaultAbility) && !_autoArmor(actor, 'prof')) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
@@ -114,6 +123,13 @@ export function _preRollSkill(actor, config, skillId) {
 			];
 			change = true;
 		}
+	}
+	if (_autoEncumbrance(actor, defaultAbility)) {
+		ac5eConfig.disadvantage = [
+		    ...ac5eConfig.disadvantage,
+		    `${_i18nConditions('HeavilyEncumbered')}`,
+		];
+		change = true;
 	}
 	if (change)
 		foundry.utils.setProperty(
@@ -150,6 +166,13 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
 			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+		];
+		change = true;
+	}
+	if (_autoEncumbrance(actor, abilityId)) {
+		ac5eConfig.disadvantage = [
+		    ...ac5eConfig.disadvantage,
+		    `${_i18nConditions('HeavilyEncumbered')}`,
 		];
 		change = true;
 	}
@@ -271,6 +294,12 @@ export function _preRollAttack(item, config) {
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`
+		);
+		change = true;
+	}
+	if (_autoEncumbrance(actor, item.abilityMod)) {
+		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
+			`${_i18nConditions('HeavilyEncumbered')}`
 		);
 		change = true;
 	}
