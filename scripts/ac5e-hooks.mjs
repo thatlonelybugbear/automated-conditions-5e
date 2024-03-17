@@ -4,8 +4,10 @@ import {
 	_hasAppliedEffects,
 	_hasStatuses,
 	_i18n5e,
-	_autoRanged,
+	_i18nConditions,
 	_autoArmor,
+	_autoEncumbrance,
+	_autoRanged,
 } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -70,6 +72,11 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		];
 		change = true;
 	}
+	if (_autoEncumbrance(actor, abilityId))
+		ac5eConfig.disadvantage = [
+		    ...ac5eConfig.disadvantage,
+		    `${_i18nConditions('Heavily Encumbered')}`,
+		];
 	if (change)
 		foundry.utils.setProperty(
 			config,
