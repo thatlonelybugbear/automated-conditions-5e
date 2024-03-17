@@ -1,4 +1,7 @@
 import Constants from './ac5e-constants.mjs';
+import Settings from './ac5e-settings.mjs';
+
+const settings = new Settings();
 
 /**
  * Gets the minimum distance between two tokens,
@@ -155,6 +158,18 @@ export function _autoArmor(actor, test = 'both') {
 		return { stealthDisadvantage: !!stealth, proficient: !!prof };
 	if (test === 'prof') return !!prof;
 	if (test === 'stealth') return !!stealth;
+}
+
+export function _autoEncumbrance(actor, abilityId) {
+	if (
+		game.settings.get('dnd5e', 'encumbrance') !== 'variant' ||
+		!settings.autoEncumbrance
+	)
+		return null;
+	return (
+		['con', 'dex', 'str'].includes(abilityId) &&
+		_hasStatuses(actor, 'heavilyEncumbered').length
+	);
 }
 
 export function _autoRanged(item, token, target) {
