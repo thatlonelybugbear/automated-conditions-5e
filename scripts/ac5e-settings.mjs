@@ -5,8 +5,9 @@ export default class Settings {
 	static SHOW_TOOLTIPS_ROLL_DIALOG = 'showDialogTooltips';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
-	static AUTOMATE_EXHAUSTION = 'autoExhaustion';    //to-do: add module solution for dndone exhaustion.
-	
+	static AUTOMATE_EXHAUSTION = 'autoExhaustion'; //to-do: add module solution for dndone exhaustion.
+	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
+
 	registerSettings() {
 		this._registerWorldSettings();
 	}
@@ -55,18 +56,22 @@ export default class Settings {
 				type: Boolean,
 			}
 		);
-		game.settings.register(
-			Constants.MODULE_ID,
-			Settings.AUTOMATE_EXHAUSTION,
-			{
-				name: 'AC5E.AutoExhaustionName',
-				hint: 'AC5E.AutoExhaustionHint',
-				scope: 'world',
-				config: true,
-				default: true,
-				type: Boolean,
-			}
-		);
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION, {
+			name: 'AC5E.AutoExhaustionName',
+			hint: 'AC5E.AutoExhaustionHint',
+			scope: 'world',
+			config: true,
+			default: true,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENCUMBRANCE, {
+			name: 'AC5E.AutoEncumbranceName',
+			hint: 'AC5E.AutoEncumbranceHint',
+			scope: 'world',
+			config: true,
+			default: true,
+			type: Boolean,
+		});
 	}
 	get dialogTooltips() {
 		return game.settings.get(
@@ -87,9 +92,12 @@ export default class Settings {
 		);
 	}
 	get autoExhaustion() {
-		return game.settings.get(
-			Constants.MODULE_ID,
-			Settings.AUTOMATE_EXHAUSTION
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION);
+	}
+	get autoEncumbrance() {
+		return (
+			game.settings.get('dnd5e', 'encumbrance') == 'variant' &&
+			game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENCUMBRANCE)
 		);
 	}
 }
