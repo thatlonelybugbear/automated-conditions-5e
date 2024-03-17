@@ -74,8 +74,8 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	}
 	if (_autoEncumbrance(actor, abilityId)) {
 		ac5eConfig.disadvantage = [
-		    ...ac5eConfig.disadvantage,
-		    `${_i18nConditions('HeavilyEncumbered')}`,
+			...ac5eConfig.disadvantage,
+			`${_i18nConditions('HeavilyEncumbered')}`,
 		];
 		change = true;
 	}
@@ -126,8 +126,8 @@ export function _preRollSkill(actor, config, skillId) {
 	}
 	if (_autoEncumbrance(actor, defaultAbility)) {
 		ac5eConfig.disadvantage = [
-		    ...ac5eConfig.disadvantage,
-		    `${_i18nConditions('HeavilyEncumbered')}`,
+			...ac5eConfig.disadvantage,
+			`${_i18nConditions('HeavilyEncumbered')}`,
 		];
 		change = true;
 	}
@@ -171,8 +171,8 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	}
 	if (_autoEncumbrance(actor, abilityId)) {
 		ac5eConfig.disadvantage = [
-		    ...ac5eConfig.disadvantage,
-		    `${_i18nConditions('HeavilyEncumbered')}`,
+			...ac5eConfig.disadvantage,
+			`${_i18nConditions('HeavilyEncumbered')}`,
 		];
 		change = true;
 	}
@@ -373,7 +373,7 @@ export function _preRollDamage(item, config) {
 		return true;
 	if (game.user.targets.size > 1) {
 		ui.notifications.warn(game.i18n.localize('AC5E.MultipleTargetsDamageWarn'));
-		c('AC5E.MultipleTargetsDamageWarn'));
+		console.warn(game.i18n.localize('AC5E.MultipleTargetsDamageWarn'));
 	}
 	if (!game.user.targets.size) {
 		ui.notifications.warn(game.i18n.localize('AC5E.NoTargetsDamageWarn'));
