@@ -161,8 +161,7 @@ export function _autoArmor(actor, test = 'both') {
 }
 
 export function _autoEncumbrance(actor, abilityId) {
-	if (!settings.autoEncumbrance)
-		return null;
+	if (!settings.autoEncumbrance) return null;
 	return (
 		['con', 'dex', 'str'].includes(abilityId) &&
 		_hasStatuses(actor, 'heavilyEncumbered').length
