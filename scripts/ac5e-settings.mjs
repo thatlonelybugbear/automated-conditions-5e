@@ -59,8 +59,8 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_EXHAUSTION,
 			{
-				name: 'AC5e.AutoExhaustionName',
-				hint: 'AC5e.AutoExhaustionHint',
+				name: 'AC5E.AutoExhaustionName',
+				hint: 'AC5E.AutoExhaustionHint',
 				scope: 'world',
 				config: true,
 				default: true,
