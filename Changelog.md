@@ -1,7 +1,7 @@
 ### v11.315.304.6.1
 * Finally fix attackrolls issue in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/48
 * Closes #44
-* 
+
 ## v11.315.304.6 <hl>
 * Closes https://github.com/thatlonelybugbear/automated-conditions-5e/issues/44
 * Add lang file by in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/47
