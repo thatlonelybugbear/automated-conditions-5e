@@ -1,5 +1,10 @@
+## v11.315.304.6.4
+* Closing [43](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/43) (encumbrance automation).
+* Closing [57](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/57) (more translations about attack/damage rolls and targets selected).
+* Closing [58](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/58) (bail out of attack/damage rolls suggestions, if no targets selected).
+
 ## v11.315.304.6.3
-* Closes [53](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/)
+* Closes [53](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/53)
 
 ## v11.315.304.6.2
 * 51-  fix saves advantage mode when not proficient with the armor
