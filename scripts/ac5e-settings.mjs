@@ -69,7 +69,7 @@ export default class Settings {
 			hint: 'AC5E.AutoEncumbranceHint',
 			scope: 'world',
 			config: true,
-			default: true,
+			default: false,
 			type: Boolean,
 		});
 	}
