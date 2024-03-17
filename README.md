@@ -1,5 +1,5 @@
 # Automated Conditions 5e
-![](https://img.shields.io/badge/Foundry-v11.315-informational) ![](https://img.shields.io/badge/Dnd5e-v3.0.4-informational) ![](https://img.shields.io/badge/AC5E-11.315.304.6.5-informational) ![GitHub Releases](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total) ![GitHub Releases](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total) ![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fautomated-conditions-5e&colorB=4aa94a) 
+![](https://img.shields.io/badge/Foundry-v11.315-informational) ![](https://img.shields.io/badge/Dnd5e-v3.0.4-informational) ![](https://img.shields.io/badge/AC5E-11.315.304.6.6-informational) ![GitHub Releases](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total) ![GitHub Releases](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total) ![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fautomated-conditions-5e&colorB=4aa94a) 
 
 
 ## For dnd5e v3.x, use manifest: 
