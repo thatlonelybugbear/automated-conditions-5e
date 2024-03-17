@@ -161,10 +161,7 @@ export function _autoArmor(actor, test = 'both') {
 }
 
 export function _autoEncumbrance(actor, abilityId) {
-	if (
-		game.settings.get('dnd5e', 'encumbrance') !== 'variant' ||
-		!settings.autoEncumbrance
-	)
+	if (!settings.autoEncumbrance)
 		return null;
 	return (
 		['con', 'dex', 'str'].includes(abilityId) &&
