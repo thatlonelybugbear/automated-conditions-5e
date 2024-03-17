@@ -214,6 +214,11 @@ export function _preRollAttack(item, config) {
 		ui.notifications.warn(game.i18n.localize('AC5E.MultipleTargetsAttackWarn'));
 		console.warn(game.i18n.localize('AC5E.MultipleTargetsAttackWarn'));
 	}
+	if (!game.user.targets.size) {
+		ui.notifications.warn(game.i18n.localize('AC5E.NoTargetsAttackWarn'));
+		console.warn(game.i18n.localize('AC5E.NoTargetsAttackWarn'));
+		return true; //expect error. to-do: pass default advantageMode for attribution if needed.
+	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
 	let statuses = settings.autoExhaustion
@@ -366,10 +371,15 @@ export function _preRollDamage(item, config) {
 		!_hasAppliedEffects(singleTargetActor)
 	)
 		return true;
-	if (game.user.targets.size > 1)
-		ui.notifications.warn(
-			'Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.'
-		);
+	if (game.user.targets.size > 1) {
+		ui.notifications.warn(game.i18n.localize('AC5E.MultipleTargetsDamageWarn'));
+		c('AC5E.MultipleTargetsDamageWarn'));
+	}
+	if (!game.user.targets.size) {
+		ui.notifications.warn(game.i18n.localize('AC5E.NoTargetsDamageWarn'));
+		console.warn(game.i18n.localize('AC5E.NoTargetsDamageWarn'));
+		return true; //expect error. to-do: pass default advantageMode for attribution if needed.
+	}
 
 	//on Target advantage - Paralysed, Unconscious conditions.
 	let statuses = ['paralyzed', 'unconscious'];
