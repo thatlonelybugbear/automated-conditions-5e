@@ -7,7 +7,7 @@
 	"AC5E.AutoRangedAttacksHint": "When checked, AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack.",
 	"AC5E.AutoExhaustionName": "AC5e exhaustion automation.",
 	"AC5E.AutoExhaustionHint": "When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).",
+	"AC5E.AutoEncumbranceName": "AC5e variant encumbrance.",
+	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavilty encumbered) option, otherwise this will have no effect.",
 	"AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.",
-	"AC5E.AutoEncumbranceName": "AC5e variant encumbrance",
-	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavilty encumbered) option, otherwise this will have no effect."
 }
