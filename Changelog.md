@@ -1,3 +1,6 @@
+## v11.315.304.6.3
+* Closes #53 
+
 ## v11.315.304.6.2
 * 51-  fix saves advantage mode when not proficient with the armor
 
