@@ -1,4 +1,4 @@
-## v11.315.304.6.1
+## v11.315.304.6.2
 * 51-  fix saves advantage mode when not proficient with the armor
 
 ## v11.315.304.6.1
