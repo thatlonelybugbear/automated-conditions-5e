@@ -59,7 +59,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor, 'prof')
+		!_autoArmor(actor, 'prof')
 	) {
 		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
 		change = true;
