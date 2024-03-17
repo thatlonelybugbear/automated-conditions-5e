@@ -302,7 +302,7 @@ export function _preRollAttack(item, config) {
 		);
 		change = true;
 	}
-	if (_autoEncumbrance(actor, item.abilityMod)) {
+	if (_autoEncumbrance(sourceActor, item.abilityMod)) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			`${_i18nConditions('HeavilyEncumbered')}`
 		);

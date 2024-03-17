@@ -1,3 +1,6 @@
+## v11.315.304.6.8
+* Fix bug when rolling an attack and automated encumbrance is true.
+
 ## v11.315.304.6.7
 * Default settings fix.
   * Tooltips on
