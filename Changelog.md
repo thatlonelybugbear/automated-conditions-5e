@@ -1,4 +1,13 @@
-### v11.315.304.5.3 <hl>
+### v11.315.304.6.1
+* Finally fix attackrolls issue in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/48
+* Closes #44
+* 
+## v11.315.304.6 <hl>
+* Closes https://github.com/thatlonelybugbear/automated-conditions-5e/issues/44
+* Add lang file by in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/47
+* Fixed Armor automation issues and tooltips.
+
+### v11.315.304.5.4 <hl>
 - Added a setting for automating Exhaustion 5e rules or not. Closing: <https://github.com/thatlonelybugbear/automated-conditions-5e/issues/37>
   - Should allow for compatibility with modules offering alternative rules for exhaustion (will add the dndOne rules as an option soon).
  
