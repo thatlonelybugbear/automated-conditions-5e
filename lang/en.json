@@ -10,4 +10,7 @@
 	"AC5E.AutoEncumbranceName": "AC5e variant encumbrance.",
 	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavilty encumbered) option, otherwise this will have no effect.",
 	"AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.",
+	"AC5E.NoTargetsAttackWarn": "Automated Conditions 5e: You are have no targets selected when attacking. Please always target if you want AC5E to suggest advantageModes properly",
+	"AC5E.MultipleTargetsDamageWarn": "Automated Conditions 5e: You are damaging multiple targets and that is not supported. The Roll results can be skewed.",
+	"AC5E.NoTargetsDamageWarn": "Automated Conditions 5e: You are have no targets selected when rolling damage. Please always target if you want AC5E to suggest roll modes properly",
 }
