@@ -38,7 +38,10 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	let statuses = settings.autoExhaustion ? ['exhaustion3'] : [];
 	if (abilityId === 'dex') statuses.push('restrained');
 	if (!!_hasStatuses(actor, statuses)) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
+		ac5eConfig.disadvantage = [
+			...ac5eConfig.disadvantage,
+			..._hasStatuses(actor, statuses),
+		];
 		change = true;
 	}
 	//Paralysed, Petrified, Stunned, Unconscious conditions, fail the save
@@ -61,7 +64,10 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		!_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+		ac5eConfig.disadvantage = [
+			...ac5eConfig.disadvantage,
+			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+		];
 		change = true;
 	}
 	if (change)
@@ -85,18 +91,27 @@ export function _preRollSkill(actor, config, skillId) {
 		? ['exhaustion', 'frightened', 'poisoned']
 		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
+		ac5eConfig.disadvantage = [
+			...ac5eConfig.disadvantage,
+			..._hasStatuses(actor, statuses),
+		];
 		change = true;
 	}
 	//check Auto Armor
 	if (settings.autoArmor) {
 		const { defaultAbility } = config.data;
 		if (['dex', 'str'].includes(defaultAbility) && !_autoArmor(actor, 'prof')) {
-			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage ,`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+			ac5eConfig.disadvantage = [
+				...ac5eConfig.disadvantage,
+				`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+			];
 			change = true;
 		}
 		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
-			ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('ItemEquipmentStealthDisav')})`];
+			ac5eConfig.disadvantage = [
+				...ac5eConfig.disadvantage,
+				`${_i18n5e('Armor')} (${_i18n5e('ItemEquipmentStealthDisav')})`,
+			];
 			change = true;
 		}
 	}
@@ -120,7 +135,10 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		? ['exhaustion', 'frightened', 'poisoned']
 		: ['frightened', 'poisoned'];
 	if (_hasStatuses(actor, statuses).length) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, ..._hasStatuses(actor, statuses)];
+		ac5eConfig.disadvantage = [
+			...ac5eConfig.disadvantage,
+			..._hasStatuses(actor, statuses),
+		];
 		change = true;
 	}
 	//check Auto Armor
@@ -129,7 +147,10 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		!_autoArmor(actor, 'prof')
 	) {
-		ac5eConfig.disadvantage = [...ac5eConfig.disadvantage, `${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`];
+		ac5eConfig.disadvantage = [
+			...ac5eConfig.disadvantage,
+			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+		];
 		change = true;
 	}
 	if (change)
@@ -167,13 +188,20 @@ export function _preRollAttack(item, config) {
 		return true;
 	//to-do: Warning if more than one target selected. Think about more than one targets
 	if (game.user.targets.size > 1) {
-		ui.notifications.warn(game.i18n.localize("AC5E.MultipleTargetsAttackWarn"));
-		console.warn(game.i18n.localize("AC5E.MultipleTargetsAttackWarn"));
+		ui.notifications.warn(game.i18n.localize('AC5E.MultipleTargetsAttackWarn'));
+		console.warn(game.i18n.localize('AC5E.MultipleTargetsAttackWarn'));
 	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
 	let statuses = settings.autoExhaustion
-		? ['blinded', 'exhaustion3', 'frightened', 'poisoned', 'prone', 'restrained']
+		? [
+				'blinded',
+				'exhaustion3',
+				'frightened',
+				'poisoned',
+				'prone',
+				'restrained',
+		  ]
 		: ['blinded', 'frightened', 'poisoned', 'prone', 'restrained'];
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
