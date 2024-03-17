@@ -1,5 +1,5 @@
 ## v11.315.304.6.3
-* Closes #53 
+* Closes [53](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/)
 
 ## v11.315.304.6.2
 * 51-  fix saves advantage mode when not proficient with the armor
