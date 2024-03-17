@@ -1,3 +1,11 @@
+## v11.315.304.6.7
+* Default settings fix.
+  * Tooltips on
+  * Armor automation off
+  * Range automation off
+  * Exhaustion automation on
+  * Encumbrance automation off (will need also dnd5e system setting to be set to Variant option too).
+
 ## v11.315.304.6.6
 * Fixes typos
 * Closing [43](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/43) (encumbrance automation).
