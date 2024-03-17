@@ -1,4 +1,7 @@
 ## v11.315.304.6.1
+* 51-  fix saves advantage mode when not proficient with the armor
+
+## v11.315.304.6.1
 * Finally fix attackrolls issue in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/48
 * Closes #44
 
