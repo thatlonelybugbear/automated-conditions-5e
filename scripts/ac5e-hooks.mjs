@@ -3,7 +3,7 @@ import {
 	_getDistance,
 	_hasAppliedEffects,
 	_hasStatuses,
-	_i18n5e,
+	_localize,
 	_i18nConditions,
 	_autoArmor,
 	_autoEncumbrance,
@@ -73,7 +73,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+			`${_localize('Armor')} (${_localize('NotProficient')})`,
 		];
 		change = true;
 	}
@@ -117,14 +117,14 @@ export function _preRollSkill(actor, config, skillId) {
 		if (['dex', 'str'].includes(defaultAbility) && !_autoArmor(actor, 'prof')) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
-				`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+				`${_localize('Armor')} (${_localize('NotProficient')})`,
 			];
 			change = true;
 		}
 		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
-				`${_i18n5e('Armor')} (${_i18n5e('ItemEquipmentStealthDisav')})`,
+				`${_localize('Armor')} (${_localize('ItemEquipmentStealthDisav')})`,
 			];
 			change = true;
 		}
@@ -170,7 +170,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+			`${_localize('Armor')} (${_localize('NotProficient')})`,
 		];
 		change = true;
 	}
@@ -306,7 +306,7 @@ export function _preRollAttack(item, config) {
 			}
 			if (range === 'long') {
 				ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-					_i18n5e('RangeLong')
+					_localize('RangeLong')
 				);
 				change = true;
 			}
@@ -325,7 +325,7 @@ export function _preRollAttack(item, config) {
 		!_autoArmor(sourceActor, 'prof')
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`
+			`${_localize('Armor')} (${_localize('NotProficient')})`
 		);
 		change = true;
 	}
@@ -453,26 +453,26 @@ export function _renderDialog(dialog, elem) {
 	let tooltip = '<center><strong>Automated Conditions 5e</strong></center>';
 	if (getConfigAC5E.critical.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Critical'
 			)}: ${getConfigAC5E.critical.join(', ')}</span>`
 		);
 	if (getConfigAC5E.advantage?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Advantage'
 			)}: ${getConfigAC5E.advantage.join(', ')}</span>`
 		);
 	if (getConfigAC5E.disadvantage?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Disadvantage'
 			)}: ${getConfigAC5E.disadvantage.join(', ')}</span>`
 		);
 	if (getConfigAC5E.fail) tooltip = tooltip.concat(`<br>${getConfigAC5E.fail}`);
 	if (getConfigAC5E.advantage?.source?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">Attacker ${_i18n5e(
+			`<br><span style="display: block; text-align: left;">Attacker ${_localize(
 				'Advantage'
 			)
 				.substring(0, 3)
@@ -482,9 +482,9 @@ export function _renderDialog(dialog, elem) {
 		);
 	if (getConfigAC5E.advantage?.target?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Target'
-			)} grants ${_i18n5e('Advantage')
+			)} grants ${_localize('Advantage')
 				.substring(0, 3)
 				.toLocaleLowerCase()}: ${getConfigAC5E.advantage.target.join(
 				', '
@@ -492,7 +492,7 @@ export function _renderDialog(dialog, elem) {
 		);
 	if (getConfigAC5E.disadvantage?.source?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">Attacker ${_i18n5e(
+			`<br><span style="display: block; text-align: left;">Attacker ${_localize(
 				'Disadvantage'
 			)
 				.substring(0, 3)
@@ -502,9 +502,9 @@ export function _renderDialog(dialog, elem) {
 		);
 	if (getConfigAC5E.disadvantage?.target?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Target'
-			)} grants ${_i18n5e('Disadvantage')
+			)} grants ${_localize('Disadvantage')
 				.substring(0, 3)
 				.toLocaleLowerCase()}: ${getConfigAC5E.disadvantage.target.join(
 				', '
