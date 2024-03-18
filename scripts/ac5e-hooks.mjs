@@ -210,12 +210,12 @@ export function _preRollAttack(item, config) {
 		//to-do: Think about more than one targets
 		if (
 			settings.needsTarget == 'force' &&
-			!hasValidTargets(item, targetsSize, 'enforce')
+			!hasValidTargets(item, targetsSize, 'attack', 'enforce')
 		)
 			return false;
 		if (
 			settings.needsTarget == 'none' &&
-			!hasValidTargets(item, targetsSize, 'console')
+			!hasValidTargets(item, targetsSize, 'attack', 'console')
 		)
 			return true;
 	}
@@ -370,12 +370,12 @@ export function _preRollDamage(item, config) {
 		//to-do: Think about more than one targets
 		if (
 			settings.needsTarget == 'force' &&
-			!hasValidTargets(item, targetsSize, 'enforce')
+			!hasValidTargets(item, targetsSize, 'damage', 'enforce')
 		)
 			return false;
 		if (
 			settings.needsTarget == 'none' &&
-			!hasValidTargets(item, targetsSize, 'console')
+			!hasValidTargets(item, targetsSize, 'damage', 'console')
 		)
 			return true;
 	}
@@ -518,29 +518,36 @@ export function _renderDialog(dialog, elem) {
 export function _preUseItem(item) /*, config, options)*/ {
 	//will cancel the Item use if the Item needs 1 target to function properly and none or more than 1 are selected.
 	if (settings.needsTarget == 'force')
-		return hasValidTargets(item, targetsSize, 'enforce');
+		return hasValidTargets(item, targetsSize, 'pre', 'enforce');
 }
 
-function hasValidTargets(item, size, warn = false) {
+function hasValidTargets(item, size, type = 'attack', warn = false) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
-	//for when settings.needsTarget == 'force'
+	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
 	if (
 		item.hasAttack &&
 		(item.hasIndividualTarget ||
 			(!item.hasIndividualTarget && !item.hasTarget)) &&
 		size != 1
 	) {
-		sizeWarnings(size, warn);
+		sizeWarnings(size, type, warn);
 		return false;
 	} else return true;
 }
 
-function sizeWarnings(size, warn = false) {
-	const stringToDisplay = size
-		? _localize('AC5E.MultipleTargetsAttackWarn')
-		: _localize('AC5E.NoTargetsAttackWarn');
-	if (['console', 'enforce'].includes(warn)) console.warn(stringToDisplay);
-	if (warn == 'enforce') ui.notifications.warn(stringToDisplay);
+function sizeWarnings(size, type, warn = false) {
+	//size, by this point, can be either false or >1 so no need for other checks
+	//type for now can be 'damage' or 'attack'/'pre'
+	const translationString =
+		type == 'damage'
+			? size
+				? _localize('AC5E.MultipleTargetsDamageWarn')
+				: _localize('AC5E.NoTargetsDamageWarn')
+			: size
+			? _localize('AC5E.MultipleTargetsAttackWarn')
+			: _localize('AC5E.NoTargetsAttackWarn');
+	if (['console', 'enforce'].includes(warn)) console.warn(translationString);
+	if (warn == 'enforce') ui.notifications.warn(translationString);
 }
 
 /*
