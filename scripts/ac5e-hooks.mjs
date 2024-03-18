@@ -28,11 +28,6 @@ const getConfig = (config) => {
 	};
 };
 
-const targets = game.user.targets;
-const targetsSize = targets?.size;
-const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
-const singleTargetActor = singleTargetToken?.actor;
-
 export function _preRollAbilitySave(actor, config, abilityId) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true; //bail out if someone presses keys for adv/dis ff roll. Need to get the keys from MidiQOL for integration
 	//to-do: getSetting for event overriding any calcs or continue
@@ -206,6 +201,10 @@ export function _preRollAttack(item, config) {
 	ac5eConfig.advantage.target = [];
 	ac5eConfig.disadvantage.target = [];
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
+	const targets = game.user?.targets;
+	const targetsSize = targets?.size;
+	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
+	const singleTargetActor = singleTargetToken?.actor;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		if (
@@ -366,6 +365,10 @@ export function _preRollDamage(item, config) {
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const sourceToken = canvas.tokens.get(sourceTokenID);
+	const targets = game.user?.targets;
+	const targetsSize = targets?.size;
+	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
+	const singleTargetActor = singleTargetToken?.actor;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		if (
@@ -517,6 +520,8 @@ export function _renderDialog(dialog, elem) {
 
 export function _preUseItem(item) /*, config, options)*/ {
 	//will cancel the Item use if the Item needs 1 target to function properly and none or more than 1 are selected.
+	const targets = game.user?.targets;
+	const targetsSize = targets?.size;
 	if (settings.needsTarget == 'force')
 		return hasValidTargets(item, targetsSize, 'pre', 'enforce');
 }
