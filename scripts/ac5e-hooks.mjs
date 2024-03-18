@@ -3,7 +3,7 @@ import {
 	_getDistance,
 	_hasAppliedEffects,
 	_hasStatuses,
-	_i18n5e,
+	_localize,
 	_i18nConditions,
 	_autoArmor,
 	_autoEncumbrance,
@@ -68,7 +68,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+			`${_localize('Armor')} (${_localize('NotProficient')})`,
 		];
 		change = true;
 	}
@@ -112,14 +112,14 @@ export function _preRollSkill(actor, config, skillId) {
 		if (['dex', 'str'].includes(defaultAbility) && !_autoArmor(actor, 'prof')) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
-				`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+				`${_localize('Armor')} (${_localize('NotProficient')})`,
 			];
 			change = true;
 		}
 		if (skillId === 'ste' && _autoArmor(actor, 'stealth')) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
-				`${_i18n5e('Armor')} (${_i18n5e('ItemEquipmentStealthDisav')})`,
+				`${_localize('Armor')} (${_localize('ItemEquipmentStealthDisav')})`,
 			];
 			change = true;
 		}
@@ -165,7 +165,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`,
+			`${_localize('Armor')} (${_localize('NotProficient')})`,
 		];
 		change = true;
 	}
@@ -201,36 +201,34 @@ export function _preRollAttack(item, config) {
 	ac5eConfig.advantage.target = [];
 	ac5eConfig.disadvantage.target = [];
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
-	const singleTargetActor = game.user.targets?.first()?.actor; //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
-	const singleTargetToken = game.user.targets?.first();
+	const targets = game.user?.targets;
+	const targetsSize = targets?.size;
+	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
+	const singleTargetActor = singleTargetToken?.actor;
+	if (targetsSize != 1) {
+		//to-do: Think about more than one targets
+		if (
+			settings.needsTarget == 'force' &&
+			!hasValidTargets(item, targetsSize, 'attack', 'enforce')
+		)
+			return false;
+		if (
+			settings.needsTarget == 'none' &&
+			!hasValidTargets(item, targetsSize, 'attack', 'console')
+		)
+			return true;
+	}
+
 	if (
 		!_hasAppliedEffects(sourceActor) &&
 		!sourceActor.statuses.has('exhaustion') &&
 		!_hasAppliedEffects(singleTargetActor)
 	)
 		return true;
-	//to-do: Warning if more than one target selected. Think about more than one targets
-	if (game.user.targets.size > 1) {
-		ui.notifications.warn(game.i18n.localize('AC5E.MultipleTargetsAttackWarn'));
-		console.warn(game.i18n.localize('AC5E.MultipleTargetsAttackWarn'));
-	}
-	if (!game.user.targets.size) {
-		ui.notifications.warn(game.i18n.localize('AC5E.NoTargetsAttackWarn'));
-		console.warn(game.i18n.localize('AC5E.NoTargetsAttackWarn'));
-		return true; //expect error. to-do: pass default advantageMode for attribution if needed.
-	}
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
-	let statuses = settings.autoExhaustion
-		? [
-				'blinded',
-				'exhaustion3',
-				'frightened',
-				'poisoned',
-				'prone',
-				'restrained',
-		  ]
-		: ['blinded', 'frightened', 'poisoned', 'prone', 'restrained'];
+	let statuses = ['blinded', 'frightened', 'poisoned', 'prone', 'restrained'];
+	if (settings.autoExhaustion) statuses = statuses.concat('exhaustion3');
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			_hasStatuses(sourceActor, statuses)
@@ -246,51 +244,79 @@ export function _preRollAttack(item, config) {
 		);
 		change = true;
 	}
-	//on Target disadvantage - Invisible
-	//to-do: Test for Source under the see invisibility spell.
-	if (_hasStatuses(singleTargetActor, statuses).length) {
-		ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
-			_hasStatuses(singleTargetActor, statuses)
-		);
-		change = true;
-	}
-	//on Target advantage - Blinded, Paralyzed, Petrified, Restrained, Stunned, Unconscious
-	statuses = [
-		'blinded',
-		'paralyzed',
-		'petrified',
-		'restrained',
-		'stunned',
-		'unconscious',
-	];
-	if (_hasStatuses(singleTargetActor, statuses).length) {
-		ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
-			_hasStatuses(singleTargetActor, statuses)
-		);
-		change = true;
-	}
-	//on Target - Prone special case
-	statuses = ['prone'];
-	if (_hasStatuses(singleTargetActor, statuses).length) {
-		const distance = _getDistance(sourceToken, singleTargetToken);
-		if (distance <= 5) {
-			//Attacking a prone character from up to 5ft away has advantage.
-			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
-				_hasStatuses(singleTargetActor, statuses)
-					.concat(`(${distance}ft)`)
-					.join(' ')
-			);
-			change = true;
-		} else {
-			//Attacking a prone character from more than 5ft away has disadvantage.
+	if (targetsSize == 1) {
+		//on Target disadvantage - Invisible
+		//to-do: Test for Source under the see invisibility spell.
+		if (_hasStatuses(singleTargetActor, statuses).length) {
 			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
 				_hasStatuses(singleTargetActor, statuses)
-					.concat(`(${distance}ft)`)
-					.join(' ')
 			);
 			change = true;
 		}
+		//on Target advantage - Blinded, Paralyzed, Petrified, Restrained, Stunned, Unconscious
+		statuses = [
+			'blinded',
+			'paralyzed',
+			'petrified',
+			'restrained',
+			'stunned',
+			'unconscious',
+		];
+		if (_hasStatuses(singleTargetActor, statuses).length) {
+			ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
+				_hasStatuses(singleTargetActor, statuses)
+			);
+			change = true;
+		}
+		//on Target - Prone special case
+		statuses = ['prone'];
+		if (_hasStatuses(singleTargetActor, statuses).length) {
+			const distance = _getDistance(sourceToken, singleTargetToken);
+			if (distance <= 5) {
+				//Attacking a prone character from up to 5ft away has advantage.
+				ac5eConfig.advantage.target = ac5eConfig.advantage.target.concat(
+					_hasStatuses(singleTargetActor, statuses)
+						.concat(`(${distance}ft)`)
+						.join(' ')
+				);
+				change = true;
+			} else {
+				//Attacking a prone character from more than 5ft away has disadvantage.
+				ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
+					_hasStatuses(singleTargetActor, statuses)
+						.concat(`(${distance}ft)`)
+						.join(' ')
+				);
+				change = true;
+			}
+		}
+		//check Auto Range
+		if (settings.autoRanged && item.system.actionType?.includes('r')) {
+			const { inRange, range, nearbyFoe } = _autoRanged(
+				item,
+				sourceToken,
+				singleTargetToken
+			);
+			if (!inRange) {
+				ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail: Out of Range</span>`; //to-do: clean that
+				config.parts = config.parts.concat('-99');
+				config.critical = 21; //make it not crit
+				change = true;
+			}
+			if (range === 'long') {
+				ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
+					_localize('RangeLong')
+				);
+				change = true;
+			}
+			if (nearbyFoe) {
+				ac5eConfig.disadvantage.source =
+					ac5eConfig.disadvantage.source.concat('Nearby Foe');
+				change = true;
+			}
+		}
 	}
+
 	//check Auto Armor
 	if (
 		settings.autoArmor &&
@@ -298,7 +324,7 @@ export function _preRollAttack(item, config) {
 		!_autoArmor(sourceActor, 'prof')
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_i18n5e('Armor')} (${_i18n5e('NotProficient')})`
+			`${_localize('Armor')} (${_localize('NotProficient')})`
 		);
 		change = true;
 	}
@@ -307,31 +333,6 @@ export function _preRollAttack(item, config) {
 			`${_i18nConditions('HeavilyEncumbered')}`
 		);
 		change = true;
-	}
-	//check Auto Range
-	if (settings.autoRanged && item.system.actionType?.includes('r')) {
-		const { inRange, range, nearbyFoe } = _autoRanged(
-			item,
-			sourceToken,
-			singleTargetToken
-		);
-		if (!inRange) {
-			ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail: Out of Range</span>`; //to-do: clean that
-			config.parts = config.parts.concat('-99');
-			config.critical = 21; //make it not crit
-			change = true;
-		}
-		if (range === 'long') {
-			ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-				_i18n5e('RangeLong')
-			);
-			change = true;
-		}
-		if (nearbyFoe) {
-			ac5eConfig.disadvantage.source =
-				ac5eConfig.disadvantage.source.concat('Nearby Foe');
-			change = true;
-		}
 	}
 	if (change || ac5eConfig.critical.length)
 		foundry.utils.setProperty(
@@ -364,22 +365,28 @@ export function _preRollDamage(item, config) {
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const sourceToken = canvas.tokens.get(sourceTokenID);
-	const singleTargetActor = game.user.targets?.first()?.actor; //to-do: refactor for dnd5e 3.x grabbing the messageData, although not particularly helpful.
-	const singleTargetToken = game.user.targets?.first();
+	const targets = game.user?.targets;
+	const targetsSize = targets?.size;
+	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
+	const singleTargetActor = singleTargetToken?.actor;
+	if (targetsSize != 1) {
+		//to-do: Think about more than one targets
+		if (
+			settings.needsTarget == 'force' &&
+			!hasValidTargets(item, targetsSize, 'damage', 'enforce')
+		)
+			return false;
+		if (
+			settings.needsTarget == 'none' &&
+			!hasValidTargets(item, targetsSize, 'damage', 'console')
+		)
+			return true;
+	}
 	if (
 		!_hasAppliedEffects(sourceActor) &&
 		!_hasAppliedEffects(singleTargetActor)
 	)
 		return true;
-	if (game.user.targets.size > 1) {
-		ui.notifications.warn(game.i18n.localize('AC5E.MultipleTargetsDamageWarn'));
-		console.warn(game.i18n.localize('AC5E.MultipleTargetsDamageWarn'));
-	}
-	if (!game.user.targets.size) {
-		ui.notifications.warn(game.i18n.localize('AC5E.NoTargetsDamageWarn'));
-		console.warn(game.i18n.localize('AC5E.NoTargetsDamageWarn'));
-		return true; //expect error. to-do: pass default advantageMode for attribution if needed.
-	}
 
 	//on Target advantage - Paralysed, Unconscious conditions.
 	let statuses = ['paralyzed', 'unconscious'];
@@ -449,26 +456,26 @@ export function _renderDialog(dialog, elem) {
 	let tooltip = '<center><strong>Automated Conditions 5e</strong></center>';
 	if (getConfigAC5E.critical.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Critical'
 			)}: ${getConfigAC5E.critical.join(', ')}</span>`
 		);
 	if (getConfigAC5E.advantage?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Advantage'
 			)}: ${getConfigAC5E.advantage.join(', ')}</span>`
 		);
 	if (getConfigAC5E.disadvantage?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Disadvantage'
 			)}: ${getConfigAC5E.disadvantage.join(', ')}</span>`
 		);
 	if (getConfigAC5E.fail) tooltip = tooltip.concat(`<br>${getConfigAC5E.fail}`);
 	if (getConfigAC5E.advantage?.source?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">Attacker ${_i18n5e(
+			`<br><span style="display: block; text-align: left;">Attacker ${_localize(
 				'Advantage'
 			)
 				.substring(0, 3)
@@ -478,9 +485,9 @@ export function _renderDialog(dialog, elem) {
 		);
 	if (getConfigAC5E.advantage?.target?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Target'
-			)} grants ${_i18n5e('Advantage')
+			)} grants ${_localize('Advantage')
 				.substring(0, 3)
 				.toLocaleLowerCase()}: ${getConfigAC5E.advantage.target.join(
 				', '
@@ -488,7 +495,7 @@ export function _renderDialog(dialog, elem) {
 		);
 	if (getConfigAC5E.disadvantage?.source?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">Attacker ${_i18n5e(
+			`<br><span style="display: block; text-align: left;">Attacker ${_localize(
 				'Disadvantage'
 			)
 				.substring(0, 3)
@@ -498,9 +505,9 @@ export function _renderDialog(dialog, elem) {
 		);
 	if (getConfigAC5E.disadvantage?.target?.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_i18n5e(
+			`<br><span style="display: block; text-align: left;">${_localize(
 				'Target'
-			)} grants ${_i18n5e('Disadvantage')
+			)} grants ${_localize('Disadvantage')
 				.substring(0, 3)
 				.toLocaleLowerCase()}: ${getConfigAC5E.disadvantage.target.join(
 				', '
@@ -509,6 +516,43 @@ export function _renderDialog(dialog, elem) {
 	if (tooltip === '<center><strong>Automated Conditions 5e</strong></center>')
 		return true;
 	getHighlightedButton.setAttribute('data-tooltip', tooltip);
+}
+
+export function _preUseItem(item) /*, config, options)*/ {
+	//will cancel the Item use if the Item needs 1 target to function properly and none or more than 1 are selected.
+	const targets = game.user?.targets;
+	const targetsSize = targets?.size;
+	if (settings.needsTarget == 'force')
+		return hasValidTargets(item, targetsSize, 'pre', 'enforce');
+}
+
+function hasValidTargets(item, size, type = 'attack', warn = false) {
+	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
+	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
+	if (
+		item.hasAttack &&
+		(item.hasIndividualTarget ||
+			(!item.hasIndividualTarget && !item.hasTarget)) &&
+		size != 1
+	) {
+		sizeWarnings(size, type, warn);
+		return false;
+	} else return true;
+}
+
+function sizeWarnings(size, type, warn = false) {
+	//size, by this point, can be either false or >1 so no need for other checks
+	//type for now can be 'damage' or 'attack'/'pre'
+	const translationString =
+		type == 'damage'
+			? size
+				? _localize('AC5E.MultipleTargetsDamageWarn')
+				: _localize('AC5E.NoTargetsDamageWarn')
+			: size
+			? _localize('AC5E.MultipleTargetsAttackWarn')
+			: _localize('AC5E.NoTargetsAttackWarn');
+	if (['console', 'enforce'].includes(warn)) console.warn(translationString);
+	if (warn == 'enforce') ui.notifications.warn(translationString);
 }
 
 /*

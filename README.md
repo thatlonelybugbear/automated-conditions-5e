@@ -40,10 +40,10 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - **Unconscious**: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
 
 # Settings added for:
-- Armor automation (default off)
+- **Armor automation (default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
-- Range automation (default off)
+- **Range automation (default off)**
   - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
   - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
   - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (Out of Range).
@@ -53,7 +53,16 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
   - Sharpshooter: No disadvantage when shooting at long range with
     - A flag on the Actor `flags.automated-conditions-5e.sharpShooter | Override | 1` or
     - An Item named `Sharpshooter`.
-- Show/hide roll dialog tooltips (default on)
+- **Show/hide roll dialog tooltips (default on)**
+- **Exhaustion automation (default on)**
+  - If you want to not automatically process Exhaustion conditions uncheck this. Doing so will allow for other exhaustion modules to alter exhaustion automation or your own rules.
+- **Encumbrance automation (default off)**
+  - Dnd5e v3.x system offers a setting for Encumbrance rules. If that is set to `Variant`, and you turn this AC5e setting on, ability checks, attack rolls, and saving throws that use Strength, Dexterity, or Constitution will have disadvantage.
+- **Targeting options (default From source only)**
+  - When 0 or more than 1 targets are selected, AC5e will not be able by default to calculate correctly advantageMode/damageMode as this is done based on the first of the game.user.targets only. There is now a setting for the GM to decide how AC5e will deal with targeting and rolling an Attack or Damage, or try to Use an Item that has an attack and Target any of the Individual target options in its details tab. The options are as follows:
+    - *From Source Only*: The advantageMode/damageMode will be calculated based on effects/conditions etc on the Source actor only (default option),
+    - *Do nothing*: No calculations whatsoever will take place,
+    - *Enforce targeting*: Will cancel the incoming Roll or Item use, and display a warning for the user to target 1 Target (Use with caution).
 
 # Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
