@@ -10,12 +10,6 @@
 ![Latest Release Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total?color=2b82fc&label=LATEST%20DOWNLOADS&style=for-the-badge)
 ![Total Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total?color=2b82fc&label=TOTAL%20DOWNLOADS&style=for-the-badge)
 
-## For dnd5e v3.x, use manifest: 
-<https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json>
-## For dnd5e v2.x, use manifest: 
-<https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
-
-
 ## Description
 A small module for Foundry and Dnd5e which uses dnd5e system Hooks to add the correct config options for Rolls, trying to automate the most common Dnd5e Conditions.
 
@@ -72,3 +66,9 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 
 # Credits
 - Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
+
+# Manual installation
+## For dnd5e v3.x, use manifest: 
+<https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json>
+## For dnd5e v2.x, use manifest: 
+<https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
