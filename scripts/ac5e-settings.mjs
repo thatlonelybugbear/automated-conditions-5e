@@ -115,6 +115,6 @@ export default class Settings {
 		);
 	}
 	get needsTarget() {
-		return game.settings.get(CONSTANT.MODULE_ID, Settings.TARGETING);
+		return game.settings.get(Constants.MODULE_ID, Settings.TARGETING);
 	}
 }
