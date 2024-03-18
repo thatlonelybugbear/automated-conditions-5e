@@ -81,9 +81,9 @@ export default class Settings {
 			default: 'source',
 			type: String,
 			choices: {
-				source: 'Only Source',
-				none: 'Do Nothing',
-				force: 'Enforce Targeting'
+				source: 'AC5E.TargetingChoicesSource',
+				none: 'AC5E.TargetingChoicesNone',
+				force: 'AC5E.TargetingChoicesForce'
 			}
 		});
 	}
