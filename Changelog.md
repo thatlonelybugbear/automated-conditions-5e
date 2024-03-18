@@ -5,7 +5,7 @@ When 0 or more than 1 targets are selected, AC5e will not be able by default to 
    * `Do nothing`: No calculations whatsoever will take place,
    * `Enforce targeting`: Will cancel the incoming Roll or Item use, and display a warning for the user to target `1 Target` (___Use with caution___).
 
-<hr>
+
 ## v11.315.304.6.8
 * Fix bug when rolling an attack and automated encumbrance is true.
 
