@@ -7,6 +7,7 @@ export default class Settings {
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion'; //to-do: add module solution for dndone exhaustion.
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
+	static TARGETING = 'targeting';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -72,6 +73,19 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.TARGETING, {
+			name: 'AC5E.TargetingName',
+			hint: 'AC5E.TargetingHint',
+			scope: 'world',
+			config: true,
+			default: 'source',
+			type: String,
+			choices: {
+				source: 'Only Source',
+				none: 'Do Nothing',
+				force: 'Enforce Targeting'
+			}
+		});
 	}
 	get dialogTooltips() {
 		return game.settings.get(
@@ -99,5 +113,8 @@ export default class Settings {
 			game.settings.get('dnd5e', 'encumbrance') == 'variant' &&
 			game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENCUMBRANCE)
 		);
+	}
+	get needsTarget() {
+		return game.settings.get(CONSTANT.MODULE_ID, Settings.TARGETING);
 	}
 }
