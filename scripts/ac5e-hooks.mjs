@@ -31,11 +31,10 @@ const getConfig = (config) => {
 export function _preRollAbilitySave(actor, config, abilityId) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true; //bail out if someone presses keys for adv/dis ff roll. Need to get the keys from MidiQOL for integration
 	//to-do: getSetting for event overriding any calcs or continue
-
+	if (config.isConcentration) return true; //concentration handling in the _preRollConcentration.
 	let change = false;
 	const ac5eConfig = getConfig(config);
-	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
-		return true; //to-do: return any dis/advantage already present on the roll till that point for attribution.
+	//to-do: return any dis/advantage already present on the roll till that point for attribution.
 	//Exhaustion 3-5, Restrained for dex
 	let statuses = settings.autoExhaustion ? ['exhaustion3'] : [];
 	if (abilityId === 'dex') statuses.push('restrained');
@@ -75,7 +74,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	if (_autoEncumbrance(actor, abilityId)) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18nConditions('HeavilyEncumbered')}`,
+			_i18nConditions('HeavilyEncumbered'),
 		];
 		change = true;
 	}
@@ -94,8 +93,6 @@ export function _preRollSkill(actor, config, skillId) {
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const { defaultAbility } = config.data;
-	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
-		return true;
 	//Exhaustion 1-5, Frightened, Poisoned conditions
 	let statuses = settings.autoExhaustion
 		? ['exhaustion', 'frightened', 'poisoned']
@@ -127,7 +124,7 @@ export function _preRollSkill(actor, config, skillId) {
 	if (_autoEncumbrance(actor, defaultAbility)) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18nConditions('HeavilyEncumbered')}`,
+			_i18nConditions('HeavilyEncumbered'),
 		];
 		change = true;
 	}
@@ -144,8 +141,6 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	if (config.event?.altKey || config.event?.ctrlKey) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
-	if (!_hasAppliedEffects(actor) && !actor.statuses.has('exhaustion'))
-		return true;
 	//Exhaustion 1-5, Frightened, Poisoned conditions
 	let statuses = settings.autoExhaustion
 		? ['exhaustion', 'frightened', 'poisoned']
@@ -172,7 +167,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	if (_autoEncumbrance(actor, abilityId)) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_i18nConditions('HeavilyEncumbered')}`,
+			_i18nConditions('HeavilyEncumbered'),
 		];
 		change = true;
 	}
@@ -218,13 +213,6 @@ export function _preRollAttack(item, config) {
 		)
 			return true;
 	}
-
-	if (
-		!_hasAppliedEffects(sourceActor) &&
-		!sourceActor.statuses.has('exhaustion') &&
-		!_hasAppliedEffects(singleTargetActor)
-	)
-		return true;
 
 	//on Source disadvantage - Blinded, Exhaustion 3-5, Frightened, Poisoned, Prone, Restrained
 	let statuses = ['blinded', 'frightened', 'poisoned', 'prone', 'restrained'];
@@ -330,7 +318,7 @@ export function _preRollAttack(item, config) {
 	}
 	if (_autoEncumbrance(sourceActor, item.abilityMod)) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_i18nConditions('HeavilyEncumbered')}`
+			_i18nConditions('HeavilyEncumbered')
 		);
 		change = true;
 	}
@@ -391,6 +379,7 @@ export function _preRollDamage(item, config) {
 	//on Target advantage - Paralysed, Unconscious conditions.
 	let statuses = ['paralyzed', 'unconscious'];
 	if (
+		!item.isHealing &&
 		_hasStatuses(singleTargetActor, statuses).length &&
 		_getDistance(sourceToken, singleTargetToken) <= 5
 	) {
@@ -425,6 +414,39 @@ export function _preRollDeathSave(actor, config) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
 			: _hasStatuses(actor, statuses);
+		change = true;
+	}
+	if (change)
+		foundry.utils.setProperty(
+			config,
+			`dialogOptions.${Constants.MODULE_ID}`,
+			ac5eConfig
+		);
+	return _calcAdvantageMode(ac5eConfig, config);
+}
+
+export function _preRollConcentration(actor, config) {
+	if (config.event?.altKey || config.event?.ctrlKey) return true;
+	let change = false;
+	const ac5eConfig = getConfig(config);
+	//Exhaustion 3-5
+	let statuses = ['exhaustion3'];
+	if (_hasStatuses(actor, statuses).length) {
+		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
+			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
+			: _hasStatuses(actor, statuses);
+		change = true;
+	}
+	if (_autoEncumbrance(actor, abilityId)) {
+		ac5eConfig.disadvantage = [
+			...ac5eConfig.disadvantage,
+			_i18nConditions('HeavilyEncumbered'),
+		];
+		change = true;
+	}
+	let itemName = 'AC5E.WarCaster';
+	if (_hasItem(actor, itemName)) {
+		ac5eConfig.advantage = [...ac5eConfig.advantage, _localize(itemName)];
 		change = true;
 	}
 	if (change)

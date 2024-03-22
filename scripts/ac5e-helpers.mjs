@@ -192,6 +192,12 @@ export function _autoRanged(item, token, target) {
 
 export function _hasItem(actor, itemName) {
 	return actor?.items.some((item) =>
-		item.name.toLocaleLowerCase().includes(itemName)
+		item?.name
+			.toLocaleLowerCase()
+			.includes(_localize(itemName).toLocaleLowerCase())
 	);
+}
+
+export function _systemCheck(testVersion) {
+	return foundry.utils.isNewerVersion(game.system.version, testVersion);
 }
