@@ -51,7 +51,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
     - An Item named `Sharpshooter`.
 - **Show/hide roll dialog tooltips (default on)**
 - **Exhaustion automation (default on)**
-  - If you want to not automatically process Exhaustion conditions uncheck this. Doing so will allow for other exhaustion modules to alter exhaustion automation or your own rules.
+  - If you want to not automatically process Exhaustion conditions uncheck this. Doing so will allow for other exhaustion modules to alter exhaustion automation or your own rules (eg [Alternative Exhaustion 5e](https://foundryvtt.com/packages/alternative-exhaustion-5e)).
 - **Encumbrance automation (default off)**
   - Dnd5e v3.x system offers a setting for Encumbrance rules. If that is set to `Variant`, and you turn this AC5e setting on, ability checks, attack rolls, and saving throws that use Strength, Dexterity, or Constitution will have disadvantage.
 - **Targeting options (default From source only)**
@@ -59,12 +59,17 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
     - *From Source Only*: The advantageMode/damageMode will be calculated based on effects/conditions etc on the Source actor only (default option),
     - *Do nothing*: No calculations whatsoever will take place,
     - *Enforce targeting*: Will cancel the incoming Roll or Item use, and display a warning for the user to target 1 Target (Use with caution).
+- **For D&D5e v3.1**
+  - Added `dnd5e.preRollConcentration` hook to deal with conditions affecting concentration saving throws.
+    - Exhaustion 3-5 applies disadvantage.
+    - Heavy Encumbrance applies disadvantage.
+    - War Caster named Item applies advantage.
 
 # Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
 - [ ] MidiQOL semi-compatible (needs tweaks)
 - [ ] Ready Set Rolls semi-compatible (needs tweaks)
-- [ ] Roll Groups, not tested (should not have issues though).
+- [x] Roll Groups, not tested (seems to not have issues, open an issue if you encounter any).
  
 # Credits
 - Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
