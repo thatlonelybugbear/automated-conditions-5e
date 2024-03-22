@@ -1,3 +1,10 @@
+## v11.315.310.1
+D&D5e 3.1 compatibility update.
+- Added `dnd5e.preRollConcentration` Hook to deal with conditions affecting concentration saving throws.
+  - Exhaustion 3-5 applies disadvantage.
+  - Heavy Encumbrance applies disadvantage.
+  - War Caster named Item applies advantage.
+
 ## v11.315.304.7
 Closes [63](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/63) with a new setting for `AC5e targeting options`. <br><br>
 When 0 or more than 1 targets are selected, AC5e will not be able by default to calculate correctly advantageMode/damageMode as this is done based on the first of the `game.user.targets` only. There is now a setting for the GM to decide how AC5e will deal with targeting and rolling an Attack or Damage, or try to Use an Item that has an attack and Target any of the Individual target options in its details tab. The options are as follows:
