@@ -195,3 +195,7 @@ export function _hasItem(actor, itemName) {
 		item.name.toLocaleLowerCase().includes(itemName)
 	);
 }
+
+export function _systemCheck(testVersion) {
+	return foundry.utils.isNewerVersion(game.system.version, testVersion);
+}
