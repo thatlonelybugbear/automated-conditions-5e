@@ -192,7 +192,9 @@ export function _autoRanged(item, token, target) {
 
 export function _hasItem(actor, itemName) {
 	return actor?.items.some((item) =>
-		item.name.toLocaleLowerCase().includes(itemName)
+		item?.name
+			.toLocaleLowerCase()
+			.includes(_localize(itemName).toLocaleLowerCase())
 	);
 }
 
