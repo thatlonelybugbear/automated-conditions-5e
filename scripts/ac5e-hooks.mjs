@@ -349,7 +349,7 @@ export function _preRollDamage(item, config) {
 			speaker: { token: sourceTokenID },
 		},
 	} = config;
-	if (item.isHealing || config.event?.altKey || critical) return true;
+	if (config.event?.altKey || critical) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const sourceToken = canvas.tokens.get(sourceTokenID);
@@ -379,6 +379,7 @@ export function _preRollDamage(item, config) {
 	//on Target advantage - Paralysed, Unconscious conditions.
 	let statuses = ['paralyzed', 'unconscious'];
 	if (
+		!item.isHealing &&
 		_hasStatuses(singleTargetActor, statuses).length &&
 		_getDistance(sourceToken, singleTargetToken) <= 5
 	) {
