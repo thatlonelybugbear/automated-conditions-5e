@@ -64,8 +64,8 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
 - [ ] MidiQOL semi-compatible (needs tweaks)
 - [ ] Ready Set Rolls semi-compatible (needs tweaks)
-- [ ] Roll Groups, not tested.
-
+- [ ] Roll Groups, not tested (should not have issues though).
+ 
 # Credits
 - Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
 
