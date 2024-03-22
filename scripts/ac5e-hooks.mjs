@@ -2,6 +2,7 @@ import {
 	_calcAdvantageMode,
 	_getDistance,
 	_hasAppliedEffects,
+	_hasItem,
 	_hasStatuses,
 	_localize,
 	_i18nConditions,
@@ -437,7 +438,7 @@ export function _preRollConcentration(actor, config) {
 			: _hasStatuses(actor, statuses);
 		change = true;
 	}
-	if (_autoEncumbrance(actor, abilityId)) {
+	if (_autoEncumbrance(actor, 'con')) {    //to-do: check if we should allow for other abilities and not just hardcode 'con';
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
 			_i18nConditions('HeavilyEncumbered'),
