@@ -361,7 +361,7 @@ export function _preRollDamage(item, config) {
 			speaker: { token: sourceTokenID },
 		},
 	} = config;
-	if (config.event?.altKey || critical) return true;
+	if (item.isHealing || config.event?.altKey || critical) return true;
 	let change = false;
 	const ac5eConfig = getConfig(config);
 	const sourceToken = canvas.tokens.get(sourceTokenID);
