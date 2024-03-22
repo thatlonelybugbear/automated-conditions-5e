@@ -1,4 +1,5 @@
 import {
+	_preRollConcentration,
 	_preRollAbilitySave,
 	_preRollSkill,
 	_preRollAbilityTest,
@@ -13,6 +14,7 @@ import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', () => {
 	new Settings().registerSettings();
+	const preRollConcentration = Hooks.on('dnd5e.preRollConcentration', _preRollConcentration);
 	const preRollAbilitySave = Hooks.on('dnd5e.preRollAbilitySave',	_preRollAbilitySave);
 	const preRollAbilityTest = Hooks.on('dnd5e.preRollAbilityTest',	_preRollAbilityTest);
 	const preRollAttack = Hooks.on('dnd5e.preRollAttack', _preRollAttack);
@@ -24,6 +26,7 @@ Hooks.once('init', () => {
 	const renderDialog = Hooks.on('renderDialog', _renderDialog);
 	console.warn(  //to-do: add rollAttack: ${rollAttack} when/if it is enabled
 		`Bugbear's Automated Conditions for 5e added the following dnd5e hooks:
+  		preRollConcentration: ${preRollConcentration}
 		preRollAbilitySave: ${preRollAbilitySave}
 		preRollAbilityTest: ${preRollAbilityTest}
 		preRollAttack: ${preRollAttack}
