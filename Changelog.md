@@ -1,3 +1,7 @@
+## v11.315.310.2
+- `pt-BR` translation added by @Kharmans [71](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/71)
+- small `en` translation edits.
+
 ## v11.315.310.1
 D&D5e 3.1 compatibility update.
 - Added `dnd5e.preRollConcentration` Hook to deal with conditions affecting concentration saving throws.
