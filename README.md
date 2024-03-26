@@ -24,7 +24,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - **Exhaustion 3**: Disadvantage on attacks and saving throws
 - **Exhaustion 4**: no changes
 - **Exhaustion 5**: no changes
-- **Frightened**: Disadvantage on ability checks and attack rolls; v10.0.3 will be testing for Visibility of origin if available to add this or not
+- **Frightened**: Disadvantage on ability checks and attack rolls;
 - **Invisible**: Advantage on attacks and grants Disadvantage to attacks by others
 - **Paralyzed**: Auto fail (-99) strength/dexterity saves and attacker within 5ft of the creature deals critical damage
 - **Petrified**: Grants Advantage on attacks by others, auto fail strength/dexterity saves
