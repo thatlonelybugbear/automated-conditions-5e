@@ -1,6 +1,10 @@
 {
-	"AC5E.ShowDialogTooltipsName": "AC5e tooltips on Roll Dialogs.",
-	"AC5E.ShowDialogTooltipsHint": "When checked, AC5e will show a helpful tooltip when hovering over the suggested Roll button, summing up the reasons for that suggestion.",
+	"AC5E.ShowTooltipsName": "Show AC5e tooltips:",
+	"AC5E.ShowTooltipsHint": "When a relevant option is selected, AC5e will show a helpful tooltip when hovering over the suggested Roll button or a generated message or both, summing up the reasons for that suggestion.",
+	"AC5E.ShowToolTipsChoicesBoth": "Roll dialogs and chat messages",
+	"AC5E.ShowToolTipsChoicesDialog": "Only on roll dialogs",
+	"AC5E.ShowToolTipsChoicesChat": "Only on chat messages",
+	"AC5E.ShowToolTipsChoicesNone": "Do not show",
 	"AC5E.AutoArmorName": "AC5e armor automation.",
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and stealth disadvantage property.",
 	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation.",
