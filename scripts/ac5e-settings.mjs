@@ -25,12 +25,18 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.SHOW_TOOLTIPS_ROLL_DIALOG,
 			{
-				name: 'AC5E.ShowDialogTooltipsName',
-				hint: 'AC5E.ShowDialogTooltipsHint',
+				name: 'AC5E.ShowTooltipsName',
+				hint: 'AC5E.ShowTooltipsHint',
 				scope: 'client',
 				config: true,
-				default: true,
-				type: Boolean,
+				default: 'both',
+				type: String,
+				choices: {
+					'both': 'AC5E.ShowToolTipsChoicesBoth',
+					'dialog': 'AC5E.ShowToolTipsChoicesDialog',
+					'chat': 'AC5E.ShowToolTipsChoicesChat',
+					'none': 'AC5E.ShowToolTipsChoicesNone'
+				}
 			}
 		);
 		game.settings.register(
@@ -87,7 +93,7 @@ export default class Settings {
 			}
 		});
 	}
-	get dialogTooltips() {
+	get showTooltips() {
 		return game.settings.get(
 			Constants.MODULE_ID,
 			Settings.SHOW_TOOLTIPS_ROLL_DIALOG
