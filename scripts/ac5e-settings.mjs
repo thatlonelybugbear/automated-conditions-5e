@@ -2,7 +2,7 @@ import Constants from './ac5e-constants.mjs';
 
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
-	static SHOW_TOOLTIPS_ROLL_DIALOG = 'showDialogTooltips';
+	static SHOW_TOOLTIPS = 'showTooltips';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion'; //to-do: add module solution for dndone exhaustion.
@@ -23,7 +23,7 @@ export default class Settings {
 
 		game.settings.register(
 			Constants.MODULE_ID,
-			Settings.SHOW_TOOLTIPS_ROLL_DIALOG,
+			Settings.SHOW_TOOLTIPS,
 			{
 				name: 'AC5E.ShowTooltipsName',
 				hint: 'AC5E.ShowTooltipsHint',
@@ -96,7 +96,7 @@ export default class Settings {
 	get showTooltips() {
 		return game.settings.get(
 			Constants.MODULE_ID,
-			Settings.SHOW_TOOLTIPS_ROLL_DIALOG
+			Settings.SHOW_TOOLTIPS
 		);
 	}
 	get autoArmor() {
