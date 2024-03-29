@@ -460,7 +460,7 @@ export function _preRollConcentration(actor, config) {
 }
 
 export function _renderDialog(dialog, elem) {
-	if (!settings.dialogTooltips) return true;
+	if (!settings.showTooltips) return true;
 	const getConfigAC5E = foundry.utils.getProperty(
 		dialog?.options,
 		Constants.MODULE_ID
