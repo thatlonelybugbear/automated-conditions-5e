@@ -8,6 +8,8 @@ export default class Settings {
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion'; //to-do: add module solution for dndone exhaustion.
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
+	static KEYPRESS_OVERRIDES = 'keypressOverrides';
+	static DEBUG = 'debugging';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -21,24 +23,20 @@ export default class Settings {
 		userRoles[CONST.USER_ROLES.GAMEMASTER] = 'Game Master';
 		userRoles[5] = 'None';
 
-		game.settings.register(
-			Constants.MODULE_ID,
-			Settings.SHOW_TOOLTIPS,
-			{
-				name: 'AC5E.ShowTooltipsName',
-				hint: 'AC5E.ShowTooltipsHint',
-				scope: 'client',
-				config: true,
-				default: 'both',
-				type: String,
-				choices: {
-					'both': 'AC5E.ShowToolTipsChoicesBoth',
-					'dialog': 'AC5E.ShowToolTipsChoicesDialog',
-					'chat': 'AC5E.ShowToolTipsChoicesChat',
-					'none': 'AC5E.ShowToolTipsChoicesNone'
-				}
-			}
-		);
+		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
+			name: 'AC5E.ShowTooltipsName',
+			hint: 'AC5E.ShowTooltipsHint',
+			scope: 'client',
+			config: true,
+			default: 'both',
+			type: String,
+			choices: {
+				both: 'AC5E.ShowToolTipsChoicesBoth',
+				dialog: 'AC5E.ShowToolTipsChoicesDialog',
+				chat: 'AC5E.ShowToolTipsChoicesChat',
+				none: 'AC5E.ShowToolTipsChoicesNone',
+			},
+		});
 		game.settings.register(
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_ARMOR_PROF_STEALTH,
@@ -89,15 +87,28 @@ export default class Settings {
 			choices: {
 				source: 'AC5E.TargetingChoicesSource',
 				none: 'AC5E.TargetingChoicesNone',
-				force: 'AC5E.TargetingChoicesForce'
-			}
+				force: 'AC5E.TargetingChoicesForce',
+			},
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES, {
+			name: 'AC5E.KeypressOverrideName',
+			hint: 'AC5E.KeypressOverrideHint',
+			scope: 'world',
+			config: true,
+			default: false,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
+			name: 'AC5E.DebuggingName',
+			hint: 'AC5E.DebuggingHint',
+			scope: 'world',
+			config: true,
+			default: false,
+			type: Boolean,
 		});
 	}
 	get showTooltips() {
-		return game.settings.get(
-			Constants.MODULE_ID,
-			Settings.SHOW_TOOLTIPS
-		);
+		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS);
 	}
 	get autoArmor() {
 		return game.settings.get(
@@ -122,5 +133,11 @@ export default class Settings {
 	}
 	get needsTarget() {
 		return game.settings.get(Constants.MODULE_ID, Settings.TARGETING);
+	}
+	get keypressOverrides() {
+		return game.settings.get(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES)
+	}
+	get debug() {
+		return game.settings.get(Constants.MODULE_ID, Settings.DEBUG);
 	}
 }
