@@ -4,11 +4,11 @@
 ![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v11.315.310.2/module.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=ff6400&style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v11.315.310.2/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
 
-[![alt-text](https://img.shields.io/badge/-Kofi-%23f96854?style=for-the-badge)](https://ko-fi.com/thatlonelybugbear) 
-
 ![Total Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total?color=2b82fc&label=TOTAL%20DOWNLOADS&style=for-the-badge)
 ![Latest Release Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total?color=2b82fc&label=LATEST%20DOWNLOADS&style=for-the-badge)
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https://forge-vtt.com/api/bazaar/package/automated-conditions-5e&colorB=68a74f&style=for-the-badge)](https://forge-vtt.com/bazaar#package=automated-conditions-5e)
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/thatlonelybugbear)
 
 
 ## Description
