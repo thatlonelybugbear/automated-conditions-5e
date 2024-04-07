@@ -16,7 +16,7 @@ Hooks.once('init', () => {
 	new Settings().registerSettings();
 	const preRollConcentration = _systemCheck('3.0.4')
 		? Hooks.on('dnd5e.preRollConcentration', _preRollConcentration)
-		: 'This will only be added for users with dnd5e 3.x';
+		: 'This will only be added for users with dnd5e 3.1+';
 	const preRollAbilitySave = Hooks.on(
 		'dnd5e.preRollAbilitySave',
 		_preRollAbilitySave
