@@ -1,3 +1,6 @@
+## v11.315311.3
+- Closes [#82](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/82). Fixes wrong tooltip format.
+
 ## v11.315311.2
 - Added a setting to not show module name in tooltips. Closes [#80](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/80).
 
