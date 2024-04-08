@@ -1,5 +1,6 @@
 ## v11.315311.5
 - Closes [#87](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/87), [#88](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/88), [#92](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/92)
+- Still investigating [#89](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/89), will rewrite the MidiQOL integration code.
 
 ## v11.315311.4
 - Closes [#85](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/85). Fixes the fix of the wrong tooltip format...
