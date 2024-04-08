@@ -49,7 +49,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		['dex', 'str'].includes(abilityId) &&
 		_hasStatuses(actor, statuses).length
 	) {
-		ac5eConfig.fail = _hasStatuses(actor, statuses); //to-do: clean that
+		ac5eConfig.fail = ac5eConfig.fail.concat(_hasStatuses(actor, statuses)); //to-do: clean that
 		config.parts = config.parts.concat('-99');
 		config.critical = 21; //make it not crit
 		change = true;
@@ -359,7 +359,7 @@ export function _preRollAttack(item, config) {
 				singleTargetToken
 			);
 			if (!inRange) {
-				ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail: Out of Range</span>`; //to-do: clean that
+				ac5eConfig.fail = ac5eConfig.fail.concat(_localize('AC5E.OutOfRange')); //to-do: clean that
 				config.parts = config.parts.concat('-99');
 				config.critical = 21; //make it not crit
 				change = true;
@@ -638,7 +638,7 @@ export function _preUseItem(item, config, options) {
 				singleTargetToken
 			);
 			if (!inRange) {
-				ac5eConfig.fail = `<span style="display: block; text-align: left;">Fail: Out of Range</span>`; //to-do: clean that
+				ac5eConfig.fail = ac5eConfig.fail.concat(_localize('AC5E.OutOfRange')); //to-do: clean that
 				config.parts = config.parts.concat('-99');
 				config.critical = 21; //make it not crit
 				change = true;
