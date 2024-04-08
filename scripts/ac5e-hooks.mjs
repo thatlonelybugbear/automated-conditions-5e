@@ -352,7 +352,7 @@ export function _preRollAttack(item, config) {
 			}
 		}
 		//check Auto Range
-		if (settings.autoRanged && item.system.actionType?.includes('r')) {
+		if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
 			const { inRange, range, nearbyFoe } = _autoRanged(
 				item,
 				sourceToken,
@@ -631,7 +631,7 @@ export function _preUseItem(item, config, options) {
 			}
 		}
 		//check Auto Range
-		if (settings.autoRanged && item.system.actionType?.includes('r')) {
+		if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
 			const { inRange, range, nearbyFoe } = _autoRanged(
 				item,
 				sourceToken,
