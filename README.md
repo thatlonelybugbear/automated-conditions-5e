@@ -1,8 +1,7 @@
 # Automated Conditions 5e
-
-![Latest Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v11.315.310.2/module.json&label=AC5E%20Version&query=$.version&colorB=yellow&style=for-the-badge)
-![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v11.315.310.2/module.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=ff6400&style=for-the-badge)
-![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v11.315.310.2/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
+![Latest Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=AC5E%20Version&query=$.version&colorB=yellow&style=for-the-badge)
+![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=ff6400&style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.maximum&colorB=red&style=for-the-badge)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/thatlonelybugbear)
 
