@@ -40,7 +40,7 @@ export default class Settings {
 		});
 		game.settings.register(
 			Constants.MODULE_ID,
-			SHOW_MODULE_NAME_IN_TOOLTIPS,
+			Settings.SHOW_MODULE_NAME_IN_TOOLTIPS,
 			{
 				name: 'AC5E.ShowModuleNameInTooltipsName',
 				scope: 'client',
