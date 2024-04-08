@@ -230,7 +230,7 @@ export function _getTooltip(ac5eConfig) {
 			)}: ${ac5eConfig.critical.join(', ')}</span>`
 		);
 	if (ac5eConfig.advantage?.length) {
-		if (ac5eConfig.critical.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">${_localize(
 				'Advantage'
@@ -238,7 +238,7 @@ export function _getTooltip(ac5eConfig) {
 		);
 	}
 	if (ac5eConfig.disadvantage?.length) {
-		if (ac5eConfig.advantage?.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">${_localize(
 				'Disadvantage'
@@ -246,7 +246,7 @@ export function _getTooltip(ac5eConfig) {
 		);
 	}
 	if (ac5eConfig.fail?.length) {
-		if (ac5eConfig.disadvantage?.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">${_localize(
 				'AC5E.Fail'
@@ -254,7 +254,7 @@ export function _getTooltip(ac5eConfig) {
 		);
 	}
 	if (ac5eConfig.advantage?.source?.length) {
-		if (ac5eConfig.fail?.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">Attacker ${_localize(
 				'Advantage'
@@ -264,7 +264,7 @@ export function _getTooltip(ac5eConfig) {
 		);
 	}
 	if (ac5eConfig.advantage?.target?.length) {
-		if (ac5eConfig.advantage?.source?.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">${_localize(
 				'Target'
@@ -274,7 +274,7 @@ export function _getTooltip(ac5eConfig) {
 		);
 	}
 	if (ac5eConfig.disadvantage?.source?.length) {
-		if (ac5eConfig.advantage?.target?.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">Attacker ${_localize(
 				'Disadvantage'
@@ -286,7 +286,7 @@ export function _getTooltip(ac5eConfig) {
 		);
 	}
 	if (ac5eConfig.disadvantage?.target?.length) {
-		if (ac5eConfig.disadvantage?.source?.length) tooltip = tooltip.concat('<br>');
+		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
 			`<span style="display: block; text-align: left;">${_localize(
 				'Target'
@@ -373,22 +373,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`)
 				? !config.event?.altKey
 				: config.event?.shiftKey;
-		} /*else {
-			if (hookType == 'conc') hooktype = 'ability';
-			advKey = !getRsrSetting(`enable${rsrHookType}QuickRoll`)
-				? config.event?.altKey || config.event?.metaKey
-				: getRsrSetting('rollModifierMode') == 0
-				? config.event?.shiftKey
-				: config.event?.ctrlKey || config.event?.metaKey;
-			disKey = !getRsrSetting(`enable${rsrHookType}QuickRoll`)
-				? config.event?.ctrlKey
-				: getRsrSetting('rollModifierMode') == 0
-				? config.event?.ctrlKey || config.event?.metaKey
-				: config.event?.shiftKey;
-			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`)
-				? !config.event?.altKey
-				: config.event?.shiftKey;
-		}*/
+		}
 		moduleID = 'RSR';
 	} else {
 		//core system keys
