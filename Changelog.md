@@ -1,3 +1,6 @@
+## v11.315311.4
+- Closes [#85](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/85). Fixes the fix of the wrong tooltip format...
+
 ## v11.315311.3
 - Closes [#82](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/82). Fixes wrong tooltip format.
 
