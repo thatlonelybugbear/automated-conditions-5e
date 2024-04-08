@@ -220,7 +220,9 @@ export function _systemCheck(testVersion) {
 }
 
 export function _getTooltip(ac5eConfig) {
-	let tooltip = '<center><strong>Automated Conditions 5e</strong></center>';
+	let tooltip = settings.showNameTooltips
+		? '<center><strong>Automated Conditions 5e</strong></center>'
+		: '';
 	if (ac5eConfig.critical.length)
 		tooltip = tooltip.concat(
 			`<br><span style="display: block; text-align: left;">${_localize(
@@ -281,7 +283,11 @@ export function _getTooltip(ac5eConfig) {
 				', '
 			)}</span>`
 		);
-	if (tooltip === '<center><strong>Automated Conditions 5e</strong></center>')
+	if (
+		tooltip === settings.showNameTooltips
+			? '<center><strong>Automated Conditions 5e</strong></center>'
+			: ''
+	)
 		return null;
 	else return tooltip;
 }
