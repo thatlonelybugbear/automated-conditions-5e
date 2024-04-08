@@ -221,51 +221,62 @@ export function _systemCheck(testVersion) {
 
 export function _getTooltip(ac5eConfig) {
 	let tooltip = settings.showNameTooltips
-		? '<center><strong>Automated Conditions 5e</strong></center>'
+		? '<center><strong>Automated Conditions 5e</strong></center><hr>'
 		: '';
 	if (ac5eConfig.critical.length)
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_localize(
+			`<span style="display: block; text-align: left;">${_localize(
 				'Critical'
 			)}: ${ac5eConfig.critical.join(', ')}</span>`
 		);
-	if (ac5eConfig.advantage?.length)
+	if (ac5eConfig.advantage?.length) {
+		if (ac5eConfig.critical.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_localize(
+			`<span style="display: block; text-align: left;">${_localize(
 				'Advantage'
 			)}: ${ac5eConfig.advantage.join(', ')}</span>`
 		);
-	if (ac5eConfig.disadvantage?.length)
+	}
+	if (ac5eConfig.disadvantage?.length) {
+		if (ac5eConfig.advantage?.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_localize(
+			`<span style="display: block; text-align: left;">${_localize(
 				'Disadvantage'
 			)}: ${ac5eConfig.disadvantage.join(', ')}</span>`
 		);
-	if (ac5eConfig.fail?.length)
+	}
+	if (ac5eConfig.fail?.length) {
+		if (ac5eConfig.disadvantage?.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_localize(
+			`<span style="display: block; text-align: left;">${_localize(
 				'AC5E.Fail'
 			)}: ${ac5eConfig.fail.join(', ')}</span>`
 		);
-	if (ac5eConfig.advantage?.source?.length)
+	}
+	if (ac5eConfig.advantage?.source?.length) {
+		if (ac5eConfig.fail?.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">Attacker ${_localize(
+			`<span style="display: block; text-align: left;">Attacker ${_localize(
 				'Advantage'
 			)
 				.substring(0, 3)
 				.toLocaleLowerCase()}: ${ac5eConfig.advantage.source.join(', ')}</span>`
 		);
-	if (ac5eConfig.advantage?.target?.length)
+	}
+	if (ac5eConfig.advantage?.target?.length) {
+		if (ac5eConfig.advantage?.source?.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_localize(
+			`<span style="display: block; text-align: left;">${_localize(
 				'Target'
 			)} grants ${_localize('Advantage')
 				.substring(0, 3)
 				.toLocaleLowerCase()}: ${ac5eConfig.advantage.target.join(', ')}</span>`
 		);
-	if (ac5eConfig.disadvantage?.source?.length)
+	}
+	if (ac5eConfig.disadvantage?.source?.length) {
+		if (ac5eConfig.advantage?.target?.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">Attacker ${_localize(
+			`<span style="display: block; text-align: left;">Attacker ${_localize(
 				'Disadvantage'
 			)
 				.substring(0, 3)
@@ -273,9 +284,11 @@ export function _getTooltip(ac5eConfig) {
 				', '
 			)}</span>`
 		);
-	if (ac5eConfig.disadvantage?.target?.length)
+	}
+	if (ac5eConfig.disadvantage?.target?.length) {
+		if (ac5eConfig.disadvantage?.source?.length) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<br><span style="display: block; text-align: left;">${_localize(
+			`<span style="display: block; text-align: left;">${_localize(
 				'Target'
 			)} grants ${_localize('Disadvantage')
 				.substring(0, 3)
@@ -283,6 +296,7 @@ export function _getTooltip(ac5eConfig) {
 				', '
 			)}</span>`
 		);
+	}
 	if (
 		tooltip === settings.showNameTooltips
 			? '<center><strong>Automated Conditions 5e</strong></center>'
