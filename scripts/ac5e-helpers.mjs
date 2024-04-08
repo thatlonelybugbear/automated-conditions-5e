@@ -321,7 +321,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			hookType
 		);
 	let moduleID = 'Core';
-	let advKey, disKey, critKey, rsrOverrideFF, advantage = [], disadvantage = [], critical = [], fail =[];
+	let advKey, disKey, critKey, rsrOverrideFF, advantage = [], disadvantage = [], critical = [], fail = [];
 	if (activeModule('midi-qol')) {
 		moduleID = 'MidiQOL';
 		if (hookType !== 'damage' || hookType !== 'itemDamage') {
