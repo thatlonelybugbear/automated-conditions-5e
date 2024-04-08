@@ -68,7 +68,7 @@ export default class Settings {
 				name: 'AC5E.AutoRangedAttacksName',
 				hint: 'AC5E.AutoRangedAttacksHint',
 				scope: 'world',
-				config: false,
+				config: true,
 				default: false,
 				type: Boolean,
 			}
