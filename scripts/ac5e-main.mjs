@@ -7,8 +7,7 @@ import {
 	_preRollDamage,
 	_preRollDeathSave,
 	_preUseItem,
-	_renderDialog,
-	/*_rollAttack*/
+	_renderHijack,
 } from './ac5e-hooks.mjs';
 import { _systemCheck } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -17,7 +16,7 @@ Hooks.once('init', () => {
 	new Settings().registerSettings();
 	const preRollConcentration = _systemCheck('3.0.4')
 		? Hooks.on('dnd5e.preRollConcentration', _preRollConcentration)
-		: 'compatible with dnd5e 3.1+';
+		: 'This will only be added for users with dnd5e 3.1+';
 	const preRollAbilitySave = Hooks.on(
 		'dnd5e.preRollAbilitySave',
 		_preRollAbilitySave
@@ -34,10 +33,11 @@ Hooks.once('init', () => {
 	);
 	const preRollSkill = Hooks.on('dnd5e.preRollSkill', _preRollSkill);
 	const preUseItem = Hooks.on('dnd5e.preUseItem', _preUseItem);
-	const renderDialog = Hooks.on('renderDialog', _renderDialog);
+	const renderDialog = Hooks.on('renderDialog', _renderHijack);
+	const renderChatMessage = Hooks.on('dnd5e.renderChatMessage', _renderHijack);
+	//to-do: add rollAttack: ${rollAttack} when/if it is enabled
 	console.warn(
-		//to-do: add rollAttack: ${rollAttack} when/if it is enabled
-		`Bugbear's Automated Conditions for 5e added the following dnd5e hooks:
+		`Bugbear's Automated Conditions for 5e added the following (mainly) dnd5e hooks:
   		preRollConcentration: ${preRollConcentration}
 		preRollAbilitySave: ${preRollAbilitySave}
 		preRollAbilityTest: ${preRollAbilityTest}
@@ -46,6 +46,7 @@ Hooks.once('init', () => {
 		preRollDeathSave: ${preRollDeathSave}
 		preRollSkill: ${preRollSkill}
   		preUseItem: ${preUseItem}
-		renderDialog: ${renderDialog}`
+		renderDialog: ${renderDialog}
+		renderChatMessage: ${renderChatMessage}`
 	);
 });
