@@ -297,11 +297,7 @@ export function _getTooltip(ac5eConfig) {
 			)}</span>`
 		);
 	}
-	if (
-		tooltip === settings.showNameTooltips
-			? '<center><strong>Automated Conditions 5e</strong></center>'
-			: ''
-	)
+	if (!tooltip.includes(':'))
 		return null;
 	else return tooltip;
 }
