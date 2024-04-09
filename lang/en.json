@@ -30,5 +30,6 @@
 	"AC5E.WarCaster": "War Caster",
 	"AC5E.Fail": "Fail",
 	"AC5E.OutOfRange": "Out of range",
-	"AC5E.Item": "Item"
+	"AC5E.Item": "Item",
+	"AC5E.Equipment": "Equipment"
 }
