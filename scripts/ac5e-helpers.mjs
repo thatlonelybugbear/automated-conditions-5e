@@ -404,7 +404,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 		targetId,
 		advantage,
 		disadvantage,
-		fail: false,
+		fail,
 		critical,
 		rsrOverrideFF,
 		preAC5eConfig: settings.keypressOverrides
