@@ -58,7 +58,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor)?.notProficient
+		_autoArmor(actor).notProficient
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
@@ -104,7 +104,7 @@ export function _preRollSkill(actor, config, skillId) {
 	if (settings.autoArmor) {
 		if (
 			['dex', 'str'].includes(defaultAbility) &&
-			_autoArmor(actor)?.notProficient
+			_autoArmor(actor).notProficient
 		) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
@@ -112,7 +112,7 @@ export function _preRollSkill(actor, config, skillId) {
 			];
 			change = true;
 		}
-		if (skillId === 'ste' && _autoArmor(actor)?.hasStealthDisadvantage) {
+		if (skillId === 'ste' && _autoArmor(actor).hasStealthDisadvantage) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
 				`${_localize('Armor')} (${_localize('ItemEquipmentStealthDisav')})`,
@@ -157,7 +157,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor)?.notProficient
+		_autoArmor(actor).notProficient
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
@@ -382,7 +382,7 @@ export function _preRollAttack(item, config) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(item.abilityMod) &&
-		_autoArmor(sourceActor)?.notProficient
+		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			`${_localize('Armor')} (${_localize('NotProficient')})`
@@ -661,7 +661,7 @@ export function _preUseItem(item, config, options) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(item.abilityMod) &&
-		_autoArmor(sourceActor)?.notProficient
+		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			`${_localize('Armor')} (${_localize('NotProficient')})`
