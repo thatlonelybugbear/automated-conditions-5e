@@ -1,3 +1,6 @@
+## v11.315312.1
+- Closes [#98](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/98), adding dnd5e v3.1.2 compatibility.
+  
 ## v11.315311.6
 - Closes [#89](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/89), reinstating MidiQOL compatibility.
 
