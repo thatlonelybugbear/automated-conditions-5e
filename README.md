@@ -36,6 +36,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - **Armor automation (default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
+  - From dnd5e v3.1.2 onwards, any Equipment type Item can Imposes stealth disadvantage too, not only Armor.
 - **Range automation (default off)**
   - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
   - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
@@ -46,7 +47,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
   - Sharpshooter: No disadvantage when shooting at long range with
     - A flag on the Actor `flags.automated-conditions-5e.sharpShooter | Override | 1` or
     - An Item named `Sharpshooter`.
-- **Show/hide roll dialog tooltips (default on)**
+- **Show AC5e tooltips for both Roll Dialog and Chat messages or any combination of these (default both)**
 - **Exhaustion automation (default on)**
   - If you want to not automatically process Exhaustion conditions uncheck this. Doing so will allow for other exhaustion modules to alter exhaustion automation or your own rules (eg [Alternative Exhaustion 5e](https://foundryvtt.com/packages/alternative-exhaustion-5e)).
 - **Encumbrance automation (default off)**
@@ -64,8 +65,8 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 
 # Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
-- [ ] MidiQOL semi-compatible (needs tweaks)
-- [ ] Ready Set Rolls semi-compatible (needs tweaks)
+- [X] MidiQOL.
+- [X] Ready Set Rolls (I still need to find a way for the dual card to show the AC5E tooltip).
 - [x] Roll Groups, not tested (seems to not have issues, open an issue if you encounter any).
  
 # Credits
