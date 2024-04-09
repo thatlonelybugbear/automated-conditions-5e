@@ -58,7 +58,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor)?.notProficient
+		_autoArmor(actor).notProficient
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
@@ -104,7 +104,7 @@ export function _preRollSkill(actor, config, skillId) {
 	if (settings.autoArmor) {
 		if (
 			['dex', 'str'].includes(defaultAbility) &&
-			_autoArmor(actor)?.notProficient
+			_autoArmor(actor).notProficient
 		) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
@@ -112,11 +112,12 @@ export function _preRollSkill(actor, config, skillId) {
 			];
 			change = true;
 		}
-		if (skillId === 'ste' && _autoArmor(actor)?.hasStealthDisadvantage) {
-			ac5eConfig.disadvantage = [
-				...ac5eConfig.disadvantage,
-				`${_localize('Armor')} (${_localize('ItemEquipmentStealthDisav')})`,
-			];
+		if (skillId === 'ste' && _autoArmor(actor).hasStealthDisadvantage) {
+			ac5eConfig.disadvantage = ac5eConfig.disadvantage.concat(
+				`${_localize(_autoArmor(actor).hasStealthDisadvantage)} (${_localize(
+					'ItemEquipmentStealthDisav'
+				)})`
+			);
 			change = true;
 		}
 	}
@@ -157,7 +158,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(abilityId) &&
-		_autoArmor(actor)?.notProficient
+		_autoArmor(actor).notProficient
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
@@ -352,7 +353,10 @@ export function _preRollAttack(item, config) {
 			}
 		}
 		//check Auto Range
-		if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
+		if (
+			settings.autoRanged &&
+			['rwak', 'rsak'].includes(item.system.actionType)
+		) {
 			const { inRange, range, nearbyFoe } = _autoRanged(
 				item,
 				sourceToken,
@@ -382,7 +386,7 @@ export function _preRollAttack(item, config) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(item.abilityMod) &&
-		_autoArmor(sourceActor)?.notProficient
+		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			`${_localize('Armor')} (${_localize('NotProficient')})`
@@ -631,7 +635,10 @@ export function _preUseItem(item, config, options) {
 			}
 		}
 		//check Auto Range
-		if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
+		if (
+			settings.autoRanged &&
+			['rwak', 'rsak'].includes(item.system.actionType)
+		) {
 			const { inRange, range, nearbyFoe } = _autoRanged(
 				item,
 				sourceToken,
@@ -661,7 +668,7 @@ export function _preUseItem(item, config, options) {
 	if (
 		settings.autoArmor &&
 		['dex', 'str'].includes(item.abilityMod) &&
-		_autoArmor(sourceActor)?.notProficient
+		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 			`${_localize('Armor')} (${_localize('NotProficient')})`

@@ -174,13 +174,20 @@ export function _findNearby(
 }
 
 export function _autoArmor(actor) {
-	if (!actor) return undefined;
+	if (!actor) return {};
 	const hasArmor = actor.armor;
-	if (!hasArmor) return null;
 	return {
-		hasStealthDisadvantage: hasArmor.system.properties.has(
+		hasStealthDisadvantage: hasArmor?.system.properties.has(
 			'stealthDisadvantage'
-		),
+		)
+			? 'Armor'
+			: actor.itemTypes.equipment.some(
+					(item) =>
+						item.system.equipped &&
+						item.system.properties.has('stealthDisadvantage')
+			  )
+			? 'AC5E.Equipment'
+			: false,
 		notProficient:
 			!hasArmor.system.proficient && !hasArmor.system.prof.multiplier,
 	};
