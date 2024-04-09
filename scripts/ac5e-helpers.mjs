@@ -180,7 +180,7 @@ export function _autoArmor(actor) {
 		hasStealthDisadvantage: hasArmor?.system.properties.has(
 			'stealthDisadvantage'
 		)
-			? 'AC5E.Armor'
+			? 'Armor'
 			: actor.itemTypes.equipment.some(
 					(item) =>
 						item.system.equipped &&
