@@ -99,13 +99,22 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 
 export function _calcAdvantageMode(ac5eConfig, config) {
 	config.fastForward = config.fastForward
-			? config.fastForward
-			: ac5eConfig.roller == 'Core'
-			? (config.event.shiftKey || config.event.altKey || config.event.metaKey || config.event.ctrlKey)
-			: ac5eConfig.roller == 'RSR'
-			? ac5eConfig.rsrOverrideFF
-			: false;
-	if (ac5eConfig.roller == 'Core') foundry.utils.mergeObject(config.event, { altKey: false, shiftKey: false, metaKey: false, ctrlKey: false });
+		? config.fastForward
+		: ac5eConfig.roller == 'Core'
+		? config.event.shiftKey ||
+		  config.event.altKey ||
+		  config.event.metaKey ||
+		  config.event.ctrlKey
+		: ac5eConfig.roller == 'RSR'
+		? ac5eConfig.rsrOverrideFF
+		: false;
+	if (ac5eConfig.roller == 'Core')
+		foundry.utils.mergeObject(config.event, {
+			altKey: false,
+			shiftKey: false,
+			metaKey: false,
+			ctrlKey: false,
+		});
 	if (ac5eConfig.roller == 'RSR')
 		foundry.utils.mergeObject(config.event || {}, {
 			altKey: !ac5eConfig.rsrOverrideFF ? config.event.altKey : false,
@@ -297,8 +306,7 @@ export function _getTooltip(ac5eConfig) {
 			)}</span>`
 		);
 	}
-	if (!tooltip.includes(':'))
-		return null;
+	if (!tooltip.includes(':')) return null;
 	else return tooltip;
 }
 
@@ -311,7 +319,6 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			console.warn('ac5e helpers.getConfig preExistingAC5e:', preExistingAC5e);
 		return existingAC5e;
 	}
-	//to-do: getSetting for event overriding pressedKeys overriding any calcs and add the result here. If that returns true, force adv/dis/crit pressed keys and no AC5e calcs.
 	if (settings.debug)
 		console.log(
 			config.advantage,
@@ -321,23 +328,28 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			hookType
 		);
 	let moduleID = 'Core';
-	let advKey, disKey, critKey, rsrOverrideFF, advantage = [], disadvantage = [], critical = [], fail = [];
+	let advKey,
+		disKey,
+		critKey,
+		rsrOverrideFF,
+		advantage = [],
+		disadvantage = [],
+		critical = [],
+		fail = [];
 	if (activeModule('midi-qol')) {
 		moduleID = 'MidiQOL';
-		if (hookType !== 'damage' || hookType !== 'itemDamage') {
-			config.critical = false;
+		if (!['damage', 'itemDamage'].includes(hookType)) {
 			advKey = MidiKeyManager.pressedKeys.advantage;
 			disKey = MidiKeyManager.pressedKeys.disadvantage;
-		}
-		else critKey = MidiKeyManager.pressedKeys.critical;
+		} else critKey = MidiKeyManager.pressedKeys.critical;
 		if (settings.debug) console.warn(advKey, disKey, critKey, config);
 	} else if (activeModule('ready-set-roll-5e')) {
 		moduleID = 'ready-set-roll-5e';
 		let getRsrSetting = (key) => game.settings.get(moduleID, key);
 		let rsrHookType = hookType;
 		if (rsrHookType !== 'damage') {
-			if (rsrHookType == 'attack') rsrHookType = 'Item';
-			if (rsrHookType == 'conc') hooktype = 'ability';
+			if (rsrHookType == 'attack') rsrHookType = 'item';
+			if (rsrHookType == 'conc') rsrHookType = 'ability';
 			rsrHookType = rsrHookType.capitalize();
 			advKey = !getRsrSetting(`enable${rsrHookType}QuickRoll`)
 				? config.event?.altKey || config.event?.metaKey
@@ -351,7 +363,10 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 				: config.event?.shiftKey;
 			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`)
 				? !config.event?.altKey
-				: config.event.shiftKey || config.event.altKey || config.event.metaKey || config.event.ctrlKey			
+				: config.event.shiftKey ||
+				  config.event.altKey ||
+				  config.event.metaKey ||
+				  config.event.ctrlKey;
 		} else if (rsrHookType == 'damage') {
 			//to-do:check this
 			rsrHookType = 'Item';
@@ -386,7 +401,8 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 		);
 	if (advKey) advantage = [`${moduleID} (keyPress)`];
 	if (disKey) disadvantage = [`${moduleID} (keyPress)`];
-	if (critKey) critical = [`${moduleID} (keyPress)`];
+	if (critKey && ['damage', 'itemDamage'].includes(hookType))
+		critical = [`${moduleID} (keyPress)`];
 	if (config.advantage && !settings.keypressOverrides)
 		advantage = advantage.concat(`${moduleID} (flags)`);
 	if (config.disadvantage && !settings.keypressOverrides)
@@ -394,8 +410,26 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 	if (config.critical === true && !settings.keypressOverrides)
 		critical = critical.concat(`${moduleID} (flags)`);
 	if (settings.debug) {
-		console.warn('_getConfig | advantage:',advantage, 'disadvantage:', disadvantage, 'critical:', critical, 'hookType:', hookType);
-		console.warn('_getConfig keys | advKey:', advKey, 'disKey:', disKey, 'critKey:', critKey, 'rsrOverrideFF:', rsrOverrideFF);
+		console.warn(
+			'_getConfig | advantage:',
+			advantage,
+			'disadvantage:',
+			disadvantage,
+			'critical:',
+			critical,
+			'hookType:',
+			hookType
+		);
+		console.warn(
+			'_getConfig keys | advKey:',
+			advKey,
+			'disKey:',
+			disKey,
+			'critKey:',
+			critKey,
+			'rsrOverrideFF:',
+			rsrOverrideFF
+		);
 	}
 	return {
 		hookType,
