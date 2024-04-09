@@ -113,10 +113,11 @@ export function _preRollSkill(actor, config, skillId) {
 			change = true;
 		}
 		if (skillId === 'ste' && _autoArmor(actor).hasStealthDisadvantage) {
-			ac5eConfig.disadvantage = [
-				...ac5eConfig.disadvantage,
-				`${_localize('Armor')} (${_localize('ItemEquipmentStealthDisav')})`,
-			];
+			ac5eConfig.disadvantage = ac5eConfig.disadvantage.concat(
+				`${_localize(_autoArmor(actor).hasStealthDisadvantage)} (${_localize(
+					'ItemEquipmentStealthDisav'
+				)})`
+			);
 			change = true;
 		}
 	}
@@ -352,7 +353,10 @@ export function _preRollAttack(item, config) {
 			}
 		}
 		//check Auto Range
-		if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
+		if (
+			settings.autoRanged &&
+			['rwak', 'rsak'].includes(item.system.actionType)
+		) {
 			const { inRange, range, nearbyFoe } = _autoRanged(
 				item,
 				sourceToken,
@@ -631,7 +635,10 @@ export function _preUseItem(item, config, options) {
 			}
 		}
 		//check Auto Range
-		if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
+		if (
+			settings.autoRanged &&
+			['rwak', 'rsak'].includes(item.system.actionType)
+		) {
 			const { inRange, range, nearbyFoe } = _autoRanged(
 				item,
 				sourceToken,
