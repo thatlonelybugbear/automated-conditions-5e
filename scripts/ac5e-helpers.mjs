@@ -174,7 +174,7 @@ export function _findNearby(
 }
 
 export function _autoArmor(actor) {
-	if (!actor) return undefined;
+	if (!actor) return {};
 	const hasArmor = actor.armor;
 	return {
 		hasStealthDisadvantage:
