@@ -36,7 +36,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - **Armor automation (default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
-  - From dnd5e v3.1.2 onwards, any Equipment type Item can Imposes stealth disadvantage too, not only Armor.
+  - From dnd5e v3.1.2 onwards, any Equipment type Item can impose stealth disadvantage too, not only Armor.
 - **Range automation (default off)**
   - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
   - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
