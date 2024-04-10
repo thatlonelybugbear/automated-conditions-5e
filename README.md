@@ -65,8 +65,8 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 
 # Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly.
-- [X] MidiQOL.
-- [X] Ready Set Rolls (I still need to find a way for the dual card to show the AC5E tooltip).
+- [X] MidiQOL (saves from items are a WIP).
+- [X] Ready Set Roll (AC5e tooltips on dual cards is a WIP).
 - [x] Roll Groups, not tested (seems to not have issues, open an issue if you encounter any).
  
 # Credits
