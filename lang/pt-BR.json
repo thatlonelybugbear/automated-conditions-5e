@@ -1,6 +1,11 @@
 {
-	"AC5E.ShowDialogTooltipsName": "Dicas de AC5e em Diálogos de Rolagem",
+	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5e",
 	"AC5E.ShowDialogTooltipsHint": "Se marcado, AC5e mostrará uma dica útil ao posicionar o apontador do mouse sobre o botão de rolagem sugerido, resumindo as razões para a sugestão.",
+ 	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
+  	"AC5E.ShowToolTipsChoicesDialog": "Somente em rolagens",
+	"AC5E.ShowToolTipsChoicesChat": "Somente em chat",
+	"AC5E.ShowToolTipsChoicesNone": "Não exibir",
+	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome AC5e nas Dicas",
 	"AC5E.AutoArmorName": "AC5e Automação de Armadura",
 	"AC5E.AutoArmorHint": "Se marcado, AC5e irá processar automaticamente a proficiência da armadura equipada para rolagens de testes de atributo, perícias e salvaguardas (FOR || DES) e Desvantagem em Furtividade.",
 	"AC5E.AutoRangedAttacksName": "AC5e Automação de Ataques à Distância",
@@ -18,6 +23,13 @@
 	"AC5E.TargetingChoicesForce": "Forçar Marcação",
 	"AC5E.TargetingName": "AC5e Opçãoes de Marcação",
 	"AC5E.TargetingHint": "Se nenhum ou vários alvos forem marcados quando o Jogador rolar Ataque ou Dano, AC5e irá: 'Fazer nada': Sem cálculos de advantageMode/damageMode para a rolagem à seguir; 'Apenas da origem': advantageMode/damageMode baseado em qualquer efeito do Ator de origem; 'Forçar Marcação':  Cancela a rolagem e pergunta por alvos antes de rolar novamente (use com cuidado).",
+	"AC5E.KeypressOverrideName": "Atalhos Sobrepõem Cálculos AC5e",
+	"AC5E.KeypressOverrideHint": "Os atalhos de chave para vantagem, desvantagem e crítico devem substituir quaisquer cálculos do AC5e (habilitado) ou ser adicionados aos cálculos normais do AC5e (desabilitado).",
+	"AC5E.DebuggingName": "AC5E Debug",
+	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
 	"AC5E.WarCaster": "Conjurador de Guerra",
-	"AC5E.Fail": "Falha"
+	"AC5E.Fail": "Falha",
+	"AC5E.OutOfRange": "Fora do alcance",
+	"AC5E.Item": "Item",
+	"AC5E.Equipment": "Equipmento"
 }
