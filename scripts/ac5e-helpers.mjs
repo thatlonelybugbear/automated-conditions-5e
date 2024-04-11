@@ -189,7 +189,7 @@ export function _autoArmor(actor) {
 			? 'AC5E.Equipment'
 			: false,
 		notProficient:
-			!hasArmor.system.proficient && !hasArmor.system.prof.multiplier,
+			!hasArmor?.system.proficient && !hasArmor?.system.prof.multiplier,
 	};
 }
 
