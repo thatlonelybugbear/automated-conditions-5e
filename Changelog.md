@@ -1,6 +1,6 @@
-v11.315312.2.1
+### v11.315312.2.1
 - Hotfix for `hasArmor` not being defined.
-- 
+
 ## v11.315312.2
 - Closes [#97](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/97), allowing all equipment type Items to impose Stealth disadvantage.
 
