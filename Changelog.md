@@ -1,3 +1,7 @@
+## v11.315312.3
+* Update pt-BR.json by @Kharmans in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/101
+* Closes once more #77, fixing the armor issues, once and for all  🤞
+
 ### v11.315312.2.1
 - Hotfix for `hasArmor` not being defined.
 
