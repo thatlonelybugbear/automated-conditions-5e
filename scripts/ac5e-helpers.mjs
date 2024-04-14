@@ -46,10 +46,9 @@ export function _getAllTokenGridSpaces(tokenDoc) {
 }
 
 export function _i18nConditions(name) {
-	return (
-		eval(`game.i18n.translations.EFFECT.DND5E.Status${name}`) ??
-		eval(`game.i18n.translations.DND5E.Con${name}`)
-	);
+	const str = `EFFECT.DND5E.Status${name}`;
+	if (game.i18n.has(str)) return game.i18n.localize(str);
+	return game.i18n.localize(`DND5E.Con${name}`);
 }
 
 export function _localize(string) {
