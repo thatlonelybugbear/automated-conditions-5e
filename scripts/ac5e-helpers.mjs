@@ -149,6 +149,7 @@ export function _dispositionCheck(t1, t2, check = false) {
 	t1 = t1 instanceof Object ? t1.document : t1;
 	t2 = t2 instanceof Object ? t2.document : t2;
 	if (check == 'different') return t1.disposition !== t2.disposition;
+	if (check == 'opposite') return t1.disposition * t2.disposition === -1;
 	if (check == 'same') return t1.disposition === t2.disposition;
 	if (!check || check == 'all') return true;
 	//to-do: 1. what about secret? 2. might need more granular checks in the future.
@@ -215,8 +216,9 @@ export function _autoRanged(item, token, target) {
 		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
 	const distance = _getDistance(token, target);
 	const nearbyFoe =
-		actionType.includes('r') &&
-		_findNearby(token, 'different', 5, 1) &&
+		settings.autoRangedNearbyFoe &&
+		['rwak', 'rsak'].includes(actionType) &&
+		_findNearby(token, 'opposite', 5, 1) &&  //hostile vs friendly disposition only
 		!crossbowExpert;
 	const inRange =
 		distance <= short ? 'short' : distance <= long ? 'long' : false;

@@ -10,6 +10,8 @@
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
 	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation.",
 	"AC5E.AutoRangedAttacksHint": "When checked, AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack.",
+	"AC5E.AutoRangedNearbyFoeName": "AC5e ranged attacks nearby foe automation",
+	"AC5E.AutoRangedNearbyFoeHint": "When checked AND ranged attacks automation is also enabled, an adjacent creature with the opposite disposition compared to the attacker, will impose disadvantage to any ranged attack rolls.",
 	"AC5E.AutoExhaustionName": "AC5e exhaustion automation.",
 	"AC5E.AutoExhaustionHint": "When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).",
 	"AC5E.AutoEncumbranceName": "AC5e variant encumbrance.",
