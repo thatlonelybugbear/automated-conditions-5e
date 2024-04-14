@@ -33,13 +33,17 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - **Unconscious**: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
 
 # Settings added for:
+- **Expanded Conditions (default off)**
+  - **Dodging**: Attacker disadvantage if target not incapacitated, restrained and can see attacker. Also advantage on dex saves.
+  - **Hiding**: Advantage on attacks.
 - **Armor automation (default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
   - From dnd5e v3.1.2 onwards, any Equipment type Item can impose stealth disadvantage too, not only Armor.
 - **Range automation (default off)**
   - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
-  - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe).
+  - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe);
+    - Added a separate settings for Nearby Foe (default off).
   - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (Out of Range).
   - Crossbow Expert: Ignores Nearby Foes with
     - A flag on the Actor `flags.automated-conditions-5e.crossbowExpert | Override | 1` or
