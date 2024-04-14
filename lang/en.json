@@ -6,6 +6,8 @@
 	"AC5E.ShowToolTipsChoicesChat": "Only on chat messages",
 	"AC5E.ShowToolTipsChoicesNone": "Do not show",
 	"AC5E.ShowModuleNameInTooltipsName": "Show AC5e module name in tooltips",
+	"AC5E.ExpandedConditionsName": "AC5e expanded conditions",
+	"AC5E.ExpandedConditionsHint": "When checked, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.AutoArmorName": "AC5e armor proficiency and equipment stealth disadvantage.",
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
 	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation.",
