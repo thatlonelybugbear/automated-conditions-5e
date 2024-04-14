@@ -371,7 +371,8 @@ export function _preRollAttack(item, config) {
 		if (
 			settings.expandedConditions &&
 			!_hasStatuses(sourceActor, ['hiding']).length &&
-			!_hasStatuses(singleTargetActor, ['incapacitated', 'restrained']).length &&
+			!_hasStatuses(singleTargetActor, ['incapacitated', 'restrained'])
+				.length &&
 			_hasStatuses(singleTargetActor, statuses).length
 		) {
 			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
@@ -630,7 +631,8 @@ export function _preUseItem(item, config, options) {
 		if (
 			settings.expandedConditions &&
 			!_hasStatuses(sourceActor, ['hiding']).length &&
-			!_hasStatuses(singleTargetActor, ['incapacitated', 'restrained']).length &&
+			!_hasStatuses(singleTargetActor, ['incapacitated', 'restrained'])
+				.length &&
 			_hasStatuses(singleTargetActor, statuses).length
 		) {
 			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
