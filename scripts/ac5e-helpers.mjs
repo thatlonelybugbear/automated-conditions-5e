@@ -215,6 +215,7 @@ export function _autoRanged(item, token, target) {
 		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
 	const distance = _getDistance(token, target);
 	const nearbyFoe =
+		settings.autoRangedNearbyFoe &&
 		actionType.includes('r') &&
 		_findNearby(token, 'different', 5, 1) &&
 		!crossbowExpert;
