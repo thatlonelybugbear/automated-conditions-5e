@@ -606,9 +606,10 @@ export function _preUseItem(item, config, options) {
 		);
 		change = true;
 	}
-	//on Source advantage - Invisible,
+	//on Source advantage - Invisible or Hiding (hidden needs expanded conditions setting on),
 	//to-do: Test for target under the see invisibility spell.
 	statuses = ['invisible'];
+	if (settings.expandedConditions) statuses.push('hiding');
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.advantage.source = ac5eConfig.advantage.source.concat(
 			_hasStatuses(sourceActor, statuses)
@@ -619,6 +620,19 @@ export function _preUseItem(item, config, options) {
 		//on Target disadvantage - Invisible
 		//to-do: Test for Source under the see invisibility spell.
 		if (_hasStatuses(singleTargetActor, statuses).length) {
+			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
+				_hasStatuses(singleTargetActor, statuses)
+			);
+			change = true;
+		}
+		//on Target disadvantage - Dodging when target is not Incapacitated or restrained and source is not Hidden
+		statuses = ['dodging'];
+		if (
+			settings.expandedConditions &&
+			!_hasStatuses(sourceActor, ['hiding']).length &&
+			!_hasStatuses(singleTargetActor, ['incapacitated', 'restrained']).length &&
+			_hasStatuses(singleTargetActor, statuses).length
+		) {
 			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
 				_hasStatuses(singleTargetActor, statuses)
 			);
