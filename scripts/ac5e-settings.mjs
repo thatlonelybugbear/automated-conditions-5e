@@ -4,6 +4,7 @@ export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
 	static SHOW_TOOLTIPS = 'showTooltips';
 	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'shownNameTooltip';
+	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
 	static AUTOMATE_RANGED_ATTACKS_NEARBYFOE = 'autoRangedNearbyFoe';
@@ -47,6 +48,19 @@ export default class Settings {
 				scope: 'client',
 				config: true,
 				default: true,
+				type: Boolean,
+			}
+		);
+		
+		game.settings.register(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_EXPANDED_CONDITIONS,
+			{
+				name: 'AC5E.ExpandedConditionsName',
+				hint: 'AC5E.ExpandedConditionsHint',
+				scope: 'world',
+				config: true,
+				default: false,
 				type: Boolean,
 			}
 		);
@@ -139,6 +153,12 @@ export default class Settings {
 		return game.settings.get(
 			Constants.MODULE_ID,
 			Settings.SHOW_MODULE_NAME_IN_TOOLTIPS
+		);
+	}
+	get expandedConditions() {
+		return game.settings.get(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_EXPANDED_CONDITIONS
 		);
 	}
 	get autoArmor() {

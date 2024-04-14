@@ -54,6 +54,19 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		config.critical = 21; //make it not crit
 		change = true;
 	}
+	//Dodging - advantage if not incapacitated or restrained on dex saves
+	statuses = ['dodging'];
+	if (
+		settings.expandedConditions &&
+		abilityId == 'dex' &&
+		!_hasStatuses(actor, ['incapacitated', 'restrained']).length &&
+		_hasStatuses(actor, statuses).length
+	) {
+		ac5eConfig.advantage = ac5eConfig.advantage.concat(
+			_hasStatuses(actor, statuses)
+		);
+		change = true;
+	}
 	//check Auto Armor
 	if (
 		settings.autoArmor &&
@@ -297,9 +310,10 @@ export function _preRollAttack(item, config) {
 		);
 		change = true;
 	}
-	//on Source advantage - Invisible,
+	//on Source advantage - Invisible or Hiding (hidden needs expanded conditions setting on),
 	//to-do: Test for target under the see invisibility spell.
 	statuses = ['invisible'];
+	if (settings.expandedConditions) statuses.push('hiding');
 	if (_hasStatuses(sourceActor, statuses).length) {
 		ac5eConfig.advantage.source = ac5eConfig.advantage.source.concat(
 			_hasStatuses(sourceActor, statuses)
@@ -351,6 +365,19 @@ export function _preRollAttack(item, config) {
 				);
 				change = true;
 			}
+		}
+		//on Target disadvantage - Dodging when target is not Incapacitated or restrained and source is not Hidden
+		statuses = ['dodging'];
+		if (
+			settings.expandedConditions &&
+			!_hasStatuses(sourceActor, ['hiding']).length &&
+			!_hasStatuses(singleTargetActor, ['incapacitated', 'restrained']).length &&
+			_hasStatuses(singleTargetActor, statuses).length
+		) {
+			ac5eConfig.disadvantage.target = ac5eConfig.disadvantage.target.concat(
+				_hasStatuses(singleTargetActor, statuses)
+			);
+			change = true;
 		}
 		//check Auto Range
 		if (
