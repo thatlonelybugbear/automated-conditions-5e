@@ -6,7 +6,8 @@ export default class Settings {
 	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'shownNameTooltip';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
-	static AUTOMATE_EXHAUSTION = 'autoExhaustion'; //to-do: add module solution for dndone exhaustion.
+	static AUTOMATE_RANGED_ATTACKS_NEARBYFOE = 'autoRangedNearbyFoe';
+	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
 	static KEYPRESS_OVERRIDES = 'keypressOverrides';
@@ -67,6 +68,18 @@ export default class Settings {
 			{
 				name: 'AC5E.AutoRangedAttacksName',
 				hint: 'AC5E.AutoRangedAttacksHint',
+				scope: 'world',
+				config: true,
+				default: false,
+				type: Boolean,
+			}
+		);
+		game.settings.register(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_RANGED_ATTACKS_NEARBYFOE,
+			{
+				name: 'AC5E.AutoRangedNearbyFoeName',
+				hint: 'AC5E.AutoRangedNearbyFoeHint',
 				scope: 'world',
 				config: true,
 				default: false,
@@ -139,6 +152,14 @@ export default class Settings {
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_RANGED_ATTACKS
 		);
+	}
+	get autoRangedNearbyFoe() {
+		if (this.autoRanged) 
+			return game.settings.get(
+				Constants.MODULE_ID,
+				Settings.AUTOMATE_RANGED_ATTACKS_NEARBYFOE
+			);
+		else return false;
 	}
 	get autoExhaustion() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION);
