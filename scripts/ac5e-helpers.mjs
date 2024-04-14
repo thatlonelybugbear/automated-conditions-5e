@@ -218,7 +218,7 @@ export function _autoRanged(item, token, target) {
 	const nearbyFoe =
 		settings.autoRangedNearbyFoe &&
 		actionType.includes('r') &&
-		_findNearby(token, 'different', 5, 1) &&
+		_findNearby(token, 'opposite', 5, 1) &&  //hostile vs friendly disposition only
 		!crossbowExpert;
 	const inRange =
 		distance <= short ? 'short' : distance <= long ? 'long' : false;
