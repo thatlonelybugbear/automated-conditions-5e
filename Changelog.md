@@ -1,3 +1,8 @@
+## v11.315312.4
+* Closes [#94](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/94), adding Dodging and Hiding automation.
+* Closes [#104](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/104), adding a setting for switching off Nearby Foe automation (also adjusted disposition reuqirements to be of the opposite type, friendly vs hostile).
+* Closes [#106](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/106), removing some `eval()` calls.
+
 ## v11.315312.3
 * Update pt-BR.json by @Kharmans in https://github.com/thatlonelybugbear/automated-conditions-5e/pull/101
 * Closes once more #77, fixing the armor issues, once and for all  🤞
