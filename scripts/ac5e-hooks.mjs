@@ -63,7 +63,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 		_hasStatuses(actor, statuses).length
 	) {
 		ac5eConfig.advantage = ac5eConfig.advantage.concat(
-			_hasStatuses(singleTargetActor, statuses)
+			_hasStatuses(actor, statuses)
 		);
 		change = true;
 	}
