@@ -213,7 +213,7 @@ export function _autoRanged(item, token, target) {
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert =
 		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
-	const distance = _getDistance(token, target);
+	const distance = target ? _getDistance(token, target) : undefined;
 	const nearbyFoe =
 		settings.autoRangedNearbyFoe &&
 		['rwak', 'rsak'].includes(actionType) &&
