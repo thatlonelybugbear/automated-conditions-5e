@@ -527,24 +527,27 @@ export function _renderHijack(renderedType, elem) {
 	const tooltip = _getTooltip(getConfigAC5E);
 	if (renderedType.collectionName === 'messages') {
 		//['ability', 'skill', 'conc', 'death', 'attack', 'damage', 'item'].includes(hookType.toLocaleLowerCase()))
-		if (roller == 'Core')
+		if (roller == 'Core') {
 			//should also work for Roll Groups not specifically called.
-			targetElement = elem.querySelector('.chat-message header .flavor-text');
-		else if (roller == 'RSR') {
+			if (['ability', 'death', 'skill', 'conc'].includes(hookType)) {
+				targetElement = elem.querySelector('.chat-message header .flavor-text');
+			} else if (['attack', 'damage'].includes(hookType)) {
+				targetElement = elem.querySelector('.dice-formula');
+			}
+		} else if (roller == 'RSR') {
 			if (['ability', 'death', 'skill', 'conc'].includes(hookType))
 				targetElement = elem.querySelector(`.flavor-text`);
 			else if (['attack', 'itemAttack', 'item'].includes(hookType)) {
-				targetElement = 
+				targetElement =
 					elem.querySelector(
 						'.rsr-section-attack > .rsr-header > .rsr-title'
 					) ?? elem.querySelector('.rsr-title');
-			}
-			else if (['damage', 'itemDamage'].includes(hookType)) {
-				targetElement = 
+			} else if (['damage', 'itemDamage'].includes(hookType)) {
+				targetElement =
 					elem.querySelector(
 						'.rsr-section-damage > .rsr-header > .rsr-title'
 					) ?? elem.querySelector('.rsr-title');
-			};
+			}
 		} else if (roller == 'MidiQOL') {
 			if (['ability', 'death', 'skill', 'conc', 'death'].includes(hookType))
 				targetElement =
@@ -574,12 +577,20 @@ export function _renderHijack(renderedType, elem) {
 export function _preUseItem(item, config, options) {
 	if (item.type == 'spell' && settings.autoArmorSpellUse != 'off') {
 		if (settings.autoArmorSpellUse == 'warn')
-			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
+			ui.notifications.warn(
+				`${item.actor.name} ${_localize(
+					'AC5E.AutoArmorSpellUseChoicesWarnToast'
+				)}`
+			);
 		else if (settings.autoArmorSpellUse == 'enforce') {
-			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
+			ui.notifications.warn(
+				`${item.actor.name} ${_localize(
+					'AC5E.AutoArmorSpellUseChoicesEnforceToast'
+				)}`
+			);
 			return false;
 		}
-	};
+	}
 	if (!item.hasAttack && !item.hasDamage) return true;
 	//will cancel the Item use if the Item needs 1 target to function properly and none or more than 1 are selected.
 	const targets = game.user?.targets;
