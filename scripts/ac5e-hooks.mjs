@@ -320,6 +320,18 @@ export function _preRollAttack(item, config) {
 		);
 		change = true;
 	}
+	//Nearby Foe
+	if (
+		settings.autoRanged &&
+		['rwak', 'rsak'].includes(item.system.actionType)
+	) {
+		const { nearbyFoe } = _autoRanged(item, sourceToken);
+		if (nearbyFoe) {
+			ac5eConfig.disadvantage.source =
+				ac5eConfig.disadvantage.source.concat('Nearby Foe');
+			change = true;
+		}
+	}
 	if (targetsSize == 1) {
 		//on Target disadvantage - Invisible
 		//to-do: Test for Source under the see invisibility spell.
@@ -385,7 +397,7 @@ export function _preRollAttack(item, config) {
 			settings.autoRanged &&
 			['rwak', 'rsak'].includes(item.system.actionType)
 		) {
-			const { inRange, range, nearbyFoe } = _autoRanged(
+			const { inRange, range } = _autoRanged(
 				item,
 				sourceToken,
 				singleTargetToken
@@ -400,11 +412,6 @@ export function _preRollAttack(item, config) {
 				ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
 					_localize('RangeLong')
 				);
-				change = true;
-			}
-			if (nearbyFoe) {
-				ac5eConfig.disadvantage.source =
-					ac5eConfig.disadvantage.source.concat('Nearby Foe');
 				change = true;
 			}
 		}
@@ -617,6 +624,18 @@ export function _preUseItem(item, config, options) {
 		);
 		change = true;
 	}
+	//Nearby Foe
+	if (
+		settings.autoRanged &&
+		['rwak', 'rsak'].includes(item.system.actionType)
+	) {
+		const { nearbyFoe } = _autoRanged(item, sourceToken);
+		if (nearbyFoe) {
+			ac5eConfig.disadvantage.source =
+				ac5eConfig.disadvantage.source.concat('Nearby Foe');
+			change = true;
+		}
+	}
 	if (targetsSize == 1) {
 		//on Target disadvantage - Invisible
 		//to-do: Test for Source under the see invisibility spell.
@@ -682,7 +701,7 @@ export function _preUseItem(item, config, options) {
 			settings.autoRanged &&
 			['rwak', 'rsak'].includes(item.system.actionType)
 		) {
-			const { inRange, range, nearbyFoe } = _autoRanged(
+			const { inRange, range } = _autoRanged(
 				item,
 				sourceToken,
 				singleTargetToken
@@ -699,14 +718,8 @@ export function _preUseItem(item, config, options) {
 				);
 				change = true;
 			}
-			if (nearbyFoe) {
-				ac5eConfig.disadvantage.source =
-					ac5eConfig.disadvantage.source.concat('Nearby Foe');
-				change = true;
-			}
 		}
 	}
-
 	//check Auto Armor
 	if (
 		settings.autoArmor &&
