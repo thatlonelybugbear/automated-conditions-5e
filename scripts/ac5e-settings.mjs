@@ -88,9 +88,9 @@ export default class Settings {
 				default: 'off',
 				type: String,
 				choices: {
-					off: 'AC5E.AutoArmorSpellUseOff',
-					enforce: 'AC5E.AutoArmorSpellUseEnforce',
-					warn: 'AC5E.AutoArmorSpellUseWarn',
+					off: 'AC5E.AutoArmorSpellUseChoicesOff',
+					enforce: 'AC5E.AutoArmorSpellUseChoicesEnforce',
+					warn: 'AC5E.AutoArmorSpellUseChoicesWarn',
 				},
 			}
 		);
