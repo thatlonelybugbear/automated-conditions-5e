@@ -572,6 +572,14 @@ export function _renderHijack(renderedType, elem) {
 }
 
 export function _preUseItem(item, config, options) {
+	if (item.type == 'spell' && settings.autoArmorSpellUse != 'off') {
+		if (settings.autoArmorSpellUse == 'warn')
+			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarn')}`);
+		else if (settings.autoArmorSpellUse == 'warn') {
+			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforce')}`);
+			return false;
+		}
+	};
 	if (!item.hasAttack && !item.hasDamage) return true;
 	//will cancel the Item use if the Item needs 1 target to function properly and none or more than 1 are selected.
 	const targets = game.user?.targets;
