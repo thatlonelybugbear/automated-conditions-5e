@@ -1,3 +1,14 @@
+## What's Changed
+* Update pt-BR.json by @Kharmans in [#111](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/111) and [#116](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/116)
+* Closes [#110](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/110) - nearbyFoe calcs no matter options for target enforcement by @thatlonelybugbear in [#113](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/113)
+* Closes [#112](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/112) - Added some more targetElements querySelectors for RSR by @thatlonelybugbear in [#114](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/114)
+* Closes [#108](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/108) - Lack of armor proficiency restricts spell casting by @thatlonelybugbear in [#115](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/115)
+* Closes [#109](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/109) - Respect preexisting objects by @thatlonelybugbear in [#117](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/117)
+* Closes [#118](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/118) - Add correct targetElements for Core rolling chat messages tooltips by @thatlonelybugbear in [#119](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/119)
+
+
+**Full Changelog**: https://github.com/thatlonelybugbear/automated-conditions-5e/compare/v11.315312.4...v11.315312.5
+
 ## v11.315312.4
 * Closes [#94](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/94), adding Dodging and Hiding automation.
 * Closes [#104](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/104), adding a setting for switching off Nearby Foe automation (also adjusted disposition requirements to be of the opposite type, friendly vs hostile).
