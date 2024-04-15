@@ -574,9 +574,9 @@ export function _renderHijack(renderedType, elem) {
 export function _preUseItem(item, config, options) {
 	if (item.type == 'spell' && settings.autoArmorSpellUse != 'off') {
 		if (settings.autoArmorSpellUse == 'warn')
-			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarn')}`);
+			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
 		else if (settings.autoArmorSpellUse == 'warn') {
-			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforce')}`);
+			ui.notifications.warn(`${item.actor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
 			return false;
 		}
 	};
