@@ -575,16 +575,22 @@ export function _renderHijack(renderedType, elem) {
 }
 
 export function _preUseItem(item, config, options) {
-	if (item.type == 'spell' && settings.autoArmorSpellUse != 'off') {
+	const sourceActor = item.actor;
+	if (!sourceActor) return;
+	if (
+		item.type == 'spell' &&
+		settings.autoArmorSpellUse != 'off' &&
+		_autoArmor(sourceActor).notProficient
+	) {
 		if (settings.autoArmorSpellUse == 'warn')
 			ui.notifications.warn(
-				`${item.actor.name} ${_localize(
+				`${sourceActor.name} ${_localize(
 					'AC5E.AutoArmorSpellUseChoicesWarnToast'
 				)}`
 			);
 		else if (settings.autoArmorSpellUse == 'enforce') {
 			ui.notifications.warn(
-				`${item.actor.name} ${_localize(
+				`${sourceActor.name} ${_localize(
 					'AC5E.AutoArmorSpellUseChoicesEnforceToast'
 				)}`
 			);
@@ -606,8 +612,6 @@ export function _preUseItem(item, config, options) {
 	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
 	const singleTargetActor = singleTargetToken?.actor;
 	if (settings.needsTarget == 'none') return true;
-	const sourceActor = item.actor;
-	if (!sourceActor) return;
 	let change = false;
 	const ac5eConfig = _getConfig(
 		options,
