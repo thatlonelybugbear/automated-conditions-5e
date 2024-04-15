@@ -533,11 +533,18 @@ export function _renderHijack(renderedType, elem) {
 		else if (roller == 'RSR') {
 			if (['ability', 'death', 'skill', 'conc'].includes(hookType))
 				targetElement = elem.querySelector(`.flavor-text`);
-			/*if (['attack', 'itemAttack'].includes(hookType)) */ else {
-				targetElement = elem.querySelector(
-					'.rsr-section-attack > .rsr-header > .rsr-title'
-				);
+			else if (['attack', 'itemAttack', 'item'].includes(hookType)) {
+				targetElement = 
+					elem.querySelector(
+						'.rsr-section-attack > .rsr-header > .rsr-title'
+					) ?? elem.querySelector('.rsr-title');
 			}
+			else if (['damage', 'itemDamage'].includes(hookType)) {
+				targetElement = 
+					elem.querySelector(
+						'.rsr-section-damage > .rsr-header > .rsr-title'
+					) ?? elem.querySelector('.rsr-title');
+			};
 		} else if (roller == 'MidiQOL') {
 			if (['ability', 'death', 'skill', 'conc', 'death'].includes(hookType))
 				targetElement =
