@@ -6,6 +6,7 @@ export default class Settings {
 	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'shownNameTooltip';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
+	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
 	static AUTOMATE_RANGED_ATTACKS_NEARBYFOE = 'autoRangedNearbyFoe';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
@@ -74,6 +75,23 @@ export default class Settings {
 				config: true,
 				default: false,
 				type: Boolean,
+			}
+		); //
+		game.settings.register(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_ARMOR_PROF_SPELL_USE,
+			{
+				name: 'AC5E.AutoArmorSpellUseName',
+				hint: 'AC5E.AutoArmorSpellUseHint',
+				scope: 'world',
+				config: true,
+				default: 'off',
+				type: String,
+				choices: {
+					off: 'AC5E.AutoArmorSpellUseChoicesOff',
+					enforce: 'AC5E.AutoArmorSpellUseChoicesEnforce',
+					warn: 'AC5E.AutoArmorSpellUseChoicesWarn',
+				},
 			}
 		);
 		game.settings.register(
@@ -165,6 +183,12 @@ export default class Settings {
 		return game.settings.get(
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_ARMOR_PROF_STEALTH
+		);
+	}
+	get autoArmorSpellUse() {
+		return game.settings.get(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_ARMOR_PROF_SPELL_USE
 		);
 	}
 	get autoRanged() {
