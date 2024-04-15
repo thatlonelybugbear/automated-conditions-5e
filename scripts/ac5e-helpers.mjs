@@ -460,17 +460,27 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 }
 
 export function _setAC5eProperties(ac5eConfig, where) {
-	foundry.utils.setProperty(
-		where,
-		`dialogOptions.${Constants.MODULE_ID}`,
-		ac5eConfig
-	);
+	if (where.dialogOptions)
+		foundry.utils.mergeObject(where.dialogOptions, {
+			[`${Constants.MODULE_ID}`]: ac5eConfig,
+		});
+	else
+		foundry.utils.setProperty(
+			where,
+			`dialogOptions.${Constants.MODULE_ID}`,
+			ac5eConfig
+		);
 	foundry.utils.mergeObject(where.dialogOptions, { classes: ['ac5e dialog'] });
-	foundry.utils.setProperty(
-		where,
-		`messageData.flags.${Constants.MODULE_ID}`,
-		ac5eConfig
-	);
+	if (where.messageData)
+		foundry.utils.mergeObject(where.messageData, {
+			[`flags.${Constants.MODULE_ID}`]: ac5eConfig,
+		});
+	else
+		foundry.utils.setProperty(
+			where,
+			`messageData.flags.${Constants.MODULE_ID}`,
+			ac5eConfig
+		);
 }
 
 function activeModule(moduleID) {
