@@ -577,14 +577,18 @@ export function _renderHijack(renderedType, elem) {
 export function _preUseItem(item, config, options) {
 	const sourceActor = item.actor;
 	if (!sourceActor) return;
-	if (item.type == 'spell' && settings.autoArmorSpellUse != 'off') {
-		if (settings.autoArmorSpellUse == 'warn' && _autoArmor(sourceActor).notProficient)
+	if (
+		item.type == 'spell' &&
+		settings.autoArmorSpellUse != 'off' &&
+		_autoArmor(sourceActor).notProficient
+	) {
+		if (settings.autoArmorSpellUse == 'warn')
 			ui.notifications.warn(
 				`${sourceActor.name} ${_localize(
 					'AC5E.AutoArmorSpellUseChoicesWarnToast'
 				)}`
 			);
-		else if (settings.autoArmorSpellUse == 'enforce' && _autoArmor(sourceActor).notProficient) {
+		else if (settings.autoArmorSpellUse == 'enforce') {
 			ui.notifications.warn(
 				`${sourceActor.name} ${_localize(
 					'AC5E.AutoArmorSpellUseChoicesEnforceToast'
