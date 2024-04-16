@@ -40,9 +40,10 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
   - From dnd5e v3.1.2 onwards, any Equipment type Item can impose stealth disadvantage too, not only Armor.
-- **Armor proficiency and casting spells (default off)**
+- **Armor proficiency and casting spells (default Do nothing)**
   - If set to `Enforce`, lack of proficiency in the equipped armor, will result in spells use being disallowed.
   - If set to `Warn`, there will be just a warning toast instead.
+  - If set to `Do nothing`, well why should it do something?! :D
 - **Range automation (default off)**
   - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
   - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe);
