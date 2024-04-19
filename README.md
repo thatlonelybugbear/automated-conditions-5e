@@ -34,7 +34,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 
 # Settings added for:
 - **Expanded Conditions (default off)**
-  - **Dodging**: Attacker disadvantage if target not incapacitated, restrained and can see attacker. Also advantage on dex saves.
+  - **Dodging**: Attacker disadvantage if target not incapacitated, restrained and can see attacker (attacker doesn't have the Hiding condition). Also advantage on dex saves.
   - **Hiding**: Advantage on attacks.
 - **Armor automation (default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
