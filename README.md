@@ -16,55 +16,55 @@ Rolling with Core, will indicate the correct button to press, on Attack Rolls, D
 Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
 
 # Dnd5e Conditions supported
-- **Blinded**: Disadvantage on attacks and grants advantage to attack from others
-- **Exhaustion 1**: Disadvantage on ability checks (and skill checks as a result)
-- **Exhaustion 2**: no changes
-- **Exhaustion 3**: Disadvantage on attacks and saving throws
-- **Exhaustion 4**: no changes
-- **Exhaustion 5**: no changes
-- **Frightened**: Disadvantage on ability checks and attack rolls;
-- **Invisible**: Advantage on attacks and grants Disadvantage to attacks by others
-- **Paralyzed**: Auto fail (-99) strength/dexterity saves and attacker within 5ft of the creature deals critical damage
-- **Petrified**: Grants Advantage on attacks by others, auto fail strength/dexterity saves
-- **Poisoned**: Disadvantage on attacks and ability checks
-- **Prone**: Disadvantage on attacks, grants advantage on attacks by others if within 5ft, otherwise grants disdvantage
-- **Restrained**: Disadvantage on attacks and dexterity saves, grants advantage on attacks by others
-- **Stunned**: Auto fail strength/dexterity saves, grants advantage on attacks by others
-- **Unconscious**: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
+- `Blinded`: Disadvantage on attacks and grants advantage to attack from others
+- `Exhaustion 1`: Disadvantage on ability checks (and skill checks as a result)
+- `Exhaustion 1`: no changes
+- `Exhaustion 3`: Disadvantage on attacks and saving throws
+- `Exhaustion 4`: no changes
+- `Exhaustion 5`: no changes
+- `Frightened`: Disadvantage on ability checks and attack rolls;
+- `Invisible`: Advantage on attacks and grants Disadvantage to attacks by others
+- `Paralyzed`: Auto fail (-99) strength/dexterity saves and attacker within 5ft of the creature deals critical damage
+- `Petrified`: Grants Advantage on attacks by others, auto fail strength/dexterity saves
+- `Poisoned`: Disadvantage on attacks and ability checks
+- `Prone`: Disadvantage on attacks, grants advantage on attacks by others if within 5ft, otherwise grants disdvantage
+- `Restrained`: Disadvantage on attacks and dexterity saves, grants advantage on attacks by others
+- `Stunned`: Auto fail strength/dexterity saves, grants advantage on attacks by others
+- `Unconscious`: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
 
 # Settings added for:
-- **Expanded Conditions (default off)**
-  - **Dodging**: Attacker disadvantage if target not incapacitated, restrained and can see attacker (attacker doesn't have the Hiding condition). Also advantage on dex saves.
-  - **Hiding**: Advantage on attacks.
-- **Armor automation (default off)**
+- `Expanded Conditions` **(default off)**
+  - `Dodging`: Attacker disadvantage if target not incapacitated, restrained and can see attacker (attacker doesn't have the Hiding condition). Also advantage on dex saves.
+  - `Hiding`: Advantage on attacks.
+- `Armor automation` **(default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
   - From dnd5e v3.1.2 onwards, any Equipment type Item can impose stealth disadvantage too, not only Armor.
-- **Armor proficiency and casting spells (default Do nothing)**
+- `Armor proficiency and casting spells` **(default Do nothing)**
   - If set to `Enforce`, lack of proficiency in the equipped armor, will result in spells use being disallowed.
   - If set to `Warn`, there will be just a warning toast instead.
   - If set to `Do nothing`, well why should it do something?! :D
-- **Range automation (default off)**
-  - Attacking with a ranged weapon at long range imposes disadvantage on the roll (Long Range).
-  - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (Nearby Foe);
+- `Range automation` **(default off)**
+  - Attacking with a ranged weapon at long range imposes disadvantage on the roll (`Long Range`).
+  - Attacking with a ranged weapon, when an enemy is adjacent, imposes disadvantage on the roll (`Nearby Foe`);
     - Added a separate setting for Nearby Foe (default off).
-  - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (Out of Range).
+  - Attacking with a ranged weapon at a distance longer than the long range, imposes a fail on the roll (`Out of Range`).
   - Crossbow Expert: Ignores Nearby Foes with
     - A flag on the Actor `flags.automated-conditions-5e.crossbowExpert | Override | 1` or
     - An Item named `Crossbow Expert`.
   - Sharpshooter: No disadvantage when shooting at long range with
     - A flag on the Actor `flags.automated-conditions-5e.sharpShooter | Override | 1` or
     - An Item named `Sharpshooter`.
-- **Show AC5e tooltips for both Roll Dialog and Chat messages or any combination of these (default both)**
-- **Exhaustion automation (default on)**
+- `Show AC5e tooltips` for both Roll Dialog and Chat messages or any combination of these **(default both)**
+- `Exhaustion automation` **(default on)**
   - If you want to not automatically process Exhaustion conditions uncheck this. Doing so will allow for other exhaustion modules to alter exhaustion automation or your own rules (eg [Alternative Exhaustion 5e](https://foundryvtt.com/packages/alternative-exhaustion-5e)).
-- **Encumbrance automation (default off)**
+- `Encumbrance automation` **(default off)**
   - Dnd5e v3.x system offers a setting for Encumbrance rules. If that is set to `Variant`, and you turn this AC5e setting on, ability checks, attack rolls, and saving throws that use Strength, Dexterity, or Constitution will have disadvantage.
-- **Targeting options (default From source only)**
+- `Targeting options` **(default From source only)**
   - When 0 or more than 1 targets are selected, AC5e will not be able by default to calculate correctly advantageMode/damageMode as this is done based on the first of the game.user.targets only. There is now a setting for the GM to decide how AC5e will deal with targeting and rolling an Attack or Damage, or try to Use an Item that has an attack and Target any of the Individual target options in its details tab. The options are as follows:
-    - *From Source Only*: The advantageMode/damageMode will be calculated based on effects/conditions etc on the Source actor only (default option),
-    - *Do nothing*: No calculations whatsoever will take place,
-    - *Enforce targeting*: Will cancel the incoming Roll or Item use, and display a warning for the user to target 1 Target (Use with caution).
+    - `From Source Only`: The advantageMode/damageMode will be calculated based on effects/conditions etc on the Source actor only (default option),
+    - `Do nothing`: No calculations whatsoever will take place,
+    - `Enforce targeting`: Will cancel the incoming Roll or Item use, and display a warning for the user to target 1 Target (Use with caution).
 - **For D&D5e v3.1**
   - Added `dnd5e.preRollConcentration` hook to deal with conditions affecting concentration saving throws.
     - Exhaustion 3-5 applies disadvantage.
