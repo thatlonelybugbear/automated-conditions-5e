@@ -159,7 +159,7 @@ export default class Settings {
 			name: 'AC5E.DebuggingName',
 			hint: 'AC5E.DebuggingHint',
 			scope: 'world',
-			config: true,
+			config: false,
 			default: false,
 			type: Boolean,
 		});
