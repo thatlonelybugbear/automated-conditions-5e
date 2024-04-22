@@ -1,3 +1,6 @@
+## v11.315312.6
+* Closes [#122](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/122) - reinstates compatibility with MidiQOL flags altering rolls (and shows a generic MidiQOL (flags)) in the tooltip.
+
 ## v11.315312.5
 * Update pt-BR.json by @Kharmans in [#111](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/111) and [#116](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/116)
 * Closes [#110](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/110) - nearbyFoe calcs no matter options for target enforcement by @thatlonelybugbear in [#113](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/113)
