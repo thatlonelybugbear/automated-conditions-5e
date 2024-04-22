@@ -411,11 +411,11 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 	if (disKey) disadvantage = [`${moduleID} (keyPress)`];
 	if (critKey && ['damage', 'itemDamage'].includes(hookType))
 		critical = [`${moduleID} (keyPress)`];
-	if (config.advantage && !settings.keypressOverrides)
+	if (config.advantage /*&& !settings.keypressOverrides*/)  //to-do: why was that here in the first place? Changed when added multi rollers compat?
 		advantage = advantage.concat(`${moduleID} (flags)`);
-	if (config.disadvantage && !settings.keypressOverrides)
+	if (config.disadvantage /*&& !settings.keypressOverrides*/)
 		disadvantage = disadvantage.concat(`${moduleID} (flags)`);
-	if (config.critical === true && !settings.keypressOverrides)
+	if (config.critical === true /*&& !settings.keypressOverrides*/)
 		critical = critical.concat(`${moduleID} (flags)`);
 	if (settings.debug) {
 		console.warn(
