@@ -18,7 +18,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 # Dnd5e Conditions supported
 - `Blinded`: Disadvantage on attacks and grants advantage to attack from others
 - `Exhaustion 1`: Disadvantage on ability checks (and skill checks as a result)
-- `Exhaustion 1`: no changes
+- `Exhaustion 2`: no changes
 - `Exhaustion 3`: Disadvantage on attacks and saving throws
 - `Exhaustion 4`: no changes
 - `Exhaustion 5`: no changes
