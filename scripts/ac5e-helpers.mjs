@@ -1,4 +1,4 @@
-import Constants from './ac5e-constants.mjs';
+ import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
@@ -176,11 +176,13 @@ export function _findNearby(
 export function _autoArmor(actor) {
 	if (!actor) return {};
 	const hasArmor = actor.armor;
+	const hasShield = actor.shield;
 	return {
-		hasStealthDisadvantage: hasArmor?.system.properties.has(
-			'stealthDisadvantage'
-		)
+		hasStealthDisadvantage: 
+			hasArmor?.system.properties.has('stealthDisadvantage')
 			? 'Armor'
+			: hasShield?.system.properties.has('stealthDisadvantage')
+			? 'EquipmentShield'
 			: actor.itemTypes.equipment.some(
 					(item) =>
 						item.system.equipped &&
@@ -189,7 +191,11 @@ export function _autoArmor(actor) {
 			? 'AC5E.Equipment'
 			: false,
 		notProficient:
-			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier,
+			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier
+			? 'Armor' 
+			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier
+			? 'EquipmentShield'
+			: false,
 	};
 }
 
