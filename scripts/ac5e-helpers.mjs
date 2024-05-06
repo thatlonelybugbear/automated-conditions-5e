@@ -193,7 +193,7 @@ export function _autoArmor(actor) {
 			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier
 			? 'Armor' 
 			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier
-			? 'Shield'
+			? 'EquipmentShield'
 			: false,
 	};
 }
