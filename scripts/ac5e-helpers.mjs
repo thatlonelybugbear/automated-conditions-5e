@@ -1,4 +1,4 @@
-import Constants from './ac5e-constants.mjs';
+ import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
@@ -178,10 +178,11 @@ export function _autoArmor(actor) {
 	const hasArmor = actor.armor;
 	const hasShield = actor.shield;
 	return {
-		hasStealthDisadvantage: hasArmor?.system.properties.has(
-			'stealthDisadvantage'
-		)
+		hasStealthDisadvantage: 
+			hasArmor?.system.properties.has('stealthDisadvantage')
 			? 'Armor'
+			: hasShield?.system.properties.has('stealthDisadvantage')
+			? 'EquipmentShield'
 			: actor.itemTypes.equipment.some(
 					(item) =>
 						item.system.equipped &&
