@@ -424,7 +424,7 @@ export function _preRollAttack(item, config) {
 		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`
+			`${_localize(_autoArmor(sourceActor).notProficient)} (${_localize('NotProficient')})`
 		);
 		change = true;
 	}
@@ -757,7 +757,7 @@ export function _preUseItem(item, config, options) {
 		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`
+			`${_localize(_autoArmor(sourceActor).notProficient)} (${_localize('NotProficient')})`
 		);
 		change = true;
 	}
