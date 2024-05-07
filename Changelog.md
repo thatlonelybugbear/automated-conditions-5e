@@ -1,3 +1,6 @@
+## v11.315312.7
+- Closes [#125](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/125) - implement checks for non-proficient equipped shields, allowing for these to alter relevant rolls (like Armor already does).
+
 ## v11.315312.6
 * Closes [#122](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/122) - reinstates compatibility with MidiQOL flags altering rolls (and shows a generic MidiQOL (flags)) in the tooltip.
 
