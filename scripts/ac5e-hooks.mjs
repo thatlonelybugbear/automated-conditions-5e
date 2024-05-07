@@ -75,7 +75,7 @@ export function _preRollAbilitySave(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`,
+			`${_localize('Armor')} (${_localize('NotProficient')})`,
 		];
 		change = true;
 	}
@@ -121,7 +121,7 @@ export function _preRollSkill(actor, config, skillId) {
 		) {
 			ac5eConfig.disadvantage = [
 				...ac5eConfig.disadvantage,
-				`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`,
+				`${_localize('Armor')} (${_localize('NotProficient')})`,
 			];
 			change = true;
 		}
@@ -175,7 +175,7 @@ export function _preRollAbilityTest(actor, config, abilityId) {
 	) {
 		ac5eConfig.disadvantage = [
 			...ac5eConfig.disadvantage,
-			`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`,
+			`${_localize('Armor')} (${_localize('NotProficient')})`,
 		];
 		change = true;
 	}
@@ -424,7 +424,7 @@ export function _preRollAttack(item, config) {
 		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_localize(_autoArmor(sourceActor).notProficient)} (${_localize('NotProficient')})`
+			`${_localize('Armor')} (${_localize('NotProficient')})`
 		);
 		change = true;
 	}
@@ -757,7 +757,7 @@ export function _preUseItem(item, config, options) {
 		_autoArmor(sourceActor).notProficient
 	) {
 		ac5eConfig.disadvantage.source = ac5eConfig.disadvantage.source.concat(
-			`${_localize(_autoArmor(sourceActor).notProficient)} (${_localize('NotProficient')})`
+			`${_localize('Armor')} (${_localize('NotProficient')})`
 		);
 		change = true;
 	}
