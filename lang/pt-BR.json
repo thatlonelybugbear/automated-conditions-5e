@@ -1,6 +1,6 @@
 {
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5e",
-	"AC5E.ShowDialogTooltipsHint": "Se marcado, AC5e mostrará uma dica útil ao posicionar o apontador do mouse sobre o botão de rolagem sugerido, resumindo as razões para a sugestão.",
+	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5e mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
 	"AC5E.ShowToolTipsChoicesDialog": "Somente em rolagens",
 	"AC5E.ShowToolTipsChoicesChat": "Somente em chat",
