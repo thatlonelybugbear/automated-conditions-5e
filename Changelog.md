@@ -1,3 +1,7 @@
+## v11.315321.1
+- Just a compatibility bump for 5e 3.2.1 and Foundry v12
+- `pt_BR` translation updates by @Kharmans (thanks as always)
+
 ## v11.315312.7
 - Closes [#125](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/125) - implement checks for non-proficient equipped shields, allowing for these to alter relevant rolls (like Armor already does).
 
