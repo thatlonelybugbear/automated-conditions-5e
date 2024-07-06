@@ -1,3 +1,6 @@
+## v11.315321.2
+- Closes [#137](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/137) - Exhaustion for Death Saves is always Enabled.
+
 ## v11.315321.1
 - Just a compatibility bump for 5e 3.2.1 and Foundry v12
 - `pt_BR` translation updates by @Kharmans (thanks as always)
