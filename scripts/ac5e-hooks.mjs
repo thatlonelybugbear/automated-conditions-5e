@@ -208,8 +208,8 @@ export function _preRollDeathSave(actor, config) {
 	)
 		return true;
 	//Exhaustion 3-5
-	let statuses = ['exhaustion3'];
-	if (_hasStatuses(actor, statuses).length) {
+	let statuses = settings.autoExhaustion ? ['exhaustion3'] : [];
+	if (statuses.length && _hasStatuses(actor, statuses).length) {
 		ac5eConfig.disadvantage = ac5eConfig.disadvantage?.length
 			? ac5eConfig.disadvantage.concat(_hasStatuses(actor, statuses))
 			: _hasStatuses(actor, statuses);
