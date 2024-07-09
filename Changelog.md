@@ -1,3 +1,6 @@
+## v11.315321.3
+- Merged [#139](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/139) - Italian translation. Thanks to @GregoryWarn. 
+
 ## v11.315321.2
 - Closes [#137](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/137) - Exhaustion for Death Saves is always Enabled.
 
