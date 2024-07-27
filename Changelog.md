@@ -1,3 +1,6 @@
+## v11.315331 - prerelease
+- 5e system version 3.3.1 compatibility bump (not fully tested)
+
 ## v11.315321.3
 - Merged [#139](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/139) - Italian translation. Thanks to @GregoryWarn. 
 
