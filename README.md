@@ -78,7 +78,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - [x] Roll Groups, not tested (seems to not have issues, open an issue if you encounter any).
  
 # Credits
-- Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
+- Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips).
 
 # Manual installation
 ## For dnd5e v3.x, use manifest: 
