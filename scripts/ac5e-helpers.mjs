@@ -1,4 +1,4 @@
- import Constants from './ac5e-constants.mjs';
+import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
