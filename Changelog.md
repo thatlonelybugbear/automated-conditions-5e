@@ -1,0 +1,39 @@
+## v11.315.241.1 <hl>
+- Changing branches, making the main be compatible with dnd5 v3.x only.
+  - For dnd5e v3.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json>
+  - For dnd5e v2.x, use manifest: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
+- to-do: backport some changes later from the v3.x branch.
+- to-do: make sure that all is working.
+
+## v11.11.2 <hl>
+- Make sure that `config.parts:<string>`
+- Use falsy checks for `!Array.length`
+
+## v11.11.1 <hl>
+- Bump for v11 only branch and some small additions. More things to come :)
+
+## v11.0.11 <hl>
+- Hotfix for v10.
+
+## v11.0.10 <hl>
+- Version bump that will be the last v10 compatible one.
+
+## v11.0.1 <hl>
+- Compatibility bump for Foundry v11.300 and make system dnd5e required with minimum version 2.0.1.
+
+## v11.0.0 <hl>
+- Compatibility bump for Foundry v11.
+
+## v10.0.3 <hl>
+- Quick fix for unlinked tokens.
+
+## v10.0.2 <hl>
+- Closing https://github.com/thatlonelybugbear/automated-conditions-5e/issues/3: Melee attacks on Prone targets will have advantage when distance <=5, and disadvantage otherwise. 
+- Closing https://github.com/thatlonelybugbear/automated-conditions-5e/issues/4: Added RollDeathSaves. Exhaustion levels 3-5 will grant disadvantage of death Saves.
+
+## v10.0.1 <hl> 
+- Closing https://github.com/thatlonelybugbear/automated-conditions-5e/issues/1: Using `CONFIG.DND5E.conditionTypes` to fetch effect labels.
+- `_getMinimumDistanceBetweenTokens` should respect diagonal movement types (will make sense in the future)
+
+## v10.0.0 <hl> 
+- Initial commit

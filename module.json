@@ -1,0 +1,39 @@
+{
+    "id": "automated-conditions-5e",
+    "title": "Automated Conditions 5e",
+    "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
+    "version": "11.315.241.1",
+    "authors": [
+        {
+            "name": "thatlonelybugbear",
+            "url": "https://github.com/thatlonelybugbear",
+            "discord": "thatlonelybugbear#4394",
+            "ko-fi": "https://ko-fi.com/thatlonelybugbear"
+        }
+    ],
+    "compatibility": {
+        "minimum": "11",
+        "maximum": "11",
+        "verified": "11.313"
+    },
+    "esmodules": ["scripts/ac5e-setup.mjs"],
+    "relationships": {
+        "systems": [
+            {
+                "id": "dnd5e",
+                "type": "system",
+                "compatibility": {
+                    "minimum": "2.0.1",
+                    "maximum": "2.9.99"
+                }
+            }
+        ] 
+    },
+    "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
+    "flags": { "allowBugReporter": true },
+    "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
+    "license": "https://github.com/thatlonelybugbear/automated-conditions-5e/blob/main/LICENSE",
+    "manifest": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json",
+    "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v11.315.241.1/module.zip",
+    "changelog": "https://github.com/thatlonelybugbear/automated-conditions-5e/blob/master/Changelog.md"
+}
