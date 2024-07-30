@@ -11,26 +11,33 @@ import {
 } from './ac5e-hooks.mjs';
 import { _systemCheck } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
+import { migrate } from './ac5e-migrations.mjs';
 
-Hooks.once('init', () => {
-	new Settings().registerSettings();
-	const preRollConcentration = _systemCheck('3.0.4')
-		? Hooks.on('dnd5e.preRollConcentration', _preRollConcentration)
-		: 'This will only be added for users with dnd5e 3.1+';
-	const preRollAbilitySave = Hooks.on(
-		'dnd5e.preRollAbilitySave',
-		_preRollAbilitySave
-	);
-	const preRollAbilityTest = Hooks.on(
-		'dnd5e.preRollAbilityTest',
-		_preRollAbilityTest
-	);
+Hooks.once('init', ac5eRegisterSettings);
+Hooks.once('ready', ac5eReady);
+
+
+/* SETUP FUNCTIONS */
+function ac5eRegisterSettings() {
+	return new Settings().registerSettings();
+};
+
+function ac5eReady() {
+	if (game.modules.get('midi-qol')?.active) {    
+		Hooks.once('midi-qol.midiReady', ac5eSetup);  //added midi-qol ready hook, so that ac5e registers hooks after MidiQOL.
+	} else {
+		ac5eSetup();
+	}
+	migrate();   //migration scripts execute.
+};
+
+function ac5eSetup() {
+	const preRollConcentration = _systemCheck('3.0.4') ? Hooks.on('dnd5e.preRollConcentration', _preRollConcentration) : 'This will only be added for users with dnd5e 3.1+';
+	const preRollAbilitySave = Hooks.on('dnd5e.preRollAbilitySave', _preRollAbilitySave);
+	const preRollAbilityTest = Hooks.on('dnd5e.preRollAbilityTest', _preRollAbilityTest);
 	const preRollAttack = Hooks.on('dnd5e.preRollAttack', _preRollAttack);
 	const preRollDamage = Hooks.on('dnd5e.preRollDamage', _preRollDamage);
-	const preRollDeathSave = Hooks.on(
-		'dnd5e.preRollDeathSave',
-		_preRollDeathSave
-	);
+	const preRollDeathSave = Hooks.on('dnd5e.preRollDeathSave', _preRollDeathSave);
 	const preRollSkill = Hooks.on('dnd5e.preRollSkill', _preRollSkill);
 	const preUseItem = Hooks.on('dnd5e.preUseItem', _preUseItem);
 	const renderDialog = Hooks.on('renderDialog', _renderHijack);
@@ -49,4 +56,4 @@ Hooks.once('init', () => {
 		renderDialog: ${renderDialog}
 		renderChatMessage: ${renderChatMessage}`
 	);
-});
+}
