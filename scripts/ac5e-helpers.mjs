@@ -290,11 +290,9 @@ export function _autoEncumbrance(actor, abilityId) {
 }
 
 export function _autoRanged(item, token, target) {
-	if (!item || !token) return undefined;
-	let {
-		actionType,
-		range: { value: short, long },
-	} = item.system;
+	const autoRanged = settings.autoRangedCombined;
+	if (!item || !['rwak', 'rsak'].includes(item.system.actionType) || !token || autoRanged == 'off') return false;
+	let { range: { value: short, long } } = item.system;
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const sharpShooter =
 		flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
@@ -303,8 +301,7 @@ export function _autoRanged(item, token, target) {
 		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
 	const distance = target ? _getDistance(token, target) : undefined;
 	const nearbyFoe =
-		settings.autoRangedNearbyFoe &&
-		['rwak', 'rsak'].includes(actionType) &&
+		settings.autoRangedCombined == 'nearby' &&
 		_findNearby(token, 'opposite', 5, 1) &&  //hostile vs friendly disposition only
 		!crossbowExpert;
 	const inRange =
