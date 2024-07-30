@@ -3,7 +3,7 @@ import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
-const DEBUG = false;
+const DEBUG = settings.debug;
 
 /**
  * Gets the minimum distance between two tokens,
@@ -407,15 +407,15 @@ export function _getTooltip(ac5eConfig) {
 }
 
 export function _getConfig(config, hookType, tokenId, targetId) {
-	if (settings.debug) console.warn('helpers._getConfig:', config);
+	if (DEBUG) console.warn('helpers._getConfig:', config);
 	const existingAC5e = config?.dialogOptions?.['automated-conditions-5e'];
 	if (!!existingAC5e && existingAC5e.hookType == 'item') {
 		existingAC5e.hookType = existingAC5e.hookType + hookType.capitalize();
-		if (settings.debug)
+		if (DEBUG)
 			console.warn('ac5e helpers.getConfig preExistingAC5e:', preExistingAC5e);
 		return existingAC5e;
 	}
-	if (settings.debug)
+	if (DEBUG)
 		console.log(
 			config.advantage,
 			config.disadvantage,
@@ -438,7 +438,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			advKey = MidiKeyManager.pressedKeys.advantage;
 			disKey = MidiKeyManager.pressedKeys.disadvantage;
 		} else critKey = MidiKeyManager.pressedKeys.critical;
-		if (settings.debug) console.warn(advKey, disKey, critKey, config);
+		if (DEBUG) console.warn(advKey, disKey, critKey, config);
 	} else if (activeModule('ready-set-roll-5e')) {
 		moduleID = 'ready-set-roll-5e';
 		let getRsrSetting = (key) => game.settings.get(moduleID, key);
@@ -484,7 +484,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 		if (hookType == 'damage')
 			critKey = config.event?.altKey || config.event?.metaKey;
 	}
-	if (settings.debug)
+	if (DEBUG)
 		console.warn(
 			'helpers check Keys || ',
 			hookType,
@@ -505,7 +505,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 		disadvantage = disadvantage.concat(`${moduleID} (flags)`);
 	if (config.critical === true /*&& !settings.keypressOverrides*/)
 		critical = critical.concat(`${moduleID} (flags)`);
-	if (settings.debug) {
+	if (DEBUG) {
 		console.warn(
 			'_getConfig | advantage:',
 			advantage,
