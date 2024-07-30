@@ -56,7 +56,8 @@
     "flags": {
         "hotReload": {
             "paths": ["lang/en.json"]
-        }
+        },
+        "lastMigratedPoint": "12.330331.1"
     },
     "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
     "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
