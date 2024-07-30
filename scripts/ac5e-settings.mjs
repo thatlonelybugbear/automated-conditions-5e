@@ -9,24 +9,19 @@ export default class Settings {
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
 	static AUTOMATE_RANGED_ATTACKS_NEARBYFOE = 'autoRangedNearbyFoe';
+	static AUTOMATE_RANGED_ATTACKS_MENU = 'autoRangedAttacksMenu';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
 	static KEYPRESS_OVERRIDES = 'keypressOverrides';
 	static DEBUG = 'debugging';
+	static MIGRATION = 'lastMigratedPoint';
 
 	registerSettings() {
 		this._registerWorldSettings();
 	}
 
 	_registerWorldSettings() {
-		const userRoles = {};
-		userRoles[CONST.USER_ROLES.PLAYER] = 'Player';
-		userRoles[CONST.USER_ROLES.TRUSTED] = 'Trusted Player';
-		userRoles[CONST.USER_ROLES.ASSISTANT] = 'Assistant GM';
-		userRoles[CONST.USER_ROLES.GAMEMASTER] = 'Game Master';
-		userRoles[5] = 'None';
-
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipsName',
 			hint: 'AC5E.ShowTooltipsHint',
@@ -52,7 +47,6 @@ export default class Settings {
 				type: Boolean,
 			}
 		);
-		
 		game.settings.register(
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_EXPANDED_CONDITIONS,
@@ -94,6 +88,7 @@ export default class Settings {
 				},
 			}
 		);
+//to be migrated and removed on v12.5
 		game.settings.register(
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_RANGED_ATTACKS,
@@ -101,11 +96,12 @@ export default class Settings {
 				name: 'AC5E.AutoRangedAttacksName',
 				hint: 'AC5E.AutoRangedAttacksHint',
 				scope: 'world',
-				config: true,
+				config: false,
 				default: false,
 				type: Boolean,
 			}
 		);
+//to be migrated and removed on v12.5
 		game.settings.register(
 			Constants.MODULE_ID,
 			Settings.AUTOMATE_RANGED_ATTACKS_NEARBYFOE,
@@ -113,9 +109,21 @@ export default class Settings {
 				name: 'AC5E.AutoRangedNearbyFoeName',
 				hint: 'AC5E.AutoRangedNearbyFoeHint',
 				scope: 'world',
-				config: true,
+				config: false,
 				default: false,
 				type: Boolean,
+			}
+		);
+		game.settings.register(
+			Constants.MODULE_ID,
+			Settings.AUTOMATE_RANGED_ATTACKS_MENU,
+			{
+				name: 'AC5E.AutoRangedAttacksName',
+				hint: 'AC5E.AutoRangedAttacksHint',
+				scope: 'world',
+				config: true,
+				default: 'off',
+				type: String,
 			}
 		);
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION, {
@@ -163,6 +171,13 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.MIGRATION, {
+			name: 'Migration',
+			scope: 'world',
+			config: false,
+			default: null,
+			type: String,
+		});
 	}
 	get showTooltips() {
 		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS);
@@ -205,6 +220,9 @@ export default class Settings {
 			);
 		else return false;
 	}
+	get autoRangedCombined() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU);
+	}
 	get autoExhaustion() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION);
 	}
@@ -222,5 +240,8 @@ export default class Settings {
 	}
 	get debug() {
 		return game.settings.get(Constants.MODULE_ID, Settings.DEBUG);
+	}
+	get migrated() {
+		return game.settings.get(Constants.MODULE_ID, Settings.MIGRATION);
 	}
 }
