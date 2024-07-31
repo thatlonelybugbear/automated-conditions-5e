@@ -42,5 +42,6 @@
 	"AC5E.Fail": "Fail",
 	"AC5E.OutOfRange": "Out of range",
 	"AC5E.Item": "Item",
-	"AC5E.Equipment": "Equipment"
+	"AC5E.Equipment": "Equipment",
+	"AC5E.NearbyFoe": "Nearby Foe"
 }
