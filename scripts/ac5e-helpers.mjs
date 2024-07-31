@@ -3,14 +3,11 @@ import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
-const DEBUG = settings.debug;
-
 /**
  * Gets the minimum distance between two tokens,
  * evaluating all grid spaces they occupy, by Illandril.
  */
 export function _getDistance(tokenA, tokenB) {
-
 	const PointsAndCenter = {
 		points: [],
 		trueCenternt: {},
@@ -115,12 +112,12 @@ export function _getDistance(tokenA, tokenB) {
 			units: scene.grid.units,
 		};
 	};
-	if (DEBUG) console.log(calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value);
+	if (settings.debug) console.log(calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value);
 	return calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value;
 }
 
 export function _getActiveToken(actor) {
-	const speaker = ChatMessage.getSpeaker({actor});
+	const speaker = ChatMessage.getSpeaker({ actor });
 	if (!speaker.token) {
 		return null;
 	}
@@ -144,18 +141,11 @@ export function _hasStatuses(actor, statuses) {
 	const exhaustionNumberedStatus = statuses.find((s) => endsWithNumber(s));
 	if (exhaustionNumberedStatus) {
 		statuses = statuses.filter((s) => !endsWithNumber(s));
-		if (
-			_getExhaustionLevel(
-				actor,
-				exhaustionNumberedStatus.split('exhaustion')[1]
-			)
-		)
+		if (_getExhaustionLevel(actor, exhaustionNumberedStatus.split('exhaustion')[1]))
 			return [...actor.statuses]
 				.filter((s) => statuses.includes(s))
 				.map((el) => _i18nConditions(el.capitalize()))
-				.concat(
-					`${_i18nConditions('Exhaustion')} ${_getExhaustionLevel(actor)}`
-				)
+				.concat(`${_i18nConditions('Exhaustion')} ${_getExhaustionLevel(actor)}`)
 				.sort();
 	}
 	return [...actor.statuses]
@@ -171,9 +161,7 @@ export function _hasAppliedEffects(actor) {
 export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	if (!actor) return false;
 	let exhaustionLevel = '';
-	const hasExhaustion =
-		actor.statuses.has('exhaustion') ||
-		actor.flags?.['automated-conditions-5e']?.statuses;
+	const hasExhaustion = actor.statuses.has('exhaustion') || actor.flags?.['automated-conditions-5e']?.statuses;
 	if (hasExhaustion) exhaustionLevel = actor.system.attributes.exhaustion;
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
@@ -182,10 +170,7 @@ export function _calcAdvantageMode(ac5eConfig, config) {
 	config.fastForward = config.fastForward
 		? config.fastForward
 		: ac5eConfig.roller == 'Core'
-		? config.event.shiftKey ||
-		  config.event.altKey ||
-		  config.event.metaKey ||
-		  config.event.ctrlKey
+		? config.event.shiftKey || config.event.altKey || config.event.metaKey || config.event.ctrlKey
 		: ac5eConfig.roller == 'RSR'
 		? ac5eConfig.rsrOverrideFF
 		: false;
@@ -205,16 +190,8 @@ export function _calcAdvantageMode(ac5eConfig, config) {
 		if (ac5eConfig.preAC5eConfig.disKey) return (config.disadvantage = true);
 		if (ac5eConfig.preAC5eConfig.critKey) return (config.critical = true);
 	}
-	if (
-		ac5eConfig.advantage.source?.length ||
-		ac5eConfig.advantage.target?.length
-	)
-		config.advantage = true;
-	if (
-		ac5eConfig.disadvantage.source?.length ||
-		ac5eConfig.disadvantage.target?.length
-	)
-		config.disadvantage = true;
+	if (ac5eConfig.advantage.source?.length || ac5eConfig.advantage.target?.length) config.advantage = true;
+	if (ac5eConfig.disadvantage.source?.length || ac5eConfig.disadvantage.target?.length) config.disadvantage = true;
 	if (ac5eConfig.advantage.length) config.advantage = true;
 	if (ac5eConfig.disadvantage.length) config.disadvantage = true;
 	if (config.advantage === true && config.disadvantage === true) {
@@ -244,11 +221,7 @@ export function _findNearby(
 	includeToken = true //includes or exclude source token
 ) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
-	const validTokens = canvas.tokens.placeables.filter(
-		(placeable) =>
-			_dispositionCheck(token, placeable, disposition) &&
-			_getDistance(token, placeable) <= radius
-	);
+	const validTokens = canvas.tokens.placeables.filter((placeable) => _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
 	if (lengthTest && includeToken) return validTokens.length >= lengthTest;
 	if (lengthTest && !includeToken) return validTokens.length > lengthTest;
 	if (includeToken) return validTokens;
@@ -260,61 +233,48 @@ export function _autoArmor(actor) {
 	const hasArmor = actor.armor;
 	const hasShield = actor.shield;
 	return {
-		hasStealthDisadvantage: 
-			hasArmor?.system.properties.has('stealthDisadvantage')
+		hasStealthDisadvantage: hasArmor?.system.properties.has('stealthDisadvantage')
 			? 'Armor'
 			: hasShield?.system.properties.has('stealthDisadvantage')
 			? 'EquipmentShield'
-			: actor.itemTypes.equipment.some(
-					(item) =>
-						item.system.equipped &&
-						item.system.properties.has('stealthDisadvantage')
-			  )
+			: actor.itemTypes.equipment.some((item) => item.system.equipped && item.system.properties.has('stealthDisadvantage'))
 			? 'AC5E.Equipment'
 			: false,
 		notProficient:
 			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier
-			? 'Armor' 
-			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier
-			? 'EquipmentShield'
-			: false,
+				? 'Armor'
+				: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier
+				? 'EquipmentShield'
+				: false,
 	};
 }
 
 export function _autoEncumbrance(actor, abilityId) {
 	if (!settings.autoEncumbrance) return null;
-	return (
-		['con', 'dex', 'str'].includes(abilityId) &&
-		_hasStatuses(actor, 'heavilyEncumbered').length
-	);
+	return ['con', 'dex', 'str'].includes(abilityId) && _hasStatuses(actor, 'heavilyEncumbered').length;
 }
 
 export function _autoRanged(item, token, target) {
 	const autoRanged = settings.autoRangedCombined;
 	if (!item || !['rwak', 'rsak'].includes(item.system.actionType) || !token || autoRanged == 'off') return false;
-	let { range: { value: short, long } } = item.system;
+	let {
+		range: { value: short, long },
+	} = item.system;
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
-	const sharpShooter =
-		flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
+	const sharpShooter = flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
-	const crossbowExpert =
-		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
+	const crossbowExpert = flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
 	const distance = target ? _getDistance(token, target) : undefined;
 	const nearbyFoe =
 		settings.autoRangedCombined == 'nearby' &&
-		_findNearby(token, 'opposite', 5, 1) &&  //hostile vs friendly disposition only
+		_findNearby(token, 'opposite', 5, 1) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange =
-		distance <= short ? 'short' : distance <= long ? 'long' : false;
+	const inRange = distance <= short ? 'short' : distance <= long ? 'long' : false;
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
 export function _hasItem(actor, itemName) {
-	return actor?.items.some((item) =>
-		item?.name
-			.toLocaleLowerCase()
-			.includes(_localize(itemName).toLocaleLowerCase())
-	);
+	return actor?.items.some((item) => item?.name.toLocaleLowerCase().includes(_localize(itemName).toLocaleLowerCase()));
 }
 
 export function _systemCheck(testVersion) {
@@ -322,79 +282,42 @@ export function _systemCheck(testVersion) {
 }
 
 export function _getTooltip(ac5eConfig) {
-	let tooltip = settings.showNameTooltips
-		? '<center><strong>Automated Conditions 5e</strong></center><hr>'
-		: '';
-	if (ac5eConfig.critical.length)
-		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">${_localize(
-				'Critical'
-			)}: ${ac5eConfig.critical.join(', ')}</span>`
-		);
+	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e</strong></center><hr>' : '';
+	if (ac5eConfig.critical.length) tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Critical')}: ${ac5eConfig.critical.join(', ')}</span>`);
 	if (ac5eConfig.advantage?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">${_localize(
-				'Advantage'
-			)}: ${ac5eConfig.advantage.join(', ')}</span>`
-		);
+		tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Advantage')}: ${ac5eConfig.advantage.join(', ')}</span>`);
 	}
 	if (ac5eConfig.disadvantage?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">${_localize(
-				'Disadvantage'
-			)}: ${ac5eConfig.disadvantage.join(', ')}</span>`
-		);
+		tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Disadvantage')}: ${ac5eConfig.disadvantage.join(', ')}</span>`);
 	}
 	if (ac5eConfig.fail?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">${_localize(
-				'AC5E.Fail'
-			)}: ${ac5eConfig.fail.join(', ')}</span>`
-		);
+		tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${ac5eConfig.fail.join(', ')}</span>`);
 	}
 	if (ac5eConfig.advantage?.source?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">Attacker ${_localize(
-				'Advantage'
-			)
-				.substring(0, 3)
-				.toLocaleLowerCase()}: ${ac5eConfig.advantage.source.join(', ')}</span>`
+			`<span style="display: block; text-align: left;">Attacker ${_localize('Advantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.advantage.source.join(', ')}</span>`
 		);
 	}
 	if (ac5eConfig.advantage?.target?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">${_localize(
-				'Target'
-			)} grants ${_localize('Advantage')
-				.substring(0, 3)
-				.toLocaleLowerCase()}: ${ac5eConfig.advantage.target.join(', ')}</span>`
+			`<span style="display: block; text-align: left;">${_localize('Target')} grants ${_localize('Advantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.advantage.target.join(', ')}</span>`
 		);
 	}
 	if (ac5eConfig.disadvantage?.source?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">Attacker ${_localize(
-				'Disadvantage'
-			)
-				.substring(0, 3)
-				.toLocaleLowerCase()}: ${ac5eConfig.disadvantage.source.join(
-				', '
-			)}</span>`
+			`<span style="display: block; text-align: left;">Attacker ${_localize('Disadvantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.disadvantage.source.join(', ')}</span>`
 		);
 	}
 	if (ac5eConfig.disadvantage?.target?.length) {
 		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
 		tooltip = tooltip.concat(
-			`<span style="display: block; text-align: left;">${_localize(
-				'Target'
-			)} grants ${_localize('Disadvantage')
-				.substring(0, 3)
-				.toLocaleLowerCase()}: ${ac5eConfig.disadvantage.target.join(
+			`<span style="display: block; text-align: left;">${_localize('Target')} grants ${_localize('Disadvantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.disadvantage.target.join(
 				', '
 			)}</span>`
 		);
@@ -404,22 +327,14 @@ export function _getTooltip(ac5eConfig) {
 }
 
 export function _getConfig(config, hookType, tokenId, targetId) {
-	if (DEBUG) console.warn('helpers._getConfig:', config);
+	if (settings.debug) console.warn('helpers._getConfig:', config);
 	const existingAC5e = config?.dialogOptions?.['automated-conditions-5e'];
 	if (!!existingAC5e && existingAC5e.hookType == 'item') {
 		existingAC5e.hookType = existingAC5e.hookType + hookType.capitalize();
-		if (DEBUG)
-			console.warn('ac5e helpers.getConfig preExistingAC5e:', preExistingAC5e);
+		if (settings.debug) console.warn('ac5e helpers.getConfig preExistingAC5e:', preExistingAC5e);
 		return existingAC5e;
 	}
-	if (DEBUG)
-		console.log(
-			config.advantage,
-			config.disadvantage,
-			config.critical,
-			config.fastForward,
-			hookType
-		);
+	if (settings.debug) console.log(config.advantage, config.disadvantage, config.critical, config.fastForward, hookType);
 	let moduleID = 'Core';
 	let advKey,
 		disKey,
@@ -435,7 +350,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			advKey = MidiKeyManager.pressedKeys.advantage;
 			disKey = MidiKeyManager.pressedKeys.disadvantage;
 		} else critKey = MidiKeyManager.pressedKeys.critical;
-		if (DEBUG) console.warn(advKey, disKey, critKey, config);
+		if (settings.debug) console.warn(advKey, disKey, critKey, config);
 	} else if (activeModule('ready-set-roll-5e')) {
 		moduleID = 'ready-set-roll-5e';
 		let getRsrSetting = (key) => game.settings.get(moduleID, key);
@@ -454,12 +369,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 				: getRsrSetting('rollModifierMode') == 0
 				? config.event?.ctrlKey || config.event?.metaKey
 				: config.event?.shiftKey;
-			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`)
-				? !config.event?.altKey
-				: config.event.shiftKey ||
-				  config.event.altKey ||
-				  config.event.metaKey ||
-				  config.event.ctrlKey;
+			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`) ? !config.event?.altKey : config.event.shiftKey || config.event.altKey || config.event.metaKey || config.event.ctrlKey;
 		} else if (rsrHookType == 'damage') {
 			//to-do:check this
 			rsrHookType = 'Item';
@@ -468,61 +378,27 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 				: getRsrSetting('rollModifierMode') == 0
 				? config.event?.shiftKey
 				: config.event?.ctrlKey || config.event?.metaKey;
-			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`)
-				? !config.event?.altKey
-				: config.event?.shiftKey;
+			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`) ? !config.event?.altKey : config.event?.shiftKey;
 		}
 		moduleID = 'RSR';
 	} else {
 		//core system keys
-		if (hookType != 'damage')
-			advKey = config.event?.altKey || config.event?.metaKey;
+		if (hookType != 'damage') advKey = config.event?.altKey || config.event?.metaKey;
 		if (hookType != 'damage') disKey = config.event?.ctrlKey;
-		if (hookType == 'damage')
-			critKey = config.event?.altKey || config.event?.metaKey;
+		if (hookType == 'damage') critKey = config.event?.altKey || config.event?.metaKey;
 	}
-	if (DEBUG)
-		console.warn(
-			'helpers check Keys || ',
-			hookType,
-			advKey,
-			disKey,
-			critKey,
-			moduleID,
-			'keypressOverrides:',
-			settings.keypressOverrides
-		);
+	if (settings.debug) console.warn('helpers check Keys || ', hookType, advKey, disKey, critKey, moduleID, 'keypressOverrides:', settings.keypressOverrides);
 	if (advKey) advantage = [`${moduleID} (keyPress)`];
 	if (disKey) disadvantage = [`${moduleID} (keyPress)`];
-	if (critKey && ['damage', 'itemDamage'].includes(hookType))
-		critical = [`${moduleID} (keyPress)`];
-	if (config.advantage /*&& !settings.keypressOverrides*/)  //to-do: why was that here in the first place? Changed when added multi rollers compat?
+	if (critKey && ['damage', 'itemDamage'].includes(hookType)) critical = [`${moduleID} (keyPress)`];
+	if (config.advantage /*&& !settings.keypressOverrides*/)
+		//to-do: why was that here in the first place? Changed when added multi rollers compat?
 		advantage = advantage.concat(`${moduleID} (flags)`);
-	if (config.disadvantage /*&& !settings.keypressOverrides*/)
-		disadvantage = disadvantage.concat(`${moduleID} (flags)`);
-	if (config.critical === true /*&& !settings.keypressOverrides*/)
-		critical = critical.concat(`${moduleID} (flags)`);
-	if (DEBUG) {
-		console.warn(
-			'_getConfig | advantage:',
-			advantage,
-			'disadvantage:',
-			disadvantage,
-			'critical:',
-			critical,
-			'hookType:',
-			hookType
-		);
-		console.warn(
-			'_getConfig keys | advKey:',
-			advKey,
-			'disKey:',
-			disKey,
-			'critKey:',
-			critKey,
-			'rsrOverrideFF:',
-			rsrOverrideFF
-		);
+	if (config.disadvantage /*&& !settings.keypressOverrides*/) disadvantage = disadvantage.concat(`${moduleID} (flags)`);
+	if (config.critical === true /*&& !settings.keypressOverrides*/) critical = critical.concat(`${moduleID} (flags)`);
+	if (settings.debug) {
+		console.warn('_getConfig | advantage:', advantage, 'disadvantage:', disadvantage, 'critical:', critical, 'hookType:', hookType);
+		console.warn('_getConfig keys | advKey:', advKey, 'disKey:', disKey, 'critKey:', critKey, 'rsrOverrideFF:', rsrOverrideFF);
 	}
 	return {
 		hookType,
@@ -549,25 +425,96 @@ export function _setAC5eProperties(ac5eConfig, where) {
 		foundry.utils.mergeObject(where.dialogOptions, {
 			[`${Constants.MODULE_ID}`]: ac5eConfig,
 		});
-	else
-		foundry.utils.setProperty(
-			where,
-			`dialogOptions.${Constants.MODULE_ID}`,
-			ac5eConfig
-		);
+	else foundry.utils.setProperty(where, `dialogOptions.${Constants.MODULE_ID}`, ac5eConfig);
 	foundry.utils.mergeObject(where.dialogOptions, { classes: ['ac5e dialog'] });
 	if (where.messageData)
 		foundry.utils.mergeObject(where.messageData, {
 			[`flags.${Constants.MODULE_ID}`]: ac5eConfig,
 		});
-	else
-		foundry.utils.setProperty(
-			where,
-			`messageData.flags.${Constants.MODULE_ID}`,
-			ac5eConfig
-		);
+	else foundry.utils.setProperty(where, `messageData.flags.${Constants.MODULE_ID}`, ac5eConfig);
 }
 
 function activeModule(moduleID) {
 	return game.modules.get(moduleID)?.active;
+}
+
+export function canSee(source, target /*, modes = ['sight']*/) {
+	if (game.modules.get('midi - qol')?.active) return MidiQOL.canSee(source, target);
+	if (!source || !target) {
+		if (settings.debug) console.warn('AC5e: No valid tokens for canSee test');
+		return false;
+	}
+	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
+	const detectionModes = CONFIG.Canvas.detectionModes;
+	const DetectionModeCONST = DetectionMode;
+	const sightDetectionModes = new Set(Object.keys(detectionModes).filter((d) => detectionModes[d].type === DetectionMode.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes[d])); // ['basicSight', 'seeInvisibility', 'seeAll']
+	if (source instanceof TokenDocument) source = source.object;
+	if (target instanceof TokenDocument) target = target.object;
+	if (target.document?.hidden) return false;
+	if (!source.hasSight) return true; //if no sight is enabled on the source, it can always see.
+
+	const matchedModes = new Set();
+	// Determine the array of offset points to test
+	const t = Math.min(target.w, target.h) / 4;
+	const targetPoint = target.center;
+	const offsets =
+		t > 0
+			? [
+					[0, 0],
+					[-t, -t],
+					[-t, t],
+					[t, t],
+					[t, -t],
+					[-t, 0],
+					[t, 0],
+					[0, -t],
+					[0, t],
+			  ]
+			: [[0, 0]];
+	const tests = offsets.map((o) => ({
+		point: new PIXI.Point(targetPoint.x + o[0], targetPoint.y + o[1]),
+		los: new Map(),
+	}));
+	const config = { tests, object: target };
+	const tokenDetectionModes = source.detectionModes;
+	// First test basic detection for light sources which specifically provide vision
+	const lightSources = foundry.utils.isNewerVersion(game.system.version, '12.0') ? canvas?.effects?.lightSources : canvas?.effects?.lightSources.values();
+	for (const lightSource of lightSources ?? []) {
+		if (/*!lightSource.data.vision ||*/ !lightSource.active || lightSource.disabled) continue;
+		if (!lightSource.data.visibility) continue;
+		const result = lightSource.testVisibility(config);
+		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
+	}
+	const basic = tokenDetectionModes.find((m) => m.id === DetectionModeCONST.BASIC_MODE_ID);
+	if (basic /*&& source.vision.active*/) {
+		if (['basicSight', 'lightPerception', 'all'].some((mode) => sightDetectionModes.has(mode))) {
+			const result = detectionModes.basicSight.testVisibility(source.vision, basic, config);
+			if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
+		}
+	}
+	for (const detectionMode of tokenDetectionModes) {
+		if (detectionMode.id === DetectionModeCONST.BASIC_MODE_ID) continue;
+		if (!detectionMode.enabled) continue;
+		const dm = sightDetectionModes[detectionMode.id];
+		if (sightDetectionModes.has('all') || sightDetectionModes.has(detectionMode.id)) {
+			const result = dm?.testVisibility(source.vision, detectionMode, config);
+			if (result === true) {
+				matchedModes.add(detectionMode.id);
+			}
+		}
+	}
+	return !!matchedModes.size;
+}
+
+export function raceOrType(actor) {
+	const systemData = actor?.system;
+	if (!systemData) return '';
+	if (systemData.details.race) return (systemData.details?.race?.name ?? systemData.details?.race)?.toLocaleLowerCase() ?? '';
+	return systemData.details.type?.value?.toLocaleLowerCase() ?? '';
+}
+
+export function staticID(id) {
+	id = `dnd5e${id}`;
+	if (id.length >= 16) return id.substring(0, 16);
+	return id.padEnd(16, '0');
 }
