@@ -15,6 +15,7 @@ export default class Settings {
 	static TARGETING = 'targeting';
 	static KEYPRESS_OVERRIDES = 'keypressOverrides';
 	static DEBUG = 'debugging';
+	static MIGRATION = 'lastMigratedPoint';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -181,6 +182,13 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.MIGRATION, {
+			name: 'Migration',
+			scope: 'world',
+			config: false,
+			default: false,
+			type: String,
+		});
 	}
 	get showTooltips() {
 		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS);
@@ -246,5 +254,8 @@ export default class Settings {
 	}
 	get debug() {
 		return game.settings.get(Constants.MODULE_ID, Settings.DEBUG);
+	}
+	get migrated() {
+		return game.settings.get(Constants.MODULE_ID, Settings.MIGRATION);
 	}
 }
