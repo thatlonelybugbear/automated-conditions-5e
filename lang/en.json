@@ -17,10 +17,11 @@
 	"AC5E.AutoArmorSpellUseChoicesWarn": "Warn",
 	"AC5E.AutoArmorSpellUseChoicesEnforceToast": "is not proficient in the equipped armor and RAW cannot cast spells. Spell cancelled!",
 	"AC5E.AutoArmorSpellUseChoicesWarnToast": "is not proficient in the equipped armor and RAW cannot cast spells",
-	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation.",
-	"AC5E.AutoRangedAttacksHint": "When checked, AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack.",
-	"AC5E.AutoRangedNearbyFoeName": "AC5e ranged attacks nearby foe automation",
-	"AC5E.AutoRangedNearbyFoeHint": "When checked AND ranged attacks automation is also enabled, an adjacent creature with the opposite disposition compared to the attacker, will impose disadvantage to any ranged attack rolls.",
+	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation:",
+	"AC5E.AutoRangedAttacksHint": "'Off': AC5e will not process any distance checks; 'Ranged checks only': AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack; 'Range + Nearby foes': Hostiles adjacent to attacker will impose disadvantage on ranged attacks.",
+	"AC5E.AutoRangedAttacksChoicesOff": "Off",
+	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Range checks only",
+	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Range + Nearby foes",
 	"AC5E.AutoExhaustionName": "AC5e exhaustion automation.",
 	"AC5E.AutoExhaustionHint": "When checked, AC5e will automatically process the normal 5e Exhaustion condition rules. Disable if you want compatibility with other exhaustion modules or your own rules (dnd-1 rules will be added in a future update).",
 	"AC5E.AutoEncumbranceName": "AC5e variant encumbrance.",
@@ -42,5 +43,6 @@
 	"AC5E.Fail": "Fail",
 	"AC5E.OutOfRange": "Out of range",
 	"AC5E.Item": "Item",
-	"AC5E.Equipment": "Equipment"
+	"AC5E.Equipment": "Equipment",
+	"AC5E.NearbyFoe": "Nearby Foe"
 }
