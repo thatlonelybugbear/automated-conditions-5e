@@ -11,6 +11,7 @@ import {
 } from './ac5e-hooks.mjs';
 import { _systemCheck } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
+import { migrate } from './ac5e-migrations.mjs';
 
 Hooks.once('init', () => {
 	new Settings().registerSettings();
@@ -50,3 +51,5 @@ Hooks.once('init', () => {
 		renderChatMessage: ${renderChatMessage}`
 	);
 });
+
+Hooks.once('ready', migrate);
