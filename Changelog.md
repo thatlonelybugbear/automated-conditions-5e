@@ -1,6 +1,6 @@
 ## v11.315331.3
 - Handle items without short and long range set more gracefully. Closes [#156](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/156)
-- 
+
 ## v11.315331.2
 - Added French translation, with [#154](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/154) thanks to @CaosFR
 
