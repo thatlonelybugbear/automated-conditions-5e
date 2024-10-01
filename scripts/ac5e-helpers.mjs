@@ -214,21 +214,19 @@ export function _autoRanged(item, token, target) {
 		range: { value: short, long },
 	} = item.system;
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
-	const sharpShooter =
-		flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
+	const sharpShooter = flags?.sharpShooter || _hasItem(item.actor, 'sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
-	const crossbowExpert =
-		flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
+	const crossbowExpert = flags?.crossbowExpert || _hasItem(item.actor, 'crossbow expert');
 	const distance = target ? _getDistance(token, target) : undefined;
 	const nearbyFoe =
 		settings.autoRangedNearbyFoe &&
 		['rwak', 'rsak'].includes(actionType) &&
-		_findNearby(token, 'opposite', 5, 1) &&  //hostile vs friendly disposition only
+		_findNearby(token, 'opposite', 5, 1) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange =
-		distance <= short ? 'short' : distance <= long ? 'long' : false;
+	const inRange = (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false;  //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
+
 
 export function _hasItem(actor, itemName) {
 	return actor?.items.some((item) =>
