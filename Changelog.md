@@ -1,3 +1,6 @@
+## v11.315331.3.1
+- Small fix for fr.json in [#158](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/158), thanks @CaosFR
+
 ## v11.315331.3
 - Handle items without short and long range set more gracefully. Closes [#156](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/156)
 
