@@ -114,72 +114,83 @@ export function _getDistance(tokenA /*Token | ID | UUID*/, tokenB /*Token | ID |
 	const calculateDistanceWithUnits = (scene /*: Scene*/, grid /*: foundry.grid.BaseGrid*/, token, other /*: Token*/) => {
 		const { distance, cost, diagonals: diagonalMovesXY, spaces: straightMovesXY } = grid.measurePath(getComparisonPoints(grid, token, other));
 		if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { distance, cost, diagonals: diagonalMovesXY, spaces: straightMovesXY, functionReturns: grid.measurePath(getComparisonPoints(grid, token, other)) });
-		const distanceXY = distance / grid.distance;
-		token.z0 = token.document.elevation / grid.distance;
-		token.z1 = token.z0 + Math.min(Math.floor(token.document.width), Math.floor(token.document.height));
-		other.z0 = other.document.elevation / grid.distance;
-		other.z1 = other.z0 + Math.min(Math.floor(other.document.width), Math.floor(other.document.height));
-		let dz = other.z0 > token.z1 ? other.z0 - token.z1 + 1 : token.z0 > other.z1 ? token.z0 - other.z1 + 1 : other.z0 === token.z1 || token.z0 === other.z1 ? 1 : 0;
-		let diagonalMoves3D = Math.min(diagonalMovesXY, dz); // True 3D diagonal moves in X, Y, and Z
-		let remainingDiagonalMovesXY = diagonalMovesXY - diagonalMoves3D; // Remaining diagonal moves in the XY plane
-		let remainingZ = dz - diagonalMoves3D; // Remaining Z-axis movement after 3D diagonals
-
-		let diagonalMovesXZorYZ = Math.min(remainingZ, remainingDiagonalMovesXY); // Diagonal moves in XZ or YZ
-		let straightMovesZ = remainingZ - diagonalMovesXZorYZ; // Remaining Z moves after XZ/YZ diagonals
-
-		let totalDistance = 0;
-
-		if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { dz, distanceXY, diagonalMovesXY, diagonalMovesXZorYZ, straightMovesXY, straightMovesZ });
-
-		switch (grid.diagonals) {
-			case CONST.GRID_DIAGONALS.EQUIDISTANT: // Diagonals and straight moves cost the same
-				totalDistance = distanceXY + straightMovesZ;
-				break;
-			case CONST.GRID_DIAGONALS.ALTERNATING_1: // Every second diagonal move is penalized
-				totalDistance = distanceXY + straightMovesZ;
-				if (diagonalMovesXY > 0) {
-					totalDistance += Math.floor(diagonalMovesXY / 2); // Penalize every other diagonal move in XY
-				}
-				if (diagonalMovesXZorYZ > 0) {
-					totalDistance += Math.floor(diagonalMovesXZorYZ / 2); // Penalize XZ/YZ diagonals similarly
-				}
-				break;
-			case CONST.GRID_DIAGONALS.ALTERNATING_2: // Every third diagonal move is penalized
-				totalDistance = distanceXY + straightMovesZ;
-				if (diagonalMovesXY > 0) {
-					totalDistance += Math.floor((diagonalMovesXY + 1) / 2); // Penalize slightly differently
-				}
-				if (diagonalMovesXZorYZ > 0) {
-					totalDistance += Math.floor((diagonalMovesXZorYZ + 1) / 2);
-				}
-				break;
-			case CONST.GRID_DIAGONALS.RECTILINEAR: // Diagonal moves cost 2 units
-				totalDistance = 2 * diagonalMovesXY + 2 * diagonalMovesXZorYZ + straightMovesXY + straightMovesZ;
-				break;
-			case CONST.GRID_DIAGONALS.EXACT: // Use Pythagorean theorem for diagonal moves
-				totalDistance = distanceXY + straightMovesZ;
-				if (diagonalMovesXY > 0) {
-					totalDistance += (Math.sqrt(2) - 1) * diagonalMovesXY; // Apply sqrt(2) for XY plane
-				}
-				if (diagonalMovesXZorYZ > 0) {
-					totalDistance += (Math.sqrt(3) - 1) * diagonalMovesXZorYZ; // Apply sqrt(3) for 3D diagonals
-				}
-				break;
-			case CONST.GRID_DIAGONALS.APPROXIMATE: // Each diagonal move costs 1.5 units
-				totalDistance = 1.5 * diagonalMovesXY + 1.5 * diagonalMovesXZorYZ + straightMovesXY + straightMovesZ;
-				break;
-			case CONST.GRID_DIAGONALS.ILLEGAL: // Diagonal moves are not allowed
-				if (diagonalMovesXY > 0 || diagonalMovesXZorYZ > 0) {
-					return Infinity; // Diagonal moves are illegal
-				}
-				totalDistance = straightMovesXY + straightMovesZ;
-				break;
-			default:
-				throw new Error(`Unknown diagonal rule: ${rule}`);
+		if (grid.isSquare) {
+			const distanceXY = distance / grid.distance;
+			token.z0 = token.document.elevation / grid.distance;
+			token.z1 = token.z0 + Math.min(Math.floor(token.document.width), Math.floor(token.document.height));
+			other.z0 = other.document.elevation / grid.distance;
+			other.z1 = other.z0 + Math.min(Math.floor(other.document.width), Math.floor(other.document.height));
+			let dz = other.z0 > token.z1 ? other.z0 - token.z1 + 1 : token.z0 > other.z1 ? token.z0 - other.z1 + 1 : other.z0 === token.z1 || token.z0 === other.z1 ? 1 : 0;
+			let diagonalMoves3D = Math.min(diagonalMovesXY, dz); // True 3D diagonal moves in X, Y, and Z
+			let remainingDiagonalMovesXY = diagonalMovesXY - diagonalMoves3D; // Remaining diagonal moves in the XY plane
+			let remainingZ = dz - diagonalMoves3D; // Remaining Z-axis movement after 3D diagonals
+	
+			let diagonalMovesXZorYZ = Math.min(remainingZ, remainingDiagonalMovesXY); // Diagonal moves in XZ or YZ
+			let straightMovesZ = remainingZ - diagonalMovesXZorYZ; // Remaining Z moves after XZ/YZ diagonals
+	
+			let totalDistance = 0;
+	
+			if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { dz, distanceXY, diagonalMovesXY, diagonalMovesXZorYZ, straightMovesXY, straightMovesZ });
+	
+			switch (grid.diagonals) {
+				case CONST.GRID_DIAGONALS.EQUIDISTANT: // Diagonals and straight moves cost the same
+					totalDistance = distanceXY + straightMovesZ;
+					break;
+				case CONST.GRID_DIAGONALS.ALTERNATING_1: // Every second diagonal move is penalized
+					totalDistance = distanceXY + straightMovesZ;
+					if (diagonalMovesXY > 0) {
+						totalDistance += Math.floor(diagonalMovesXY / 2); // Penalize every other diagonal move in XY
+					}
+					if (diagonalMovesXZorYZ > 0) {
+						totalDistance += Math.floor(diagonalMovesXZorYZ / 2); // Penalize XZ/YZ diagonals similarly
+					}
+					break;
+				case CONST.GRID_DIAGONALS.ALTERNATING_2: // Every third diagonal move is penalized
+					totalDistance = distanceXY + straightMovesZ;
+					if (diagonalMovesXY > 0) {
+						totalDistance += Math.floor((diagonalMovesXY + 1) / 2); // Penalize slightly differently
+					}
+					if (diagonalMovesXZorYZ > 0) {
+						totalDistance += Math.floor((diagonalMovesXZorYZ + 1) / 2);
+					}
+					break;
+				case CONST.GRID_DIAGONALS.RECTILINEAR: // Diagonal moves cost 2 units
+					totalDistance = 2 * diagonalMovesXY + 2 * diagonalMovesXZorYZ + straightMovesXY + straightMovesZ;
+					break;
+				case CONST.GRID_DIAGONALS.EXACT: // Use Pythagorean theorem for diagonal moves
+					totalDistance = distanceXY + straightMovesZ;
+					if (diagonalMovesXY > 0) {
+						totalDistance += (Math.sqrt(2) - 1) * diagonalMovesXY; // Apply sqrt(2) for XY plane
+					}
+					if (diagonalMovesXZorYZ > 0) {
+						totalDistance += (Math.sqrt(3) - 1) * diagonalMovesXZorYZ; // Apply sqrt(3) for 3D diagonals
+					}
+					break;
+				case CONST.GRID_DIAGONALS.APPROXIMATE: // Each diagonal move costs 1.5 units
+					totalDistance = 1.5 * diagonalMovesXY + 1.5 * diagonalMovesXZorYZ + straightMovesXY + straightMovesZ;
+					break;
+				case CONST.GRID_DIAGONALS.ILLEGAL: // Diagonal moves are not allowed
+					if (diagonalMovesXY > 0 || diagonalMovesXZorYZ > 0) {
+						return Infinity; // Diagonal moves are illegal
+					}
+					totalDistance = straightMovesXY + straightMovesZ;
+					break;
+				default:
+					throw new Error(`Unknown diagonal rule: ${rule}`);
+			}
+		}
+		else {
+			token.z0 = token.document.elevation;
+			token.z1 = token.z0 + Math.min(Math.floor(token.document.width * grid.distance), Math.floor(token.document.height * grid.distance));
+			other.z0 = other.document.elevation;
+			other.z1 = other.z0 + Math.min(Math.floor(other.document.width * grid.distance), Math.floor(other.document.height * grid.distance));
+			let dz = other.z0 > token.z1 ? other.z0 - token.z1 + grid.distance : token.z0 > other.z1 ? token.z0 - other.z1 + grid.distance : 0;
+			if (dz) totalDistance = Math.sqrt(distance * distance + dz * dz);
+			else totalDistance = distance;
 		}
 		if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { totalDistance });
 		return {
-			value: totalDistance * grid.distance,
+			value: grid.isSquare ? totalDistance * grid.distance : totalDistance,
 			units: scene.grid.units,
 		};
 	};
