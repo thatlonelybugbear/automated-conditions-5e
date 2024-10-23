@@ -9,194 +9,188 @@ const settings = new Settings();
  * evaluating all grid spaces they occupy, based in Illandril's work 
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
-export function _getDistance(tokenA /*Token | ID | UUID*/, tokenB /*Token | ID | UUID*/) {
-	if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
-	else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
-	if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
-	else if (typeof tokenB === 'string' && tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
-	if (!tokenA || !tokenB) return false;
-	const PointsAndCenter = {
-		points: [],
-		trueCenternt: {},
-	};
+export function _getDistance(tokenA, tokenB) {
+    if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
+    else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
+    if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
+    else if (typeof tokenB === 'string' && tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
+    if (!tokenA || !tokenB) return false;
+    const PointsAndCenter = {
+        points: [],
+        trueCenternt: {},
+    };
 
-	const getPolygon = (grid /*: foundry.grid.BaseGrid*/, token /*: Token*/) => {
-		let poly; // PIXI.Polygon;
-		if (token.shape instanceof PIXI.Circle) {
-			poly = token.shape.toPolygon({ density: (token.shape.radius * 8) / grid.size });
-		} else if (token.shape instanceof PIXI.Rectangle) {
-			poly = token.shape.toPolygon();
-		} else {
-			poly = token.shape;
-		}
+    const getPolygon = (grid /*: foundry.grid.BaseGrid*/, token /*: Token*/) => {
+        let poly; // PIXI.Polygon;
+        if (token.shape instanceof PIXI.Circle) {
+            poly = token.shape.toPolygon({ density: (token.shape.radius * 8) / grid.size });
+        } else if (token.shape instanceof PIXI.Rectangle) {
+            poly = token.shape.toPolygon();
+        } else {
+            poly = token.shape;
+        }
 
-		return new PIXI.Polygon(poly.points.map((point, i) => point + (i % 2 ? token.bounds.top : token.bounds.left)));
-	};
+        return new PIXI.Polygon(poly.points.map((point, i) => point + (i % 2 ? token.bounds.top : token.bounds.left)));
+    };
 
-	const getPointsAndCenter = (grid, shape) => {
-		const points = [];
-		for (let i = 0; i < shape.points.length; i += 2) {
-			const x = shape.points[i];
-			const y = shape.points[i + 1];
-			points.push({ x, y });
+    const getPointsAndCenter = (grid, shape) => {
+        const points = [];
+        for (let i = 0; i < shape.points.length; i += 2) {
+            const x = shape.points[i];
+            const y = shape.points[i + 1];
+            points.push({ x, y });
 
-			const nextX = shape.points[i + 2] ?? shape.points[0];
-			const nextY = shape.points[i + 3] ?? shape.points[1];
-			const d = Math.sqrt((x - nextX) ** 2 + (y - nextY) ** 2);
-			const steps = Math.ceil((d * 2) / grid.size);
+            const nextX = shape.points[i + 2] ?? shape.points[0];
+            const nextY = shape.points[i + 3] ?? shape.points[1];
+            const d = Math.sqrt((x - nextX) ** 2 + (y - nextY) ** 2);
+            const steps = Math.ceil((d * 2) / grid.size);
 
-			for (let step = 1; step < steps; step++) {
-				points.push({ x: ((nextX - x) / steps) * step + x, y: ((nextY - y) / steps) * step + y });
-			}
-		}
+            for (let step = 1; step < steps; step++) {
+                points.push({ x: ((nextX - x) / steps) * step + x, y: ((nextY - y) / steps) * step + y });
+            }
+        }
 
-		return {
-			points: points,
-			trueCenter: shape.getBounds().center,
-		};
-	};
+        return {
+            points: points,
+            trueCenter: shape.getBounds().center,
+        };
+    };
 
-	const getPoints = (grid /*: foundry.grid.BaseGrid*/, poly /*: PIXI.Polygon*/) => {
-		const bounds = poly.getBounds();
-		const pointsToMeasure = [bounds.center];
+    const getPoints = (grid /*: foundry.grid.BaseGrid*/, poly /*: PIXI.Polygon*/) => {
+        const bounds = poly.getBounds();
+        const pointsToMeasure = [bounds.center];
 
-		// If either dimension is one grid space long or less, just use the center point for measurements
-		// Otherwise, we use the center of the grid spaces along the token's perimeter
-		const forcedX = bounds.width <= grid.sizeX ? bounds.center.x : null;
-		const forcedY = bounds.height <= grid.sizeY ? bounds.center.x : null;
+        // If either dimension is one grid space long or less, just use the center point for measurements
+        // Otherwise, we use the center of the grid spaces along the token's perimeter
+        const forcedX = bounds.width <= grid.sizeX ? bounds.center.x : null;
+        const forcedY = bounds.height <= grid.sizeY ? bounds.center.x : null;
 
-		if (typeof forcedX !== 'number' || typeof forcedY !== 'number') {
-			const { points, trueCenter } = getPointsAndCenter(grid, poly);
-			for (const point of points) {
-				const x = (point.x - trueCenter.x) * 0.99 + trueCenter.x;
-				const y = (point.y - trueCenter.y) * 0.99 + trueCenter.y;
-				const pointToMeasure = grid.getCenterPoint({ x, y });
-				pointToMeasure.x = forcedX ?? pointToMeasure.x;
-				pointToMeasure.y = forcedY ?? pointToMeasure.y;
-				if (!pointsToMeasure.some((priorPoint) => priorPoint.x === pointToMeasure.x && priorPoint.y === pointToMeasure.y)) {
-					pointsToMeasure.push(pointToMeasure);
-				}
-			}
-		}
-		return pointsToMeasure;
-	};
+        if (typeof forcedX !== 'number' || typeof forcedY !== 'number') {
+            const { points, trueCenter } = getPointsAndCenter(grid, poly);
+            for (const point of points) {
+                const x = (point.x - trueCenter.x) * 0.99 + trueCenter.x;
+                const y = (point.y - trueCenter.y) * 0.99 + trueCenter.y;
+                const pointToMeasure = grid.getCenterPoint({ x, y });
+                pointToMeasure.x = forcedX ?? pointToMeasure.x;
+                pointToMeasure.y = forcedY ?? pointToMeasure.y;
+                if (!pointsToMeasure.some((priorPoint) => priorPoint.x === pointToMeasure.x && priorPoint.y === pointToMeasure.y)) {
+                    pointsToMeasure.push(pointToMeasure);
+                }
+            }
+        }
+        return pointsToMeasure;
+    };
 
-	const squareDistance = (pointA /*: Point*/, pointB /*: Point*/) => (pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2;
+    const squareDistance = (pointA /*: Point*/, pointB /*: Point*/) => (pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2;
 
-	const getComparisonPoints = (grid /*: foundry.grid.BaseGrid*/, token /*: Token*/, other /*: Token*/) => {
-		const polyA = getPolygon(grid, token);
-		const polyB = getPolygon(grid, other);
+    const getComparisonPoints = (grid /*: foundry.grid.BaseGrid*/, token /*: Token*/, other /*: Token*/) => {
+        const polyA = getPolygon(grid, token);
+        const polyB = getPolygon(grid, other);
 
-		const pointsA = getPoints(grid, polyA);
-		const pointsB = getPoints(grid, polyB);
-		const containedPoint = pointsA.find((point) => polyB.contains(point.x, point.y)) ?? pointsB.find((point) => polyA.contains(point.x, point.y));
-		if (containedPoint) {
-			// A contains B or B contains A... so ensure the distance is 0
-			return [containedPoint, containedPoint];
-		}
+        const pointsA = getPoints(grid, polyA);
+        const pointsB = getPoints(grid, polyB);
+        const containedPoint = pointsA.find((point) => polyB.contains(point.x, point.y)) ?? pointsB.find((point) => polyA.contains(point.x, point.y));
+        if (containedPoint) {
+            // A contains B or B contains A... so ensure the distance is 0
+            return [containedPoint, containedPoint];
+        }
 
-		let closestPointA = token.center;
-		let closestPointB = other.center;
-		let closestD2 = squareDistance(closestPointA, closestPointB);
-		for (const pointA of pointsA) {
-			for (const pointB of pointsB) {
-				const d2 = squareDistance(pointA, pointB);
-				if (d2 < closestD2) {
-					closestD2 = d2;
-					closestPointA = pointA;
-					closestPointB = pointB;
-				}
-			}
-		}
-		return [closestPointA, closestPointB];
-	};
+        let closestPointA = token.center;
+        let closestPointB = other.center;
+        let closestD2 = squareDistance(closestPointA, closestPointB);
+        for (const pointA of pointsA) {
+            for (const pointB of pointsB) {
+                const d2 = squareDistance(pointA, pointB);
+                if (d2 < closestD2) {
+                    closestD2 = d2;
+                    closestPointA = pointA;
+                    closestPointB = pointB;
+                }
+            }
+        }
+        return [closestPointA, closestPointB];
+    };
+    const calculateDistanceWithUnits = (scene, grid, token, other) => {
+        let totalDistance = 0;
+        let { distance, diagonals, spaces } = grid.measurePath(getComparisonPoints(grid, token, other));
 
-	const calculateDistanceWithUnits = (scene /*: Scene*/, grid /*: foundry.grid.BaseGrid*/, token, other /*: Token*/) => {
-		const { distance, cost, diagonals: diagonalMovesXY, spaces: straightMovesXY } = grid.measurePath(getComparisonPoints(grid, token, other));
-		if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { distance, cost, diagonals: diagonalMovesXY, spaces: straightMovesXY, functionReturns: grid.measurePath(getComparisonPoints(grid, token, other)) });
-		if (grid.isSquare) {
-			const distanceXY = distance / grid.distance;
-			token.z0 = token.document.elevation / grid.distance;
-			token.z1 = token.z0 + Math.min(Math.floor(token.document.width), Math.floor(token.document.height));
-			other.z0 = other.document.elevation / grid.distance;
-			other.z1 = other.z0 + Math.min(Math.floor(other.document.width), Math.floor(other.document.height));
-			let dz = other.z0 > token.z1 ? other.z0 - token.z1 + 1 : token.z0 > other.z1 ? token.z0 - other.z1 + 1 : other.z0 === token.z1 || token.z0 === other.z1 ? 1 : 0;
-			let diagonalMoves3D = Math.min(diagonalMovesXY, dz); // True 3D diagonal moves in X, Y, and Z
-			let remainingDiagonalMovesXY = diagonalMovesXY - diagonalMoves3D; // Remaining diagonal moves in the XY plane
-			let remainingZ = dz - diagonalMoves3D; // Remaining Z-axis movement after 3D diagonals
-	
-			let diagonalMovesXZorYZ = Math.min(remainingZ, remainingDiagonalMovesXY); // Diagonal moves in XZ or YZ
-			let straightMovesZ = remainingZ - diagonalMovesXZorYZ; // Remaining Z moves after XZ/YZ diagonals
-	
-			let totalDistance = 0;
-	
-			if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { dz, distanceXY, diagonalMovesXY, diagonalMovesXZorYZ, straightMovesXY, straightMovesZ });
-	
-			switch (grid.diagonals) {
-				case CONST.GRID_DIAGONALS.EQUIDISTANT: // Diagonals and straight moves cost the same
-					totalDistance = distanceXY + straightMovesZ;
-					break;
-				case CONST.GRID_DIAGONALS.ALTERNATING_1: // Every second diagonal move is penalized
-					totalDistance = distanceXY + straightMovesZ;
-					if (diagonalMovesXY > 0) {
-						totalDistance += Math.floor(diagonalMovesXY / 2); // Penalize every other diagonal move in XY
-					}
-					if (diagonalMovesXZorYZ > 0) {
-						totalDistance += Math.floor(diagonalMovesXZorYZ / 2); // Penalize XZ/YZ diagonals similarly
-					}
-					break;
-				case CONST.GRID_DIAGONALS.ALTERNATING_2: // Every third diagonal move is penalized
-					totalDistance = distanceXY + straightMovesZ;
-					if (diagonalMovesXY > 0) {
-						totalDistance += Math.floor((diagonalMovesXY + 1) / 2); // Penalize slightly differently
-					}
-					if (diagonalMovesXZorYZ > 0) {
-						totalDistance += Math.floor((diagonalMovesXZorYZ + 1) / 2);
-					}
-					break;
-				case CONST.GRID_DIAGONALS.RECTILINEAR: // Diagonal moves cost 2 units
-					totalDistance = 2 * diagonalMovesXY + 2 * diagonalMovesXZorYZ + straightMovesXY + straightMovesZ;
-					break;
-				case CONST.GRID_DIAGONALS.EXACT: // Use Pythagorean theorem for diagonal moves
-					totalDistance = distanceXY + straightMovesZ;
-					if (diagonalMovesXY > 0) {
-						totalDistance += (Math.sqrt(2) - 1) * diagonalMovesXY; // Apply sqrt(2) for XY plane
-					}
-					if (diagonalMovesXZorYZ > 0) {
-						totalDistance += (Math.sqrt(3) - 1) * diagonalMovesXZorYZ; // Apply sqrt(3) for 3D diagonals
-					}
-					break;
-				case CONST.GRID_DIAGONALS.APPROXIMATE: // Each diagonal move costs 1.5 units
-					totalDistance = 1.5 * diagonalMovesXY + 1.5 * diagonalMovesXZorYZ + straightMovesXY + straightMovesZ;
-					break;
-				case CONST.GRID_DIAGONALS.ILLEGAL: // Diagonal moves are not allowed
-					if (diagonalMovesXY > 0 || diagonalMovesXZorYZ > 0) {
-						return Infinity; // Diagonal moves are illegal
-					}
-					totalDistance = straightMovesXY + straightMovesZ;
-					break;
-				default:
-					throw new Error(`Unknown diagonal rule: ${rule}`);
-			}
-		}
-		else {
-			token.z0 = token.document.elevation;
-			token.z1 = token.z0 + Math.min(Math.floor(token.document.width * grid.distance), Math.floor(token.document.height * grid.distance));
-			other.z0 = other.document.elevation;
-			other.z1 = other.z0 + Math.min(Math.floor(other.document.width * grid.distance), Math.floor(other.document.height * grid.distance));
-			let dz = other.z0 > token.z1 ? other.z0 - token.z1 + grid.distance : token.z0 > other.z1 ? token.z0 - other.z1 + grid.distance : 0;
-			if (dz) totalDistance = Math.sqrt(distance * distance + dz * dz);
-			else totalDistance = distance;
-		}
-		if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { totalDistance });
-		return {
-			value: grid.isSquare ? totalDistance * grid.distance : totalDistance,
-			units: scene.grid.units,
-		};
-	};
-	const result = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value;
-	if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { sourceId: token.id, targetId: other.id, result });
-	return result;
+        if (canvas.grid.isSquare) {
+            token.z0 = token.document.elevation / grid.distance;
+            token.z1 = token.z0 + Math.min(token.document.width | 0, token.document.height | 0);
+            other.z0 = other.document.elevation / grid.distance;
+            other.z1 = other.z0 + Math.min(other.document.width | 0, other.document.height | 0);
+
+            let dz = other.z0 >= token.z1 ? other.z0 - token.z1 + 1 : token.z0 >= other.z1 ? token.z0 - other.z1 + 1 : 0;
+
+            if (!dz) {
+                totalDistance = distance;
+            } else {
+                const XY = { diagonals, illegal: spaces };
+                const Z = { illegal: dz, diagonals: Math.min(XY.illegal, dz) };
+                Z.diagonalsXYZ = Math.min(XY.diagonals, Z.diagonals);
+                Z.diagonalsXZ_YZ = Z.diagonals - Z.diagonalsXYZ;
+                XY.moves = spaces - (XY.diagonals + Z.diagonalsXZ_YZ);
+                Z.moves = dz - Z.diagonals;
+                const overallDiagonals = Math.max(XY.diagonals, Z.diagonals);
+
+                switch (grid.diagonals) {
+                    case CONST.GRID_DIAGONALS.EQUIDISTANT:
+                        totalDistance = XY.moves + Z.moves + overallDiagonals;
+                        break;
+
+                    case CONST.GRID_DIAGONALS.ALTERNATING_1:
+                        for (let i = 1; i <= overallDiagonals; i++) {
+                            totalDistance += i & 1 ? 1 : 2; // Odd/even check with bitwise
+                        }
+                        totalDistance += XY.moves + Z.moves;
+                        break;
+
+                    case CONST.GRID_DIAGONALS.ALTERNATING_2:
+                        for (let i = 1; i <= overallDiagonals; i++) {
+                            totalDistance += i & 1 ? 2 : 1; // Alternate between 2 and 1
+                        }
+                        totalDistance += XY.moves + Z.moves;
+                        break;
+
+                    case CONST.GRID_DIAGONALS.ILLEGAL:
+                        totalDistance = XY.illegal + Z.illegal;
+                        break;
+
+                    case CONST.GRID_DIAGONALS.EXACT:
+                        totalDistance = XY.moves + Z.moves + (overallDiagonals - Z.diagonalsXYZ) * Math.sqrt(2) + Z.diagonalsXYZ * Math.sqrt(3);
+                        break;
+
+                    case CONST.GRID_DIAGONALS.APPROXIMATE:
+                        totalDistance = XY.moves + Z.moves + overallDiagonals * 1.5;
+                        break;
+
+                    case CONST.GRID_DIAGONALS.RECTILINEAR:
+                        totalDistance = XY.moves + Z.moves + overallDiagonals * 2;
+                        break;
+
+                    default:
+                        throw new Error(`Unknown diagonal rule: ${grid.diagonals}`);
+                }
+
+                totalDistance *= grid.distance;
+            }
+        } else {
+            token.z0 = token.document.elevation;
+            token.z1 = token.z0 + Math.min(token.document.width * grid.distance, token.document.height * grid.distance);
+            other.z0 = other.document.elevation;
+            other.z1 = other.z0 + Math.min(other.document.width * grid.distance, other.document.height * grid.distance);
+            let dz = other.z0 > token.z1 ? other.z0 - token.z1 + grid.distance : token.z0 > other.z1 ? token.z0 - other.z1 + grid.distance : 0;
+            totalDistance = dz ? Math.sqrt(distance * distance + dz * dz) : distance;
+        }
+
+        return {
+            value: totalDistance,
+            units: scene.grid.units,
+        };
+    };
+    const result = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value;
+    if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { sourceId: token.id, targetId: other.id, result });
+    return (result * 100 | 0) / 100;
 }
 
 export function _i18nConditions(name) {
