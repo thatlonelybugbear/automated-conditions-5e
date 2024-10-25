@@ -1,3 +1,8 @@
+## v12.331.1
+- Foundry v12 only compatibility
+- Changes to getDistance calculations based on the work of [Illandril](https://github.com/illandril) in [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips?tab=readme-ov-file#illandrils-token-tooltips) (big thanks!)
+    - Should be calculating distances in 3D and hardcodes as Token's "height" the minimum of `token.document.width` or `token.document.height` (in a future update, a proper z-axis height could be implemented).
+
 ## v11.315331.1
 - System compatibility bump for 5e v3.3.1, closing [#142](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/142)
 - Added Russian translation, closing [#144](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/144) thanks to @VirusNik21
