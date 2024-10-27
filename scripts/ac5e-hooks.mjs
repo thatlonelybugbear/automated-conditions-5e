@@ -586,7 +586,10 @@ export function _preUseItem(item, config, options) {
 			}
 		}
 		const ragingCheck = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
-		const silencedCheck = sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell'));
+		const silencedCheck = item.system.properties.has('vocal') 
+			&& sourceActor.statuses.has('silenced') 
+			&& !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell'))
+			&& !sourceActor.flags[Constants.MODULE_ID].subtleSpell;
 		if (settings.autoArmorSpellUse === 'warn') {
 			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
 			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
