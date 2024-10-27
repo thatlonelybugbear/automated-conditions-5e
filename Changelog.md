@@ -1,3 +1,7 @@
+## v12.331.2
+- Fix for raging and silenced checks not working properly.
+- The proper flag for Subtle Spell is `flags.automated-conditions-5e.subtleSpell | Override | 1`
+
 ## v12.331.1
 - Foundry v12 only compatibility
 - Changes to getDistance calculations based on the work of [Illandril](https://github.com/illandril) in [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips?tab=readme-ov-file#illandrils-token-tooltips) (big thanks!)
