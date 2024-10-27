@@ -585,16 +585,19 @@ export function _preUseItem(item, config, options) {
 				return false;
 			}
 		}
+		const incapacitatedCheck = sourceActor.statuses.has('incapacitated');
 		const ragingCheck = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
 		const silencedCheck = item.system.properties.has('vocal') 
 			&& sourceActor.statuses.has('silenced') 
 			&& !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell'))
 			&& !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
-		if (ragingCheck || silencedCheck) {
+		if (incapacitatedCheck || ragingCheck || silencedCheck) {
 			if (settings.autoArmorSpellUse === 'warn') {
+				if (incapacitatedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesWarnToast')}`);
 				if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
 				if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
 			} else if (settings.autoArmorSpellUse === 'enforce') {
+				if (incapacitatedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast')}`);
 				if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
 				if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
 				return false;
