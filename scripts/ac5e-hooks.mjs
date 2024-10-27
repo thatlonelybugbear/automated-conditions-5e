@@ -577,23 +577,22 @@ export function _renderHijack(renderedType, elem) {
 export function _preUseItem(item, config, options) {
 	const sourceActor = item.actor;
 	if (!sourceActor) return;
-	if (
-		item.type == 'spell' &&
-		settings.autoArmorSpellUse != 'off' &&
-		_autoArmor(sourceActor).notProficient
-	) {
-		if (settings.autoArmorSpellUse == 'warn')
-			ui.notifications.warn(
-				`${sourceActor.name} ${_localize(
-					'AC5E.AutoArmorSpellUseChoicesWarnToast'
-				)}`
-			);
-		else if (settings.autoArmorSpellUse == 'enforce') {
-			ui.notifications.warn(
-				`${sourceActor.name} ${_localize(
-					'AC5E.AutoArmorSpellUseChoicesEnforceToast'
-				)}`
-			);
+	if (item.type == 'spell' && settings.autoArmorSpellUse !== 'off') {
+		if (_autoArmor(sourceActor).notProficient) {
+			if (settings.autoArmorSpellUse === 'warn') ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
+			else if (settings.autoArmorSpellUse === 'enforce') {
+				ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
+				return false;
+			}
+		}
+		const ragingCheck = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
+		const silencedCheck = sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell'));
+		if (settings.autoArmorSpellUse === 'warn') {
+			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
+			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
+		} else if (settings.autoArmorSpellUse === 'enforce') {
+			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
+			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
 			return false;
 		}
 	}
