@@ -40,8 +40,12 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
   - From dnd5e v3.1.2 onwards, any Equipment type Item can impose stealth disadvantage too, not only Armor.
-- `Armor proficiency and casting spells` **(default Do nothing)**
-  - If set to `Enforce`, lack of proficiency in the equipped armor, will result in spells use being disallowed.
+- `Casting spells checks automation` **(default Do nothing)**
+  - When rolling a spell item, checks for:
+    - Not being proficient in the equipped armor,
+    - Raging (or Rage) active effect,
+    - Silenced status and neither an active effect named Subtle Spell (localized), nor a `flags.automated-conditions-5e.subtleSpell | Override | 1`.
+  - If set to `Enforce`, if any of the above are true, spell's use will be disallowed.
   - If set to `Warn`, there will be just a warning toast instead.
   - If set to `Do nothing`, well why should it do something?! :D
 - `Range automation` **(default off)**
@@ -78,7 +82,7 @@ Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage 
 - [x] Roll Groups, not tested (seems to not have issues, open an issue if you encounter any).
  
 # Credits
-- Special thanks to [Zhell](https://github.com/krbz999) for using some of his code from [Babonus](https://github.com/krbz999/babonus).
+- Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips) for distance calculations.
 
 # Manual installation
 ## For dnd5e v3.x, use manifest: 
