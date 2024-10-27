@@ -1,3 +1,6 @@
+## v12.331.3
+- Added incapacitated status check for spells use.
+
 ## v12.331.2
 - Fix for raging and silenced checks not working properly.
 - The proper flag for Subtle Spell is `flags.automated-conditions-5e.subtleSpell | Override | 1`
