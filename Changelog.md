@@ -1,3 +1,11 @@
+## v12.331.1
+- Foundry v12 only compatibility
+- Changes to getDistance calculations based on the work of [Illandril](https://github.com/illandril) in [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips?tab=readme-ov-file#illandrils-token-tooltips) (big thanks!)
+    - Should be calculating distances in 3D and hardcodes as Token's "height" the minimum of `token.document.width` or `token.document.height` (in a future update, a proper z-axis height could be implemented).
+- Added casting spells checks automation (with options to do nothing/enforce/warn) for:
+    - Rage/Raging,
+    - Silenced and not having a Subtle Spell (localized string) named Active Effect, or a `flags.midi-qol.subtleSpell | Override | 1`
+
 ## v11.315331.3.1
 - Small fix for fr.json in [#158](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/158), thanks @CaosFR
 
