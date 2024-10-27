@@ -322,9 +322,10 @@ export function _autoRanged(item, token, target) {
 		['rwak', 'rsak'].includes(actionType) &&
 		_findNearby(token, 'opposite', 5, 1) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange = distance <= short ? 'short' : distance <= long ? 'long' : false;
+	const inRange = (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false;  //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
+
 
 export function _hasItem(actor, itemName) {
 	return actor?.items.some((item) => item?.name.toLocaleLowerCase().includes(_localize(itemName).toLocaleLowerCase()));
