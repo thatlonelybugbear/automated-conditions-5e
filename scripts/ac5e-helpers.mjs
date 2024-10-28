@@ -279,7 +279,7 @@ export function _dispositionCheck(t1, t2, check = false) {
 
 export function _findNearby({
 	token, //Token5e or Token5e#Document to find nearby around.
-	disposition = 'all', //'all', 'same', 'different'
+	disposition = 'all', //'all', 'same', 'different', false
 	radius = 5, //default radius 5
 	lengthTest = false, //false or integer which will test the length of the array against that number and return true/false.
 	includeToken = false, //includes or exclude source token
@@ -287,7 +287,7 @@ export function _findNearby({
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const validTokens = canvas.tokens.placeables.filter((placeable) => placeable !== token && (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
-	if (settings.debug) console.log(`${Constants.MODULE_ID} findNearby: ${validTokens}`);
+	if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - findNearby():`, ${validTokens});
 	if (lengthTest) return validTokens.length >= lengthTest;
 	if (includeToken) return validTokens.concat(token);
 	return validTokens;
