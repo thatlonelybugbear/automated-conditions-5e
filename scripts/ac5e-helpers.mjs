@@ -189,7 +189,7 @@ export function _getDistance(tokenA, tokenB) {
 		};
 	};
 	const result = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value;
-	if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistane():`, { sourceId: token.id, targetId: other.id, result });
+	if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - getDistance():`, { sourceId: token.id, targetId: other.id, result });
 	return ((result * 100) | 0) / 100;
 }
 
@@ -287,7 +287,7 @@ export function _findNearby({
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const validTokens = canvas.tokens.placeables.filter((placeable) => placeable !== token && (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
-	console.log(validTokens);
+	if (settings.debug) console.log(`${Constants.MODULE_ID} findNearby: ${validTokens}`);
 	if (lengthTest) return validTokens.length >= lengthTest;
 	if (includeToken) return validTokens.concat(token);
 	return validTokens;
