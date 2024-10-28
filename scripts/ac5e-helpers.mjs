@@ -203,9 +203,10 @@ export function _localize(string) {
 	return game.i18n.translations.DND5E[string] ?? game.i18n.localize(string);
 }
 
-export function _hasStatuses(actor, statuses) {
+export function _hasStatuses(actor, statuses, quick = false) {
 	if (!actor) return [];
 	if (typeof statuses === 'string') statuses = [statuses];
+	if (quick) return statuses.some((status) => actor.statuses.has(status));
 	const endsWithNumber = (str) => /\d+$/.test(str);
 	const exhaustionNumberedStatus = statuses.find((s) => endsWithNumber(s));
 	if (exhaustionNumberedStatus) {
@@ -269,22 +270,23 @@ export function _dispositionCheck(t1, t2, check = false) {
 	if (!t1 || !t2) return false;
 	t1 = t1 instanceof Object ? t1.document : t1;
 	t2 = t2 instanceof Object ? t2.document : t2;
-	if (check == 'different') return t1.disposition !== t2.disposition;
-	if (check == 'opposite') return t1.disposition * t2.disposition === -1;
-	if (check == 'same') return t1.disposition === t2.disposition;
-	if (!check || check == 'all') return true;
+	if (check === 'different') return t1.disposition !== t2.disposition;
+	if (check === 'opposite') return t1.disposition * t2.disposition === -1;
+	if (check === 'same') return t1.disposition === t2.disposition;
+	if (!check || check === 'all') return true;
 	//to-do: 1. what about secret? 2. might need more granular checks in the future.
 }
 
-export function _findNearby(
+export function _findNearby({
 	token, //Token5e or Token5e#Document to find nearby around.
-	disposition = 'all', //'all', 'same', 'differemt'
+	disposition = 'all', //'all', 'same', 'different'
 	radius = 5, //default radius 5
 	lengthTest = false, //false or integer which will test the length of the array against that number and return true/false.
-	includeToken = true //includes or exclude source token
-) {
+	includeToken = false, //includes or exclude source token
+	includeIncapacitated = false
+}) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
-	const validTokens = canvas.tokens.placeables.filter((placeable) => _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
+	const validTokens = canvas.tokens.placeables.filter((placeable) => (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
 	if (lengthTest && includeToken) return validTokens.length >= lengthTest;
 	if (lengthTest && !includeToken) return validTokens.length > lengthTest;
 	if (includeToken) return validTokens;
@@ -320,7 +322,7 @@ export function _autoRanged(item, token, target) {
 	const nearbyFoe =
 		settings.autoRangedNearbyFoe &&
 		['rwak', 'rsak'].includes(actionType) &&
-		_findNearby(token, 'opposite', 5, 1) && //hostile vs friendly disposition only
+		_findNearby({token, disposition: 'opposite', radius: 5, lengthTest: 1}) && //hostile vs friendly disposition only
 		!crossbowExpert;
 	const inRange = (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false;  //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
