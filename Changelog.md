@@ -1,3 +1,6 @@
+## v12.331.3.2
+- `pt-BR` translation update by @Kharmans !
+
 ## v12.331.3
 - Added incapacitated status check for spells use.
 - Incapacitated shouldn't be considered when testing for nearby foes. Closes [#166](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/166)
