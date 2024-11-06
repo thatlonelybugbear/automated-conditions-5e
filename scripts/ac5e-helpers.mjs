@@ -287,7 +287,7 @@ export function _findNearby({
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const validTokens = canvas.tokens.placeables.filter((placeable) => placeable !== token && (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
-	if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - findNearby():`, ${validTokens});
+	if (settings.debug) console.log(`${Constants.MODULE.NAME.SHORT} - findNearby():`, validTokens);
 	if (lengthTest) return validTokens.length >= lengthTest;
 	if (includeToken) return validTokens.concat(token);
 	return validTokens;
