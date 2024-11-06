@@ -1,6 +1,7 @@
 ## v12.331.3
 - Added incapacitated status check for spells use.
 - Incapacitated shouldn't be considered when testing for nearby foes. Closes [#166](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/166)
+- `it.json` by @GregoryWarn in [#163](https://github.com/thatlonelybugbear/automated-conditions-5e/pull/163)
 
 ## v12.331.2
 - Fix for raging and silenced checks not working properly.
