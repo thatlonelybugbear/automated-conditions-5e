@@ -12,7 +12,10 @@ import {
 import { _systemCheck } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 
+export let rulesVersion;
+
 Hooks.once('init', () => {
+	rulesVersion = game.settings.get('dnd5e', 'rulesVersion') === 'modern' ? false : true;
 	new Settings().registerSettings();
 	const preRollConcentration = _systemCheck('3.0.4')
 		? Hooks.on('dnd5e.preRollConcentration', _preRollConcentration)
