@@ -1,4 +1,5 @@
 import Constants from './ac5e-constants.mjs';
+import { rulesVersion } from './ac5e-main.mjs';
 
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
@@ -122,7 +123,7 @@ export default class Settings {
 			name: 'AC5E.AutoExhaustionName',
 			hint: 'AC5E.AutoExhaustionHint',
 			scope: 'world',
-			config: true,
+			config: rulesVersion,
 			default: true,
 			type: Boolean,
 		});
@@ -206,7 +207,7 @@ export default class Settings {
 		else return false;
 	}
 	get autoExhaustion() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION);
+		return rulesVersion && game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION);
 	}
 	get autoEncumbrance() {
 		return (
