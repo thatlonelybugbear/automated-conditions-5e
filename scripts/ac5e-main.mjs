@@ -1,15 +1,14 @@
 import {
-	_preRollConcentration,
 	_preRollAbilitySave,
-	_preRollSkill,
 	_preRollAbilityTest,
 	_preRollAttack,
+	_preRollConcentration,
 	_preRollDamage,
-	_preRollAttackV2,
-	_preRollDamageV2,
 	_preRollDeathSave,
-	_preUseItem,
-	_preUseActivity,
+	_preRollInitiativeDialog,
+	_preRollSkill,
+	preRollToolCheck,
+	_preUseItem,	
 	_renderHijack,
 } from './ac5e-hooks.mjs';
 import { _systemCheck } from './ac5e-helpers.mjs';
@@ -82,7 +81,6 @@ function ac5eSetup() {
 		[v4_1 ? 'preRollAbilityTestV2' : 'preRollAbilityTest']: preRollAbilityTest,
 		[v4_1 ? 'preRollDeathSaveV2' : 'preRollDeathSave']: preRollDeathSave,
 		[v4_1 ? 'preRollSkillV2' : 'preRollSkill']: preRollSkill,
-		[v4_1 ? 'preRollToolCheckV2' : 'preRollToolCheck']: preRollToolCheck,
 		preRollToolCheckV2,
 		renderDialog,
 		renderChatMessage
