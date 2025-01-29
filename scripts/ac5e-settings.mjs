@@ -184,7 +184,7 @@ export default class Settings {
 		else return false;
 	}
 	get autoRangedCombined() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_OPTIONS);
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU);
 	}
 	get autoExhaustion() {
 		if (!this.dnd5eModernRules) return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION);
