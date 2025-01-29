@@ -18,9 +18,9 @@ export async function migrate() {
 	if (lastMigrationPoint == '12.422.1') {
 		const oldAutoRanged = settings.autoRanged;
 		const oldAutoNearbyFoes = settings.autoRangedNearbyFoe;
-		if (!oldAutoRanged && !oldAutoNearbyFoes) await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksOptions', 'off');
-		else if (oldAutoRanged && !oldAutoNearbyFoes) await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksOptions', 'ranged');
-		else await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksOptions', 'nearby');
+		if (!oldAutoRanged && !oldAutoNearbyFoes) await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksMenu', 'off');
+		else if (oldAutoRanged && !oldAutoNearbyFoes) await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksMenu', 'ranged');
+		else await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksMenu', 'nearby');
 		await game.settings.set(Constants.MODULE_ID, 'lastMigratedPoint', lastMigrationPoint);
 		console.warn(`${Constants.MODULE_ID} migrated to post ${lastMigrationPoint}`);
 		return true;
