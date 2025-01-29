@@ -1,7 +1,7 @@
 import { _calcAdvantageMode, _getDistance, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpersV4.mjs';
 import Constants from './ac5e-constants.mjs';
-import Settings from './ac5e-settingsV4.mjs';
-import { _ac5eChecks } from './ac5e-setpiecesV4.mjs';
+import Settings from './ac5e-settings.mjs';
+import { _ac5eChecks } from './ac5e-setpieces.mjs';
 
 const settings = new Settings();
 
