@@ -47,7 +47,6 @@ function getMessageData(config) {
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const deathSave = config.hookNames.includes('deathSave');
 	const concentrationSave = config.isConcentration;
-)
 	if (settings.debug) console.warn('ac5e _preRollSavingThrowV2:', hook, { config, dialog, message });
 	const { subject: actor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
