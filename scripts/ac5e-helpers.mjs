@@ -604,7 +604,7 @@ function _initializeVision(token) {
 	return true;
 }
 
-export function staticID(id) {
+export function _staticID(id) {
 	id = `dnd5e${id}`;
 	if (id.length >= 16) return id.substring(0, 16);
 	return id.padEnd(16, '0');
@@ -644,7 +644,7 @@ function sizeWarnings(size, type, warn = false) {
 	else if (warn === 'console') console.warn(translationString);
 }
 
-export function raceOrType(actor) {
+export function _raceOrType(actor) {
 	const systemData = actor?.system;
 	if (!systemData) return '';
 	if (systemData.details.race) return (systemData.details?.race?.name ?? systemData.details?.race)?.toLocaleLowerCase() ?? '';
