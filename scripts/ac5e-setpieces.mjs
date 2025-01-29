@@ -148,7 +148,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 			_id: _staticID('dodging'),
 			name: _i18nConditions('Dodging'),
 			attack: {
-				target: _canSee(targetToken, token) && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '',
+				target: targetToken && _canSee(targetToken, token) && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '',
 			},
 			save: {
 				source: abilityId == 'dex' && !actor.statuses.has('incapacitated') && !!Object.values(actor.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'advantage' : '',
