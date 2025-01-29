@@ -1,52 +1,61 @@
-import {
-	_preRollConcentration,
-	_preRollAbilitySave,
-	_preRollSkill,
-	_preRollAbilityTest,
-	_preRollAttack,
-	_preRollDamage,
-	_preRollDeathSave,
-	_preUseItem,
-	_renderHijack,
-} from './ac5e-hooks.mjs';
-import { _systemCheck } from './ac5e-helpers.mjs';
+import { _renderHijack, _rollFunctions } from './ac5e-hooks.mjs';
 import Settings from './ac5e-settings.mjs';
 
-Hooks.once('init', () => {
-	new Settings().registerSettings();
-	const preRollConcentration = _systemCheck('3.0.4')
-		? Hooks.on('dnd5e.preRollConcentration', _preRollConcentration)
-		: 'This will only be added for users with dnd5e 3.1+';
-	const preRollAbilitySave = Hooks.on(
-		'dnd5e.preRollAbilitySave',
-		_preRollAbilitySave
-	);
-	const preRollAbilityTest = Hooks.on(
-		'dnd5e.preRollAbilityTest',
-		_preRollAbilityTest
-	);
-	const preRollAttack = Hooks.on('dnd5e.preRollAttack', _preRollAttack);
-	const preRollDamage = Hooks.on('dnd5e.preRollDamage', _preRollDamage);
-	const preRollDeathSave = Hooks.on(
-		'dnd5e.preRollDeathSave',
-		_preRollDeathSave
-	);
-	const preRollSkill = Hooks.on('dnd5e.preRollSkill', _preRollSkill);
-	const preUseItem = Hooks.on('dnd5e.preUseItem', _preUseItem);
-	const renderDialog = Hooks.on('renderDialog', _renderHijack);
-	const renderChatMessage = Hooks.on('dnd5e.renderChatMessage', _renderHijack);
-	//to-do: add rollAttack: ${rollAttack} when/if it is enabled
-	console.warn(
-		`Bugbear's Automated Conditions for 5e added the following (mainly) dnd5e hooks:
-  		preRollConcentration: ${preRollConcentration}
-		preRollAbilitySave: ${preRollAbilitySave}
-		preRollAbilityTest: ${preRollAbilityTest}
-		preRollAttack: ${preRollAttack}
-		preRollDamage: ${preRollDamage}
-		preRollDeathSave: ${preRollDeathSave}
-		preRollSkill: ${preRollSkill}
-  		preUseItem: ${preUseItem}
-		renderDialog: ${renderDialog}
-		renderChatMessage: ${renderChatMessage}`
-	);
-});
+Hooks.once('init', ac5eRegisterSettings);
+Hooks.once('ready', ac5eReady);
+
+/* SETUP FUNCTIONS */
+function ac5eRegisterSettings() {
+	return new Settings().registerSettings();
+}
+
+function ac5eReady() {
+	if (game.modules.get('midi-qol')?.active) {
+		Hooks.once('midi-qol.midiReady', ac5eSetup); //added midi-qol ready hook, so that ac5e registers hooks after MidiQOL.
+	} else {
+		ac5eSetup();
+	}
+}
+
+function ac5eSetup() {
+	const settings = new Settings();
+	const hooksRegistered = {};
+	const actionHooks = [
+		//abilityChecks
+		{ id: 'dnd5e.preRollAbilityCheckV2', type: 'check' },
+		{ id: 'dnd5e.preRollAttackV2', type: 'attack' },
+		{ id: 'dnd5e.preRollDamageV2', type: 'damage' },
+		// { id: 'dnd5e.preRollInitiative', type: 'init' },
+		{ id: 'dnd5e.preRollSavingThrowV2', type: 'save' },
+		{ id: 'dnd5e.preUseActivity', type: 'activity' },
+	];
+	const renderHooks = [
+		//renders
+		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
+		//'renderAttackRollConfigurationDialog',
+		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
+		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
+	];
+	for (const hook of actionHooks.concat(renderHooks)) {
+		const hookId = Hooks.on(hook.id, (...args) => {
+			if (renderHooks.some((h) => h.id === hook.id)) {
+				const [render, element] = args;
+				if (settings.debug) console.warn(hook.id, { render, element });
+				return _renderHijack(hook.type, ...args);
+			} else {
+				if (hook.id === 'dnd5e.preUseActivity') {
+					const [activity, config, dialog, message] = args;
+					if (settings.debug) console.warn(hook.id, { activity, config, dialog, message });
+				} else {
+					const [config, dialog, message] = args;
+					if (settings.debug) console.warn(hook.id, { config, dialog, message });
+				}
+				return _rollFunctions(hook.type, ...args);
+			}
+		});
+		hooksRegistered[hook.id] = hookId;
+	}
+	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
+	globalThis['ac5e'] = { moduleName: 'Automated Conditions 5e' };
+	globalThis['ac5e'].hooksRegistered = hooksRegistered;
+}

@@ -1,3 +1,8 @@
+## v12.422.1
+- Compatibility update to support 5e 4.2.2 and higher.
+- First pass into module flags which will alter advantage mode of relevant rolls (documentation to follow).
+- Next version will implement modern/legacy rules as needed
+  
 ## v12.331.3.2
 - `pt-BR` translation update by @Kharmans !
 
