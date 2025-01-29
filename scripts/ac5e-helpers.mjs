@@ -238,11 +238,7 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 }
 
 export function _calcAdvantageMode(ac5eConfig, config) {
-	//	console.warn(`${Constants.MODULE_DEBUG_TAG}`, {ac5eConfig, config})
-	//config.fastForward = config.fastForward ? config.fastForward : ac5eConfig.roller == 'Core' ? config.event.shiftKey || config.event.altKey || config.event.metaKey || config.event.ctrlKey : ac5eConfig.roller == 'RSR' ? ac5eConfig.rsrOverrideFF : false;
 	const fastForward = config.rolls?.[0]?.options?.configured === false;
-	console.log(config.rolls?.[0]?.options?.configured);
-	console.log({ fastForward });
 	const options = config.rolls?.[0]?.options ?? config;
 	if (ac5eConfig.roller == 'Core')
 		foundry.utils.mergeObject(config.event, {
@@ -255,14 +251,11 @@ export function _calcAdvantageMode(ac5eConfig, config) {
 		foundry.utils.mergeObject(config.event || {}, {
 			altKey: !ac5eConfig.rsrOverrideFF ? config.event.altKey : false,
 		});
-	console.log(settings.keypressOverrides);
 	if (settings.keypressOverrides) {
 		if (ac5eConfig.preAC5eConfig.advKey) return (options.advantage = true);
 		if (ac5eConfig.preAC5eConfig.disKey) return (options.disadvantage = true);
 		if (ac5eConfig.preAC5eConfig.critKey) return (options.critical = true);
 	}
-
-	console.log({ ac5eConfig });
 	if (ac5eConfig.source.advantage.length || ac5eConfig.target.advantage.length) options.advantage = true;
 	if (ac5eConfig.source.disadvantage.length || ac5eConfig.target.disadvantage.length) options.disadvantage = true;
 	if (options.advantage === true && options.disadvantage === true) {
@@ -270,7 +263,6 @@ export function _calcAdvantageMode(ac5eConfig, config) {
 		options.advantage = options.advantageMode === -1 ? true : false;
 		options.disadvantage = options.advantageMode === 1 ? true : false;
 	}
-	console.log(options);
 }
 
 //check for 'same' 'different' or 'all' (=false) dispositions
@@ -477,7 +469,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 }
 
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
-	console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
+	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 
 	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
 
