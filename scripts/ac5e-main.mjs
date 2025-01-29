@@ -1,5 +1,5 @@
-import { _renderHijack, _rollFunctions } from './ac5e-hooksV4.mjs';
-import Settings from './ac5e-settingsV4.mjs';
+import { _renderHijack, _rollFunctions } from './ac5e-hooks.mjs';
+import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', ac5eRegisterSettings);
 Hooks.once('ready', ac5eReady);
