@@ -1,4 +1,4 @@
-import { _calcAdvantageMode, _getDistance, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _canSee, _raceOrType, _staticID } from './ac5e-helpers.mjs';
+import { _canSee, _calcAdvantageMode, _getDistance, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
