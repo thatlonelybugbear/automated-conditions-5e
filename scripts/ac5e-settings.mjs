@@ -22,13 +22,6 @@ export default class Settings {
 	}
 
 	_registerWorldSettings() {
-		const userRoles = {};
-		userRoles[CONST.USER_ROLES.PLAYER] = 'Player';
-		userRoles[CONST.USER_ROLES.TRUSTED] = 'Trusted Player';
-		userRoles[CONST.USER_ROLES.ASSISTANT] = 'Assistant GM';
-		userRoles[CONST.USER_ROLES.GAMEMASTER] = 'Game Master';
-		userRoles[5] = 'None';
-
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipsName',
 			hint: 'AC5E.ShowTooltipsHint',
