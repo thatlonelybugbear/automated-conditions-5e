@@ -60,7 +60,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 
 	const sourceTokenID = speaker?.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
-	let ac5eConfig = _getConfig(config, hook, sourceTokenID);
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID, undefined, options);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
@@ -102,7 +102,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	const sourceTokenID = speaker?.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 
-	let ac5eConfig = _getConfig(config, hook, sourceTokenID);
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID, undefined, options);
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
 
@@ -117,7 +117,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	if (_autoEncumbrance(actor, ability)) {
 		ac5eConfig.source.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 	}
-	_setAC5eProperties(ac5eConfig, config, dialog, message);
+	_setAC5eProperties(ac5eConfig, config, dialog, message, options);
 	// if (ac5eConfig.source.fail.length) {
 	// 	config.rolls[0].parts.push('-99');
 	// 	config.rolls[0].options.criticalSuccess = 21; //make it not crit)
@@ -268,11 +268,31 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 }
 export function _renderHijack(hook, render, elem) {
 	//function patchDialogTitles
+	let getConfigAC5E;
+	const message = getMessageData(render.config);
 	if (hook !== 'chat') {
+		getConfigAC5E = render.config?.[Constants.MODULE_ID];
+		const { hookType, options } = getConfigAC5E || {};
+		let tokenName;
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
 		let newTitle;
 		if (render.config?.isConcentration) newTitle = `${game.i18n.translations.DND5E.Concentration} ${game.i18n.translations.DND5E.AbbreviationDC}: ${render.config.target} (${render.config.ability.capitalize()})`;
-		title.textContent = /*['attack', 'save'].includes(hookType) ?*/ newTitle ?? render.message?.data?.flavor ?? render.options?.title ?? game.i18n.translations.DND5E.InitiativeRoll; //: render.title;
+		else newTitle = render.message?.data?.flavor ?? render.options?.title ?? game.i18n.translations.DND5E.InitiativeRoll;
+		title.textContent = newTitle; //: render.title;
+		if (getConfigAC5E.tokenId && (hookType === 'save' || hookType === 'check')) {
+			const subtitleElement = elem.querySelector(".window-subtitle");
+			tokenName = canvas.tokens.get(getConfigAC5E.tokenId)?.name;
+		        subtitleElement.textContent = `${tokenName}`;
+		        subtitleElement.style.display = "block"; // Force a new line
+		}
+		else if (getConfigAC5E.options?.testInitiative) {
+			const actorUuid = render.rolls?.[0]?.data?.actorUuid ?? render.config?.subject?.uuid;
+			const actor = fromUuidSync(actorUuid);
+			const tokenName = actor?.token?.name ?? actor?.getActiveTokens()?.[0]?.name;
+			const subtitleElement = elem.querySelector(".window-subtitle");
+			subtitleElement.textContent = `${tokenName}`;
+	        	subtitleElement.style.display = "block"; // Force a new line
+		}
 	}
 	const message = getMessageData(render.config);
 	let getConfigAC5E;
@@ -289,13 +309,17 @@ export function _renderHijack(hook, render, elem) {
 	}
 	if (!getConfigAC5E) return true;
 	if (settings.showTooltips == 'none' || (settings.showTooltips == 'chat' && render.collectionName !== 'messages') || (settings.showTooltips == 'dialog' && !render.options?.classes?.includes('ac5e dialog'))) return true;
-	let targetElement;
-	let hookType, roller;
-	if (getConfigAC5E?.length) ({ hookType, roller } = getConfigAC5E[0] || {});
+	let targetElement, hookType, roller, tooltip;
+	if (getConfigAC5E?.length) {
+		({ roller } = getConfigAC5E[0] || {});
+		hookType = [];
+		getConfigAC5E.forEach((element) => hookType.push(element.hookType));
+	}
 	else ({ hookType, roller } = getConfigAC5E);
-	let tooltip = _getTooltip(getConfigAC5E);
 	if (hook === 'chat') {
+		tooltip = _getTooltip(getConfigAC5E);
 		if (roller == 'Core') {
+			if (tooltip === '') return true;
 			//should also work for Roll Groups not specifically called.
 			if (['attack', 'damage'].includes(hookType)) {
 				targetElement = elem.querySelector('.dice-formula');
@@ -303,6 +327,7 @@ export function _renderHijack(hook, render, elem) {
 				targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
 			}
 		} else if (roller == 'RSR') {
+			if (tooltip === '') return true;
 			if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
 			else if (['attack'].includes(hookType)) {
 				targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
@@ -310,19 +335,26 @@ export function _renderHijack(hook, render, elem) {
 				targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
 			}
 		} else if (roller == 'MidiQOL') {
-			if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
-			if (['attack'].includes(hookType.toLocaleLowerCase())) {
-				if (getConfigAC5E.length) {
-					targetElement = [elem.querySelector('.midi-qol-attack-roll'), elem.querySelector('.midi-qol-damage-roll')];
-					tooltip = [_getTooltip(getConfigAC5E[0]), _getTooltip(getConfigAC5E[1])];
-				} else {
-					targetElement = elem.querySelector('.midi-qol-attack-roll');
-				}
+			if (!getConfigAC5E.length) getConfigAC5E = [getConfigAC5E];
+			for (const ac5eElement of getConfigAC5E) {
+				tooltip = _getTooltip(ac5eElement);
+				if (tooltip === '') continue;
+				let thisTargetElement;
+				({ hookType } = ac5eElement);
+				if (game.user.targets.size === 1 && ['check', 'save'].includes(hookType)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
+				else if (['attack'].includes(hookType)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
+				else if (['damage'].includes(hookType)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
 				//to-do: add AC5E pill on Item card. Next release
+				if (thisTargetElement) thisTargetElement.setAttribute('data-tooltip', tooltip);
 			}
-			if (['damage'].includes(hookType.toLocaleLowerCase())) targetElement = elem.querySelector('.midi-qol-damage-roll');
+			if (settings.debug) {
+				console.warn('ac5e hijack getTooltip', tooltip);
+				console.warn('ac5e hijack targetElement:', targetElement);
+			}
+			return true;
 		}
 	} else {
+		tooltip = _getTooltip(getConfigAC5E);
 		if (tooltip === '') return true;
 		if (!['activity', 'damage'].includes(hookType)) {
 			const dialogElement = document.getElementById(elem.id);
@@ -336,20 +368,16 @@ export function _renderHijack(hook, render, elem) {
 			if (targetElement) {
 				targetElement.focus(); //Critical is not focused; dnd5e issue.
 			}
-		} else {
-			targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
-		}
-		//if (targetElement && !targetElement.innerHTML.includes('>')) targetElement.innerHTML = `>${targetElement.innerHTML}<`;
+		} else 	targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
+		if (!targetElement) return true;
 		targetElement.style.color = 'white'; // Change text color; to-do: add a colorpicker
 		targetElement.style.backgroundColor = game.user.color; // Change background color; to-do: add a colorpicker
+		targetElement.setAttribute('data-tooltip', tooltip);
 	}
 	if (settings.debug) {
 		console.warn('ac5e hijack getTooltip', tooltip);
 		console.warn('ac5e hijack targetElement:', targetElement);
 	}
 	if (tooltip === '') return true;
-	if (targetElement?.length === 2) {
-		targetElement[0].setAttribute('data-tooltip', tooltip[0]);
-		targetElement[1].setAttribute('data-tooltip', tooltip[1]);
-	} else if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
+	targetElement.setAttribute('data-tooltip', tooltip);
 }
