@@ -1,3 +1,8 @@
+## v12.422.2
+- First public 4.2.2 release
+- Added modern rules for conditions with any slight changes gated behind the dnd5e system's rules choice.
+- Should be compatible with Vanilla 5e, MidiQOL, Ready Set Roll.
+
 ## v12.422.1
 - Compatibility update to support 5e 4.2.2 and higher.
 - First pass into module flags which will alter advantage mode of relevant rolls (documentation to follow).
