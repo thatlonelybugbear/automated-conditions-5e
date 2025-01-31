@@ -279,13 +279,13 @@ export function _renderHijack(hook, render, elem) {
 		if (render.config?.isConcentration) newTitle = `${game.i18n.translations.DND5E.Concentration} ${game.i18n.translations.DND5E.AbbreviationDC}: ${render.config.target} (${render.config.ability.capitalize()})`;
 		else newTitle = render.message?.data?.flavor ?? render.options?.title ?? game.i18n.translations.DND5E.InitiativeRoll;
 		title.textContent = newTitle; //: render.title;
-		if (getConfigAC5E.tokenId && (hookType === 'save' || hookType === 'check')) {
+		if (getConfigAC5E?.tokenId && (hookType === 'save' || hookType === 'check')) {
 			const subtitleElement = elem.querySelector(".window-subtitle");
 			tokenName = canvas.tokens.get(getConfigAC5E.tokenId)?.name;
 		        subtitleElement.textContent = `${tokenName}`;
 		        subtitleElement.style.display = "block"; // Force a new line
 		}
-		else if (getConfigAC5E.options?.testInitiative) {
+		else if (getConfigAC5E?.options?.testInitiative) {
 			const actorUuid = render.rolls?.[0]?.data?.actorUuid ?? render.config?.subject?.uuid;
 			const actor = fromUuidSync(actorUuid);
 			const tokenName = actor?.token?.name ?? actor?.getActiveTokens()?.[0]?.name;
