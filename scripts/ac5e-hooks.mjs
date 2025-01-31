@@ -294,8 +294,6 @@ export function _renderHijack(hook, render, elem) {
 	        	subtitleElement.style.display = "block"; // Force a new line
 		}
 	}
-	const message = getMessageData(render.config);
-	let getConfigAC5E;
 	if (hook === 'd20Dialog') getConfigAC5E = render.config?.[Constants.MODULE_ID] ?? render?.options?.[Constants.MODULE_ID];
 	else if (hook === 'chat') {
 		if (game.modules.get('midi-qol')?.active && render?.rolls?.length > 1) {
