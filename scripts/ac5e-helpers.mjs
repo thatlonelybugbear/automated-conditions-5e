@@ -353,7 +353,7 @@ export function _getTooltip(ac5eConfig) {
 	else return tooltip;
 }
 
-export function _getConfig(config, hookType, tokenId, targetId) {
+export function _getConfig(config, hookType, tokenId, targetId, options) {
 	if (settings.debug) console.warn('helpers._getConfig:', config);
 	// const existingAC5e = config?.[Constants.MODULE_ID];
 	const areKeysPressed = game.system.utils.areKeysPressed;
@@ -375,6 +375,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			parts: [],
 			critical: [],
 		},
+		options,
 		preAC5eConfig: {
 			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
 			disKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
