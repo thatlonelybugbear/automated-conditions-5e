@@ -1,3 +1,7 @@
+## v12.422.5
+- Fix for criticals not being properly highlighted
+- Fix for initiative rolls
+  
 ## v12.422.4
 - Fix for Frightened when no effect origin is present
 - Fix for Grappled when no effect origin is present
