@@ -15,7 +15,7 @@
   "AC5E.AutoArmorSpellUseChoicesOff": "Fazer nada",
   "AC5E.AutoArmorSpellUseChoicesEnforce": "Forçar",
   "AC5E.AutoArmorSpellUseChoicesWarn": "Avisar",
-  "AC5E.AutoArmorSpellUseChoicesWarnToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias. Magia cancelada!",
+  "AC5E.AutoArmorSpellUseChoicesEnforceToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias. Magia cancelada!",
   "AC5E.AutoArmorSpellUseChoicesWarnToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias.",
   "AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "está Incapacitado(a) e não pode conjurar magias. Magia cancelada!",
   "AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "está Incapacitado(a) e não pode conjurar magias.",
@@ -25,8 +25,9 @@
   "AC5E.AutoSilencedSpellUseChoicesWarnToast": "está Silenciado e não pode conjurar magias com componente verbal.",
   "AC5E.AutoRangedAttacksName": "Automação de Ataques à Distância",
   "AC5E.AutoRangedAttacksHint": "Se marcado, AC5e irá processar automaticamente a distância para desvantagem/falha baseado na distância do alvo e o os valores de alcance do item usado para o ataque.",
-  "AC5E.AutoRangedNearbyFoeName": "Automação de Atqs. à Distância Próximo de Inimigos",
-  "AC5E.AutoRangedNearbyFoeHint": "Se habilitado E a 'Automação Ataques à Distância' também estiver habilitada, uma criatura adjacente com a disposição oposta em comparação ao atacante irá impor desvantagem a qualquer jogada de ataque à distância.",
+  "AC5E.AutoRangedAttacksChoicesOff": "Desativado",
+  "AC5E.AutoRangedAttacksChoicesRangeOnly": "Apenas Verificação de Alcance",
+  "AC5E.AutoRangedAttacksChoicesNearbyFoes": "Alcance + Inimigos Próximos",
   "AC5E.AutoExhaustionName": "Automação de Exaustão",
   "AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
   "AC5E.AutoEncumbranceName": "Variante Sobrecarga",
@@ -51,5 +52,6 @@
   "AC5E.SubtleSpell": "Magia Sutil",
   "AC5E.OutOfRange": "Fora do alcance",
   "AC5E.Item": "Item",
-  "AC5E.Equipment": "Equipmento"
+  "AC5E.Equipment": "Equipmento",
+  "AC5E.NearbyFoe": "Inimigo Próximo"
 }
