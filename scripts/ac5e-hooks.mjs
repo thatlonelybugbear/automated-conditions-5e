@@ -285,7 +285,7 @@ export function _renderHijack(hook, render, elem) {
 		if (game.modules.get('midi-qol')?.active && render?.rolls?.length > 1) {
 			getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID]];
 		} else getConfigAC5E = render?.flags?.[Constants.MODULE_ID] ?? render.rolls?.[0]?.options?.[Constants.MODULE_ID];
-	} else getConfigAC5E = render?.options?.[Constants.MODULE_ID];
+	} else getConfigAC5E = render?.config?.[Constants.MODULE_ID];
 	if (settings.debug) {
 		console.warn('hijack getConfigAC5E', getConfigAC5E ?? undefined);
 		console.warn('ac5e hijack render:', render);
