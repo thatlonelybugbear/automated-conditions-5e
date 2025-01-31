@@ -1,3 +1,6 @@
+## v12.422.3
+- Fix for rolling always critical when MidiQOL is active!
+
 ## v12.422.2
 - First public 4.2.2 release
 - Added modern rules for conditions with any slight changes gated behind the dnd5e system's rules choice.
