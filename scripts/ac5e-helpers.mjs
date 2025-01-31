@@ -414,7 +414,7 @@ export function _activeModule(moduleID) {
 }
 
 export function _canSee(source, target) {
-	if (game.modules.get('midi - qol')?.active) return MidiQOL.canSee(source, target);
+	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
 	if (!source || !target) {
 		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
 		return true;
