@@ -140,7 +140,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		},
 	} = message || {};
 
-	const actionType = _getActionType(activity);
+	//const actionType = _getActionType(activity);
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -161,18 +161,18 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
 
 	let nearbyFoe, inRange, range;
-	if (settings.autoRanged && actionType) {
-		({ nearbyFoe, inRange, range } = _autoRanged(itemRange, sourceToken, singleTargetToken, actionType));
-	}
-	//Nearby Foe
-	if (nearbyFoe) {
-		ac5eConfig.source.disadvantage = ac5eConfig.source.disadvantage.concat('Nearby Foe');
-	}
-	if (!inRange) {
-		ac5eConfig.source.fail = ac5eConfig.source.fail.concat(_localize('AC5E.OutOfRange'));
-	}
-	if (range === 'long') {
-		ac5eConfig.source.disadvantage = ac5eConfig.source.disadvantage.concat(_localize('RangeLong'));
+	if (settings.autoRangedCombined !== 'off') {
+		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken));
+		//Nearby Foe
+		if (nearbyFoe) {
+			ac5eConfig.source.disadvantage.push('Nearby Foe');
+		}
+		if (!inRange) {
+			ac5eConfig.source.fail.push(_localize('AC5E.OutOfRange'));
+		}
+		if (range === 'long') {
+			ac5eConfig.source.disadvantage.push(_localize('RangeLong'));
+		}
 	}
 
 	//check Auto Armor
@@ -183,10 +183,6 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		ac5eConfig.source.disadvantage = ac5eConfig.source.disadvantage.concat(_i18nConditions('HeavilyEncumbered'));
 	}
 	if (settings.debug) console.warn({ ac5eConfig });
-	if (ac5eConfig.source.fail.length) {
-		config.rolls[0].parts.push('-99');
-		config.rolls[0].options.criticalSuccess = 21; //make it not crit)
-	}
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	return _calcAdvantageMode(ac5eConfig, config, dialog);
 }
