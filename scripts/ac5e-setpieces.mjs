@@ -69,9 +69,9 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 	statusEffectsTables.frightened = {
 		_id: _staticID('frightened'),
 		name: _i18nConditions('Frightened'),
-		attack: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && _getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) ? 'disadvantage' : '' },
-		check: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && _getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) ? 'disadvantage' : '' },
-		skills: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && _getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) ? 'disadvantage' : '' },
+		attack: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
+		check: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
+		skills: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
 	};
 	statusEffectsTables.grappled = {
 		_id: _staticID('grappled'),
