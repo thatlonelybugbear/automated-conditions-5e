@@ -76,7 +76,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 	statusEffectsTables.grappled = {
 		_id: _staticID('grappled'),
 		name: _i18nConditions('Grappled'),
-		attack: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && _getEffectOriginToken(effect) === targetToken) ? 'disadvantage' : '' },
+		attack: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('grappled') && (_getEffectOriginToken(effect) === targetToken || !effect.origin)) ? 'disadvantage' : '' },
 	};
 	statusEffectsTables.incapacitated = {
 		_id: _staticID('incapacitated'),
