@@ -1,4 +1,4 @@
-import { _calcAdvantageMode, _getDistance, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _calcAdvantageMode, _getActionType, _getDistance, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -45,9 +45,10 @@ function getMessageData(config) {
 }
 
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
-	const deathSave = config.hookNames.includes('deathSave');
-	const concentrationSave = config.isConcentration;
-	if (settings.debug) console.warn('ac5e _preRollSavingThrowV2:', hook, { config, dialog, message });
+	const options = {};
+	options.deathSave = config.hookNames.includes('deathSave');
+	options.concentrationSave = config.isConcentration;
+	if (settings.debug) console.warn('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject: actor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 	const speaker = message?.data?.speaker;
@@ -59,57 +60,53 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 
 	const sourceTokenID = speaker?.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
-	let ac5eConfig = _getConfig(config, 'save', sourceTokenID);
-	if (ac5eConfig.preAC5eConfig && (ac5eConfig.preAC5eConfig.advKey || ac5eConfig.preAC5eConfig.disKey)) {
-		_setAC5eProperties(ac5eConfig, config);
-		return _calcAdvantageMode(ac5eConfig, config);
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID);
+	if (ac5eConfig.returnEarly) {
+		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
-	if (deathSave) {
+	if (options.deathSave) {
 		const hasAdvantage = actor.system.attributes.death?.roll?.mode === 1;
 		const hasDisadvantage = actor.system.attributes.death?.roll?.mode === -1;
 		if (hasAdvantage) ac5eConfig.source.advantage.push(_localize('DND5E.AdvantageMode'));
 		if (hasDisadvantage) ac5eConfig.source.disadvantage.push(_localize('DND5E.AdvantageMode'));
 	}
 
-	if (concentrationSave) {
-		if(_hasItem(actor, _localize('AC5E.WarCaster'))) ac5eConfig.source.advantage.push(_localize(itemName));
+	if (options.concentrationSave) {
+		if (_hasItem(actor, _localize('AC5E.WarCaster'))) ac5eConfig.source.advantage.push(_localize(itemName));
 		const hasAdvantage = actor.system.attributes.concentration?.roll?.mode === 1;
 		const hasDisadvantage = actor.system.attributes.concentration?.roll?.mode === -1;
 		if (hasAdvantage) ac5eConfig.source.advantage.push(_localize('DND5E.AdvantageMode'));
 		if (hasDisadvantage) ac5eConfig.source.disadvantage.push(_localize('DND5E.AdvantageMode'));
 	}
-	
-	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, hook, abilityId: ability, activity });
+
+	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, hook, ability, activity, options });
 	if (ac5eConfig.source.fail.length) {
 		config.rolls[0].parts.push('-99');
 		config.rolls[0].options.criticalSuccess = 21; //make it not crit)
 	}
 	_setAC5eProperties(ac5eConfig, config);
-	return _calcAdvantageMode(ac5eConfig, config);
+	return _calcAdvantageMode(ac5eConfig, config, dialog);
 }
 
 export function _preRollAbilityTest(config, dialog, message, hook) {
 	const testInitiative = config.hookNames.includes('initiativeDialog');
-	if (config.tool) hook = 'tool';
-	if (config.skill) hook = 'skill';
 	const { subject: actor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
-	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 	const speaker = message?.data?.speaker;
-	const rollTypeObj = message?.flags?.dnd5e?.roll;
-	const messageType = message?.flags?.dnd5e?.messageType;
-	const chatMessage = message?.document;
-	
+
+	// const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
+	// const rollTypeObj = message?.flags?.dnd5e?.roll;
+	// const messageType = message?.flags?.dnd5e?.messageType;
+	// const chatMessage = message?.document;
+
 	const sourceTokenID = speaker?.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 
 	let ac5eConfig = _getConfig(config, hook, sourceTokenID);
 
-	if (ac5eConfig.preAC5eConfig && (ac5eConfig.preAC5eConfig.advKey || ac5eConfig.preAC5eConfig.disKey)) {
-		_setAC5eProperties(ac5eConfig, config);
-		return _calcAdvantageMode(ac5eConfig, config);
-	}
+	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
+
 	if (testInitiative && actor.flags.dnd5e.initiativeAdv) ac5eConfig.source.advantage.push(_localize('DND5E.FlagsInitiativeAdv'));
-	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, targetToken: undefined, targetActor: undefined, hook, abilityId: ability });
+	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, targetToken: undefined, targetActor: undefined, hook, ability, tool, skill, testInitiative });
 	//check Auto Armor
 	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(actor).notProficient) {
 		ac5eConfig.source.disadvantage.push(`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`);
@@ -133,19 +130,14 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		options,
 		rolls,
 	} = config || {}; //subject is an activity so no SYSTEM
-	let actionType = activity?.attack?.type ?? undefined;
+
 	const {
 		data: {
 			speaker: { token: sourceTokenID },
 		},
 	} = message || {};
-	if (actionType?.value === 'melee') {
-		if (actionType.classification === 'weapon') actionType = 'mwak';
-		else if (actionType.classification === 'spell') actionType = 'msak';
-	} else if (actionType?.value === 'ranged') {
-		if (actionType.classification === 'weapon') actionType = 'rwak';
-		else if (actionType.classification === 'spell') actionType = 'rsak';
-	} else undefined;
+
+	const actionType = _getActionType(activity);
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -154,18 +146,16 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const targetsSize = targets?.size; //targets?.length;
 	const singleTargetToken = targets?.first(); //targets?.[0];
 	const singleTargetActor = singleTargetToken?.actor;
-	let ac5eConfig = _getConfig(config, 'attack', sourceTokenID, singleTargetToken?.id);
-	if (ac5eConfig.preAC5eConfig && (ac5eConfig.preAC5eConfig.advKey || ac5eConfig.preAC5eConfig.disKey)) {
-		_setAC5eProperties(ac5eConfig, config, dialog, message);
-		return _calcAdvantageMode(ac5eConfig, config);
-	}
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID, singleTargetToken?.id);
+	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
+
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(item, targetsSize, 'attack', 'enforce')) return false;
 		if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
 	}
-	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, abilityId: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
+	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
 
 	let nearbyFoe, inRange, range;
 	if (settings.autoRanged && actionType) {
@@ -182,8 +172,6 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		ac5eConfig.source.disadvantage = ac5eConfig.source.disadvantage.concat(_localize('RangeLong'));
 	}
 
-	// //to-do: Test for Source under the see invisibility spell.
-
 	//check Auto Armor
 	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(sourceActor).notProficient) {
 		ac5eConfig.source.disadvantage = ac5eConfig.source.disadvantage.concat(`${_localize(_autoArmor(sourceActor).notProficient)} (${_localize('NotProficient')})`);
@@ -197,7 +185,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		config.rolls[0].options.criticalSuccess = 21; //make it not crit)
 	}
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
-	return _calcAdvantageMode(ac5eConfig, config);
+	return _calcAdvantageMode(ac5eConfig, config, dialog);
 }
 
 export function _preRollDamageV2(config, dialog, message, hook) {
@@ -210,15 +198,10 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 		ammunition,
 	} = config;
 	const {
+		//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets for now, unless we don't care for multiple tokens of a linked actor.
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker },
 	} = message;
-	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 
-	let ac5eConfig = _getConfig(config, 'damage');
-	if (ac5eConfig.preAC5eConfig && ac5eConfig.preAC5eConfig.critKey) {
-		_setAC5eProperties(ac5eConfig, config);
-		return _calcAdvantageMode(ac5eConfig, config);
-	}
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 	const targets = game.user?.targets;
@@ -231,14 +214,11 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 		if (settings.needsTarget == 'force' && !_hasValidTargets(item, targetsSize, 'damage', 'enforce')) return false;
 		if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'damage', 'console')) return true;
 	}
-	if (!_hasAppliedEffects(sourceActor) && !_hasAppliedEffects(singleTargetActor)) return true;
-	// //on Target advantage - Paralysed, Unconscious conditions.
-	// let statuses = ['paralyzed', 'unconscious'];
-	// if (!item.isHealing && _hasStatuses(singleTargetActor, statuses).length && _getDistance(sourceToken, singleTargetToken) <= 5) {
-	// 	ac5eConfig.target.critical = ac5eConfig.target.critical ? ac5eConfig.target.critical.concat(_hasStatuses(singleTargetActor, statuses)) : _hasStatuses(singleTargetActor, statuses);
-	// }
-	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, abilityId: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
-
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID, singleTargetToken?.id);
+	if (ac5eConfig.returnEarly) {
+		return _setAC5eProperties(ac5eConfig, config, dialog, message);
+	}
+	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (ac5eConfig.source.critical.length || ac5eConfig.target.critical.length) config.rolls[0].options.isCritical = true;
@@ -289,7 +269,9 @@ export function _renderHijack(hook, render, elem) {
 	//function patchDialogTitles
 	if (hook !== 'chat') {
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
-		title.textContent = /*['attack', 'save'].includes(hookType) ?*/ render.message?.data?.flavor ?? render.options?.title; /*: render.config?.rolls?.[0]?.options?.flavor;*/
+		let newTitle;
+		if (render.config?.isConcentration) newTitle = `${game.i18n.translations.DND5E.Concentration} ${game.i18n.translations.DND5E.AbbreviationDC}: ${render.config.target} (${render.config.ability.capitalize()})`;
+		title.textContent = /*['attack', 'save'].includes(hookType) ?*/ newTitle ?? render.message?.data?.flavor ?? render.options?.title ?? game.i18n.translations.DND5E.InitiativeRoll; //: render.title;
 	}
 	const message = getMessageData(render.config);
 	let getConfigAC5E;
@@ -320,10 +302,10 @@ export function _renderHijack(hook, render, elem) {
 				targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
 			}
 		} else if (roller == 'RSR') {
-			if (['ability', 'death', 'skill', 'conc'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
-			else if (['attack', 'itemAttack', 'item'].includes(hookType)) {
+			if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
+			else if (['attack'].includes(hookType)) {
 				targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
-			} else if (['damage', 'itemDamage'].includes(hookType)) {
+			} else if (['damage'].includes(hookType)) {
 				targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
 			}
 		} else if (roller == 'MidiQOL') {
@@ -340,7 +322,6 @@ export function _renderHijack(hook, render, elem) {
 			if (['damage'].includes(hookType.toLocaleLowerCase())) targetElement = elem.querySelector('.midi-qol-damage-roll');
 		}
 	} else {
-		//if (!tooltip) return true;
 		if (tooltip === '') return true;
 		if (!['activity', 'damage'].includes(hookType)) {
 			const dialogElement = document.getElementById(elem.id);
@@ -348,23 +329,25 @@ export function _renderHijack(hook, render, elem) {
 			if (advantageMode === 0) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="normal"]');
 			else if (advantageMode === -1) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="disadvantage"]');
 			else if (advantageMode === 1) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="advantage"]');
-			if (targetElement && !targetElement.innerHTML.includes('AC5e')) targetElement.innerHTML = '> AC5E <';
+			//	if (targetElement && !targetElement.innerHTML.includes('AC5E')) targetElement.innerHTML = `>AC5E<`;
 		} else if (hookType === 'damage') {
 			targetElement = elem.querySelector('button[data-action="critical"]');
 			if (targetElement) {
-				targetElement.innerHTML = '> AC5E <';
-				targetElement.focus();
+				targetElement.focus(); //Critical is not focused; dnd5e issue.
 			}
 		} else {
 			targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
 		}
+		if (targetElement && !targetElement.innerHTML.includes('>')) targetElement.innerHTML = `>${targetElement.innerHTML}<`;
+		targetElement.style.color = 'white'; // Change text color
+		targetElement.style.backgroundColor = game.user.color; // Change background color
 	}
 	if (settings.debug) {
 		console.warn('ac5e hijack getTooltip', tooltip);
 		console.warn('ac5e hijack targetElement:', targetElement);
 	}
 	if (tooltip === '') return true;
-	if (targetElement.length === 2) {
+	if (targetElement?.length === 2) {
 		targetElement[0].setAttribute('data-tooltip', tooltip[0]);
 		targetElement[1].setAttribute('data-tooltip', tooltip[1]);
 	} else if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
