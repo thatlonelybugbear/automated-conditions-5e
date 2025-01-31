@@ -237,31 +237,13 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
 
-export function _calcAdvantageMode(ac5eConfig, config) {
-	const fastForward = config.rolls?.[0]?.options?.configured === false;
-	const options = config.rolls?.[0]?.options ?? config;
-	if (ac5eConfig.roller == 'Core')
-		foundry.utils.mergeObject(config.event, {
-			altKey: false,
-			shiftKey: false,
-			metaKey: false,
-			ctrlKey: false,
-		});
-	if (ac5eConfig.roller == 'RSR')
-		foundry.utils.mergeObject(config.event || {}, {
-			altKey: !ac5eConfig.rsrOverrideFF ? config.event.altKey : false,
-		});
-	if (settings.keypressOverrides) {
-		if (ac5eConfig.preAC5eConfig.advKey) return (options.advantage = true);
-		if (ac5eConfig.preAC5eConfig.disKey) return (options.disadvantage = true);
-		if (ac5eConfig.preAC5eConfig.critKey) return (options.critical = true);
-	}
+export function _calcAdvantageMode(ac5eConfig, config, dialog) {
+	const options = config.rolls?.[0]?.options;
 	if (ac5eConfig.source.advantage.length || ac5eConfig.target.advantage.length) options.advantage = true;
 	if (ac5eConfig.source.disadvantage.length || ac5eConfig.target.disadvantage.length) options.disadvantage = true;
 	if (options.advantage === true && options.disadvantage === true) {
-		console.log(options.advantage, options.advantageMode, options.disadvantage);
-		options.advantage = options.advantageMode === -1 ? true : false;
-		options.disadvantage = options.advantageMode === 1 ? true : false;
+		options.advantage = false;
+		options.disadvantage = false;
 	}
 }
 
@@ -313,7 +295,6 @@ export function _autoRanged(range, token, target, actionType) {
 	if (!range || !token) return undefined;
 	let { value: short, long, reach } = range;
 	const distance = target ? _getDistance(token, target) : undefined;
-	console.log({ distance, reach });
 	if (reach && ['mwak', 'msak'].includes(actionType)) return { inRange: distance <= reach };
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
@@ -368,7 +349,8 @@ export function _getTooltip(ac5eConfig) {
 
 export function _getConfig(config, hookType, tokenId, targetId) {
 	if (settings.debug) console.warn('helpers._getConfig:', config);
-	const existingAC5e = config?.[Constants.MODULE_ID];
+	// const existingAC5e = config?.[Constants.MODULE_ID];
+	const areKeysPressed = game.system.utils.areKeysPressed;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
@@ -387,107 +369,47 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 			parts: [],
 			critical: [],
 		},
+		preAC5eConfig: {
+			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
+			disKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
+			critKey: hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
+			fastForward: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') : hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') || areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
+		},
+		returnEarly: false,
 	};
-	const areKeysPressed = game.system.utils.areKeysPressed;
-	const keys =
-		hookType !== 'damage'
-			? {
-					normal: areKeysPressed(config.event, 'skipDialogNormal'),
-					advantage: areKeysPressed(config.event, 'skipDialogAdvantage'),
-					disadvantage: areKeysPressed(config.event, 'skipDialogDisadvantage'),
-			  }
-			: {
-					normal: areKeysPressed(config.event, 'skipDialogNormal') || areKeysPressed(config.event, 'skipDialogDisadvantage'),
-					critical: areKeysPressed(config.event, 'skipDialogAdvantage'),
-			  };
 
-	if (settings.debug) console.log(config.advantage, config.disadvantage, config.critical, config.fastForward, hookType);
-	let moduleID = 'Core';
-	let advKey, disKey, critKey, rsrOverrideFF;
-	if (activeModule('midi-qol')) {
-		moduleID = 'MidiQOL';
-		if (hookType != 'damage') advKey = keys.advantage;
-		if (hookType != 'damage') disKey = keys.disadvantage;
-		if (hookType == 'damage') critKey = keys.critical;
-		if (settings.debug) console.warn(advKey, disKey, critKey, config);
-	} else if (activeModule('ready-set-roll-5e')) {
-		moduleID = 'ready-set-roll-5e';
-		let getRsrSetting = (key) => game.settings.get(moduleID, key);
-		let rsrHookType = hookType;
-		if (rsrHookType !== 'damage') {
-			if (rsrHookType == 'attack') rsrHookType = 'activity';
-			if (['conc', 'save', 'test'].includes(rsrHookType)) rsrHookType = 'ability';
-			//ready-set-roll-5e.enableAbilityQuickRoll
-			rsrHookType = rsrHookType.capitalize();
-			advKey = !getRsrSetting(`enable${rsrHookType}QuickRoll`) ? config.event?.altKey || config.event?.metaKey : getRsrSetting('rollModifierMode') == 0 ? config.event?.shiftKey : config.event?.ctrlKey || config.event?.metaKey;
-			disKey = !getRsrSetting(`enable${rsrHookType}QuickRoll`) ? config.event?.ctrlKey : getRsrSetting('rollModifierMode') == 0 ? config.event?.ctrlKey || config.event?.metaKey : config.event?.shiftKey;
-			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`) ? !config.event?.altKey : config.event.shiftKey || config.event.altKey || config.event.metaKey || config.event.ctrlKey;
-		} else if (rsrHookType == 'damage') {
-			//to-do:check this
-			rsrHookType = 'Activity';
-			critKey = !getRsrSetting(`enable${rsrHookType}QuickRoll`) ? config.event?.altKey || config.event?.metaKey : getRsrSetting('rollModifierMode') == 0 ? config.event?.shiftKey : config.event?.ctrlKey || config.event?.metaKey;
-			rsrOverrideFF = getRsrSetting(`enable${rsrHookType}QuickRoll`) ? !config.event?.altKey : config.event?.shiftKey;
-		}
-		moduleID = 'RSR';
-	} else {
-		//core system keys
-		if (hookType != 'damage') advKey = keys.advantage;
-		if (hookType != 'damage') disKey = keys.disadvantage;
-		if (hookType == 'damage') critKey = keys.critical;
+	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
+	ac5eConfig.roller = roller;
+
+	if (ac5eConfig.preAC5eConfig.advKey) {
+		ac5eConfig.source.advantage = [`${roller} (keyPress)`];
+		ac5eConfig.returnEarly = true;
+	} else if (ac5eConfig.preAC5eConfig.disKey) {
+		ac5eConfig.source.disadvantage = [`${roller} (keyPress)`];
+		ac5eConfig.returnEarly = true;
+	} else if (ac5eConfig.preAC5eConfig.critKey) {
+		ac5eConfig.source.critical = [`${roller} (keyPress)`];
+		ac5eConfig.returnEarly = true;
 	}
-
-	const rollOptions = config.rolls?.[0]?.options ?? config;
-	if (settings.debug) console.warn('helpers check Keys || ', hookType, advKey, disKey, critKey, moduleID, 'keypressOverrides:', settings.keypressOverrides);
-	if (advKey) ac5eConfig.source.advantage = [`${moduleID} (keyPress)`];
-	if (disKey) ac5eConfig.source.disadvantage = [`${moduleID} (keyPress)`];
-	if (critKey && ['damage', 'itemDamage'].includes(hookType)) ac5eConfig.source.critical = [`${moduleID} (keyPress)`];
-	if (rollOptions.advantageMode === 1) {
-		ac5eConfig.source.advantage.push(`${moduleID} (flags)`);
-		rollOptions.advantageMode = 0;
-	} /*&& !settings.keypressOverrides*/
-	//to-do: why was that here in the first place? Changed when added multi rollers compat?
-
-	if (rollOptions.advantageMode === -1 /*&& !settings.keypressOverrides*/) {
-		rollOptions.advantageMode = 0;
-		ac5eConfig.source.disadvantage.push(`${moduleID} (flags)`);
-	}
-	if (rollOptions.critical === true /*&& !settings.keypressOverrides*/) ac5eConfig.source.critical.push(`${moduleID} (flags)`);
 	if (settings.debug) {
-		console.warn('_getConfig keys | advKey:', advKey, 'disKey:', disKey, 'critKey:', critKey, 'rsrOverrideFF:', rsrOverrideFF);
+		console.warn('AC5E_getConfig', { ac5eConfig });
+		//debugger;
 	}
-
-	ac5eConfig.roller = moduleID;
-	ac5eConfig.rsrOverrideFF = rsrOverrideFF;
-	ac5eConfig.preAC5eConfig = settings.keypressOverrides
-		? {
-				advKey: ac5eConfig.source.advantage.some((el) => el.includes('keyPress')),
-				disKey: ac5eConfig.source.disadvantage.some((el) => el.includes('keyPress')),
-				critKey: ac5eConfig.source.critical.some((el) => el.includes('keyPress')),
-		  }
-		: false;
 	return ac5eConfig;
 }
 
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
-	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
+	console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 
 	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
 
 	if (config) foundry.utils.mergeObject(config, ac5eConfigObject);
 	if (config.rolls?.[0]?.data?.flags) foundry.utils.mergeObject(config.rolls[0].data.flags, ac5eConfigObject);
 	foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigObject);
-	if (message?.data?.flags) foundry.utils.mergeObject(message.data.flags, ac5eConfigObject);
-	else if (message?.data && !message?.data.flags) message.data = { flags: ac5eConfigObject };
-	if (dialog?.options) foundry.utils.mergeObject(dialog.options, ac5eConfigObject);
-	else if (dialog) foundry.utils.setProperty(dialog, 'options', ac5eConfigObject);
-	if (!dialog) dialog = {};
-	if (!message) message = {};
-	foundry.utils.mergeObject((dialog.options = {}), ac5eConfigObject);
-	foundry.utils.mergeObject((message.options = {}), ac5eConfigObject);
 	if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 
-function activeModule(moduleID) {
+export function _activeModule(moduleID) {
 	return game.modules.get(moduleID)?.active;
 }
 
@@ -527,7 +449,7 @@ export function _canSee(source, target) {
 					[0, t],
 			  ]
 			: [[0, 0]];
-	const checks = offsets.map((o) => ({
+	const tests = offsets.map((o) => ({
 		point: new PIXI.Point(targetPoint.x + o[0], targetPoint.y + o[1]),
 		elevation: target.document.elevation,
 		los: new Map(),
@@ -601,8 +523,8 @@ export function _staticID(id) {
 	if (id.length >= 16) return id.substring(0, 16);
 	return id.padEnd(16, '0');
 }
-export function getActionType(item) {
-	let actionType = item?.attack?.type;
+export function _getActionType(activity) {
+	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
 	if (actionType.value === 'melee') {
 		if (actionType.classification === 'weapon') actionType = 'mwak';
@@ -613,7 +535,17 @@ export function getActionType(item) {
 	} else undefined;
 	return actionType;
 }
-
+export function _getEffectOriginToken(effect /* ActiveEffect */) {
+	let effectOriginActor;
+	if (effect.parent instanceof CONFIG.Item.documentClass && effect.parent.isEmbedded) effectOriginActor = effect.parent.actor;
+	if (!effect.origin) return undefined;
+	const origin = fromUuidSync(effect.origin);
+	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+		if (origin.parent instanceof CONFIG.Item.documentClass) effectOriginActor = origin.parent.actor;
+		if (origin.parent instanceof CONFIG.Actor.documentClass) effectOriginActor = origin.panent;
+	}
+	return effectOriginActor.getActiveTokens()[0];
+}
 export function _hasValidTargets(activity, size, type = 'attack', warn = false) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
 	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
