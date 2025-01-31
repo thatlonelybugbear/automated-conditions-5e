@@ -14,8 +14,8 @@ export async function migrate() {
 		console.warn(`${Constants.MODULE_ID} no migration needed`);
 		return null;
 	}
-	//specific execution for 12.422.1
-	if (lastMigrationPoint == '12.422.1') {
+	//specific execution for 12.422.2
+	if (lastMigrationPoint == '12.422.2') {
 		const oldAutoRanged = settings.autoRanged;
 		const oldAutoNearbyFoes = settings.autoRangedNearbyFoe;
 		if (!oldAutoRanged && !oldAutoNearbyFoes) await game.settings.set(Constants.MODULE_ID, 'autoRangedAttacksMenu', 'off');
