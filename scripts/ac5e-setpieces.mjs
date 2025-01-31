@@ -190,7 +190,7 @@ function automatedItemsTables({ actor, token, targetActor, targetToken, ability,
 	const automatedItems = {};
 }
 
-function ac5eAutoSettingsTables({ actor, token, item, ability, skillId }) {
+function ac5eAutoSettingsTables({ actor, token, item, ability, skill }) {
 	const ac5eAutoSettings = {};
 	if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
 		const { nearbyFoe } = _autoRanged(item, token);
@@ -203,7 +203,7 @@ function ac5eAutoSettingsTables({ actor, token, item, ability, skillId }) {
 	}
 }
 
-function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, skillId /*distance*/ }) {
+function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, skill /*distance*/ }) {
 	//flags that affect actor (source)
 	//flags that affect others (target)
 	//flags that work like auras
@@ -230,7 +230,7 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 						actor,
 						targetActor,
 						ability,
-						skillId,
+						skill,
 						hook,
 						activity,
 						value: el.value,
@@ -239,6 +239,30 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 				};
 			})
 	);
+	if (targetActor) 
+		targetActor.appliedEffects.filter((effect) =>
+			effect.changes
+				.filter((change) => ['ac5e', 'automated-conditions-5e'].some((t) => change.key.includes(t)) && change.key.includes(hook))
+				.forEach((el) => {
+					const mode = el.key.split('.').at(-1);
+					const actorType = el.key.split('.').at(-2);
+					validFlags[effect.name] = {
+						//name: effect.name,
+						actorType,
+						mode,
+						evaluation: getMode({
+							actor,
+							targetActor,
+							ability,
+							skill,
+							hook,
+							activity,
+							value: el.value,
+							actorType,
+						}),
+					};
+				})
+		);
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	for (const el in validFlags) {
 		const { actorType, evaluation, mode, name } = validFlags[el];
@@ -247,7 +271,7 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 	return ac5eConfig;
 
 	//special functions\\
-	function getMode({ actor, targetActor, ability, skillId, hook, activity, value, actorType }) {
+	function getMode({ actor, targetActor, ability, skill, hook, activity, value, actorType }) {
 		if (['1', 'true'].includes(value)) return true;
 		if (['0', 'false'].includes(value)) return false;
 		const {
@@ -263,15 +287,16 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 				v = v.split('!')[1];
 				mult = '!';
 			}
+			const targetDocument = actorType === 'source' ? actor : targetActor;
 			if (!!abilities[v] && [ability, activity?.ability].includes(v)) return Roll.safeEval(mult + true);
-			if (!!creatureTypes[v] && ((actorType == 'source' && _raceOrType(actor) === creatureTypes[v]) || (actorType == 'target' && _raceOrType(targetActor) === creatureTypes[v]))) return Roll.safeEval(mult + true);
 			if (!!damageTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!deprecatedAttackTypes[v] && _getActionType(activity) === v) return Roll.safeEval(mult + true);
 			if (!!healingTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!itemProperties[v] && item?.system.properties.has(v)) return Roll.safeEval(mult + true);
-			if (!!skills[v] && skillId === v) return Roll.safeEval(mult + true);
+			if (!!skills[v] && skill === v) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && actor.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);
+			if (!!targetDocument && [_raceOrType(targetDocument, 'race'), _raceOrType(targetDocument, 'type'), _raceOrType(targetDocument, 'subtype'), _raceOrType(targetDocument, 'swarm')].includes(v)) return Roll.safeEval(mult + true);
 			//to-do: check the default logic. Should be returning false if none found above.
 			return false;
 		});
