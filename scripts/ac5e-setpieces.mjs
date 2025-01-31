@@ -162,6 +162,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 			_id: _staticID('hiding'),
 			name: _i18nConditions('Hiding'),
 			attack: { source: 'advantage', target: 'disadvantage' },
+			check: { source: modernRules && options?.testInitiative ? 'advantage' : '' },
 		};
 		statusEffectsTables.raging = {
 			id: 'raging',
