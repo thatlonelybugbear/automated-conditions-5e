@@ -353,7 +353,7 @@ export function _getTooltip(ac5eConfig) {
 	else return tooltip;
 }
 
-export function _getConfig(config, hookType, tokenId, targetId, options) {
+export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 	if (settings.debug) console.warn('helpers._getConfig:', config);
 	// const existingAC5e = config?.[Constants.MODULE_ID];
 	const areKeysPressed = game.system.utils.areKeysPressed;
