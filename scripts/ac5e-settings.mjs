@@ -135,7 +135,7 @@ export default class Settings {
 			name: 'AC5E.KeypressOverrideName',
 			hint: 'AC5E.KeypressOverrideHint',
 			scope: 'world',
-			config: true,
+			config: false,
 			default: false,
 			type: Boolean,
 		});
