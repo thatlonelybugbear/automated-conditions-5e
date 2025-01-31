@@ -245,6 +245,10 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog) {
 		options.advantage = false;
 		options.disadvantage = false;
 	}
+	if (ac5eConfig.source.fail.length || ac5eConfig.target.fail.length) {
+		config.target = 10000;//config.rolls[0].parts.push('-99');
+		options.criticalSuccess = 21;
+	}
 }
 
 //check for 'same' 'different' or 'all' (=false) dispositions
@@ -291,11 +295,13 @@ export function _autoEncumbrance(actor, abilityId) {
 	return ['con', 'dex', 'str'].includes(abilityId) && _hasStatuses(actor, 'heavilyEncumbered').length;
 }
 
-export function _autoRanged(range, token, target, actionType) {
-	if (!range || !token) return undefined;
+export function _autoRanged(activity, token, target) {
+	const actionType = _getActionType(activity);
+	const { range, item } = activity || {};
+	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
 	const distance = target ? _getDistance(token, target) : undefined;
-	if (reach && ['mwak', 'msak'].includes(actionType)) return { inRange: distance <= reach };
+	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;

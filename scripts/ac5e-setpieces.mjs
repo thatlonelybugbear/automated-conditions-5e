@@ -263,13 +263,13 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 				v = v.split('!')[1];
 				mult = '!';
 			}
-			if (!!abilities[v] && [ability, activity?.ability].includes(abilities[v])) return Roll.safeEval(mult + true);
+			if (!!abilities[v] && [ability, activity?.ability].includes(v)) return Roll.safeEval(mult + true);
 			if (!!creatureTypes[v] && ((actorType == 'source' && _raceOrType(actor) === creatureTypes[v]) || (actorType == 'target' && _raceOrType(targetActor) === creatureTypes[v]))) return Roll.safeEval(mult + true);
-			if (!!damageTypes[v] && activityDamageTypes(activity).includes(damageTypes[v])) return Roll.safeEval(mult + true);
+			if (!!damageTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!deprecatedAttackTypes[v] && _getActionType(activity) === v) return Roll.safeEval(mult + true);
-			if (!!healingTypes[v] && activityDamageTypes(activity).includes(healingTypes[v])) return Roll.safeEval(mult + true);
-			if (!!itemProperties[v] && item?.system.properties.has(itemProperties[v])) return Roll.safeEval(mult + true);
-			if (!!skills[v] && skillId === skills[v]) return Roll.safeEval(mult + true);
+			if (!!healingTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
+			if (!!itemProperties[v] && item?.system.properties.has(v)) return Roll.safeEval(mult + true);
+			if (!!skills[v] && skillId === v) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && actor.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);
 			//to-do: check the default logic. Should be returning false if none found above.
