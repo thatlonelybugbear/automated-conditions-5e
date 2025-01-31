@@ -15,7 +15,11 @@ A small module for Foundry and Dnd5e which uses dnd5e system Hooks to add the co
 Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
 Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
 
-# Dnd5e Conditions supported
+# Dnd5e Conditions supported.
+The module will adjust it's behaviour based on the 5e system's setting, for Modern vs Legacy rules.
+For example if Modern rules are selected, AC5E will not handle Exhaustion, but respect the system's handling.
+Small adjustments for differenced in the rest of the conditions too, as needed.
+
 - `Blinded`: Disadvantage on attacks and grants advantage to attack from others
 - `Exhaustion 1`: Disadvantage on ability checks (and skill checks as a result)
 - `Exhaustion 2`: no changes
