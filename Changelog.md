@@ -1,3 +1,9 @@
+## v12.422.7
+- Added token name on save and check configure dialogs
+- Expanded raceOrType functionality to get the correct returns
+- Fixed _canSee() functionality
+- Expanded ac5eFlags functionality and logic to gather flags from source and target.
+
 ## v12.422.6
 - Fix for auto range checks
 - Fix for flags checks
