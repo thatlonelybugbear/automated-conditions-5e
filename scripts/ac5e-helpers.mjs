@@ -246,7 +246,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog) {
 		options.disadvantage = false;
 	}
 	if (ac5eConfig.source.fail.length || ac5eConfig.target.fail.length) {
-		config.target = 10000;//config.rolls[0].parts.push('-99');
+		config.target = 10000;
 		options.criticalSuccess = 21;
 	}
 }
@@ -421,24 +421,33 @@ export function _activeModule(moduleID) {
 
 export function _canSee(source, target) {
 	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
-	if (!source || !target) {
-		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
-		return true;
-	}
-	//any non-owned, non-selected tokens will have their vision not initialized.
-	if (!source.vision) _initializeVision(source);
-	if (!target.vision) _initializeVision(target);
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
+	//@ts-expect-error
+	const detectionModes = CONFIG.Canvas.detectionModes;
+	const sightDetectionModes = Object.keys(detectionModes).filter(
+		(d) =>
+			//@ts-expect-error DetectionMode
+			detectionModes[d].type === DetectionMode.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d)
+	);
+	return canSense(source, target, sightDetectionModes);
+}
+
+function canSense(source, target, validModes = ['all']) {
+	return canSenseModes(source, target, validModes).length > 0;
+}
+
+function canSenseModes(token, target, validModesParam = ['all']) {
+	if (!token || !target) {
+		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
+		return ['noToken'];
+	}
 	const detectionModes = CONFIG.Canvas.detectionModes;
 	const DetectionModeCONST = DetectionMode;
-	const sightDetectionModes = new Set(Object.keys(detectionModes).filter((d) => detectionModes[d].type === DetectionMode.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes[d])); // ['basicSight', 'seeInvisibility', 'seeAll']
-	if (source instanceof TokenDocument) source = source.object;
-	if (target instanceof TokenDocument) target = target.object;
-	if (target.document?.hidden) return false;
-	if (!source.hasSight) return true; //if no sight is enabled on the source, it can always see.
-
+	//any non-owned, non-selected tokens will have their vision not initialized.
+	if (target.document?.hidden || token.document?.hidden) return [];
+	if (!token.hasSight) return ['senseAll'];
+	if ((!token.vision || !token.vision.los) && !_initializeVision(token)) return ['noSight'];
 	const matchedModes = new Set();
-	// Determine the array of offset points to check
 	const t = Math.min(target.w, target.h) / 4;
 	const targetPoint = target.center;
 	const offsets =
@@ -461,40 +470,54 @@ export function _canSee(source, target) {
 		los: new Map(),
 	}));
 	const config = { tests, object: target };
-	const tokenDetectionModes = source.detectionModes;
+	const tokenDetectionModes = token.detectionModes;
+	const modes = CONFIG.Canvas.detectionModes;
+	let validModes = new Set(validModesParam);
+
 	// First test basic detection for light sources which specifically provide vision
-	const lightSources = foundry.utils.isNewerVersion(game.system.version, '12.0') ? canvas?.effects?.lightSources : canvas?.effects?.lightSources.values();
+	const lightSources = canvas?.effects?.lightSources;
 	for (const lightSource of lightSources ?? []) {
 		if (!lightSource.active || lightSource.data.disabled) continue;
-		if (!lightSource.data.visibility) continue;
-		const result = lightSource.testVisibility(config);
+		if (!validModes.has(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID) && !validModes.has('all')) continue;
+		const result = lightSource.testVisibility && lightSource.testVisibility(config);
+		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
+	}
+	const lightPerception = tokenDetectionModes.find((m) => m.id === modes.lightPerception?.id);
+	if (lightPerception && ['lightPerception', 'all'].some((mode) => validModes.has(mode))) {
+		const result = lightPerception ? modes.lightPerception.testVisibility(token.vision, lightPerception, config) : false;
 		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
 	}
 	const basic = tokenDetectionModes.find((m) => m.id === DetectionModeCONST.BASIC_MODE_ID);
-	if (basic) {
-		if (['basicSight', 'lightPerception', 'all'].some((mode) => sightDetectionModes.has(mode))) {
-			const result = source.vision ? detectionModes.basicSight?.testVisibility(source.vision, basic, config) : false;
-			if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
-		}
+	if (basic && ['basicSight', 'all'].some((mode) => validModes.has(mode))) {
+		const result = modes.basicSight.testVisibility(token.vision, basic, config);
+		if (result === true) matchedModes.add(detectionModes.basicSight?.id ?? DetectionModeCONST.BASIC_MODE_ID);
 	}
+
 	for (const detectionMode of tokenDetectionModes) {
 		if (detectionMode.id === DetectionModeCONST.BASIC_MODE_ID) continue;
 		if (!detectionMode.enabled) continue;
-		const dm = sightDetectionModes[detectionMode.id];
-		if (sightDetectionModes.has('all') || sightDetectionModes.has(detectionMode.id)) {
-			const result = dm?.testVisibility(source.vision, detectionMode, config);
+		const dm = modes[detectionMode.id];
+		if (validModes.has('all') || validModes.has(detectionMode.id)) {
+			const result = dm?.testVisibility(token.vision, detectionMode, config);
 			if (result === true) {
 				matchedModes.add(detectionMode.id);
 			}
 		}
 	}
+	for (let tk of [token]) {
+		if (!tk.document.sight.enabled) {
+			const sourceId = tk.sourceId;
+			//@ts-expect-error
+			canvas?.effects?.visionSources.delete(sourceId);
+		}
+	}
 	if (settings.debug) console.warn(`${Constants.MODULE_SHORT_NAME} - _canSee()`, { sourceId: source?.id, targetId: target?.id, result: matchedModes });
-	return !!matchedModes.size;
+	return Array.from(matchedModes);
 }
 
 function _initializeVision(token) {
-	const sightEnabled = token.document.sight.enabled;
-	token.document.sight.enabled = true;
+	let sightEnabled = token.document.sight.enabled;
+	sightEnabled = true;
 	token.document._prepareDetectionModes();
 	const sourceId = token.sourceId;
 	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token }); //v12 only
