@@ -343,9 +343,9 @@ export function _renderHijack(hook, render, elem) {
 		} else {
 			targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
 		}
-		if (targetElement && !targetElement.innerHTML.includes('>')) targetElement.innerHTML = `>${targetElement.innerHTML}<`;
-		targetElement.style.color = 'white'; // Change text color
-		targetElement.style.backgroundColor = game.user.color; // Change background color
+		//if (targetElement && !targetElement.innerHTML.includes('>')) targetElement.innerHTML = `>${targetElement.innerHTML}<`;
+		targetElement.style.color = 'white'; // Change text color; to-do: add a colorpicker
+		targetElement.style.backgroundColor = game.user.color; // Change background color; to-do: add a colorpicker
 	}
 	if (settings.debug) {
 		console.warn('ac5e hijack getTooltip', tooltip);
