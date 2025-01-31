@@ -248,8 +248,8 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 
 	//special functions\\
 	function getMode({ actor, targetActor, ability, skillId, hook, activity, value, actorType }) {
-		if (['1', true].includes(value)) return true;
-		if (['0', false].includes(value)) return false;
+		if (['1', 'true'].includes(value)) return true;
+		if (['0', 'false'].includes(value)) return false;
 		const {
 			DND5E: { abilities, attackClassifications, attackModes, attackTypes, damageTypes, healingTypes, creatureTypes, itemProperties, skills, validProperties, weaponTypes },
 			statusEffects,
