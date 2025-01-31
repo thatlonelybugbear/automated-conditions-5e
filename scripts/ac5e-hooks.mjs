@@ -1,4 +1,4 @@
-import { _calcAdvantageMode, _getActionType, _getDistance, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _getActionType, _getDistance, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -221,8 +221,10 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
-	if (ac5eConfig.source.critical.length || ac5eConfig.target.critical.length) config.rolls[0].options.isCritical = true;
-	if (game.modules.get('midi-qol')?.active) config.midiOptions.isCritical = true;
+	if (ac5eConfig.source.critical.length || ac5eConfig.target.critical.length) {
+		config.rolls[0].options.isCritical = true;
+		if (_activeModule('midi-qol')) config.midiOptions.isCritical = true;
+	}
 	return true;
 }
 
