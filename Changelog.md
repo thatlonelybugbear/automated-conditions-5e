@@ -1,3 +1,9 @@
+## v12.422.6
+- Fix for auto range checks
+- Fix for flags checks
+- `pt-BR` translation update by @Kharmans !
+- Change of how fail flags are affecting rolls by passing a target value of 1000
+
 ## v12.422.5
 - Fix for criticals not being properly highlighted
 - Fix for initiative rolls
