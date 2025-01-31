@@ -1,3 +1,8 @@
+## v12.422.4
+- Fix for Frightened when no effect origin is present
+- Fix for Grappled when no effect origin is present
+- Added target: 'disadvantage' for attacks when Hiding
+
 ## v12.422.3
 - Fix for rolling always critical when MidiQOL is active!
 
