@@ -40,7 +40,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 		_id: _staticID('charmed'),
 		name: _i18nConditions('Charmed'),
 		check: { target: 'advantage' },
-		use: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('charmed') && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === targetActor.uuid) ? 'fail' : '' },
+		use: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('charmed') && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === targetActor?.uuid) ? 'fail' : '' },
 	};
 	statusEffectsTables.deafened = {
 		_id: _staticID('deafened'),
