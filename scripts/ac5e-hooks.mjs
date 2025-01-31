@@ -89,7 +89,8 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 }
 
 export function _preRollAbilityTest(config, dialog, message, hook) {
-	const testInitiative = config.hookNames.includes('initiativeDialog');
+	const options = {};
+	options.testInitiative = config.hookNames.includes('initiativeDialog');
 	const { subject: actor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const speaker = message?.data?.speaker;
 
@@ -105,12 +106,14 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
 
-	if (testInitiative && actor.flags.dnd5e.initiativeAdv) ac5eConfig.source.advantage.push(_localize('DND5E.FlagsInitiativeAdv'));
-	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, targetToken: undefined, targetActor: undefined, hook, ability, tool, skill, testInitiative });
+	if (testInitiative && actor.flags.dnd5e.initiativeAdv) ac5eConfig.source.advantage.push(_localize('DND5E.FlagsInitiativeAdv'));  //to-do: move to setPieces
+	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, targetToken: undefined, targetActor: undefined, hook, ability, tool, skill, options });
 	//check Auto Armor
+	//to-do: move to setPieces
 	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(actor).notProficient) {
 		ac5eConfig.source.disadvantage.push(`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`);
 	}
+	//to-do: move to setPieces
 	if (_autoEncumbrance(actor, ability)) {
 		ac5eConfig.source.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 	}
