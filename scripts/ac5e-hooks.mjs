@@ -165,7 +165,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken));
 		//Nearby Foe
 		if (nearbyFoe) {
-			ac5eConfig.source.disadvantage.push('Nearby Foe');
+			ac5eConfig.source.disadvantage.push(_localize('AC5E.NearbyFoe');
 		}
 		if (!inRange) {
 			ac5eConfig.source.fail.push(_localize('AC5E.OutOfRange'));
