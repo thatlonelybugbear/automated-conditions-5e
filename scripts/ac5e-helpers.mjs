@@ -399,7 +399,7 @@ export function _getConfig(config, hookType, tokenId, targetId) {
 }
 
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
-	console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
+	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 
 	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
 
