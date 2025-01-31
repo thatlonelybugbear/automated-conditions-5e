@@ -9,7 +9,7 @@ export function _rollFunctions(hook, ...args) {
 	if (hook === 'activity') {
 		const [activity, config, dialog, message] = args;
 		return _preUseActivity(activity, config, dialog, message, hook);
-	} else if (['conc', 'death', 'save'].includes(hook)) {
+	} else if ([/*'conc', 'death', */'save'].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollSavingThrowV2(config, dialog, message, hook);
 	} else if (hook === 'attack') {
@@ -18,7 +18,7 @@ export function _rollFunctions(hook, ...args) {
 	} else if (hook === 'damage') {
 		const [config, dialog, message] = args;
 		return _preRollDamageV2(config, dialog, message, hook);
-	} else if (['check', 'init', 'tool', 'skill'].includes(hook)) {
+	} else if (['check'/*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollAbilityTest(config, dialog, message, hook);
 	}
