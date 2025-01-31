@@ -161,7 +161,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 		statusEffectsTables.hiding = {
 			_id: _staticID('hiding'),
 			name: _i18nConditions('Hiding'),
-			attack: { source: 'advantage' },
+			attack: { source: 'advantage', target: 'disadvantage' },
 		};
 		statusEffectsTables.raging = {
 			id: 'raging',
