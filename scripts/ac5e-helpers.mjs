@@ -598,9 +598,11 @@ function sizeWarnings(size, type, warn = false) {
 	else if (warn === 'console') console.warn(translationString);
 }
 
-export function _raceOrType(actor) {
+export function _raceOrType(actor, dataType = 'race') {
 	const systemData = actor?.system;
-	if (!systemData) return '';
-	if (systemData.details.race) return (systemData.details?.race?.name ?? systemData.details?.race)?.toLocaleLowerCase() ?? '';
-	return systemData.details.type?.value?.toLocaleLowerCase() ?? '';
+	if (!systemData) return {};
+	const data = foundry.utils.duplicate(systemData.details.type);
+	data.race = systemData.details.race?.identifier ?? data.type;
+	if (dataType === 'all') return data;
+	else return data[dataType];
 }
