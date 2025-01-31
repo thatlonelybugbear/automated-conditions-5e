@@ -1,4 +1,5 @@
 import { _renderHijack, _rollFunctions } from './ac5e-hooks.mjs';
+import { _autoRanged, _autoArmor, _activeModule } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', ac5eRegisterSettings);
@@ -10,7 +11,7 @@ function ac5eRegisterSettings() {
 }
 
 function ac5eReady() {
-	if (game.modules.get('midi-qol')?.active) {
+	if (_activeModule('midi-qol')) {
 		Hooks.once('midi-qol.midiReady', ac5eSetup); //added midi-qol ready hook, so that ac5e registers hooks after MidiQOL.
 	} else {
 		ac5eSetup();
@@ -25,14 +26,14 @@ function ac5eSetup() {
 		{ id: 'dnd5e.preRollAbilityCheckV2', type: 'check' },
 		{ id: 'dnd5e.preRollAttackV2', type: 'attack' },
 		{ id: 'dnd5e.preRollDamageV2', type: 'damage' },
-		// { id: 'dnd5e.preRollInitiative', type: 'init' },
+		// { id: 'dnd5e.preRollInitiative', type: 'init' }, //@to-do, double check if it is needed (using the actor.rollInitiative() probably)
 		{ id: 'dnd5e.preRollSavingThrowV2', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'activity' },
 	];
 	const renderHooks = [
 		//renders
 		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
-		//'renderAttackRollConfigurationDialog',
+		//'renderAttackRollConfigurationDialog',  //@to-do, double check if it is needed
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
 	];
@@ -58,4 +59,6 @@ function ac5eSetup() {
 	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
 	globalThis['ac5e'] = { moduleName: 'Automated Conditions 5e' };
 	globalThis['ac5e'].hooksRegistered = hooksRegistered;
+	globalThis['ac5e'].autoRanged = _autoRanged;
+	globalThis['ac5e'].autoarmor = _autoArmor;
 }
