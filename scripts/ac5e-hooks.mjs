@@ -80,10 +80,10 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	}
 
 	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, hook, ability, activity, options });
-	if (ac5eConfig.source.fail.length) {
-		config.rolls[0].parts.push('-99');
-		config.rolls[0].options.criticalSuccess = 21; //make it not crit)
-	}
+	// if (ac5eConfig.source.fail.length) {
+	// 	config.rolls[0].parts.push('-99');
+	// 	config.rolls[0].options.criticalSuccess = 21; //make it not crit)
+	// }
 	_setAC5eProperties(ac5eConfig, config);
 	return _calcAdvantageMode(ac5eConfig, config, dialog);
 }
@@ -118,10 +118,10 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 		ac5eConfig.source.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 	}
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
-	if (ac5eConfig.source.fail.length) {
-		config.rolls[0].parts.push('-99');
-		config.rolls[0].options.criticalSuccess = 21; //make it not crit)
-	}
+	// if (ac5eConfig.source.fail.length) {
+	// 	config.rolls[0].parts.push('-99');
+	// 	config.rolls[0].options.criticalSuccess = 21; //make it not crit)
+	// }
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
