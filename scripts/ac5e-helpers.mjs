@@ -247,6 +247,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog) {
 	}
 	if (ac5eConfig.source.fail.length || ac5eConfig.target.fail.length) {
 		config.target = 10000;
+		if (_activeModule('midi-qol') && config?.rolls?.[0]?.parts instanceof Array) config.rolls[0].parts.push(-999);
 		options.criticalSuccess = 21;
 	}
 }
