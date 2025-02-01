@@ -1,3 +1,7 @@
+## v12.422.8
+- Better support for MidiQOL
+- Some small fixes
+
 ## v12.422.7
 - Added token name on save and check configure dialogs
 - Expanded raceOrType functionality to get the correct returns
