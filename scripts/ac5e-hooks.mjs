@@ -268,11 +268,12 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 }
 export function _renderHijack(hook, render, elem) {
 	//function patchDialogTitles
-	let getConfigAC5E;
-	const message = getMessageData(render.config);
-	if (hook !== 'chat') {
-		getConfigAC5E = render.config?.[Constants.MODULE_ID];
+	let getConfigAC5E, targetElement, hookType, roller, tooltip, message;
+	if (render?.config) message = getMessageData(render.config);
+	if (hook === 'd20Dialog' || hook === 'damageDialog') {
+		getConfigAC5E = render.config?.[Constants.MODULE_ID] ?? render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
 		const { hookType, options } = getConfigAC5E || {};
+		if (!hookType) return true;
 		let tokenName;
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
 		let newTitle;
@@ -293,65 +294,7 @@ export function _renderHijack(hook, render, elem) {
 			subtitleElement.textContent = `${tokenName}`;
 	        	subtitleElement.style.display = "block"; // Force a new line
 		}
-	}
-	if (hook === 'd20Dialog') getConfigAC5E = render.config?.[Constants.MODULE_ID] ?? render?.options?.[Constants.MODULE_ID];
-	else if (hook === 'chat') {
-		if (game.modules.get('midi-qol')?.active && render?.rolls?.length > 1) {
-			getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID]];
-		} else getConfigAC5E = render?.flags?.[Constants.MODULE_ID] ?? render.rolls?.[0]?.options?.[Constants.MODULE_ID];
-	} else getConfigAC5E = render?.config?.[Constants.MODULE_ID];
-	if (settings.debug) {
-		console.warn('hijack getConfigAC5E', getConfigAC5E ?? undefined);
-		console.warn('ac5e hijack render:', render);
-		console.warn('ac5e hijcak elem/elem[0]:', elem, elem[0]);
-	}
-	if (!getConfigAC5E) return true;
-	if (settings.showTooltips == 'none' || (settings.showTooltips == 'chat' && render.collectionName !== 'messages') || (settings.showTooltips == 'dialog' && !render.options?.classes?.includes('ac5e dialog'))) return true;
-	let targetElement, hookType, roller, tooltip;
-	if (getConfigAC5E?.length) {
-		({ roller } = getConfigAC5E[0] || {});
-		hookType = [];
-		getConfigAC5E.forEach((element) => hookType.push(element.hookType));
-	}
-	else ({ hookType, roller } = getConfigAC5E);
-	if (hook === 'chat') {
-		tooltip = _getTooltip(getConfigAC5E);
-		if (roller == 'Core') {
-			if (tooltip === '') return true;
-			//should also work for Roll Groups not specifically called.
-			if (['attack', 'damage'].includes(hookType)) {
-				targetElement = elem.querySelector('.dice-formula');
-			} else {
-				targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
-			}
-		} else if (roller == 'RSR') {
-			if (tooltip === '') return true;
-			if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
-			else if (['attack'].includes(hookType)) {
-				targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
-			} else if (['damage'].includes(hookType)) {
-				targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
-			}
-		} else if (roller == 'MidiQOL') {
-			if (!getConfigAC5E.length) getConfigAC5E = [getConfigAC5E];
-			for (const ac5eElement of getConfigAC5E) {
-				tooltip = _getTooltip(ac5eElement);
-				if (tooltip === '') continue;
-				let thisTargetElement;
-				({ hookType } = ac5eElement);
-				if (game.user.targets.size === 1 && ['check', 'save'].includes(hookType)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
-				else if (['attack'].includes(hookType)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
-				else if (['damage'].includes(hookType)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
-				//to-do: add AC5E pill on Item card. Next release
-				if (thisTargetElement) thisTargetElement.setAttribute('data-tooltip', tooltip);
-			}
-			if (settings.debug) {
-				console.warn('ac5e hijack getTooltip', tooltip);
-				console.warn('ac5e hijack targetElement:', targetElement);
-			}
-			return true;
-		}
-	} else {
+		if (!['both', 'dialog'].includes(settings.showTooltips)) return true;
 		tooltip = _getTooltip(getConfigAC5E);
 		if (tooltip === '') return true;
 		if (!['activity', 'damage'].includes(hookType)) {
@@ -371,11 +314,71 @@ export function _renderHijack(hook, render, elem) {
 		targetElement.style.color = 'white'; // Change text color; to-do: add a colorpicker
 		targetElement.style.backgroundColor = game.user.color; // Change background color; to-do: add a colorpicker
 		targetElement.setAttribute('data-tooltip', tooltip);
+		if (settings.debug) {
+			console.warn('ac5e hijack getTooltip', tooltip);
+			console.warn('ac5e hijack targetElement:', targetElement);
+		}
+		return true;
 	}
-	if (settings.debug) {
-		console.warn('ac5e hijack getTooltip', tooltip);
-		console.warn('ac5e hijack targetElement:', targetElement);
-	}
-	if (tooltip === '') return true;
-	targetElement.setAttribute('data-tooltip', tooltip);
+	else if (hook === 'chat') {
+		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
+		if (_activeModule('midi-qol')) {
+			if (render?.rolls?.length > 1) {
+				getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID], render?.rolls?.[2]?.options?.[Constants.MODULE_ID]];
+				if (!getConfigAC5E[0]?.hookType) return true;
+			}
+			else {
+				getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
+				if (!getConfigAC5E) return true;
+			}
+			if (!getConfigAC5E.length) getConfigAC5E = [getConfigAC5E];
+			for (const ac5eElement of getConfigAC5E) {
+				tooltip = _getTooltip(ac5eElement);
+				if (tooltip === '') continue;
+				let thisTargetElement;
+				const hT = ac5eElement?.hookType
+				if (!hT) continue;
+				if (game.user.targets.size === 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
+				else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
+				else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
+				//to-do: add AC5E pill on Item card. Next release
+				if (thisTargetElement) thisTargetElement.setAttribute('data-tooltip', tooltip);
+			}
+			if (settings.debug) {
+				console.warn('ac5e hijack getTooltip', tooltip);
+				console.warn('ac5e hijack targetElement:', targetElement);
+			}
+			return true;
+		}
+		else {
+			getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
+			if (!getConfigAC5E) return true;
+			({ hookType, roller } = getConfigAC5E);
+			tooltip = _getTooltip(getConfigAC5E);
+			if (roller === 'Core') {
+				if (tooltip === '') return true;
+				//should also work for Roll Groups not specifically called.
+				if (['attack', 'damage'].includes(hookType)) {
+					targetElement = elem.querySelector('.dice-formula');
+				} else {
+					targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
+				}
+			}
+			else if (roller === 'RSR') {
+				if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
+				else if (['attack'].includes(hookType)) {
+					targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
+				} else if (['damage'].includes(hookType)) {
+					targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
+				}
+			}
+			if (settings.debug) {
+				console.warn('ac5e hijack getTooltip', tooltip);
+				console.warn('ac5e hijack targetElement:', targetElement);
+			}
+			if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
+			return true;
+		}
+	} 	
 }
+

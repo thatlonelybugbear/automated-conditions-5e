@@ -54,15 +54,14 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 				//ability checks and skills
 				source: 'disadvantage',
 			},
-			skill: { source: 'disadvantage' },
+			// skill: { source: 'disadvantage' },
 		},
 		3: {
 			check: { source: 'disadvantage' },
 			save: { source: 'disadvantage' },
 			attack: { source: 'disadvantage' },
-			save: { source: 'disadvantage' },
-			death: { source: 'disadvantage' },
-			conc: { source: 'disadvantage' },
+			// death: { source: 'disadvantage' },
+			// conc: { source: 'disadvantage' },
 		},
 		name: `${_i18nConditions('Exhaustion')} ${exhaustionLvl}`,
 	};
@@ -179,7 +178,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 			_id: _staticID('underwater'),
 			name: _localize('AC5E.UnderwaterCombat'),
 			source: {
-				attack: (_getActionType(activity) === 'mwak' && !actor.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > item?.system.range.value ? 'fail' : '',
+				attack: (_getActionType(activity) === 'mwak' && !actor?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > activity?.range.value ? 'fail' : '',
 			},
 		};
 	}
