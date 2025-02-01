@@ -1,3 +1,6 @@
+## v12.422.9
+- Fix for skill flags not working
+
 ## v12.422.8
 - Better support for MidiQOL
 - Some small fixes
