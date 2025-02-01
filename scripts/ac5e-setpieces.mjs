@@ -14,19 +14,19 @@ export function _ac5eChecks({ actor, token, targetActor, targetToken, ac5eConfig
 			if (status.includes('exhaustion') && settings.autoExhaustion) {
 				exhaustionLvl = actor.system.attributes.exhaustion;
 				const toCheckExhaustionLevel = exhaustionLvl >= 3 ? 3 : 1;
-				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
+				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options, skill })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
 			} else if (!status.includes('exhaustion')) {
-				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options })?.[status]?.[hook]?.[actorType];
+				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options, skill })?.[status]?.[hook]?.[actorType];
 			}
 			if (!test) continue;
 			ac5eConfig[actorType][test].push(testStatusEffectsTables({ exhaustionLvl })?.[status].name);
 		}
 	}
-	ac5eConfig = ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, distance, options });
+	ac5eConfig = ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, distance, options, skill });
 	return ac5eConfig;
 }
 
-function testStatusEffectsTables({ actor, token, targetActor, targetToken, ability, distance, exhaustionLvl, activity, options } = {}) {
+function testStatusEffectsTables({ actor, token, targetActor, targetToken, ability, distance, exhaustionLvl, activity, options, skill } = {}) {
 	const statusEffectsTables = {};
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
