@@ -1,3 +1,8 @@
+## v12.422.10
+- Much more usable conditions for flag evaluations
+- Fix for some expanded conditions.
+- Exposed some helpful functions, under `globalThis.ac5e`
+
 ## v12.422.9
 - Fix for skill flags not working
 
