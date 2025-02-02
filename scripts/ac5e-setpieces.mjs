@@ -5,7 +5,7 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 
 //for exhaustion I think it's better to pass to this function directly `Exhaustion X` where X is the relevant Exhaustion level.
-export function _ac5eChecks({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
+export function _ac5eChecks({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, }) {
 	const actorTypes = { source: actor };
 	if (targetActor) actorTypes.target = targetActor;
 	for (const actorType in actorTypes) {
@@ -26,7 +26,7 @@ export function _ac5eChecks({ actor, token, targetActor, targetToken, ac5eConfig
 	return ac5eConfig;
 }
 
-function testStatusEffectsTables({ actor, token, targetActor, targetToken, ability, distance, exhaustionLvl, activity, options, skill } = {}) {
+function testStatusEffectsTables({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, } = {}) {
 	const statusEffectsTables = {};
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
@@ -40,7 +40,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 		_id: _staticID('charmed'),
 		name: _i18nConditions('Charmed'),
 		check: { target: 'advantage' },
-		use: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('charmed') && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === targetActor?.uuid) ? 'fail' : '' },
+		activity: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('charmed') && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === targetActor?.uuid) ? 'fail' : '' },
 	};
 	statusEffectsTables.deafened = {
 		_id: _staticID('deafened'),
@@ -70,7 +70,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 		name: _i18nConditions('Frightened'),
 		attack: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
 		check: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
-		skills: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
+		// skills: { source: actor?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(token, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
 	};
 	statusEffectsTables.grappled = {
 		_id: _staticID('grappled'),
@@ -80,7 +80,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 	statusEffectsTables.incapacitated = {
 		_id: _staticID('incapacitated'),
 		name: _i18nConditions('Incapacitated'),
-		use: { source: ['action', 'bonus', 'reaction'].includes(activity?.activation?.type) ? 'fail' : '' },
+		activity: { source: ['action', 'bonus', 'reaction'].includes(activity?.activation?.type) ? 'fail' : '' },
 		check: { source: modernRules && options?.testInitiative ? 'disadvantage' : '' },
 	};
 	statusEffectsTables.invisible = {
@@ -99,9 +99,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 	statusEffectsTables.petrified = {
 		_id: _staticID('petrified'),
 		name: _i18nConditions('Petrified'),
-		save: {
-			source: ['str', 'dex'].includes(ability) ? 'fail' : '',
-		},
+		save: { source: ['str', 'dex'].includes(ability) ? 'fail' : '',	},
 		attack: { target: 'advantage' },
 	};
 	statusEffectsTables.poisoned = {
@@ -130,7 +128,7 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 	statusEffectsTables.silenced = {
 		_id: _staticID('silenced'),
 		name: _i18nConditions('Silenced'),
-		use: { source: item?.system.properties.has('vocal') ? 'fail' : '' },
+		activity: { source: item?.system.properties.has('vocal') ? 'fail' : '' },
 	};
 	statusEffectsTables.stunned = {
 		_id: _staticID('stunned'),
@@ -150,12 +148,8 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 		statusEffectsTables.dodging = {
 			_id: _staticID('dodging'),
 			name: _i18nConditions('Dodging'),
-			attack: {
-				target: targetToken && _canSee(targetToken, token) && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '',
-			},
-			save: {
-				source: ability == 'dex' && !actor?.statuses.has('incapacitated') && !!Object.values(actor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'advantage' : '',
-			},
+			attack: { target: targetToken && _canSee(targetToken, token) && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '', },
+			save: { source: ability == 'dex' && !actor?.statuses.has('incapacitated') && !!Object.values(actor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'advantage' : '', },
 		};
 		statusEffectsTables.hiding = {
 			_id: _staticID('hiding'),
@@ -167,29 +161,26 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, abili
 			id: 'raging',
 			_id: _staticID('raging'),
 			name: _localize('AC5E.Raging'),
-			source: {
-				save: ability === 'str' && actor.armor?.system.type.value !== 'heavy' ? 'advantage' : '',
-				check: ability === 'str' && actor.armor?.system.type.value !== 'heavy' ? 'advantage' : '',
-				use: item?.type === 'spell' ? 'fail' : '',
+			save: { actor: ability === 'str' && actor.armor?.system.type.value !== 'heavy' ? 'advantage' : '', },
+			check: { source: ability === 'str' && actor.armor?.system.type.value !== 'heavy' ? 'advantage' : '', },
+			activity: { source: item?.type === 'spell' ? 'fail' : '', },
 			},
 		};
 		statusEffectsTables.underwaterCombat = {
 			id: 'underwater',
 			_id: _staticID('underwater'),
 			name: _localize('AC5E.UnderwaterCombat'),
-			source: {
-				attack: (_getActionType(activity) === 'mwak' && !actor?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > activity?.range.value ? 'fail' : '',
-			},
+			attack: { source: (_getActionType(activity) === 'mwak' && !actor?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > activity?.range.value ? 'fail' : '', },
 		};
 	}
 	return statusEffectsTables;
 }
 
-function automatedItemsTables({ actor, token, targetActor, targetToken, ability, distance, exhaustionLvl, item } = {}) {
+function automatedItemsTables({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, } = {}) {
 	const automatedItems = {};
 }
 
-function ac5eAutoSettingsTables({ actor, token, item, ability, skill }) {
+function ac5eAutoSettingsTables({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, }) {
 	const ac5eAutoSettings = {};
 	if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
 		const { nearbyFoe } = _autoRanged(item, token);
@@ -202,7 +193,7 @@ function ac5eAutoSettingsTables({ actor, token, item, ability, skill }) {
 	}
 }
 
-function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, skill /*distance*/ }) {
+function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, }) {
 	//flags that affect actor (source)
 	//flags that affect others (target)
 	//flags that work like auras
@@ -265,41 +256,83 @@ function ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, sk
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	for (const el in validFlags) {
 		const { actorType, evaluation, mode, name } = validFlags[el];
+		if (mode.includes('skill') || mode.includes('tool') mode = 'check';
 		if (evaluation) ac5eConfig[actorType][mode].push(el);
 	}
 	return ac5eConfig;
 
 	//special functions\\
-	function getMode({ actor, targetActor, ability, skill, hook, activity, value, actorType }) {
+	function getMode({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
 		if (['1', 'true'].includes(value)) return true;
 		if (['0', 'false'].includes(value)) return false;
 		const {
-			DND5E: { abilities, attackClassifications, attackModes, attackTypes, damageTypes, healingTypes, creatureTypes, itemProperties, skills, validProperties, weaponTypes },
+			DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
 			statusEffects,
 		} = CONFIG || {};
 		const deprecatedAttackTypes = { mwak: 'Melee weapon attack', msak: 'Melee spell attack', rwak: 'Ranged weapon attack', rsak: 'Ranged spell attack' };
-
-		const values = value.split(';');
+		const spellLevel = options?.spellLevel;
+		const item = activity?.item;
+		const values = value.split(';').map(v => v.trim()).filter(v => v !== "");
+		const comparisonOps = {
+	        "=": (a, b) => a === b,
+	        ">": (a, b) => a > b,
+	        "<": (a, b) => a < b,
+	        ">=": (a, b) => a >= b,
+	        "<=": (a, b) => a <= b,
+	    };
+		//return true if one is true
 		const isOneTrue = values.some((v) => {
 			let mult = null;
+			let comparison = '<=';
+			let numericValue = null;
+			let spellLevelMatch = false;
 			if (v.includes('!')) {
-				v = v.split('!')[1];
-				mult = '!';
+			    v = v.split('!')[1]; // Remove '!'
+			    mult = '!';
+				comparison = null;
+			}
+			else {
+				const match = v.match(/^(<=|>=|=|<|>)/);
+				if (match) {
+				    comparison = match[0]; // Extract comparison operator
+				    v = v.substring(comparison.length).trim(); // Remove comparison from string
+				}
+			}
+			const spellCheck = v.match(/^spell(\d+)$/);
+			if (spellCheck) {
+			    numericValue = Number(spellCheck[1]);
+			    spellLevelMatch = true;
+			} else {
+			    numericValue = Number(v);
+			    spellLevelMatch = false;
+			}
+			if (isNaN(numericValue)) {
+			    numericValue = null;
 			}
 			const targetDocument = actorType === 'source' ? actor : targetActor;
+			if (numericValue && distance && comparisonObs[comparison](distance, numericValue)) return true;
 			if (!!abilities[v] && [ability, activity?.ability].includes(v)) return Roll.safeEval(mult + true);
+			if (!!activityTypes[v] && activity?.type === v) return Roll.safeEval(mult + true);
+			if (!!attackClassifications[v] && activity?.attack?.type?.classification === v) return Roll.safeEval(mult + true);
+			if (!!attackModes[v] && activity?.attackMode === v) return Roll.safeEval(mult + true);
+			if (!!attackTypes[v] && activity?.attack?.type?.value === v) return Roll.safeEval(mult + true);
 			if (!!damageTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!deprecatedAttackTypes[v] && _getActionType(activity) === v) return Roll.safeEval(mult + true);
 			if (!!healingTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!itemProperties[v] && item?.system.properties.has(v)) return Roll.safeEval(mult + true);
 			if (!!skills[v] && skill === v) return Roll.safeEval(mult + true);
+			if (!!spellSchools[v] && item?.system.school === v) return Roll.safeEval(mult + true);
+			if (!!spellcastingTypes[v] && item?.system.school === v) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && actor.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);
-			if (!!targetDocument && [_raceOrType(targetDocument, 'race'), _raceOrType(targetDocument, 'type'), _raceOrType(targetDocument, 'subtype'), _raceOrType(targetDocument, 'swarm')].includes(v)) return Roll.safeEval(mult + true);
-			//to-do: check the default logic. Should be returning false if none found above.
+			if (!!targetDocument && Object.entries(_raceOrType(targetDocument, 'all')).includes(v)) return Roll.safeEval(mult + true);
+			if (!!tools[v] && tool === v) return Roll.safeEval(mult + true);
+			if (!!validProperties[v] && item?.type === v) return Roll.safeEval(mult + true);
+			if (spellLevelMatch && spellLevel && comparison && numericValue) return comparisonObs[comparison](spellLevel, numericValue);
+			else if (spellLevelMatch && spellLevel && !comparison && numericValue) return Roll.safeEval(mult + true);
+
 			return false;
 		});
-		return isOneTrue;
 	}
 }
 
