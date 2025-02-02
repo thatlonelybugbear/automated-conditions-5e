@@ -1,5 +1,5 @@
 import { _renderHijack, _rollFunctions } from './ac5e-hooks.mjs';
-import { _autoRanged, _autoArmor, _activeModule } from './ac5e-helpers.mjs';
+import { _autoRanged, _autoArmor, _activeModule, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', ac5eRegisterSettings);
