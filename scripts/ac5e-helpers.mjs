@@ -602,8 +602,8 @@ function sizeWarnings(size, type, warn = false) {
 export function _raceOrType(actor, dataType = 'race') {
 	const systemData = actor?.system;
 	if (!systemData) return {};
-	const data = foundry.utils.duplicate(systemData.details.type);
-	data.race = systemData.details.race?.identifier ?? data.type;
+	const data = foundry.utils.duplicate(systemData.details.type);   //{value, subtype, swarm, custom}
+	data.race = systemData.details.race?.identifier ?? data.value;   //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
 	if (dataType === 'all') return data;
 	else return data[dataType];
 }
