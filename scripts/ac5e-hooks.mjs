@@ -151,17 +151,22 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const singleTargetActor = singleTargetToken?.actor;
 	let ac5eConfig = _getConfig(config, hook, sourceTokenID, singleTargetToken?.id);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-
+	let targetActor, targetToken, distance;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
-		if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
+		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
+		else { //source only
+			targetToken = singleTargetToken;
+			targetToken = singleTargetActor;
+			distance = _getDistance(sourceToken, singleTargetToken);
+		}
 	}
-	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
+	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
 
 	let nearbyFoe, inRange, range;
-	if (settings.autoRangedCombined !== 'off') {
+	if (settings.autoRangedCombined !== 'off' && targetToken) {
 		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken));
 		//Nearby Foe
 		if (nearbyFoe) {
@@ -207,17 +212,23 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const targetsSize = targets?.size;
 	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
 	const singleTargetActor = singleTargetToken?.actor;
+	let targetActor, targetToken, distance;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
-		if (settings.needsTarget == 'force' && !_hasValidTargets(item, targetsSize, 'damage', 'enforce')) return false;
-		if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'damage', 'console')) return true;
+		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
+		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
+		else { //source only
+			targetToken = singleTargetToken;
+			targetToken = singleTargetActor;
+			distance = _getDistance(sourceToken, singleTargetToken);
+		}
 	}
 	let ac5eConfig = _getConfig(config, hook, sourceTokenID, singleTargetToken?.id);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
-	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
+	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (ac5eConfig.source.critical.length || ac5eConfig.target.critical.length) {
@@ -229,7 +240,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
 	if (activity.type === 'check') return true; //maybe check for
-	const { item, range: itemRange, attack, damage, type, target } = activity || {};
+	const { item, range: itemRange, attack, damage, type, target, ability } = activity || {};
 	const sourceActor = item.actor;
 	if (settings.debug) console.warn('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
 	if (!sourceActor) return;
