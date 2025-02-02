@@ -316,7 +316,7 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 			    numericValue = null;
 			}
 			const targetDocument = actorType === 'source' ? actor : targetActor;
-			if (numericValue && distance && comparisonObs[comparison](distance, numericValue)) return true;
+			if (numericValue && distance && comparisonOps[comparison](distance, numericValue)) return true;
 			if (!!abilities[v] && [ability, activity?.ability].includes(v)) return Roll.safeEval(mult + true);
 			if (!!activityTypes[v] && activity?.type === v) return Roll.safeEval(mult + true);
 			if (!!attackClassifications[v] && activity?.attack?.type?.classification === v) return Roll.safeEval(mult + true);
@@ -334,7 +334,7 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 			if (!!targetDocument && Object.entries(_raceOrType(targetDocument, 'all')).includes(v)) return Roll.safeEval(mult + true);
 			if (!!tools[v] && tool === v) return Roll.safeEval(mult + true);
 			if (!!validProperties[v] && item?.type === v) return Roll.safeEval(mult + true);
-			if (spellLevelMatch && spellLevel && comparison && numericValue) return comparisonObs[comparison](spellLevel, numericValue);
+			if (spellLevelMatch && spellLevel && comparison && numericValue) return comparisonOps[comparison](spellLevel, numericValue);
 			else if (spellLevelMatch && spellLevel && !comparison && numericValue) return Roll.safeEval(mult + true);
 			//to-do: check the default logic. Should be returning false if none found above.
 			return false;
