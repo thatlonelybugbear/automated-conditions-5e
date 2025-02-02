@@ -1,10 +1,8 @@
 ## v12.422.10
 - Much more usable conditions for flag evaluations
-- Available flags:
-  - flags.automated-conditions-5e.<attack/damage/check/save/activity>.<source/target>.
 - Fix for some expanded conditions.
 - Exposed some helpful functions, under `globalThis.ac5e`
-- Activities can be cancelled too based on flags.
+- Reinstate from source only advMode calculations.
 
 ## v12.422.9
 - Fix for skill flags not working
