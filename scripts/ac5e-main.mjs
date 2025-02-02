@@ -61,4 +61,7 @@ function ac5eSetup() {
 	globalThis['ac5e'].hooksRegistered = hooksRegistered;
 	globalThis['ac5e'].autoRanged = _autoRanged;
 	globalThis['ac5e'].autoarmor = _autoArmor;
+	globalThis['ac5e'].canSee = _canSee;
+	globalThis['ac5e'].raceOrType = _raceOrType;
+	globalThis['ac5e'].getDistance = _getDistance;
 }
