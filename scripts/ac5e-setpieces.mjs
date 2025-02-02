@@ -4,7 +4,6 @@ import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
-//for exhaustion I think it's better to pass to this function directly `Exhaustion X` where X is the relevant Exhaustion level.
 export function _ac5eChecks({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, }) {
 	const actorTypes = { source: actor };
 	if (targetActor) actorTypes.target = targetActor;
@@ -14,19 +13,19 @@ export function _ac5eChecks({ actor, token, targetActor, targetToken, ac5eConfig
 			if (status.includes('exhaustion') && settings.autoExhaustion) {
 				exhaustionLvl = actor.system.attributes.exhaustion;
 				const toCheckExhaustionLevel = exhaustionLvl >= 3 ? 3 : 1;
-				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options, skill })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
+				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options, skill, tool })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
 			} else if (!status.includes('exhaustion')) {
-				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options, skill })?.[status]?.[hook]?.[actorType];
+				test = testStatusEffectsTables({ token, actor, targetToken, targetActor, distance, ability, options, skill, tool })?.[status]?.[hook]?.[actorType];
 			}
 			if (!test) continue;
 			ac5eConfig[actorType][test].push(testStatusEffectsTables({ exhaustionLvl })?.[status].name);
 		}
 	}
-	ac5eConfig = ac5eFlags({ actor, targetActor, ac5eConfig, hook, activity, ability, distance, options, skill });
+	ac5eConfig = ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, });
 	return ac5eConfig;
 }
 
-function testStatusEffectsTables({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, } = {}) {
+function testStatusEffectsTables({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, exhaustionLvl } = {}) {
 	const statusEffectsTables = {};
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
@@ -164,7 +163,6 @@ function testStatusEffectsTables({ actor, token, targetActor, targetToken, ac5eC
 			save: { actor: ability === 'str' && actor.armor?.system.type.value !== 'heavy' ? 'advantage' : '', },
 			check: { source: ability === 'str' && actor.armor?.system.type.value !== 'heavy' ? 'advantage' : '', },
 			activity: { source: item?.type === 'spell' ? 'fail' : '', },
-			},
 		};
 		statusEffectsTables.underwaterCombat = {
 			id: 'underwater',
@@ -198,17 +196,15 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 	//flags that affect others (target)
 	//flags that work like auras
 	const item = activity?.item;
-
 	function activityDamageTypes(a) {
 		if (!a) return [];
 		if (['attack', 'damage', 'save'].includes(a?.type)) return a.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
 	}
 
 	const validFlags = {};
-
 	actor.appliedEffects.filter((effect) =>
 		effect.changes
-			.filter((change) => ['ac5e', 'automated-conditions-5e'].some((t) => change.key.includes(t)) && change.key.includes(hook))
+			.filter((change) => ['ac5e', 'automated-conditions-5e'].some((t) => change.key.includes(t)) && (change.key.includes(hook) || (skill && change.key.includes('skill')) || tool && change.key.includes('tool')))
 			.forEach((el) => {
 				const mode = el.key.split('.').at(-1);
 				const actorType = el.key.split('.').at(-2);
@@ -219,12 +215,17 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 					evaluation: getMode({
 						actor,
 						targetActor,
+						token,
+						targetToken,
+						distance,
 						ability,
 						skill,
+						tool,
 						hook,
 						activity,
 						value: el.value,
 						actorType,
+						options
 					}),
 				};
 			})
@@ -243,12 +244,17 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 						evaluation: getMode({
 							actor,
 							targetActor,
+							token,
+							targetToken,
+							distance,
 							ability,
 							skill,
+							tool,
 							hook,
 							activity,
 							value: el.value,
 							actorType,
+							options
 						}),
 					};
 				})
@@ -256,13 +262,13 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	for (const el in validFlags) {
 		const { actorType, evaluation, mode, name } = validFlags[el];
-		if (mode.includes('skill') || mode.includes('tool') mode = 'check';
+		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) ac5eConfig[actorType][mode].push(el);
 	}
 	return ac5eConfig;
 
 	//special functions\\
-	function getMode({ actor, token, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
+	function getMode({ actor, token, targetActor, targetToken, hook, ability, distance, activity, tool, skill, options, value, actorType }) {
 		if (['1', 'true'].includes(value)) return true;
 		if (['0', 'false'].includes(value)) return false;
 		const {
@@ -270,18 +276,18 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 			statusEffects,
 		} = CONFIG || {};
 		const deprecatedAttackTypes = { mwak: 'Melee weapon attack', msak: 'Melee spell attack', rwak: 'Ranged weapon attack', rsak: 'Ranged spell attack' };
-		const spellLevel = options?.spellLevel;
+		const spellLevel = options?.spellLevel;  //to-do: pass along somehow spellLevel cast
 		const item = activity?.item;
 		const values = value.split(';').map(v => v.trim()).filter(v => v !== "");
 		const comparisonOps = {
-	        "=": (a, b) => a === b,
-	        ">": (a, b) => a > b,
-	        "<": (a, b) => a < b,
-	        ">=": (a, b) => a >= b,
-	        "<=": (a, b) => a <= b,
-	    };
-		//return true if one is true
-		const isOneTrue = values.some((v) => {
+		        "=": (a, b) => a === b,
+		        ">": (a, b) => a > b,
+		        "<": (a, b) => a < b,
+		        ">=": (a, b) => a >= b,
+		        "<=": (a, b) => a <= b,
+		    };
+		//if one is true
+		return values.some((v) => {
 			let mult = null;
 			let comparison = '<=';
 			let numericValue = null;
@@ -330,7 +336,7 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 			if (!!validProperties[v] && item?.type === v) return Roll.safeEval(mult + true);
 			if (spellLevelMatch && spellLevel && comparison && numericValue) return comparisonObs[comparison](spellLevel, numericValue);
 			else if (spellLevelMatch && spellLevel && !comparison && numericValue) return Roll.safeEval(mult + true);
-
+			//to-do: check the default logic. Should be returning false if none found above.
 			return false;
 		});
 	}
