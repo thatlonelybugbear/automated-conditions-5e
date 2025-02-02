@@ -330,7 +330,7 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 			if (!!spellSchools[v] && item?.system.school === v) return Roll.safeEval(mult + true);
 			if (!!spellcastingTypes[v] && item?.system.school === v) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && actor.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
-			if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);
+			//if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);  //incomplete
 			if (!!targetDocument && Object.entries(_raceOrType(targetDocument, 'all')).includes(v)) return Roll.safeEval(mult + true);
 			if (!!tools[v] && tool === v) return Roll.safeEval(mult + true);
 			if (!!validProperties[v] && item?.type === v) return Roll.safeEval(mult + true);
