@@ -268,6 +268,22 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 			}
 		}
 	}
+// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
+/* 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
+	const targets = game.user?.targets;
+	let ac5eConfig = _getConfig(usageConfig, hook, sourceToken?.id, game.user?.targets?.first()?.id, options);
+	const singleTargetToken = targets?.first();
+	const singleTargetActor = singleTargetToken?.actor;
+	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor: singleTargetActor, targetToken: singleTargetToken, ac5eConfig, hook, ability: ability, distance: _getDistance(sourceToken, singleTargetToken), activity });
+	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
+	if (ac5eConfig.source.fail.length || ac5eConfig.target.fail.length) {
+		const failString = `${item.name} roll fails, due to the following effects`;
+		const sourceString = ac5eConfig.source.fail.length ? `, on the sourceActor: ${ac5eConfig.source.fail.join(',')}` : ''
+		const targetString = ac5eConfig.target.fail.length ? `, on the targetActor: ${ac5eConfig.target.fail.join(',')}!` : '!'
+		ui.notifications.warn(failString + sourceString + targetString);
+		return false;
+	};
+*/
 	if (!activity.parent.hasAttack && !activity.parent.activities.find((a) => a.damage?.parts?.length)) return true;
 	//will cancel the Item use if the Item needs 1 target to function properly and none or more than 1 are selected.
 	const targets = game.user?.targets;
