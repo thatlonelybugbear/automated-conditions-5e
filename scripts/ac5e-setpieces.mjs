@@ -280,12 +280,12 @@ function ac5eFlags({ actor, token, targetActor, targetToken, ac5eConfig, hook, a
 		const item = activity?.item;
 		const values = value.split(';').map(v => v.trim()).filter(v => v !== "");
 		const comparisonOps = {
-		        "=": (a, b) => a === b,
-		        ">": (a, b) => a > b,
-		        "<": (a, b) => a < b,
-		        ">=": (a, b) => a >= b,
-		        "<=": (a, b) => a <= b,
-		    };
+			"=": (a, b) => a === b,
+			">": (a, b) => a > b,
+			"<": (a, b) => a < b,
+			">=": (a, b) => a >= b,
+			"<=": (a, b) => a <= b,
+		};
 		//if one is true
 		return values.some((v) => {
 			let mult = null;
@@ -349,5 +349,4 @@ flags.ac5e.save.target.disadvantage CUSTOM dex;poison;blinded    if an item forc
 
 flags.ac5e.damage.target.critical CUSTOM dragon;radiant;prone
 flags.ac5e.damage.source.critical CUSTOM false
-flags.ac5e.conc.target.disadvantage  CUSTOM  force the target to make concentration with disadvantage.
 */
