@@ -149,21 +149,24 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const targetsSize = targets?.size; //targets?.length;
 	const singleTargetToken = targets?.first(); //targets?.[0];
 	const singleTargetActor = singleTargetToken?.actor;
-	let ac5eConfig = _getConfig(config, hook, sourceTokenID, singleTargetToken?.id);
-	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	let targetActor, targetToken, distance;
+	let targetActor = singleTargetActor;
+	let targetToken = singleTargetToken;
+	let distance = _getDistance(sourceToken, singleTargetToken);
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
 		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
 		else { //source only
-			targetToken = singleTargetToken;
-			targetToken = singleTargetActor;
-			distance = _getDistance(sourceToken, singleTargetToken);
+			targetToken = undefined;
+			targetToken = undefined;
+			distance = undefined
 		}
 	}
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID, targetToken?.id);
+	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
+	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 
 	let nearbyFoe, inRange, range;
 	if (settings.autoRangedCombined !== 'off' && targetToken) {
@@ -212,23 +215,24 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const targetsSize = targets?.size;
 	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
 	const singleTargetActor = singleTargetToken?.actor;
-	let targetActor, targetToken, distance;
+	let targetActor = singleTargetActor;
+	let targetToken = singleTargetToken;
+	let distance = _getDistance(sourceToken, singleTargetToken);
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
 		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
 		else { //source only
-			targetToken = singleTargetToken;
-			targetToken = singleTargetActor;
-			distance = _getDistance(sourceToken, singleTargetToken);
+			targetToken = undefined;
+			targetToken = undefined;
+			distance = undefined;
 		}
 	}
-	let ac5eConfig = _getConfig(config, hook, sourceTokenID, singleTargetToken?.id);
-	if (ac5eConfig.returnEarly) {
-		return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	}
+	let ac5eConfig = _getConfig(config, hook, sourceTokenID, targetToken?.id);
+	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
+	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (ac5eConfig.source.critical.length || ac5eConfig.target.critical.length) {
@@ -341,6 +345,7 @@ export function _renderHijack(hook, render, elem) {
 		targetElement.style.color = 'white'; // Change text color; to-do: add a colorpicker
 		targetElement.style.backgroundColor = game.user.color; // Change background color; to-do: add a colorpicker
 		targetElement.setAttribute('data-tooltip', tooltip);
+		targetElement.focus();  //midi for some reason doesn't focus on skills with advMode. //to-do check this and why Dodging rolls FF for Dex save
 		if (settings.debug) {
 			console.warn('ac5e hijack getTooltip', tooltip);
 			console.warn('ac5e hijack targetElement:', targetElement);
