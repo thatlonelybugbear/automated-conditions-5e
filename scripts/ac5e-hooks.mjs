@@ -370,7 +370,7 @@ export function _renderHijack(hook, render, elem) {
 				let thisTargetElement;
 				const hT = ac5eElement?.hookType
 				if (!hT) continue;
-				if (game.user.targets.size === 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
+				if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
 				else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
 				else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
 				//to-do: add AC5E pill on Item card. Next release
