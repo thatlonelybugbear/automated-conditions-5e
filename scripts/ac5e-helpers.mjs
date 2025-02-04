@@ -307,7 +307,8 @@ export function _autoRanged(activity, token, target) {
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'crossbow expert');
-	const nearbyFoe =
+	const nearbyFoe = 
+		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert;
