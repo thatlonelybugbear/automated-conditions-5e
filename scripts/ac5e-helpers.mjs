@@ -578,7 +578,7 @@ export function _getEffectOriginToken(effect /* ActiveEffect */) {
 	const origin = fromUuidSync(effect.origin);
 	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
 		if (origin.parent instanceof CONFIG.Item.documentClass) effectOriginActor = origin.parent.actor;
-		if (origin.parent instanceof CONFIG.Actor.documentClass) effectOriginActor = origin.panent;
+		if (origin.parent instanceof CONFIG.Actor.documentClass) effectOriginActor = origin.parent;
 	}
 	return effectOriginActor.getActiveTokens()[0];
 }
