@@ -10,7 +10,7 @@ const settings = new Settings();
  * evaluating all grid spaces they occupy, based in Illandril's work
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
-export function _getDistance(tokenA, tokenB) {
+export function _getDistance(tokenA, tokenB, includeUnits = false) {
 	if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
 	else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
 	if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
@@ -189,8 +189,9 @@ export function _getDistance(tokenA, tokenB) {
 			units: scene.grid.units,
 		};
 	};
-	const result = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value;
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, targetId: tokenB.id, result });
+	const { value: result, units } = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB) || {};
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, targetId: tokenB.id, result, units });
+	if (includeUnits) return ((result * 100) | 0) / 100 + units;
 	return ((result * 100) | 0) / 100;
 }
 
