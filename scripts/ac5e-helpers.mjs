@@ -10,7 +10,7 @@ const settings = new Settings();
  * evaluating all grid spaces they occupy, based in Illandril's work
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
-export function _getDistance(tokenA, tokenB) {
+export function _getDistance(tokenA, tokenB, includeUnits = false) {
 	if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
 	else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
 	if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
@@ -189,8 +189,9 @@ export function _getDistance(tokenA, tokenB) {
 			units: scene.grid.units,
 		};
 	};
-	const result = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB).value;
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, targetId: tokenB.id, result });
+	const { value: result, units } = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB) || {};
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, targetId: tokenB.id, result, units });
+	if (includeUnits) return ((result * 100) | 0) / 100 + units;
 	return ((result * 100) | 0) / 100;
 }
 
@@ -307,7 +308,8 @@ export function _autoRanged(activity, token, target) {
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'crossbow expert');
-	const nearbyFoe =
+	const nearbyFoe = 
+		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert;
@@ -554,16 +556,19 @@ export function _staticID(id) {
 	if (id.length >= 16) return id.substring(0, 16);
 	return id.padEnd(16, '0');
 }
-export function _getActionType(activity) {
+export function _getActionType(activity, returnClassifications = false) {
 	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
+	if (returnClassifications) return actionType;
 	if (actionType.value === 'melee') {
-		if (actionType.classification === 'weapon') actionType = 'mwak';
+		if (actionType.classification === 'weapon' || actionType.classification === 'unarmed') actionType = 'mwak';
 		else if (actionType.classification === 'spell') actionType = 'msak';
+		// else if (actionType.classification === 'unarmed') actionType = 'muak'; //to-do: is there any need for this??
 	} else if (actionType.value === 'ranged') {
-		if (actionType.classification === 'weapon') actionType = 'rwak';
+		if (actionType.classification === 'weapon' || actionType.classification === 'unarmed') actionType = 'rwak';
 		else if (actionType.classification === 'spell') actionType = 'rsak';
-	} else undefined;
+		// else if (actionType.classification === 'unarmed') actionType = 'ruak'; //to-do: is there any need for this??
+	} else actionType = undefined;
 	return actionType;
 }
 export function _getEffectOriginToken(effect /* ActiveEffect */) {
