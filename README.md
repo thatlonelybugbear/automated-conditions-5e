@@ -20,6 +20,8 @@ The module will adjust it's behaviour based on the 5e system's setting, for Mode
 For example if Modern rules are selected, AC5E will not handle Exhaustion, but respect the system's handling.
 Small adjustments for differences in the rest of the conditions too, as needed.
 
+
+`Legacy Rules`
 - `Blinded`: Disadvantage on attacks and grants advantage to attack from others
 - `Exhaustion 1`: Disadvantage on ability checks (and skill checks as a result)
 - `Exhaustion 2`: no changes
@@ -35,6 +37,11 @@ Small adjustments for differences in the rest of the conditions too, as needed.
 - `Restrained`: Disadvantage on attacks and dexterity saves, grants advantage on attacks by others
 - `Stunned`: Auto fail strength/dexterity saves, grants advantage on attacks by others
 - `Unconscious`: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
+
+`Modern Rules`
+- No `exhaustion` automation, as this is handled by the system.
+- `Incapacitated` will give disadvantage on initiative rolls, in addition to the legacy rules.
+- `Invisibility` will give advantage on initiative rolls, in addition to the legacy rules.
 
 # Settings added for:
 - `Expanded Conditions` **(default off)**
