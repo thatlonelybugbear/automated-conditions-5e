@@ -1,3 +1,11 @@
+## v12.422.11
+- Closes #194 
+- Adds parameters in some helpers:
+  - `_getActionType(activity, returnClassification = false)`
+  - `_getDistance(tokenA, tokenB, includeUnits = false)`
+- For saves/checks show chat tooltip if targets.size <= 1 with [commit 16622b9](https://github.com/thatlonelybugbear/automated-conditions-5e/commit/16622b9c26c85917523b20fd2a33ad2bad7ac5b0)
+- Removes one type of expression evaluation as incomplete [commit 5cec32a](https://github.com/thatlonelybugbear/automated-conditions-5e/commit/5cec32a1088f2f8dbba80f06f9448965e97368f7)
+
 ## v12.422.10
 - Much more usable conditions for flag evaluations
 - Fix for some expanded conditions.
