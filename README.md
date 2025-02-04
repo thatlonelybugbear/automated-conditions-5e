@@ -39,8 +39,9 @@ Small adjustments for differences in the rest of the conditions too, as needed.
 - `Unconscious`: Auto fails strength/dexterity saves, grants advantage on attacks by others, crit if hit within 5ft ++ Prone
 
 `Modern Rules`
-- No `exhaustion` automation, as this is handled by the system.
-- `Incapacitated` will give disadvantage on initiative rolls, in addition to the legacy rules.
+- No `exhaustion` automation, as this is handled by the system,
+- `Hiding` will give advantage on initiative rolls,
+- `Incapacitated` will give disadvantage on initiative rolls, in addition to the legacy rules,
 - `Invisibility` will give advantage on initiative rolls, in addition to the legacy rules.
 
 # Settings added for:
