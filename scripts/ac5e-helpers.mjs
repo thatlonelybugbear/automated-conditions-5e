@@ -556,16 +556,19 @@ export function _staticID(id) {
 	if (id.length >= 16) return id.substring(0, 16);
 	return id.padEnd(16, '0');
 }
-export function _getActionType(activity) {
+export function _getActionType(activity, returnClassifications = false) {
 	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
+	if (returnClassifications) return actionType;
 	if (actionType.value === 'melee') {
-		if (actionType.classification === 'weapon') actionType = 'mwak';
+		if (actionType.classification === 'weapon' || actionType.classification === 'unarmed') actionType = 'mwak';
 		else if (actionType.classification === 'spell') actionType = 'msak';
+		// else if (actionType.classification === 'unarmed') actionType = 'muak'; //to-do: is there any need for this??
 	} else if (actionType.value === 'ranged') {
-		if (actionType.classification === 'weapon') actionType = 'rwak';
+		if (actionType.classification === 'weapon' || actionType.classification === 'unarmed') actionType = 'rwak';
 		else if (actionType.classification === 'spell') actionType = 'rsak';
-	} else undefined;
+		// else if (actionType.classification === 'unarmed') actionType = 'ruak'; //to-do: is there any need for this??
+	} else actionType = undefined;
 	return actionType;
 }
 export function _getEffectOriginToken(effect /* ActiveEffect */) {
