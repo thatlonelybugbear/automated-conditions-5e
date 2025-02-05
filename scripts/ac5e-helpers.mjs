@@ -571,6 +571,7 @@ export function _staticID(id) {
 	if (id.length >= 16) return id.substring(0, 16);
 	return id.padEnd(16, '0');
 }
+
 export function _getActionType(activity, returnClassifications = false) {
 	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
@@ -586,6 +587,7 @@ export function _getActionType(activity, returnClassifications = false) {
 	} else actionType = undefined;
 	return actionType;
 }
+
 export function _getEffectOriginToken(effect /* ActiveEffect */) {
 	let effectOriginActor;
 	if (effect.parent instanceof CONFIG.Item.documentClass && effect.parent.isEmbedded) effectOriginActor = effect.parent.actor;
@@ -597,6 +599,7 @@ export function _getEffectOriginToken(effect /* ActiveEffect */) {
 	}
 	return effectOriginActor.getActiveTokens()[0];
 }
+
 export function _hasValidTargets(activity, size, type = 'attack', warn = false) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
 	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
