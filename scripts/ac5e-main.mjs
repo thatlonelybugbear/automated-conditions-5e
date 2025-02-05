@@ -1,5 +1,6 @@
 import { _renderHijack, _rollFunctions } from './ac5e-hooks.mjs';
 import { _autoRanged, _autoArmor, _activeModule, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', ac5eRegisterSettings);
@@ -57,11 +58,11 @@ function ac5eSetup() {
 		hooksRegistered[hook.id] = hookId;
 	}
 	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
-	globalThis['ac5e'] = { moduleName: 'Automated Conditions 5e' };
-	globalThis['ac5e'].hooksRegistered = hooksRegistered;
-	globalThis['ac5e'].autoRanged = _autoRanged;
-	globalThis['ac5e'].autoarmor = _autoArmor;
-	globalThis['ac5e'].canSee = _canSee;
-	globalThis['ac5e'].raceOrType = _raceOrType;
-	globalThis['ac5e'].getDistance = _getDistance;
+	globalThis[Constants.MODULE_NAME_SHORT] = {};
+	globalThis[Constants.MODULE_NAME_SHORT].info = { moduleName: Constants.MODULE_NAME, hooksRegistered };
+	globalThis[Constants.MODULE_NAME_SHORT].checkArmor = _autoArmor;
+	globalThis[Constants.MODULE_NAME_SHORT].checkCreatureType = _raceOrType;
+	globalThis[Constants.MODULE_NAME_SHORT].checkDistance = _getDistance;
+	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
+	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;	
 }
