@@ -72,5 +72,6 @@
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Target grants dis",
 	"AC5E.TargetDisadvantageAbbreviated": "Target dis",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Target grants crit",
-	"AC5E.TargetGrantsFail": "Target grants fail"	
+	"AC5E.TargetGrantsFail": "Target grants fail",
+	"AC5E.NoChanges": "No changes"
 }
