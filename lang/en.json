@@ -64,8 +64,12 @@
 	"AC5E.AttackerAdvantageAbbreviated": "Attacker adv",
 	"AC5E.AttackerGrantsDisadvantageAbbreviated": "Attacker grants dis",
 	"AC5E.AttackerDisadvantageAbbreviated": "Attacker dis",
+	"AC5E.AttackerGrantsCriticalAbbreviated": "Attacker grants crit",
+	"AC5E.AttackerGrantsFail": "Attacker grants fail",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Target grants adv",
 	"AC5E.TargetAdvantageAbbreviated": "Target adv",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Target grants dis",
-	"AC5E.TargetDisadvantageAbbreviated": "Target dis"
+	"AC5E.TargetDisadvantageAbbreviated": "Target dis",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Target grants crit",
+	"AC5E.TargetGrantsFail": "Target grants fail"	
 }
