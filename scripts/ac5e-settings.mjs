@@ -16,6 +16,9 @@ export default class Settings {
 	static KEYPRESS_OVERRIDES = 'keypressOverrides';
 	static DEBUG = 'debugging';
 	static MIGRATION = 'lastMigratedPoint';
+	static ColorPicker_Background = 'buttonColorBackground';
+	static ColorPicker_Border = 'buttonColorBorder';
+	static ColorPicker_Text = 'buttonColorText';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -139,6 +142,30 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Background, {
+			name: 'AC5E.ButtonColorPicker.Background.Name',
+			hint: 'AC5E.ButtonColorPicker.Background.Hint',
+			scope: 'client',
+			config: true,
+			default: game?.user?.color,
+			type: String
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
+			name: 'AC5E.ButtonColorPicker.Border.Name',
+			hint: 'AC5E.ButtonColorPicker.Border.Hint',
+			scope: 'client',
+			config: true,
+			default: '#FFFFFF',
+			type: String
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
+			name: 'AC5E.ButtonColorPicker.Text.Name',
+			hint: 'AC5E.ButtonColorPicker.Text.Hint',
+			scope: 'client',
+			config: true,
+			default: '#FFFFFF',
+			type: String
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
 			name: 'DEBUG',
 			scope: 'world',
@@ -147,8 +174,7 @@ export default class Settings {
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.MIGRATION, {
-			name: 'AC5E.DebuggingName',
-			hint: 'AC5E.DebuggingHint',
+			name: 'Migration',
 			scope: 'world',
 			config: false,
 			default: false,
@@ -198,6 +224,15 @@ export default class Settings {
 	}
 	get keypressOverrides() {
 		return game.settings.get(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES);
+	}
+	get buttonColorBackground() {
+		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Background);
+	}
+	get buttonColorBorder() {
+		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Border);
+	}
+	get buttonColorText() {
+		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Text);
 	}
 	get debug() {
 		return game.settings.get(Constants.MODULE_ID, Settings.DEBUG);

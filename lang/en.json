@@ -55,6 +55,20 @@
 	"AC5E.Item": "Item",
 	"AC5E.Equipment": "Equipment",
 	"AC5E.NearbyFoe": "Nearby Foe",
+	"AC5E.ButtonColorPicker": {
+		"Background": {
+			"Name": "🎨 Button background color",
+			"Hint": "Delete any string from the input to default to the game.user.color"
+		},
+		"Border": {
+			"Name": "🖍️ Button border color",
+			"Hint": "Delete any string from the input to default to white"
+		},
+		"Text": {
+			"Name": "🔤 Button text color",
+			"Hint": "Delete any string from the input to default to white"
+		}
+	},
 	"AC5E.AbbreviationAdvantage": "adv",
 	"AC5E.AbbreviationDisadvantage": "dis",
 	"AC5E.AbbreviationCritical": "crit",
