@@ -147,7 +147,7 @@ export default class Settings {
 			hint: 'AC5E.ButtonColorPicker.Background.Hint',
 			scope: 'client',
 			config: true,
-			default: game?.user?.color,
+			default: game?.user?.color?.css,
 			type: String
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
