@@ -71,14 +71,15 @@ function ac5eButtonListeners() {
 	const settings = new Settings();
 	Hooks.on('renderSettingsConfig', (app, html, data) => {
 		const settings = [
-			{ key: 'buttonBackgroundColor', default: game?.user?.color },
-			{ key: 'buttonBorderColor', default: '#FFFFFF' },
-			{ key: 'buttonTextColor', default: '#FFFFFF' },
+			{ key: 'buttonColorBackground' },
+			{ key: 'buttonColorBorder' },
+			{ key: 'buttonColorText' },
 		];
 
-		for (let { key, default: defaultValue } of settings) {
+		for (let { key } of settings) {
 			const settingKey = `${Constants.MODULE_ID}.${key}`;
 			const input = html.find(`[name="${settingKey}"]`);
+			const defaultValue = game.settings.settings.get(settingKey)?.default;
 
 			if (input.length) {
 				const colorPicker = $(`<input type="color" class="color-picker">`);
