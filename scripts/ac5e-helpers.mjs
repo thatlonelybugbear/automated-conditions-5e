@@ -325,18 +325,16 @@ export function _systemCheck(testVersion) {
 	return foundry.utils.isNewerVersion(game.system.version, testVersion);
 }
 
-export function _getTooltip(ac5eConfig) {
-	if (!ac5eConfig) return null;
-	const { hookType, source, target } = ac5eConfig || {};
+export function _getTooltip(ac5eConfig = {}) {
+	const { hookType, source, target } = ac5eConfig;
 	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e</strong></center><hr>' : '';
-	
 	const addTooltip = (condition, text) => {
 		if (condition) {
 			if (tooltip.includes(':')) tooltip += '<br>';
 			tooltip += text;
 		}
 	};
-	
+
 	addTooltip(source.critical.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.SourceCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>`);
 	addTooltip(target.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${target.critical.join(', ')}</span>`);
 	addTooltip(source.fail.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('SourceGrantsFail')}: ${source.fail.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${source.fail.join(', ')}</span>`);
@@ -346,8 +344,7 @@ export function _getTooltip(ac5eConfig) {
 	addTooltip(source.disadvantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>`);
 	addTooltip(target?.disadvantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('Disadvantage')}: ${target.disadvantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${target.disadvantage.join(', ')}</span>`);
 
-	if (!tooltip.includes(':')) return (tooltip += `<center><strong>${_localize('AC5E.NoChanges')}</strong></center>`);
-	else return tooltip;
+	return tooltip.includes(':') ? tooltip : (tooltip += `<center><strong>${_localize('AC5E.NoChanges')}</strong></center>`);
 }
 
 export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
