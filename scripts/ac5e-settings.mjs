@@ -155,7 +155,7 @@ export default class Settings {
 			hint: 'AC5E.ButtonColorPicker.Border.Hint',
 			scope: 'client',
 			config: true,
-			default: '#FFFFFF',
+			default: 'white',
 			type: String
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
@@ -163,7 +163,7 @@ export default class Settings {
 			hint: 'AC5E.ButtonColorPicker.Text.Hint',
 			scope: 'client',
 			config: true,
-			default: '#FFFFFF',
+			default: 'white',
 			type: String
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
