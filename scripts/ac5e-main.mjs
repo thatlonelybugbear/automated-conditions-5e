@@ -16,6 +16,7 @@ function ac5eReady() {
 	} else {
 		ac5eSetup();
 	}
+	ac5eButtonListeners();
 }
 
 function ac5eSetup() {
@@ -65,3 +66,42 @@ function ac5eSetup() {
 	globalThis['ac5e'].raceOrType = _raceOrType;
 	globalThis['ac5e'].getDistance = _getDistance;
 }
+
+function ac5eButtonListeners() {
+	const settings = new Settings();
+	Hooks.on('renderSettingsConfig', (app, html, data) => {
+		const settings = [
+			{ key: 'buttonBackgroundColor', default: game?.user?.color },
+			{ key: 'buttonBorderColor', default: '#FFFFFF' },
+			{ key: 'buttonTextColor', default: '#FFFFFF' },
+		];
+
+		for (let { key, default: defaultValue } of settings) {
+			const settingKey = `${Constants.MODULE_ID}.${key}`;
+			const input = html.find(`[name="${settingKey}"]`);
+
+			if (input.length) {
+				const colorPicker = $(`<input type="color" class="color-picker">`);
+				colorPicker.val(input.val() || defaultValue);
+				colorPicker.on('input', function () {
+					const color = $(this).val();
+					input.val(color).trigger('change');
+				});
+				input.on('input', function () {
+					const textColor = $(this).val();
+					if (/^#[0-9A-F]{6}$/i.test(textColor)) {
+						colorPicker.val(textColor);
+					}
+				});
+				// Reset to default when input is cleared
+				input.on('blur', function () {
+					if ($(this).val().trim() === '') {
+						$(this).val(defaultValue).trigger('change');
+						colorPicker.val(defaultValue);
+					}
+				});
+				input.after(colorPicker);
+			}
+		}
+	});
+} 
