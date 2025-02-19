@@ -16,9 +16,9 @@ export default class Settings {
 	static KEYPRESS_OVERRIDES = 'keypressOverrides';
 	static DEBUG = 'debugging';
 	static MIGRATION = 'lastMigratedPoint';
-	static ColorPicker_Background = 'buttonBackgroundColor';
-	static ColorPicker_Border = 'buttonBorderColor';
-	static ColorPicker_Text = 'buttonTextColor';
+	static ColorPicker_Background = 'buttonColorBackground';
+	static ColorPicker_Border = 'buttonColorBorder';
+	static ColorPicker_Text = 'buttonColorText';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -225,13 +225,13 @@ export default class Settings {
 	get keypressOverrides() {
 		return game.settings.get(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES);
 	}
-	get buttonBackgroundColor() {
+	get buttonColorBackground() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Background);
 	}
-	get buttonBorderColor() {
+	get buttonColorBorder() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Border);
 	}
-	get buttonTextColor() {
+	get buttonColorText() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Text);
 	}
 	get debug() {
