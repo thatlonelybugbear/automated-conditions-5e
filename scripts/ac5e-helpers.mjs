@@ -327,32 +327,47 @@ export function _systemCheck(testVersion) {
 
 export function _getTooltip(ac5eConfig) {
 	if (!ac5eConfig) return null;
+	const { hookType, source, target } = ac5eConfig || {};
 	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e</strong></center><hr>' : '';
-	if (ac5eConfig.source?.critical?.length) tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Critical')}: ${ac5eConfig.source.critical.join(', ')}</span>`);
-	if (ac5eConfig.target?.critical?.length) tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Critical')}: ${ac5eConfig.target.critical.join(', ')}</span>`);
-	if (ac5eConfig.source?.fail.length) {
-		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${ac5eConfig.source.fail.join(', ')}</span>`);
+	if (source.critical.length) {
+		// if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('Critical')}: ${ac5eConfig.source.critical.join(', ')}</span>`;
+		tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.SourceCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>`;
 	}
-	if (ac5eConfig.source?.advantage.length) {
-		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		if (!['attack', 'damage'].includes(ac5eConfig.hookType)) tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Advantage')}: ${ac5eConfig.source.advantage.join(', ')}</span>`);
-		else tooltip = tooltip.concat(`<span style="display: block; text-align: left;">Attacker ${_localize('Advantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.source.advantage.join(', ')}</span>`);
+	if (target.critical.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		tooltip += `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${target.critical.join(', ')}</span>`;  //to-do: what other translations might be needed.
 	}
-	if (ac5eConfig.target?.advantage.length) {
-		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('DND5E.Target')} grants ${_localize('Advantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.target.advantage.join(', ')}</span>`);
+	if (source.fail.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('SourceGrantsFail')}: ${source.fail.join(', ')}</span>`;
+		else tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${source.fail.join(', ')}</span>`;
 	}
-	if (ac5eConfig.source?.disadvantage.length) {
-		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		if (!['attack', 'damage'].includes(ac5eConfig.hookType)) tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('Disadvantage')}: ${ac5eConfig.source.disadvantage.join(', ')}</span>`);
-		else tooltip = tooltip.concat(`<span style="display: block; text-align: left;">Attacker ${_localize('Disadvantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.source.disadvantage.join(', ')}</span>`);
+	if (target.fail.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${target.fail.join(', ')}</span>`;
+		else tooltip += `<span style="display: block; text-align: left;">${_localize('TargetGrantsFail')}: ${target.fail.join(', ')}</span>`;
 	}
-	if (ac5eConfig.target?.disadvantage.length) {
-		if (tooltip.includes(':')) tooltip = tooltip.concat('<br>');
-		tooltip = tooltip.concat(`<span style="display: block; text-align: left;">${_localize('DND5E.Target')} grants ${_localize('Disadvantage').substring(0, 3).toLocaleLowerCase()}: ${ac5eConfig.target.disadvantage.join(', ')}</span>`);
+	if (source.advantage.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsAdvantageAbbreviated')}: ${source.advantage.join(', ')}</span>`;
+		else tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerAdvantageAbbreviated')}: ${source.advantage.join(', ')}</span>`;
 	}
-	if (!tooltip.includes(':')) return ''; //tooltip.concat(`<center><strong>No Changes</strong></center>`);//null;
+	if (target.advantage.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('Advantage')}: ${target.advantage.join(', ')}</span>`;
+		else tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')} }: ${target.advantage.join(', ')}</span>`;
+	}
+	if (source.disadvantage.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>`;
+		else tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>`;
+	}
+	if (target?.disadvantage.length) {
+		if (tooltip.includes(':')) tooltip += '<br>';
+		if (!['attack', 'damage'].includes(hookType)) tooltip += `<span style="display: block; text-align: left;">${_localize('Disadvantage')}: ${target.disadvantage.join(', ')}</span>`;
+		tooltip += `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${target.disadvantage.join(', ')}</span>`;
+	}
+	if (!tooltip.includes(':')) return tooltip += `<center><strong>${_localize('AC5E.NoChanges')}</strong></center>`;
 	else return tooltip;
 }
 
@@ -556,6 +571,7 @@ export function _staticID(id) {
 	if (id.length >= 16) return id.substring(0, 16);
 	return id.padEnd(16, '0');
 }
+
 export function _getActionType(activity, returnClassifications = false) {
 	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
@@ -571,6 +587,7 @@ export function _getActionType(activity, returnClassifications = false) {
 	} else actionType = undefined;
 	return actionType;
 }
+
 export function _getEffectOriginToken(effect /* ActiveEffect */) {
 	let effectOriginActor;
 	if (effect.parent instanceof CONFIG.Item.documentClass && effect.parent.isEmbedded) effectOriginActor = effect.parent.actor;
@@ -582,6 +599,7 @@ export function _getEffectOriginToken(effect /* ActiveEffect */) {
 	}
 	return effectOriginActor.getActiveTokens()[0];
 }
+
 export function _hasValidTargets(activity, size, type = 'attack', warn = false) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
 	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'

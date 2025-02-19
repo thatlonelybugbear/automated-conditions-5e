@@ -47,6 +47,7 @@
 	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
 	"AC5E.WarCaster": "War Caster",
 	"AC5E.Fail": "Fail",
+	"AC5E.FailLowerCase": "fail",
 	"AC5E.Rage": "Rage",
 	"AC5E.Raging": "Raging",
 	"AC5E.SubtleSpell": "Subtle Spell",
@@ -67,5 +68,25 @@
 			"Name": "🔤 Button text color",
 			"Hint": "Delete any string from the input to default to white"
 		}
-	}
+	},
+	"AC5E.AbbreviationAdvantage": "adv",
+	"AC5E.AbbreviationDisadvantage": "dis",
+	"AC5E.AbbreviationCritical": "crit",
+	"AC5E.Grants": "grants",
+	"AC5E.Attacker": "Attacker",
+	"AC5E.AttackerAdvantageAbbreviated": "Attacker adv",
+	"AC5E.AttackerGrantsDisadvantageAbbreviated": "Attacker grants dis",
+	"AC5E.AttackerDisadvantageAbbreviated": "Attacker dis",
+	"AC5E.SourceGrantsAdvantageAbbreviated": "Source grants adv",
+	"AC5E.SourceGrantsCriticalAbbreviated": "Source grants crit",
+	"AC5E.SourceGrantsDisadvantageAbbreviated": "Source grants dis",
+	"AC5E.SourceGrantsFail": "Source grants fail",
+	"AC5E.SourceCriticalAbbreviated": "Source crits",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Target grants adv",
+	"AC5E.TargetAdvantageAbbreviated": "Target adv",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Target grants dis",
+	"AC5E.TargetDisadvantageAbbreviated": "Target dis",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Target grants crit",
+	"AC5E.TargetGrantsFail": "Target grants fail",
+	"AC5E.NoChanges": "No changes"
 }
