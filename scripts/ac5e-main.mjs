@@ -73,36 +73,47 @@ function ac5eButtonListeners() {
 	Hooks.on('renderSettingsConfig', (app, html, data) => {
 		const settings = [
 			{ key: 'buttonColorBackground', default: game?.user?.color?.css },
-			{ key: 'buttonColorBorder', default: "#FFFFFF"  },
-			{ key: 'buttonColorText', default: "#FFFFFF"  },
+			{ key: 'buttonColorBorder', default: 'white' },
+			{ key: 'buttonColorText', default: 'white' },
 		];
 
 		for (let { key, default: defaultValue } of settings) {
 			const settingKey = `${Constants.MODULE_ID}.${key}`;
 			const input = html.find(`[name="${settingKey}"]`);
-
 			if (input.length) {
 				const colorPicker = $(`<input type="color" class="color-picker">`);
-				colorPicker.val(input.val() || defaultValue);
+				colorPicker.val(getValidColor(input.val(), defaultValue));
 				colorPicker.on('input', function () {
 					const color = $(this).val();
 					input.val(color).trigger('change');
 				});
 				input.on('input', function () {
-					const textColor = $(this).val();
-					if (/^#[0-9A-F]{6}$/i.test(textColor)) {
-						colorPicker.val(textColor);
-					}
+					const userColor = $(this).val().trim();
+					const validColor = getValidColor(userColor, defaultValue);
+					if (validColor) colorPicker.val(validColor);
 				});
 				// Reset to default when input is cleared
 				input.on('blur', function () {
 					if ($(this).val().trim() === '') {
 						$(this).val(defaultValue).trigger('change');
-						colorPicker.val(defaultValue);
+						colorPicker.val(getValidColor(defaultValue, defaultValue));
 					}
 				});
 				input.after(colorPicker);
 			}
 		}
 	});
-} 
+}
+
+function getValidColor(color, fallback) {
+    const temp = document.createElement("div");
+    temp.style.color = color;
+    document.body.appendChild(temp);
+    const computedColor = window.getComputedStyle(temp).color;
+    document.body.removeChild(temp);
+    const match = computedColor.match(/\d+/g);
+    if (match && match.length === 3) {
+        return `#${match.map((n) => parseInt(n).toString(16).padStart(2, "0")).join("")}`;
+    }
+    return fallback; // If invalid, return the default color
+}
