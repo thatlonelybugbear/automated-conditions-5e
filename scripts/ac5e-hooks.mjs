@@ -342,8 +342,11 @@ export function _renderHijack(hook, render, elem) {
 			}
 		} else 	targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
 		if (!targetElement) return true;
-		targetElement.style.color = 'white'; // Change text color; to-do: add a colorpicker
-		targetElement.style.backgroundColor = game.user.color; // Change background color; to-do: add a colorpicker
+		targetElement.style.color = settings.buttonColorText;
+		targetElement.style.backgroundColor = settings.buttonColorBackground;
+		targetElement.style.boxShadow = '1px 1px 3px rgba(0, 0, 0, 0.6), 2px 2px 6px rgba(0, 0, 0, 0.3)';
+		targetElement.style.border = `1px solid ${settings.buttonColorBorder}`;
+		targetElement.classList.add('ac5e-button');
 		targetElement.setAttribute('data-tooltip', tooltip);
 		targetElement.focus();  //midi for some reason doesn't focus on skills with advMode. //to-do check this and why Dodging rolls FF for Dex save
 		if (settings.debug) {
