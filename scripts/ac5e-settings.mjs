@@ -19,7 +19,7 @@ export default class Settings {
 	static ColorPicker_Background = 'buttonColorBackground';
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
-	static TOOLTIP_VISIBILITY_OPTIONS = 'tooltipShown';
+	static TOOLTIP_VISIBILITY_OPTIONS = 'checkShowTooltipsToUser';
 
 	registerSettings() {
 		this._registerWorldSettings();
