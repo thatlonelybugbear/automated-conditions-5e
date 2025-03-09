@@ -417,3 +417,85 @@ export function _renderHijack(hook, render, elem) {
 	} 	
 }
 
+export async function _overtimeHazards(combat, update, options, user) {
+    if (!game.user.isGM) return true;
+
+    const hasPHB = game.modules.get("dnd-players-handbook")?.active;
+    const token = combat.combatant?.token?.object;
+    const actor = combat.combatant?.token?.actor;
+    const previousCombatantId = combat.previous?.tokenId;
+    const previousToken = previousCombatantId ? canvas.tokens.get(previousCombatantId) : null;
+    const previousActor = previousToken?.actor;
+
+    const SUFFOCATION_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.gAvV8TLyS8UGq00x';
+    const BURNING_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.mPBGM1vguT5IPzxT';
+    const PRONE_UUID = 'Compendium.dnd5e.rules.JournalEntry.w7eitkpD7QQTB6j0.JournalEntryPage.y0TkcdyoZlOTmAFT';
+
+    if (previousActor?.statuses.has('suffocation')) {
+        const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;
+        if (maxExhaustion) {
+            await previousActor.update({
+                'system.attributes.exhaustion': Math.min((previousActor.system.attributes.exhaustion ?? 0) + 1, maxExhaustion)
+            });
+
+            let flavor = '<p>Suffocating</p>';
+            if (hasPHB) {
+                const suffocationEntry = await fromUuid(SUFFOCATION_UUID);
+                flavor = suffocationEntry?.text?.content ?? flavor;
+            }
+
+            const enrichedHTML = (await TextEditor.enrichHTML(flavor)).replace(
+                /<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g,
+                ''
+            );
+
+            await ChatMessage.create({
+                content: enrichedHTML,
+                speaker: ChatMessage.getSpeaker({ token: previousToken })
+            });
+        }
+    }
+
+    if (actor?.statuses.has('burning')) {
+        let flavor = '<p>Burning Hazard</p>';
+        if (hasPHB) {
+            const burningEntry = await fromUuid(BURNING_UUID);
+            flavor = burningEntry?.text?.content ?? flavor;
+        }
+
+        flavor = flavor.replace(
+            /@UUID\[\.QxCrRcgMdUd3gfzz\]\{Prone\}/g,
+            `@UUID[${PRONE_UUID}]{Prone}`
+        );
+
+        const enrichedHTML = await TextEditor.enrichHTML(flavor);
+        const type = 'fire';
+
+        if (!MidiQOL) {
+            token.control();
+            return new CONFIG.Dice.DamageRoll('1d4', actor?.getRollData(), {
+                type,
+                appearance: { colorset: type }
+            }).toMessage({ content: enrichedHTML });
+        } else {
+            const damageRoll = await new Roll('1d4', actor?.getRollData(), {
+                type,
+                appearance: { colorset: type }
+            }).toMessage({ content: enrichedHTML });
+            const damage = damageRoll.rolls[0].total;
+
+            const forceApply = MidiQOL.configSettings()?.autoApplyDamage?.includes('yes') ?? false;
+
+            return MidiQOL.applyTokenDamage(
+                [{ type, damage }],
+                damage,
+                new Set([token]),
+                null,
+                null,
+                { forceApply }
+            );
+        }
+    }
+
+    return true;
+};
