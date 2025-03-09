@@ -1,4 +1,4 @@
-import { _renderHijack, _rollFunctions } from './ac5e-hooks.mjs';
+import { _renderHijack, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
 import { _autoRanged, _autoArmor, _activeModule, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -57,7 +57,10 @@ function ac5eSetup() {
 			}
 		});
 		hooksRegistered[hook.id] = hookId;
-	}
+	};
+	const combatUpdateHookID = Hooks.on('updateCombat', _overtimeHazards);
+	hooksRegistered['updateCombat'] = combatUpdateHookID;
+	
 	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
 	globalThis[Constants.MODULE_NAME_SHORT] = {};
 	globalThis[Constants.MODULE_NAME_SHORT].info = { moduleName: Constants.MODULE_NAME, hooksRegistered };
