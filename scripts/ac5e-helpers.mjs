@@ -351,6 +351,10 @@ export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 	if (settings.debug) console.warn('helpers._getConfig:', config);
 	// const existingAC5e = config?.[Constants.MODULE_ID];
 	const areKeysPressed = game.system.utils.areKeysPressed;
+	const advKey = hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false;
+	const disKey = hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogDisadvantage') : false;
+	const critKey = hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false;
+	const fastForward = hookType !== 'damage' ? advKey || disKey || areKeysPressed(config.event, 'skipDialogNormal') : hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') || advKey : false;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
@@ -370,27 +374,34 @@ export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 			critical: [],
 		},
 		options,
-		preAC5eConfig: {
-			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
-			disKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
-			critKey: hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
-			fastForward: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') : hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') || areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
-		},
+		preAC5eConfig: { advKey, critKey, disKey, fastForward },
 		returnEarly: false,
 	};
 
 	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
 	ac5eConfig.roller = roller;
-
-	if (ac5eConfig.preAC5eConfig.advKey) {
-		ac5eConfig.source.advantage = [`${roller} (keyPress)`];
-		ac5eConfig.returnEarly = true;
-	} else if (ac5eConfig.preAC5eConfig.disKey) {
-		ac5eConfig.source.disadvantage = [`${roller} (keyPress)`];
-		ac5eConfig.returnEarly = true;
-	} else if (ac5eConfig.preAC5eConfig.critKey) {
-		ac5eConfig.source.critical = [`${roller} (keyPress)`];
-		ac5eConfig.returnEarly = true;
+	if (hookType === 'activity') return ac5eConfig;
+	if (hookType !== 'damage') {
+		if (ac5eConfig.preAC5eConfig.advKey) {
+			if (hookType !== 'attack') ac5eConfig.target.advantage = [`${roller} (keyPress)`];
+			else ac5eConfig.source.advantage = [`${roller} (keyPress)`];
+		}
+		if (config.options?.advantage) {
+			if (hookType !== 'attack') ac5eConfig.target.advantage = [`${roller} (flags)`];
+			else ac5eConfig.source.advantage = [`${roller} (flags)`];
+		}
+		if (ac5eConfig.preAC5eConfig.disKey) {
+			if (hookType !== 'attack') ac5eConfig.target.disadvantage = [`${roller} (keyPress)`];
+			else ac5eConfig.source.disadvantage = [`${roller} (keyPress)`];
+		}
+		if (config.options?.disadvantage) {
+			if (hookType !== 'attack') ac5eConfig.target.disadvantage = [`${roller} (flags)`];
+			else ac5eConfig.source.disadvantage = [`${roller} (flags)`];
+		}
+	}
+	else {
+		if (ac5eConfig.preAC5eConfig.critKey) ac5eConfig.source.critical = [`${roller} (keyPress)`];
+		if (config.options?.isCritical) ac5eConfig.source.critical = [`${roller} (flags)`];
 	}
 	if (settings.debug) {
 		console.warn('AC5E_getConfig', { ac5eConfig });
