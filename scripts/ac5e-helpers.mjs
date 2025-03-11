@@ -499,14 +499,14 @@ function canSenseModes(token, target, validModesParam = ['all']) {
 			}
 		}
 	}
-	for (let tk of [token]) {
+	for (let tk of [token, target]) {
 		if (!tk.document.sight.enabled) {
 			const sourceId = tk.sourceId;
 			//@ts-expect-error
 			canvas?.effects?.visionSources.delete(sourceId);
 		}
 	}
-	if (settings.debug) console.warn(`${Constants.MODULE_SHORT_NAME} - _canSee()`, { sourceId: source?.id, targetId: target?.id, result: matchedModes });
+	if (settings.debug) console.warn(`${Constants.MODULE_SHORT_NAME} - _canSee()`, { sourceId: token?.id, targetId: target?.id, result: matchedModes });
 	return Array.from(matchedModes);
 }
 
