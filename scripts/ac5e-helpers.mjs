@@ -240,11 +240,11 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog) {
 	const options = config.rolls?.[0]?.options;
-	if (ac5eConfig.source.advantage.length || ac5eConfig.target.advantage.length) options.advantage = true;
-	if (ac5eConfig.source.disadvantage.length || ac5eConfig.target.disadvantage.length) options.disadvantage = true;
-	if (options.advantage === true && options.disadvantage === true) {
-		options.advantage = false;
-		options.disadvantage = false;
+	if (ac5eConfig.source.advantage.length || ac5eConfig.target.advantage.length) /*options*/config.advantage = true;
+	if (ac5eConfig.source.disadvantage.length || ac5eConfig.target.disadvantage.length) /*options*/config.disadvantage = true;
+	if (/*options*/config.advantage === true && /*options*/config.disadvantage === true) {
+		/*options*/config.advantage = false;
+		/*options*/config.disadvantage = false;
 	}
 	if (ac5eConfig.source.fail.length || ac5eConfig.target.fail.length) {
 		config.target = 10000;
