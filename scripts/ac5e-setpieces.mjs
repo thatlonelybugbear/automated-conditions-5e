@@ -148,8 +148,8 @@ function testStatusEffectsTables({ sourceActor, sourceToken, targetActor, target
 		statusEffectsTables.dodging = {
 			_id: _staticID('dodging'),
 			name: _i18nConditions('Dodging'),
-			attack: { target: targetToken && _canSee(targetToken, sourceToken) && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '' },
-			save: { target: ability == 'dex' && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'advantage' : '' },
+			attack: { target: targetToken && targetActor && _canSee(targetToken, sourceToken) && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '' },
+			save: { target: ability == 'dex' && targetActor && !targetActor?.statuses.has('incapacitated') && !!Object.values(targetActor?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'advantage' : '' },
 		};
 		statusEffectsTables.hiding = {
 			_id: _staticID('hiding'),
@@ -161,8 +161,8 @@ function testStatusEffectsTables({ sourceActor, sourceToken, targetActor, target
 			id: 'raging',
 			_id: _staticID('raging'),
 			name: _localize('AC5E.Raging'),
-			save: { target: ability === 'str' && targetActor.armor?.system.type.value !== 'heavy' ? 'advantage' : '' },
-			check: { target: ability === 'str' && targetActor.armor?.system.type.value !== 'heavy' ? 'advantage' : '' },
+			save: { target: ability === 'str' && targetActor?.armor?.system.type.value !== 'heavy' ? 'advantage' : '' },
+			check: { target: ability === 'str' && targetActor?.armor?.system.type.value !== 'heavy' ? 'advantage' : '' },
 			activity: { source: item?.type === 'spell' ? 'fail' : '' },
 		};
 		statusEffectsTables.underwaterCombat = {
@@ -333,7 +333,7 @@ function ac5eFlags({ sourceActor, sourceToken, targetActor, targetToken, ac5eCon
 			if (!!skills[v] && skill === v) return Roll.safeEval(mult + true);
 			if (!!spellSchools[v] && item?.system.school === v) return Roll.safeEval(mult + true);
 			if (!!spellcastingTypes[v] && item?.system.school === v) return Roll.safeEval(mult + true);
-			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && sourceActor.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
+			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && sourceActor?.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
 			//if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);  //incomplete
 			//if (!!targetDocument && Object.entries(_raceOrType(targetDocument, 'all')).includes(v))
 			if (!!raceTargetDocument && Object.values(_raceOrType(raceTargetDocument, 'all')).includes(v)) return Roll.safeEval(mult + true);
