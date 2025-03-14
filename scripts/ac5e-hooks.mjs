@@ -415,7 +415,7 @@ export function _renderHijack(hook, render, elem) {
 }
 
 export async function _overtimeHazards(combat, update, options, user) {
-	if (!game.user.isGM || game.users.find((u) => u.isGM && u.active)?.id !== user) return true;
+	if (!settings.autoHazards /*|| !game.user.isGM*/ || game.users.find((u) => u.isGM && u.active)?.id !== user) return true;
 
 	const hasPHB = game.modules.get('dnd-players-handbook')?.active;
 	const token = combat.combatant?.token?.object;
@@ -435,7 +435,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 				'system.attributes.exhaustion': Math.min((previousActor.system.attributes.exhaustion ?? 0) + 1, maxExhaustion),
 			});
 
-			let flavor = '<p>Suffocating</p>';
+			let flavor = `<p>_localize('AC5E.EnviromentalHazards.Suffocating')</p>`;
 			if (hasPHB) {
 				const suffocationEntry = await fromUuid(SUFFOCATION_UUID);
 				flavor = suffocationEntry?.text?.content ?? flavor;
@@ -451,7 +451,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 	}
 
 	if (actor?.statuses.has('burning')) {
-		let flavor = '<p>Burning Hazard</p>';
+		let flavor = `<p>_localize('AC5E.EnviromentalHazards.BurningHazard')</p>`;
 		if (hasPHB) {
 			const burningEntry = await fromUuid(BURNING_UUID);
 			flavor = burningEntry?.text?.content ?? flavor;
