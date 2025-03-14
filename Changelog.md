@@ -1,3 +1,6 @@
+## v12.436.2
+- Expect ac5eConfig being an empty object.
+
 ## v12.436.1
 - Compatibility bump for dnd5e 4.3.6
 - Added AC5E button colorpicker
