@@ -1,3 +1,6 @@
+## v12.436.4
+- Defer to MidiQOL.computeDistance() when the module is active.
+
 ## v12.436.3
 - Fix for armor stealth disadvantage.
   
