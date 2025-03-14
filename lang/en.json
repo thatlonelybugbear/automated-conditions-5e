@@ -88,5 +88,11 @@
 	"AC5E.TargetDisadvantageAbbreviated": "Target dis",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Target grants crit",
 	"AC5E.TargetGrantsFail": "Target grants fail",
-	"AC5E.NoChanges": "No changes"
+	"AC5E.NoChanges": "No changes",
+	"AC5E.EnviromentalHazards": {
+		"SettingsName": "Enviromental Hazards (2024)",
+		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 dnd45e ruleset",
+		"BurningHazard": "Burning Hazard",
+		"SuffocatingHazard": "Suffocating"
+	}
 }

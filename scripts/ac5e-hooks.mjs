@@ -9,7 +9,7 @@ export function _rollFunctions(hook, ...args) {
 	if (hook === 'activity') {
 		const [activity, config, dialog, message] = args;
 		return _preUseActivity(activity, config, dialog, message, hook);
-	} else if ([/*'conc', 'death', */'save'].includes(hook)) {
+	} else if ([/*'conc', 'death', */ 'save'].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollSavingThrowV2(config, dialog, message, hook);
 	} else if (hook === 'attack') {
@@ -18,7 +18,7 @@ export function _rollFunctions(hook, ...args) {
 	} else if (hook === 'damage') {
 		const [config, dialog, message] = args;
 		return _preRollDamageV2(config, dialog, message, hook);
-	} else if (['check'/*, 'init', 'tool', 'skill'*/].includes(hook)) {
+	} else if (['check' /*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollAbilityTest(config, dialog, message, hook);
 	}
@@ -106,7 +106,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
 
-	if (options.testInitiative && actor.flags.dnd5e.initiativeAdv) ac5eConfig.source.advantage.push(_localize('DND5E.FlagsInitiativeAdv'));  //to-do: move to setPieces
+	if (options.testInitiative && actor.flags.dnd5e.initiativeAdv) ac5eConfig.source.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, targetToken: undefined, targetActor: undefined, hook, ability, tool, skill, options });
 	//check Auto Armor
 	//to-do: move to setPieces
@@ -157,10 +157,11 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
 		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
-		else { //source only
+		else {
+			//source only
 			targetToken = undefined;
 			targetToken = undefined;
-			distance = undefined
+			distance = undefined;
 		}
 	}
 	let ac5eConfig = _getConfig(config, hook, sourceTokenID, targetToken?.id);
@@ -223,7 +224,8 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
 		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
-		else { //source only
+		else {
+			//source only
 			targetToken = undefined;
 			targetToken = undefined;
 			distance = undefined;
@@ -272,8 +274,8 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 			}
 		}
 	}
-// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
-/* 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
+	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
+	/* 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
 	const targets = game.user?.targets;
 	let ac5eConfig = _getConfig(usageConfig, hook, sourceToken?.id, game.user?.targets?.first()?.id, options);
 	const singleTargetToken = targets?.first();
@@ -312,18 +314,17 @@ export function _renderHijack(hook, render, elem) {
 		else newTitle = render.message?.data?.flavor ?? render.options?.title ?? game.i18n.translations.DND5E.InitiativeRoll;
 		title.textContent = newTitle; //: render.title;
 		if (getConfigAC5E?.tokenId && (hookType === 'save' || hookType === 'check')) {
-			const subtitleElement = elem.querySelector(".window-subtitle");
+			const subtitleElement = elem.querySelector('.window-subtitle');
 			tokenName = canvas.tokens.get(getConfigAC5E.tokenId)?.name;
-		        subtitleElement.textContent = `${tokenName}`;
-		        subtitleElement.style.display = "block"; // Force a new line
-		}
-		else if (getConfigAC5E?.options?.testInitiative) {
+			subtitleElement.textContent = `${tokenName}`;
+			subtitleElement.style.display = 'block'; // Force a new line
+		} else if (getConfigAC5E?.options?.testInitiative) {
 			const actorUuid = render.rolls?.[0]?.data?.actorUuid ?? render.config?.subject?.uuid;
 			const actor = fromUuidSync(actorUuid);
 			const tokenName = actor?.token?.name ?? actor?.getActiveTokens()?.[0]?.name;
-			const subtitleElement = elem.querySelector(".window-subtitle");
+			const subtitleElement = elem.querySelector('.window-subtitle');
 			subtitleElement.textContent = `${tokenName}`;
-	        	subtitleElement.style.display = "block"; // Force a new line
+			subtitleElement.style.display = 'block'; // Force a new line
 		}
 		if (!['both', 'dialog'].includes(settings.showTooltips)) return true;
 		tooltip = _getTooltip(getConfigAC5E);
@@ -340,7 +341,7 @@ export function _renderHijack(hook, render, elem) {
 			if (targetElement) {
 				targetElement.focus(); //Critical is not focused; dnd5e issue.
 			}
-		} else 	targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
+		} else targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
 		if (!targetElement) return true;
 		targetElement.style.color = settings.buttonColorText;
 		targetElement.style.backgroundColor = settings.buttonColorBackground;
@@ -348,21 +349,19 @@ export function _renderHijack(hook, render, elem) {
 		targetElement.style.border = `1px solid ${settings.buttonColorBorder}`;
 		targetElement.classList.add('ac5e-button');
 		targetElement.setAttribute('data-tooltip', tooltip);
-		targetElement.focus();  //midi for some reason doesn't focus on skills with advMode. //to-do check this and why Dodging rolls FF for Dex save
+		targetElement.focus(); //midi for some reason doesn't focus on skills with advMode. //to-do check this and why Dodging rolls FF for Dex save
 		if (settings.debug) {
 			console.warn('ac5e hijack getTooltip', tooltip);
 			console.warn('ac5e hijack targetElement:', targetElement);
 		}
 		return true;
-	}
-	else if (hook === 'chat') {
+	} else if (hook === 'chat') {
 		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
 		if (_activeModule('midi-qol')) {
 			if (render?.rolls?.length > 1) {
 				getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID], render?.rolls?.[2]?.options?.[Constants.MODULE_ID]];
 				if (!getConfigAC5E[0]?.hookType) return true;
-			}
-			else {
+			} else {
 				getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
 				if (!getConfigAC5E) return true;
 			}
@@ -371,7 +370,7 @@ export function _renderHijack(hook, render, elem) {
 				tooltip = _getTooltip(ac5eElement);
 				if (tooltip === '') continue;
 				let thisTargetElement;
-				const hT = ac5eElement?.hookType
+				const hT = ac5eElement?.hookType;
 				if (!hT) continue;
 				if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
 				else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
@@ -384,8 +383,7 @@ export function _renderHijack(hook, render, elem) {
 				console.warn('ac5e hijack targetElement:', targetElement);
 			}
 			return true;
-		}
-		else {
+		} else {
 			getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
 			if (!getConfigAC5E) return true;
 			({ hookType, roller } = getConfigAC5E);
@@ -398,8 +396,7 @@ export function _renderHijack(hook, render, elem) {
 				} else {
 					targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
 				}
-			}
-			else if (roller === 'RSR') {
+			} else if (roller === 'RSR') {
 				if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
 				else if (['attack'].includes(hookType)) {
 					targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
@@ -414,6 +411,75 @@ export function _renderHijack(hook, render, elem) {
 			if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
 			return true;
 		}
-	} 	
+	}
 }
 
+export async function _overtimeHazards(combat, update, options, user) {
+	if (!settings.autoHazards /*|| !game.user.isGM*/ || game.users.find((u) => u.isGM && u.active)?.id !== user) return true;
+
+	const hasPHB = game.modules.get('dnd-players-handbook')?.active;
+	const token = combat.combatant?.token?.object;
+	const actor = combat.combatant?.token?.actor;
+	const previousCombatantId = combat.previous?.tokenId;
+	const previousToken = previousCombatantId ? canvas.tokens.get(previousCombatantId) : null;
+	const previousActor = previousToken?.actor;
+
+	const SUFFOCATION_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.gAvV8TLyS8UGq00x';
+	const BURNING_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.mPBGM1vguT5IPzxT';
+	const PRONE_UUID = 'Compendium.dnd5e.rules.JournalEntry.w7eitkpD7QQTB6j0.JournalEntryPage.y0TkcdyoZlOTmAFT';
+
+	if (previousActor?.statuses.has('suffocation')) {
+		const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;
+		if (maxExhaustion) {
+			await previousActor.update({
+				'system.attributes.exhaustion': Math.min((previousActor.system.attributes.exhaustion ?? 0) + 1, maxExhaustion),
+			});
+
+			let flavor = `<p>_localize('AC5E.EnviromentalHazards.Suffocating')</p>`;
+			if (hasPHB) {
+				const suffocationEntry = await fromUuid(SUFFOCATION_UUID);
+				flavor = suffocationEntry?.text?.content ?? flavor;
+			}
+
+			const enrichedHTML = (await TextEditor.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
+
+			await ChatMessage.create({
+				content: enrichedHTML,
+				speaker: ChatMessage.getSpeaker({ token: previousToken }),
+			});
+		}
+	}
+
+	if (actor?.statuses.has('burning')) {
+		let flavor = `<p>_localize('AC5E.EnviromentalHazards.BurningHazard')</p>`;
+		if (hasPHB) {
+			const burningEntry = await fromUuid(BURNING_UUID);
+			flavor = burningEntry?.text?.content ?? flavor;
+		}
+
+		flavor = flavor.replace(/@UUID\[\.QxCrRcgMdUd3gfzz\]\{Prone\}/g, `@UUID[${PRONE_UUID}]{Prone}`);
+
+		const enrichedHTML = await TextEditor.enrichHTML(flavor);
+		const type = 'fire';
+
+		if (!MidiQOL) {
+			token.control();
+			return new CONFIG.Dice.DamageRoll('1d4', actor?.getRollData(), {
+				type,
+				appearance: { colorset: type },
+			}).toMessage({ content: enrichedHTML });
+		} else {
+			const damageRoll = await new Roll('1d4', actor?.getRollData(), {
+				type,
+				appearance: { colorset: type },
+			}).toMessage({ content: enrichedHTML });
+			const damage = damageRoll.rolls[0].total;
+
+			const forceApply = MidiQOL.configSettings()?.autoApplyDamage?.includes('yes') ?? false;
+
+			return MidiQOL.applyTokenDamage([{ type, damage }], damage, new Set([token]), null, null, { forceApply });
+		}
+	}
+
+	return true;
+}
