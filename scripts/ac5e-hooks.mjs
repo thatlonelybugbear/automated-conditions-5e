@@ -49,7 +49,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	options.deathSave = config.hookNames.includes('deathSave');
 	options.concentrationSave = config.isConcentration;
 	if (settings.debug) console.warn('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
-	const { subject: actor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
+	const { subject: targetActor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 	const speaker = message?.data?.speaker;
 	const rollTypeObj = message?.flags?.dnd5e?.roll;
@@ -58,28 +58,28 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config);
 	const activity = chatButtonTriggered?.activity;
 
-	const sourceTokenID = speaker?.token;
-	const sourceToken = canvas.tokens.get(sourceTokenID);
-	let ac5eConfig = _getConfig(config, hook, sourceTokenID, undefined, options);
+	const targetTokenId = speaker?.token;
+	const targetToken = canvas.tokens.get(sourceTokenID);
+	let ac5eConfig = _getConfig(config, hook, undefined, targetTokenId, options);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	if (options.deathSave) {
-		const hasAdvantage = actor.system.attributes.death?.roll?.mode === 1;
-		const hasDisadvantage = actor.system.attributes.death?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.source.advantage.push(_localize('DND5E.AdvantageMode'));
-		if (hasDisadvantage) ac5eConfig.source.disadvantage.push(_localize('DND5E.AdvantageMode'));
+		const hasAdvantage = targetActor.system.attributes.death?.roll?.mode === 1;
+		const hasDisadvantage = targetActor.system.attributes.death?.roll?.mode === -1;
+		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.AdvantageMode'));
+		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.AdvantageMode'));
 	}
 
 	if (options.concentrationSave) {
-		if (_hasItem(actor, _localize('AC5E.WarCaster'))) ac5eConfig.source.advantage.push(_localize(itemName));
-		const hasAdvantage = actor.system.attributes.concentration?.roll?.mode === 1;
-		const hasDisadvantage = actor.system.attributes.concentration?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.source.advantage.push(_localize('DND5E.AdvantageMode'));
-		if (hasDisadvantage) ac5eConfig.source.disadvantage.push(_localize('DND5E.AdvantageMode'));
+		if (_hasItem(targetActor, _localize('AC5E.WarCaster'))) ac5eConfig.target.advantage.push(_localize(itemName));
+		const hasAdvantage = targetActor.system.attributes.concentration?.roll?.mode === 1;
+		const hasDisadvantage = targetActor.system.attributes.concentration?.roll?.mode === -1;
+		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.AdvantageMode'));
+		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.AdvantageMode'));
 	}
 
-	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, hook, ability, activity, options });
+	ac5eConfig = _ac5eChecks({ targetActor, targetToken, ac5eConfig, hook, ability, activity, options });
 	// if (ac5eConfig.source.fail.length) {
 	// 	config.rolls[0].parts.push('-99');
 	// 	config.rolls[0].options.criticalSuccess = 21; //make it not crit)
@@ -91,7 +91,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 export function _preRollAbilityTest(config, dialog, message, hook) {
 	const options = {};
 	options.testInitiative = config.hookNames.includes('initiativeDialog');
-	const { subject: actor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
+	const { subject: targetActor, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const speaker = message?.data?.speaker;
 
 	// const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
@@ -99,23 +99,23 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	// const messageType = message?.flags?.dnd5e?.messageType;
 	// const chatMessage = message?.document;
 
-	const sourceTokenID = speaker?.token;
-	const sourceToken = canvas.tokens.get(sourceTokenID);
+	const targetTokenID = speaker?.token;
+	const targetToken = canvas.tokens.get(targetTokenID);
 
-	let ac5eConfig = _getConfig(config, hook, sourceTokenID, undefined, options);
+	let ac5eConfig = _getConfig(config, hook, undefined, targetTokenID, options);
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
 
-	if (options.testInitiative && actor.flags.dnd5e.initiativeAdv) ac5eConfig.source.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
-	ac5eConfig = _ac5eChecks({ actor, token: sourceToken, ac5eConfig, targetToken: undefined, targetActor: undefined, hook, ability, tool, skill, options });
+	if (options.testInitiative && targetActor.flags.dnd5e.initiativeAdv) ac5eConfig.target.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	ac5eConfig = _ac5eChecks({ ac5eConfig, targetToken, targetActor, hook, ability, tool, skill, options });
 	//check Auto Armor
 	//to-do: move to setPieces
-	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(actor).notProficient) {
-		ac5eConfig.source.disadvantage.push(`${_localize(_autoArmor(actor).notProficient)} (${_localize('NotProficient')})`);
+	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(targetActor).notProficient) {
+		ac5eConfig.target.disadvantage.push(`${_localize(_autoArmor(targetActor).notProficient)} (${_localize('NotProficient')})`);
 	}
 	//to-do: move to setPieces
-	if (_autoEncumbrance(actor, ability)) {
-		ac5eConfig.source.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
+	if (_autoEncumbrance(targetActor, ability)) {
+		ac5eConfig.target.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 	}
 	_setAC5eProperties(ac5eConfig, config, dialog, message, options);
 	// if (ac5eConfig.source.fail.length) {
