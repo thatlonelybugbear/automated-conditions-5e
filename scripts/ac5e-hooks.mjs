@@ -462,7 +462,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 		const enrichedHTML = await TextEditor.enrichHTML(flavor);
 		const type = 'fire';
 
-		if (!MidiQOL) {
+		if (!_activeModule('midi-qol')) {
 			token.control();
 			return new CONFIG.Dice.DamageRoll('1d4', actor?.getRollData(), {
 				type,
