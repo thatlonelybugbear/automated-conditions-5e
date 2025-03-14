@@ -166,7 +166,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	}
 	let ac5eConfig = _getConfig(config, hook, sourceTokenID, targetToken?.id);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
+	ac5eConfig = _ac5eChecks({ sourceActor, sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 
 	let nearbyFoe, inRange, range;
@@ -233,7 +233,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	}
 	let ac5eConfig = _getConfig(config, hook, sourceTokenID, targetToken?.id);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ actor: sourceActor, token: sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
+	ac5eConfig = _ac5eChecks({ sourceActor, sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
