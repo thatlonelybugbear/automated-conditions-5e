@@ -1,4 +1,4 @@
-## v12.436.2
+## v12.436.1
 - Compatibility bump for dnd5e 4.3.6
 - Added AC5E button colorpicker
 - Added initial pass for automating Enviromental Hazards from the 2024 dnd5e ruleset (setting added, default false)
