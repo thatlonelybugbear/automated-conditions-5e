@@ -110,8 +110,9 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	ac5eConfig = _ac5eChecks({ ac5eConfig, targetToken, targetActor, hook, ability, tool, skill, options });
 	//check Auto Armor
 	//to-do: move to setPieces
-	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(targetActor).notProficient) {
-		ac5eConfig.target.disadvantage.push(`${_localize(_autoArmor(targetActor).notProficient)} (${_localize('NotProficient')})`);
+	if (settings.autoArmor) {
+		if (['dex', 'str'].includes(ability) && _autoArmor(targetActor).notProficient) ac5eConfig.target.disadvantage.push(`${_localize(_autoArmor(targetActor).notProficient)} (${_localize('NotProficient')})`);
+		if (skill === 'ste' && _autoArmor(targetActor).hasStealthDisadvantage) ac5eConfig.target.disadvantage.push(`${_localize(_autoArmor(targetActor).hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
 	}
 	//to-do: move to setPieces
 	if (_autoEncumbrance(targetActor, ability)) {
