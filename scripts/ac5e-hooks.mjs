@@ -59,7 +59,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const activity = chatButtonTriggered?.activity;
 
 	const targetTokenId = speaker?.token;
-	const targetToken = canvas.tokens.get(sourceTokenID);
+	const targetToken = canvas.tokens.get(targetTokenId);
 	let ac5eConfig = _getConfig(config, hook, undefined, targetTokenId, options);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
