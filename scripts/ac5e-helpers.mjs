@@ -11,6 +11,12 @@ const settings = new Settings();
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false) {
+	if (_activeModule('midi-qol')) {
+		const result = MidiQOL.computeDistance(tokenA, tokenB);
+		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA.id, targetId: tokenB.id, result, units: canvas.scene.grid.units });
+		if (includeUnits) return result + (includeUnits ? canvas.scene.grid.units : '');
+		return result;
+	}
 	if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
 	else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
 	if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
