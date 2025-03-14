@@ -1,3 +1,6 @@
+## v12.436.3
+- Fix for armor stealth disadvantage.
+  
 ## v12.436.2
 - Expect ac5eConfig being an empty object.
 
