@@ -334,16 +334,18 @@ export function _getTooltip(ac5eConfig = {}) {
 			tooltip += text;
 		}
 	};
-
-	addTooltip(source.critical.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.SourceCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>`);
-	addTooltip(target.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${target.critical.join(', ')}</span>`);
-	addTooltip(source.fail.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('SourceGrantsFail')}: ${source.fail.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${source.fail.join(', ')}</span>`);
-	addTooltip(target.fail.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${target.fail.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('TargetGrantsFail')}: ${target.fail.join(', ')}</span>`);
-	addTooltip(source.advantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsAdvantageAbbreviated')}: ${source.advantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerAdvantageAbbreviated')}: ${source.advantage.join(', ')}</span>`);
-	addTooltip(target.advantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('Advantage')}: ${target.advantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${target.advantage.join(', ')}</span>`);
-	addTooltip(source.disadvantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>`);
-	addTooltip(target?.disadvantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('Disadvantage')}: ${target.disadvantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${target.disadvantage.join(', ')}</span>`);
-
+	if (source) {
+		addTooltip(source.critical.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.SourceCriticalAbbreviated')}: ${ac5eConfig.source.critical.join(', ')}</span>`);
+		addTooltip(source.advantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsAdvantageAbbreviated')}: ${source.advantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerAdvantageAbbreviated')}: ${source.advantage.join(', ')}</span>`);
+		addTooltip(source.fail.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('SourceGrantsFail')}: ${source.fail.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${source.fail.join(', ')}</span>`);
+		addTooltip(source.disadvantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.SourceGrantsDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.AttackerDisadvantageAbbreviated')}: ${source.disadvantage.join(', ')}</span>`);
+	};
+	if (target) {
+		addTooltip(target.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${target.critical.join(', ')}</span>`);
+		addTooltip(target.fail.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${target.fail.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('TargetGrantsFail')}: ${target.fail.join(', ')}</span>`);
+		addTooltip(target.advantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('Advantage')}: ${target.advantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${target.advantage.join(', ')}</span>`);
+		addTooltip(target?.disadvantage.length, !['attack', 'damage'].includes(hookType) ? `<span style="display: block; text-align: left;">${_localize('Disadvantage')}: ${target.disadvantage.join(', ')}</span>` : `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${target.disadvantage.join(', ')}</span>`);
+	};
 	return tooltip.includes(':') ? tooltip : (tooltip += `<center><strong>${_localize('AC5E.NoChanges')}</strong></center>`);
 }
 
