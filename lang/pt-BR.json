@@ -47,11 +47,52 @@
   "AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
   "AC5E.WarCaster": "Conjurador de Guerra",
   "AC5E.Fail": "Falha",
+  "AC5E.FailLowerCase": "falha",
   "AC5E.Rage": "Fúria",
   "AC5E.Raging": "Em Fúria",
   "AC5E.SubtleSpell": "Magia Sutil",
   "AC5E.OutOfRange": "Fora do alcance",
   "AC5E.Item": "Item",
   "AC5E.Equipment": "Equipmento",
-  "AC5E.NearbyFoe": "Inimigo Próximo"
+  "AC5E.NearbyFoe": "Inimigo Próximo",
+    "AC5E.ButtonColorPicker": {
+    "Background": {
+      "Name": "🎨 Cor de Fundo do Botão",
+      "Hint": "Exclui qualquer string da entrada para definir como padrão o game.user.color."
+    },
+    "Border": {
+      "Name": "🖍️ Cor da Borda do Botão",
+      "Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
+    },
+    "Text": {
+      "Name": "🔤 Cor do Texto do Botão",
+      "Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
+    }
+  },
+  "AC5E.AbbreviationAdvantage": "vant.",
+  "AC5E.AbbreviationDisadvantage": "desv.",
+  "AC5E.AbbreviationCritical": "crít.",
+  "AC5E.Grants": "conceder",
+  "AC5E.Attacker": "Atacante",
+  "AC5E.AttackerAdvantageAbbreviated": "Vant. Atacante",
+  "AC5E.AttackerGrantsDisadvantageAbbreviated": "Atacante Concede Desv.",
+  "AC5E.AttackerDisadvantageAbbreviated": "Desv. Atacante",
+  "AC5E.SourceGrantsAdvantageAbbreviated": "Origem Concede Vant.",
+  "AC5E.SourceGrantsCriticalAbbreviated": "Origem Concede Crít.",
+  "AC5E.SourceGrantsDisadvantageAbbreviated": "Origem Concede Disv.",
+  "AC5E.SourceGrantsFail": "Origem Concede Falha",
+  "AC5E.SourceCriticalAbbreviated": "Crít. Origem",
+  "AC5E.TargetGrantsAdvantageAbbreviated": "Alvo Concede Vant.",
+  "AC5E.TargetAdvantageAbbreviated": "Vant. Alvo",
+  "AC5E.TargetGrantsDisadvantageAbbreviated": "Alvo Concede Desv.",
+  "AC5E.TargetDisadvantageAbbreviated": "Desv. Alvo",
+  "AC5E.TargetGrantsCriticalAbbreviated": "Alvo Concede Desv.",
+  "AC5E.TargetGrantsFail": "Alvo Concede Falha",
+  "AC5E.NoChanges": "Sem Mudanças",
+  "AC5E.EnviromentalHazards": {
+    "SettingsName": "Riscos Ambientais (2024)",
+    "SettingsHint": "Automatize as condições Chamuscado e Sufocamento, com base no conjunto de regras do D&D5e de 2024",
+    "BurningHazard": "Chamuscado",
+    "SuffocatingHazard": "Sufocamento"
+  }
 }
