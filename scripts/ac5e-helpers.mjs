@@ -392,20 +392,37 @@ export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
 	ac5eConfig.roller = roller;
 
+	const actorType = hookType === 'attack' ? 'source' : 'target';
+
 	if (ac5eConfig.preAC5eConfig.advKey) {
-		ac5eConfig.source.advantage = [`${roller} (keyPress)`];
+		ac5eConfig[actorType].advantage = [`${roller} (keyPress)`];
 		ac5eConfig.returnEarly = true;
-	} else if (ac5eConfig.preAC5eConfig.disKey) {
-		ac5eConfig.source.disadvantage = [`${roller} (keyPress)`];
+		if (ac5eConfig.returnEarly) {
+			config.advantage = true;
+			config.disadvantage = false;
+		}
+	}
+	else if (ac5eConfig.preAC5eConfig.disKey) {
+		ac5eConfig[actorType].disadvantage = [`${roller} (keyPress)`];
 		ac5eConfig.returnEarly = true;
-	} else if (ac5eConfig.preAC5eConfig.critKey) {
+		if (ac5eConfig.returnEarly) {
+			config.advantage = false;
+			config.disadvantage = true;
+		}
+	}
+	else if (ac5eConfig.preAC5eConfig.critKey) {
 		ac5eConfig.source.critical = [`${roller} (keyPress)`];
 		ac5eConfig.returnEarly = true;
 	}
-	if (settings.debug) {
-		console.warn('AC5E_getConfig', { ac5eConfig });
-		//debugger;
-	}
+	
+	if (ac5eConfig.returnEarly) {
+		if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
+		return ac5eConfig;
+	};	
+	if (config.advantage && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig[actorType].advantage.push(`${roller} (flags)`);
+	if (config.disadvantage && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig[actorType].disadvantage.push(`${roller} (flags)`);
+	if (config.isCritical && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.source.critical.push(`${roller} (flags)`);
+	if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
 	return ac5eConfig;
 }
 
