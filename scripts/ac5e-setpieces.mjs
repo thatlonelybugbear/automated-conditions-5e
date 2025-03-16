@@ -320,6 +320,16 @@ function ac5eFlags({ sourceActor, sourceToken, targetActor, targetToken, ac5eCon
 			}
 			console.log(value);
 			const raceTargetDocument = actorType === 'source' ? targetActor : sourceActor;
+			const getActivityEffectsStatusRiders = (activity) => {
+				const statuses = {};
+				// const riders = {};
+				activity?.applicableEffects.forEach(effect=>{
+					console.log(effect)
+					Array.from(effect.statuses).forEach(status=>statuses[status]=true);
+					effect.flags?.dnd5e?.riders?.statuses?.forEach(rider=>statuses[rider]=true);
+				});
+				return statuses;
+			};
 			if (numericValue && distance && comparisonOps[comparison](distance, numericValue)) return true;
 			if (!!abilities[v] && [ability, activity?.ability].includes(v)) return Roll.safeEval(mult + true);
 			if (!!activityTypes[v] && activity?.type === v) return Roll.safeEval(mult + true);
@@ -333,9 +343,8 @@ function ac5eFlags({ sourceActor, sourceToken, targetActor, targetToken, ac5eCon
 			if (!!skills[v] && skill === v) return Roll.safeEval(mult + true);
 			if (!!spellSchools[v] && item?.system.school === v) return Roll.safeEval(mult + true);
 			if (!!spellcastingTypes[v] && item?.system.school === v) return Roll.safeEval(mult + true);
+			if (actorType === 'target' && getActivityEffectsStatusRiders(activity)[v]) return Roll.safeEval(mult + true);
 			if (statusEffects.some((s) => s.id === v) && ((actorType == 'source' && sourceActor?.statuses.has(v)) || (actorType == 'target' && targetActor?.statuses.has(v)))) return Roll.safeEval(mult + true);
-			//if (statusEffects.some((s) => s.name === v.capitalize()) && actorType === 'target') return Roll.safeEval(mult + true);  //incomplete
-			//if (!!targetDocument && Object.entries(_raceOrType(targetDocument, 'all')).includes(v))
 			if (!!raceTargetDocument && Object.values(_raceOrType(raceTargetDocument, 'all')).includes(v)) return Roll.safeEval(mult + true);
 			if (!!tools[v] && tool === v) return Roll.safeEval(mult + true);
 			if (!!validProperties[v] && item?.type === v) return Roll.safeEval(mult + true);
