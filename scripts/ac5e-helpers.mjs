@@ -304,6 +304,7 @@ export function _autoEncumbrance(actor, abilityId) {
 }
 
 export function _autoRanged(activity, token, target) {
+	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
 	const actionType = _getActionType(activity);
 	const { range, item } = activity || {};
 	if (!range || !token) return {};
@@ -315,11 +316,12 @@ export function _autoRanged(activity, token, target) {
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'crossbow expert');
 	const nearbyFoe = 
+		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange = (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
+	const inRange = (midiCheckRange !== 'none' || (!short && !long) || distance <= short) ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
