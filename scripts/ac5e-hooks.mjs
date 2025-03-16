@@ -337,7 +337,7 @@ export function _renderHijack(hook, render, elem) {
 			else if (advantageMode === 1) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="advantage"]');
 			//	if (targetElement && !targetElement.innerHTML.includes('AC5E')) targetElement.innerHTML = `>AC5E<`;
 		} else if (hookType === 'damage') {
-			if ( render.rolls?.[0]?.options?.isCritical) targetElement = elem.querySelector('button[data-action="critical"]');
+			if (render.rolls?.[0]?.options?.isCritical) targetElement = elem.querySelector('button[data-action="critical"]');
 			else targetElement = elem.querySelector('button[data-action="normal"]');
 			if (targetElement) {
 				targetElement.focus(); //Critical is not focused; dnd5e issue.
