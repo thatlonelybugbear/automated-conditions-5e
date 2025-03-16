@@ -1,3 +1,11 @@
+## v12.436.5
+- Another fix for MidiQOL compatibility, when both modules check nearby foes and range. If MidiQOL checks for those, AC5e will defer to it.
+- Fix for critical rolls always being highlighted.
+- Better indication of keypresses and module flags being present during a roll.
+- First pass for evaluation of statuses/riders on activities active effects.
+  - For example, adding in a feature for Dwarven Resilience a `flags.automated-conditions-5e.save.target.advantage | Add | poisoned`, means that the actor will be rolling with advantage on any saves against an activity that would apply the Poisoned status.
+- Update pt-BR.json by @Kharmans
+
 ## v12.436.4
 - Defer to MidiQOL.computeDistance() when the module is active.
 
