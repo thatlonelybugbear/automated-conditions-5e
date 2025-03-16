@@ -331,11 +331,10 @@ export function _renderHijack(hook, render, elem) {
 		if (tooltip === '') return true;
 		if (!['activity', 'damage'].includes(hookType)) {
 			const dialogElement = document.getElementById(elem.id);
-			const advantageMode = render.rolls?.[0]?.options.advantageMode;
-			if (advantageMode === 0) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="normal"]');
-			else if (advantageMode === -1) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="disadvantage"]');
-			else if (advantageMode === 1) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="advantage"]');
-			//	if (targetElement && !targetElement.innerHTML.includes('AC5E')) targetElement.innerHTML = `>AC5E<`;
+			// const advantageMode = render.rolls?.[0]?.options.advantageMode;
+			if (render.config.advantage === render.config.disadvantage) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="normal"]');
+			else if (render.config.disadvantage) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="disadvantage"]');
+			else if (render.config.advantage) targetElement = elem.querySelector('nav.dialog-buttons button[data-action="advantage"]');
 		} else if (hookType === 'damage') {
 			if (render.rolls?.[0]?.options?.isCritical) targetElement = elem.querySelector('button[data-action="critical"]');
 			else targetElement = elem.querySelector('button[data-action="normal"]');
