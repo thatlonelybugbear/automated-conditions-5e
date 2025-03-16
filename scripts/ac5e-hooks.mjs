@@ -236,7 +236,6 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ sourceActor, sourceToken, targetActor, targetToken, ac5eConfig, hook, ability, distance, activity });
 	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
-	if (settings.debug) console.warn('preDamage ac5eConfig', ac5eConfig);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (ac5eConfig.source.critical.length || ac5eConfig.target.critical.length) {
 		config.rolls[0].options.isCritical = true;
