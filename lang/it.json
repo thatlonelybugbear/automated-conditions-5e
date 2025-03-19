@@ -47,11 +47,52 @@
 	"AC5E.DebuggingHint": "Solo alcuni log utili per il debug durante lo sviluppo. Probabilmente non ha molto senso che gli utenti lo usino :)",
 	"AC5E.WarCaster": "Mago da Battaglia",
 	"AC5E.Fail": "Fallito",
+	"AC5E.FailLowerCase": "fallito",
 	"AC5E.Rage": "Ira",
 	"AC5E.Raging": "In Ira",
 	"AC5E.SubtleSpell": "Incantesimo Celato",
 	"AC5E.OutOfRange": "Fuori Gittata",
 	"AC5E.Item": "Oggetto",
 	"AC5E.Equipment": "Equipaggiamento",
-	"AC5E.NearbyFoe": "Nemico Vicino"
+	"AC5E.NearbyFoe": "Nemico Vicino",
+	"AC5E.ButtonColorPicker": {
+		"Background": {
+			"Name": "🎨 Colore di sfondo del pulsante",
+			"Hint": "Elimina qualsiasi stringa dall'input per utilizzare come predefinito game.user.color"
+		},
+		"Border": {
+			"Name": "🖍️ Colore del bordo del pulsante",
+			"Hint": "Elimina qualsiasi stringa dall'input per renderla predefinita in bianco"
+		},
+		"Text": {
+			"Name": "🔤 Colore del testo del pulsante",
+			"Hint": "Elimina qualsiasi stringa dall'input per renderla predefinita in bianco"
+		}
+	},
+	"AC5E.AbbreviationAdvantage": "vant",
+	"AC5E.AbbreviationDisadvantage": "svant",
+	"AC5E.AbbreviationCritical": "crit",
+	"AC5E.Grants": "fornisce",
+	"AC5E.Attacker": "Attaccante",
+	"AC5E.AttackerAdvantageAbbreviated": "Vant Attaccante",
+	"AC5E.AttackerGrantsDisadvantageAbbreviated": "Attaccante fornisce svant",
+	"AC5E.AttackerDisadvantageAbbreviated": "Svan Attaccante",
+	"AC5E.SourceGrantsAdvantageAbbreviated": "Sorgente fornisce vant",
+	"AC5E.SourceGrantsCriticalAbbreviated": "Sorgente fornisce crit",
+	"AC5E.SourceGrantsDisadvantageAbbreviated": "Sorgente fornisce svant",
+	"AC5E.SourceGrantsFail": "Sorgente fornisce fallimento",
+	"AC5E.SourceCriticalAbbreviated": "Sorgente fa critico",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Bersaglio fornisce vant",
+	"AC5E.TargetAdvantageAbbreviated": "Vant Bersaglio",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Bersaglio fornisce svant",
+	"AC5E.TargetDisadvantageAbbreviated": "Svant Bersaglio",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Bersaglio fornisce crit",
+	"AC5E.TargetGrantsFail": "Bersaglio fornisce fallimento",
+	"AC5E.NoChanges": "Nessun cambiamento",
+	"AC5E.EnviromentalHazards": {
+		"SettingsName": "Pericoli ambientali (2024)",
+		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
+		"BurningHazard": "Pericolo Ustioni",
+		"SuffocatingHazard": "Soffocamento"
+	}
 }
