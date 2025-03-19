@@ -74,6 +74,7 @@ function ac5eSetup() {
 function ac5eButtonListeners() {
 	const settings = new Settings();
 	Hooks.on('renderSettingsConfig', (app, html, data) => {
+		const $html = $(html);
 		const settings = [
 			{ key: 'buttonColorBackground', default: game?.user?.color?.css },
 			{ key: 'buttonColorBorder', default: 'white' },
@@ -82,7 +83,7 @@ function ac5eButtonListeners() {
 
 		for (let { key, default: defaultValue } of settings) {
 			const settingKey = `${Constants.MODULE_ID}.${key}`;
-			const input = html.find(`[name="${settingKey}"]`);
+			const input = $html.find(`[name="${settingKey}"]`);
 			if (input.length) {
 				const colorPicker = $(`<input type="color" class="color-picker">`);
 				colorPicker.val(getValidColor(input.val(), defaultValue));
