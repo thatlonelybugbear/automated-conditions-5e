@@ -1,3 +1,6 @@
+## v13.436.1
+- Foundry v13 compatibility bump (should be working).
+
 ## v12.436.5
 - Another fix for MidiQOL compatibility, when both modules check nearby foes and range. If MidiQOL checks for those, AC5e will defer to it.
 - Fix for critical rolls always being highlighted.
