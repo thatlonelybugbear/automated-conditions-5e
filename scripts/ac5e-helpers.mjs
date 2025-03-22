@@ -335,7 +335,7 @@ export function _systemCheck(testVersion) {
 
 export function _getTooltip(ac5eConfig = {}) {
 	const { hookType, source, target } = ac5eConfig;
-	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e</strong></center><hr>' : '';
+	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e<hr></strong></center>' : '';
 	const addTooltip = (condition, text) => {
 		if (condition) {
 			if (tooltip.includes(':')) tooltip += '<br>';
