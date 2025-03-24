@@ -1,3 +1,6 @@
+## v13.436.1.2
+- Quick compatibility update for MidiQOL, making sure the `config.midiOptions` are taken into account!
+
 ## v13.436.1.1
 - Update it.json by [GregoryWarn](<https://github.com/GregoryWarn>) in [233](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/233>)
 - Compatibility update for [Carolingian UI](<https://github.com/crlngn/crlngn-ui>) in [234](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/234>)
