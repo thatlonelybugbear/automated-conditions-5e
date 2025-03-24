@@ -390,6 +390,7 @@ export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 	};
 
 	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
+	if (_activeModule('midi-qol')) ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(config.midiOptions || {});
 	ac5eConfig.roller = roller;
 
 	const actorType = hookType === 'attack' ? 'source' : 'target';
@@ -419,9 +420,9 @@ export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 		if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
 		return ac5eConfig;
 	};	
-	if (config.advantage && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig[actorType].advantage.push(`${roller} (flags)`);
-	if (config.disadvantage && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig[actorType].disadvantage.push(`${roller} (flags)`);
-	if (config.isCritical && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.source.critical.push(`${roller} (flags)`);
+	if ((config.advantage || ac5eConfig.preAC5eConfig.midiOptions?.advantage) && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig[actorType].advantage.push(`${roller} (flags)`);
+	if ((config.disadvantage || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig[actorType].disadvantage.push(`${roller} (flags)`);
+	if ((config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.source.critical.push(`${roller} (flags)`);
 	if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
 	return ac5eConfig;
 }
