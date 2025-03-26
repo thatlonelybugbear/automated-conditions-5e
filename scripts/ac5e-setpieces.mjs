@@ -197,6 +197,7 @@ function ac5eFlags({ sourceActor, sourceToken, targetActor, targetToken, ac5eCon
 	//flags that affect others (target)
 	//flags that work like auras
 	const item = activity?.item;
+	const activityAttackMode = ac5eConfig?.attackMode;
 	function activityDamageTypes(a) {
 		if (!a) return [];
 		if (['attack', 'damage', 'save'].includes(a?.type)) return a.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
@@ -334,8 +335,8 @@ function ac5eFlags({ sourceActor, sourceToken, targetActor, targetToken, ac5eCon
 			if (!!abilities[v] && [ability, activity?.ability].includes(v)) return Roll.safeEval(mult + true);
 			if (!!activityTypes[v] && activity?.type === v) return Roll.safeEval(mult + true);
 			if (!!attackClassifications[v] && activity?.attack?.type?.classification === v) return Roll.safeEval(mult + true);
-			if (!!attackModes[v] && activity?.attackMode === v) return Roll.safeEval(mult + true);
-			if (!!attackTypes[v] && activity?.attack?.type?.value === v) return Roll.safeEval(mult + true);
+			if (!!attackModes[v] && activityAttackMode === v) return Roll.safeEval(mult + true);
+			if (!!attackTypes[v] && (activity?.attack?.type?.value === v || item?.system?.actionType === v)) return Roll.safeEval(mult + true);
 			if (!!damageTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!deprecatedAttackTypes[v] && _getActionType(activity) === v) return Roll.safeEval(mult + true);
 			if (!!healingTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
