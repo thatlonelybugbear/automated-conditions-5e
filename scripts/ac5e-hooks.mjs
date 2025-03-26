@@ -67,16 +67,16 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (options.deathSave) {
 		const hasAdvantage = targetActor.system.attributes.death?.roll?.mode === 1;
 		const hasDisadvantage = targetActor.system.attributes.death?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.AdvantageMode'));
-		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.AdvantageMode'));
+		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.Advantage'));
+		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.Disadvantage'));
 	}
 
 	if (options.concentrationSave) {
 		if (_hasItem(targetActor, _localize('AC5E.WarCaster'))) ac5eConfig.target.advantage.push(_localize(itemName));
 		const hasAdvantage = targetActor.system.attributes.concentration?.roll?.mode === 1;
 		const hasDisadvantage = targetActor.system.attributes.concentration?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.AdvantageMode'));
-		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.AdvantageMode'));
+		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.Advantage'));
+		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.Disadvantage'));
 	}
 
 	ac5eConfig = _ac5eChecks({ targetActor, targetToken, ac5eConfig, hook, ability, activity, options });
