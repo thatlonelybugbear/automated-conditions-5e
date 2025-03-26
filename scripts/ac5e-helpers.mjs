@@ -365,6 +365,7 @@ export function _getConfig(config, hookType, tokenId, targetId, options = {}) {
 		hookType,
 		tokenId,
 		targetId,
+		attackMode: config?.attackMode,
 		source: {
 			advantage: [],
 			disadvantage: [],
