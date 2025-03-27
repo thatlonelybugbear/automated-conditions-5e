@@ -578,6 +578,7 @@ export function _staticID(id) {
 }
 
 export function _getActionType(activity, returnClassifications = false) {
+	if (['mwak', 'msak', 'rwak', 'rsak'].includes(activity?.actionType)) return activity.actionType; //don't reinvent the wheel.
 	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
 	if (returnClassifications) return actionType;
