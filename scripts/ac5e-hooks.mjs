@@ -129,7 +129,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 export function _preRollAttackV2(config, dialog, message, hook) {
 	if (settings.debug) console.warn('AC5e _preRollAttackV2', hook, { config, dialog, message });
 	const {
-		subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {},
+		subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability },
 		subject: activity,
 		options,
 		rolls,
@@ -201,7 +201,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	if (settings.debug) console.warn('_preRollDamageV2', hook, { config, dialog, message });
 	const {
 		subject: activity,
-		subject: { actor: sourceActor, ability } = {},
+		subject: { actor: sourceActor, ability },
 		rolls,
 		attackMode,
 		ammunition,
