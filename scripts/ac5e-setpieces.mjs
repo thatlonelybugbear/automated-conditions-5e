@@ -336,7 +336,7 @@ function ac5eFlags({ sourceActor, sourceToken, targetActor, targetToken, ac5eCon
 			if (!!activityTypes[v] && activity?.type === v) return Roll.safeEval(mult + true);
 			if (!!attackClassifications[v] && activity?.attack?.type?.classification === v) return Roll.safeEval(mult + true);
 			if (!!attackModes[v] && activityAttackMode === v) return Roll.safeEval(mult + true);
-			if (!!attackTypes[v] && (activity?.attack?.type?.value === v || item?.system?.actionType === v)) return Roll.safeEval(mult + true);
+			if (!!attackTypes[v] && (activity?.attack?.type?.value === v || item?.system?.activities?.contents?.[0]?.actionType === v)) return Roll.safeEval(mult + true);
 			if (!!damageTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
 			if (!!deprecatedAttackTypes[v] && _getActionType(activity) === v) return Roll.safeEval(mult + true);
 			if (!!healingTypes[v] && activityDamageTypes(activity).includes(v)) return Roll.safeEval(mult + true);
