@@ -1,3 +1,8 @@
+## v13.436.1.3
+* Localization issues fix by [thatlonelybugbear](<https://github.com/thatlonelybugbear>) in [237](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/237>)
+* Adding attackMode if available in ac5eConfig by [thatlonelybugbear](<https://github.com/thatlonelybugbear>) in [238](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/238>)
+* Fix for rolling from damage enrichers; config.subject is undefined by [thatlonelybugbear](<https://github.com/thatlonelybugbear>) in [240](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/240>)
+
 ## v13.436.1.2
 - Quick compatibility update for MidiQOL, making sure the `config.midiOptions` are taken into account!
 
