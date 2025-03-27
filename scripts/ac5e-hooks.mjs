@@ -205,7 +205,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 		rolls,
 		attackMode,
 		ammunition,
-	} = config;
+	} = config || {};
 	const {
 		//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets for now, unless we don't care for multiple tokens of a linked actor.
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker },
