@@ -57,6 +57,11 @@
             "lang": "ru",
             "name": "Русский",
             "path": "lang/ru.json"
+        },
+        {
+            "lang": "pl",
+            "name": "Polski",
+            "path": "lang/pl.json"
         }
     ],
     "flags": {
