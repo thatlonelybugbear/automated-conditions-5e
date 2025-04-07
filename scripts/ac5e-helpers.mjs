@@ -635,3 +635,33 @@ export function _raceOrType(actor, dataType = 'race') {
 	if (dataType === 'all') return data;
 	else return data[dataType];
 }
+
+let tempDiv = null;
+
+export function _getValidColor(color, fallback, game) {
+    if (!color) return fallback;
+
+    const lower = color.trim().toLowerCase();
+    if (['false', 'none', 'null', '0'].includes(lower)) return null;
+    if (lower === 'user') return game && game.user && game.user.color && game.user.color.css ? game.user.color.css : fallback;
+
+    // Create a hidden element once and reuse it for optimazation
+    if (!tempDiv) {
+        tempDiv = document.createElement('div');
+        tempDiv.style.display = 'none';
+        document.body.appendChild(tempDiv);
+    }
+
+    tempDiv.style.color = color;
+    const computedColor = window.getComputedStyle(tempDiv).color;
+
+    // Convert RGB to hex if valid
+    const match = computedColor.match(/\d+/g);
+    if (match && match.length >= 3) {
+        return `#${match
+            .slice(0, 3)
+            .map((n) => parseInt(n).toString(16).padStart(2, '0'))
+            .join('')}`;
+    }
+    return fallback;
+}

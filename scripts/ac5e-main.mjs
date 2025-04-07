@@ -1,10 +1,11 @@
-import { _renderHijack, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
+import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
 import { _autoRanged, _autoArmor, _activeModule, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
 Hooks.once('init', ac5eRegisterSettings);
 Hooks.once('ready', ac5eReady);
+Hooks.on('renderSettingsConfig', _renderSettings);
 
 /* SETUP FUNCTIONS */
 function ac5eRegisterSettings() {

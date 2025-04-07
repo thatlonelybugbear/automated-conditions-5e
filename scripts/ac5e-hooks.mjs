@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _getActionType, _getDistance, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _getActionType, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -338,15 +338,15 @@ export function _renderHijack(hook, render, elem) {
 		} else if (hookType === 'damage') {
 			if (render.rolls?.[0]?.options?.isCritical) targetElement = elem.querySelector('button[data-action="critical"]');
 			else targetElement = elem.querySelector('button[data-action="normal"]');
-			if (targetElement) {
-				targetElement.focus(); //Critical is not focused; dnd5e issue.
-			}
 		} else targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
 		if (!targetElement) return true;
-		targetElement.style.color = settings.buttonColorText;
-		targetElement.style.backgroundColor = settings.buttonColorBackground;
-		targetElement.style.boxShadow = '1px 1px 3px rgba(0, 0, 0, 0.6), 2px 2px 6px rgba(0, 0, 0, 0.3)';
-		targetElement.style.border = `1px solid ${settings.buttonColorBorder}`;
+		if (settings.buttonColorEnabled) {
+			if (settings.buttonColorBackground) targetElement.style.backgroundColor = settings.buttonColorBackground;
+			if (settings.buttonColorBorder) targetElement.style.border = `1px solid ${settings.buttonColorBorder}`;
+			if (settings.buttonColorText) targetElement.style.color = settings.buttonColorText;
+			//to-do: play around with a box shadow
+			// if (game.settings.get('core', 'colorScheme') === 'light') targetElement.style.boxShadow = '1px 1px 3px rgba(0, 0, 0, 0.6), 2px 2px 6px rgba(0, 0, 0, 0.3)';
+		}
 		targetElement.classList.add('ac5e-button');
 		targetElement.setAttribute('data-tooltip', tooltip);
 		targetElement.focus(); //midi for some reason doesn't focus on skills with advMode. //to-do check this and why Dodging rolls FF for Dex save
@@ -482,4 +482,71 @@ export async function _overtimeHazards(combat, update, options, user) {
 	}
 
 	return true;
+}
+
+export function _renderSettings(app, html, data) {
+	const $html = $(html);
+	const colorSettings = [
+		{ key: 'buttonColorBackground', default: '#288bcc' },
+		{ key: 'buttonColorBorder', default: 'white' },
+		{ key: 'buttonColorText', default: 'white' },
+	];
+
+	for (let { key, default: defaultValue } of colorSettings) {
+		const settingKey = `${Constants.MODULE_ID}.${key}`;
+		const input = $html.find(`[name="${settingKey}"]`);
+		if (input.length) {
+			let colorPicker = $('<input type="color" class="color-picker">');
+
+			const updateColorPicker = () => {
+				const val = input.val().trim().toLowerCase();
+				const resolved = _getValidColor(val);
+
+				// Remove color picker if input is falsy
+				if (resolved === false) {
+					colorPicker.hide();
+				} else {
+					if (!colorPicker || !colorPicker.parent().length) {
+						colorPicker = $('<input type="color" class="color-picker">');
+						input.after(colorPicker);
+					}
+					colorPicker.val(resolved).show();
+				}
+			};
+
+			// Sync picker -> input
+			colorPicker.on('input', function () {
+				const color = $(this).val();
+				input.val(color).trigger('change');
+			});
+
+			// Sync input -> picker
+			input.on('input', function () {
+				updateColorPicker();
+			});
+
+			// Reset to default when blank
+			input.on('blur', function () {
+				if ($(this).val().trim() === '') {
+					$(this).val(defaultValue).trigger('change');
+					updateColorPicker();
+				}
+			});
+
+			input.after(colorPicker);
+			updateColorPicker();
+		}
+	}
+
+	const toggle = $html.find(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
+	const updateVisibility = () => {
+		const visible = toggle.is(':checked');
+		const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
+		for (let key of keysToToggle) {
+			$html.find(`[data-setting-id="${Constants.MODULE_ID}.${key}"]`).toggle(visible);
+		}
+	};
+
+	updateVisibility();
+	toggle.on('change', updateVisibility);
 }

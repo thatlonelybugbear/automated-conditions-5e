@@ -56,6 +56,10 @@
 	"AC5E.Equipment": "Equipment",
 	"AC5E.NearbyFoe": "Nearby Foe",
 	"AC5E.ButtonColorPicker": {
+		"Enabled": {
+			"Name": "Colorful buttons",
+			"Hint": "Make your roll dialog buttons stand out. Default colors: #288bcc (background), white (text/border). Input user to use game.user.color (best for background). Input false/none/null/0 to turn off any of the available color pickers. Delete any field to fallback to defaults."
+		},
 		"Background": {
 			"Name": "🎨 Button background color",
 			"Hint": "Delete any string from the input to default to the game.user.color"
