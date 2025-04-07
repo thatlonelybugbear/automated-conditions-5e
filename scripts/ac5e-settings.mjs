@@ -16,6 +16,7 @@ export default class Settings {
 	static KEYPRESS_OVERRIDES = 'keypressOverrides';
 	static DEBUG = 'debugging';
 	static MIGRATION = 'lastMigratedPoint';
+	static ColorPicker_Enabled = 'buttonColorEnabled';
 	static ColorPicker_Background = 'buttonColorBackground';
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
@@ -47,7 +48,38 @@ export default class Settings {
 			default: true,
 			type: Boolean,
 		});
-
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Enabled, {
+			name: 'AC5E.ButtonColorPicker.Enabled.Name',
+			hint: 'AC5E.ButtonColorPicker.Enabled.Hint',
+			scope: 'client',
+			config: true,
+			default: '#288bcc',
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Background, {
+			name: 'AC5E.ButtonColorPicker.Background.Name',
+			hint: 'AC5E.ButtonColorPicker.Background.Hint',
+			scope: 'client',
+			config: true,
+			default: game?.user?.color?.css,
+			type: String
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
+			name: 'AC5E.ButtonColorPicker.Border.Name',
+			hint: 'AC5E.ButtonColorPicker.Border.Hint',
+			scope: 'client',
+			config: true,
+			default: 'white',
+			type: String
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
+			name: 'AC5E.ButtonColorPicker.Text.Name',
+			hint: 'AC5E.ButtonColorPicker.Text.Hint',
+			scope: 'client',
+			config: true,
+			default: 'white',
+			type: String
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS, {
 			name: 'AC5E.ExpandedConditionsName',
 			hint: 'AC5E.ExpandedConditionsHint',
@@ -151,30 +183,7 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Background, {
-			name: 'AC5E.ButtonColorPicker.Background.Name',
-			hint: 'AC5E.ButtonColorPicker.Background.Hint',
-			scope: 'client',
-			config: true,
-			default: game?.user?.color?.css,
-			type: String
-		});
-		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
-			name: 'AC5E.ButtonColorPicker.Border.Name',
-			hint: 'AC5E.ButtonColorPicker.Border.Hint',
-			scope: 'client',
-			config: true,
-			default: 'white',
-			type: String
-		});
-		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
-			name: 'AC5E.ButtonColorPicker.Text.Name',
-			hint: 'AC5E.ButtonColorPicker.Text.Hint',
-			scope: 'client',
-			config: true,
-			default: 'white',
-			type: String
-		});
+		
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
 			name: 'DEBUG',
 			scope: 'world',
@@ -236,6 +245,9 @@ export default class Settings {
 	}
 	get keypressOverrides() {
 		return game.settings.get(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES);
+	}
+	get buttonColorEnabled() {
+		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Enabled);
 	}
 	get buttonColorBackground() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Background);
