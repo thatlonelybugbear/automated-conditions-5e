@@ -338,15 +338,17 @@ export function _renderHijack(hook, render, elem) {
 		} else if (hookType === 'damage') {
 			if (render.rolls?.[0]?.options?.isCritical) targetElement = elem.querySelector('button[data-action="critical"]');
 			else targetElement = elem.querySelector('button[data-action="normal"]');
-			if (targetElement) {
-				targetElement.focus(); //Critical is not focused; dnd5e issue.
-			}
+			// if (targetElement) {
+			// 	targetElement.focus(); //Critical is not focused; dnd5e issue.
+			// }
 		} else targetElement = elem[0].querySelector(`.dialog-button.${render.data.default}`);
 		if (!targetElement) return true;
-		targetElement.style.color = settings.buttonColorText;
-		targetElement.style.backgroundColor = settings.buttonColorBackground;
-		targetElement.style.boxShadow = '1px 1px 3px rgba(0, 0, 0, 0.6), 2px 2px 6px rgba(0, 0, 0, 0.3)';
-		targetElement.style.border = `1px solid ${settings.buttonColorBorder}`;
+		if (settings.buttonColorEnabled) {
+			if (settings.buttonColorBackground) targetElement.style.backgroundColor = settings.buttonColorBackground;
+			if (settings.buttonColorBorder) targetElement.style.border = `1px solid ${settings.buttonColorBorder}`;
+			if (settings.buttonColorText) targetElement.style.color = settings.buttonColorText;
+			// if (game.settings.get('core', 'colorScheme') === 'light') targetElement.style.boxShadow = '1px 1px 3px rgba(0, 0, 0, 0.6), 2px 2px 6px rgba(0, 0, 0, 0.3)';
+		}
 		targetElement.classList.add('ac5e-button');
 		targetElement.setAttribute('data-tooltip', tooltip);
 		targetElement.focus(); //midi for some reason doesn't focus on skills with advMode. //to-do check this and why Dodging rolls FF for Dex save
