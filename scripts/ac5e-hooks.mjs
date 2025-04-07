@@ -483,3 +483,70 @@ export async function _overtimeHazards(combat, update, options, user) {
 
 	return true;
 }
+
+export function _renderSettings(app, html, data) {
+	const $html = $(html);
+	const colorSettings = [
+		{ key: 'buttonColorBackground', default: '#288bcc' },
+		{ key: 'buttonColorBorder', default: 'white' },
+		{ key: 'buttonColorText', default: 'white' },
+	];
+
+	for (let { key, default: defaultValue } of colorSettings) {
+		const settingKey = `${Constants.MODULE_ID}.${key}`;
+		const input = $html.find(`[name="${settingKey}"]`);
+		if (input.length) {
+			let colorPicker = $('<input type="color" class="color-picker">');
+
+			const updateColorPicker = () => {
+				const val = input.val().trim().toLowerCase();
+				const resolved = _getValidColor(val);
+
+				// Remove color picker if input is falsy
+				if (resolved === false) {
+					colorPicker.hide();
+				} else {
+					if (!colorPicker || !colorPicker.parent().length) {
+						colorPicker = $('<input type="color" class="color-picker">');
+						input.after(colorPicker);
+					}
+					colorPicker.val(resolved).show();
+				}
+			};
+
+			// Sync picker -> input
+			colorPicker.on('input', function () {
+				const color = $(this).val();
+				input.val(color).trigger('change');
+			});
+
+			// Sync input -> picker
+			input.on('input', function () {
+				updateColorPicker();
+			});
+
+			// Reset to default when blank
+			input.on('blur', function () {
+				if ($(this).val().trim() === '') {
+					$(this).val(defaultValue).trigger('change');
+					updateColorPicker();
+				}
+			});
+
+			input.after(colorPicker);
+			updateColorPicker();
+		}
+	}
+
+	const toggle = $html.find(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
+	const updateVisibility = () => {
+		const visible = toggle.is(':checked');
+		const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
+		for (let key of keysToToggle) {
+			$html.find(`[data-setting-id="${Constants.MODULE_ID}.${key}"]`).toggle(visible);
+		}
+	};
+
+	updateVisibility();
+	toggle.on('change', updateVisibility);
+}
