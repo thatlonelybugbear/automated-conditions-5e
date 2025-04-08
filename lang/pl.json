@@ -56,6 +56,10 @@
 	"AC5E.Equipment": "Ekwipunek",
 	"AC5E.NearbyFoe": "Pobliski wróg",
 	"AC5E.ButtonColorPicker": {
+		"Enabled": {
+			"Name": "Kolorowe przyciski",
+			"Hint": "Wyróżnij przyciski okna dialogowego rzutów. Domyślne kolory: #288bcc (tło), biały (tekst/obramowanie). Wprowadź użytkownika, aby użyć game.user.color (najlepszy dla tła). Wprowadź false/none/null/0, aby wyłączyć dowolny z dostępnych selektorów kolorów. Usuń dowolne pole, aby powrócić do wartości domyślnych."
+		},
 		"Background": {
 			"Name": "🎨 Przycisk koloru tła",
 			"Hint": "Usuń dowolny ciąg znaków z danych wejściowych, aby domyślnie ustawić game.user.color"
