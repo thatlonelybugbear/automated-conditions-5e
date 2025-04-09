@@ -106,7 +106,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
 
-	if (options.testInitiative && targetActor.flags.dnd5e.initiativeAdv) ac5eConfig.target.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if (options.testInitiative && targetActor.flags?.dnd5e?.initiativeAdv) ac5eConfig.target.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, targetToken, targetActor, hook, ability, tool, skill, options });
 	//check Auto Armor
 	//to-do: move to setPieces
