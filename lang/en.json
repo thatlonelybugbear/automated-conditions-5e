@@ -98,5 +98,91 @@
 		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 dnd45e ruleset",
 		"BurningHazard": "Burning Hazard",
 		"SuffocatingHazard": "Suffocating"
+	},
+	"dae.AC5E.fieldData": {
+		"flags.automated-conditions-5e.ACTIONTYPE.advantage": {
+			"Name": "Source actor advantage",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.bonus": {
+			"Name": "Source actor advantage bonus on rolls",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus followed by a ; separator, eg 1d4 + 5 - @abilities.dex.mod;"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.critical": {
+			"Name": "Forces critical (critical success like rolling nat20 for d20 rolls etc) on the actor that has the effect on.",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.disadvantage": {
+			"Name": "Gives disadvantage to the actor that has the effect on",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.fail": {
+			"Name": "Forces fail on d20 rolls by the actor that has the effect on",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.fumble": {
+			"Name": "Forces fumble (critical miss like rolling nat1 for d20 rolls etc) on the actor that has the effect on",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.success": {
+			"Name": "Forces success on d20 rolls by the actor that has the effect on",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsAdvantage": {
+			"Name": "Gives advantage to the opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsBonus": {
+			"Name": "Adds a bonus to any roll by the opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus followed by a ; separator, eg 1d4 + 5 - @abilities.dex.mod;"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsCritical": {
+			"Name": "Forces critical (critical success like rolling nat20 for d20 rolls etc) by the opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsDisadvantage": {
+			"Name": "Gives disadvantage to the opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsFail": {
+			"Name": "Forces fail on d20 rolls by the opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsFumble": {
+			"Name": "Forces fumble (critical miss like rolling nat1 for d20 rolls etc) on opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.grantsSuccess": {
+			"Name": "Forces success on d20 rolls by the opponents",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraAdvantage": {
+			"Name": "An aura giving advantage",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: range;one of ally/enemy/all;conditions, eg: for a save ACTIONTYPE and: 15;ally;str;cha; would give to all allies in 15ft radius advantage to strength or charisma saves."
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraBonus": {
+			"Name": "An aura giving bonuses",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: range;ally enemy or all;bonus;conditions, eg for initiative ACTIONTYPE and effect value of: 20;enemy;-source.abilities.cha.mod;target.statuses.surprised all enemies within 20ft will have their rolls reduced by the source actor's cha mod if they are surprised"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraCritical": {
+			"Name": "An aura forcing critical (or critical success)",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: range;ally or enemy or all;conditions"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraDisadvantage": {
+			"Name": "An aura giving disadvantage",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: range;ally or enemy or all;conditions"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraFail": {
+			"Name": "An aura forcing rolls to fail",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool. Change value format: range;ally or enemy or all;conditions"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraFumble": {
+			"Name": "An aura forcing rolls to fumble",
+			"Hint": "An aura around the actor that has the effect on. Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: range;ally or enemy or all;conditions"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE.auraSuccess": {
+			"Name": "An aura forcing success",
+			"Hint": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool. Change value format: range;ally or enemy or all;conditions"
+		}
 	}
 }
