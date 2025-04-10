@@ -25,7 +25,8 @@ export function _rollFunctions(hook, ...args) {
 }
 function getMessageData(config) {
 	const messageId = config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const message = messageId ? game.messages.get(messageId) : false;
+	const messageUuid = config?.midiOptions?.itemCardUuid;
+	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : false;
 	const { activity: activityObj, item: itemObj, targets, messageType } = message?.flags?.dnd5e || {};
 	const item = fromUuidSync(itemObj?.uuid);
 	const activity = fromUuidSync(activityObj?.uuid);
@@ -67,16 +68,16 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (options.deathSave) {
 		const hasAdvantage = targetActor.system.attributes.death?.roll?.mode === 1;
 		const hasDisadvantage = targetActor.system.attributes.death?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.Advantage'));
-		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.Disadvantage'));
+		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
+		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
 	}
 
 	if (options.concentrationSave) {
 		if (_hasItem(targetActor, _localize('AC5E.WarCaster'))) ac5eConfig.target.advantage.push(_localize(itemName));
 		const hasAdvantage = targetActor.system.attributes.concentration?.roll?.mode === 1;
 		const hasDisadvantage = targetActor.system.attributes.concentration?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('DND5E.Advantage'));
-		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('DND5E.Disadvantage'));
+		if (hasAdvantage) ac5eConfig.target.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
+		if (hasDisadvantage) ac5eConfig.target.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
 	}
 
 	ac5eConfig = _ac5eChecks({ targetActor, targetToken, ac5eConfig, hook, ability, activity, options });
@@ -106,7 +107,8 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config);
 
-	if (options.testInitiative && targetActor.flags?.dnd5e?.initiativeAdv) ac5eConfig.target.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if (options.testInitiative && targetActor.flags?.dnd5e?.initiativeAdv) ac5eConfig.target.advantage.push(_localize('AC5E.FlagsInitiative.ADV')); //to-do: move to setPieces
+	if (options.testInitiative && targetActor.flags?.dnd5e?.initiativeDis) ac5eConfig.target.advantage.push(_localize('AC5E.FlagsInitiative.DIS')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, targetToken, targetActor, hook, ability, tool, skill, options });
 	//check Auto Armor
 	//to-do: move to setPieces
