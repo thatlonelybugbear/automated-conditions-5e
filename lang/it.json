@@ -56,6 +56,10 @@
 	"AC5E.Equipment": "Equipaggiamento",
 	"AC5E.NearbyFoe": "Nemico Vicino",
 	"AC5E.ButtonColorPicker": {
+		"Enabled": {
+			"Name": "Pulsanti colorati",
+			"Hint": "Fai risaltare i pulsanti della finestra di dialogo. Colori predefiniti: #288bcc (sfondo), bianco (testo/bordo). Inserisci user per usare game.user.color (ideale per lo sfondo). Inserisci false/none/null/0 per disattivare uno qualsiasi dei selettori di colore disponibili. Elimina qualsiasi campo per tornare ai valori predefiniti."
+		},
 		"Background": {
 			"Name": "🎨 Colore di sfondo del pulsante",
 			"Hint": "Elimina qualsiasi stringa dall'input per utilizzare come predefinito game.user.color"
