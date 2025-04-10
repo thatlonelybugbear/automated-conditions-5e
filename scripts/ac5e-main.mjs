@@ -1,14 +1,18 @@
 import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
-import { _autoRanged, _autoArmor, _activeModule, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import { _autoRanged, _autoArmor, _activeModule, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
+let daeFlags;
 
-Hooks.once('init', ac5eRegisterSettings);
+Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('ready', ac5eReady);
-Hooks.on('renderSettingsConfig', _renderSettings);
 
 /* SETUP FUNCTIONS */
-function ac5eRegisterSettings() {
+function ac5eRegisterOnInit() {
+	daeFlags = _generateAC5eFlags();
+	Hooks.on('dae.setFieldData', (fieldData) => {
+		fieldData['AC5E'] = daeFlags;
+	});
 	return new Settings().registerSettings();
 }
 
@@ -18,7 +22,7 @@ function ac5eReady() {
 	} else {
 		ac5eSetup();
 	}
-	ac5eButtonListeners();
+	DAE.addAutoFields(daeFlags);
 }
 
 function ac5eSetup() {
@@ -59,6 +63,8 @@ function ac5eSetup() {
 		});
 		hooksRegistered[hook.id] = hookId;
 	};
+	const renderSettingsConfigID = Hooks.on('renderSettingsConfig', _renderSettings);
+	hooksRegistered['renderSettingsConfig'] = renderSettingsConfigID;
 	const combatUpdateHookID = Hooks.on('updateCombat', _overtimeHazards);
 	hooksRegistered['updateCombat'] = combatUpdateHookID;
 	
@@ -70,55 +76,4 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkDistance = _getDistance;
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;	
-}
-
-function ac5eButtonListeners() {
-	const settings = new Settings();
-	Hooks.on('renderSettingsConfig', (app, html, data) => {
-		const $html = $(html);
-		const settings = [
-			{ key: 'buttonColorBackground', default: game?.user?.color?.css },
-			{ key: 'buttonColorBorder', default: 'white' },
-			{ key: 'buttonColorText', default: 'white' },
-		];
-
-		for (let { key, default: defaultValue } of settings) {
-			const settingKey = `${Constants.MODULE_ID}.${key}`;
-			const input = $html.find(`[name="${settingKey}"]`);
-			if (input.length) {
-				const colorPicker = $(`<input type="color" class="color-picker">`);
-				colorPicker.val(getValidColor(input.val(), defaultValue));
-				colorPicker.on('input', function () {
-					const color = $(this).val();
-					input.val(color).trigger('change');
-				});
-				input.on('input', function () {
-					const userColor = $(this).val().trim();
-					const validColor = getValidColor(userColor, defaultValue);
-					if (validColor) colorPicker.val(validColor);
-				});
-				// Reset to default when input is cleared
-				input.on('blur', function () {
-					if ($(this).val().trim() === '') {
-						$(this).val(defaultValue).trigger('change');
-						colorPicker.val(getValidColor(defaultValue, defaultValue));
-					}
-				});
-				input.after(colorPicker);
-			}
-		}
-	});
-}
-
-function getValidColor(color, fallback) {
-    const temp = document.createElement("div");
-    temp.style.color = color;
-    document.body.appendChild(temp);
-    const computedColor = window.getComputedStyle(temp).color;
-    document.body.removeChild(temp);
-    const match = computedColor.match(/\d+/g);
-    if (match && match.length === 3) {
-        return `#${match.map((n) => parseInt(n).toString(16).padStart(2, "0")).join("")}`;
-    }
-    return fallback; // If invalid, return the default color
 }
