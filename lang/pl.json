@@ -93,10 +93,120 @@
 	"AC5E.TargetGrantsCriticalAbbreviated": "Cel otrzymuje krytyk",
 	"AC5E.TargetGrantsFail": "Cel otrzymuje porażkę",
 	"AC5E.NoChanges": "Bez zmian",
+	"AC5E.FlagsInitiative": {
+		"ADV": "initiativeAdv Flag",
+		"DIS": "initiativeDis Flag"
+	},
+	"AC5E.SystemRollMode": {
+		"ADV": "System adv mode",
+		"DIS": "System dis mode"
+	},
+	"AC5E.FlagsInitiativeDis": "initiativeAdv Flag",
 	"AC5E.EnviromentalHazards": {
 		"SettingsName": "Zagrożenia środowiskowe (2024)",
 		"SettingsHint": "Zautomatyzowano stany podpalenia i uduszenia w oparciu o zestaw zasad dnd45e z 2024 r.",
 		"BurningHazard": "Niebezpieczeństwo podpalenia",
 		"SuffocatingHazard": "Duszenie"
+	},
+	"dae.fieldData.fieldCategories.AC5E": "AC5E",
+	"dae.AC5E.fieldData": {
+		"flags.automated-condition-5e.crossbowExpert": {
+			"name": "Ekspert kuszy",
+			"description": "Przebywanie w odległości 5 stóp od wroga nie wpływa negatywnie na rzuty ataku z kuszy."
+		},
+		"flags.automated-condition-5e.sharpShooter": {
+			"name": "Strzelec wyborowy",
+			"description": "Brak utrudnienia przy strzelaniu z broni dystansowej z dużej odległości lub z odległości mniejszej niż 5 stóp od wroga"
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE": {
+			"advantage": {
+				"name": "Rzut z ułatwieniem",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"bonus": {
+				"name": "Rzut otrzymuje premię",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Rozpocznij od premii, po której następuje separator ;, np. 1d4 + 5 - @abilities.dex.mod;"
+			},
+			"critical": {
+				"name": "Rzut jest krytyczny (nat20 lub obrażenia krytyczne)",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"disadvantage": {
+				"name": "Rzut z utrudnieniem",
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"fail": {
+				"name": "porażka przy rzucie k20",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool"
+			},
+			"fumble": {
+				"name": "krytyczna porażka przy rzucie k20 (nat1)",
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"success": {
+				"name": "sukces przy rzucie k20",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/save/skill/tool"
+			}
+		},
+		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
+			"advantage": {
+				"name": "Przyznaj ułatwienie dla rzutów k20 przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"bonus": {
+				"name": "Przyznaj bonus dla rzutów przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Rozpocznij od premii, po której następuje separator ;, np. 1d4 + 5 - @abilities.dex.mod;"
+			},
+			"critical": {
+				"name": "Przyznaj krytyk (nat20 lub obrażenia) dla rzutów przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"disadvantage": {
+				"name": "Przyznaj utrudnienie dla rzutów k20 przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"fail": {
+				"name": "Przyznaj porażkę dla rzutów k20 przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool"
+			},
+			"fumble": {
+				"name": "Przyznaj krytyczną porażkę (nat1) dla rzutów k20 przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"success": {
+				"name": "Rzuty k20 przeciwko tobie lub spowodowane przez ciebie kończą się sukcesem",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool"
+			}
+		},
+		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
+			"advantage": {
+				"name": "Aura zapewniająca ułatwienie",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: range;one of ally/enemy/all;conditions, np: dla rzutu obronnego ACTIONTYPE i: 15;ally;str;cha; da wszystkim sojusznikom w promieniu 15 stóp ułatwienie do rzutów obronnych siły lub charyzmy."
+			},
+			"bonus": {
+				"name": "Aura zapewniająca bonusy",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: range;ally enemy lub all;bonus;conditions, np. dla inicjatywy ACTIONTYPE i wartości efektu na: 20;enemy;-source.abilities.cha.mod;target.statuses.surprised wszyscy wrogowie w promieniu 20 stóp będą mieli rzuty zmniejszone o cha mod źródłowego aktora, jeśli zostaną zaskoczeni."
+			},
+			"critical": {
+				"name": "Aura wymuszająca krytyk (nat20 lub obrażenia)",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+			},
+			"disadvantage": {
+				"name": "Aura zapewniająca utrudnienie",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+			},
+			"fail": {
+				"name": "Aura wymuszająca porażkę dla rzutów k20",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+			},
+			"fumble": {
+				"name": "Aura wymuszająca krytyczną porażkę dla rzutów k20",
+				"description": "Aura wokół aktora, na którego działa efekt. Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+			},
+			"success": {
+				"name": "Aura zapewniająca sukces",
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+			}
+		}
 	}
 }
