@@ -98,10 +98,9 @@
 		"DIS": "initiativeDis Flag"
 	},
 	"AC5E.SystemRollMode": {
-		"ADV": "System adv mode",
-		"DIS": "System dis mode"
+		"ADV": "System mode ADV",
+		"DIS": "System mode DIS"
 	},
-	"AC5E.FlagsInitiativeDis": "initiativeAdv Flag",
 	"AC5E.EnviromentalHazards": {
 		"SettingsName": "Enviromental Hazards (2024)",
 		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 dnd45e ruleset",
