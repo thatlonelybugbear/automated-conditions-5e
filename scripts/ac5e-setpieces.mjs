@@ -291,7 +291,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							: '';
 					const auraOnlyOne = el.value.includes('singleAura');
 					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
-					const valuesToEvaluate = el.value
+					let valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
 							const trimmed = v.trim();
@@ -301,6 +301,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							return acc;
 						}, [])
 						.join(';');
+					if (!!valuesToEvaluate) valuesToEvaluate = 'true';
 					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, token.actor.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), subject.getRollData())).formula;
 					const evaluation = getMode({ auraName: effect.name, subject, subjectToken, opponent, opponentToken, distance, ability, skill, tool, hook, activity, value: valuesToEvaluate, actorType, options });
@@ -338,7 +339,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 				if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 				if (bonus.includes('##') && opponent) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
 				const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
-				const valuesToEvaluate = el.value
+				let valuesToEvaluate = el.value
 					.split(';')
 					.reduce((acc, v) => {
 						const trimmed = v.trim();
@@ -348,6 +349,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 						return acc;
 					}, [])
 					.join(';');
+				if (!!valuesToEvaluate) valuesToEvaluate = 'true';
 				validFlags[effect.id] = {
 					name: effect.name,
 					actorType,
@@ -388,7 +390,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 					if (bonus.includes('@') && subject) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
 					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
-					const valuesToEvaluate = el.value
+					let valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
 							const trimmed = v.trim();
@@ -398,6 +400,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							return acc;
 						}, [])
 						.join(';');
+					if (!!valuesToEvaluate) valuesToEvaluate = 'true';
 					validFlags[effect.id] = {
 						name: effect.name,
 						actorType,
