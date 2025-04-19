@@ -48,6 +48,7 @@
 	"AC5E.WarCaster": "Mago da Battaglia",
 	"AC5E.Fail": "Fallito",
 	"AC5E.FailLowerCase": "fallito",
+	"AC5E.Fumble": "Fallimento Critico",
 	"AC5E.Rage": "Ira",
 	"AC5E.Raging": "In Ira",
 	"AC5E.SubtleSpell": "Incantesimo Celato",
@@ -73,30 +74,126 @@
 			"Hint": "Elimina qualsiasi stringa dall'input per renderla predefinita in bianco"
 		}
 	},
+	"AC5E.Bonus": "Bonus",
+	"AC5E.Success": "Successo",
 	"AC5E.AbbreviationAdvantage": "vant",
 	"AC5E.AbbreviationDisadvantage": "svant",
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "fornisce",
 	"AC5E.Attacker": "Attaccante",
-	"AC5E.AttackerAdvantageAbbreviated": "Vant Attaccante",
-	"AC5E.AttackerGrantsDisadvantageAbbreviated": "Attaccante fornisce svant",
-	"AC5E.AttackerDisadvantageAbbreviated": "Svan Attaccante",
-	"AC5E.SourceGrantsAdvantageAbbreviated": "Sorgente fornisce vant",
-	"AC5E.SourceGrantsCriticalAbbreviated": "Sorgente fornisce crit",
-	"AC5E.SourceGrantsDisadvantageAbbreviated": "Sorgente fornisce svant",
-	"AC5E.SourceGrantsFail": "Sorgente fornisce fallimento",
-	"AC5E.SourceCriticalAbbreviated": "Sorgente fa critico",
-	"AC5E.TargetGrantsAdvantageAbbreviated": "Bersaglio fornisce vant",
-	"AC5E.TargetAdvantageAbbreviated": "Vant Bersaglio",
-	"AC5E.TargetGrantsDisadvantageAbbreviated": "Bersaglio fornisce svant",
-	"AC5E.TargetDisadvantageAbbreviated": "Svant Bersaglio",
-	"AC5E.TargetGrantsCriticalAbbreviated": "Bersaglio fornisce crit",
-	"AC5E.TargetGrantsFail": "Bersaglio fornisce fallimento",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Fornito vant",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Fornito svant",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Fornito crit",
+	"AC5E.TargetGrantsFail": "Fornito Fallimento",
+	"AC5E.TargetGrantsFumble": "Fornito Fallimento Critico",
+	"AC5E.TargetGrantsSuccess": "Fornito Successo",
+	"AC5E.TargetGrantsBonus": "Fornito Bonus",
 	"AC5E.NoChanges": "Nessun cambiamento",
 	"AC5E.EnviromentalHazards": {
 		"SettingsName": "Pericoli ambientali (2024)",
 		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
 		"BurningHazard": "Pericolo Ustioni",
 		"SuffocatingHazard": "Soffocamento"
+		},
+	"dae.fieldData.fieldCategories.AC5E": "AC5E",
+	"dae.AC5E.fieldData": {
+	"flags.automated-condition-5e.crossbowExpert": {
+		"name": "Esperto di Balestre",
+		"description": "Essere entro 1,5 metri da un nemico non impone Svantaggio ai tuoi tiri per colpire con balestre"
+	},
+	"flags.automated-condition-5e.sharpShooter": {
+		"name": "Tiratore Scelto",
+		"description": "Nessuno svantaggio quando si usano armi a distanza alla massima gittata o entro 1,5 metri da un nemico"
+	},
+	"flags.automated-conditions-5e.ACTIONTYPE": {
+		"advantage": {
+			"name": "Tiro con vantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"bonus": {
+			"name": "Tiro con bonus",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. es: bonus=1d4 + 5 - @abilities.dex.mod;"
+		},
+		"critical": {
+			"name": "Tiro è critico (20 naturale o danno critico)",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"disadvantage": {
+			"name": "Tiro con svantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"fail": {
+			"name": "Tiri d20 falliscono",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool"
+		},
+		"fumble": {
+			"name": "Tiri d20 inciampano (1 naturale)",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"success": {
+			"name": "Tiri d20 riescono",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/save/skill/tool"
+		}
+	},
+	"flags.automated-conditions-5e.grants.ACTIONTYPE": {
+		"advantage": {
+			"name": "Concede vantaggio ai tiri d20 dell'avversario",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"bonus": {
+			"name": "Concede bonus ai tiri dell'avversario",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Inserire bonus= seguito da ; come separatore, es: bonus=1d4 + 5 - @abilities.dex.mod;"
+		},
+		"critical": {
+			"name": "Concede critico (20 naturale o danno) ai tiri dell'avversario",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"disadvantage": {
+			"name": "Concede svantaggio ai tiri d20 dell'avversario",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"fail": {
+			"name": "Concede fallimento ai tiri d20 dell'avversario",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool"
+		},
+		"fumble": {
+			"name": "Concede fallimento critico (1 naturale) ai tiri d20 dell'avversario",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"success": {
+			"name": "I tiri d20 contro di te o causati da te riescono",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool"
+		}
+	},
+	"flags.automated-conditions-5e.aura.ACTIONTYPE": {
+		"advantage": {
+			"name": "Un’aura che concede vantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: raggio;uno tra alleato/nemico/tutti;condizioni, es: per ACTIONTYPE di tipo save e valore effetto: radius=15;includeSelf;allies;str;cha; concede vantaggio ai tiri salvezza su Forza o Carisma a tutti gli alleati (incluso sé stesso) nel raggio di 15 piedi."
+		},
+		"bonus": {
+			"name": "Un’aura che concede bonus",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Modifica formato del valore: raggio;alleato nemico o tutti;bonus;condizioni, es: per ACTIONTYPE di tipo initiative e valore effetto: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised tutti entro 20 piedi vedranno i propri tiri ridotti dal modificatore di Carisma dell’attore sorgente se sono sorpresi"
+		},
+		"critical": {
+			"name": "Un’aura che forza i critici (20 naturale o danno critico)",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+		},
+		"disadvantage": {
+			"name": "Un’aura che concede svantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+		},
+		"fail": {
+			"name": "Un’aura che forza il fallimento dei tiri d20",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+		},
+		"fumble": {
+			"name": "Un’aura che forza il fallimento critico dei tiri d20",
+			"description": "Un’aura attorno all’attore che ha l’effetto attivo. Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+		},
+		"success": {
+			"name": "Un’aura che forza il successo",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration//death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+		}
 	}
+    }
 }
