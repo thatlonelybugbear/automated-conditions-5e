@@ -344,7 +344,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
-	console.log(ac5eConfig);
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
@@ -543,8 +542,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		// actorSystemRollMode.push(getActorAbilityRollModes({ability, actor, hook}));
 		const result = getActorAbilityRollModes({ ability: options.ability, actor, hookType });
 		if (result > 0) ac5eConfig.subject.advantage.push('System mode');
-		if (Number(result) < 0) ac5eConfig.subject.disadvantage.push('System mode');
-		console.log(result);
+		if (result < 0) ac5eConfig.subject.disadvantage.push('System mode');
 	}
 	//for now we don't care about mutliple different sources, but instead a total result for each (counts not implemented yet by the system)
 	// const arrayLength = actorSystemRollMode.filter(Boolean).length;
