@@ -265,6 +265,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 		if (actorType !== 'aura') return true;
 		const isAura = change.key.includes('aura');
 		if (!isAura) return false;
+		if (!change.value.includes('includeSelf') && token === subjectToken) return false;
 		const radius = change.value.split(';')?.find((e) => e.includes('radius')) || undefined;
 		if (inAuraRadius(token, radius)) return true;
 		else return false;
