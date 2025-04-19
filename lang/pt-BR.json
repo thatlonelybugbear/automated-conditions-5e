@@ -48,6 +48,7 @@
   "AC5E.WarCaster": "Conjurador de Guerra",
   "AC5E.Fail": "Falha",
   "AC5E.FailLowerCase": "falha",
+  "AC5E.Fumble": "Falha Crítica",
   "AC5E.Rage": "Fúria",
   "AC5E.Raging": "Em Fúria",
   "AC5E.SubtleSpell": "Magia Sutil",
@@ -56,6 +57,10 @@
   "AC5E.Equipment": "Equipmento",
   "AC5E.NearbyFoe": "Inimigo Próximo",
     "AC5E.ButtonColorPicker": {
+      "Enabled": {
+      "Name": "Botões coloridos",
+      "Hint": "Destaque os botões de diálogo de rolagem. Cores padrão: #288bcc (fundo), branco (texto/borda). Insira 'user' para usar 'game.user.color' (melhor para fundo). Insira 'false/none/null/0' para desativar qualquer um dos seletores de cores disponíveis. Exclua qualquer campo para retornar aos padrões."
+    },
     "Background": {
       "Name": "🎨 Cor de Fundo do Botão",
       "Hint": "Exclui qualquer string da entrada para definir como padrão o game.user.color."
@@ -69,30 +74,126 @@
       "Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
     }
   },
+  "AC5E.Bonus": "Bônus",
+  "AC5E.Success": "Sucesso",
   "AC5E.AbbreviationAdvantage": "vant.",
   "AC5E.AbbreviationDisadvantage": "desv.",
   "AC5E.AbbreviationCritical": "crít.",
   "AC5E.Grants": "conceder",
   "AC5E.Attacker": "Atacante",
-  "AC5E.AttackerAdvantageAbbreviated": "Vant. Atacante",
-  "AC5E.AttackerGrantsDisadvantageAbbreviated": "Atacante Concede Desv.",
-  "AC5E.AttackerDisadvantageAbbreviated": "Desv. Atacante",
-  "AC5E.SourceGrantsAdvantageAbbreviated": "Origem Concede Vant.",
-  "AC5E.SourceGrantsCriticalAbbreviated": "Origem Concede Crít.",
-  "AC5E.SourceGrantsDisadvantageAbbreviated": "Origem Concede Disv.",
-  "AC5E.SourceGrantsFail": "Origem Concede Falha",
-  "AC5E.SourceCriticalAbbreviated": "Crít. Origem",
   "AC5E.TargetGrantsAdvantageAbbreviated": "Alvo Concede Vant.",
-  "AC5E.TargetAdvantageAbbreviated": "Vant. Alvo",
   "AC5E.TargetGrantsDisadvantageAbbreviated": "Alvo Concede Desv.",
-  "AC5E.TargetDisadvantageAbbreviated": "Desv. Alvo",
   "AC5E.TargetGrantsCriticalAbbreviated": "Alvo Concede Desv.",
   "AC5E.TargetGrantsFail": "Alvo Concede Falha",
+  "AC5E.TargetGrantsFumble": "Conceder Falha Crítica",
+  "AC5E.TargetGrantsSuccess": "Conceder Sucesso",
+  "AC5E.TargetGrantsBonus": "Conceder Bônus",
   "AC5E.NoChanges": "Sem Mudanças",
   "AC5E.EnviromentalHazards": {
     "SettingsName": "Riscos Ambientais (2024)",
     "SettingsHint": "Automatize as condições Chamuscado e Sufocamento, com base no conjunto de regras do D&D5e de 2024",
     "BurningHazard": "Chamuscado",
     "SuffocatingHazard": "Sufocamento"
+  },
+  "dae.fieldData.fieldCategories.AC5E": "AC5E",
+  "dae.AC5E.fieldData": {
+    "flags.automated-condition-5e.crossbowExpert": {
+      "name": "Especialista em Bestas",
+      "description": "Estar a até 5 pés de um inimigo, não impõe Desvantagem em suas jogadas de ataque com bestas."
+    },
+    "flags.automated-condition-5e.sharpShooter": {
+      "name": "Atirador de Elite",
+      "description": "Sem Desvantagem ao disparar armas no Alcance Longo ou a até 5 pés de um inimigo."
+    },
+    "flags.automated-conditions-5e.ACTIONTYPE": {
+      "advantage": {
+        "name": "Rolar com Vantagem",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool"
+      },
+      "bonus": {
+        "name": "Rolagem Ganha Bônus",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex.: bonus=1d4 + 5 - @abilities.dex.mod."
+      },
+      "critical": {
+        "name": "Rolagem é Crítico (20 nat. ou dano crít.)",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      },
+      "disadvantage": {
+        "name": "Rolar com Desvantagem",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "fail": {
+        "name": "Rolagem de d20 Falha",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+      },
+      "fumble": {
+        "name": "Rolagem de d20 Falha Crítica (1 nat.)",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "success": {
+        "name": "Rolagem de d20 Sucesso",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/save/skill/tool."
+      }
+    },
+    "flags.automated-conditions-5e.grants.ACTIONTYPE": {
+      "advantage": {
+        "name": "Conceder Vantagem às Rolagens de d20 do Oponente",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "bonus": {
+        "name": "Conceder Bônus às Rolagens de d20 do Oponente",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com 'bonus=' seguido com um separador ';'. Ex.: bonus=1d4 + 5 - @abilities.dex.mod."
+      },
+      "critical": {
+        "name": "Conceder Crítico (20 nat. ou dano crít.) às Rolagens do Oponente",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      },
+      "disadvantage": {
+        "name": "Conceder Desvantagem às Rolagens de d20 do Oponente",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "fail": {
+        "name": "Conceder Falha às Rolagens de d20 do Oponente",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+      },
+      "fumble": {
+        "name": "Conceder Falha Crítica (1 nat.) às Rolagens de d20 do Oponente",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "success": {
+        "name": "Sucesso às Rolagens de d20 Contra ou Causadas por Você",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+      }
+    },
+    "flags.automated-conditions-5e.aura.ACTIONTYPE": {
+      "advantage": {
+        "name": "Uma Aura que Dá Vantagem",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: alcance;um ally/enemy/all;condições, Ex.: para uma ACTIONTYPE salvaguarda e: radius=15;includeSelf;allies;str;cha. Daria a todos os aliados, incluindo você mesmo, em um raio de 15 pés, vantagem em testes de força e/ou carisma."
+      },
+      "bonus": {
+        "name": "Uma Aura que Dá Bônus",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: alcance;ally enemy ou all;bônus;condições, Ex.: para ACTIONTYPE iniciativa e valores de efeitos de: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised. TODOS a até 20 pés terão suas rolagens reduzidas pelo mod. de CAR do ator origem se estiverem Surpresos."
+      },
+      "critical": {
+        "name": "Uma Aura Forçando Críticos (20 nat. ou dano)",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+      },
+      "disadvantage": {
+        "name": "Uma Aura que Dá Desvantagem",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+      },
+      "fail": {
+        "name": "Uma Aura Forçando Falha às Rolagens de d20",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+      },
+      "fumble": {
+        "name": "Uma Aura Forçando Falha Crítica às Rolagens de d20",
+        "description": "Uma aura em torno do ator que tem efeito sobre. Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+      },
+      "success": {
+        "name": "Uma Aura Forçando Sucesso",
+        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+      }
+    }
   }
 }
