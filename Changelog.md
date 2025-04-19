@@ -48,6 +48,7 @@
     * `skill` the skill used on the roll if relevant
     * `tool` the tool used on the roll if relevant
     * `spellLevel` the spell level of casting a spell or the base level of innate ones
+  * You can use `ac5e.conditionData({subject: rollingActor, subjectToken: rollingToken, opponent: targetActpr, opponentToken: targetToken, item: rolledItem, activity: rolledActivity, options = {ability, skill, tool,})` to create an image of what data the sandbox for the conditional evaluations would hold.
 * Added a generic enable checkbox in the setting for the colorful AC5e buttons
 * Numerous smaller fixes.
 * Addition of Polish translation and updates in Italian.
