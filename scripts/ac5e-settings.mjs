@@ -53,7 +53,7 @@ export default class Settings {
 			hint: 'AC5E.ButtonColorPicker.Enabled.Hint',
 			scope: 'client',
 			config: true,
-			default: '#288bcc',
+			default: true,
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Background, {
@@ -61,7 +61,7 @@ export default class Settings {
 			hint: 'AC5E.ButtonColorPicker.Background.Hint',
 			scope: 'client',
 			config: true,
-			default: game?.user?.color?.css,
+			default: '#288bcc',
 			type: String
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
@@ -183,7 +183,6 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
-		
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
 			name: 'DEBUG',
 			scope: 'world',
