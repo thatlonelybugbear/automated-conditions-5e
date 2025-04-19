@@ -1,4 +1,4 @@
-import { _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _getActionType, _getActivityDamageTypes, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
+import { _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActionType, _getActivityDamageTypes, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -262,6 +262,8 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool'));
 		if (!hasHook) return false;
+		if (change.value.includes('allies') && !_dispositionCheck(token, subjectToken, 'same')) return false;
+		if (change.value.includes('enemies') && _dispositionCheck(token, subjectToken, 'same')) return false;
 		if (actorType !== 'aura') return true;
 		const isAura = change.key.includes('aura');
 		if (!isAura) return false;
@@ -288,7 +290,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 									.split('bonus=')?.[1]
 							: '';
 					const auraOnlyOne = el.value.includes('singleAura');
-					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf'];
+					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
 					const valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
@@ -335,7 +337,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 						: '';
 				if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 				if (bonus.includes('##') && opponent) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
-				const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf'];
+				const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
 				const valuesToEvaluate = el.value
 					.split(';')
 					.reduce((acc, v) => {
@@ -385,7 +387,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							: '';
 					if (bonus.includes('@') && subject) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
-					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf'];
+					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
 					const valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
