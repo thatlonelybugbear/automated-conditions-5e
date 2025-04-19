@@ -1,3 +1,10 @@
+## v13.500.1
+* Make sure that when removing blacklisted keywords, an empty string left for evaluation, always evaluates to `true`
+  * as a side effect, leaving the effect value of any AC5e flags empty, it will also evaluate to `true`
+* Only try to register DAE fields when DAE is actually active
+* Foundry v13 and dnd5e 5.0.0 compatibility update
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## v13.439.2
 * Proper descriptions fix in DAE fields for auras `radius=`
 * Fix for checks being based some times on targeted token's data
