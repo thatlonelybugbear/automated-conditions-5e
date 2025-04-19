@@ -301,7 +301,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							return acc;
 						}, [])
 						.join(';');
-					if (!!valuesToEvaluate) valuesToEvaluate = 'true';
+					if (!valuesToEvaluate) valuesToEvaluate = 'true';
 					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, token.actor.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), subject.getRollData())).formula;
 					const evaluation = getMode({ auraName: effect.name, subject, subjectToken, opponent, opponentToken, distance, ability, skill, tool, hook, activity, value: valuesToEvaluate, actorType, options });
@@ -349,7 +349,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 						return acc;
 					}, [])
 					.join(';');
-				if (!!valuesToEvaluate) valuesToEvaluate = 'true';
+				if (!valuesToEvaluate) valuesToEvaluate = 'true';
 				validFlags[effect.id] = {
 					name: effect.name,
 					actorType,
@@ -400,7 +400,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							return acc;
 						}, [])
 						.join(';');
-					if (!!valuesToEvaluate) valuesToEvaluate = 'true';
+					if (!valuesToEvaluate) valuesToEvaluate = 'true';
 					validFlags[effect.id] = {
 						name: effect.name,
 						actorType,
