@@ -168,31 +168,31 @@
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "An aura giving advantage",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: range;one of ally/enemy/all;conditions, eg: for a save ACTIONTYPE and: radius=15;includeSelf;allies;str;cha; would give to all allies including self in 15ft radius advantage to strength or charisma saves."
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format example for a save ACTIONTYPE and: radius=15;includeSelf;allies;str;cha; would give to all allies including self in 15ft radius advantage to strength or charisma saves."
 			},
 			"bonus": {
 				"name": "An aura giving bonuses",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: range;ally enemy or all;bonus;conditions, eg for initiative ACTIONTYPE and effect value of: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised ALL within 20ft will have their rolls reduced by the source actor's cha mod if they are surprised"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format example for initiative ACTIONTYPE and effect value of: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised ALL within 20ft will have their rolls reduced by the source actor's cha mod if they are surprised"
 			},
 			"critical": {
 				"name": "An aura forcing critical (nat20 or damage)",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;conditions"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			},
 			"disadvantage": {
 				"name": "An aura giving disadvantage",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;conditions"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;conditions"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			},
 			"fumble": {
 				"name": "An aura forcing d20 rolls to fumble",
-				"description": "An aura around the actor that has the effect on. Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: rradius=Number;allies or enemies or omit for ALL;conditions"
+				"description": "An aura around the actor that has the effect on. Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			},
 			"success": {
 				"name": "An aura forcing success",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration//death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;conditions"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration//death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			}
 		}
 	}
