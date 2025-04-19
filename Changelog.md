@@ -4,7 +4,9 @@
   * 👉 [Support bugbear on Ko-Fi](<https://ko-fi.com/thatlonelybugbear>)
 * 🏰 You can also join the Bugbear’s Den to hang out, get help, or check what I might be working on!
   * 👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
+
 * AC5E flags:
+  * Added flags with descriptions in DAE for autocompletion.
   * `flags.automated-conditions-5e.ACTIONTYPE.MODE`
     * ACTIONTYPE: can be one of `all/attack/check/concentration/damage/death/initiative/save/skill/tool`
     * MODE: can be one of `advantage/disadvantage/bonus/critical/fumble/success/fail`
@@ -46,6 +48,9 @@
     * `skill` the skill used on the roll if relevant
     * `tool` the tool used on the roll if relevant
     * `spellLevel` the spell level of casting a spell or the base level of innate ones
+* Added a generic enable checkbox in the setting for the colorful AC5e buttons
+* Numerous smaller fixes.
+* Addition of Polish translation and updates in Italian.
       
 ## v13.436.1.3
 * Localization issues fix by [thatlonelybugbear](<https://github.com/thatlonelybugbear>) in [237](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/237>)
