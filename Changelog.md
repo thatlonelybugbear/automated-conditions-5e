@@ -1,3 +1,52 @@
+## v13.439.1
+* That is a huge update, so there might be issues, so please let me know by creating issues in the github repository: [issues](<https://github.com/thatlonelybugbear/automated-conditions-5e/issues>)
+* 🐾 If you like what I do, consider supporting this lonely bugbear! Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
+  * 👉 [Support bugbear on Ko-Fi](<https://ko-fi.com/thatlonelybugbear>)
+* 🏰 You can also join the Bugbear’s Den to hang out, get help, or check what I might be working on!
+  * 👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
+* AC5E flags:
+  * `flags.automated-conditions-5e.ACTIONTYPE.MODE`
+    * ACTIONTYPE: can be one of `all/attack/check/concentration/damage/death/initiative/save/skill/tool`
+    * MODE: can be one of `advantage/disadvantage/bonus/critical/fumble/success/fail`
+    * These will be evaluated when the actor that has that active effect on, rolls any of the relevant ACTIONTYPE.
+  * `flags.automated-conditions-5e.grants.ACTIONTYPE.MODE`
+    * Same ACTIONTYPEs and MODEs as above
+    * These will be evaluated when you target the actor that has that active effect on, _granting_ any rolls of the relevant ACTIONTYPE the corresponding MODE.
+  * `flags.automated-conditions-5e.aura.ACTIONTYPE.MODE`
+    * Same ACTIONTYPEs and MODEs as above
+    * These will be evaluated when you are rolling one of the relevant ACTIONTYPEs and the token of an actor that has that active effect on, is in range!
+    * The auras need in the change value of the active effect an entry of `radius=15;` for example, to designate the aura's range.
+    * You can also include:
+      * `singleAura` (mainly for bonus MODE): add that in to make sure that only 1 auras of the same name (the Active Effect's name) can affect the actor rolling, based on higher bonus or closer to the rolling token if of the same bonus.
+      * `includeSelf`: add that in if the aura should affect also the actor that has that active effect on.
+  * When using `bonus` mode, you should include a bonus entry in the change value, like `bonus=1d4 + abilities.dex.mod` or `bonus=-5[fire]` for typed damage MODE.
+  * All the flags can should allow for sync conditional evaluations, based on data from:
+    * `rollingActor.getRollData()`
+      * If the rolling actor has for example 50 hp, `attributes.hp.value > 40` would evaluate to true
+    * `opponentActor.getRollData()` when relevant and under `target`
+      * If the target actor has for example 50 hp, `target.attributes.hp.value > 40` would evaluate to true
+    * `activity.getRollData()` when relevant
+    * `item.getRollData()` when relevant
+    * `tokenSize` as the rolling `token.document.width * token.document.height`
+    * `tokenElevation`
+    * `race`: an Array of the rolling actor's `[value, subtype, swarm, custom, race]` data
+    * `targetTokenSize` as the rolling `targetToken.document.width * targetToken.document.height`
+    * `targetTokenElevation`
+    * `targetRace` an Array of the target's actor's `[value, subtype, swarm, custom, race]` data
+    * `activityDamageTypes` which should be returning all the damage types of the relevant activity
+    * `activityAttackMode`
+    * `activityEffectsStatusRiders` which is a Set of all the statuses that the activity might apply on the target if any
+      * So if an attack would apply `poisoned` on a hit, an entry of `activityEffectsStatusRiders.poisoned` would evaluate to true
+    * If a combat is active:
+      * `isCombatTurn` is true when it's the rolling actor's turn
+      * `target.isCombatTurn` same for the target
+      * `combat.round/combat.turn/combat.current/combat.turns` will evaluate against the relevant paths in `game.combat`
+    * `worldTime` the game.time.worldTime
+    * `ability` the ability used on the roll
+    * `skill` the skill used on the roll if relevant
+    * `tool` the tool used on the roll if relevant
+    * `spellLevel` the spell level of casting a spell or the base level of innate ones
+      
 ## v13.436.1.3
 * Localization issues fix by [thatlonelybugbear](<https://github.com/thatlonelybugbear>) in [237](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/237>)
 * Adding attackMode if available in ac5eConfig by [thatlonelybugbear](<https://github.com/thatlonelybugbear>) in [238](<https://github.com/thatlonelybugbear/automated-conditions-5e/pull/238>)
