@@ -22,7 +22,7 @@ function ac5eReady() {
 	} else {
 		ac5eSetup();
 	}
-	DAE.addAutoFields(daeFlags);
+	if (_activeModule('dae')) DAE.addAutoFields(daeFlags);
 }
 
 function ac5eSetup() {
