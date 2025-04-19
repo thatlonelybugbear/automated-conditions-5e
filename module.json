@@ -2,7 +2,7 @@
     "id": "automated-conditions-5e",
     "title": "Automated Conditions 5e",
     "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
-    "version": "13.436.1.3",
+    "version": "13.439.1",
     "authors": [
         {
             "name": "thatlonelybugbear",
@@ -25,7 +25,7 @@
                 "compatibility": {
                     "minimum": "4.2.2",
                     "maximum": "4.3.9",
-                    "verified": "4.3.8"
+                    "verified": "4.3.9"
                 }
             }
         ] 
@@ -73,6 +73,6 @@
     "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
     "license": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/LICENSE",
     "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json",
-    "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v13.436.1.3/module.zip",
+    "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v13.439.1/module.zip",
     "changelog": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/Changelog.md"
 }
