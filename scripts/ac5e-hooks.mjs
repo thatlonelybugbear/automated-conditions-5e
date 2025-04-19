@@ -180,7 +180,8 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	const subjectTokenId = speaker?.token;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	let opponentToken;
-	if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
+	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects 
+	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
