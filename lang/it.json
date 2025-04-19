@@ -168,31 +168,31 @@
 	"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 		"advantage": {
 			"name": "Un’aura che concede vantaggio",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: raggio;uno tra alleato/nemico/tutti;condizioni, es: per ACTIONTYPE di tipo save e valore effetto: radius=15;includeSelf;allies;str;cha; concede vantaggio ai tiri salvezza su Forza o Carisma a tutti gli alleati (incluso sé stesso) nel raggio di 15 piedi."
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Esempio di formato del valore di modifica per un salvataggio ACTIONTYPE: radius=15;includeSelf;allies;str;cha; concede vantaggio ai tiri salvezza su Forza o Carisma a tutti gli alleati (incluso sé stesso) nel raggio di 15 piedi."
 		},
 		"bonus": {
 			"name": "Un’aura che concede bonus",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Modifica formato del valore: raggio;alleato nemico o tutti;bonus;condizioni, es: per ACTIONTYPE di tipo initiative e valore effetto: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised tutti entro 20 piedi vedranno i propri tiri ridotti dal modificatore di Carisma dell’attore sorgente se sono sorpresi"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Esempio di formato del valore di modifica per l'iniziativa ACTIONTYPE e valore dell'effetto di: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised tutti entro 20 piedi vedranno i propri tiri ridotti dal modificatore di Carisma dell’attore sorgente se sono sorpresi"
 		},
 		"critical": {
 			"name": "Un’aura che forza i critici (20 naturale o danno critico)",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		},
 		"disadvantage": {
 			"name": "Un’aura che concede svantaggio",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		},
 		"fail": {
 			"name": "Un’aura che forza il fallimento dei tiri d20",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		},
 		"fumble": {
 			"name": "Un’aura che forza il fallimento critico dei tiri d20",
-			"description": "Un’aura attorno all’attore che ha l’effetto attivo. Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+			"description": "Un’aura attorno all’attore che ha l’effetto attivo. Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		},
 		"success": {
 			"name": "Un’aura che forza il successo",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration//death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI;condizioni"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration//death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		}
 	}
     }
