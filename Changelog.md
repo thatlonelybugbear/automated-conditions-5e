@@ -1,3 +1,9 @@
+## v13.439.2
+* Proper descriptions fix in DAE fields for auras `radius=`
+* Fix for checks being based some times on targeted token's data
+* AEs can be named the same and should all be counted
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## v13.439.1.1
 * Slightly more up to date DAE field descriptions for AC5e flags
 * Properly evaluate `allies` and `enemies` keywords in flags. Omit for affecting all actors.
