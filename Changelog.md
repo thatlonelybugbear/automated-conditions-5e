@@ -5,6 +5,8 @@
 * 🏰 You can also join the Bugbear’s Den to hang out, get help, or check what I might be working on!
   * 👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
 
+* Initial implementation for the system's actor abilities/checks roll modes for dis/advantage (not fully supported yet by the system).
+  * AC5e will use notice and use any of these flags when present on the rolling actor. 
 * AC5E flags:
   * Added flags with descriptions in DAE for autocompletion.
   * `flags.automated-conditions-5e.ACTIONTYPE.MODE`
