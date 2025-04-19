@@ -352,8 +352,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 //t1, t2 Token5e or Token5e#Document
 export function _dispositionCheck(t1, t2, check = false) {
 	if (!t1 || !t2) return false;
-	t1 = t1 instanceof Object ? t1.document : t1;
-	t2 = t2 instanceof Object ? t2.document : t2;
+	t1 = t1 instanceof TokenDocument ? t1 : t1.document;
+	t2 = t2 instanceof TokenDocument ? t2 : t2.document;
 	if (check === 'different') return t1.disposition !== t2.disposition;
 	if (check === 'opposite') return t1.disposition * t2.disposition === -1;
 	if (check === 'same') return t1.disposition === t2.disposition;
