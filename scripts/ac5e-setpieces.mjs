@@ -348,8 +348,8 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 						return acc;
 					}, [])
 					.join(';');
-				validFlags[effect.name] = {
-					//name: effect.name,
+				validFlags[effect.id] = {
+					name: effect.name,
 					actorType,
 					mode,
 					bonus,
@@ -398,8 +398,8 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 							return acc;
 						}, [])
 						.join(';');
-					validFlags[effect.name] = {
-						//name: effect.name,
+					validFlags[effect.id] = {
+						name: effect.name,
 						actorType,
 						mode,
 						bonus,
@@ -423,14 +423,11 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 		);
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	for (const el in validFlags) {
-		let { actorType, evaluation, mode, name, bonus } = validFlags[el];
+		let { actorType, evaluation, mode, name, bonus, isAura } = validFlags[el];
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
-		// if (actorType === 'aura') {
-		// 	if (hook === 'attack' || hook === 'damage') actorType = 'subject';
-		// 	else actorType = 'opponent';
-		// }
 		if (evaluation) {
-			ac5eConfig[actorType][mode].push(el);
+			if (!isAura) ac5eConfig[actorType][mode].push(name);   //there can be active effects named the same so validFlags.name would disregard any other that the first
+			else ac5eConfig[actorType][mode].push(el);   //the auras have already the token name in the el passed, so is not an issue
 			if (bonus) ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
 		}
 	}
