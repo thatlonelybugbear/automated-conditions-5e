@@ -1,3 +1,7 @@
+## v13.439.1.1
+* Slightly more up to date DAE field descriptions for AC5e flags
+* Properly evaluate `allies` and `enemies` keywords in flags. Omit for affecting all actors.
+
 ## v13.439.1
 * That is a huge update, so there might be issues, so please let me know by creating issues in the github repository: [issues](<https://github.com/thatlonelybugbear/automated-conditions-5e/issues>)
 * 🐾 If you like what I do, consider supporting this lonely bugbear! Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
