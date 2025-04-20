@@ -48,6 +48,7 @@
 	"AC5E.WarCaster": "Bitewny Mag",
 	"AC5E.Fail": "Porażka",
 	"AC5E.FailLowerCase": "porażka",
+	"AC5E.Fumble": "Porażka",
 	"AC5E.Rage": "Szał",
 	"AC5E.Raging": "W szale",
 	"AC5E.SubtleSpell": "Subtelne zaklęcie",
@@ -73,34 +74,21 @@
 			"Hint": "Usuń dowolny ciąg znaków z wejścia, aby domyślnie był biały"
 		}
 	},
+	"AC5E.Bonus": "Akcja Dodatkowa",
+	"AC5E.Success": "Sukces",
 	"AC5E.AbbreviationAdvantage": "uła",
 	"AC5E.AbbreviationDisadvantage": "utr",
 	"AC5E.AbbreviationCritical": "kryt",
 	"AC5E.Grants": "otrzymuje",
 	"AC5E.Attacker": "Atakujący",
-	"AC5E.AttackerAdvantageAbbreviated": "Ułatwienie atakującego",
-	"AC5E.AttackerGrantsDisadvantageAbbreviated": "Atakujący otrzymuje utrudnienie",
-	"AC5E.AttackerDisadvantageAbbreviated": "Utrudnienie atakującego",
-	"AC5E.SourceGrantsAdvantageAbbreviated": "Źródło otrzymuje ułatwienie",
-	"AC5E.SourceGrantsCriticalAbbreviated": "Źródło otrzymuje krytyk",
-	"AC5E.SourceGrantsDisadvantageAbbreviated": "Źródło otrzymuje utrudnienie",
-	"AC5E.SourceGrantsFail": "Źródło otrzymuje porażkę",
-	"AC5E.SourceCriticalAbbreviated": "Krytyk źródła",
-	"AC5E.TargetGrantsAdvantageAbbreviated": "Cel otrzymuje ułatwienie",
-	"AC5E.TargetAdvantageAbbreviated": "Ułatwienie celu",
-	"AC5E.TargetGrantsDisadvantageAbbreviated": "Cel otrzymuje utrudnienie",
-	"AC5E.TargetDisadvantageAbbreviated": "Utrudnienie celu",
-	"AC5E.TargetGrantsCriticalAbbreviated": "Cel otrzymuje krytyk",
-	"AC5E.TargetGrantsFail": "Cel otrzymuje porażkę",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Przyznane ułatwienie",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Przyznane utrudnienie",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Przyznianie krytyka",
+	"AC5E.TargetGrantsFail": "Przyznanie porażki",
+	"AC5E.TargetGrantsFumble": "Przyznanie porażki",
+	"AC5E.TargetGrantsSuccess": "Przyznanie sukcesu",
+	"AC5E.TargetGrantsBonus": "Przyznanie bonusu",
 	"AC5E.NoChanges": "Bez zmian",
-	"AC5E.FlagsInitiative": {
-		"ADV": "initiativeAdv Flag",
-		"DIS": "initiativeDis Flag"
-	},
-	"AC5E.SystemRollMode": {
-		"ADV": "System mode ADV",
-		"DIS": "System mode DIS"
-	},
 	"AC5E.EnviromentalHazards": {
 		"SettingsName": "Zagrożenia środowiskowe (2024)",
 		"SettingsHint": "Zautomatyzowano stany podpalenia i uduszenia w oparciu o zestaw zasad dnd45e z 2024 r.",
@@ -124,7 +112,7 @@
 			},
 			"bonus": {
 				"name": "Rzut otrzymuje premię",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Rozpocznij od premii, po której następuje separator ;, np. 1d4 + 5 - @abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - @abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Rzut jest krytyczny (nat20 lub obrażenia krytyczne)",
@@ -154,7 +142,7 @@
 			},
 			"bonus": {
 				"name": "Przyznaj bonus dla rzutów przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Rozpocznij od premii, po której następuje separator ;, np. 1d4 + 5 - @abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - @abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Przyznaj krytyk (nat20 lub obrażenia) dla rzutów przeciwnika",
@@ -180,31 +168,31 @@
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "Aura zapewniająca ułatwienie",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: range;one of ally/enemy/all;conditions, np: dla rzutu obronnego ACTIONTYPE i: 15;ally;str;cha; da wszystkim sojusznikom w promieniu 15 stóp ułatwienie do rzutów obronnych siły lub charyzmy."
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmiana formatu wartości przykład dla rzutu obronnego ACTIONTYPE i: radius=15;includeSelf;allies;str;cha; dałaby wszystkim sojusznikom, w tym sobie, w promieniu 15 stóp ułatwienie do rzutów obronnych siły lub charyzmy."
 			},
 			"bonus": {
 				"name": "Aura zapewniająca bonusy",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: range;ally enemy lub all;bonus;conditions, np. dla inicjatywy ACTIONTYPE i wartości efektu na: 20;enemy;-source.abilities.cha.mod;target.statuses.surprised wszyscy wrogowie w promieniu 20 stóp będą mieli rzuty zmniejszone o cha mod źródłowego aktora, jeśli zostaną zaskoczeni."
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień przykładowy format wartości dla inicjatywy ACTIONTYPE i wartość efektu: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised WSZYSCY w promieniu 20 stóp będą mieli swoje rzuty zmniejszone o cha mod źródłowego aktora, jeśli zostaną zaskoczeni."
 			},
 			"critical": {
 				"name": "Aura wymuszająca krytyk (nat20 lub obrażenia)",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"disadvantage": {
 				"name": "Aura zapewniająca utrudnienie",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"fail": {
 				"name": "Aura wymuszająca porażkę dla rzutów k20",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"fumble": {
 				"name": "Aura wymuszająca krytyczną porażkę dla rzutów k20",
-				"description": "Aura wokół aktora, na którego działa efekt. Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+				"description": "Aura wokół aktora, na którego działa efekt. Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"success": {
 				"name": "Aura zapewniająca sukces",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool. Zmień format wartości: range;ally lub enemy lub all;conditions"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration//death/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			}
 		}
 	}
