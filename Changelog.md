@@ -1,4 +1,4 @@
-## v13.500.1
+## v13.500.2
 * Updated Polish translation by
 * Cleanup in available sandbox data for AC5e flags conditional evaluations
   * `canSee`: evaluates to true if the rolling actor can see the targeted actor
