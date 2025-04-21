@@ -857,6 +857,7 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 			sandbox.rollingActor.tokenElevation = subjectToken.document.elevation;
 			sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
 			sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
+			sandbox.tokenId = subjectToken.id;
 		};
 	};
 	if (opponent) {
@@ -868,6 +869,7 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 			sandbox.targetActor.tokenElevation = opponentToken.document.elevation;
 			sandbox.targetActor.tokenSenses = opponentToken.document.detectionModes;
 			sandbox.targetActor.tokenUuid = opponentToken.document.uuid;
+			sandbox.targetId = opponentToken.id;
 		};
 	};
 	if (auraActor) {
@@ -885,7 +887,7 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	sandbox.activity = activity?.getRollData().activity;
 	if (activity) {
 		sandbox.activity.damageTypes = _getActivityDamageTypes(activity);
-		sandbox.activity.attackMode = options.ac5eConfig?.attackMode;
+		sandbox.activity.attackMode = options?.ac5eConfig?.attackMode;
 	        sandbox.activity.riderStatuses = _getActivityEffectsStatusRiders(activity);
 		sandbox.activity.actionType = _getActionType(activity);
 	};
@@ -898,9 +900,11 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.spellLevel = options?.spellLevel;
 	sandbox.options = options;
-	if (options.skill) sandbox[options.skill] = true;
-	if (options.ability) sandbox[options.ability] = true;
-	if (options.tool) sandbox[options.tool] = true;
+	if (options?.skill) sandbox[options.skill] = true;
+	if (options?.ability) sandbox[options.ability] = true;
+	if (options?.tool) sandbox[options.tool] = true;
+	sandbox.canSee = _canSee(subjectToken, opponentToken);
+	sandbox.isSeen = _canSee(opponentToken, subjectToken);
 	
 	foundry.utils.mergeObject(sandbox, { ac5e: ac5e });
 	if (item) {
