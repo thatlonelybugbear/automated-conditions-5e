@@ -835,8 +835,7 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	}
 	let result;
 	try {
-		result = /*const evl =*/ new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
-		//result = evl(sandbox);
+		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
 	} catch (err) {
 		result = undefined;
 	}
