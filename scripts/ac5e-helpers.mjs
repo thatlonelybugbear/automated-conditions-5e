@@ -834,22 +834,8 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 		throw new Error(`Roll.safeEval expression cannot contain ui.`);
 	}
 	let result;
-	const { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } = sandbox.CONFIG;
-	if (abilities[expression] && [sandbox.options.ability, sandbox.activity?.ability].includes(expression)) result = true; //return mult !== '!' ? true : false;
-	if (activityTypes[expression] && sandbox.activity?.type === expression) result = true; //return mult !== '!' ? true : false;
-	if (attackClassifications[expression] && sandbox.activity?.attack?.type?.classification === expression) result = true;
-	if (attackModes[expression] && sandbox.activityAttackMode === expression) result = true;
-	if (statusEffects.includes(expression) && sandbox.activityEffectsStatusRiders[expression]) result = true;
-	if ((attackTypes[expression] && sandbox.activity?.attack?.type?.value === expression) || sandbox.item?.activities?.contents?.[0]?.actionType === expression) result = true;
-	if (damageTypes[expression] && sandbox.activityDamageTypes.includes(expression)) result = true;
-	if (healingTypes[expression] && sandbox.activityDamageTypes.includes(expression)) result = true;
-	if (itemProperties[expression] && sandbox.item?.properties?.has(expression)) result = true;
-	if (skills[expression] && sandbox.options.skill === expression) result = true;
-	if (tools[expression] && sandbox.options.tool === expression) result = true;
-	if (spellSchools[expression] && sandbox.item?.school === expression) result = true;
-	if (spellcastingTypes[expression] && sandbox.item?.school === expression) result = true;
 	try {
-		if (!result) result = /*const evl =*/ new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
+		result = /*const evl =*/ new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
 		//result = evl(sandbox);
 	} catch (err) {
 		result = undefined;
@@ -861,35 +847,83 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	return result;
 }
 
-export function _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, item, activity, options }) {
-	const sandbox = subject.getRollData();
+export function _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, auraActor, auraToken, item, activity, options }) {
+	const sandbox = {};
+	if (subject) {
+		sandbox.rollingActor = subject.getRollData();
+		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subject, 'all'));
+		if (subjectToken) {
+			sandbox.rollingActor.token = subjectToken;
+			sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
+			sandbox.rollingActor.tokenElevation = subjectToken.document.elevation;
+			sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
+			sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
+		};
+	};
+	if (opponent) {
+		sandbox.targetActor = opponent.getRollData();
+		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponent, 'all'));
+		if (opponentToken) {
+			sandbox.targetActor.token = opponentToken;
+			sandbox.targetActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
+			sandbox.targetActor.tokenElevation = opponentToken.document.elevation;
+			sandbox.targetActor.tokenSenses = opponentToken.document.detectionModes;
+			sandbox.targetActor.tokenUuid = opponentToken.document.uuid;
+		};
+	};
+	if (auraActor) {
+		sandbox.auraActor = auraActor.getRollData();
+		sandbox.auraActor.creatureType = Object.values(_raceOrType(auraActor, 'all'));
+		if (auraToken) {
+			sandbox.auraActor.token = auraToken;
+			sandbox.auraActor.tokenSize = auraToken.document.width * auraToken.document.height;
+			sandbox.auraActor.tokenElevation = auraToken.document.elevation;
+			sandbox.auraActor.tokenSenses = auraToken.document.detectionModes;
+			sandbox.auraActor.tokenUuid = auraToken.document.uuid;
+		};
+	}
 	sandbox.item = item?.getRollData().item;
 	sandbox.activity = activity?.getRollData().activity;
-	sandbox.activityDamageTypes = _getActivityDamageTypes(activity);
-	sandbox.activityAttackMode = options.ac5eConfig.attackMode;
-	sandbox.activityEffectsStatusRiders = _getActivityEffectsStatusRiders(activity);
-	sandbox.token = subjectToken;
-	sandbox.tokenId = subjectToken?.id;
-	sandbox.tokenUuid = subjectToken?.document.uuid;
-	sandbox.tokenSize = subjectToken?.document.width * subjectToken?.document.height;
-	sandbox.tokenElevation = subjectToken?.document.elevation;
-	sandbox.race = Object.values(_raceOrType(subject, 'all'));
-	sandbox.target = opponent?.getRollData() || {};
-	sandbox.targetToken = opponentToken;
-	sandbox.targetTokenId = opponentToken?.id;
-	sandbox.targetTokenUuid = opponentToken?.document.uuid;
-	sandbox.targetTokenSize = opponentToken?.document.width * opponentToken?.document.height;
-	sandbox.targetElevation = opponentToken?.document.elevation;
-	sandbox.targetRace = Object.values(_raceOrType(opponent, 'all'));
+	if (activity) {
+		sandbox.activity.damageTypes = _getActivityDamageTypes(activity);
+		sandbox.activity.attackMode = options.ac5eConfig?.attackMode;
+	        sandbox.activity.riderStatuses = _getActivityEffectsStatusRiders(activity);
+		sandbox.activity.actionType = _getActionType(activity);
+	};
 	if (game.combat?.active) {
 		sandbox.combat = { round: game.combat.round, turn: game.combat.turn, current: game.combat.current, turns: game.combat.turns };
 		sandbox.isCombatTurn = game.combat?.combatant?.tokenId === subjectToken?.id;
-		if (opponentToken) sandbox.target.isCombatTurn = game.combat?.combatant?.tokenId === opponentToken.id;
+		if (opponentToken) sandbox.targetActor.isCombatTurn = game.combat?.combatant?.tokenId === opponentToken.id;
+		if (auraToken) sandbox.auraActor.isCombatTurn = game.combat?.combatant?.tokenId === auraToken.id;
 	}
 	sandbox.worldTime = game.time?.worldTime;
-	//foundry.utils.mergeObject(sandbox, options);
-	sandbox.spellLevel = options.spellLevel;
+	sandbox.spellLevel = options?.spellLevel;
 	sandbox.options = options;
+	if (options.skill) sandbox[options.skill] = true;
+	if (options.ability) sandbox[options.ability] = true;
+	if (options.tool) sandbox[options.tool] = true;
+	
+	foundry.utils.mergeObject(sandbox, { ac5e: ac5e });
+	if (item) {
+		const itemData = sandbox.item;
+		sandbox[itemData.itemType] = true;
+		sandbox[itemData.school] = true;
+		sandbox[itemData.identifier] = true;
+		sandbox[itemData.name] = true;
+		sandbox.item.properties.filter(p=>sandbox[p] = true);
+		// sandbox[itemData.actication.type.value] = true;
+	}
+	if (activity) {
+		sandbox.riderStatuses = {};
+		const activityData = sandbox.activity;
+		activityData.damageTypes.filter(d=>sandbox[d]=true);
+		sandbox[activityData.activation.type] = true;
+		sandbox[activityData.name] = true;
+		sandbox[activityData.type] = true;
+		sandbox[activityData.actionType] = true;
+		if (activityData.attackMode) sandbox[activityData.attackMode] = true;
+		if (activityData.effectsStatusRiders) sandbox.riderStatuses = activityData.effectsStatusRiders;
+	}
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
