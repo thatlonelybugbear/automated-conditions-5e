@@ -498,14 +498,14 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	//const actorType = hookType === 'attack' ? 'subject' : 'opponent';
 
 	if (ac5eConfig.preAC5eConfig.advKey) {
-		ac5eConfig[actorType].advantage = [`${roller} (keyPress)`];
+		ac5eConfig.subject.advantage = [`${roller} (keyPress)`];
 		ac5eConfig.returnEarly = settings.keypressOverrides;
 		if (ac5eConfig.returnEarly) {
 			config.advantage = true;
 			config.disadvantage = false;
 		}
 	} else if (ac5eConfig.preAC5eConfig.disKey) {
-		ac5eConfig[actorType].disadvantage = [`${roller} (keyPress)`];
+		ac5eConfig.subject.disadvantage = [`${roller} (keyPress)`];
 		ac5eConfig.returnEarly = settings.keypressOverrides;
 		if (ac5eConfig.returnEarly) {
 			config.advantage = false;
