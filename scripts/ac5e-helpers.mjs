@@ -910,7 +910,6 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 		sandbox[itemData.identifier] = true;
 		sandbox[itemData.name] = true;
 		sandbox.item.properties.filter(p=>sandbox[p] = true);
-		// sandbox[itemData.actication.type.value] = true;
 	}
 	if (activity) {
 		sandbox.riderStatuses = {};
