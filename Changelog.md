@@ -1,5 +1,5 @@
 ## v13.500.2
-* Updated Polish translation by
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart> 🤗
 * Cleanup in available sandbox data for AC5e flags conditional evaluations
   * `canSee`: evaluates to true if the rolling actor can see the targeted actor
   * `isSeen`: evaluates to true if the targeted actor can see the rolling actor
