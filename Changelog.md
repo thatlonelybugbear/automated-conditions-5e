@@ -5,7 +5,8 @@
   * `isSeen`: evaluates to true if the targeted actor can see the rolling actor
   * `rollingActor` holds merged data from the `rollingActor.getRollData()` plus the rolling token
   * `targetActor` holds merged data from the `targetActor.getRollData()` plus the targeted token
-* The evaluation data is a work in progress and to help users become acquainted, AC5e will be creating a log with its sandbox data everytime a condition evaluation is happening. It will be disabled in the future.
+* The evaluation data is a work in progress and to help users become acquainted, AC5e will be creating a log with its sandbox data everytime a condition evaluation is happening.
+  * It will be disabled in the future when the WIKI is ready and the basic available data are set to stone! 
 
 ## v13.500.1
 * Make sure that when removing blacklisted keywords, an empty string left for evaluation, always evaluates to `true`
