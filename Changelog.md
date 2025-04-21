@@ -1,4 +1,13 @@
 ## v13.500.1
+* Updated Polish translation by
+* Cleanup in available sandbox data for AC5e flags conditional evaluations
+  * `canSee`: evaluates to true if the rolling actor can see the targeted actor
+  * `isSeen`: evaluates to true if the targeted actor can see the rolling actor
+  * `rollingActor` holds merged data from the `rollingActor.getRollData()` plus the rolling token
+  * `targetActor` holds merged data from the `targetActor.getRollData()` plus the targeted token
+* The evaluation data is a work in progress and to help users become acquainted, AC5e will be creating a log with its sandbox data everytime a condition evaluation is happening. It will be disabled in the future.
+
+## v13.500.1
 * Make sure that when removing blacklisted keywords, an empty string left for evaluation, always evaluates to `true`
   * as a side effect, leaving the effect value of any AC5e flags empty, it will also evaluate to `true`
 * Only try to register DAE fields when DAE is actually active
