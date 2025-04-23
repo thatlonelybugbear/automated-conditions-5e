@@ -330,6 +330,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						}, [])
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
+					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
 					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, token.actor.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), subject.getRollData())).formula;
 					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData });
@@ -378,6 +379,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					}, [])
 					.join(';');
 				if (!valuesToEvaluate) valuesToEvaluate = 'true';
+				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
 				validFlags[effect.id] = {
 					name: effect.name,
 					actorType,
@@ -415,6 +417,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						}, [])
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
+					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
 					validFlags[effect.id] = {
 						name: effect.name,
 						actorType,
