@@ -247,7 +247,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const distanceToSource = (token) => _getDistance(token, subjectToken);
 	// const distanceToTarget = (token) => _getDistance(token, opponentToken);
 
-	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options: });
+	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
 
 	const getActorAndModeType = (el, includeAuras = false) => {
 		let actorType, mode; //actorType designates which actor's rollData should this be evaluated upon; subject, opponent, aura
