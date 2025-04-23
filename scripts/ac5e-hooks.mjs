@@ -168,7 +168,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
 		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
 	}
-	
+
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: attackingToken });
 	dialog.configure = !ac5eConfig.fastForward;
 	// _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -191,7 +191,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	const subjectTokenId = speaker?.token;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	let opponentToken;
-	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects 
+	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects
 	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 
@@ -323,7 +323,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	}
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken, });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
 	return true;
