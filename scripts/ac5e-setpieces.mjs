@@ -276,6 +276,21 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 	canvas.tokens.placeables.filter((token) => {
 		if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
 		}
+		const distanceTokenToAuraSource = distanceToSource(token);
+		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
+		const auraTokenEvaluationData = foundry.utils.mergeObject(
+			evaluationData, {
+				auraActor: token.actor.getRollData(),
+				['auraActor.creatureType']: Object.values(_raceOrType(token.actor, 'all')),
+				['auraActor.token']: token,
+				['auraActor.tokenSize']: token.document.width * token.document.height,
+				['auraActor.tokenElevation']: token.document.elevation,
+				['auraActor.tokenSenses']: token.document.detectionModes,
+				['auraActor.tokenUuid']: token.document.uuid,
+				isAuraSourceTurn: currentCombatant === token?.id,
+			},
+			{ inplace: false }
+		);
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ token, change, actorType: 'aura', hook }))
@@ -304,7 +319,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
 					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, token.actor.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), subject.getRollData())).formula;
-					const evaluation = getMode({ auraName: effect.name, subject, subjectToken, opponent, opponentToken, distance, ability, skill, tool, hook, activity, value: valuesToEvaluate, actorType, options });
+					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData });
 					if (!evaluation) return;
 
 					if (auraOnlyOne) {
@@ -355,21 +370,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 					actorType,
 					mode,
 					bonus,
-					evaluation: getMode({
-						subject,
-						opponent,
-						subjectToken,
-						opponentToken,
-						distance,
-						ability,
-						skill,
-						tool,
-						hook,
-						activity,
-						value: valuesToEvaluate,
-						actorType,
-						options,
-					}),
+					evaluation: getMode({ value: valuesToEvaluate, }),
 				};
 			})
 	);
@@ -406,21 +407,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 						actorType,
 						mode,
 						bonus,
-						evaluation: getMode({
-							subject,
-							opponent,
-							subjectToken,
-							opponentToken,
-							distance,
-							ability,
-							skill,
-							tool,
-							hook,
-							activity,
-							value: valuesToEvaluate,
-							actorType,
-							options,
-						}),
+						evaluation: getMode({ value: valuesToEvaluate, }),
 					};
 				})
 		);
@@ -437,7 +424,7 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 	return ac5eConfig;
 
 	//special functions\\
-	function getMode({ subject, subjectToken, opponent, opponentToken, hook, ability, distance, activity, tool, skill, options, value, actorType }) {
+	function getMode({ value, auraTokenEvaluationData }) {
 		if (['1', 'true'].includes(value)) return true;
 		if (['0', 'false'].includes(value)) return false;
 		const clauses = value
@@ -452,7 +439,8 @@ function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig,
 				clause = clause.slice(1).trim();
 				mult = '!';
 			}
-			return mult ? !_ac5eSafeEval({ expression: clause, sandbox: evaluationData }) : _ac5eSafeEval({ expression: clause, sandbox: evaluationData });
+			const sandbox = auraTokenEvaluationData ? auraTokenEvaluationData : evaluationData;
+			return mult ? !_ac5eSafeEval({ expression: clause, sandbox }) : _ac5eSafeEval({ expression: clause, sandbox });
 		});
 	}
 }
