@@ -846,11 +846,14 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	return result;
 }
 
-export function _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, item, activity, options }) {
+export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const sandbox = {};
-	if (subject) {
-		sandbox.rollingActor = subject.getRollData();
-		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subject, 'all'));
+	const { ability, activity, distance, skill, tool } = options;
+	const item = activity?.item;
+	
+	if (subjectToken) {
+		sandbox.rollingActor = subjectToken.actor.getRollData();
+		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subjectToken.actor, 'all'));
 		if (subjectToken) {
 			sandbox.rollingActor.token = subjectToken;
 			sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
@@ -860,9 +863,9 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 			sandbox.tokenId = subjectToken.id;
 		};
 	};
-	if (opponent) {
-		sandbox.targetActor = opponent.getRollData();
-		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponent, 'all'));
+	if (opponentToken) {
+		sandbox.targetActor = opponentToken.actor.getRollData();
+		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
 		if (opponentToken) {
 			sandbox.targetActor.token = opponentToken;
 			sandbox.targetActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
@@ -874,14 +877,13 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	};
 	
 	sandbox.activity = activity?.getRollData().activity || {};
-	sandbox.riderStatuses = _getActivityEffectsStatusRiders(activity);
+	sandbox.riderStatuses = options.activityEffectsStatusRiders;
 	if (activity) {
 		const activityData = sandbox.activity;
-		activityData.damageTypes = _getActivityDamageTypes(activity);
-		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.fitger((d) => sandbox[d] = true));
+		activityData.damageTypes = options.activityDamageTypes;
+		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => sandbox[d] = true));
 		activityData.attackMode = options?.attackMode;
 		if (options?.attackMode) sandbox[options.attackMode] = true;
-	        // sandbox.activity.riderStatuses = sandbox.riderStatuses;
 		sandbox[activityData.actionType] = true;
 		sandbox[activityData.name] = true;
 		sandbox[activityData.activation.type] = true;
@@ -912,8 +914,8 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	sandbox.isDeathSave = options?.isDeathSave;
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.hook = options?.hook;
-	if (options?.skill) sandbox[options.skill] = true;
 	if (options?.ability) sandbox[options.ability] = true;
+	if (options?.skill) sandbox[options.skill] = true;
 	if (options?.tool) sandbox[options.tool] = true;
 	sandbox.canSee = _canSee(subjectToken, opponentToken);
 	sandbox.isSeen = _canSee(opponentToken, subjectToken);
@@ -929,10 +931,10 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	return sandbox;
 }
 
-export function _getActivityDamageTypes(a) {
-	if (!a) return [];
-	if (['attack', 'damage', 'save'].includes(a?.type)) return a.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
-	if (a?.type === 'heal') return [...a.healing.types]; //parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
+export function _getActivityDamageTypes(activity) {
+	if (!activity) return [];
+	if (['attack', 'damage', 'save'].includes(activity?.type)) return activity.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
+	if (activity?.type === 'heal') return [...activity.healing.types]; //parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
