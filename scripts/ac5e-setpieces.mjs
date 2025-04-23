@@ -5,13 +5,10 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
-	// { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }
-	// will change to
-	// { ac5eConfig, subjectToken, opponentToken }
-	//and ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
+	//ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
 	const options = ac5eConfig.options;
 	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = options;
-	
+
 	const actorTypes = {};
 	if (subjectToken) actorTypes.subject = subjectToken.actor;
 	if (opponentToken) actorTypes.opponent = opponentToken.actor;
@@ -206,9 +203,9 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	return statusEffectsTables;
 }
 
-function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken, /*ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders*/ }) {
+function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken /*ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders*/ }) {
 	const automatedItems = {};
-	const { activity } = ac5eConfig.options; 
+	const { activity } = ac5eConfig.options;
 	automatedItems[_localize('AC5E.Items.DwarvenResilience')] = {
 		name: _localize('AC5E.Items.DwarvenResilience'),
 		save: { subject: _getActivityEffectsStatusRiders(activity)['poisoned'] ? 'advantage' : '' },
@@ -243,7 +240,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 
 	if (settings.debug) console.error('AC5E._ac5eFlags:', { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
-		
+
 	const distanceToSource = (token) => _getDistance(token, subjectToken);
 	// const distanceToTarget = (token) => _getDistance(token, opponentToken);
 
@@ -292,7 +289,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const distanceTokenToAuraSource = distanceToSource(token);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
 		const auraTokenEvaluationData = foundry.utils.mergeObject(
-			evaluationData, {
+			evaluationData,
+			{
 				auraActor: token.actor.getRollData(),
 				['auraActor.creatureType']: Object.values(_raceOrType(token.actor, 'all')),
 				['auraActor.token']: token,
@@ -385,7 +383,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					actorType,
 					mode,
 					bonus,
-					evaluation: getMode({ value: valuesToEvaluate, }),
+					evaluation: getMode({ value: valuesToEvaluate }),
 				};
 			})
 	);
@@ -423,7 +421,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						actorType,
 						mode,
 						bonus,
-						evaluation: getMode({ value: valuesToEvaluate, }),
+						evaluation: getMode({ value: valuesToEvaluate }),
 					};
 				})
 		);
@@ -432,8 +430,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let { actorType, evaluation, mode, name, bonus, isAura } = validFlags[el];
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
-			if (!isAura) ac5eConfig[actorType][mode].push(name);   //there can be active effects named the same so validFlags.name would disregard any other that the first
-			else ac5eConfig[actorType][mode].push(el);   //the auras have already the token name in the el passed, so is not an issue
+			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
+			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
 			if (bonus) ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
 		}
 	}
