@@ -51,8 +51,8 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (settings.debug) console.error('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
-	const options = chatButtonTriggered.options;
-	if (item.type == 'spell' && settings.autoArmorSpellUse !== 'off') {
+	const options = { ability, skill, tool, hook, activity };
+	if (item.type === 'spell' && settings.autoArmorSpellUse !== 'off') {
 		if (_autoArmor(sourceActor).notProficient) {
 			if (settings.autoArmorSpellUse === 'warn') ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
 			else if (settings.autoArmorSpellUse === 'enforce') {
@@ -85,8 +85,12 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	let targets = game.user?.targets;
 	if (targets.size) {
 		for (const target of targets) {
-			let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, options);
-			ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: target.actor, opponentToken: target, ac5eConfig, hook, ability, skill, tool, distance: _getDistance(sourceToken, target), activity, options });
+			const distance = _getDistance(sourceToken, target);
+			const perTargetOptions = foundry.utils.duplicate(options);
+			perTargetOptions.distance = distance;
+			let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, perTargetOptions);
+			//ac5eConfig should include the options object
+			ac5eConfig = _ac5eChecks({ subjectToken: sourceToken, opponentToken: target, ac5eConfig });
 			if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
 				const failString = `${item.name} cannot target ${target.name}, due to the following effects`;
 				const sourceString = ac5eConfig.subject.fail.length ? `, on the sourceActor: ${ac5eConfig.subject.fail.join(',')}` : '';
@@ -106,7 +110,9 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	const singleTargetToken = targets?.first();
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	const singleTargetActor = singleTargetToken?.actor;
-	ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: singleTargetActor, opponentToken: singleTargetToken, ac5eConfig, hook, ability, skill, tool, distance: _getDistance(sourceToken, singleTargetToken), activity, options });
+	const distance = _getDistance(sourceToken, singleTargetToken);
+	options.distance = distance;
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	if (!activity.parent.hasAttack && !activity.hasDamage) return true;
@@ -129,6 +135,8 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
+	options.hook = hook;
+	options.activity = activity;
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
@@ -141,6 +149,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 
 	const subjectTokenId = speaker?.token;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
+	if (attackingToken) options.distance = _getDistance(attackingToken, subjectToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, attackingToken?.id, options);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -159,8 +168,8 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
 		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
 	}
-
-	ac5eConfig = _ac5eChecks({ subject, subjectToken, opponent: attackingActor, opponentToken: attackingToken, ac5eConfig, hook, ability, activity, options });
+	
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: attackingToken });
 	dialog.configure = !ac5eConfig.fastForward;
 	// _setAC5eProperties(ac5eConfig, config, dialog, message);
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
@@ -176,6 +185,8 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.skill = skill;
 	options.tool = tool;
 	options.ability = ability;
+	options.hook = hook;
+	options.activity = activity;
 
 	const subjectTokenId = speaker?.token;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
@@ -188,7 +199,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 
 	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
 	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
-	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, subject, opponentToken, opponent: opponentToken?.actor, hook, ability, tool, skill, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
 	//check Auto Armor
 	//to-do: move to setPieces
 	if (settings.autoArmor) {
@@ -212,7 +223,8 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
-
+	options.activity = activity;
+	options.hook = hook;
 	const chatButtonTriggered = getMessageData(config);
 	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
@@ -228,6 +240,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	let targetActor = singleTargetActor;
 	let targetToken = singleTargetToken;
 	let distance = _getDistance(sourceToken, singleTargetToken);
+	options.distance = distance;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
@@ -242,7 +255,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	}
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: targetActor, opponentToken: targetToken, ac5eConfig, hook, ability, distance, activity, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken });
 
 	let nearbyFoe, inRange, range;
 	if (settings.autoRangedCombined !== 'off' && targetToken) {
@@ -282,7 +295,10 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config);
 	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
-	options.spellLevel = use?.spellLevel;
+	options.attackMode = attackMode;
+	options.ammo = ammunition;
+	options.activity = activity;
+	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 	const targets = game.user?.targets;
@@ -292,6 +308,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	let targetActor = singleTargetActor;
 	let targetToken = singleTargetToken;
 	let distance = _getDistance(sourceToken, singleTargetToken);
+	options.distance = distance;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
@@ -304,9 +321,9 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 			distance = undefined;
 		}
 	}
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: targetActor, opponentToken: targetToken, ac5eConfig, hook, ability, distance, activity, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken, });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
 	return true;
