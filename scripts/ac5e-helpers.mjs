@@ -881,7 +881,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activity) {
 		const activityData = sandbox.activity;
 		activityData.damageTypes = options.activityDamageTypes;
-		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => sandbox[d] = true));
+		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => sandbox[d] = true);
 		activityData.attackMode = options?.attackMode;
 		if (options?.attackMode) sandbox[options.attackMode] = true;
 		sandbox[activityData.actionType] = true;
