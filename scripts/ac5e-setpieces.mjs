@@ -4,14 +4,17 @@ import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
-export function _ac5eChecks({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
+export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	// { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }
 	// will change to
 	// { ac5eConfig, subjectToken, opponentToken }
 	//and ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
+	const options = ac5eConfig.options;
+	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = options;
+	
 	const actorTypes = {};
-	if (subject) actorTypes.subject = subject;
-	if (opponent) actorTypes.opponent = opponent;
+	if (subjectToken) actorTypes.subject = subjectToken.actor;
+	if (opponentToken) actorTypes.opponent = opponentToken.actor;
 	for (const actorType in actorTypes) {
 		const actor = actorTypes[actorType];
 		if (foundry.utils.isEmpty(actor)) continue;
@@ -20,9 +23,9 @@ export function _ac5eChecks({ subject, subjectToken, opponent, opponentToken, ac
 			if (status.includes('exhaustion') && settings.autoExhaustion) {
 				exhaustionLvl = actor.system.attributes.exhaustion;
 				const toCheckExhaustionLevel = exhaustionLvl >= 3 ? 3 : 1;
-				test = testStatusEffectsTables({ subject, subjectToken, opponent, opponentToken, distance, ability, options, skill, tool })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
+				test = testStatusEffectsTables({ subjectToken, opponentToken, options })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
 			} else if (!status.includes('exhaustion')) {
-				test = testStatusEffectsTables({ subject, subjectToken, opponent, opponentToken, distance, ability, options, skill, tool })?.[status]?.[hook]?.[actorType];
+				test = testStatusEffectsTables({ subjectToken, opponentToken, options })?.[status]?.[hook]?.[actorType];
 			}
 			if (!test) continue;
 			if (settings.debug) console.log(actorType, test);
@@ -34,21 +37,24 @@ export function _ac5eChecks({ subject, subjectToken, opponent, opponentToken, ac
 			//fromUuidSync(ac5eConfig?.preAC5eConfig?.midiOptions?.saveActivityUuid); doesn't work because MidiQOL:
 			// 1. doesn't pass a saveActivityUuid
 			// 2. when a save activity is triggered by as Use Other Activity, the associated activity is the initial one and not the Save activity.
-			const test = automatedItemsTables({ subject, subjectToken, opponent, opponentToken, ability, distance, activity, tool, skill, options })?.[item.name]?.[hook]?.[actorType];
+			const test = automatedItemsTables({ subjectToken, opponentToken, options })?.[item.name]?.[hook]?.[actorType];
 			if (settings.debug) console.log({ hook, test, actorType, activity });
 			if (!test) continue;
 
 			ac5eConfig[actorType][test].push(automatedItemsTables({})?.[item.name].name);
 		}
 	}
-	ac5eConfig = ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
+	ac5eConfig = ac5eFlags({ ac5eConfig, subjectToken, opponentToken });
 	if (settings.debug) console.log('AC5E._ac5eChecks:', { ac5eConfig });
 	//	ac5eConfig = automatedItemsTables({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
 	return ac5eConfig;
 }
 
-function testStatusEffectsTables({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, exhaustionLvl } = {}) {
+function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl } = {}) {
 	const statusEffectsTables = {};
+	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
+	const subject = subjectToken?.actor;
+	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
 	statusEffectsTables.blinded = {
@@ -200,8 +206,9 @@ function testStatusEffectsTables({ subject, subjectToken, opponent, opponentToke
 	return statusEffectsTables;
 }
 
-function automatedItemsTables({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders }) {
+function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken, /*ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders*/ }) {
 	const automatedItems = {};
+	const { activity } = ac5eConfig.options; 
 	automatedItems[_localize('AC5E.Items.DwarvenResilience')] = {
 		name: _localize('AC5E.Items.DwarvenResilience'),
 		save: { subject: _getActivityEffectsStatusRiders(activity)['poisoned'] ? 'advantage' : '' },
@@ -209,7 +216,7 @@ function automatedItemsTables({ subject, subjectToken, opponent, opponentToken, 
 	return automatedItems;
 }
 
-function ac5eAutoSettingsTables({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
+function ac5eAutoSettingsTables({ ac5eConfig, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
 	const ac5eAutoSettings = {};
 	if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
 		const { nearbyFoe } = _autoRanged(item, subjectToken);
@@ -222,23 +229,25 @@ function ac5eAutoSettingsTables({ subject, subjectToken, opponent, opponentToken
 	}
 }
 
-function ac5eFlags({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options = {} }) {
-	foundry.utils.mergeObject(options, { ac5eConfig, hook, ability, distance, tool, skill });
+function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
+	const options = ac5eConfig.options;
+	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = ac5eConfig;
+	const subject = subjectToken?.actor;
+	const opponent = opponentToken?.actor;
+	const item = activity?.item;
+	options.activityDamageTypes = _getActivityDamageTypes(activity);
+	options.activityEffectsStatusRiders = _getActivityEffectsStatusRiders(activity);
 
 	//flags.ac5e.<actionType>.<mode>
 	// actionType = all/attack/damage/check/conc/death/init/save/skill/tool
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 
 	if (settings.debug) console.error('AC5E._ac5eFlags:', { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
-	const item = activity?.item;
-	// options.activityAttackMode = ac5eConfig?.attackMode;
-	options.activityDamageTypes = _getActivityDamageTypes(activity);
-	options.activityEffectsStatusRiders = _getActivityEffectsStatusRiders(activity);
-
+		
 	const distanceToSource = (token) => _getDistance(token, subjectToken);
 	// const distanceToTarget = (token) => _getDistance(token, opponentToken);
 
-	const evaluationData = _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, activity, item, options });
+	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options: });
 
 	const getActorAndModeType = (el, includeAuras = false) => {
 		let actorType, mode; //actorType designates which actor's rollData should this be evaluated upon; subject, opponent, aura
