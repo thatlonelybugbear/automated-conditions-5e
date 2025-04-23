@@ -25,7 +25,7 @@ Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
 👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
 <hr>
 
-# Dnd5e Conditions supported.
+## Dnd5e Conditions supported
 > [!IMPORTANT]
 > The module will adjust it's behaviour based on the 5e system's setting, for Modern vs Legacy rules.
 For example if Modern rules are selected, AC5E will not handle Exhaustion, but respect the system's handling.
@@ -60,7 +60,17 @@ Small adjustments for differences in the rest of the conditions too, as needed.
 - `Invisibility` will give advantage on initiative rolls, in addition to the legacy rules.
 </details>
 
-# Settings added for:
+## AC5e flags: `flags.automated-conditions-5e`
+Using the offered module flags in Active effects, you can affect rolls of actors, against actors or actors within the range of auras!!
+
+More info in: <https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-functionality>
+
+> 💡 If you have DAE module enabled, the flags can be auto completed in the DAE effect sheets.
+
+## Module Settings
+<details>
+  <summary><b>Quick walkthrough</b></summary>
+  
 - `Expanded Conditions` **(default off)**
   - `Dodging`: Attacker disadvantage if target not incapacitated, restrained and can see attacker (attacker doesn't have the Hiding condition). Also advantage on dex saves.
   - `Hiding`: Advantage on attacks.
@@ -102,20 +112,21 @@ Small adjustments for differences in the rest of the conditions too, as needed.
     - Exhaustion 3-5 applies disadvantage.
     - Heavy Encumbrance applies disadvantage.
     - War Caster named Item applies advantage.
+</details>
 
-# Compatibility
+## Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly
 - [X] MidiQOL
 - [X] Ready Set Roll (AC5e tooltips on dual cards is a WIP).
  
-# Credits
+## Credits
 - Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips) for distance calculations.
 - Special thanks to [Tim](https://gitlab.com/tposney) for parts of code used, from his [MidiQOL](https://gitlab.com/tposney/midi-qol) module!!
 
-# Manual installation
+## Manual installation
 <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json>
-## For dnd5e v3.x, use manifest: 
+### For dnd5e v3.x, use manifest: 
 <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v12.331.3.2/module.json>
-## For dnd5e v2.x, use manifest: 
+### For dnd5e v2.x, use manifest: 
 <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
 
