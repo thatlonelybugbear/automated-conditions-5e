@@ -5,6 +5,10 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 
 export function _ac5eChecks({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
+	// { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }
+	// will change to
+	// { ac5eConfig, subjectToken, opponentToken }
+	//and ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
 	const actorTypes = {};
 	if (subject) actorTypes.subject = subject;
 	if (opponent) actorTypes.opponent = opponent;
