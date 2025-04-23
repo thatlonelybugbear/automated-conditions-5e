@@ -846,7 +846,7 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	return result;
 }
 
-export function _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, auraActor, auraToken, item, activity, options }) {
+export function _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, item, activity, options }) {
 	const sandbox = {};
 	if (subject) {
 		sandbox.rollingActor = subject.getRollData();
@@ -872,31 +872,38 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 			sandbox.targetId = opponentToken.id;
 		};
 	};
-	if (auraActor) {
-		sandbox.auraActor = auraActor.getRollData();
-		sandbox.auraActor.creatureType = Object.values(_raceOrType(auraActor, 'all'));
-		if (auraToken) {
-			sandbox.auraActor.token = auraToken;
-			sandbox.auraActor.tokenSize = auraToken.document.width * auraToken.document.height;
-			sandbox.auraActor.tokenElevation = auraToken.document.elevation;
-			sandbox.auraActor.tokenSenses = auraToken.document.detectionModes;
-			sandbox.auraActor.tokenUuid = auraToken.document.uuid;
-		};
-	}
-	sandbox.item = item?.getRollData().item;
-	sandbox.activity = activity?.getRollData().activity;
+	
+	sandbox.activity = activity?.getRollData().activity || {};
+	sandbox.riderStatuses = _getActivityEffectsStatusRiders(activity);
 	if (activity) {
-		sandbox.activity.damageTypes = _getActivityDamageTypes(activity);
-		sandbox.activity.attackMode = options?.ac5eConfig?.attackMode;
-	        sandbox.activity.riderStatuses = _getActivityEffectsStatusRiders(activity);
-		sandbox.activity.actionType = _getActionType(activity);
+		const activityData = sandbox.activity;
+		activityData.damageTypes = _getActivityDamageTypes(activity);
+		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.fitger((d) => sandbox[d] = true));
+		activityData.attackMode = options?.attackMode;
+		if (options?.attackMode) sandbox[options.attackMode] = true;
+	        // sandbox.activity.riderStatuses = sandbox.riderStatuses;
+		sandbox[activityData.actionType] = true;
+		sandbox[activityData.name] = true;
+		sandbox[activityData.activation.type] = true;
+		sandbox[activityData.type] = true;
 	};
-	if (game.combat?.active) {
-		sandbox.combat = { round: game.combat.round, turn: game.combat.turn, current: game.combat.current, turns: game.combat.turns };
-		sandbox.isCombatTurn = game.combat?.combatant?.tokenId === subjectToken?.id;
-		if (opponentToken) sandbox.targetActor.isCombatTurn = game.combat?.combatant?.tokenId === opponentToken.id;
-		if (auraToken) sandbox.auraActor.isCombatTurn = game.combat?.combatant?.tokenId === auraToken.id;
-	}
+
+	sandbox.item = item?.getRollData().item || {};
+	if (item) {
+		const itemData = sandbox.item;
+		sandbox[itemData.itemType] = true;
+		sandbox[itemData.school] = true;
+		sandbox[itemData.identifier] = true;
+		sandbox[itemData.name] = true;
+		itemData.properties.filter((p) => sandbox[p] = true);
+	};
+
+	const active = game.combat?.active;
+	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
+	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
+	sandbox.isTurn = currentCombatant === subjectToken?.id;
+	sandbox.isTargetTurn = currentCombatant === opponentToken?.id;
+	
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.spellLevel = options?.spellLevel;
 	sandbox.options = options;
@@ -905,27 +912,6 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	if (options?.tool) sandbox[options.tool] = true;
 	sandbox.canSee = _canSee(subjectToken, opponentToken);
 	sandbox.isSeen = _canSee(opponentToken, subjectToken);
-	
-	foundry.utils.mergeObject(sandbox, { ac5e: ac5e });
-	if (item) {
-		const itemData = sandbox.item;
-		sandbox[itemData.itemType] = true;
-		sandbox[itemData.school] = true;
-		sandbox[itemData.identifier] = true;
-		sandbox[itemData.name] = true;
-		sandbox.item.properties.filter(p=>sandbox[p] = true);
-	}
-	if (activity) {
-		sandbox.riderStatuses = {};
-		const activityData = sandbox.activity;
-		activityData.damageTypes.filter(d=>sandbox[d]=true);
-		sandbox[activityData.activation.type] = true;
-		sandbox[activityData.name] = true;
-		sandbox[activityData.type] = true;
-		sandbox[activityData.actionType] = true;
-		if (activityData.attackMode) sandbox[activityData.attackMode] = true;
-		if (activityData.effectsStatusRiders) sandbox.riderStatuses = activityData.effectsStatusRiders;
-	}
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
@@ -933,7 +919,7 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	} = CONFIG || {};
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
-
+	foundry.utils.mergeObject(sandbox, { ac5e: { checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor, } });
 	if (settings.debug) console.log('AC5E._createEvaluationSandbox:', { sandbox });
 	return sandbox;
 }
