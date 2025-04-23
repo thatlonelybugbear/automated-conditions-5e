@@ -732,16 +732,49 @@ export function _getActionType(activity, returnClassifications = false) {
 	return actionType;
 }
 
-export function _getEffectOriginToken(effect /* ActiveEffect */) {
-	let effectOriginActor;
-	if (effect.parent instanceof CONFIG.Item.documentClass && effect.parent.isEmbedded) effectOriginActor = effect.parent.actor;
-	if (!effect.origin) return undefined;
-	const origin = fromUuidSync(effect.origin);
-	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
-		if (origin.parent instanceof CONFIG.Item.documentClass) effectOriginActor = origin.parent.actor;
-		if (origin.parent instanceof CONFIG.Actor.documentClass) effectOriginActor = origin.parent;
+export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, id, uuid */) {
+	if (!effect?.origin) return undefined;
+
+	let origin = fromUuidSync(effect.origin);
+	let actor = _resolveActorFromOrigin(origin);
+
+	// Check if origin itself has an origin (chained origin), resolve again
+	if (!actor && origin?.origin) {
+		const deeperOrigin = fromUuidSync(origin.origin);
+		actor = _resolveActorFromOrigin(deeperOrigin);
 	}
-	return effectOriginActor.getActiveTokens()[0];
+
+	if (!actor) return undefined;
+	const token = actor.getActiveTokens()[0];
+	if (!token) return undefined;
+
+	switch (type) {
+		case 'id':
+			return token.id;
+		case 'uuid':
+			return token.document.uuid;
+		case 'token':
+			return token;
+		default:
+			return undefined;
+	}
+}
+
+export function _resolveActorFromOrigin(origin) {
+	if (!origin) return undefined;
+
+	// If origin is an ActiveEffect on an Item or Actor
+	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+		const parent = origin.parent;
+		if (parent instanceof CONFIG.Item.documentClass) return parent.actor;
+		if (parent instanceof CONFIG.Actor.documentClass) return parent;
+	}
+
+	// If origin is an Item or directly embedded in Actor
+	if (origin.parent instanceof CONFIG.Item.documentClass) return origin.parent.actor;
+	if (origin.parent instanceof CONFIG.Actor.documentClass) return origin.parent;
+
+	return undefined;
 }
 
 export function _hasValidTargets(activity, size, type = 'attack', warn = false) {
@@ -850,7 +883,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const sandbox = {};
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
-	
+
 	if (subjectToken) {
 		sandbox.rollingActor = subjectToken.actor.getRollData();
 		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subjectToken.actor, 'all'));
@@ -861,8 +894,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 			sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
 			sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
 			sandbox.tokenId = subjectToken.id;
-		};
-	};
+		}
+	}
 	if (opponentToken) {
 		sandbox.targetActor = opponentToken.actor.getRollData();
 		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
@@ -873,22 +906,22 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 			sandbox.targetActor.tokenSenses = opponentToken.document.detectionModes;
 			sandbox.targetActor.tokenUuid = opponentToken.document.uuid;
 			sandbox.targetId = opponentToken.id;
-		};
-	};
-	
+		}
+	}
+
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.riderStatuses = options.activityEffectsStatusRiders;
 	if (activity) {
 		const activityData = sandbox.activity;
 		activityData.damageTypes = options.activityDamageTypes;
-		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => sandbox[d] = true);
+		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => (sandbox[d] = true));
 		activityData.attackMode = options?.attackMode;
 		if (options?.attackMode) sandbox[options.attackMode] = true;
 		sandbox[activityData.actionType] = true;
 		sandbox[activityData.name] = true;
 		sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
-	};
+	}
 
 	sandbox.item = item?.getRollData().item || {};
 	if (item) {
@@ -897,15 +930,15 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox[itemData.school] = true;
 		sandbox[itemData.identifier] = true;
 		sandbox[itemData.name] = true;
-		itemData.properties.filter((p) => sandbox[p] = true);
-	};
+		itemData.properties.filter((p) => (sandbox[p] = true));
+	}
 
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
 	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
 	sandbox.isTurn = currentCombatant === subjectToken?.id;
 	sandbox.isTargetTurn = currentCombatant === opponentToken?.id;
-	
+
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.spellLevel = options?.spellLevel;
 	sandbox.options = options;
@@ -926,7 +959,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	} = CONFIG || {};
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
-	foundry.utils.mergeObject(sandbox, { ac5e: { checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor, } });
+	foundry.utils.mergeObject(sandbox, { ac5e: { checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor } });
 	if (settings.debug) console.log('AC5E._createEvaluationSandbox:', { sandbox });
 	return sandbox;
 }
