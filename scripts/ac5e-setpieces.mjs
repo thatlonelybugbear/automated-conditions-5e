@@ -329,8 +329,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
-					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, token.actor.getRollData())).formula;
-					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), subject.getRollData())).formula;
+					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
+					if (bonus.includes('rollingActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor', '@'), subject.getRollData())).formula;			
+					if (bonus.includes('auraActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor', '@'), token.actor.getRollData())).formula;
+					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
+					if (bonus.includes('targetActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('targetActor', '@'), opponent.getRollData())).formula;
 					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData });
 					if (!evaluation) return;
 
@@ -364,7 +367,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 								.split('bonus=')?.[1]
 						: '';
 				if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
-				if (bonus.includes('##') && opponent) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
+				if (bonus.includes('rollingActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor', '@'), subject.getRollData())).formula;			
+				// if (bonus.includes('auraActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor', '@'), token.actor.getRollData())).formula;
+				if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
+				if (bonus.includes('targetActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('targetActor', '@'), opponent.getRollData())).formula;
 				const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
 				let valuesToEvaluate = el.value
 					.split(';')
@@ -401,8 +407,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 									?.find((e) => e.includes('bonus='))
 									.split('bonus=')?.[1]
 							: '';
-					if (bonus.includes('@') && subject) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
+					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
+					if (bonus.includes('rollingActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor', '@'), subject.getRollData())).formula;			
+					// if (bonus.includes('auraActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor', '@'), token.actor.getRollData())).formula;
 					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
+					if (bonus.includes('targetActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('targetActor', '@'), opponent.getRollData())).formula;
 					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
 					let valuesToEvaluate = el.value
 						.split(';')
