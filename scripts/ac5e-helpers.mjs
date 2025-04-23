@@ -907,6 +907,11 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.spellLevel = options?.spellLevel;
 	sandbox.options = options;
+	// in options there are options.isDeathSave options.isInitiative options.isConcentration
+	sandbox.isConcentration = options?.isConcentration;
+	sandbox.isDeathSave = options?.isDeathSave;
+	sandbox.isInitiative = options?.isInitiative;
+	sandbox.hook = options?.hook;
 	if (options?.skill) sandbox[options.skill] = true;
 	if (options?.ability) sandbox[options.ability] = true;
 	if (options?.tool) sandbox[options.tool] = true;
