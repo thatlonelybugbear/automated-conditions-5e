@@ -58,7 +58,7 @@
   "AC5E.NearbyFoe": "Inimigo Próximo",
     "AC5E.ButtonColorPicker": {
       "Enabled": {
-      "Name": "Botões coloridos",
+      "Name": "Botões Coloridos",
       "Hint": "Destaque os botões de diálogo de rolagem. Cores padrão: #288bcc (fundo), branco (texto/borda). Insira 'user' para usar 'game.user.color' (melhor para fundo). Insira 'false/none/null/0' para desativar qualquer um dos seletores de cores disponíveis. Exclua qualquer campo para retornar aos padrões."
     },
     "Background": {
