@@ -162,7 +162,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	}
 
 	if (options.isConcentration) {
-		if (_hasItem(subject, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize(itemName));
+		if (_hasItem(subject, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
 		const hasAdvantage = subject.system.attributes.concentration?.roll?.mode === 1;
 		const hasDisadvantage = subject.system.attributes.concentration?.roll?.mode === -1;
 		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
