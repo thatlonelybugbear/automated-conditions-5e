@@ -39,7 +39,7 @@
   "AC5E.TargetingChoicesNone": "Fazer Nada",
   "AC5E.TargetingChoicesSource": "Apenas da Origem",
   "AC5E.TargetingChoicesForce": "Forçar Marcação",
-  "AC5E.TargetingName": "Opçãoes de Marcação",
+  "AC5E.TargetingName": "Opções de Marcação",
   "AC5E.TargetingHint": "Se nenhum ou vários alvos forem marcados quando o Jogador rolar Ataque ou Dano, AC5e irá: 'Fazer nada': Sem cálculos de advantageMode/damageMode para a rolagem à seguir; 'Apenas da origem': advantageMode/damageMode baseado em qualquer efeito do Ator de origem; 'Forçar Marcação':  Cancela a rolagem e pergunta por alvos antes de rolar novamente (use com cuidado).",
   "AC5E.KeypressOverrideName": "Atalhos Sobrepõem Cálculos AC5e",
   "AC5E.KeypressOverrideHint": "Os atalhos de chave para vantagem, desvantagem e crítico devem substituir quaisquer cálculos do AC5e (habilitado) ou ser adicionados aos cálculos normais do AC5e (desabilitado).",
