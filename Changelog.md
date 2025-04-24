@@ -1,3 +1,13 @@
+## v13.500.3
+* Normalize roll data evaluations for ac5e flags
+ * In bonus mode flags, use:
+  * `@` or `rollingActor` to access roll data from the actor rolling, ie `@abilities.dex.mod` or `rollingActor.dex.mod`
+  * `##` or `targetActor` to access roll data from a targeted actor (single targeted actor), ie `##attributes.ac.bonus` or `targetActor.attributes.ac.bonus`
+  * for auras only, `auraActor` to access roll data from the aura's source actor, ie `auraActor.abilities.cha.mod`
+   * `flags.automated-conditions-5e.aura.save.bonus | Override | radius=10;bonus=auraActor.abilities.cha.mod;includeSelf;singleAura;allies` is essentially the level 6 Paladin's Aura of Protection.
+* Cleanup parameters pass to private functions
+* Concentration flag fixes
+
 ## v13.500.2
 * Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 * Cleanup in available sandbox data for AC5e flags conditional evaluations
