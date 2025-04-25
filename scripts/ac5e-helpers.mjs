@@ -529,20 +529,20 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (options.skill && hookType === 'check') {
 		// actorSystemRollMode.push(getActorSkillRollModes({actor, skill: options.skill}));
 		const result = getActorSkillRollModes({ actor, skill: options.skill });
-		if (result > 0) ac5eConfig.subject.advantage.push('AC5E.SystemMode');
-		if (result < 0) ac5eConfig.subject.disadvantage.push('AC5E.SystemMode');
+		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 	if (options.tool && hookType === 'check') {
 		// actorSystemRollMode.push(getActorToolRollModes({actor, tool: options.tool}));
 		const result = getActorToolRollModes({ actor, tool: options.tool });
-		if (result > 0) ac5eConfig.subject.advantage.push('AC5E.SystemMode');
-		if (result < 0) ac5eConfig.subject.disadvantage.push('AC5E.SystemMode');
+		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 	if (options.ability && (hookType === 'check' || hookType === 'save')) {
 		// actorSystemRollMode.push(getActorAbilityRollModes({ability, actor, hook}));
 		const result = getActorAbilityRollModes({ ability: options.ability, actor, hookType });
-		if (result > 0) ac5eConfig.subject.advantage.push('AC5E.SystemMode');
-		if (result < 0) ac5eConfig.subject.disadvantage.push('AC5E.SystemMode');
+		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 	//for now we don't care about mutliple different sources, but instead a total result for each (counts not implemented yet by the system)
 	// const arrayLength = actorSystemRollMode.filter(Boolean).length;
