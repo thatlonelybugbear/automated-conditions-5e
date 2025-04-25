@@ -89,6 +89,7 @@
 	"AC5E.TargetGrantsSuccess": "Granted success",
 	"AC5E.TargetGrantsBonus": "Granted bonus",
 	"AC5E.NoChanges": "No changes",
+	"AC5E.SystemMode": "System mode",
 	"AC5E.EnviromentalHazards": {
 		"SettingsName": "Enviromental Hazards (2024)",
 		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 dnd45e ruleset",
