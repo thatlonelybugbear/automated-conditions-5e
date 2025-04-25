@@ -228,7 +228,7 @@ function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken }) {
 
 function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const options = ac5eConfig.options;
-	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = ac5eConfig;
+	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = options;
 	const subject = subjectToken?.actor;
 	const opponent = opponentToken?.actor;
 	const item = activity?.item;
@@ -270,7 +270,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const effectChangesTest = ({ token = undefined, change, actorType, hook }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
-		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool'));
+		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (hook === 'save' && change.key.includes('conc')) || (hook === 'save' && change.key.includes('death')) || (hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
 		if (change.value.includes('allies') && !_dispositionCheck(token, subjectToken, 'same')) return false;
 		if (change.value.includes('enemies') && _dispositionCheck(token, subjectToken, 'same')) return false;
