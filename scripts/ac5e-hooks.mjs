@@ -157,16 +157,16 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (options.isDeathSave) {
 		const hasAdvantage = subject.system.attributes.death?.roll?.mode === 1;
 		const hasDisadvantage = subject.system.attributes.death?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
-		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
+		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 
 	if (options.isConcentration) {
 		if (_hasItem(subject, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
 		const hasAdvantage = subject.system.attributes.concentration?.roll?.mode === 1;
 		const hasDisadvantage = subject.system.attributes.concentration?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
-		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
+		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: attackingToken });
