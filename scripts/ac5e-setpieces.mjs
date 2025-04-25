@@ -20,13 +20,13 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			if (status.includes('exhaustion') && settings.autoExhaustion) {
 				exhaustionLvl = actor.system.attributes.exhaustion;
 				const toCheckExhaustionLevel = exhaustionLvl >= 3 ? 3 : 1;
-				test = testStatusEffectsTables({ subjectToken, opponentToken, options })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
+				test = testStatusEffectsTables({ subjectToken, opponentToken, ac5eConfig })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
 			} else if (!status.includes('exhaustion')) {
-				test = testStatusEffectsTables({ subjectToken, opponentToken, options })?.[status]?.[hook]?.[actorType];
+				test = testStatusEffectsTables({ subjectToken, opponentToken, ac5eConfig })?.[status]?.[hook]?.[actorType];
 			}
 			if (!test) continue;
 			if (settings.debug) console.log(actorType, test);
-			ac5eConfig[actorType][test].push(testStatusEffectsTables({ exhaustionLvl })?.[status].name);
+			ac5eConfig[actorType][test].push(testStatusEffectsTables({ ac5eConfig, exhaustionLvl })?.[status].name);
 		}
 		// for (const item of actor.items) {
 		// 	if (![_localize('AC5E.Items.DwarvenResilience'), _localize('AC5E.Items.AuraOfProtection')].includes(item.name)) continue;
@@ -104,13 +104,13 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		_id: _staticID('incapacitated'),
 		name: _i18nConditions('Incapacitated'),
 		use: { subject: ['action', 'bonus', 'reaction'].includes(activity?.activation?.type) ? 'fail' : '' },
-		check: { subject: modernRules && options?.isInitiative ? 'disadvantage' : '' },
+		check: { subject: modernRules && isInitiative ? 'disadvantage' : '' },
 	};
 	statusEffectsTables.invisible = {
 		_id: _staticID('invisible'),
 		name: _i18nConditions('Invisible'),
 		attack: { subject: !_canSee(opponentToken, subjectToken) ? 'advantage' : '', opponent: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '' },
-		check: { subject: modernRules && options?.isInitiative ? 'advantage' : '' },
+		check: { subject: modernRules && isInitiative ? 'advantage' : '' },
 	};
 	statusEffectsTables.paralyzed = {
 		_id: _staticID('paralyzed'),
@@ -163,7 +163,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		statusEffectsTables.surprised = {
 			_id: _staticID('surprised'),
 			name: _i18nConditions('Surprised'),
-			check: { subject: modernRules && options?.isInitiative ? 'disadvantage' : '' },
+			check: { subject: modernRules && isInitiative ? 'disadvantage' : '' },
 		};
 	statusEffectsTables.unconscious = {
 		_id: _staticID('unconscious'),
@@ -183,7 +183,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 			_id: _staticID('hiding'),
 			name: _i18nConditions('Hiding'),
 			attack: { subject: 'advantage', opponent: 'disadvantage' },
-			check: { subject: modernRules && options?.isInitiative ? 'advantage' : '' },
+			check: { subject: modernRules && isInitiative ? 'advantage' : '' },
 		};
 		statusEffectsTables.raging = {
 			id: 'raging',
@@ -311,9 +311,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					let bonus =
 						mode === 'bonus'
 							? el.value
-									.split(';')
-									?.find((e) => e.includes('bonus='))
-									.split('bonus=')?.[1]
+								.split(';')
+								?.find((e) => e.includes('bonus='))
+								.split('bonus=')?.[1]
 							: '';
 					const auraOnlyOne = el.value.includes('singleAura');
 					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
@@ -362,9 +362,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				let bonus =
 					mode === 'bonus'
 						? el.value
-								.split(';')
-								?.find((e) => e.includes('bonus='))
-								.split('bonus=')?.[1]
+							.split(';')
+							?.find((e) => e.includes('bonus='))
+							.split('bonus=')?.[1]
 						: '';
 				if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 				if (bonus.includes('rollingActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor.', '@'), subject.getRollData())).formula;
@@ -403,9 +403,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					let bonus =
 						mode === 'bonus'
 							? el.value
-									.split(';')
-									?.find((e) => e.includes('bonus='))
-									.split('bonus=')?.[1]
+								.split(';')
+								?.find((e) => e.includes('bonus='))
+								.split('bonus=')?.[1]
 							: '';
 					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 					if (bonus.includes('rollingActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor.', '@'), subject.getRollData())).formula;
