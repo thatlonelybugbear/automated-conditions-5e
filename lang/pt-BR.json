@@ -89,6 +89,7 @@
   "AC5E.TargetGrantsSuccess": "Conceder Sucesso",
   "AC5E.TargetGrantsBonus": "Conceder Bônus",
   "AC5E.NoChanges": "Sem Mudanças",
+  "AC5E.SystemMode": "Modo do Sistema",
   "AC5E.EnviromentalHazards": {
     "SettingsName": "Riscos Ambientais (2024)",
     "SettingsHint": "Automatize as condições Chamuscado e Sufocamento, com base no conjunto de regras do D&D5e de 2024",
