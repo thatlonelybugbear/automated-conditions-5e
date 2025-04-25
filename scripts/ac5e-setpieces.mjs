@@ -203,15 +203,15 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	return statusEffectsTables;
 }
 
-function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken /*ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders*/ }) {
-	const automatedItems = {};
-	const { activity } = ac5eConfig.options;
-	automatedItems[_localize('AC5E.Items.DwarvenResilience')] = {
-		name: _localize('AC5E.Items.DwarvenResilience'),
-		save: { subject: _getActivityEffectsStatusRiders(activity)['poisoned'] ? 'advantage' : '' },
-	};
-	return automatedItems;
-}
+// function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken /*ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders*/ }) {
+// 	const automatedItems = {};
+// 	const { activity } = ac5eConfig.options;
+// 	automatedItems[_localize('AC5E.Items.DwarvenResilience')] = {
+// 		name: _localize('AC5E.Items.DwarvenResilience'),
+// 		save: { subject: _getActivityEffectsStatusRiders(activity)['poisoned'] ? 'advantage' : '' },
+// 	};
+// 	return automatedItems;
+// }
 
 function ac5eAutoSettingsTables({ ac5eConfig, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
 	const ac5eAutoSettings = {};
