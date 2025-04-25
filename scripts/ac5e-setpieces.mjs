@@ -28,18 +28,18 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			if (settings.debug) console.log(actorType, test);
 			ac5eConfig[actorType][test].push(testStatusEffectsTables({ exhaustionLvl })?.[status].name);
 		}
-		for (const item of actor.items) {
-			if (![_localize('AC5E.Items.DwarvenResilience'), _localize('AC5E.Items.AuraOfProtection')].includes(item.name)) continue;
-			if (hook === 'save' && activity?.type !== hook && _activeModule('midi-qol')) activity = activity.item.system.activities.getByType('save')[0];
-			//fromUuidSync(ac5eConfig?.preAC5eConfig?.midiOptions?.saveActivityUuid); doesn't work because MidiQOL:
-			// 1. doesn't pass a saveActivityUuid
-			// 2. when a save activity is triggered by as Use Other Activity, the associated activity is the initial one and not the Save activity.
-			const test = automatedItemsTables({ subjectToken, opponentToken, options })?.[item.name]?.[hook]?.[actorType];
-			if (settings.debug) console.log({ hook, test, actorType, activity });
-			if (!test) continue;
+		// for (const item of actor.items) {
+		// 	if (![_localize('AC5E.Items.DwarvenResilience'), _localize('AC5E.Items.AuraOfProtection')].includes(item.name)) continue;
+		// 	if (hook === 'save' && activity?.type !== hook && _activeModule('midi-qol')) activity = activity.item.system.activities.getByType('save')[0];
+		// 	//fromUuidSync(ac5eConfig?.preAC5eConfig?.midiOptions?.saveActivityUuid); doesn't work because MidiQOL:
+		// 	// 1. doesn't pass a saveActivityUuid
+		// 	// 2. when a save activity is triggered by as Use Other Activity, the associated activity is the initial one and not the Save activity.
+		// 	const test = automatedItemsTables({ subjectToken, opponentToken, options })?.[item.name]?.[hook]?.[actorType];
+		// 	if (settings.debug) console.log({ hook, test, actorType, activity });
+		// 	if (!test) continue;
 
-			ac5eConfig[actorType][test].push(automatedItemsTables({})?.[item.name].name);
-		}
+		// 	ac5eConfig[actorType][test].push(automatedItemsTables({})?.[item.name].name);
+		// }
 	}
 	ac5eConfig = ac5eFlags({ ac5eConfig, subjectToken, opponentToken });
 	if (settings.debug) console.log('AC5E._ac5eChecks:', { ac5eConfig });
@@ -203,28 +203,28 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	return statusEffectsTables;
 }
 
-// function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken /*ac5eConfig, hook, ability, distance, activity, tool, skill, options, isAura, auraItem, auraItemToken, riders*/ }) {
-// 	const automatedItems = {};
-// 	const { activity } = ac5eConfig.options;
-// 	automatedItems[_localize('AC5E.Items.DwarvenResilience')] = {
-// 		name: _localize('AC5E.Items.DwarvenResilience'),
-// 		save: { subject: _getActivityEffectsStatusRiders(activity)['poisoned'] ? 'advantage' : '' },
-// 	};
-// 	return automatedItems;
-// }
-
-function ac5eAutoSettingsTables({ ac5eConfig, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
-	const ac5eAutoSettings = {};
-	if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
-		const { nearbyFoe } = _autoRanged(item, subjectToken);
-		if (nearbyFoe) {
-			ac5eAutoSettings.nearbyFoe = {
-				name: _localize('AC5E.NearbyFoe'),
-				attack: { subject: 'disadvantage' },
-			};
-		}
-	}
+function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken }) {
+	const automatedItems = {};
+	const { activity } = ac5eConfig.options;
+	automatedItems[_localize('AC5E.Items.DwarvenResilience')] = {
+		name: _localize('AC5E.Items.DwarvenResilience'),
+		save: { subject: _getActivityEffectsStatusRiders(activity)['poisoned'] ? 'advantage' : '' },
+	};
+	return automatedItems;
 }
+
+// function ac5eAutoSettingsTables({ ac5eConfig, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options }) {
+// 	const ac5eAutoSettings = {};
+// 	if (settings.autoRanged && ['rwak', 'rsak'].includes(item.system.actionType)) {
+// 		const { nearbyFoe } = _autoRanged(item, subjectToken);
+// 		if (nearbyFoe) {
+// 			ac5eAutoSettings.nearbyFoe = {
+// 				name: _localize('AC5E.NearbyFoe'),
+// 				attack: { subject: 'disadvantage' },
+// 			};
+// 		}
+// 	}
+// }
 
 function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const options = ac5eConfig.options;
