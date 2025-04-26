@@ -1,3 +1,6 @@
+## v13.500.3.3
+* Damage hook hotfix
+
 ## v13.500.3.2
 * Some more bugfixes for attack hooks
 * Fix for `effectOriginTokenId` evaluations
