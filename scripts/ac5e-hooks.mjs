@@ -228,7 +228,6 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
-	foundry.utils.mergeObject(options, chatButtonTriggered.options);
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -298,6 +297,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	options.attackMode = attackMode;
 	options.ammo = ammunition;
 	options.activity = activity;
+	options.hook = hook;
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
