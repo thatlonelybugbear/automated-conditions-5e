@@ -328,7 +328,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						}, [])
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
-					if  (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
+					if  (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
 					if (bonus.includes('rollingActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor.', '@'), subject.getRollData())).formula;
 					if (bonus.includes('auraActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor.', '@'), token.actor.getRollData())).formula;
@@ -383,7 +383,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					}, [])
 					.join(';');
 				if (!valuesToEvaluate) valuesToEvaluate = 'true';
-				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
+				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 				validFlags[effect.id] = {
 					name: effect.name,
 					actorType,
@@ -396,7 +396,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (opponent)
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ opponentToken, change, actorType: 'opponent', hook }))
+				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
@@ -424,7 +424,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						}, [])
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
-					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate.replaceAll('effectOriginTokenId', _getEffectOriginToken(effect, 'id'));
+					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 					validFlags[effect.id] = {
 						name: effect.name,
 						actorType,
