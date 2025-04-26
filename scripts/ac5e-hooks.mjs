@@ -223,11 +223,11 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
+	const chatButtonTriggered = getMessageData(config);
+	const { messageId, item, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
-	const chatButtonTriggered = getMessageData(config);
-	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
-	options.ability = ability;
 	foundry.utils.mergeObject(options, chatButtonTriggered.options);
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
