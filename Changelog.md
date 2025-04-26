@@ -1,3 +1,8 @@
+## v13.500.3.2
+* Some more bugfixes for attack hooks
+* Fix for `effectOriginTokenId` evaluations
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## v13.500.3.1
 * Normalize roll data evaluations for ac5e flags
  * In bonus mode flags, use:
