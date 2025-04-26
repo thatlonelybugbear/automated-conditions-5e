@@ -86,7 +86,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (targets.size) {
 		for (const target of targets) {
 			const distance = _getDistance(sourceToken, target);
-			const perTargetOptions = foundry.utils.duplicate(options);
+			const perTargetOptions = foundry.utils.deepClone(options);
 			perTargetOptions.distance = distance;
 			let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, perTargetOptions);
 			//ac5eConfig should include the options object
@@ -253,7 +253,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 			distance = undefined;
 		}
 	}
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken });
 
