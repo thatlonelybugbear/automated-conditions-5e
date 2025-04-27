@@ -89,6 +89,7 @@
 	"AC5E.TargetGrantsSuccess": "Przyznanie sukcesu",
 	"AC5E.TargetGrantsBonus": "Przyznanie bonusu",
 	"AC5E.NoChanges": "Bez zmian",
+	"AC5E.SystemMode": "Tryb systemowy",
 	"AC5E.EnviromentalHazards": {
 		"SettingsName": "Zagrożenia środowiskowe (2024)",
 		"SettingsHint": "Zautomatyzowano stany podpalenia i uduszenia w oparciu o zestaw zasad dnd45e z 2024 r.",
