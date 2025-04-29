@@ -20,7 +20,8 @@ export default class Settings {
 	static ColorPicker_Background = 'buttonColorBackground';
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
-	static AUTOMATE_ENVIROMENTAL_HAZARDS = 'autoHazards';
+  static AUTOMATE_ENVIROMENTAL_HAZARDS = 'autoHazards';
+  static TOOLTIP_VISIBILITY_OPTIONS = 'checkShowTooltipsToUser';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -40,6 +41,19 @@ export default class Settings {
 				chat: 'AC5E.ShowToolTipsChoicesChat',
 				none: 'AC5E.ShowToolTipsChoicesNone',
 			},
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.TOOLTIP_VISIBILITY_OPTIONS, {
+			name: 'AC5E.TooltipVisibilityOptions.Name',
+			hint: 'AC5E.TooltipVisibilityOptions.Hint',
+			scope: 'world',
+			default: 'all',
+			type: String,
+			choices: {
+				all: 'AC5E.TooltipVisibilityOptions.All',
+				user: 'AC5E.TooltipVisibilityOptions.User',
+				players: 'AC5E.TooltipVisibilityOptions.Players',
+				gm: 'AC5E.TooltipVisibilityOptions.GM',
+			}
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS, {
 			name: 'AC5E.ShowModuleNameInTooltipsName',
@@ -206,6 +220,9 @@ export default class Settings {
 	}
 	get showTooltips() {
 		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS);
+	}
+	get showTooltipsToUser() {
+		return game.settings.get(Constants.MODULE_ID, Settings.TOOLTIP_VISIBILITY_OPTIONS);
 	}
 	get showNameTooltips() {
 		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS);
