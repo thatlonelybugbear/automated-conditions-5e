@@ -423,10 +423,11 @@ export function _systemCheck(testVersion) {
 
 export function _getTooltip(ac5eConfig = {}) {
 	const { hookType, subject, opponent } = ac5eConfig;
-	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e<hr></strong></center>' : '';
+	let tooltip = '<div class="ac5e-tooltip-content">';
+	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
 		if (condition) {
-			if (tooltip.includes(':')) tooltip += '<br>';
+			if (tooltip.includes('span')) tooltip += '<br>';
 			tooltip += text;
 		}
 	};
@@ -448,7 +449,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
 	}
-	return tooltip.includes(':') ? tooltip : (tooltip += `<center><strong>${_localize('AC5E.NoChanges')}</strong></center>`);
+	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
+	return tooltip;
 }
 
 export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
