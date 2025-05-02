@@ -272,15 +272,23 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (hook === 'save' && change.key.includes('conc')) || (hook === 'save' && change.key.includes('death')) || (hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
-		if (change.value.includes('allies') && !_dispositionCheck(token, subjectToken, 'same')) return false;
-		if (change.value.includes('enemies') && _dispositionCheck(token, subjectToken, 'same')) return false;
-		if (actorType !== 'aura') return true;
-		const isAura = change.key.includes('aura');
-		if (!isAura) return false;
-		if (!change.value.includes('includeSelf') && token === subjectToken) return false;
-		const radius = change.value.split(';')?.find((e) => e.includes('radius')) || undefined;
-		if (inAuraRadius(token, radius)) return true;
-		else return false;
+		// const isAura = change.key.includes('aura');
+		// const isGrants = change.key.includes('grants');
+		// const isSelf = !isAura && !isGrants;
+		if (change.key.includes('aura')) {  //isAura
+			if (change.value.includes('allies') && !_dispositionCheck(token, subjectToken, 'same')) return false;
+			if (change.value.includes('enemies') && _dispositionCheck(token, subjectToken, 'same')) return false;
+			if (!change.value.includes('includeSelf') && token === subjectToken) return false;
+			const radius = change.value.split(';')?.find((e) => e.includes('radius')) || undefined;
+			if (inAuraRadius(token, radius)) return true;
+			else return false;
+		}
+		else if (change.key.includes('grants')) {  //isGrants
+			return actorType === 'opponent';
+		}
+		else {  //isSelf
+			return actorType === 'subject';
+		}
 	};
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
