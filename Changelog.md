@@ -4,7 +4,7 @@
 * Guards against cases of `undefined: true` being present in the sandbox data
 * Adds for flag evaluations:
   * `equippedItems` which is an Array of item names, currently equipped on the actor
-    * ie `rollingActor.equippedItems.filter(i => i.name.includes('Platinum')).length > 2` which will be true when the rolling actor has more than 2 equipped items with their names including `Platinum`
+    * ie `rollingActor.equippedItems.filter(i => i.includes('Platinum')).length > 2` which will be true when the rolling actor has more than 2 equipped items with their names including `Platinum`
   * `distance` for distance evaluations
     * `distance > 15 && distance <= 20` would be true if the distance between the rolling token and opponent token is between 15 (excluded) and 20 (included), but only when distance is available 
   * `allies`/`enemies` as evaluation conditions for non auras too
