@@ -584,12 +584,11 @@ export function _activeModule(moduleID) {
 export function _canSee(source, target) {
 	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
-	//@ts-expect-error
 	const detectionModes = CONFIG.Canvas.detectionModes;
+	const DetectionModeCONST = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
 	const sightDetectionModes = Object.keys(detectionModes).filter(
 		(d) =>
-			//@ts-expect-error DetectionMode
-			detectionModes[d].type === DetectionMode.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d)
+			detectionModes[d].type === DetectionModeCONST.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d)
 	);
 	return canSense(source, target, sightDetectionModes);
 }
@@ -604,7 +603,7 @@ function canSenseModes(token, target, validModesParam = ['all']) {
 		return ['noToken'];
 	}
 	const detectionModes = CONFIG.Canvas.detectionModes;
-	const DetectionModeCONST = DetectionMode;
+	const DetectionModeCONST = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
 	//any non-owned, non-selected tokens will have their vision not initialized.
 	if (target.document?.hidden || token.document?.hidden) return [];
 	if (!token.hasSight) return ['senseAll'];
@@ -669,7 +668,6 @@ function canSenseModes(token, target, validModesParam = ['all']) {
 	for (let tk of [token, target]) {
 		if (!tk.document.sight.enabled) {
 			const sourceId = tk.sourceId;
-			//@ts-expect-error
 			canvas?.effects?.visionSources.delete(sourceId);
 		}
 	}
