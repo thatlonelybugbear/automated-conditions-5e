@@ -480,9 +480,10 @@ export async function _overtimeHazards(combat, update, options, user) {
 
 	if (previousActor?.statuses.has('suffocation')) {
 		const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;
-		if (maxExhaustion) {
+		const exhaustionLevel = previousActor.system.attributes.exhaustion ?? 0;
+		if (maxExhaustion && exhaustionLevel < maxExhaustion) {
 			await previousActor.update({
-				'system.attributes.exhaustion': Math.min((previousActor.system.attributes.exhaustion ?? 0) + 1, maxExhaustion),
+				'system.attributes.exhaustion': exhaustionLevel + 1,
 			});
 
 			let flavor = `<p>_localize('AC5E.EnviromentalHazards.Suffocating')</p>`;
