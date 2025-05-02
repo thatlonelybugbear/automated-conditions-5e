@@ -879,13 +879,26 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	return result;
 }
 
+export function _ac5eActorRollData(actor) {
+	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
+	const actorData = actor.system.toObject();
+	actorData.currencyWeight = actor.system.currencyWeight;
+	actorData.effects = actor.appliedEffects;
+	actorData.equippedItems = actor.items.filter((item) => item?.system?.equipped).map((item) => item.name);
+	actorData.flags = actor.flags;
+	actorData.name = actor.name;
+	actorData.statuses = actor.statuses;
+	actorData.type = actor.type;
+	return actorData;
+}
+
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const sandbox = {};
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
 
 	if (subjectToken) {
-		sandbox.rollingActor = subjectToken.actor.getRollData();
+		sandbox.rollingActor = _ac5eActorRollData(subjectToken.actor); //subjectToken.actor.getRollData();
 		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subjectToken.actor, 'all'));
 		if (subjectToken) {
 			sandbox.rollingActor.token = subjectToken;
@@ -897,7 +910,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	}
 	if (opponentToken) {
-		sandbox.targetActor = opponentToken.actor.getRollData();
+		sandbox.targetActor = _ac5eActorRollData(opponentToken.actor) //.getRollData();
 		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
 		if (opponentToken) {
 			sandbox.targetActor.token = opponentToken;
@@ -917,7 +930,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => (sandbox[d] = true));
 		activityData.attackMode = options?.attackMode;
 		if (options?.attackMode) sandbox[options.attackMode] = true;
-		sandbox[activityData.actionType] = true;
+		if (activity.actionType) sandbox[activity.actionType] = true;
 		sandbox[activityData.name] = true;
 		sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
@@ -926,9 +939,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item = item?.getRollData().item || {};
 	if (item) {
 		const itemData = sandbox.item;
-		sandbox[itemData.itemType] = true;
-		sandbox[itemData.school] = true;
-		sandbox[itemData.identifier] = true;
+		sandbox.itemType = item.type;
+		if (itemData.school) sandbox[itemData.school] = true;
+		if (itemData.identifier) sandbox[itemData.identifier] = true;
 		sandbox[itemData.name] = true;
 		itemData.properties.filter((p) => (sandbox[p] = true));
 	}
@@ -940,13 +953,14 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isTargetTurn = currentCombatant === opponentToken?.id;
 
 	sandbox.worldTime = game.time?.worldTime;
-	sandbox.spellLevel = options?.spellLevel;
 	sandbox.options = options;
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 	sandbox.isConcentration = options?.isConcentration;
 	sandbox.isDeathSave = options?.isDeathSave;
 	sandbox.isInitiative = options?.isInitiative;
+	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
+	sandbox.spellLevel = options?.spellLevel;
 	if (options?.ability) sandbox[options.ability] = true;
 	if (options?.skill) sandbox[options.skill] = true;
 	if (options?.tool) sandbox[options.tool] = true;
@@ -961,6 +975,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
 	foundry.utils.mergeObject(sandbox, { ac5e: { checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor } });
 	if (settings.debug) console.log('AC5E._createEvaluationSandbox:', { sandbox });
+	if (sandbox.undefined) {
+		delete sandbox.undefined; //guard against sandbox.undefined = true being present
+		console.warn('AC5E sandbox.undefined detected!!!');
+	} 
 	return sandbox;
 }
 
