@@ -863,18 +863,12 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	if (expression.includes('canvas')) {
 		throw new Error(`Roll.safeEval expression cannot contain canvas.`);
 	}
-	if (expression.includes('ui')) {
-		throw new Error(`Roll.safeEval expression cannot contain ui.`);
-	}
 	let result;
 	try {
 		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
 	} catch (err) {
 		result = undefined;
 	}
-	// if (!Number.isNumeric(result)) {
-	// 	throw new Error(`Roll.safeEval produced a non-numeric result from expression "${expression}"`);
-	// }
 	if (settings.debug) console.log('AC5E._ac5eSafeEval:', { expression, result });
 	return result;
 }
