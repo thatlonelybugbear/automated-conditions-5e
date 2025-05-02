@@ -481,7 +481,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 	if (previousActor?.statuses.has('suffocation')) {
 		const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;
 		const exhaustionLevel = previousActor.system.attributes.exhaustion ?? 0;
-		if (maxExhaustion && exhaustionLevel < maxExhaustion) {
+		if (maxExhaustion && (exhaustionLevel < maxExhaustion)) {
 			await previousActor.update({
 				'system.attributes.exhaustion': exhaustionLevel + 1,
 			});
