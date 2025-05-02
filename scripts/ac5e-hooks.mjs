@@ -491,7 +491,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 			let flavor = _localize('AC5E.EnviromentalHazards.Suffocating');
 			if (hasPHB) {
 				const suffocationEntry = await fromUuid(SUFFOCATION_UUID);
-				flavor = `<div align-text="center">${_localize('AC5E.EnviromentalHazards.Rules')}</div>${suffocationEntry?.text?.content ?? flavor}`;
+				flavor = `<div align-text="center">${_localize('AC5E.EnviromentalHazards.SettingsName')}</div>${suffocationEntry?.text?.content ?? flavor}`;
 			}
 
 			const enrichedHTML = (await TextEditorFn.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
@@ -507,7 +507,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 		let flavor = _localize('AC5E.EnviromentalHazards.BurningHazard');
 		if (hasPHB) {
 			const burningEntry = await fromUuid(BURNING_UUID);
-			flavor = `<div align-text="center">${_localize('AC5E.EnviromentalHazards.Rules')}</div>${burningEntry?.text?.content ?? flavor}`;
+			flavor = `<div align-text="center">${_localize('AC5E.EnviromentalHazards.SettingsName')}</div>${burningEntry?.text?.content ?? flavor}`;
 		}
 
 		flavor = flavor.replace(/@UUID\[\.QxCrRcgMdUd3gfzz\]\{Prone\}/g, `@UUID[${PRONE_UUID}]{Prone}`);
