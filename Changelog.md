@@ -1,15 +1,16 @@
 ## v13.500.4
-- Guards against `aura` or `grants` flags being evaluated against non relevant actors
-- Guards against numerous deprecation warnings being generated for `attributes.spelldc` and `attributes.spellmod` which AC5e doesn't use, but inadvertently triggers when cloning actor.getRollData() objects
-- Guards against cases of `undefined: true` being present in the sandbox data
-- Adds for flag evaluations:
-  - `equippedItems` which is an Array of item names, currently equipped on the actor
-    - ie `equippedItems.filter(i => i.name.includes('Platinum')).length > 2` which will be true when the actor has more than 2 equipped items with their names including `Platinum`
-  - `distance` for distance evaluations
-    - `(!!distance && distance > 15 && distance <= 20)` would be true if the distance between the rolling token and opponent token is between 15 (excluded) and 20 (included) 
-  - `allies`/`enemies` as evaluation conditions for non auras too
-     - `allies` will be true for rolls that the rolling token has the **same** disposition compared to its opponent (if an opponent is available for that roll)
-     - `enemies` will be true for rolls that the rolling token has a **different** disposition compared to its opponent (if an opponent is available for that roll)
+* Guards against `aura` or `grants` flags being evaluated against non relevant actors
+* Guards against numerous deprecation warnings being generated for `attributes.spelldc` and `attributes.spellmod` which AC5e doesn't use, but inadvertently triggers when cloning actor.getRollData() objects
+* Guards against cases of `undefined: true` being present in the sandbox data
+* Adds for flag evaluations:
+  * `equippedItems` which is an Array of item names, currently equipped on the actor
+    * ie `equippedItems.filter(i => i.name.includes('Platinum')).length > 2` which will be true when the actor has more than 2 equipped items with their names including `Platinum`
+  * `distance` for distance evaluations
+    * `(!!distance && distance > 15 && distance <= 20)` would be true if the distance between the rolling token and opponent token is between 15 (excluded) and 20 (included) 
+  * `allies`/`enemies` as evaluation conditions for non auras too
+     * `allies` will be true for rolls that the rolling token has the **same** disposition compared to its opponent (if an opponent is available for that roll)
+     * `enemies` will be true for rolls that the rolling token has a **different** disposition compared to its opponent (if an opponent is available for that roll)
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 
 ## v13.500.3.3
 * Damage hook hotfix
