@@ -488,10 +488,10 @@ export async function _overtimeHazards(combat, update, options, user) {
 				'system.attributes.exhaustion': exhaustionLevel + 1,
 			});
 
-			let flavor = `<p>_localize('AC5E.EnviromentalHazards.Suffocating')</p>`;
+			let flavor = _localize('AC5E.EnviromentalHazards.Suffocating');
 			if (hasPHB) {
 				const suffocationEntry = await fromUuid(SUFFOCATION_UUID);
-				flavor = suffocationEntry?.text?.content ?? flavor;
+				flavor = `<div align-text="center">${_localize('AC5E.EnviromentalHazards.Rules')}</div>${suffocationEntry?.text?.content ?? flavor}`;
 			}
 
 			const enrichedHTML = (await TextEditorFn.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
@@ -504,10 +504,10 @@ export async function _overtimeHazards(combat, update, options, user) {
 	}
 
 	if (actor?.statuses.has('burning')) {
-		let flavor = `<p>_localize('AC5E.EnviromentalHazards.BurningHazard')</p>`;
+		let flavor = _localize('AC5E.EnviromentalHazards.BurningHazard');
 		if (hasPHB) {
 			const burningEntry = await fromUuid(BURNING_UUID);
-			flavor = burningEntry?.text?.content ?? flavor;
+			flavor = `<div align-text="center">${_localize('AC5E.EnviromentalHazards.Rules')}</div>${burningEntry?.text?.content ?? flavor}`;
 		}
 
 		flavor = flavor.replace(/@UUID\[\.QxCrRcgMdUd3gfzz\]\{Prone\}/g, `@UUID[${PRONE_UUID}]{Prone}`);
@@ -520,12 +520,12 @@ export async function _overtimeHazards(combat, update, options, user) {
 			return new CONFIG.Dice.DamageRoll('1d4', actor?.getRollData(), {
 				type,
 				appearance: { colorset: type },
-			}).toMessage({ content: enrichedHTML });
+			}).toMessage({ flavor: enrichedHTML });
 		} else {
 			const damageRoll = await new Roll('1d4', actor?.getRollData(), {
 				type,
 				appearance: { colorset: type },
-			}).toMessage({ content: enrichedHTML });
+			}).toMessage({ flavor: enrichedHTML });
 			const damage = damageRoll.rolls[0].total;
 
 			const forceApply = MidiQOL.configSettings()?.autoApplyDamage?.includes('yes') ?? false;
