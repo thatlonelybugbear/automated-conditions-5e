@@ -1,3 +1,8 @@
+## v13.500.4.1
+* Hotfix for `ui` in `equippedItems` triggering an error collection...
+* Hotfix for the changelog showing an incorrect example of `equippedItems` usage
+  * corrected example: `rollingActor.equippedItems.filter(i => i.includes('Platinum')).length > 2` will be true when the rolling actor has more than 2 equipped items with their names including `Platinum`
+
 ## v13.500.4
 * Guards against `aura` or `grants` flags being evaluated against non relevant actors
 * Guards against numerous deprecation warnings being generated for `attributes.spelldc` and `attributes.spellmod` which AC5e doesn't use, but inadvertently triggers when cloning actor.getRollData() objects
