@@ -10,6 +10,7 @@
   * `allies`/`enemies` as evaluation conditions for non auras too
      * `allies` will be true for rolls that the rolling token has the **same** disposition compared to its opponent (if an opponent is available for that roll)
      * `enemies` will be true for rolls that the rolling token has a **different** disposition compared to its opponent (if an opponent is available for that roll)
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 * Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 
 ## v13.500.3.3
