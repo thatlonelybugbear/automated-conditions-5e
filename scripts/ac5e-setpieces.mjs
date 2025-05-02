@@ -267,27 +267,35 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!radius) return false;
 		return distanceToSource(token) <= radius;
 	};
+	//Will return false only in case of both tokens being available AND the value includes allies OR enemies and the test of dispositionCheck returns false;
+	const friendOrFoe = (tokenA, tokenB, value) => {
+		if (!tokenA || !tokenB) return true;
+		const alliesOrEnemies = value.includes('allies') ? 'allies' : value.includes('enemies') ? 'enemies' : null;
+		if (!alliesOrEnemies) return true;
+		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
+	};	
 	const effectChangesTest = ({ token = undefined, change, actorType, hook }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (hook === 'save' && change.key.includes('conc')) || (hook === 'save' && change.key.includes('death')) || (hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
-		// const isAura = change.key.includes('aura');
-		// const isGrants = change.key.includes('grants');
-		// const isSelf = !isAura && !isGrants;
 		if (change.key.includes('aura')) {  //isAura
-			if (change.value.includes('allies') && !_dispositionCheck(token, subjectToken, 'same')) return false;
-			if (change.value.includes('enemies') && _dispositionCheck(token, subjectToken, 'same')) return false;
+			if (!friendOrFoe(token, subjectToken, change.value)) return false;
 			if (!change.value.includes('includeSelf') && token === subjectToken) return false;
 			const radius = change.value.split(';')?.find((e) => e.includes('radius')) || undefined;
 			if (inAuraRadius(token, radius)) return true;
 			else return false;
 		}
 		else if (change.key.includes('grants')) {  //isGrants
-			return actorType === 'opponent';
+			if (actorType !== 'opponent') return false;
+			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
+			return true;
+			
 		}
 		else {  //isSelf
-			return actorType === 'subject';
+			if (actorType !== 'subject') return false;
+			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
+			return true;
 		}
 	};
 	// const placeablesWithRelevantAuras = {};
