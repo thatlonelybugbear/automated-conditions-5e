@@ -1,4 +1,4 @@
-import { _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActionType, _getActivityDamageTypes, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
+import { _ac5eActorRollData, _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActionType, _getActivityDamageTypes, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -307,7 +307,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const auraTokenEvaluationData = foundry.utils.mergeObject(
 			evaluationData,
 			{
-				auraActor: token.actor.getRollData(),
+				auraActor: _ac5eActorRollData(token.actor),
 				['auraActor.creatureType']: Object.values(_raceOrType(token.actor, 'all')),
 				['auraActor.token']: token,
 				['auraActor.tokenSize']: token.document.width * token.document.height,
