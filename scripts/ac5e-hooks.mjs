@@ -478,6 +478,8 @@ export async function _overtimeHazards(combat, update, options, user) {
 	const BURNING_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.mPBGM1vguT5IPzxT';
 	const PRONE_UUID = 'Compendium.dnd5e.rules.JournalEntry.w7eitkpD7QQTB6j0.JournalEntryPage.y0TkcdyoZlOTmAFT';
 
+	const TextEditorFn = game.version > '13' ? foundry.applications.ux.TextEditor.implementation : TextEditor;
+
 	if (previousActor?.statuses.has('suffocation')) {
 		const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;
 		const exhaustionLevel = previousActor.system.attributes.exhaustion ?? 0;
@@ -492,7 +494,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 				flavor = suffocationEntry?.text?.content ?? flavor;
 			}
 
-			const enrichedHTML = (await TextEditor.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
+			const enrichedHTML = (await TextEditorFn.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
 
 			await ChatMessage.create({
 				content: enrichedHTML,
@@ -510,7 +512,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 
 		flavor = flavor.replace(/@UUID\[\.QxCrRcgMdUd3gfzz\]\{Prone\}/g, `@UUID[${PRONE_UUID}]{Prone}`);
 
-		const enrichedHTML = await TextEditor.enrichHTML(flavor);
+		const enrichedHTML = await TextEditorFn.enrichHTML(flavor);
 		const type = 'fire';
 
 		if (!_activeModule('midi-qol')) {
