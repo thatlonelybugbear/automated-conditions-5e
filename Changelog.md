@@ -1,3 +1,7 @@
+## v13.501.1.1
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+  
 ## v13.501.1
 * Deal with Foundry v13 and dnd5e v5.0.0 deprecations
 * Update compatibility and verify module for Foundry v13.342 and 5e v5.0.1
