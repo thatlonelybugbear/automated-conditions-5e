@@ -150,7 +150,7 @@ export default class Settings {
 			name: 'AC5E.AutoExhaustionName',
 			hint: 'AC5E.AutoExhaustionHint',
 			scope: 'world',
-			config: true,
+			config: !this.dnd5eModernRules,
 			default: true,
 			type: Boolean,
 		});
