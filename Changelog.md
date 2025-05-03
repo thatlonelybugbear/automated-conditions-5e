@@ -7,6 +7,7 @@
   * `None`: players won't see any tooltips in chat messages
   * `Owned`: a player will be able to see tooltips in chat messages for rolls from owned actors
   * `Players`: players will be able to see tooltips in chat messages for rolls from all player owned actors
+* Settings tweaks, so Show tooltip module name and Show chat messages tooltips options are available, only when relevant.
 
 ## v13.500.4.1
 * Hotfix for `ui` in `equippedItems` triggering an error collection...
