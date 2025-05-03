@@ -49,7 +49,7 @@ export default class Settings {
 			default: true,
 			type: Boolean,
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS, {
+		game.settings.register(Constants.MODULE_ID, Settings.SHOW_CHAT_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipChatVisibility.Name',
 			hint: 'AC5E.ShowTooltipChatVisibility.Hint',
 			scope: 'world',
