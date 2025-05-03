@@ -378,12 +378,6 @@ export function _renderHijack(hook, render, elem) {
 			subtitleElement.textContent = `${tokenName}`;
 			subtitleElement.style.display = 'block'; // Force a new line
 		}
-		// else if (getConfigAC5E?.tokenId && (hookType === 'attack' || hookType === 'damage')) {
-		// 	const subtitleElement = elem.querySelector('.window-subtitle');
-		// 	tokenName = canvas.tokens.get(getConfigAC5E.tokenId)?.name;
-		// 	subtitleElement.textContent = `${tokenName}`;
-		// 	subtitleElement.style.display = 'block'; // Force a new line
-		// }
 		if (newTitle) title.textContent = newTitle; //: render.title;
 		if (!['both', 'dialog'].includes(settings.showTooltips)) return true;
 		tooltip = _getTooltip(getConfigAC5E);
@@ -407,6 +401,12 @@ export function _renderHijack(hook, render, elem) {
 		return true;
 	} else if (hook === 'chat') {
 		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
+		if (!game.user.isGM) {
+			getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
+			if (settings.showChatTooltips === 'none') return true;
+			else if (settings.showChatTooltips === 'players' && !getConfigAC5E?.hasPlayerOwner) return true;
+			else if (settings.showChatTooltips === 'owned' && getConfigAC5E?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
+		}
 		if (_activeModule('midi-qol')) {
 			if (render?.rolls?.length > 1) {
 				getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID], render?.rolls?.[2]?.options?.[Constants.MODULE_ID]];
