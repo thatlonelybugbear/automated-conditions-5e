@@ -2,6 +2,11 @@
 * Deal with Foundry v13 and dnd5e v5.0.0 deprecations
 * Update compatibility and verify module for Foundry v13.342 and 5e v5.0.1
 * Exhaustion automation setting will be only available for 5e legacy rules
+* New GM setting for visibility of the tooltips in chat messages
+  * `All`: players will see tooltips in all chat messages, no matter the actor rolling
+  * `None`: players won't see any tooltips in chat messages
+  * `Owned`: a player will be able to see tooltips in chat messages for rolls from owned actors
+  * `Players`: players will be able to see tooltips in chat messages for rolls from all player owned actors
 
 ## v13.500.4.1
 * Hotfix for `ui` in `equippedItems` triggering an error collection...
