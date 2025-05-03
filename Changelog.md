@@ -1,3 +1,7 @@
+## v13.501.1
+- Deal with Foundry v13 and dnd5e v5.0.0 deprecations
+- Update compatibility and verify module for Foundry v13.342 and 5e v5.0.1
+
 ## v13.500.4.1
 * Hotfix for `ui` in `equippedItems` triggering an error collection...
 * Hotfix for the changelog showing an incorrect example of `equippedItems` usage
