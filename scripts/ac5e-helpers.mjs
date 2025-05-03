@@ -460,10 +460,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	// if (!foundry.utils.isEmpty(existingAC5e) && !reEval) foundry.utils.mergeObject(options, existingAC5e.options);
 	if (settings.debug) console.error('AC5E._getConfig', { mergedOptions: options });
 	const areKeysPressed = game.system.utils.areKeysPressed;
+	const token = canvas.tokens.get(tokenId);
+	const actor = token?.actor;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
 		targetId,
+		isOwner: token?.document.isOwner,
+		hasPlayerOwner: token?.document.hasPlayerOwner, //check again if it needs token.actor.hasPlayerOwner; what happens for Wild Shape?
+		ownership: actor?.ownership,
 		subject: {
 			advantage: [],
 			disadvantage: [],
@@ -526,7 +531,6 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if ((config.disadvantage || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig.subject.disadvantage.push(`${roller} (flags)`);
 	if ((config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.subject.critical.push(`${roller} (flags)`);
 
-	const actor = canvas.tokens.get(tokenId)?.actor;
 	const actorSystemRollMode = [];
 	if (options.skill && hookType === 'check') {
 		// actorSystemRollMode.push(getActorSkillRollModes({actor, skill: options.skill}));
