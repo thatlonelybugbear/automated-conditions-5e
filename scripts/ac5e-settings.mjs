@@ -3,7 +3,8 @@ import Constants from './ac5e-constants.mjs';
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
 	static SHOW_TOOLTIPS = 'showTooltips';
-	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'shownNameTooltip';
+	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'showNameTooltips';
+	static SHOW_CHAT_TOOLTIPS = 'showChatTooltips';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
@@ -47,6 +48,20 @@ export default class Settings {
 			config: true,
 			default: true,
 			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS, {
+			name: 'AC5E.ShowTooltipChatVisibility.Name',
+			hint: 'AC5E.ShowTooltipChatVisibility.Hint',
+			scope: 'world',
+			config: true,
+			default: 'all',
+			type: String,
+			choices: {
+				all: 'AC5E.ShowTooltipChatVisibility.All',
+				none: 'AC5E.ShowTooltipChatVisibility.None',
+				owned: 'AC5E.ShowTooltipChatVisibility.Owned',
+				players: 'AC5E.ShowTooltipChatVisibility.Players',
+			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Enabled, {
 			name: 'AC5E.ButtonColorPicker.Enabled.Name',
@@ -209,6 +224,10 @@ export default class Settings {
 	}
 	get showNameTooltips() {
 		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS);
+	}
+	get showChatTooltips() {
+		if (['both', 'chat'].includes(this.showTooltips)) return game.settings.get(Constants.MODULE_ID, Settings.SHOW_CHAT_TOOLTIPS);
+		else return 'none';
 	}
 	get expandedConditions() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS);
