@@ -538,7 +538,7 @@ export async function _overtimeHazards(combat, update, options, user) {
 }
 
 export function _renderSettings(app, html, data) {
-	const $html = $(html);
+	html = game.version > '13' ? html : html[0];
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
 		{ key: 'buttonColorBorder', default: 'white' },
@@ -547,60 +547,61 @@ export function _renderSettings(app, html, data) {
 
 	for (let { key, default: defaultValue } of colorSettings) {
 		const settingKey = `${Constants.MODULE_ID}.${key}`;
-		const input = $html.find(`[name="${settingKey}"]`);
-		if (input.length) {
-			let colorPicker = $('<input type="color" class="color-picker">');
+		const input = html.querySelector(`[name="${settingKey}"]`);
+		
+		if (!input) continue;
 
-			const updateColorPicker = () => {
-				const val = input.val().trim().toLowerCase();
-				const resolved = _getValidColor(val);
+		let colorPicker = document.createElement('input');
+		colorPicker.type = 'color';
+		colorPicker.classList.add('color-picker');
 
-				// Remove color picker if input is falsy
-				if (resolved === false) {
-					colorPicker.hide();
-				} else {
-					if (!colorPicker || !colorPicker.parent().length) {
-						colorPicker = $('<input type="color" class="color-picker">');
-						input.after(colorPicker);
-					}
-					colorPicker.val(resolved).show();
-				}
-			};
+		const updateColorPicker = () => {
+			const val = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(val);
 
-			// Sync picker -> input
-			colorPicker.on('input', function () {
-				const color = $(this).val();
-				input.val(color).trigger('change');
-			});
+			if (resolved === false) {
+				colorPicker.style.display = 'none';
+			} else {
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+			}
+		};
 
-			// Sync input -> picker
-			input.on('input', function () {
+		colorPicker.addEventListener('input', () => {
+			input.value = colorPicker.value;
+			input.dispatchEvent(new Event('change'));
+		});
+
+		input.addEventListener('input', updateColorPicker);
+
+		input.addEventListener('blur', () => {
+			if (input.value.trim() === '') {
+				input.value = defaultValue;
+				input.dispatchEvent(new Event('change'));
 				updateColorPicker();
-			});
+			}
+		});
 
-			// Reset to default when blank
-			input.on('blur', function () {
-				if ($(this).val().trim() === '') {
-					$(this).val(defaultValue).trigger('change');
-					updateColorPicker();
-				}
-			});
-
-			input.after(colorPicker);
-			updateColorPicker();
-		}
+		input.insertAdjacentElement('afterend', colorPicker);
+		updateColorPicker();
 	}
 
-	// Toggle visibility based on the main checkbox
-	const toggle = $html.find(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
-	const updateVisibility = () => {
-		const visible = toggle.is(':checked');
-		const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
-		for (let key of keysToToggle) {
-			$html.find(`[data-setting-id="${Constants.MODULE_ID}.${key}"]`).toggle(visible);
-		}
-	};
+	// Visibility toggle
+	const toggle = html.querySelector(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
+	if (toggle) {
+		const updateVisibility = () => {
+			const visible = toggle.checked;
+			const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
+			for (let key of keysToToggle) {
+				const input = html.querySelector(`[name="${Constants.MODULE_ID}.${key}"]`);
+				if (input) {
+					const container = input.closest('.form-group') || input.parentElement;
+					if (container) container.style.display = visible ? 'flex' : 'none';
+				}
+			}
+		};
 
-	updateVisibility();
-	toggle.on('change', updateVisibility);
+		toggle.addEventListener('change', updateVisibility);
+		updateVisibility();
+	}
 }
