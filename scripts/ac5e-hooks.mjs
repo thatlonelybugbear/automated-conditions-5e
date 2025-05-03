@@ -538,7 +538,12 @@ export async function _overtimeHazards(combat, update, options, user) {
 }
 
 export function _renderSettings(app, html, data) {
-	html = game.version > '13' ? html : html[0];
+	html = html instanceof HTMLElement ? html : html[0];
+	renderChatTooltipsSettings(html);
+	renderColoredButtonSettings(html);
+}
+
+function renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
 		{ key: 'buttonColorBorder', default: 'white' },
@@ -604,4 +609,25 @@ export function _renderSettings(app, html, data) {
 		toggle.addEventListener('change', updateVisibility);
 		updateVisibility();
 	}
+} 
+
+function renderChatTooltipsSettings(html) {
+	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
+	const chatTooltipSelect = html.querySelector(`select[name="${Constants.MODULE_ID}.showChatTooltips"]`);
+	const showNameTooltip = html.querySelector(`[name="${Constants.MODULE_ID}.showNameTooltips"]`);
+
+	if (!tooltipSelect || !chatTooltipSelect || !showNameTooltip) return;
+
+	function updateChatTooltipVisibility() {
+		const val = tooltipSelect.value;
+		const shouldShowChatTooltip = val === 'both' || val === 'chat';
+		const shouldShowTooltip = val !== 'none';
+		const containerChat = chatTooltipSelect.closest('.form-group') || chatTooltipSelect.parentElement;
+		if (containerChat) containerChat.style.display = shouldShowChatTooltip ? 'flex' : 'none';
+		const containerName = showNameTooltip.closest('.form-group') || showNameTooltip.parentElement;
+		if (containerName) containerName.style.display = shouldShowTooltip ? 'flex' : 'none';
+	}
+
+	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
+	updateChatTooltipVisibility();
 }
