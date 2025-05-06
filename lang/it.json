@@ -96,7 +96,7 @@
 	"AC5E.TargetGrantsBonus": "Fornito Bonus",
 	"AC5E.NoChanges": "Nessun cambiamento",
 	"AC5E.SystemMode": "Modalità di sistema",
-	"AC5E.EnviromentalHazards": {
+	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Pericoli ambientali (2024)",
 		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
 		"BurningHazard": "Pericolo Ustioni",
