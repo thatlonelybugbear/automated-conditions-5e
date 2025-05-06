@@ -69,13 +69,13 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (incapacitatedCheck || ragingCheck || silencedCheck /*|| somaticCheck*/) {
 		if (settings.autoArmorSpellUse === 'warn') {
 			if (incapacitatedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesWarnToast')}`);
-			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
-			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
+			else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
+			else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
 			// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
 		} else if (settings.autoArmorSpellUse === 'enforce') {
 			if (incapacitatedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast')}`);
-			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
-			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
+			else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
+			else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
 			// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
 			return false;
 		}
