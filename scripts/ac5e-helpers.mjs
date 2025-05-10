@@ -806,8 +806,14 @@ function sizeWarnings(size, type, warn = false) {
 export function _raceOrType(actor, dataType = 'race') {
 	const systemData = actor?.system;
 	if (!systemData) return {};
-	const data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
-	data.race = systemData.details.race?.identifier ?? data.value; //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
+	let data;
+	if (actor.type === 'character' || actor.type === 'npc') {
+		data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
+		data.race = systemData.details.race?.identifier ?? data.value; //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
+		data.type = actor.type;
+	}
+	else if (actor.type === 'group') data = { type: 'group', value: systemData.type.value };
+	else if (actor.type === 'vehicle') data = { type: 'vehicle', value: systemData.vehicleType };
 	if (dataType === 'all') return Object.fromEntries(Object.entries(data).map(([k, v]) => [k, typeof v === 'string' ? v.toLocaleLowerCase() : v]));
 	else return data[dataType]?.toLocaleLowerCase();
 }
