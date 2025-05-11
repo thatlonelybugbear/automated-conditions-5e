@@ -2,6 +2,7 @@
 * Compatibility bump for v5.0.2
 * Small fix for not posting more than one warnings, for incapacitated/raging/silenced checks
 * Make sure that group or vehicle actors do not break processing
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
   
 ## v13.501.1.1
 * Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
