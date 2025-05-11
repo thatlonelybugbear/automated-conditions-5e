@@ -914,15 +914,15 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	}
 	if (opponentToken) {
-		sandbox.targetActor = _ac5eActorRollData(opponentToken.actor) //.getRollData();
-		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
+		sandbox.opponentActor = _ac5eActorRollData(opponentToken.actor) //.getRollData();
+		sandbox.opponentActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
 		if (opponentToken) {
-			sandbox.targetActor.token = opponentToken;
-			sandbox.targetActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
-			sandbox.targetActor.tokenElevation = opponentToken.document.elevation;
-			sandbox.targetActor.tokenSenses = opponentToken.document.detectionModes;
-			sandbox.targetActor.tokenUuid = opponentToken.document.uuid;
-			sandbox.targetId = opponentToken.id;
+			sandbox.opponentActor.token = opponentToken;
+			sandbox.opponentActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
+			sandbox.opponentActor.tokenElevation = opponentToken.document.elevation;
+			sandbox.opponentActor.tokenSenses = opponentToken.document.detectionModes;
+			sandbox.opponentActor.tokenUuid = opponentToken.document.uuid;
+			sandbox.opponentId = opponentToken.id;
 		}
 	}
 
@@ -954,7 +954,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
 	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
 	sandbox.isTurn = currentCombatant === subjectToken?.id;
-	sandbox.isTargetTurn = currentCombatant === opponentToken?.id;
+	sandbox.isOpponentTurn = currentCombatant === opponentToken?.id;
 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = options;
@@ -983,6 +983,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		console.warn('AC5E sandbox.undefined detected!!!');
 	} 
+	if (sandbox.opponentActor) {
+		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
+		sandbox.targetId = opponentToken.id;  //backwards compatibility for changing the target to opponent for clarity.
+		sandbox.isTargetTurn = currentCombatant === opponentToken?.id;  //backwards compatibility for changing the target to opponent for clarity.
+	}
 	return sandbox;
 }
 
