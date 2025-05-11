@@ -1,3 +1,8 @@
+## v13.502.2
+* Closes [#303](<https://github.com/thatlonelybugbear/automated-conditions-5e/issues/303>)
+  * For evaluations use `opponentActor` to access the opponent actor's rollData, instead of `targetActor`.
+  * `targetActor` will still be available for backwards compatibility
+
 ## v13.502.1
 * Compatibility bump for v5.0.2
 * Small fix for not posting more than one warnings, for incapacitated/raging/silenced checks
