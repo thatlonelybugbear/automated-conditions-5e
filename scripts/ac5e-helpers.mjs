@@ -596,6 +596,9 @@ export function _canSee(source, target, status) {
 		if (settings.debug) console.warn('AC5e: Source and target are the same');
 		return true;
 	}
+	
+	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
+	
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
 	const detectionModes = CONFIG.Canvas.detectionModes;
 	const { DETECTION_TYPES, BASIC_MODE_ID } = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
