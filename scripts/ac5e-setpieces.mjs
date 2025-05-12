@@ -14,13 +14,12 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 
 	for (const [type, actor] of Object.entries(actorTokens)) {
 		if (foundry.utils.isEmpty(actor)) continue;
+		const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
+		const exhaustionLvl = (isSubjectExhausted && actor.system?.attributes.exhaustion >= 3) ? 3 : 1;
+		const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
+		
 		for (const status of actor.statuses) {
-			const isExhaustion = status.includes('exhaustion') && settings.autoExhaustion;
-			const exhaustionLvl = isExhaustion ? actor.system.attributes.exhaustion : undefined;
-			const checkLevel = exhaustionLvl >= 3 ? 3 : 1;
-
-			const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl });
-			const test = isExhaustion ? tables?.[status]?.[checkLevel]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
+			const test = (status === 'exhaustion' && isSubjectExhausted) ? tables?.[status]?.[exhaustionLvl]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
 
 			if (!test) continue;
 			if (settings.debug) console.log(type, test);
@@ -44,18 +43,19 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 	const mkStatus = (id, name, data) => ({ _id: _staticID(id), name, ...data });
 
-	const checkSight = (source, target) => !_canSee(source, target);
-	const hasStatusFromOpponent = (actor, status, origin) => actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === origin?.uuid);
+	const hasStatusFromOpponent = (actor, status, origin) => actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect, 'token')?.actor.uuid === origin?.uuid);
 
-	const checkEffect = (status, fallback = '') => (hasStatusFromOpponent(subject, status, opponent) ? fallback : '');
+	const checkEffect = (status, mode) => (hasStatusFromOpponent(subject, status, opponent) ? mode : '');
 
-	const isFrightenedByVisibleSource = subject?.appliedEffects.some(effect => {
-		const originToken = _getEffectOriginToken(effect); //undefined if no effect.origin
-		return (
-			effect.statuses.has('frightened') &&
-			(!effect.origin || (originToken && _canSee(subjectToken, originToken)))
-		);
-	});
+	const isFrightenedByVisibleSource = () => {
+		if (type !== 'subject') return false;
+		const frightenedEffects = subject?.appliedEffects.filter(effect => effect.statuses.has('frightened') && effect.origin);
+		if (subject?.statuses.has('frightened') && !frightenedEffects.length) return true;   //if none of the effects that apply frightened status on the actor have an origin, force true
+		return frightenedEffects.some(effect => {
+			const originToken = _getEffectOriginToken(effect, 'token'); //undefined if no effect.origin
+			return originToken && _canSee(subjectToken, originToken)
+		});
+	}
 
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
@@ -63,8 +63,8 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	const tables = {
 		blinded: mkStatus('blinded', _i18nConditions('Blinded'), {
 			attack: {
-				subject: checkSight(subjectToken, opponentToken) ? 'disadvantage' : '',
-				opponent: checkSight(opponentToken, subjectToken) ? 'advantage' : '',
+				subject: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '',
+				opponent: !_canSee(opponentToken, subjectToken) ? 'advantage' : '',
 			},
 		}),
 
@@ -85,13 +85,13 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		}),
 
 		frightened: mkStatus('frightened', _i18nConditions('Frightened'), {
-			attack: { subject: isFrightenedByVisibleSource ? 'disadvantage' : '' },
-			check: { subject: isFrightenedByVisibleSource ? 'disadvantage' : '' },
+			attack: { subject: isFrightenedByVisibleSource() ? 'disadvantage' : '' },
+			check: { subject: isFrightenedByVisibleSource() ? 'disadvantage' : '' },
 		}),
 
 		grappled: mkStatus('grappled', _i18nConditions('Grappled'), {
 			attack: {
-				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && (!e.origin || _getEffectOriginToken(e) !== opponentToken)) ? 'disadvantage' : '',
+				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && (!e.origin || _getEffectOriginToken(e, 'token') !== opponentToken)) ? 'disadvantage' : '',
 			},
 		}),
 
@@ -102,8 +102,8 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		invisible: mkStatus('invisible', _i18nConditions('Invisible'), {
 			attack: {
-				subject: checkSight(opponentToken, subjectToken) ? 'advantage' : '',
-				opponent: checkSight(subjectToken, opponentToken) ? 'disadvantage' : '',
+				subject: !_canSee(opponentToken, subjectToken) ? 'advantage' : '',
+				opponent: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '',
 			},
 			check: { subject: modernRules && isInitiative ? 'advantage' : '' },
 		}),
