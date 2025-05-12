@@ -6,201 +6,191 @@ const settings = new Settings();
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	//ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
-	const options = ac5eConfig.options;
-	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = options;
+	const { options } = ac5eConfig;
+	const actorTokens = {
+		subject: subjectToken?.actor,
+		opponent: opponentToken?.actor,
+	};
 
-	const actorTypes = {};
-	if (subjectToken) actorTypes.subject = subjectToken.actor;
-	if (opponentToken) actorTypes.opponent = opponentToken.actor;
-	for (const actorType in actorTypes) {
-		const actor = actorTypes[actorType];
+	for (const [type, actor] of Object.entries(actorTokens)) {
 		if (foundry.utils.isEmpty(actor)) continue;
 		for (const status of actor.statuses) {
-			let test, exhaustionLvl;
-			if (status.includes('exhaustion') && settings.autoExhaustion) {
-				exhaustionLvl = actor.system.attributes.exhaustion;
-				const toCheckExhaustionLevel = exhaustionLvl >= 3 ? 3 : 1;
-				test = testStatusEffectsTables({ subjectToken, opponentToken, ac5eConfig })?.[status][toCheckExhaustionLevel][hook]?.[actorType];
-			} else if (!status.includes('exhaustion')) {
-				test = testStatusEffectsTables({ subjectToken, opponentToken, ac5eConfig })?.[status]?.[hook]?.[actorType];
-			}
-			if (!test) continue;
-			if (settings.debug) console.log(actorType, test);
-			ac5eConfig[actorType][test].push(testStatusEffectsTables({ ac5eConfig, exhaustionLvl })?.[status].name);
-		}
-		// for (const item of actor.items) {
-		// 	if (![_localize('AC5E.Items.DwarvenResilience'), _localize('AC5E.Items.AuraOfProtection')].includes(item.name)) continue;
-		// 	if (hook === 'save' && activity?.type !== hook && _activeModule('midi-qol')) activity = activity.item.system.activities.getByType('save')[0];
-		// 	//fromUuidSync(ac5eConfig?.preAC5eConfig?.midiOptions?.saveActivityUuid); doesn't work because MidiQOL:
-		// 	// 1. doesn't pass a saveActivityUuid
-		// 	// 2. when a save activity is triggered by as Use Other Activity, the associated activity is the initial one and not the Save activity.
-		// 	const test = automatedItemsTables({ subjectToken, opponentToken, options })?.[item.name]?.[hook]?.[actorType];
-		// 	if (settings.debug) console.log({ hook, test, actorType, activity });
-		// 	if (!test) continue;
+			const isExhaustion = status.includes('exhaustion') && settings.autoExhaustion;
+			const exhaustionLvl = isExhaustion ? actor.system.attributes.exhaustion : undefined;
+			const checkLevel = exhaustionLvl >= 3 ? 3 : 1;
 
-		// 	ac5eConfig[actorType][test].push(automatedItemsTables({})?.[item.name].name);
-		// }
+			const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl });
+			const test = isExhaustion ? tables?.[status]?.[checkLevel]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
+
+			if (!test) continue;
+			if (settings.debug) console.log(type, test);
+			const effectName = tables?.[status]?.name;
+			if (effectName) ac5eConfig[type][test].push(effectName);
+		}
 	}
+
 	ac5eConfig = ac5eFlags({ ac5eConfig, subjectToken, opponentToken });
 	if (settings.debug) console.log('AC5E._ac5eChecks:', { ac5eConfig });
-	//	ac5eConfig = automatedItemsTables({ subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
 	return ac5eConfig;
 }
 
 function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl } = {}) {
-	const statusEffectsTables = {};
-	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
+	const { ability, activity, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
+
 	const subject = subjectToken?.actor;
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	statusEffectsTables.blinded = {
-		_id: _staticID('blinded'),
-		name: _i18nConditions('Blinded'),
-		attack: { subject: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '', opponent: !_canSee(opponentToken, subjectToken) ? 'advantage' : '' },
-		//no automation for fail for ability checks based on sight
-	};
-	statusEffectsTables.charmed = {
-		_id: _staticID('charmed'),
-		name: _i18nConditions('Charmed'),
-		check: { subject: subject?.appliedEffects.some((effect) => effect.statuses.has('charmed') && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === opponent?.uuid) ? 'advantage' : '' },
-		use: { subject: subject?.appliedEffects.some((effect) => effect.statuses.has('charmed') && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === opponent?.uuid) ? 'fail' : '' },
-	};
-	statusEffectsTables.deafened = {
-		_id: _staticID('deafened'),
-		name: _i18nConditions('Deafened'),
-		//no automation for fail for ability checks based on hearing
-	};
-	statusEffectsTables.exhaustion = {
-		_id: _staticID('exhaustion'),
-		1: {
-			check: {
-				//ability checks and skills
-				subject: 'disadvantage',
+
+	const mkStatus = (id, name, data) => ({ _id: _staticID(id), name, ...data });
+
+	const checkSight = (source, target) => !_canSee(source, target);
+	const hasStatusFromOpponent = (actor, status, origin) => actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect)?.actor.uuid === origin?.uuid);
+
+	const checkEffect = (status, fallback = '') => (hasStatusFromOpponent(subject, status, opponent) ? fallback : '');
+
+	const isFrightenedByVisibleSource = subject?.appliedEffects.some(effect => {
+		const originToken = _getEffectOriginToken(effect); //undefined if no effect.origin
+		return (
+			effect.statuses.has('frightened') &&
+			(!effect.origin || (originToken && _canSee(subjectToken, originToken)))
+		);
+	});
+
+	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+
+	const tables = {
+		blinded: mkStatus('blinded', _i18nConditions('Blinded'), {
+			attack: {
+				subject: checkSight(subjectToken, opponentToken) ? 'disadvantage' : '',
+				opponent: checkSight(opponentToken, subjectToken) ? 'advantage' : '',
 			},
-			// skill: { subject: 'disadvantage' },
-		},
-		3: {
-			check: { subject: 'disadvantage' },
-			save: { subject: 'disadvantage' },
-			attack: { subject: 'disadvantage' },
-			// death: { subject: 'disadvantage' },
-			// conc: { subject: 'disadvantage' },
-		},
-		name: `${_i18nConditions('Exhaustion')} ${exhaustionLvl}`,
-	};
-	statusEffectsTables.frightened = {
-		_id: _staticID('frightened'),
-		name: _i18nConditions('Frightened'),
-		attack: { subject: subject?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(subjectToken, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
-		check: { subject: subject?.appliedEffects.some((effect) => effect.statuses.has('frightened') && ((_getEffectOriginToken(effect) && _canSee(subjectToken, _getEffectOriginToken(effect))) || !effect.origin)) ? 'disadvantage' : '' },
-	};
-	statusEffectsTables.grappled = {
-		_id: _staticID('grappled'),
-		name: _i18nConditions('Grappled'),
-		attack: { subject: subject?.appliedEffects.some((effect) => effect.statuses.has('grappled') && (_getEffectOriginToken(effect) !== opponentToken || !effect.origin)) ? 'disadvantage' : '' },
-	};
-	statusEffectsTables.incapacitated = {
-		_id: _staticID('incapacitated'),
-		name: _i18nConditions('Incapacitated'),
-		use: { subject: ['action', 'bonus', 'reaction'].includes(activity?.activation?.type) ? 'fail' : '' },
-		check: { subject: modernRules && isInitiative ? 'disadvantage' : '' },
-	};
-	statusEffectsTables.invisible = {
-		_id: _staticID('invisible'),
-		name: _i18nConditions('Invisible'),
-		attack: { subject: !_canSee(opponentToken, subjectToken) ? 'advantage' : '', opponent: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '' },
-		check: { subject: modernRules && isInitiative ? 'advantage' : '' },
-	};
-	statusEffectsTables.paralyzed = {
-		_id: _staticID('paralyzed'),
-		name: _i18nConditions('Paralyzed'),
-		save: { subject: ['str', 'dex'].includes(ability) ? 'fail' : '' },
-		attack: { opponent: 'advantage' },
-		damage: { opponent: !!distance && distance <= 5 ? 'critical' : '' },
-	};
-	statusEffectsTables.petrified = {
-		_id: _staticID('petrified'),
-		name: _i18nConditions('Petrified'),
-		save: { subject: ['str', 'dex'].includes(ability) ? 'fail' : '' },
-		attack: { opponent: 'advantage' },
-	};
-	statusEffectsTables.poisoned = {
-		_id: _staticID('poisoned'),
-		name: _i18nConditions('Poisoned'),
-		attack: { subject: 'disadvantage' },
-		check: { subject: 'disadvantage' },
-	};
-	statusEffectsTables.prone = {
-		_id: _staticID('prone'),
-		name: _i18nConditions('Prone'),
-		attack: {
-			subject: 'disadvantage',
-			opponent: !!distance && distance <= 5 ? 'advantage' : 'disadvantage',
-		},
-	};
-	statusEffectsTables.restrained = {
-		_id: _staticID('restrained'),
-		name: _i18nConditions('Restrained'),
-		attack: {
-			subject: 'disadvantage',
-			opponent: 'advantage',
-		},
-		save: { subject: ability == 'dex' ? 'disadvantage' : '' },
-	};
-	statusEffectsTables.silenced = {
-		_id: _staticID('silenced'),
-		name: _i18nConditions('Silenced'),
-		use: { subject: item?.system.properties.has('vocal') ? 'fail' : '' },
-	};
-	statusEffectsTables.stunned = {
-		_id: _staticID('stunned'),
-		name: _i18nConditions('Stunned'),
-		attack: { opponent: 'advantage' },
-		save: { subject: ['dex', 'str'].includes(ability) ? 'fail' : '' },
-	};
-	if (modernRules)
-		statusEffectsTables.surprised = {
-			_id: _staticID('surprised'),
-			name: _i18nConditions('Surprised'),
+		}),
+
+		charmed: mkStatus('charmed', _i18nConditions('Charmed'), {
+			check: { subject: checkEffect('charmed', 'advantage') },
+			use: { subject: checkEffect('charmed', 'fail') },
+		}),
+
+		deafened: mkStatus('deafened', _i18nConditions('Deafened'), {}),
+
+		exhaustion: mkStatus('exhaustion', `${_i18nConditions('Exhaustion')} ${exhaustionLvl}`, {
+			1: { check: { subject: 'disadvantage' } },
+			3: {
+				check: { subject: 'disadvantage' },
+				save: { subject: 'disadvantage' },
+				attack: { subject: 'disadvantage' },
+			},
+		}),
+
+		frightened: mkStatus('frightened', _i18nConditions('Frightened'), {
+			attack: { subject: isFrightenedByVisibleSource ? 'disadvantage' : '' },
+			check: { subject: isFrightenedByVisibleSource ? 'disadvantage' : '' },
+		}),
+
+		grappled: mkStatus('grappled', _i18nConditions('Grappled'), {
+			attack: {
+				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && (!e.origin || _getEffectOriginToken(e) !== opponentToken)) ? 'disadvantage' : '',
+			},
+		}),
+
+		incapacitated: mkStatus('incapacitated', _i18nConditions('Incapacitated'), {
+			use: { subject: ['action', 'bonus', 'reaction'].includes(activity?.activation?.type) ? 'fail' : '' },
 			check: { subject: modernRules && isInitiative ? 'disadvantage' : '' },
-		};
-	statusEffectsTables.unconscious = {
-		_id: _staticID('unconscious'),
-		name: _i18nConditions('Unconscious'),
-		attack: { opponent: 'advantage' },
-		damage: { opponent: !!distance && distance <= 5 ? 'critical' : '' },
-		save: { subject: ['dex', 'str'].includes(ability) ? 'fail' : '' },
+		}),
+
+		invisible: mkStatus('invisible', _i18nConditions('Invisible'), {
+			attack: {
+				subject: checkSight(opponentToken, subjectToken) ? 'advantage' : '',
+				opponent: checkSight(subjectToken, opponentToken) ? 'disadvantage' : '',
+			},
+			check: { subject: modernRules && isInitiative ? 'advantage' : '' },
+		}),
+
+		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
+			save: { subject: ['str', 'dex'].includes(ability) ? 'fail' : '' },
+			attack: { opponent: 'advantage' },
+			damage: { opponent: distance <= 5 ? 'critical' : '' },
+		}),
+
+		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
+			save: { subject: ['str', 'dex'].includes(ability) ? 'fail' : '' },
+			attack: { opponent: 'advantage' },
+		}),
+
+		poisoned: mkStatus('poisoned', _i18nConditions('Poisoned'), {
+			attack: { subject: 'disadvantage' },
+			check: { subject: 'disadvantage' },
+		}),
+
+		prone: mkStatus('prone', _i18nConditions('Prone'), {
+			attack: {
+				subject: 'disadvantage',
+				opponent: distance <= 5 ? 'advantage' : 'disadvantage',
+			},
+		}),
+
+		restrained: mkStatus('restrained', _i18nConditions('Restrained'), {
+			attack: { subject: 'disadvantage', opponent: 'advantage' },
+			save: { subject: ability === 'dex' ? 'disadvantage' : '' },
+		}),
+
+		silenced: mkStatus('silenced', _i18nConditions('Silenced'), {
+			use: { subject: item?.system.properties.has('vocal') ? 'fail' : '' },
+		}),
+
+		stunned: mkStatus('stunned', _i18nConditions('Stunned'), {
+			attack: { opponent: 'advantage' },
+			save: { subject: ['dex', 'str'].includes(ability) ? 'fail' : '' },
+		}),
+
+		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
+			attack: { opponent: 'advantage' },
+			damage: { opponent: distance <= 5 ? 'critical' : '' },
+			save: { subject: ['dex', 'str'].includes(ability) ? 'fail' : '' },
+		}),
 	};
+
+	if (modernRules) {
+		tables.surprised = mkStatus('surprised', _i18nConditions('Surprised'), {
+			check: { subject: isInitiative ? 'disadvantage' : '' },
+		});
+	}
+
 	if (settings.expandedConditions) {
-		statusEffectsTables.dodging = {
-			_id: _staticID('dodging'),
-			name: _i18nConditions('Dodging'),
-			attack: { opponent: opponentToken && subject && _canSee(opponentToken, subjectToken) && !opponent?.statuses.has('incapacitated') && !!Object.values(opponent?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'disadvantage' : '' },
-			save: { subject: ability == 'dex' && subject && !subject?.statuses.has('incapacitated') && !!Object.values(subject?.system.attributes.movement).find((value) => typeof value === 'number' && !!value) ? 'advantage' : '' },
-		};
-		statusEffectsTables.hiding = {
-			_id: _staticID('hiding'),
-			name: _i18nConditions('Hiding'),
+		tables.dodging = mkStatus('dodging', _i18nConditions('Dodging'), {
+			attack: {
+				opponent: opponentToken && subject && _canSee(opponentToken, subjectToken) && !opponent?.statuses.has('incapacitated') && opponentMove ? 'disadvantage' : '',
+			},
+			save: {
+				subject: ability === 'dex' && subject && !subject?.statuses.has('incapacitated') && subjectMove ? 'advantage' : '',
+			},
+		});
+
+		tables.hiding = mkStatus('hiding', _i18nConditions('Hiding'), {
 			attack: { subject: 'advantage', opponent: 'disadvantage' },
 			check: { subject: modernRules && isInitiative ? 'advantage' : '' },
-		};
-		statusEffectsTables.raging = {
-			id: 'raging',
-			_id: _staticID('raging'),
-			name: _localize('AC5E.Raging'),
-			save: { subject: ability === 'str' && subject?.armor?.system.type.value !== 'heavy' ? 'advantage' : '' },
-			check: { subject: ability === 'str' && subject?.armor?.system.type.value !== 'heavy' ? 'advantage' : '' },
+		});
+
+		tables.raging = mkStatus('raging', _localize('AC5E.Raging'), {
+			save: {
+				subject: ability === 'str' && subject?.armor?.system.type.value !== 'heavy' ? 'advantage' : '',
+			},
+			check: {
+				subject: ability === 'str' && subject?.armor?.system.type.value !== 'heavy' ? 'advantage' : '',
+			},
 			use: { subject: item?.type === 'spell' ? 'fail' : '' },
-		};
-		statusEffectsTables.underwaterCombat = {
-			id: 'underwater',
-			_id: _staticID('underwater'),
-			name: _localize('AC5E.UnderwaterCombat'),
-			attack: { subject: (_getActionType(activity) === 'mwak' && !subject?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > activity?.range.value ? 'fail' : '' },
-		};
+		});
+
+		tables.underwaterCombat = mkStatus('underwater', _localize('AC5E.UnderwaterCombat'), {
+			attack: {
+				subject: (_getActionType(activity) === 'mwak' && !subject?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > activity?.range.value ? 'fail' : '',
+			},
+		});
 	}
-	return statusEffectsTables;
+
+	return tables;
 }
 
 function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken }) {
