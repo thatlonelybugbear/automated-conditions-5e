@@ -587,33 +587,20 @@ export function _activeModule(moduleID) {
 	return game.modules.get(moduleID)?.active;
 }
 
-export function _canSee(source, target) {
-	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
+export function _canSee(source, target, status) {
+	if (!source || !target) {
+		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
+		return false;
+	}
+	if (source === target) {
+		if (settings.debug) console.warn('AC5e: Source and target are the same');
+		return true;
+	}
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
 	const detectionModes = CONFIG.Canvas.detectionModes;
-	const DetectionModeCONST = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
-	const sightDetectionModes = Object.keys(detectionModes).filter(
-		(d) =>
-			detectionModes[d].type === DetectionModeCONST.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d)
-	);
-	return canSense(source, target, sightDetectionModes);
-}
+	const { DETECTION_TYPES, BASIC_MODE_ID } = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
+	const sightDetectionModes = Object.keys(detectionModes).filter((d) => detectionModes[d].type === DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d));
 
-function canSense(source, target, validModes = ['all']) {
-	return canSenseModes(source, target, validModes).length > 0;
-}
-
-function canSenseModes(token, target, validModesParam = ['all']) {
-	if (!token || !target) {
-		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
-		return ['noToken'];
-	}
-	const detectionModes = CONFIG.Canvas.detectionModes;
-	const DetectionModeCONST = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
-	//any non-owned, non-selected tokens will have their vision not initialized.
-	if (target.document?.hidden || token.document?.hidden) return [];
-	if (!token.hasSight) return ['senseAll'];
-	if ((!token.vision || !token.vision.los) && !_initializeVision(token)) return ['noSight'];
 	const matchedModes = new Set();
 	const t = Math.min(target.w, target.h) / 4;
 	const targetPoint = target.center;
@@ -633,84 +620,52 @@ function canSenseModes(token, target, validModesParam = ['all']) {
 			: [[0, 0]];
 	const tests = offsets.map((o) => ({
 		point: new PIXI.Point(targetPoint.x + o[0], targetPoint.y + o[1]),
-		elevation: target.document.elevation,
+		elevation: target?.document.elevation ?? 0,
 		los: new Map(),
 	}));
 	const config = { tests, object: target };
-	const tokenDetectionModes = token.detectionModes;
-	const modes = CONFIG.Canvas.detectionModes;
-	let validModes = new Set(validModesParam);
 
-	// First test basic detection for light sources which specifically provide vision
-	const lightSources = canvas?.effects?.lightSources;
-	for (const lightSource of lightSources ?? []) {
-		if (!lightSource.active || lightSource.data.disabled) continue;
-		if (!validModes.has(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID) && !validModes.has('all')) continue;
-		const result = lightSource.testVisibility && lightSource.testVisibility(config);
-		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
+	const tokenDetectionModes = source.detectionModes;
+	let validModes;
+	if (!status && !source.actor?.statuses.has('blinded') && !target.actor?.statuses.has('invisible') && !target.actor?.statuses.has('ethereal')) {
+		if (!source.hasSight) return true;
+		validModes = new Set(sightDetectionModes.map((m) => m.id));
+		const lightSources = canvas?.effects?.lightSources;
+		for (const lightSource of lightSources ?? []) {
+			if (!lightSource.active || lightSource.data.disabled) continue;
+			if (!validModes.has(detectionModes.lightPerception?.id ?? BASIC_MODE_ID)) continue;
+			const result = lightSource.testVisibility && lightSource.testVisibility(config);
+			if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? BASIC_MODE_ID);
+		}
+		const lightPerception = tokenDetectionModes.find((m) => m.id === detectionModes.lightPerception?.id);
+		if (lightPerception) {
+			const result = lightPerception ? detectionModes.lightPerception.testVisibility(source.vision, lightPerception, config) : false;
+			if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? BASIC_MODE_ID);
+		}
+		const basic = tokenDetectionModes.find((m) => m.id === BASIC_MODE_ID);
+		if (basic) {
+			const result = detectionModes.basicSight.testVisibility(source.vision, basic, config);
+			if (result === true) matchedModes.add(detectionModes.basicSight?.id ?? BASIC_MODE_ID);
+		}
+	} else if (status === 'blinded' || source.actor?.statuses.has('blinded')) {
+		validModes = new Set(['blindsight', 'seeAll' /*'feelTremor'*/]);
+	} else if (status === 'invisible' || status === 'ethereal' || target.actor?.statuses.has('invisible') || target.actor?.statuses.has('ethereal')) {
+		validModes = new Set(['seeAll', 'seeInvisibility']);
 	}
-	const lightPerception = tokenDetectionModes.find((m) => m.id === modes.lightPerception?.id);
-	if (lightPerception && ['lightPerception', 'all'].some((mode) => validModes.has(mode))) {
-		const result = lightPerception ? modes.lightPerception.testVisibility(token.vision, lightPerception, config) : false;
-		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
-	}
-	const basic = tokenDetectionModes.find((m) => m.id === DetectionModeCONST.BASIC_MODE_ID);
-	if (basic && ['basicSight', 'all'].some((mode) => validModes.has(mode))) {
-		const result = modes.basicSight.testVisibility(token.vision, basic, config);
-		if (result === true) matchedModes.add(detectionModes.basicSight?.id ?? DetectionModeCONST.BASIC_MODE_ID);
-	}
-
 	for (const detectionMode of tokenDetectionModes) {
-		if (detectionMode.id === DetectionModeCONST.BASIC_MODE_ID) continue;
+		if (detectionMode.id === BASIC_MODE_ID) continue;
 		if (!detectionMode.enabled) continue;
-		const dm = modes[detectionMode.id];
-		if (validModes.has('all') || validModes.has(detectionMode.id)) {
-			const result = dm?.testVisibility(token.vision, detectionMode, config);
+		const dm = detectionModes[detectionMode.id];
+		if (validModes.has(detectionMode.id)) {
+			const result = dm?.testVisibility(source.vision, detectionMode, config);
 			if (result === true) {
 				matchedModes.add(detectionMode.id);
 			}
 		}
 	}
-	for (let tk of [token, target]) {
-		if (!tk.document.sight.enabled) {
-			const sourceId = tk.sourceId;
-			canvas?.effects?.visionSources.delete(sourceId);
-		}
-	}
-	if (settings.debug) console.warn(`${Constants.MODULE_SHORT_NAME} - _canSee()`, { sourceId: token?.id, targetId: target?.id, result: matchedModes });
-	return Array.from(matchedModes);
-}
 
-function _initializeVision(token) {
-	let sightEnabled = token.document.sight.enabled;
-	sightEnabled = true;
-	token.document._prepareDetectionModes();
-	const sourceId = token.sourceId;
-	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token }); //v12 only
-	token.vision.initialize({
-		x: token.center.x,
-		y: token.center.y,
-		elevation: token.document.elevation,
-		radius: Math.clamp(token.sightRange, 0, canvas?.dimensions?.maxR ?? 0),
-		externalRadius: token.externalRadius,
-		angle: token.document.sight.angle,
-		contrast: token.document.sight.contrast,
-		saturation: token.document.sight.saturation,
-		brightness: token.document.sight.brightness,
-		attenuation: token.document.sight.attenuation,
-		rotation: token.document.rotation,
-		visionMode: token.document.sight.visionMode,
-		color: globalThis.Color.from(token.document.sight.color),
-		isPreview: !!token._original,
-		blinded: token.document.hasStatusEffect(CONFIG.specialStatusEffects.BLIND),
-	});
-	if (!token.vision.los) {
-		token.vision.shape = token.vision._createRestrictedPolygon();
-		token.vision.los = token.vision.shape;
-	}
-	token.vision.animated = false;
-	canvas?.effects?.visionSources.set(sourceId, token.vision);
-	return true;
+	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { sourceId: source?.id, targetId: target?.id, result: matchedModes });
+	return Array.from(matchedModes).length > 0;
 }
 
 export function _staticID(id) {
