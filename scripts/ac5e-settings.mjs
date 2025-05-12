@@ -21,7 +21,7 @@ export default class Settings {
 	static ColorPicker_Background = 'buttonColorBackground';
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
-	static AUTOMATE_ENVIROMENTAL_HAZARDS = 'autoHazards';
+	static AUTOMATE_ENVIRONMENTAL_HAZARDS = 'autoHazards';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -103,9 +103,9 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENVIROMENTAL_HAZARDS, {
-			name: 'AC5E.EnviromentalHazards.SettingsName',
-			hint: 'AC5E.EnviromentalHazards.SettingsHint',
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS, {
+			name: 'AC5E.EnvironmentalHazards.SettingsName',
+			hint: 'AC5E.EnvironmentalHazards.SettingsHint',
 			scope: 'world',
 			config: true,
 			default: false,
@@ -233,7 +233,7 @@ export default class Settings {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS);
 	}
 	get autoHazards() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIROMENTAL_HAZARDS);
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS);
 	}
 	get autoArmor() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_STEALTH);
