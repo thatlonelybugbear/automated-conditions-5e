@@ -52,32 +52,23 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
 	const options = { ability, skill, tool, hook, activity };
-	if (item.type === 'spell' && settings.autoArmorSpellUse !== 'off') {
-		const notProficientArmorCheck = _autoArmor(sourceActor).notProficient;
-		const ragingCheck = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
-		const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
+
+	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
+	if (item.type === 'spell' && useWarnings) {
+		const notProficient = _autoArmor(sourceActor).notProficient;
+		const raging = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
+		const silenced = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
 		// const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Vocal')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellVocal;
 		// const somaticCheck = item.system.properties.has('somatic') && sourceActor.items.filter((i)=>i.system?.equipped && i.system.type === 'weapon' && !i.system.properties.has('foc'))?.length > 1 && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Somatic')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellSomatic;
-		if (notProficientArmorCheck || ragingCheck || silencedCheck) {
-			if (settings.autoArmorSpellUse === 'warn') {
-				if (notProficientArmorCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
-				else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
-				else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
-			} else if (settings.autoArmorSpellUse === 'enforce') {
-				if (notProficientArmorCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
-				else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
-				else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
-				// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
-				return false;
-			}
-		}
+		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
+		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
+		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
+		
+		
 	}
-	const incapacitatedCheck = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
-	if (incapacitatedCheck && settings.autoArmorSpellUse === 'warn') ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesWarnToast')}`);
-	else if (incapacitatedCheck && settings.autoArmorSpellUse === 'enforce') {
-		ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast')}`);
-		return false;
-	}
+	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
+	if (incapacitated && useWarnings) notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
+	
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
 	let targets = game.user?.targets;
@@ -628,3 +619,42 @@ function renderChatTooltipsSettings(html) {
 	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
 	updateChatTooltipVisibility();
 }
+
+function notifyPreUseActivity(actorName, warning, type) {  //warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
+	const key = `AC5E.ActivityUse${type}${warning}Toast`;
+	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
+}
+
+
+	const msg = warning < 2 ?
+		type === 'notProficient' ?
+		'AC5E.AutoArmorSpellUseChoicesWarnToast' :
+		type === 'raging' ?
+		'AC5E.AutoRagingSpellUseChoicesWarnToast' :
+		type === 'silenced' ?
+		'AC5E.AutoSilencedSpellUseChoicesWarnToast' :
+		type === 'incapacitated' ?
+		'AC5E.AutoIncapacitatedSpellUseChoicesWarnToast'
+		
+	return ui.notifications.warn(actorName ? `${actorName} ${_localize(msg)}` : _localize(msg));
+}
+
+if (notProficientArmorCheck || ragingCheck || silencedCheck) {
+			if (settings.autoArmorSpellUse === 'warn') {
+				if (notProficientArmorCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
+				else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
+				else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
+			} else if (settings.autoArmorSpellUse === 'enforce') {
+				if (notProficientArmorCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
+				else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
+				else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
+				// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
+				return false;
+			}
+		}
+
+&& settings.autoArmorSpellUse === 'warn') ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesWarnToast')}`);
+	else if (incapacitatedCheck && settings.autoArmorSpellUse === 'enforce') {
+		ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast')}`);
+		return false;
+	}
