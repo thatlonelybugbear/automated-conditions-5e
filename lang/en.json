@@ -41,8 +41,7 @@
 				"Enforce": "is silenced and cannot cast spells with verbal components. Spell cancelled!",
 				"Warn": "is silenced and cannot cast spells with verbal components."
 			}
-		}
-		
+		}		
 	},
 	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation:",
 	"AC5E.AutoRangedAttacksHint": "'Off': AC5e will not process any distance checks; 'Ranged checks only': AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack; 'Range + Nearby foes': Hostiles adjacent to attacker will impose disadvantage on ranged attacks.",
