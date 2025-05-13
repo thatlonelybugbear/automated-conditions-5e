@@ -133,7 +133,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const messageType = message?.flags?.dnd5e?.messageType;
 	const chatMessage = message?.document;
 
-	const subjectTokenId = speaker?.token;
+	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	if (attackingToken) options.distance = _getDistance(attackingToken, subjectToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, attackingToken?.id, options);
@@ -174,7 +174,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.hook = hook;
 	options.activity = activity;
 
-	const subjectTokenId = speaker?.token;
+	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	let opponentToken;
 	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects
