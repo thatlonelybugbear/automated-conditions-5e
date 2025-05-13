@@ -63,8 +63,6 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
 		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
 		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
-		
-		
 	}
 	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
 	if (incapacitated && useWarnings) notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
@@ -621,40 +619,6 @@ function renderChatTooltipsSettings(html) {
 }
 
 function notifyPreUseActivity(actorName, warning, type) {  //warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
-	const key = `AC5E.ActivityUse${type}${warning}Toast`;
+	const key = `AC5E.ActivityUse.Type.${type}${warning}`;
 	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
 }
-
-
-	const msg = warning < 2 ?
-		type === 'notProficient' ?
-		'AC5E.AutoArmorSpellUseChoicesWarnToast' :
-		type === 'raging' ?
-		'AC5E.AutoRagingSpellUseChoicesWarnToast' :
-		type === 'silenced' ?
-		'AC5E.AutoSilencedSpellUseChoicesWarnToast' :
-		type === 'incapacitated' ?
-		'AC5E.AutoIncapacitatedSpellUseChoicesWarnToast'
-		
-	return ui.notifications.warn(actorName ? `${actorName} ${_localize(msg)}` : _localize(msg));
-}
-
-if (notProficientArmorCheck || ragingCheck || silencedCheck) {
-			if (settings.autoArmorSpellUse === 'warn') {
-				if (notProficientArmorCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
-				else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
-				else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
-			} else if (settings.autoArmorSpellUse === 'enforce') {
-				if (notProficientArmorCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
-				else if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
-				else if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
-				// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
-				return false;
-			}
-		}
-
-&& settings.autoArmorSpellUse === 'warn') ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesWarnToast')}`);
-	else if (incapacitatedCheck && settings.autoArmorSpellUse === 'enforce') {
-		ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast')}`);
-		return false;
-	}
