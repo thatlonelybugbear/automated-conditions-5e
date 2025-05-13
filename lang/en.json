@@ -5,14 +5,14 @@
 	"AC5E.ShowToolTipsChoicesDialog": "Only on roll dialogs",
 	"AC5E.ShowToolTipsChoicesChat": "Only on chat messages",
 	"AC5E.ShowToolTipsChoicesNone": "Do not show",
-	"AC5E.ShowModuleNameInTooltipsName": "Show AC5e module name in tooltips",
-	"AC5E.ShowTooltipChatVisibility.Name": "Show chat tooltips in player clients for",
-	"AC5E.ShowTooltipChatVisibility.Hint": "'All' - all actor rolls, 'None' - no rolls, 'Owned' - owned actors rolls, 'Players' -  player actors rolls",
+	"AC5E.ShowModuleNameInTooltipsName": "Show module name in tooltips",
+	"AC5E.ShowTooltipChatVisibility.Name": "Show chat tooltips for",
+	"AC5E.ShowTooltipChatVisibility.Hint": "'All' - all actor rolls, 'None' - no rolls, 'Owned' - owned actors rolls, 'Players' -  player actors rolls; (the GM sees all)",
 	"AC5E.ShowTooltipChatVisibility.All": "All",
 	"AC5E.ShowTooltipChatVisibility.None": "None",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Owned",
 	"AC5E.ShowTooltipChatVisibility.Players": "Players",
-	"AC5E.ExpandedConditionsName": "AC5e expanded conditions",
+	"AC5E.ExpandedConditionsName": "Expanded conditions",
 	"AC5E.ExpandedConditionsHint": "When checked, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.AutoArmorName": "AC5e armor proficiency and equipment stealth disadvantage.",
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
@@ -30,8 +30,8 @@
 				"Warn": "is not proficient in the equipped armor and RAW cannot cast spells."
 			},
 			"Incapacitated": {
-				"Enforce": "is incapacitated and use any actions. Action cancelled!",
-				"Warn": "is incapacitated and use any actions."
+				"Enforce": "is incapacitated and cannot use any actions. Action cancelled!",
+				"Warn": "is incapacitated and cannot use any actions."
 			},
 			"Raging": {
 				"Enforce": "is raging and cannot cast spells. Spell cancelled!",
@@ -43,14 +43,14 @@
 			}
 		}		
 	},
-	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation:",
+	"AC5E.AutoRangedAttacksName": "Ranged attacks automation:",
 	"AC5E.AutoRangedAttacksHint": "'Off': AC5e will not process any distance checks; 'Ranged checks only': AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack; 'Range + Nearby foes': Hostiles adjacent to attacker will impose disadvantage on ranged attacks.",
 	"AC5E.AutoRangedAttacksChoicesOff": "Off",
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Range checks only",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Range + Nearby foes",
-	"AC5E.AutoExhaustionName": "AC5e exhaustion automation.",
+	"AC5E.AutoExhaustionName": "Exhaustion automation.",
 	"AC5E.AutoExhaustionHint": "When checked, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
-	"AC5E.AutoEncumbranceName": "AC5e variant encumbrance.",
+	"AC5E.AutoEncumbranceName": "Variant encumbrance.",
 	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
 	"AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.",
 	"AC5E.NoTargetsAttackWarn": "Automated Conditions 5e: You have no targets selected when attacking. Please always target if you want AC5e to suggest advantageModes properly.",
@@ -59,8 +59,8 @@
 	"AC5E.TargetingChoicesNone": "Do nothing",
 	"AC5E.TargetingChoicesSource": "From source only",
 	"AC5E.TargetingChoicesForce": "Enforce targeting",
-	"AC5E.TargetingName": "AC5e targeting options",
-	"AC5E.TargetingHint": "If none or multiple target(s) selected when user rolls for Attack or Damage, AC5e will: 'Do nothing': No advantageMode/damageMode calculations for the incoming roll; 'From source only': advantageMode/damageMode based on any source Actor effects; 'Enforce Targeting':  Cancel roll and ask for targets before rolling again (Use with caution).",
+	"AC5E.TargetingName": "Targeting options",
+	"AC5E.TargetingHint": "If none or multiple targets selected when user rolls for Attack or Damage, AC5e will: 'Do nothing': No advantageMode/damageMode calculations for the incoming roll; 'From source only': advantageMode/damageMode based on any source Actor effects; 'Enforce Targeting':  Cancel roll and ask for targets before rolling again (Use with caution).",
 	"AC5E.KeypressOverrideName": "Keybinds override AC5e calculations",
 	"AC5E.KeypressOverrideHint": "The key binds for advantage, disadvantage, critical should override any calculations by AC5e (checked) or be added to the normal AC5e calculations (not checked).",
 	"AC5E.DebuggingName": "AC5E debug",
@@ -112,7 +112,7 @@
 	"AC5E.SystemMode": "System mode",
 	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Environmental Hazards (2024)",
-		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 dnd45e ruleset",
+		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 D&D 5e ruleset",
 		"BurningHazard": "Burning Hazard",
 		"SuffocatingHazard": "Suffocating"
 	},
