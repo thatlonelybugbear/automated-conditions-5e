@@ -30,8 +30,8 @@
 				"Warn": "is not proficient in the equipped armor and RAW cannot cast spells."
 			},
 			"Incapacitated": {
-				"Enforce": "is incapacitated and cannot cast spells. Spell cancelled!",
-				"Warn": "is incapacitated and cannot cast spells."
+				"Enforce": "is incapacitated and use any actions. Action cancelled!",
+				"Warn": "is incapacitated and use any actions."
 			},
 			"Raging": {
 				"Enforce": "is raging and cannot cast spells. Spell cancelled!",
