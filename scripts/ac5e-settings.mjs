@@ -120,16 +120,16 @@ export default class Settings {
 			type: Boolean,
 		}); //
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_SPELL_USE, {
-			name: 'AC5E.AutoArmorSpellUseName',
-			hint: 'AC5E.AutoArmorSpellUseHint',
+			name: 'AC5E.ActivityUse.Name',
+			hint: 'AC5E.ActivityUse.Hint',
 			scope: 'world',
 			config: true,
 			default: 'off',
 			type: String,
 			choices: {
-				off: 'AC5E.AutoArmorSpellUseChoicesOff',
-				enforce: 'AC5E.AutoArmorSpellUseChoicesEnforce',
-				warn: 'AC5E.AutoArmorSpellUseChoicesWarn',
+				off: 'AC5E.ActivityUse.Choices.Off',
+				enforce: 'AC5E.ActivityUse.Choices.Enforce',
+				warn: 'AC5E.ActivityUse.Choices.Warn',
 			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU, {
