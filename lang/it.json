@@ -16,19 +16,33 @@
 	"AC5E.ExpandedConditionsHint": "Se selezionato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
 	"AC5E.AutoArmorName": "Competenza nelle armature AC5e e svantaggio furtività equipaggiamento.",
 	"AC5E.AutoArmorHint": "Se selezionato, AC5e elaborerà automaticamente la competenza nell'armatura equipaggiata per abilità, abilità e tiri salvezza (STR || DEX) e controllerà l'equipaggiamento per la proprietà di svantaggio della furtività.",
-	"AC5E.AutoArmorSpellUseName": "Competenza armature e incantesimi AC5e",
-	"AC5E.AutoArmorSpellUseHint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
-	"AC5E.AutoArmorSpellUseChoicesOff": "Disattiva",
-	"AC5E.AutoArmorSpellUseChoicesEnforce": "Applica",
-	"AC5E.AutoArmorSpellUseChoicesWarn": "Avverti",
-	"AC5E.AutoArmorSpellUseChoicesEnforceToast": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi. Incantesimo annullato!",
-	"AC5E.AutoArmorSpellUseChoicesWarnToast": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi",
-	"AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "è incapacitato e non può lanciare incantesimi. Incantesimo annullato!",
-	"AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "è incapacitato e non può lanciare incantesimi.",
-	"AC5E.AutoRagingSpellUseChoicesEnforceToast": "è in ira e non può lanciare incantesimi. Incantesimo annullato!",
-	"AC5E.AutoRagingSpellUseChoicesWarnToast": "è in ira e non può lanciare incantesimi.",
-	"AC5E.AutoSilencedSpellUseChoicesEnforceToast": "è silenziato e non può lanciare incantesimi con componenti verbali. Incantesimo annullato!",
-	"AC5E.AutoSilencedSpellUseChoicesWarnToast": "è silenziato e non può lanciare incantesimi con componenti verbali.",
+	"AC5E.ActivityUse" : {
+		"Name": "Competenza armature e incantesimi AC5e",
+		"Hint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
+		"Choices": {
+			"Off": "Disattiva",
+			"Enforce": "Applica",
+			"Warn": "Avverti",
+		},
+		"Type": {
+			"Armor": {
+				"Enforce": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi"
+			},
+			"Incapacitated": {
+				"Enforce": "è incapacitato e non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "è incapacitato e non può lanciare incantesimi."
+			},
+			"Raging": {
+				"Enforce": "è in ira e non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "è in ira e non può lanciare incantesimi."
+			},
+			"Silenced": {
+				"Enforce": "è silenziato e non può lanciare incantesimi con componenti verbali. Incantesimo annullato!",
+				"Warn": "è silenziato e non può lanciare incantesimi con componenti verbali."
+			}
+		}		
+	},
 	"AC5E.AutoRangedAttacksName": "Automazione Attacchi a distanza AC5e:",
 	"AC5E.AutoRangedAttacksHint": "'Disattivato': AC5E non elaborerà alcun controllo a distanza; 'Solo controlli a distanza': AC5E elaborerà automaticamente lo svantaggio/fallimento della distanza in base alla distanza target e ai valori dell'intervallo dell'elemento utilizzato per attaccare; 'Distanza + Nemici Vicini': gli ostili adiacenti all'attaccante imporranno svantaggi agli attacchi a distanza.",
 	"AC5E.AutoRangedAttacksChoicesOff": "Disattivato",
