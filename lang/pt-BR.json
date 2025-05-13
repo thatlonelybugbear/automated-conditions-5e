@@ -16,19 +16,33 @@
   "AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
   "AC5E.AutoArmorName": "Automação de Armadura",
   "AC5E.AutoArmorHint": "Se marcado, AC5e irá processar automaticamente a proficiência da armadura equipada para rolagens de testes de atributo, perícias e salvaguardas (FOR || DES) e Desvantagem em Furtividade.",
-  "AC5E.AutoArmorSpellUseName": "Proficiência com Armadura, Condições (Fúria, Silenciado) e Magias",
-  "AC5E.AutoArmorSpellUseHint": "Fazer nada: Não faz nada. Forçar: Quando o uso da magia não é permitido, a conjuração é cancelada. Aviso: Quando o uso da magia não é permitido, o usuário é notificado.",
-  "AC5E.AutoArmorSpellUseChoicesOff": "Fazer nada",
-  "AC5E.AutoArmorSpellUseChoicesEnforce": "Forçar",
-  "AC5E.AutoArmorSpellUseChoicesWarn": "Avisar",
-  "AC5E.AutoArmorSpellUseChoicesEnforceToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias. Magia cancelada!",
-  "AC5E.AutoArmorSpellUseChoicesWarnToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias.",
-  "AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "está Incapacitado(a) e não pode conjurar magias. Magia cancelada!",
-  "AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "está Incapacitado(a) e não pode conjurar magias.",
-  "AC5E.AutoRagingSpellUseChoicesEnforceToast" : "está em Fúria e não pode conjurar magias. Magia cancelada!",
-  "AC5E.AutoRagingSpellUseChoicesWarnToast": "está em Fúria e não pode conjurar magias.",
-  "AC5E.AutoSilencedSpellUseChoicesEnforceToast" : "está Silenciado e não pode conjurar magias com componente verbal. Magia cancelada!",
-  "AC5E.AutoSilencedSpellUseChoicesWarnToast": "está Silenciado e não pode conjurar magias com componente verbal.",
+  "AC5E.ActivityUse" : {
+		"Name": "Proficiência com Armadura, Condições (Fúria, Silenciado) e Magias",
+		"Hint": "Fazer nada: Não faz nada. Forçar: Quando o uso da magia não é permitido, a conjuração é cancelada. Aviso: Quando o uso da magia não é permitido, o usuário é notificado."
+		"Choices": {
+			"Off": "Fazer nada",
+			"Enforce": "Forçar",
+			"Warn": "Avisar"
+		},
+		"Type": {
+			"Armor": {
+				"Enforce": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias. Magia cancelada!",
+				"Warn": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias."
+			},
+			"Incapacitated": {
+				"Enforce": "está Incapacitado(a) e não pode conjurar magias. Magia cancelada!",
+				"Warn": "está Incapacitado(a) e não pode conjurar magias."
+			},
+			"Raging": {
+				"Enforce": "está em Fúria e não pode conjurar magias. Magia cancelada!",
+				"Warn": "está em Fúria e não pode conjurar magias."
+			},
+			"Silenced": {
+				"Enforce": "está Silenciado e não pode conjurar magias com componente verbal. Magia cancelada!",
+				"Warn": "está Silenciado e não pode conjurar magias com componente verbal."
+			}
+		}		
+	},
   "AC5E.AutoRangedAttacksName": "Automação de Ataques à Distância",
   "AC5E.AutoRangedAttacksHint": "Se marcado, AC5e irá processar automaticamente a distância para desvantagem/falha baseado na distância do alvo e o os valores de alcance do item usado para o ataque.",
   "AC5E.AutoRangedAttacksChoicesOff": "Desativado",
