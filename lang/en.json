@@ -16,19 +16,34 @@
 	"AC5E.ExpandedConditionsHint": "When checked, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.AutoArmorName": "AC5e armor proficiency and equipment stealth disadvantage.",
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
-	"AC5E.AutoArmorSpellUseName": "AC5e armor proficiency, conditions (Raging, Silenced) and spells",
-	"AC5E.AutoArmorSpellUseHint": "Off: Do nothing, Enforce: When the use of spells is not permitted, the roll is cancelled, Warn: When the use of spells is not permitted, notify user",
-	"AC5E.AutoArmorSpellUseChoicesOff": "Do nothing",
-	"AC5E.AutoArmorSpellUseChoicesEnforce": "Enforce",
-	"AC5E.AutoArmorSpellUseChoicesWarn": "Warn",
-	"AC5E.AutoArmorSpellUseChoicesEnforceToast": "is not proficient in the equipped armor and RAW cannot cast spells. Spell cancelled!",
-	"AC5E.AutoArmorSpellUseChoicesWarnToast": "is not proficient in the equipped armor and RAW cannot cast spells.",
-	"AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "is incapacitated and cannot cast spells. Spell cancelled!",
-	"AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "is incapacitated and cannot cast spells.",
-	"AC5E.AutoRagingSpellUseChoicesEnforceToast": "is raging and cannot cast spells. Spell cancelled!",
-	"AC5E.AutoRagingSpellUseChoicesWarnToast": "is raging and cannot cast spells.",
-	"AC5E.AutoSilencedSpellUseChoicesEnforceToast": "is silenced and cannot cast spells with verbal components. Spell cancelled!",
-	"AC5E.AutoSilencedSpellUseChoicesWarnToast": "is silenced and cannot cast spells with verbal components.",
+	"AC5E.ActivityUse" : {
+		"Name": "Item Use Checks",
+		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification)",
+		"Choices": {
+			"Off": "Do nothing",
+			"Enforce": "Enforce",
+			"Warn": "Warn"
+		},
+		"Type": {
+			"Armor": {
+				"Enforce": "is not proficient in the equipped armor and RAW cannot cast spells. Spell cancelled!",
+				"Warn": "is not proficient in the equipped armor and RAW cannot cast spells."
+			},
+			"Incapacitated": {
+				"Enforce": "is incapacitated and cannot cast spells. Spell cancelled!",
+				"Warn": "is incapacitated and cannot cast spells."
+			},
+			"Raging": {
+				"Enforce": "is raging and cannot cast spells. Spell cancelled!",
+				"Warn": "is raging and cannot cast spells."
+			},
+			"Silenced": {
+				"Enforce": "is silenced and cannot cast spells with verbal components. Spell cancelled!",
+				"Warn": "is silenced and cannot cast spells with verbal components."
+			}
+		}
+		
+	},
 	"AC5E.AutoRangedAttacksName": "AC5e ranged attacks automation:",
 	"AC5E.AutoRangedAttacksHint": "'Off': AC5e will not process any distance checks; 'Ranged checks only': AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack; 'Range + Nearby foes': Hostiles adjacent to attacker will impose disadvantage on ranged attacks.",
 	"AC5E.AutoRangedAttacksChoicesOff": "Off",
