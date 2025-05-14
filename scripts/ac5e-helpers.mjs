@@ -739,26 +739,30 @@ export function _resolveActorFromOrigin(origin) {
 	return undefined;
 }
 
-export function _hasValidTargets(activity, size, type = 'attack', warn = false) {
+export function _hasValidTargets(activity, targetCount, setting) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
-	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
-	if (
-		activity.parent.hasAttack &&
-		(activity.target.affects?.type || (!activity.target.affects?.type && !(activity.target.template?.type || activity.target.affects?.type))) &&
-		size != 1 /*&&
-		!keyboard.downKeys.has('KeyU')*/
-	) {
-		sizeWarnings(size, type, warn);
+	if (!activity?.parent?.hasAttack) return true;
+	const { affects, template } = activity?.target || {};
+	const requiresTargeting = affects?.type || (!affects?.type && !template?.type);
+	// const override = game.keyboard?.downKeys?.has?.('KeyU');
+	const invalidTargetCount = requiresTargeting && targetCount !== 1;
+	if (invalidTargetCount/* && !override*/) {
+		sizeWarnings(targetCount, setting);
 		return false;
-	} else return true;
+	}
+	return true;
 }
 
-function sizeWarnings(size, type, warn = false) {
-	//size, by this point, can be either false or >1 so no need for other checks
-	//type for now can be 'damage' or 'attack'/'pre'
-	const translationString = type == 'damage' ? (size ? _localize('AC5E.MultipleTargetsDamageWarn') : _localize('AC5E.NoTargetsDamageWarn')) : size ? _localize('AC5E.MultipleTargetsAttackWarn') : _localize('AC5E.NoTargetsAttackWarn');
-	if (warn === 'enforce') ui.notifications.warn(translationString);
-	else if (warn === 'console') console.warn(translationString);
+function sizeWarnings(targetCount, setting) {
+	//targetCount, by this point, can be either false or >1 so no need for other checks
+	//setting 'source', 'enforce', 'warn' and we need to notify for cancelled rolls only if 'warn'. The rest are logged in console only.
+	const keySuffix = setting === 'source' ? 'Source' : 'Enforce';
+	const keyPrefix = targetCount ? 'MultipleTargets' : 'NoTargets';
+	const translationKey = `AC5E.${keyPrefix}.Attack.${keySuffix}`;
+	const message = _localize(translationKey);
+
+	if (setting === 'warn') ui.notifications.warn(message);
+	else console.warn(message);
 }
 
 export function _raceOrType(actor, dataType = 'race') {
