@@ -52,15 +52,23 @@
 	"AC5E.AutoExhaustionHint": "When checked, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
 	"AC5E.AutoEncumbranceName": "Variant encumbrance.",
 	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
-	"AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: You are attacking multiple targets and that is not supported. The Roll results can be skewed.",
-	"AC5E.NoTargetsAttackWarn": "Automated Conditions 5e: You have no targets selected when attacking. Please always target if you want AC5e to suggest advantageModes properly.",
-	"AC5E.MultipleTargetsDamageWarn": "Automated Conditions 5e: You are damaging multiple targets and that is not supported. The Roll results can be skewed.",
-	"AC5E.NoTargetsDamageWarn": "Automated Conditions 5e: You have no targets selected when rolling damage. Please always target if you want AC5e to suggest roll modes properly.",
-	"AC5E.TargetingChoicesNone": "Do nothing",
-	"AC5E.TargetingChoicesSource": "From source only",
-	"AC5E.TargetingChoicesForce": "Enforce targeting",
-	"AC5E.TargetingName": "Targeting options",
-	"AC5E.TargetingHint": "If none or multiple targets selected when user rolls for Attack or Damage, AC5e will: 'Do nothing': No advantageMode/damageMode calculations for the incoming roll; 'From source only': advantageMode/damageMode based on any source Actor effects; 'Enforce Targeting':  Cancel roll and ask for targets before rolling again (Use with caution).",
+	"AC5E.Targeting": {
+		"Name": "Targeting options for attacks",
+		"Hint": "When no or multiple targets are selected for an Attack, Damage, or similar roll, choose how AC5E should respond",
+		"Choices": {
+			"Source": "Use only source actor conditions",
+			"Enforce": "Cancel roll silently",
+			"Warn": "Cancel roll with warning"
+		},
+		"MultipleTargetsAttack": {
+			"Source": "AC5E: Multiple targets selected. Results may be skewed. Using source actor data only.",
+			"Enforce": "AC5E: Multiple targets selected. Roll cancelled!"
+		},
+		"NoTargetsAttack": {
+			"Source": "AC5E: No targets selected. Advantage/disadvantage may be inaccurate. Using source actor data only.",
+			"Enforce": "AC5E: No targets selected. Roll cancelled!"
+		}
+	},
 	"AC5E.KeypressOverrideName": "Keybinds override AC5e calculations",
 	"AC5E.KeypressOverrideHint": "The key binds for advantage, disadvantage, critical should override any calculations by AC5e (checked) or be added to the normal AC5e calculations (not checked).",
 	"AC5E.DebuggingName": "AC5E debug",
