@@ -55,7 +55,6 @@
 	"AC5E.Targeting": {
 		"Name": "Targeting options for attacks",
 		"Hint": "When no or multiple targets are selected for an Attack, Damage, or similar roll, choose how AC5E should respond",
-
 		"Choices": {
 			"Source": "Use only source actor conditions",
 			"Enforce": "Cancel roll silently",
