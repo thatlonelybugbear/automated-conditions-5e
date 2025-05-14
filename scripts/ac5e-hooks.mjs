@@ -70,42 +70,49 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
 	let targets = game.user?.targets;
-	if (targets.size) {
-		for (const target of targets) {
-			const distance = _getDistance(sourceToken, target);
-			const perTargetOptions = foundry.utils.deepClone(options);
-			perTargetOptions.distance = distance;
-			let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, perTargetOptions);
-			//ac5eConfig should include the options object
-			ac5eConfig = _ac5eChecks({ subjectToken: sourceToken, opponentToken: target, ac5eConfig });
-			if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
-				const failString = `${item.name} cannot target ${target.name}, due to the following effects`;
-				const sourceString = ac5eConfig.subject.fail.length ? `, on the sourceActor: ${ac5eConfig.subject.fail.join(',')}` : '';
-				const targetString = ac5eConfig.opponent.fail.length ? `, on the targetActor: ${ac5eConfig.opponent.fail.join(',')}!` : '!';
-				ui.notifications.warn(failString + sourceString + targetString);
-				game.user.updateTokenTargets(
-					Array.from(game.user.targets)
-						.filter((t) => t !== target)
-						.map((t) => t.id)
-				);
-				if (_activeModule('midi-qol')) usageConfig.workflow.targets = new Set(game.user.targets);
-			}
-		}
+
+	//to-do: rework this to properly check for fail flags and fail use status effects
+	// if (targets.size) {
+	// 	for (const target of targets) {
+	// 		const distance = _getDistance(sourceToken, target);
+	// 		const perTargetOptions = foundry.utils.deepClone(options);
+	// 		perTargetOptions.distance = distance;
+	// 		let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, perTargetOptions);
+	// 		//ac5eConfig should include the options object
+	// 		ac5eConfig = _ac5eChecks({ subjectToken: sourceToken, opponentToken: target, ac5eConfig });
+	// 		if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
+	// 			const failString = `${item.name} cannot target ${target.name}, due to the following effects`;
+	// 			const sourceString = ac5eConfig.subject.fail.length ? `, on the sourceActor: ${ac5eConfig.subject.fail.join(',')}` : '';
+	// 			const targetString = ac5eConfig.opponent.fail.length ? `, on the targetActor: ${ac5eConfig.opponent.fail.join(',')}!` : '!';
+	// 			ui.notifications.warn(failString + sourceString + targetString);
+	// 			game.user.updateTokenTargets(
+	// 				Array.from(game.user.targets)
+	// 					.filter((t) => t !== target)
+	// 					.map((t) => t.id)
+	// 			);
+	// 			if (_activeModule('midi-qol')) usageConfig.workflow.targets = new Set(game.user.targets);
+	// 		}
+	// 	}
+	// }
+	// //to-do: should we do something for !targets.size and midi?
+	// targets = game.user.targets;
+
+	let singleTargetToken = targets?.first();
+	let singleTargetActor = singleTargetToken?.actor;
+	let distance = _getDistance(sourceToken, singleTargetToken);
+	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
+	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'use', 'enforce')) return false;
+	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'use', 'console')) return true;
+	else {
+		//source only
+		singleTargetToken = undefined;
+		distance = undefined;
 	}
-	//to-do: should we do something for !targets.size and midi?
-	targets = game.user.targets;
-	const singleTargetToken = targets?.first();
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
-	const singleTargetActor = singleTargetToken?.actor;
-	const distance = _getDistance(sourceToken, singleTargetToken);
 	options.distance = distance;
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
-	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
-	if (!activity.parent.hasAttack && !activity.hasDamage) return true;
-	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	if (settings.needsTarget === 'force' && !_hasValidTargets(activity, targets?.size, 'pre', 'enforce')) return false;
-	if (settings.needsTarget === 'none') return true;
+	// if (!activity.parent.hasAttack && !activity.hasDamage) return true;
 	return true;
 }
 
@@ -216,31 +223,27 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	options.hook = hook;
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
-	//const targets = [...game.user.targets];
 	const targets = game.user.targets;
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
-	const targetsSize = targets?.size; //targets?.length;
-	const singleTargetToken = targets?.first(); //targets?.[0];
-	const singleTargetActor = singleTargetToken?.actor;
-	let targetActor = singleTargetActor;
-	let targetToken = singleTargetToken;
+	const targetsSize = targets?.size;
+	let singleTargetToken = targets?.first();
+	let singleTargetActor = singleTargetToken?.actor;
 	let distance = _getDistance(sourceToken, singleTargetToken);
 	options.distance = distance;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
 		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
-		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
+		else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'attack', 'console')) return true;
 		else {
 			//source only
-			targetToken = undefined;
-			targetToken = undefined;
+			singleTargetToken = undefined;
 			distance = undefined;
 		}
 	}
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id, options);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	let nearbyFoe, inRange, range;
 	if (settings.autoRangedCombined !== 'off' && targetToken) {
@@ -289,27 +292,24 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 	const targets = game.user?.targets;
 	const targetsSize = targets?.size;
-	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
-	const singleTargetActor = singleTargetToken?.actor;
-	let targetActor = singleTargetActor;
-	let targetToken = singleTargetToken;
+	let singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
+	let singleTargetActor = singleTargetToken?.actor;
 	let distance = _getDistance(sourceToken, singleTargetToken);
 	options.distance = distance;
 	if (targetsSize != 1) {
 		//to-do: Think about more than one targets
 		//to-do: Add keybind to target unseen tokens when 'force' is selected.
-		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
-		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
+		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'damage', 'enforce')) return false;
+		else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'damage', 'console')) return true;
 		else {
 			//source only
-			targetToken = undefined;
-			targetToken = undefined;
+			singleTargetToken = undefined;
 			distance = undefined;
 		}
 	}
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id, options);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: targetToken });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
 	return true;
