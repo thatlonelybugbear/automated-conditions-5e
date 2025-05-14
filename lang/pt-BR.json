@@ -17,8 +17,8 @@
   "AC5E.AutoArmorName": "Automação de Armadura",
   "AC5E.AutoArmorHint": "Se marcado, AC5e irá processar automaticamente a proficiência da armadura equipada para rolagens de testes de atributo, perícias e salvaguardas (FOR || DES) e Desvantagem em Furtividade.",
   "AC5E.ActivityUse" : {
-		"Name": "Proficiência com Armadura, Condições (Fúria, Silenciado) e Magias",
-		"Hint": "Fazer nada: Não faz nada. Forçar: Quando o uso da magia não é permitido, a conjuração é cancelada. Aviso: Quando o uso da magia não é permitido, o usuário é notificado."
+		"Name": "Testes para Usos de Itens",
+		"Hint": "Quando o uso de um item não for permitido, AC5e irá 'Fazer nada', apenas 'Avisar' (notificação) ou irá 'Forçar' (cancelar rolagem + notificação)."
 		"Choices": {
 			"Off": "Fazer nada",
 			"Enforce": "Forçar",
@@ -30,8 +30,8 @@
 				"Warn": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias."
 			},
 			"Incapacitated": {
-				"Enforce": "está Incapacitado(a) e não pode conjurar magias. Magia cancelada!",
-				"Warn": "está Incapacitado(a) e não pode conjurar magias."
+				"Enforce": "está Incapacitado(a) e não pode usar nenhuma ação. Ação cancelada!",
+				"Warn": "está Incapacitado(a) e não pode usar nenhuma ação."
 			},
 			"Raging": {
 				"Enforce": "está em Fúria e não pode conjurar magias. Magia cancelada!",
