@@ -748,7 +748,7 @@ export function _hasValidTargets(activity, targetCount, setting) {
 	const invalidTargetCount = requiresTargeting && targetCount !== 1;
 	if (invalidTargetCount/* && !override*/) {
 		sizeWarnings(targetCount, setting);
-		return setting === 'enforce' ? 3 : setting === 'source' ? 2 : 1;
+		return setting === 'enforce' ? 3 : setting === 'none' ? 2 : 1;
 	}
 	return 0;
 }
