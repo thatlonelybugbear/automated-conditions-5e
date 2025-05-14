@@ -99,13 +99,13 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
-	let shouldContinue, distance;
+	let distance;
 	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	let shouldContinue = _hasValidTargets(activity, targetsSize, needsTarget));
-	if (!shouldContinue) return false;
-	if (shouldContinue > 0) return true;
-	if (shouldContinue < 0) {
+	let result = _hasValidTargets(activity, targetsSize, needsTarget);
+	if (result === 3) return false;
+	if (result === 2) return true;
+	if (result === 1) {
 		distance = undefined;
 		singleTargetToken = undefined;
 	}
@@ -228,13 +228,13 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const targetsSize = targets?.size;
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
-	let shouldContinue, distance;
+	let distance;
 	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	let shouldContinue = _hasValidTargets(activity, targetsSize, needsTarget));
-	if (!shouldContinue) return false;
-	if (shouldContinue > 0) return true;
-	if (shouldContinue < 0) {
+	let result = _hasValidTargets(activity, targetsSize, needsTarget);
+	if (result === 3) return false;
+	if (result === 2) return true;
+	if (result === 1) {
 		distance = undefined;
 		singleTargetToken = undefined;
 	}
@@ -292,13 +292,13 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const targetsSize = targets?.size;
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
-	let shouldContinue, distance;
+	let distance;
 	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	const shouldContinue = _hasValidTargets(activity, targetsSize, needsTarget));
-	if (!shouldContinue) return false;
-	if (shouldContinue > 0) return true;
-	if (shouldContinue < 0) {
+	let result = _hasValidTargets(activity, targetsSize, needsTarget);
+	if (result === 3) return false;
+	if (result === 2) return true;
+	if (result === 1) {
 		distance = undefined;
 		singleTargetToken = undefined;
 	}
