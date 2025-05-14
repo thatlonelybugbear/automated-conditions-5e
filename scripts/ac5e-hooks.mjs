@@ -102,7 +102,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	let distance;
 	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	let result = _hasValidTargets(activity, targetsSize, needsTarget);
+	let result = _hasValidTargets(activity, targets.size, needsTarget);
 	if (result === 3) return false;
 	if (result === 2) return true;
 	if (result === 1) {
