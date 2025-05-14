@@ -186,7 +186,7 @@ export default class Settings {
 			type: String,
 			choices: {
 				source: 'AC5E.Targeting.Choices.Source',
-				enforce: 'AC5E.Targeting.Choices.Enforce',
+				force: 'AC5E.Targeting.Choices.Enforce',
 				warn: 'AC5E.Targeting.Choices.Warn',
 			},
 		});
