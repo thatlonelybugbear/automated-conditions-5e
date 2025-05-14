@@ -178,16 +178,15 @@ export default class Settings {
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.TARGETING, {
-			name: 'AC5E.TargetingName',
-			hint: 'AC5E.TargetingHint',
+			name: 'AC5E.Targeting.Name',
+			hint: 'AC5E.Targeting.Hint',
 			scope: 'world',
 			config: true,
 			default: 'source',
 			type: String,
 			choices: {
-				source: 'AC5E.TargetingChoicesSource',
-				none: 'AC5E.TargetingChoicesNone',
-				force: 'AC5E.TargetingChoicesForce',
+				source: 'AC5E.Targeting.Choices.Source',
+				force: 'AC5E.Targeting.Choices.Enforce',
 			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES, {
