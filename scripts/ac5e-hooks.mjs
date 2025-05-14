@@ -98,21 +98,20 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	// targets = game.user.targets;
 
 	let singleTargetToken = targets?.first();
-	let singleTargetActor = singleTargetToken?.actor;
-	let distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'use', 'enforce')) return false;
-	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'use', 'console')) return true;
-	else {
-		//source only
+	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'enforce')) return false;
+	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'console')) return true;
+	else if (settings.needsTarget === 'source') {
 		singleTargetToken = undefined;
 		distance = undefined;
 	}
+	if (singleTargetToken) {
+		let distance = _getDistance(sourceToken, singleTargetToken);
+		options.distance = distance;
+	}
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
-	options.distance = distance;
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
-	// if (!activity.parent.hasAttack && !activity.hasDamage) return true;
 	return true;
 }
 
@@ -227,26 +226,23 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
 	const targetsSize = targets?.size;
 	let singleTargetToken = targets?.first();
-	let singleTargetActor = singleTargetToken?.actor;
-	let distance = _getDistance(sourceToken, singleTargetToken);
-	options.distance = distance;
-	if (targetsSize != 1) {
-		//to-do: Think about more than one targets
-		//to-do: Add keybind to target unseen tokens when 'force' is selected.
-		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
-		else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'attack', 'console')) return true;
-		else {
-			//source only
-			singleTargetToken = undefined;
-			distance = undefined;
-		}
+	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
+	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'enforce')) return false;
+	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'console')) return true;
+	else if (settings.needsTarget === 'source') {
+		singleTargetToken = undefined;
+		distance = undefined;
+	}
+	if (singleTargetToken) {
+		let distance = _getDistance(sourceToken, singleTargetToken);
+		options.distance = distance;
 	}
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	let nearbyFoe, inRange, range;
-	if (settings.autoRangedCombined !== 'off' && targetToken) {
+	if (settings.autoRangedCombined !== 'off' && singleTargetToken) {
 		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken));
 		//Nearby Foe
 		if (nearbyFoe) {
@@ -293,19 +289,16 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const targets = game.user?.targets;
 	const targetsSize = targets?.size;
 	let singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
-	let singleTargetActor = singleTargetToken?.actor;
-	let distance = _getDistance(sourceToken, singleTargetToken);
-	options.distance = distance;
-	if (targetsSize != 1) {
-		//to-do: Think about more than one targets
-		//to-do: Add keybind to target unseen tokens when 'force' is selected.
-		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'damage', 'enforce')) return false;
-		else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'damage', 'console')) return true;
-		else {
-			//source only
-			singleTargetToken = undefined;
-			distance = undefined;
-		}
+	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
+	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'enforce')) return false;
+	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'console')) return true;
+	else if (settings.needsTarget === 'source') {
+		singleTargetToken = undefined;
+		distance = undefined;
+	}
+	if (singleTargetToken) {
+		let distance = _getDistance(sourceToken, singleTargetToken);
+		options.distance = distance;
 	}
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
