@@ -98,17 +98,18 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	// targets = game.user.targets;
 
 	let singleTargetToken = targets?.first();
+	const needsTarget = settings.needsTarget;
+	let shouldContinue, distance;
+	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'enforce')) return false;
-	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'console')) return true;
-	else if (settings.needsTarget === 'source') {
-		singleTargetToken = undefined;
+	let shouldContinue = _hasValidTargets(activity, targetsSize, needsTarget));
+	if (!shouldContinue) return false;
+	if (shouldContinue > 0) return true;
+	if (shouldContinue < 0) {
 		distance = undefined;
+		singleTargetToken = undefined;
 	}
-	if (singleTargetToken) {
-		let distance = _getDistance(sourceToken, singleTargetToken);
-		options.distance = distance;
-	}
+	options.distance = distance;
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
@@ -226,17 +227,18 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
 	const targetsSize = targets?.size;
 	let singleTargetToken = targets?.first();
+	const needsTarget = settings.needsTarget;
+	let shouldContinue, distance;
+	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'enforce')) return false;
-	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'console')) return true;
-	else if (settings.needsTarget === 'source') {
-		singleTargetToken = undefined;
+	let shouldContinue = _hasValidTargets(activity, targetsSize, needsTarget));
+	if (!shouldContinue) return false;
+	if (shouldContinue > 0) return true;
+	if (shouldContinue < 0) {
 		distance = undefined;
+		singleTargetToken = undefined;
 	}
-	if (singleTargetToken) {
-		let distance = _getDistance(sourceToken, singleTargetToken);
-		options.distance = distance;
-	}
+	options.distance = distance;
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
@@ -288,18 +290,19 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 	const targets = game.user?.targets;
 	const targetsSize = targets?.size;
-	let singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
+	let singleTargetToken = targets?.first();
+	const needsTarget = settings.needsTarget;
+	let shouldContinue, distance;
+	if (singleTargetToken) distance = _getDistance(sourceToken, singleTargetToken);
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'enforce')) return false;
-	else if (settings.needsTarget == 'none' && !_hasValidTargets(activity, targetsSize, 'console')) return true;
-	else if (settings.needsTarget === 'source') {
-		singleTargetToken = undefined;
+	const shouldContinue = _hasValidTargets(activity, targetsSize, needsTarget));
+	if (!shouldContinue) return false;
+	if (shouldContinue > 0) return true;
+	if (shouldContinue < 0) {
 		distance = undefined;
+		singleTargetToken = undefined;
 	}
-	if (singleTargetToken) {
-		let distance = _getDistance(sourceToken, singleTargetToken);
-		options.distance = distance;
-	}
+	options.distance = distance;
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
