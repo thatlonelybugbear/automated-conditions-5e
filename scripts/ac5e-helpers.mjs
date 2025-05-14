@@ -739,29 +739,28 @@ export function _resolveActorFromOrigin(origin) {
 	return undefined;
 }
 
-export function _hasValidTargets(activity, targetCount, warn = false) {
+export function _hasValidTargets(activity, targetCount, setting) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
-	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
-	if (!activity?.parent?.hasAttack) return true;
+	if (!activity?.parent?.hasAttack) return 0;
 	const { affects, template } = activity?.target || {};
 	const requiresTargeting = affects?.type || (!affects?.type && !template?.type);
 	// const override = game.keyboard?.downKeys?.has?.('KeyU');
 	const invalidTargetCount = requiresTargeting && targetCount !== 1;
 	if (invalidTargetCount/* && !override*/) {
-		sizeWarnings(targetCount, context, warn);
-		return false;
+		sizeWarnings(targetCount, setting);
+		return setting === 'enforce' ? 3 : setting === 'source' ? 2 : 1;
 	}
-	return true;
+	return 0;
 }
 
-function sizeWarnings(targetCount, warn = false) {
+function sizeWarnings(targetCount, setting) {
 	//targetCount, by this point, can be either false or >1 so no need for other checks
 	const keySuffix = targetCount ? 'MultipleTargets' : 'NoTargets';
 	const translationKey = `AC5E.${keySuffix}AttackWarn`;
 	const message = _localize(translationKey);
 
-	if (warn === 'enforce') ui.notifications.warn(message);
-	else if (warn === 'console') console.warn(message);
+	if (setting === 'enforce') ui.notifications.warn(message);
+	else console.warn(message);
 }
 
 export function _raceOrType(actor, dataType = 'race') {
