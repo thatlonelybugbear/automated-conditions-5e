@@ -867,7 +867,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	
 	if (subjectToken) {
 		sandbox.rollingActor = _ac5eActorRollData(subjectToken.actor) || {}; //subjectToken.actor.getRollData();
-		sandbox.rollingActor.canMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+		sandbox.rollingActor.canMove = Object.values(subjectToken.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+		sandbox.canMove = sandbox.rollingActor.canMove;
 		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subjectToken.actor, 'all'));
 		sandbox.rollingActor.token = subjectToken;
 		sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
@@ -878,7 +879,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	}
 	if (opponentToken) {
 		sandbox.opponentActor = _ac5eActorRollData(opponentToken.actor) || {};
-		sandbox.opponentActor.canMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+		sandbox.opponentActor.canMove = Object.values(opponentToken.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 		sandbox.opponentActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
 		sandbox.opponentActor.token = opponentToken;
 		sandbox.opponentActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
