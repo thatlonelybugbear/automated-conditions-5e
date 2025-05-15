@@ -900,6 +900,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox[activityData.name] = true;
 		sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
+		sandbox.isSpell = activity.isSpell;
+		sandbox.isScaledScroll = activity.isScaledScroll;
+		sandbox.requiresSpellSlot = activity.requiresSpellSlot;
+		sandbox.spellCastingAbility = activity.spellCastingAbility;
+		sandbox.messageFlags = activity.messageFlags;
 	}
 
 	sandbox.item = item?.getRollData().item || {};
@@ -910,6 +915,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (itemData.identifier) sandbox[itemData.identifier] = true;
 		sandbox[itemData.name] = true;
 		itemData.properties.filter((p) => (sandbox[p] = true));
+		sandbox.item.hasAttack = item.hasAttack;
+		sandbox.item.hasSave = item.system?.hasSave;
+		sandbox.item.hasSummoning = item.system?.hasSummoning;
+		sandbox.item.hasLimitedUses = item.system?.hasLimitedUses;
+		sandbox.item.isHealing = item.system?.isHealing;
 	}
 
 	const active = game.combat?.active;
