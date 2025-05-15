@@ -1,5 +1,6 @@
-## v13.502.2.2
+## v13.503.1
 * Some settings hints clarifications
+* Proper 5e versioning bump
 
 ## v13.502.2.1
 * Fix for using `initiative`, `concentration`, `death` as flag \<ACTIONTYPES\>
