@@ -1,3 +1,6 @@
+## v13.502.2.2
+* Some settings hints clarifications
+
 ## v13.502.2.1
 * Fix for using `initiative`, `concentration`, `death` as flag \<ACTIONTYPES\>
 * `rollingActor.canMove` (same as `canMove`), `opponentActor.canMove` will be true if the actor has at least one non zero movement type
