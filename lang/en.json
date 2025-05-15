@@ -18,7 +18,7 @@
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
 	"AC5E.ActivityUse" : {
 		"Name": "Item Use Checks",
-		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification)",
+		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification). The checked conditions are: incapacitated for relevant actions, and raging, silenced and not-proficient with armor when casting spells",
 		"Choices": {
 			"Off": "Do nothing",
 			"Enforce": "Enforce",
@@ -54,24 +54,24 @@
 	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
 	"AC5E.Targeting": {
 		"Name": "Targeting options for attacks",
-		"Hint": "When no or multiple targets are selected for an Attack, Damage, or similar roll, choose how AC5E should respond",
+		"Hint": "When no or multiple targets are selected for an Attack, choose how AC5e should respond",
 		"Choices": {
 			"Source": "Use only source actor conditions",
 			"Enforce": "Cancel roll silently",
 			"Warn": "Cancel roll with warning"
 		},
 		"MultipleTargetsAttack": {
-			"Source": "AC5E: Multiple targets selected. Results may be skewed. Using source actor data only.",
-			"Enforce": "AC5E: Multiple targets selected. Roll cancelled!"
+			"Source": "AC5e: Multiple targets selected. Results may be skewed. Using source actor data only.",
+			"Enforce": "AC5e: Multiple targets selected. Roll cancelled!"
 		},
 		"NoTargetsAttack": {
-			"Source": "AC5E: No targets selected. Advantage/disadvantage may be inaccurate. Using source actor data only.",
-			"Enforce": "AC5E: No targets selected. Roll cancelled!"
+			"Source": "AC5e: No targets selected. Advantage/disadvantage may be inaccurate. Using source actor data only.",
+			"Enforce": "AC5e: No targets selected. Roll cancelled!"
 		}
 	},
 	"AC5E.KeypressOverrideName": "Keybinds override AC5e calculations",
 	"AC5E.KeypressOverrideHint": "The key binds for advantage, disadvantage, critical should override any calculations by AC5e (checked) or be added to the normal AC5e calculations (not checked).",
-	"AC5E.DebuggingName": "AC5E debug",
+	"AC5E.DebuggingName": "AC5e debug",
 	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
 	"AC5E.WarCaster": "War Caster",
 	"AC5E.Fail": "Fail",
