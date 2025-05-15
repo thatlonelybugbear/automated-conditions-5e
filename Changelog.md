@@ -19,7 +19,8 @@
     * Cancel roll silently
     * Cancel roll with a warning notification shown to the user's client
       * In all cases a console warning will be shown in the user's client
-* Adds more data in the sandbox for easier evaluations, like `isSpell` etc to be added in the [WIKI](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki>) soon!
+* Adds more data in the sandbox for easier evaluations, like `isSpell`, `rollingActor.canMove`, `opponentActor.canMove` etc to be added in the [WIKI](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki>) soon!
+* Fix for using `initiative`, `concentration`, `death` as flag <ACTIONTYPES>
 
 ## v13.502.1
 * Compatibility bump for v5.0.2
