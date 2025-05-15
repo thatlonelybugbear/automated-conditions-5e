@@ -862,30 +862,30 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const sandbox = {};
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
-
+	sandbox.rollingActor = {};
+	sandbox.opponentActor = {};
+	
 	if (subjectToken) {
-		sandbox.rollingActor = _ac5eActorRollData(subjectToken.actor); //subjectToken.actor.getRollData();
+		sandbox.rollingActor = _ac5eActorRollData(subjectToken.actor) || {}; //subjectToken.actor.getRollData();
+		sandbox.rollingActor.canMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subjectToken.actor, 'all'));
-		if (subjectToken) {
-			sandbox.rollingActor.token = subjectToken;
-			sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
-			sandbox.rollingActor.tokenElevation = subjectToken.document.elevation;
-			sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
-			sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
-			sandbox.tokenId = subjectToken.id;
-		}
+		sandbox.rollingActor.token = subjectToken;
+		sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
+		sandbox.rollingActor.tokenElevation = subjectToken.document.elevation;
+		sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
+		sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
+		sandbox.tokenId = subjectToken.id;
 	}
 	if (opponentToken) {
-		sandbox.opponentActor = _ac5eActorRollData(opponentToken.actor) //.getRollData();
+		sandbox.opponentActor = _ac5eActorRollData(opponentToken.actor) || {};
+		sandbox.opponentActor.canMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 		sandbox.opponentActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
-		if (opponentToken) {
-			sandbox.opponentActor.token = opponentToken;
-			sandbox.opponentActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
-			sandbox.opponentActor.tokenElevation = opponentToken.document.elevation;
-			sandbox.opponentActor.tokenSenses = opponentToken.document.detectionModes;
-			sandbox.opponentActor.tokenUuid = opponentToken.document.uuid;
-			sandbox.opponentId = opponentToken.id;
-		}
+		sandbox.opponentActor.token = opponentToken;
+		sandbox.opponentActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
+		sandbox.opponentActor.tokenElevation = opponentToken.document.elevation;
+		sandbox.opponentActor.tokenSenses = opponentToken.document.detectionModes;
+		sandbox.opponentActor.tokenUuid = opponentToken.document.uuid;
+		sandbox.opponentId = opponentToken.id;
 	}
 
 	sandbox.activity = activity?.getRollData().activity || {};
