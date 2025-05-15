@@ -1,4 +1,4 @@
-## v13.503.1
+## v13.503.2
 * Some settings hints clarifications
 * Proper 5e versioning bump
 * Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
