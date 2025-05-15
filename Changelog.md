@@ -1,6 +1,7 @@
 ## v13.502.2.1
-* Fix for using `initiative`, `concentration`, `death` as flag <ACTIONTYPES>
-* `rollingActor.canMove`, `opponentActor.canMove` will be true if the actor has at least one non zero movement type.
+* Fix for using `initiative`, `concentration`, `death` as flag \<ACTIONTYPES\>
+* `rollingActor.canMove`, `opponentActor.canMove` will be true if the actor has at least one non zero movement type
+* Updates in Brazilian Portugese, Italian and Polish translation files
 
 ## v13.502.2
 * Clarification on Actor References in Evaluations
