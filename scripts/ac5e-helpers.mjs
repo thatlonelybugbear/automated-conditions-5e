@@ -956,7 +956,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		console.warn('AC5E sandbox.undefined detected!!!');
 	} 
-	if (sandbox.opponentActor) {
+	if (sandbox.opponentToken) {
 		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
 		sandbox.targetId = opponentToken.id;  //backwards compatibility for changing the target to opponent for clarity.
 		sandbox.isTargetTurn = currentCombatant === opponentToken?.id;  //backwards compatibility for changing the target to opponent for clarity.
