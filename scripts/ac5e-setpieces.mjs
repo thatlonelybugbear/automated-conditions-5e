@@ -33,7 +33,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	return ac5eConfig;
 }
 
-function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl } = {}) {
+function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type } = {}) {
 	const { ability, activity, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
 
 	const subject = subjectToken?.actor;
@@ -267,7 +267,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const effectChangesTest = ({ token = undefined, change, actorType, hook }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
-		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (hook === 'save' && change.key.includes('conc')) || (hook === 'save' && change.key.includes('death')) || (hook === 'check' && change.key.includes('init'));
+		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
 		if (change.key.includes('aura')) {  //isAura
 			if (!friendOrFoe(token, subjectToken, change.value)) return false;

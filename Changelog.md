@@ -1,3 +1,7 @@
+## v13.502.2.1
+* Fix for using `initiative`, `concentration`, `death` as flag <ACTIONTYPES>
+* `rollingActor.canMove`, `opponentActor.canMove` will be true if the actor has at least one non zero movement type.
+
 ## v13.502.2
 * Clarification on Actor References in Evaluations
   * Use `opponentActor` to access the opponent’s rollData during evaluations, instead of `targetActor`.
@@ -20,6 +24,7 @@
     * Cancel roll with a warning notification shown to the user's client
       * In all cases a console warning will be shown in the user's client
 * Adds more data in the sandbox for easier evaluations, like `isSpell` etc to be added in the [WIKI](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki>) soon!
+
 
 ## v13.502.1
 * Compatibility bump for v5.0.2
