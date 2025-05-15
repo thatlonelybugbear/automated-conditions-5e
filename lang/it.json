@@ -52,15 +52,23 @@
 	"AC5E.AutoExhaustionHint": "Se selezionato e stai usando le regole DND5E legacy, AC5E elaborerà automaticamente le normali regole delle condizioni di esaurimento 5E.",
 	"AC5E.AutoEncumbranceName": "Variante Ingombro AC5e.",
 	"AC5E.AutoEncumbranceHint": "Se selezionato, AC5e elaborerà automaticamente le regole di ingombro della variante 5e. Il GM deve anche selezionare nelle impostazioni del sistema Dnd5e, l'opzione Variante (ingombrato e pesantemente ingombrato), altrimenti ciò non avrà alcun effetto.",
-	"AC5E.MultipleTargetsAttackWarn": "Condizioni automatizzate 5e: stai attaccando più bersagli e questo non è supportato. I risultati del tiro possono essere distorti.",
-	"AC5E.NoTargetsAttackWarn": "Condizioni automatizzate 5e: Non hai bersagli selezionati quando attacchi. Scegli sempre il target se desideri che AC5e suggerisca AdvantageModes correttamente.",
-	"AC5E.MultipleTargetsDamageWarn": "Condizioni automatizzate 5e: stai danneggiando più bersagli e questo non è supportato. I risultati del tiro possono essere distorti.",
-	"AC5E.NoTargetsDamageWarn": "Condizioni automatizzate 5e: Non hai bersagli selezionati quando tiri i danni. Scegli sempre il target se desideri che AC5e suggerisca correttamente le modalità di tiro.",
-	"AC5E.TargetingChoicesNone": "Non fare nulla",
-	"AC5E.TargetingChoicesSource": "Solo dalla fonte",
-	"AC5E.TargetingChoicesForce": "Imposta targeting",
-	"AC5E.TargetingName": "Opzioni Bersaglio AC5e",
-	"AC5E.TargetingHint": "Se nessuno o più bersagli vengono selezionati quando l'utente lancia il tiro per l'Attacco o il Danno, AC5e: 'Non fare nulla': nessun calcolo della Modalità vantaggio/Modalità danno per il tiro in arrivo; 'Solo dalla fonte': AdvantageMode/damageMode basato su qualsiasi effetto del personaggio sorgente; 'Imposta targeting': annulla il tiro e chiedi i bersagli prima di tirare di nuovo (usare con cautela).",
+	"AC5E.Targeting": {
+		"Name": "Opzioni di targeting per gli attacchi",
+		"Hint": "Quando nessuno o più bersagli vengono selezionati per un Attacco, Danno o tiro simile, scegli come dovrebbe rispondere AC5E",
+		"Choices": {
+			"Source": "Usa solo le condizioni dell'attore di origine",
+			"Enforce": "Annulla il tiro silenziosamente",
+			"Warn": "Annulla il tiro con avviso"
+		},
+		"MultipleTargetsAttack": {
+			"Source": "AC5E: Più bersagli selezionati. I risultati potrebbero essere distorti. Utilizzando solo i dati dell'attore di origine.",
+			"Enforce": "AC5E: Più bersagli selezionati. Rotolo annullato!"
+		},
+		"NoTargetsAttack": {
+			"Source": "AC5E: Nessun bersaglio selezionato. Il vantaggio/svantaggio può essere impreciso. Utilizzando solo i dati dell'attore di origine.",
+			"Enforce": "AC5E: Nessun bersaglio selezionato. Rotolo annullato!"
+		}
+	},	
 	"AC5E.KeypressOverrideName": "Le combinazioni di tasti sovrascrivono i calcoli AC5e",
 	"AC5E.KeypressOverrideHint": "Combinazioni di Tasti per vantaggio, svantaggio e critico dovrebbero sovrascrivere qualsiasi calcolo di AC5e (selezionato) o essere aggiunti ai normali calcoli di AC5e (non selezionato).",
 	"AC5E.DebuggingName": "Debug AC5E",
