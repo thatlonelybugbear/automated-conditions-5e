@@ -63,7 +63,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
 		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
 		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
-		if (useWarning === 'Enforce' && (notProficient || raging || silenced)) return false;
+		if (useWarnings === 'Enforce' && (notProficient || raging || silenced)) return false;
 	}
 	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
 	if (incapacitated && useWarnings) {
