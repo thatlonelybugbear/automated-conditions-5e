@@ -18,7 +18,7 @@
 	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
 	"AC5E.ActivityUse" : {
 		"Name": "Item Use Checks",
-		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification)",
+		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification). The checked conditions are: incapacitated for relevant actions and raging, silenced and not-proficient with armor when casting spells",
 		"Choices": {
 			"Off": "Do nothing",
 			"Enforce": "Enforce",
