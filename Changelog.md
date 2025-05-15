@@ -1,7 +1,24 @@
 ## v13.502.2
-* Closes [#303](<https://github.com/thatlonelybugbear/automated-conditions-5e/issues/303>)
-  * For evaluations use `opponentActor` to access the opponent actor's rollData, instead of `targetActor`.
-  * `targetActor` will still be available for backwards compatibility
+* Clarification on Actor References in Evaluations
+  * Use `opponentActor` to access the opponent’s rollData during evaluations, instead of `targetActor`.
+    * `targetActor` remains available for backwards compatibility, but its usage is now discouraged.
+  * This change hopefully improves clarity, especially in cases like saving throws, where the actor rolling the save *can* also be the target of an item roll. For example:
+    * during an attack, you have a clear distinction between the attacking actor and the targeted actor.
+    * But during saves, the actor rolling the save can also be an actual target, and the other party (e.g., the spellcaster or trap) is better referred to as the opponent.
+* Fix for wrong localization string in some settings
+* Refactor setpieces code
+* Rework `_canSee()` 
+* Raging/silenced/incapacitated etc checks fixes
+  * `raging`, `silenced`, `no armor proficiency` checks for spell items use
+  * `incapacitated` will be checked for activities that have any relevant action as activation cost
+* Fix for `subjectTokenId` undefined when no message is created (like initiative rolls)
+* Update pt-BR.json by @Kharmans
+* Pre use activity issues cleanup
+  * the targeting options for attack changes slightly. Now the module will:
+    * Use source actor data only if zero or multiple targets are selected when attacking
+    * Cancel roll silently
+    * Cancel roll with a warning notification shown to the user's client
+      * In all cases a console warning will be shown in the user's client
 
 ## v13.502.1
 * Compatibility bump for v5.0.2
