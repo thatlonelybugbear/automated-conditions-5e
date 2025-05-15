@@ -63,9 +63,13 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
 		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
 		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
+		if (useWarnings === 'Enforce' && (notProficient || raging || silenced)) return false;
 	}
 	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
-	if (incapacitated && useWarnings) notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
+	if (incapacitated && useWarnings) {
+		notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
+		if (useWarnings === 'Enforce') return false;
+	}
 
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
