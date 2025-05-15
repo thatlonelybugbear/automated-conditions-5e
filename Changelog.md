@@ -2,6 +2,7 @@
 * Fix for using `initiative`, `concentration`, `death` as flag \<ACTIONTYPES\>
 * `rollingActor.canMove`, `opponentActor.canMove` will be true if the actor has at least one non zero movement type
 * Updates in Brazilian Portugese, Italian and Polish translation files
+* D&D 5.0.3 compatibility bump
 
 ## v13.502.2
 * Clarification on Actor References in Evaluations
