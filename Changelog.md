@@ -1,6 +1,7 @@
 ## v13.503.1
 * Some settings hints clarifications
 * Proper 5e versioning bump
+* Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## v13.502.2.1
 * Fix for using `initiative`, `concentration`, `death` as flag \<ACTIONTYPES\>
