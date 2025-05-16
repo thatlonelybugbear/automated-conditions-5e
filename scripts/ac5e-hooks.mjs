@@ -605,9 +605,9 @@ function renderChatTooltipsSettings(html) {
 	updateChatTooltipVisibility();
 }
 
-function notifyPreUseActivity(actorName, warning, type) {
+function notifyPreUse(actorName, warning, type) {
 	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
-	const key = `AC5E.ActivityUse.Type.${type}${warning}`;
+	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
 	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
 }
 
