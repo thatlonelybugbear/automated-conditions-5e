@@ -1,5 +1,5 @@
 import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
-import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, _findNearby, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 let daeFlags;
@@ -78,6 +78,7 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkArmor = _autoArmor;
 	globalThis[Constants.MODULE_NAME_SHORT].checkCreatureType = _raceOrType;
 	globalThis[Constants.MODULE_NAME_SHORT].checkDistance = _getDistance;
+	globalThis[Constants.MODULE_NAME_SHORT].checkNearby = _findNearby;
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
 	globalThis[Constants.MODULE_NAME_SHORT].conditionData = _createEvaluationSandbox;
