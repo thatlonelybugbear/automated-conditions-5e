@@ -1,6 +1,6 @@
 ## 13.503.4
 * Expose a checkNearby function to help with Pack Tactics:
-  * `flags.automated-conditions-5e.attack.advantage | Override | ac5e.checkNearby(opponentId, 'different', 5, {count: 2})`
+  * `flags.automated-conditions-5e.attack.advantage | Override | checkNearby(opponentId, 'different', 5, {count: 2})`
 * More visibility testing fixes
 
 ## 13.503.3
