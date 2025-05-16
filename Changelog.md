@@ -1,3 +1,7 @@
+## 13.503.3
+* Compatibility with combat carousel which calls `actor.rollinitiative()`
+* Fix attacks failing due to _canSee() 
+
 ## v13.503.2
 * Some settings hints clarifications
 * Proper 5e versioning bump
