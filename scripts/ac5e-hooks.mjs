@@ -24,6 +24,9 @@ export function _rollFunctions(hook, ...args) {
 	} else if (hook === 'consumptionHook') {
 		const [activity, config, dialog, message] = args;
 		return _postConsumptionHook(activity, config, dialog, message);
+	} else if (hook === 'init') {
+		const [actor, rollConfig] = args;
+		return _preConfigureInitiative(actor, rollConfig, hook);
 	}
 }
 function getMessageData(config) {
@@ -606,4 +609,50 @@ function notifyPreUseActivity(actorName, warning, type) {
 	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
 	const key = `AC5E.ActivityUse.Type.${type}${warning}`;
 	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
+}
+
+export function _preConfigureInitiative(subject, rollConfig) {
+	const hook = 'check';
+	const subjectToken = subject.token?.object ?? subject.getActiveTokens()[0];
+	const config = rollConfig.options;
+	const options = {};
+	options.isInitiative = true;
+	options.preConfigInitiative = true;
+	options.hook = hook;
+	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
+	//to-do: match the flags or init mode with the tooltip blurb
+	if ((subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if ((subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
+	
+	//to-do: move to setPieces
+	if (_autoEncumbrance(subject, 'dex')) {
+		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
+	}
+	let advantageMode = 0;
+	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) advantageMode += 1;
+	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) advantageMode -= 1;
+	if (ac5eConfig.parts.length) rollConfig.parts = rollConfig.parts.concat(ac5eConfig.parts);
+	if (advantageMode > 0) {
+		rollConfig.advantageMode = 1;
+		rollConfig.options.advantageMode = 1;
+		rollConfig.advantage = true;
+		rollConfig.disadvantage = false;
+	}
+	else if (advantageMode < 0) {
+		rollConfig.advantageMode = -1;
+		rollConfig.options.advantageMode = -1;
+		rollConfig.advantage = false;
+		rollConfig.disadvantage = true;
+	}
+	else if  (advantageMode === 0) {
+		rollConfig.advantageMode = 0;
+		rollConfig.options.advantageMode = 0;
+		rollConfig.advantage = false;
+		rollConfig.disadvantage = false;
+	}
+	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
+	if (settings.debug) console.warn('AC5E._preRollAbilityTest', { ac5eConfig });
+	return ac5eConfig;
 }
