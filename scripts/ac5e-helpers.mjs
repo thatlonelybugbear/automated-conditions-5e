@@ -672,11 +672,11 @@ export function _canSee(source, target, status) {
 		validModes = new Set(['seeAll', 'seeInvisibility']);
 	}
 	for (const detectionMode of tokenDetectionModes) {
-		if (!detectionMode.enabled || detectionMode.id === BASIC_MODE_ID) continue;
+		if (!detectionMode.enabled) continue;
 		if (!validModes.has(detectionMode.id)) continue;
 		const mode = detectionModes[detectionMode.id];
-		const result = mode ? mode.testVisibility(source.vision, detectionMode.id, config) : false;
-		if (result === true) matchedModes.add(detectionMode.id);
+		const result = mode ? mode.testVisibility(source.vision, mode, config) : false;
+		if (result === true) matchedModes.add(mode.id);
 	}
 	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { sourceId: source?.id, targetId: target?.id, result: matchedModes });
 	return Array.from(matchedModes).length > 0;
