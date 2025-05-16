@@ -8,10 +8,9 @@
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https://forge-vtt.com/api/bazaar/package/automated-conditions-5e&colorB=68a74f&style=for-the-badge)](https://forge-vtt.com/bazaar#package=automated-conditions-5e)
 
 ## Description
-A module for Foundry and Dnd5e which uses system Hooks to add the correct config options for Rolls, trying to automate the most common Dnd5e Conditions.
+A Foundry VTT module for the D&D 5e game system that allows status effects and custom AC5e flags to dynamically influence any roll, including attacks, saves, ability checks, and damage. It highlights the correct roll button based on active effects and the 5e ruleset, ensuring rolls are made with the proper advantage, disadvantage, bonuses, or critical damage.
 
-Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
-Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
+The module supports **auras** and **granting modes** that can affect nearby allies or enemies, automatically applying condition-based bonuses, penalties. etc. AC5e flags allow evaluation of data from the rolling actor, opposing actor, and aura source actors — enabling automation of more complex, context-sensitive scenarios.
 
 <hr>
 If you like what I do, consider supporting this lonely bugbear 🐾
