@@ -361,19 +361,36 @@ export function _dispositionCheck(t1, t2, check = false) {
 }
 
 export function _findNearby({
-	token, //Token5e or Token5e#Document to find nearby around.
-	disposition = 'all', //'all', 'same', 'different', false
-	radius = 5, //default radius 5
-	lengthTest = false, //false or integer which will test the length of the array against that number and return true/false.
-	includeToken = false, //includes or exclude source token
-	includeIncapacitated = false,
+	token,                         // Token5e, TokenDocument5e, ID string, or UUID
+	disposition = 'all',           // 'same', 'different', 'opposite' or false === 'all'
+	radius = 5,                    // Distance radius (default 5)
+	lengthTest = false,            // Number or false; if number, returns boolean test
+	includeToken = false,          // Include source token in results
+	includeIncapacitated = false,  // Include dead/incapacitated tokens
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
-	const validTokens = canvas.tokens.placeables.filter((placeable) => placeable !== token && (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, validTokens);
-	if (lengthTest) return validTokens.length >= lengthTest;
-	if (includeToken) return validTokens.concat(token);
-	return validTokens;
+	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	if (token instanceof TokenDocument) {
+		token = token.object;
+	} else if (!(token instanceof tokenInstance)) {
+		const resolved = fromUuidSync(token);
+		token = (resolved?.type === 'Token') ? resolved.object : canvas.tokens.get(token);
+	}
+	if (!token) return false;
+	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
+		if (!includeToken && target === token) return false;
+		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
+		if (!_dispositionCheck(token, target, disposition)) return false;
+		const distance = _getDistance(token, target);
+		return distance <= radius;
+	});
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, nearbyTokens);
+	if (lengthTest) return nearbyTokens.length >= lengthTest;
+	return nearbyTokens;
+}
+
+export function checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
+	return _findNearby({token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count});
 }
 
 export function _autoArmor(actor) {
@@ -658,7 +675,7 @@ export function _canSee(source, target, status) {
 		if (!detectionMode.enabled || detectionMode.id === BASIC_MODE_ID) continue;
 		if (!validModes.has(detectionMode.id)) continue;
 		const mode = detectionModes[detectionMode.id];
-		const result = mode?.testVisibility(source.vision, detectionMode, config);
+		const result = mode ? mode.testVisibility(source.vision, detectionMode.id, config) : false;
 		if (result === true) matchedModes.add(detectionMode.id);
 	}
 	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { sourceId: source?.id, targetId: target?.id, result: matchedModes });
