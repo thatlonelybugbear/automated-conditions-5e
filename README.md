@@ -18,7 +18,7 @@ A Foundry VTT module for the D&D 5e game system that allows status effects and c
 
 The module supports **auras** and **granting modes** that can affect nearby allies or enemies, automatically applying condition-based bonuses, penalties. etc. AC5e flags allow evaluation of data from the rolling actor, opposing actor, and aura source actors — enabling automation of more complex, context-sensitive scenarios.
 
-<hr>https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json
+<hr>
 If you like what I do, consider supporting this lonely bugbear 🐾
 
 Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
