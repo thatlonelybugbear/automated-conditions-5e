@@ -596,12 +596,19 @@ export function _canSee(source, target, status) {
 		if (settings.debug) console.warn('AC5e: Source and target are the same');
 		return true;
 	}
-	
+
+	const hasSight = source.hasSight;
+	if (!hasSight) {
+		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee(): returns true as the source token has no vision enabled; `, { sourceId: source?.id, targetId: target?.id, result: 'noSight' });
+		return true;
+	}
+
 	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
-	
+
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
 	const detectionModes = CONFIG.Canvas.detectionModes;
-	const { DETECTION_TYPES, BASIC_MODE_ID } = game.version > '13' ? foundry.canvas.perception.DetectionMode : DetectionMode;
+	const DETECTION_TYPES = { SIGHT: 0, SOUND: 1, MOVE: 2, OTHER: 3 };
+	const { /*DETECTION_TYPES, */ BASIC_MODE_ID } = game.version > '13' ? new foundry.canvas.perception.DetectionMode() : new DetectionMode();
 	const sightDetectionModes = Object.keys(detectionModes).filter((d) => detectionModes[d].type === DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d));
 
 	const matchedModes = new Set();
@@ -629,44 +636,31 @@ export function _canSee(source, target, status) {
 	const config = { tests, object: target };
 
 	const tokenDetectionModes = source.detectionModes;
-	let validModes;
-	if (!status && !source.actor?.statuses.has('blinded') && !target.actor?.statuses.has('invisible') && !target.actor?.statuses.has('ethereal')) {
-		if (!source.hasSight) return true;
-		validModes = new Set(sightDetectionModes.map((m) => m.id));
+	let validModes = new Set();
+
+	const sourceBlinded = source.actor?.statuses.has('blinded');
+	const targetInvisible = target.actor?.statuses.has('invisible');
+	const targetEthereal = target.actor?.statuses.has('ethereal');
+	if (hasSight && !status && !sourceBlinded && !targetInvisible && !targetEthereal) {
+		validModes = new Set(sightDetectionModes);
 		const lightSources = canvas?.effects?.lightSources;
 		for (const lightSource of lightSources ?? []) {
 			if (!lightSource.active || lightSource.data.disabled) continue;
-			if (!validModes.has(detectionModes.lightPerception?.id ?? BASIC_MODE_ID)) continue;
-			const result = lightSource.testVisibility && lightSource.testVisibility(config);
-			if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? BASIC_MODE_ID);
+			const result = lightSource.testVisibility?.(config);
+			if (result === true) matchedModes.add(detectionModes.lightPerception?.id);
 		}
-		const lightPerception = tokenDetectionModes.find((m) => m.id === detectionModes.lightPerception?.id);
-		if (lightPerception) {
-			const result = lightPerception ? detectionModes.lightPerception.testVisibility(source.vision, lightPerception, config) : false;
-			if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? BASIC_MODE_ID);
-		}
-		const basic = tokenDetectionModes.find((m) => m.id === BASIC_MODE_ID);
-		if (basic) {
-			const result = detectionModes.basicSight.testVisibility(source.vision, basic, config);
-			if (result === true) matchedModes.add(detectionModes.basicSight?.id ?? BASIC_MODE_ID);
-		}
-	} else if (status === 'blinded' || source.actor?.statuses.has('blinded')) {
+	} else if (status === 'blinded' || sourceBlinded) {
 		validModes = new Set(['blindsight', 'seeAll' /*'feelTremor'*/]);
-	} else if (status === 'invisible' || status === 'ethereal' || target.actor?.statuses.has('invisible') || target.actor?.statuses.has('ethereal')) {
+	} else if (status === 'invisible' || status === 'ethereal' || targetInvisible || targetEthereal) {
 		validModes = new Set(['seeAll', 'seeInvisibility']);
 	}
 	for (const detectionMode of tokenDetectionModes) {
-		if (detectionMode.id === BASIC_MODE_ID) continue;
-		if (!detectionMode.enabled) continue;
-		const dm = detectionModes[detectionMode.id];
-		if (validModes.has(detectionMode.id)) {
-			const result = dm?.testVisibility(source.vision, detectionMode, config);
-			if (result === true) {
-				matchedModes.add(detectionMode.id);
-			}
-		}
+		if (!detectionMode.enabled || detectionMode.id === BASIC_MODE_ID) continue;
+		if (!validModes.has(detectionMode.id)) continue;
+		const mode = detectionModes[detectionMode.id];
+		const result = mode?.testVisibility(source.vision, detectionMode, config);
+		if (result === true) matchedModes.add(detectionMode.id);
 	}
-
 	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { sourceId: source?.id, targetId: target?.id, result: matchedModes });
 	return Array.from(matchedModes).length > 0;
 }
@@ -746,7 +740,7 @@ export function _hasValidTargets(activity, targetCount, setting) {
 	const requiresTargeting = affects?.type || (!affects?.type && !template?.type);
 	// const override = game.keyboard?.downKeys?.has?.('KeyU');
 	const invalidTargetCount = requiresTargeting && targetCount !== 1;
-	if (invalidTargetCount/* && !override*/) {
+	if (invalidTargetCount /* && !override*/) {
 		sizeWarnings(targetCount, setting);
 		return false;
 	}
@@ -773,8 +767,7 @@ export function _raceOrType(actor, dataType = 'race') {
 		data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
 		data.race = systemData.details.race?.identifier ?? data.value; //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
 		data.type = actor.type;
-	}
-	else if (actor.type === 'group') data = { type: 'group', value: systemData.type.value };
+	} else if (actor.type === 'group') data = { type: 'group', value: systemData.type.value };
 	else if (actor.type === 'vehicle') data = { type: 'vehicle', value: systemData.vehicleType };
 	if (dataType === 'all') return Object.fromEntries(Object.entries(data).map(([k, v]) => [k, typeof v === 'string' ? v.toLocaleLowerCase() : v]));
 	else return data[dataType]?.toLocaleLowerCase();
@@ -864,7 +857,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const item = activity?.item;
 	sandbox.rollingActor = {};
 	sandbox.opponentActor = {};
-	
+
 	if (subjectToken) {
 		sandbox.rollingActor = _ac5eActorRollData(subjectToken.actor) || {}; //subjectToken.actor.getRollData();
 		sandbox.rollingActor.canMove = Object.values(subjectToken.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
@@ -955,11 +948,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (sandbox.undefined) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		console.warn('AC5E sandbox.undefined detected!!!');
-	} 
+	}
 	if (sandbox.opponentToken) {
 		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
-		sandbox.targetId = opponentToken.id;  //backwards compatibility for changing the target to opponent for clarity.
-		sandbox.isTargetTurn = currentCombatant === opponentToken?.id;  //backwards compatibility for changing the target to opponent for clarity.
+		sandbox.targetId = opponentToken.id; //backwards compatibility for changing the target to opponent for clarity.
+		sandbox.isTargetTurn = currentCombatant === opponentToken?.id; //backwards compatibility for changing the target to opponent for clarity.
 	}
 	return sandbox;
 }
