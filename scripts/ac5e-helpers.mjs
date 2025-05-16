@@ -933,7 +933,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox.opponentId = opponentToken.id;
 		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
 		sandbox.targetId = opponentToken.id; //backwards compatibility for changing the target to opponent for clarity.
-		sandbox.isTargetTurn = currentCombatant === opponentToken?.id; //backwards compatibility for changing the target to opponent for clarity.
 	}
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.riderStatuses = options.activityEffectsStatusRiders;
@@ -974,6 +973,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
 	sandbox.isTurn = currentCombatant === subjectToken?.id;
 	sandbox.isOpponentTurn = currentCombatant === opponentToken?.id;
+	sandbox.isTargetTurn = sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = options;
