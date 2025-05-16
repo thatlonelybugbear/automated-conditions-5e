@@ -1,5 +1,6 @@
-## 13.503.4.1
+## 13.503.4.2
 * More `canSee()` fixes
+* Fix for missing `targetActor` from evaluations
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
   
 ## 13.503.4
