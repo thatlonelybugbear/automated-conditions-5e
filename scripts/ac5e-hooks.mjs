@@ -653,6 +653,6 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	}
 	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
 	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
-	if (settings.debug) console.warn('AC5E._preRollAbilityTest', { ac5eConfig });
+	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
 }
