@@ -930,8 +930,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox.opponentActor.tokenSenses = opponentToken.document.detectionModes;
 		sandbox.opponentActor.tokenUuid = opponentToken.document.uuid;
 		sandbox.opponentId = opponentToken.id;
+		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
+		sandbox.targetId = opponentToken.id; //backwards compatibility for changing the target to opponent for clarity.
+		sandbox.isTargetTurn = currentCombatant === opponentToken?.id; //backwards compatibility for changing the target to opponent for clarity.
 	}
-
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.riderStatuses = options.activityEffectsStatusRiders;
 	if (activity) {
@@ -998,11 +1000,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (sandbox.undefined) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		console.warn('AC5E sandbox.undefined detected!!!');
-	}
-	if (opponentToken) {
-		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
-		sandbox.targetId = opponentToken.id; //backwards compatibility for changing the target to opponent for clarity.
-		sandbox.isTargetTurn = currentCombatant === opponentToken?.id; //backwards compatibility for changing the target to opponent for clarity.
 	}
 	return sandbox;
 }
