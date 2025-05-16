@@ -11,8 +11,15 @@
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
   
 ## 13.503.4
-* Expose a checkNearby function to help with Pack Tactics:
+* Exposes a checkNearby function to help with Pack Tactics:
   * `flags.automated-conditions-5e.attack.advantage | Override | checkNearby(opponentId, 'different', 5, {count: 2})`
+    * `oppenentId` is the targeted token's id
+    * `'different'` designates different disposition compared to the target's; can also use `'same'`, `'opposite'` or `'all'`
+    * the 3rd passed parameter is the distance to check, `5 units` in this case
+    * the 4th parameter is an Object which can include:
+       * `count` for the number of tokens to check against
+       * `includeToken` (false by default), which adds the target token if needed by passing `includeToken: true`
+       * `includeIncapacitated` (false by default), which adds any incapacitated tokens if true
 * More visibility testing fixes
 
 ## 13.503.3
