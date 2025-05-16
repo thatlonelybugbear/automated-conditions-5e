@@ -1,7 +1,9 @@
-## 13.503.5
+## 13.503.6
 * Properly offer backwards compatibility for `targetActor`
+  * Fix for a `currentCombatant` undefined relevant error
 * Fix for autoRanged checks always returning ranged attacks in short range
 * Small tweaks for `canSee()` which probably now is at a good state 🤞
+* Fix for missing `notifyPreUse` function
 
 ## 13.503.4.2
 * More `canSee()` fixes
