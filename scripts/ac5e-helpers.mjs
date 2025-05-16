@@ -680,7 +680,7 @@ export function _canSee(source, target, status) {
 		if (result === true) matchedModes.add(mode.id);
 	}
 	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { source: source?.id, target: target?.id, result: matchedModes, visionInitialized: !hasSight, sourceId: source.sourceId });
-	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source only if the source doesn't have sight enabled!
+	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source only if the source doesn't have sight enabled in the first place!
 	return Array.from(matchedModes).length > 0;
 }
 
