@@ -426,7 +426,7 @@ export function _autoRanged(activity, token, target) {
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange = midiCheckRange !== 'none' || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
+	const inRange = midiCheckRange && midiCheckRange !== 'none' || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
