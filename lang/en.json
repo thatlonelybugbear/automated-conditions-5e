@@ -109,6 +109,7 @@
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "grants",
 	"AC5E.Attacker": "Attacker",
+	"AC5E.FlagsInitiativeDisadv": "Disadvantage on Initiative",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Granted adv",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Granted dis",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Granted crit",
