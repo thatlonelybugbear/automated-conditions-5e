@@ -527,9 +527,9 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
 		return ac5eConfig;
 	}
-	if ((config.advantage || ac5eConfig.preAC5eConfig.midiOptions?.advantage) && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig.subject.advantage.push(`${roller} (flags)`);
-	if ((config.disadvantage || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig.subject.disadvantage.push(`${roller} (flags)`);
-	if ((config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.subject.critical.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative && (config.advantage || ac5eConfig.preAC5eConfig.midiOptions?.advantage) && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig.subject.advantage.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative && (config.disadvantage || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig.subject.disadvantage.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.subject.critical.push(`${roller} (flags)`);
 
 	const actorSystemRollMode = [];
 	if (options.skill && hookType === 'check') {
