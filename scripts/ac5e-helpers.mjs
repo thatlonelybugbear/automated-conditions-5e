@@ -616,10 +616,11 @@ export function _canSee(source, target, status) {
 	
 	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
 	
-	const hasSight = /*source.hasSight && */source.document.sight.enabled;
-	if (!hasSight) {
+	const hasSight = source.document.sight.enabled;  //source.hasSight
+	const hasVision = source.vision;                 //can be undefined if the source isn't controlled at the time of the tests; can be the target of an attack etc, so won't be selected in this case or rolling without a token controlled.
+	if (!hasSight || !hasVision) {
 		_initializeVision(source);
-		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee(): Initializing vision as the source token has no vision enabled; `, { source: source?.id, target: target?.id, visionSourceId: source.sourceId });
+		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee(): Initializing vision as the source token has no visionSource available; `, { source: source?.id, target: target?.id, visionSourceId: source.sourceId });
 	}
 
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
@@ -679,7 +680,7 @@ export function _canSee(source, target, status) {
 		if (result === true) matchedModes.add(mode.id);
 	}
 	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { source: source?.id, target: target?.id, result: matchedModes, visionInitialized: !hasSight, sourceId: source.sourceId });
-	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source
+	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source only if the source doesn't have sight enabled!
 	return Array.from(matchedModes).length > 0;
 }
 
