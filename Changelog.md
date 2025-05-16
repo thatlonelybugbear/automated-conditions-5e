@@ -1,3 +1,8 @@
+## 13.503.5
+* Properly offer backwards compatibility for `targetActor`
+* Fix for autoRanged checks always returning ranged attacks in short range
+* Small tweaks for `canSee()` which probably now is at a good state 🤞
+
 ## 13.503.4.2
 * More `canSee()` fixes
 * Fix for missing `targetActor` from evaluations
