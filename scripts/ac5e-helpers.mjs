@@ -361,7 +361,7 @@ export function _dispositionCheck(t1, t2, check = false) {
 }
 
 export function _findNearby({
-	token, //Token5e or Token5e#Document to find nearby around.
+	token, //Token5e or Token5e#Document or Token5e#id or Token5e#Document#UUID to find nearby around.
 	disposition = 'all', //'all', 'same', 'different', false
 	radius = 5, //default radius 5
 	lengthTest = false, //false or integer which will test the length of the array against that number and return true/false.
@@ -369,6 +369,11 @@ export function _findNearby({
 	includeIncapacitated = false,
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
+	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	if (token instanceof TokenDocument) token = token.object;
+	else if (!(token instanceof tokenInstance)) {
+		token = foundry.utils.parseUuid(token)?.type === 'Token' ? fromUuidSync(token)?.object : canvas.tokens.get(token);
+	}
 	const validTokens = canvas.tokens.placeables.filter((placeable) => placeable !== token && (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
 	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, validTokens);
 	if (lengthTest) return validTokens.length >= lengthTest;
