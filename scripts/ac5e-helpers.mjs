@@ -960,7 +960,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	} = CONFIG || {};
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
-	foundry.utils.mergeObject(sandbox, { ac5e: { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor } });
+	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor });
 	if (settings.debug) console.log('AC5E._createEvaluationSandbox:', { sandbox });
 	if (sandbox.undefined) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
