@@ -1,3 +1,7 @@
+## 13.503.4.1
+* More `canSee()` fixes
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+  
 ## 13.503.4
 * Expose a checkNearby function to help with Pack Tactics:
   * `flags.automated-conditions-5e.attack.advantage | Override | checkNearby(opponentId, 'different', 5, {count: 2})`
