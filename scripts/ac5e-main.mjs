@@ -81,4 +81,5 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
 	globalThis[Constants.MODULE_NAME_SHORT].conditionData = _createEvaluationSandbox;
+	globalThis[Constants.MODULE_NAME_SHORT].showEvaluationData = false;
 }
