@@ -29,8 +29,8 @@ function ac5eSetup() {
 	const settings = new Settings();
 	const hooksRegistered = {};
 	const actionHooks = [
-		{ id: 'dnd5e.activityConsumption', type: 'consumptionHook' },
-		{ id: 'dnd5e.preConfigureInitiative', type: 'init' }, //@to-do, double check if it is needed (using the actor.rollInitiative() probably) //needed for Combat Carousel at least
+		// { id: 'dnd5e.activityConsumption', type: 'consumptionHook' }, //@to-do: validate that there isn't an actual need for this
+		{ id: 'dnd5e.preConfigureInitiative', type: 'init' }, //needed for Combat Carousel at least, when using the actor.rollInitiative()
 		{ id: 'dnd5e.preRollAbilityCheckV2', type: 'check' },
 		{ id: 'dnd5e.preRollAttackV2', type: 'attack' },
 		{ id: 'dnd5e.preRollDamageV2', type: 'damage' },
@@ -51,7 +51,7 @@ function ac5eSetup() {
 				if (settings.debug) console.warn(hook.id, { render, element });
 				return _renderHijack(hook.type, ...args);
 			} else {
-				if (hook.id === 'dnd5e.preUseActivity' || hook.id === 'dnd5e.activityConsumption') {
+				if (hook.id === 'dnd5e.preUseActivity') { //|| hook.id === 'dnd5e.activityConsumption') {
 					const [activity, config, dialog, message] = args;
 					if (settings.debug) console.warn(hook.id, { activity, config, dialog, message });
 				} else if (hook.id === 'dnd5e.preConfigureInitiative') {
