@@ -16,9 +16,9 @@
 	"AC5E.ExpandedConditionsHint": "Po zaznaczeniu tej opcji AC5e spróbuje zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
 	"AC5E.AutoArmorName": "Biegłość w pancerzu AC5e i sprzęt utrudniający skradanie się.",
 	"AC5E.AutoArmorHint": "Po sprawdzeniu, AC5e automatycznie przetworzy biegłość w wyposażonym elemencie zbroi dla zdolności, umiejętności i rzutów obronnych (SIŁ || ZRĘ) oraz sprawdzi wyposażenie pod kątem kary skradania się.",
-	"AC5E.ActivityUse": {
+	"AC5E.ActivityUse" : {
 		"Name": "Sprawdzanie użycia przedmiotów",
-		"Hint": "W przypadku, gdy użycie przedmiotu jest niedozwolone, AC5e „nie podejmuje żadnych działań”, wyświetla jedynie „ostrzeżenie” (powiadomienie) lub „egzekwuje” (anulowanie rzutu + powiadomienie)",
+		"Hint": "Gdy użycie przedmiotu jest niedozwolone, AC5e „nie podejmuje żadnych działań”, jedynie „ostrzega” (powiadomienie) lub „egzekwuje” (anulowanie rzutu + powiadomienie). Sprawdzane są następujące stany: obezwładnienie uniemożliwiające wykonanie odpowiednich działań, szał, uciszenie oraz brak biegłości w posługiwaniu się zbroją podczas rzucania zaklęć.",
 		"Choices": {
 			"Off": "Nic nie rób",
 			"Enforce": "Wymuszaj",
@@ -41,7 +41,7 @@
 				"Enforce": "jest uciszony i nie może rzucać zaklęć z komponentami werbalnymi. Zaklęcie anulowane!",
 				"Warn": "jest uciszony i nie może rzucać zaklęć z komponentami werbalnymi."
 			}
-		}
+		}		
 	},
 	"AC5E.AutoRangedAttacksName": "Automatyzacja ataków dystansowych:",
 	"AC5E.AutoRangedAttacksHint": "'Wyłączone': AC5e nie będzie przetwarzać żadnych testów dystansu; „Tylko sprawdzanie zasięgu”: AC5e automatycznie przetworzy utrudnienie/porażkę dystansu w oparciu o odległość celu i wartości zasięgu przedmiotu użytego do ataku; „Zasięg + pobliscy wrogowie”: Wrogowie sąsiadujący z atakującym będą nakładać utrudnienia na ataki dystansowe.",
@@ -54,24 +54,24 @@
 	"AC5E.AutoEncumbranceHint": "Po zaznaczeniu tej opcji, AC5e będzie automatycznie przetwarzać zasady Obciążenia z wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
 	"AC5E.Targeting": {
 		"Name": "Opcje celowania ataków",
-		"Hint": "Gdy nie wybrano żadnego celu lub wybrano wiele celów dla ataku, obrażeń lub podobnego rzutu, wybierz, jak ma zareagować AC5E.",
+		"Hint": "Jeśli nie wybrano żadnego celu lub wybrano wiele celów do ataku, wybierz sposób, w jaki AC5e ma zareagować.",
 		"Choices": {
 			"Source": "Używaj tylko stanów źródła",
 			"Enforce": "Anuluj ukryty rzut",
 			"Warn": "Anuluj rzut z ostrzeżeniem"
 		},
 		"MultipleTargetsAttack": {
-			"Source": "AC5E: Wybrano wiele celów. Wyniki mogą być zniekształcone. Wykorzystano wyłącznie dane podmiotu źródłowego.",
-			"Enforce": "AC5E: Wybrano wiele celów. Rzut anulowany!"
+			"Source": "AC5e: Wybrano wiele celów. Wyniki mogą być zniekształcone. Wykorzystano wyłącznie dane podmiotu źródłowego.",
+			"Enforce": "AC5e: Wybrano wiele celów. Rzut anulowany!"
 		},
 		"NoTargetsAttack": {
-			"Source": "AC5E: Nie wybrano żadnych celów. Ułatwienia/utrudnienia mogą być niedokładne. Wykorzystano wyłącznie dane aktora źródłowego.",
-			"Enforce": "AC5E: Nie wybrano żadnych celów. Rzut anulowany!"
+			"Source": "AC5e: Nie wybrano żadnych celów. Ułatwienia/utrudnienia mogą być niedokładne. Wykorzystano wyłącznie dane aktora źródłowego.",
+			"Enforce": "AC5e: Nie wybrano żadnych celów. Rzut anulowany!"
 		}
 	},
 	"AC5E.KeypressOverrideName": "Skróty klawiszowe zastępują wyliczenia AC5e",
 	"AC5E.KeypressOverrideHint": "Powiązane klawisze dla ułatwienia, utrudnienia i krytyków powinny nadpisywać wszelkie obliczenia AC5e (zaznaczone) lub być dodawane do normalnych obliczeń AC5e (niezaznaczone).",
-	"AC5E.DebuggingName": "Debugowanie AC5E",
+	"AC5E.DebuggingName": "Debugowanie AC5e",
 	"AC5E.DebuggingHint": "Po prostu przydatne dzienniki do debugowania podczas programowania. Prawdopodobnie nie ma sensu, aby użytkownicy go włączali :)",
 	"AC5E.WarCaster": "Bitewny Mag",
 	"AC5E.Fail": "Porażka",
@@ -109,6 +109,7 @@
 	"AC5E.AbbreviationCritical": "kryt",
 	"AC5E.Grants": "otrzymuje",
 	"AC5E.Attacker": "Atakujący",
+	"AC5E.FlagsInitiativeDisadv": "Utrudnienia w inicjatywie",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Przyznane ułatwienie",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Przyznane utrudnienie",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Przyznianie krytyka",
