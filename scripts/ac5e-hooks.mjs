@@ -21,9 +21,9 @@ export function _rollFunctions(hook, ...args) {
 	} else if (['check' /*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollAbilityTest(config, dialog, message, hook);
-	} else if (hook === 'consumptionHook') {
-		const [activity, config, dialog, message] = args;
-		return _postConsumptionHook(activity, config, dialog, message);
+	// } else if (hook === 'consumptionHook') {
+	// 	const [activity, config, dialog, message] = args;
+	// 	return _postConsumptionHook(activity, config, dialog, message);
 	} else if (hook === 'init') {
 		const [actor, rollConfig] = args;
 		return _preConfigureInitiative(actor, rollConfig, hook);
@@ -117,12 +117,12 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	return true;
 }
 
-export function _postConsumptionHook(activity, config, dialog, message) {
-	const ac5eConfig = config[Constants.MODULE_ID] || {};
-	if (settings.debug) console.warn('AC5E._postConsumptionHook', { activity, config, dialog, message, ac5eConfig });
-	if (activity.isSpell) foundry.utils.mergeObject(ac5eConfig, { options: { spellLevel: dialog?.data?.flags?.use?.spellLevel || activity.item.system.level } });
-	_setAC5eProperties(ac5eConfig, config, dialog, message);
-}
+// export function _postConsumptionHook(activity, config, dialog, message) {
+// 	const ac5eConfig = config[Constants.MODULE_ID] || {};
+// 	if (settings.debug) console.warn('AC5E._postConsumptionHook', { activity, config, dialog, message, ac5eConfig });
+// 	if (activity.isSpell) foundry.utils.mergeObject(ac5eConfig, { options: { spellLevel: dialog?.data?.flags?.use?.spellLevel || activity.item.system.level } });
+// 	_setAC5eProperties(ac5eConfig, config, dialog, message);
+// }
 
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config);
