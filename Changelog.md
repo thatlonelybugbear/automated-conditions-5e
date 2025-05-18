@@ -1,3 +1,10 @@
+## 13.503.7
+* Added global Boolean parameter for `ac5e.logEvaluationData` which if set to true on the client, the available evaluation data will be logged in console after creation. A quick way to familiarize yourselves with what is available to use!
+* Tweaked some hooks
+* Reworked evaluation data, like `castingLevel`, `baseSpellLevel`, `scaling` and now they are avalable
+* Refactor: Limit code duplication by using unified regex-based replacement function.
+* Added Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
 ## 13.503.6
 * Properly offer backwards compatibility for `targetActor`
   * Fix for a `currentCombatant` undefined relevant error
