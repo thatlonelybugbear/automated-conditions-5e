@@ -1,3 +1,6 @@
+## 13.503.7.1
+* Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.503.7
 * Added global Boolean parameter for `ac5e.logEvaluationData` which if set to true on the client, the available evaluation data will be logged in console after creation. A quick way to familiarize yourselves with what is available to use!
 * Tweaked some hooks
