@@ -15,11 +15,11 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	for (const [type, actor] of Object.entries(actorTokens)) {
 		if (foundry.utils.isEmpty(actor)) continue;
 		const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
-		const exhaustionLvl = (isSubjectExhausted && actor.system?.attributes.exhaustion >= 3) ? 3 : 1;
+		const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
 		const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
-		
+
 		for (const status of actor.statuses) {
-			const test = (status === 'exhaustion' && isSubjectExhausted) ? tables?.[status]?.[exhaustionLvl]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
+			const test = status === 'exhaustion' && isSubjectExhausted ? tables?.[status]?.[exhaustionLvl]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
 
 			if (!test) continue;
 			if (settings.debug) console.log(type, test);
@@ -49,13 +49,13 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 	const isFrightenedByVisibleSource = () => {
 		if (type !== 'subject') return false;
-		const frightenedEffects = subject?.appliedEffects.filter(effect => effect.statuses.has('frightened') && effect.origin);
-		if (subject?.statuses.has('frightened') && !frightenedEffects.length) return true;   //if none of the effects that apply frightened status on the actor have an origin, force true
-		return frightenedEffects.some(effect => {
+		const frightenedEffects = subject?.appliedEffects.filter((effect) => effect.statuses.has('frightened') && effect.origin);
+		if (subject?.statuses.has('frightened') && !frightenedEffects.length) return true; //if none of the effects that apply frightened status on the actor have an origin, force true
+		return frightenedEffects.some((effect) => {
 			const originToken = _getEffectOriginToken(effect, 'token'); //undefined if no effect.origin
-			return originToken && _canSee(subjectToken, originToken)
+			return originToken && _canSee(subjectToken, originToken);
 		});
-	}
+	};
 
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
@@ -263,31 +263,56 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const alliesOrEnemies = value.includes('allies') ? 'allies' : value.includes('enemies') ? 'enemies' : null;
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
-	};	
+	};
 	const effectChangesTest = ({ token = undefined, change, actorType, hook }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
-		if (change.key.includes('aura')) {  //isAura
+		if (change.key.includes('aura')) {
+			//isAura
 			if (!friendOrFoe(token, subjectToken, change.value)) return false;
 			if (!change.value.includes('includeSelf') && token === subjectToken) return false;
 			const radius = change.value.split(';')?.find((e) => e.includes('radius')) || undefined;
 			if (inAuraRadius(token, radius)) return true;
 			else return false;
-		}
-		else if (change.key.includes('grants')) {  //isGrants
+		} else if (change.key.includes('grants')) {
+			//isGrants
 			if (actorType !== 'opponent') return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 			return true;
-			
-		}
-		else {  //isSelf
+		} else {
+			//isSelf
 			if (actorType !== 'subject') return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 			return true;
 		}
 	};
+
+	const bonusReplacements = (expression, evalData, auraEvalData) => {
+		const staticMap = {
+			'@scaling': evalData.scaling,
+			scaling: evalData.scaling,
+			'@spellLevel': evalData.castingLevel,
+			spellLevel: evalData.castingLevel,
+			'@castingLevel': evalData.castingLevel,
+			castingLevel: evalData.castingLevel,
+		};
+
+		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
+		expression = expression.replace(pattern, (match) => staticMap[match]);
+
+		if (expression.includes('@')) expression = Roll.fromTerms(Roll.parse(expression, auraEvalData ? auraEvalData.auraActor : evalData.rollingActor)).formula;
+		if (expression.includes('rollingActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('rollingActor.', '@'), evalData.rollingActor)).formula;
+		if (expression.includes('##')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('##', '@'), auraEvalData ? auraEvalData.rollingActor : evalData.opponentActor)).formula;
+		if (expression.includes('targetActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('targetActor.', '@'), evalData.opponentActor)).formula;
+		if (expression.includes('opponentActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('opponentActor.', '@'), evalData.opponentActor)).formula;
+		if (auraEvalData && expression.includes('auraActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('auraActor.', '@'), auraEvalData.auraActor)).formula;
+		return expression;
+	};
+
+	const blacklist = ['bonus=', 'radius=', 'singleAura', 'includeSelf', 'allies', 'enemies']; // 'radius =', 'bonus =',
+
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
 		if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
@@ -298,6 +323,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			evaluationData,
 			{
 				auraActor: _ac5eActorRollData(token.actor),
+				['auraActor.canMove']: Object.values(token.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v),
 				['auraActor.creatureType']: Object.values(_raceOrType(token.actor, 'all')),
 				['auraActor.token']: token,
 				['auraActor.tokenSize']: token.document.width * token.document.height,
@@ -321,8 +347,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 								?.find((e) => e.includes('bonus='))
 								.split('bonus=')?.[1]
 							: '';
+					bonus = bonusReplacements(bonus, evaluationData, auraTokenEvaluationData);
 					const auraOnlyOne = el.value.includes('singleAura');
-					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
 					let valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
@@ -334,13 +360,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						}, [])
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
-					if  (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
-					if (bonus.includes('rollingActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor.', '@'), subject.getRollData())).formula;
-					if (bonus.includes('auraActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor.', '@'), token.actor.getRollData())).formula;
-					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
-					if (bonus.includes('targetActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('targetActor.', '@'), opponent.getRollData())).formula;
-					if (bonus.includes('opponentActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('opponentActor.', '@'), opponent.getRollData())).formula;
+					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
+
 					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData });
 					if (!evaluation) return;
 
@@ -373,13 +394,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 							?.find((e) => e.includes('bonus='))
 							.split('bonus=')?.[1]
 						: '';
-				if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
-				if (bonus.includes('rollingActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor.', '@'), subject.getRollData())).formula;
-				// if (bonus.includes('auraActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor', '@'), token.actor.getRollData())).formula;
-				if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
-				if (bonus.includes('targetActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('targetActor.', '@'), opponent.getRollData())).formula;
-				if (bonus.includes('opponentActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('opponentActor.', '@'), opponent.getRollData())).formula;
-				const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
+				bonus = bonusReplacements(bonus, evaluationData);
 				let valuesToEvaluate = el.value
 					.split(';')
 					.reduce((acc, v) => {
@@ -401,7 +416,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				};
 			})
 	);
-	if (opponent)
+	if (opponent) {
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook }))
@@ -415,13 +430,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 								?.find((e) => e.includes('bonus='))
 								.split('bonus=')?.[1]
 							: '';
-					if (bonus.includes('@')) bonus = Roll.fromTerms(Roll.parse(bonus, subject.getRollData())).formula;
-					if (bonus.includes('rollingActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('rollingActor.', '@'), subject.getRollData())).formula;
-					// if (bonus.includes('auraActor') bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('auraActor', '@'), token.actor.getRollData())).formula;
-					if (bonus.includes('##')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('##', '@'), opponent.getRollData())).formula;
-					if (bonus.includes('targetActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('targetActor.', '@'), opponent.getRollData())).formula;
-					if (bonus.includes('opponentActor')) bonus = Roll.fromTerms(Roll.parse(bonus.replaceAll('opponentActor.', '@'), opponent.getRollData())).formula;
-					const blacklist = ['radius', 'bonus', 'singleAura', 'includeSelf', 'allies', 'enemies'];
+					bonus = bonusReplacements(bonus, evaluationData);
 					let valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
@@ -443,6 +452,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					};
 				})
 		);
+	}
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	for (const el in validFlags) {
 		let { actorType, evaluation, mode, name, bonus, isAura } = validFlags[el];
