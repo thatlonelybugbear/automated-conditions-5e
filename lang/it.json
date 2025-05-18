@@ -109,6 +109,7 @@
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "fornisce",
 	"AC5E.Attacker": "Attaccante",
+	"AC5E.FlagsInitiativeDisadv": "Svantaggio su Iniziativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Fornito vant",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Fornito svant",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Fornito crit",
