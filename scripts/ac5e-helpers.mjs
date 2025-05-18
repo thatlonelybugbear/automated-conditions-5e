@@ -983,7 +983,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
-	sandbox.spellLevel = sandbox.item?.level;
+	sandbox.castingLevel = sandbox.item?.level;
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
 	sandbox.scaling = item?.flags?.dnd5e?.scaling;
 	if (options?.ability) sandbox[options.ability] = true;
