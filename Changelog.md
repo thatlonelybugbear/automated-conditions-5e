@@ -4,6 +4,7 @@
 * Reworked evaluation data, like `castingLevel`, `baseSpellLevel`, `scaling` and now they are avalable
 * Refactor: Limit code duplication by using unified regex-based replacement function.
 * Added Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 
 ## 13.503.6
 * Properly offer backwards compatibility for `targetActor`
