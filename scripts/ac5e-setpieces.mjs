@@ -292,11 +292,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const bonusReplacements = (expression, evalData, auraEvalData) => {
 		const staticMap = {
 			'@scaling': evalData.scaling,
-			scaling: evalData.scaling,
+			'scaling': evalData.scaling,
 			'@spellLevel': evalData.castingLevel,
-			spellLevel: evalData.castingLevel,
+			'spellLevel': evalData.castingLevel,
 			'@castingLevel': evalData.castingLevel,
-			castingLevel: evalData.castingLevel,
+			'castingLevel': evalData.castingLevel,
+			'@baseSpellLevel': evalData.baseSpellLevel,
+			'baseSpellLevel': evalData.baseSpellLevel,
 		};
 
 		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
