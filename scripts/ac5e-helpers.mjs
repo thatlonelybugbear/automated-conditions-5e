@@ -1003,7 +1003,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
-	if (settings.debug || ac5e.showEvaluationData) console.log('AC5E._createEvaluationSandbox:', { evaluationData: sandbox });
+	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._createEvaluationSandbox logging the available data:', { evaluationData: sandbox });
 	return sandbox;
 }
 
