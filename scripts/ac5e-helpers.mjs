@@ -891,13 +891,10 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 
 export function _ac5eActorRollData(actor) {
 	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
-	const actorData = actor.system.toObject();
+	const actorData = actor.getRollData();
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
 	actorData.equippedItems = actor.items.filter((item) => item?.system?.equipped).map((item) => item.name);
-	actorData.flags = actor.flags;
-	actorData.name = actor.name;
-	actorData.statuses = actor.statuses;
 	actorData.type = actor.type;
 	return actorData;
 }
