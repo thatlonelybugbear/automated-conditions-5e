@@ -314,8 +314,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return expression;
 	};
 
-	const blacklist = ['bonus=', 'radius=', 'singleAura', 'includeSelf', 'allies', 'enemies']; // 'radius =', 'bonus =',
-
+	const blacklist = ['bonus=', 'radius=', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once', 'usesCount=']; // 'radius =', 'bonus =',
+	const effectDeletions = [];
+	const effectUpdates = [];
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
 		if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
