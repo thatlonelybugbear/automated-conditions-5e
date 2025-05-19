@@ -5,45 +5,73 @@
 	"AC5E.ShowToolTipsChoicesDialog": "Tylko rzuty okien dialogowych",
 	"AC5E.ShowToolTipsChoicesChat": "Tylko wiadomości czatu",
 	"AC5E.ShowToolTipsChoicesNone": "Nie pokazuj",
-	"AC5E.ShowModuleNameInTooltipsName": "Pokaż nazwę modułu AC5e w podpowiedziach",
-	"AC5E.ExpandedConditionsName": "Rozszerzone stany AC5e",
+	"AC5E.ShowModuleNameInTooltipsName": "Pokaż nazwę modułu w podpowiedziach",
+	"AC5E.ShowTooltipChatVisibility.Name": "Pokaż podpowiedzi czatu dla",
+	"AC5E.ShowTooltipChatVisibility.Hint": "'Wszyscy' - wszystkie rzuty aktorów, 'Brak' - brak rzutów, 'Własne' - rzuty własnych aktorów, 'Gracze' -  rzuty aktorów należących do gracza; (MG widzi wszystko)",
+	"AC5E.ShowTooltipChatVisibility.All": "Wszyscy",
+	"AC5E.ShowTooltipChatVisibility.None": "Brak",
+	"AC5E.ShowTooltipChatVisibility.Owned": "Własne",
+	"AC5E.ShowTooltipChatVisibility.Players": "Gracze",
+	"AC5E.ExpandedConditionsName": "Rozszerzone stany",
 	"AC5E.ExpandedConditionsHint": "Po zaznaczeniu tej opcji AC5e spróbuje zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
 	"AC5E.AutoArmorName": "Biegłość w pancerzu AC5e i sprzęt utrudniający skradanie się.",
 	"AC5E.AutoArmorHint": "Po sprawdzeniu, AC5e automatycznie przetworzy biegłość w wyposażonym elemencie zbroi dla zdolności, umiejętności i rzutów obronnych (SIŁ || ZRĘ) oraz sprawdzi wyposażenie pod kątem kary skradania się.",
-	"AC5E.AutoArmorSpellUseName": "Biegłość w pancerzu AC5e, stany (Szał, Wyciszenie) i zaklęcia",
-	"AC5E.AutoArmorSpellUseHint": "Wyłącz: Nie rób nic, Wymuszaj: Gdy używanie zaklęć jest niedozwolone, rzut jest anulowany, Ostrzegaj: Gdy używanie zaklęć jest niedozwolone, powiadom użytkownika.",
-	"AC5E.AutoArmorSpellUseChoicesOff": "Nic nie rób",
-	"AC5E.AutoArmorSpellUseChoicesEnforce": "Wymuszaj",
-	"AC5E.AutoArmorSpellUseChoicesWarn": "Ostrzegaj",
-	"AC5E.AutoArmorSpellUseChoicesEnforceToast": "nie jest biegły w wyposażonej zbroi i RAW nie może rzucać zaklęć. Zaklęcie anulowane!",
-	"AC5E.AutoArmorSpellUseChoicesWarnToast": "nie jest biegły w wyposażonej zbroi i RAW nie może rzucać zaklęć.",
-	"AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "jest obezwładniony i nie może rzucać zaklęć. Zaklęcie anulowane!",
-	"AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "jest obezwładniony i nie może rzucać zaklęć.",
-	"AC5E.AutoRagingSpellUseChoicesEnforceToast": "jest w szale i nie może rzucać zaklęć. Zaklęcie anulowane!",
-	"AC5E.AutoRagingSpellUseChoicesWarnToast": "jest w szale i nie może rzucać zaklęć.",
-	"AC5E.AutoSilencedSpellUseChoicesEnforceToast": "jest uciszony i nie może rzucać zaklęć z komponentami werbalnymi. Zaklęcie anulowane!",
-	"AC5E.AutoSilencedSpellUseChoicesWarnToast": "jest uciszony i nie może rzucać zaklęć z komponentami werbalnymi.",
-	"AC5E.AutoRangedAttacksName": "Automatyzacja ataków dystansowych AC5e:",
+	"AC5E.ActivityUse" : {
+		"Name": "Sprawdzanie użycia przedmiotów",
+		"Hint": "Gdy użycie przedmiotu jest niedozwolone, AC5e „nie podejmuje żadnych działań”, jedynie „ostrzega” (powiadomienie) lub „egzekwuje” (anulowanie rzutu + powiadomienie). Sprawdzane są następujące stany: obezwładnienie uniemożliwiające wykonanie odpowiednich działań, szał, uciszenie oraz brak biegłości w posługiwaniu się zbroją podczas rzucania zaklęć.",
+		"Choices": {
+			"Off": "Nic nie rób",
+			"Enforce": "Wymuszaj",
+			"Warn": "Ostrzegaj"
+		},
+		"Type": {
+			"Armor": {
+				"Enforce": "nie jest biegły w wyposażonej zbroi i RAW nie może rzucać zaklęć. Zaklęcie anulowane!",
+				"Warn": "nie jest biegły w wyposażonej zbroi i RAW nie może rzucać zaklęć."
+			},
+			"Incapacitated": {
+				"Enforce": "jest obezwładniony i nie może wykonywać żadnych akcji. Akcja anulowana!",
+				"Warn": "jest obezwładniony i nie może wykonywać żadnych akcji."
+			},
+			"Raging": {
+				"Enforce": "jest w szale i nie może rzucać zaklęć. Zaklęcie anulowane!",
+				"Warn": "jest w szale i nie może rzucać zaklęć."
+			},
+			"Silenced": {
+				"Enforce": "jest uciszony i nie może rzucać zaklęć z komponentami werbalnymi. Zaklęcie anulowane!",
+				"Warn": "jest uciszony i nie może rzucać zaklęć z komponentami werbalnymi."
+			}
+		}		
+	},
+	"AC5E.AutoRangedAttacksName": "Automatyzacja ataków dystansowych:",
 	"AC5E.AutoRangedAttacksHint": "'Wyłączone': AC5e nie będzie przetwarzać żadnych testów dystansu; „Tylko sprawdzanie zasięgu”: AC5e automatycznie przetworzy utrudnienie/porażkę dystansu w oparciu o odległość celu i wartości zasięgu przedmiotu użytego do ataku; „Zasięg + pobliscy wrogowie”: Wrogowie sąsiadujący z atakującym będą nakładać utrudnienia na ataki dystansowe.",
 	"AC5E.AutoRangedAttacksChoicesOff": "Wyłączone",
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Tylko sprawdzanie zasięgu",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Zasięg + pobliscy wrogowie",
-	"AC5E.AutoExhaustionName": "Automatyzacja wyczerpania AC5e.",
+	"AC5E.AutoExhaustionName": "Automatyzacja wyczerpania.",
 	"AC5E.AutoExhaustionHint": "Po zaznaczeniu tej opcji i korzystaniu ze starszych zasad dnd5e, AC5e będzie automatycznie przetwarzać normalne zasady stanu Wyczerpania z 5e.",
-	"AC5E.AutoEncumbranceName": "Wariant obciążenia AC5e.",
+	"AC5E.AutoEncumbranceName": "Wariant obciążenia.",
 	"AC5E.AutoEncumbranceHint": "Po zaznaczeniu tej opcji, AC5e będzie automatycznie przetwarzać zasady Obciążenia z wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
-	"AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: Atakujesz wiele celów, co nie jest obsługiwane. Wyniki rzutu mogą być wypaczone.",
-	"AC5E.NoTargetsAttackWarn": "Automated Conditions 5e: Nie wybrano żadnego celu podczas ataku. Zawsze wybieraj cel, jeśli chcesz, aby AC5e prawidłowo sugerowało tryby ułatwienia.",
-	"AC5E.MultipleTargetsDamageWarn": "Automated Conditions 5e: Zadajesz obrażenia wielu celom, co nie jest obsługiwane. Wyniki rzutu mogą być wypaczone.",
-	"AC5E.NoTargetsDamageWarn": "Automated Conditions 5e: Nie wybrano żadnego celu podczas rzucania obrażeń. Zawsze wybieraj cel, jeśli chcesz, aby AC5e prawidłowo sugerowało tryby rzutów.",
-	"AC5E.TargetingChoicesNone": "Nic nie rób",
-	"AC5E.TargetingChoicesSource": "Tylko ze źródła",
-	"AC5E.TargetingChoicesForce": "Wymuś celowanie",
-	"AC5E.TargetingName": "Opcje celowania AC5e",
-	"AC5E.TargetingHint": "Jeśli nie wybrano żadnego celu lub wybrano wiele celów, gdy użytkownik rzuca na atak lub obrażenia, AC5e: ''Nie rób nic'': Brak obliczeń trybu ułatwienia/obrażeń dla nadchodzącego rzutu; „Tylko ze źródła”: tryb ułatwienia/obrażeń oparty na dowolnych źródłowych efektach Aktora; „Wymuś celowanie”: Anuluj rzut i poproś o cele przed ponownym rzutem (używaj ostrożnie).",
+	"AC5E.Targeting": {
+		"Name": "Opcje celowania ataków",
+		"Hint": "Jeśli nie wybrano żadnego celu lub wybrano wiele celów do ataku, wybierz sposób, w jaki AC5e ma zareagować.",
+		"Choices": {
+			"Source": "Używaj tylko stanów źródła",
+			"Enforce": "Anuluj ukryty rzut",
+			"Warn": "Anuluj rzut z ostrzeżeniem"
+		},
+		"MultipleTargetsAttack": {
+			"Source": "AC5e: Wybrano wiele celów. Wyniki mogą być zniekształcone. Wykorzystano wyłącznie dane podmiotu źródłowego.",
+			"Enforce": "AC5e: Wybrano wiele celów. Rzut anulowany!"
+		},
+		"NoTargetsAttack": {
+			"Source": "AC5e: Nie wybrano żadnych celów. Ułatwienia/utrudnienia mogą być niedokładne. Wykorzystano wyłącznie dane aktora źródłowego.",
+			"Enforce": "AC5e: Nie wybrano żadnych celów. Rzut anulowany!"
+		}
+	},
 	"AC5E.KeypressOverrideName": "Skróty klawiszowe zastępują wyliczenia AC5e",
 	"AC5E.KeypressOverrideHint": "Powiązane klawisze dla ułatwienia, utrudnienia i krytyków powinny nadpisywać wszelkie obliczenia AC5e (zaznaczone) lub być dodawane do normalnych obliczeń AC5e (niezaznaczone).",
-	"AC5E.DebuggingName": "Debugowanie AC5E",
+	"AC5E.DebuggingName": "Debugowanie AC5e",
 	"AC5E.DebuggingHint": "Po prostu przydatne dzienniki do debugowania podczas programowania. Prawdopodobnie nie ma sensu, aby użytkownicy go włączali :)",
 	"AC5E.WarCaster": "Bitewny Mag",
 	"AC5E.Fail": "Porażka",
@@ -81,6 +109,7 @@
 	"AC5E.AbbreviationCritical": "kryt",
 	"AC5E.Grants": "otrzymuje",
 	"AC5E.Attacker": "Atakujący",
+	"AC5E.FlagsInitiativeDisadv": "Utrudnienia w inicjatywie",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Przyznane ułatwienie",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Przyznane utrudnienie",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Przyznianie krytyka",
@@ -89,9 +118,10 @@
 	"AC5E.TargetGrantsSuccess": "Przyznanie sukcesu",
 	"AC5E.TargetGrantsBonus": "Przyznanie bonusu",
 	"AC5E.NoChanges": "Bez zmian",
-	"AC5E.EnviromentalHazards": {
+	"AC5E.SystemMode": "Tryb systemowy",
+	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Zagrożenia środowiskowe (2024)",
-		"SettingsHint": "Zautomatyzowano stany podpalenia i uduszenia w oparciu o zestaw zasad dnd45e z 2024 r.",
+		"SettingsHint": "Zautomatyzowano stany podpalenia i uduszenia w oparciu o zestaw zasad D&D 5e z 2024 r.",
 		"BurningHazard": "Niebezpieczeństwo podpalenia",
 		"SuffocatingHazard": "Duszenie"
 	},

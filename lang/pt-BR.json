@@ -1,199 +1,229 @@
 {
-  "AC5E.ShowTooltipsName": "Mostrar Dicas de AC5e",
-  "AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5e mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
-  "AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
-  "AC5E.ShowToolTipsChoicesDialog": "Somente em rolagens",
-  "AC5E.ShowToolTipsChoicesChat": "Somente em chat",
-  "AC5E.ShowToolTipsChoicesNone": "Não exibir",
-  "AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome AC5e nas Dicas",
-  "AC5E.ExpandedConditionsName": "Condições Expandidas AC5e",
-  "AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
-  "AC5E.AutoArmorName": "Automação de Armadura",
-  "AC5E.AutoArmorHint": "Se marcado, AC5e irá processar automaticamente a proficiência da armadura equipada para rolagens de testes de atributo, perícias e salvaguardas (FOR || DES) e Desvantagem em Furtividade.",
-  "AC5E.AutoArmorSpellUseName": "Proficiência com Armadura, Condições (Fúria, Silenciado) e Magias",
-  "AC5E.AutoArmorSpellUseHint": "Fazer nada: Não faz nada. Forçar: Quando o uso da magia não é permitido, a conjuração é cancelada. Aviso: Quando o uso da magia não é permitido, o usuário é notificado.",
-  "AC5E.AutoArmorSpellUseChoicesOff": "Fazer nada",
-  "AC5E.AutoArmorSpellUseChoicesEnforce": "Forçar",
-  "AC5E.AutoArmorSpellUseChoicesWarn": "Avisar",
-  "AC5E.AutoArmorSpellUseChoicesEnforceToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias. Magia cancelada!",
-  "AC5E.AutoArmorSpellUseChoicesWarnToast": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias.",
-  "AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "está Incapacitado(a) e não pode conjurar magias. Magia cancelada!",
-  "AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "está Incapacitado(a) e não pode conjurar magias.",
-  "AC5E.AutoRagingSpellUseChoicesEnforceToast" : "está em Fúria e não pode conjurar magias. Magia cancelada!",
-  "AC5E.AutoRagingSpellUseChoicesWarnToast": "está em Fúria e não pode conjurar magias.",
-  "AC5E.AutoSilencedSpellUseChoicesEnforceToast" : "está Silenciado e não pode conjurar magias com componente verbal. Magia cancelada!",
-  "AC5E.AutoSilencedSpellUseChoicesWarnToast": "está Silenciado e não pode conjurar magias com componente verbal.",
-  "AC5E.AutoRangedAttacksName": "Automação de Ataques à Distância",
-  "AC5E.AutoRangedAttacksHint": "Se marcado, AC5e irá processar automaticamente a distância para desvantagem/falha baseado na distância do alvo e o os valores de alcance do item usado para o ataque.",
-  "AC5E.AutoRangedAttacksChoicesOff": "Desativado",
-  "AC5E.AutoRangedAttacksChoicesRangeOnly": "Apenas Verificação de Alcance",
-  "AC5E.AutoRangedAttacksChoicesNearbyFoes": "Alcance + Inimigos Próximos",
-  "AC5E.AutoExhaustionName": "Automação de Exaustão",
-  "AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
-  "AC5E.AutoEncumbranceName": "Variante Sobrecarga",
-  "AC5E.AutoEncumbranceHint": "Se marcado, AC5e irá processar automaticamente as regras da variante Sobrecarga da 5e. O MJ também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
-  "AC5E.MultipleTargetsAttackWarn": "Automated Conditions 5e: Você está atacando vários alvos e isso não é suportado. Os resultados da rolagem podem ficar distorcidos.",
-  "AC5E.NoTargetsAttackWarn": "Automated Conditions 5e: Você não tem nenhum alvo selecionado ao atacar. Por favor, sempre marque seus alvos se você quiser que o AC5e sugira o tipo de rolagem apropriado.",
-  "AC5E.MultipleTargetsDamageWarn": "Automated Conditions 5e: Você está aplicando dano em vários alvos e isso não é suportado. Os resultados da rolagem podem ficar distorcidos.",
-  "AC5E.NoTargetsDamageWarn": "Automated Conditions 5e: Você não tem nenhum alvo selecionado ao rolar o dano. Por favor, sempre marque seus alvos se você quiser que o AC5e sugira o tipo de rolagem apropriado",
-  "AC5E.TargetingChoicesNone": "Fazer Nada",
-  "AC5E.TargetingChoicesSource": "Apenas da Origem",
-  "AC5E.TargetingChoicesForce": "Forçar Marcação",
-  "AC5E.TargetingName": "Opçãoes de Marcação",
-  "AC5E.TargetingHint": "Se nenhum ou vários alvos forem marcados quando o Jogador rolar Ataque ou Dano, AC5e irá: 'Fazer nada': Sem cálculos de advantageMode/damageMode para a rolagem à seguir; 'Apenas da origem': advantageMode/damageMode baseado em qualquer efeito do Ator de origem; 'Forçar Marcação':  Cancela a rolagem e pergunta por alvos antes de rolar novamente (use com cuidado).",
-  "AC5E.KeypressOverrideName": "Atalhos Sobrepõem Cálculos AC5e",
-  "AC5E.KeypressOverrideHint": "Os atalhos de chave para vantagem, desvantagem e crítico devem substituir quaisquer cálculos do AC5e (habilitado) ou ser adicionados aos cálculos normais do AC5e (desabilitado).",
-  "AC5E.DebuggingName": "Debug",
-  "AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
-  "AC5E.WarCaster": "Conjurador de Guerra",
-  "AC5E.Fail": "Falha",
-  "AC5E.FailLowerCase": "falha",
-  "AC5E.Fumble": "Falha Crítica",
-  "AC5E.Rage": "Fúria",
-  "AC5E.Raging": "Em Fúria",
-  "AC5E.SubtleSpell": "Magia Sutil",
-  "AC5E.OutOfRange": "Fora do alcance",
-  "AC5E.Item": "Item",
-  "AC5E.Equipment": "Equipmento",
-  "AC5E.NearbyFoe": "Inimigo Próximo",
-    "AC5E.ButtonColorPicker": {
-      "Enabled": {
-      "Name": "Botões coloridos",
-      "Hint": "Destaque os botões de diálogo de rolagem. Cores padrão: #288bcc (fundo), branco (texto/borda). Insira 'user' para usar 'game.user.color' (melhor para fundo). Insira 'false/none/null/0' para desativar qualquer um dos seletores de cores disponíveis. Exclua qualquer campo para retornar aos padrões."
-    },
-    "Background": {
-      "Name": "🎨 Cor de Fundo do Botão",
-      "Hint": "Exclui qualquer string da entrada para definir como padrão o game.user.color."
-    },
-    "Border": {
-      "Name": "🖍️ Cor da Borda do Botão",
-      "Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
-    },
-    "Text": {
-      "Name": "🔤 Cor do Texto do Botão",
-      "Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
-    }
-  },
-  "AC5E.Bonus": "Bônus",
-  "AC5E.Success": "Sucesso",
-  "AC5E.AbbreviationAdvantage": "vant.",
-  "AC5E.AbbreviationDisadvantage": "desv.",
-  "AC5E.AbbreviationCritical": "crít.",
-  "AC5E.Grants": "conceder",
-  "AC5E.Attacker": "Atacante",
-  "AC5E.TargetGrantsAdvantageAbbreviated": "Alvo Concede Vant.",
-  "AC5E.TargetGrantsDisadvantageAbbreviated": "Alvo Concede Desv.",
-  "AC5E.TargetGrantsCriticalAbbreviated": "Alvo Concede Desv.",
-  "AC5E.TargetGrantsFail": "Alvo Concede Falha",
-  "AC5E.TargetGrantsFumble": "Conceder Falha Crítica",
-  "AC5E.TargetGrantsSuccess": "Conceder Sucesso",
-  "AC5E.TargetGrantsBonus": "Conceder Bônus",
-  "AC5E.NoChanges": "Sem Mudanças",
-  "AC5E.EnviromentalHazards": {
-    "SettingsName": "Riscos Ambientais (2024)",
-    "SettingsHint": "Automatize as condições Chamuscado e Sufocamento, com base no conjunto de regras do D&D5e de 2024",
-    "BurningHazard": "Chamuscado",
-    "SuffocatingHazard": "Sufocamento"
-  },
-  "dae.fieldData.fieldCategories.AC5E": "AC5E",
-  "dae.AC5E.fieldData": {
-    "flags.automated-condition-5e.crossbowExpert": {
-      "name": "Especialista em Bestas",
-      "description": "Estar a até 5 pés de um inimigo, não impõe Desvantagem em suas jogadas de ataque com bestas."
-    },
-    "flags.automated-condition-5e.sharpShooter": {
-      "name": "Atirador de Elite",
-      "description": "Sem Desvantagem ao disparar armas no Alcance Longo ou a até 5 pés de um inimigo."
-    },
-    "flags.automated-conditions-5e.ACTIONTYPE": {
-      "advantage": {
-        "name": "Rolar com Vantagem",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool"
-      },
-      "bonus": {
-        "name": "Rolagem Ganha Bônus",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex.: bonus=1d4 + 5 - @abilities.dex.mod."
-      },
-      "critical": {
-        "name": "Rolagem é Crítico (20 nat. ou dano crít.)",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
-      },
-      "disadvantage": {
-        "name": "Rolar com Desvantagem",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
-      },
-      "fail": {
-        "name": "Rolagem de d20 Falha",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
-      },
-      "fumble": {
-        "name": "Rolagem de d20 Falha Crítica (1 nat.)",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
-      },
-      "success": {
-        "name": "Rolagem de d20 Sucesso",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/save/skill/tool."
-      }
-    },
-    "flags.automated-conditions-5e.grants.ACTIONTYPE": {
-      "advantage": {
-        "name": "Conceder Vantagem às Rolagens de d20 do Oponente",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
-      },
-      "bonus": {
-        "name": "Conceder Bônus às Rolagens de d20 do Oponente",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com 'bonus=' seguido com um separador ';'. Ex.: bonus=1d4 + 5 - @abilities.dex.mod."
-      },
-      "critical": {
-        "name": "Conceder Crítico (20 nat. ou dano crít.) às Rolagens do Oponente",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
-      },
-      "disadvantage": {
-        "name": "Conceder Desvantagem às Rolagens de d20 do Oponente",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
-      },
-      "fail": {
-        "name": "Conceder Falha às Rolagens de d20 do Oponente",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
-      },
-      "fumble": {
-        "name": "Conceder Falha Crítica (1 nat.) às Rolagens de d20 do Oponente",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
-      },
-      "success": {
-        "name": "Sucesso às Rolagens de d20 Contra ou Causadas por Você",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
-      }
-    },
-    "flags.automated-conditions-5e.aura.ACTIONTYPE": {
-      "advantage": {
-        "name": "Uma Aura que Dá Vantagem",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: alcance;um ally/enemy/all;condições, Ex.: para uma ACTIONTYPE salvaguarda e: radius=15;includeSelf;allies;str;cha. Daria a todos os aliados, incluindo você mesmo, em um raio de 15 pés, vantagem em testes de força e/ou carisma."
-      },
-      "bonus": {
-        "name": "Uma Aura que Dá Bônus",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: alcance;ally enemy ou all;bônus;condições, Ex.: para ACTIONTYPE iniciativa e valores de efeitos de: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised. TODOS a até 20 pés terão suas rolagens reduzidas pelo mod. de CAR do ator origem se estiverem Surpresos."
-      },
-      "critical": {
-        "name": "Uma Aura Forçando Críticos (20 nat. ou dano)",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
-      },
-      "disadvantage": {
-        "name": "Uma Aura que Dá Desvantagem",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
-      },
-      "fail": {
-        "name": "Uma Aura Forçando Falha às Rolagens de d20",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
-      },
-      "fumble": {
-        "name": "Uma Aura Forçando Falha Crítica às Rolagens de d20",
-        "description": "Uma aura em torno do ator que tem efeito sobre. Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
-      },
-      "success": {
-        "name": "Uma Aura Forçando Sucesso",
-        "description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
-      }
-    }
-  }
+	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5e",
+	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5e mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
+	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
+	"AC5E.ShowToolTipsChoicesDialog": "Somente em rolagens",
+	"AC5E.ShowToolTipsChoicesChat": "Somente em chat",
+	"AC5E.ShowToolTipsChoicesNone": "Não exibir",
+	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome AC5e nas Dicas",
+	"AC5E.ShowTooltipChatVisibility.Name": "Mostrar Dicas de Chat para Jogadores",
+	"AC5E.ShowTooltipChatVisibility.Hint": "'Todas': todas rolagens de atores. 'Nenhuma': nenhuma rolagem. 'Próprias': rolagens de atores próprios. 'Jogadores': rolagens de atores de jogadores.",
+	"AC5E.ShowTooltipChatVisibility.All": "Todas",
+	"AC5E.ShowTooltipChatVisibility.None": "Nenhuma",
+	"AC5E.ShowTooltipChatVisibility.Owned": "Próprias",
+	"AC5E.ShowTooltipChatVisibility.Players": "Jogadores",
+	"AC5E.ExpandedConditionsName": "Condições Expandidas AC5e",
+	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
+	"AC5E.AutoArmorName": "Automação de Armadura",
+	"AC5E.AutoArmorHint": "Se marcado, AC5e irá processar automaticamente a proficiência da armadura equipada para rolagens de testes de atributo, perícias e salvaguardas (FOR || DES) e Desvantagem em Furtividade.",
+	"AC5E.ActivityUse": {
+		"Name": "Testes para Usos de Itens",
+		"Hint": "Quando o uso de um item não for permitido, AC5e irá 'Fazer nada', apenas 'Avisar' (notificação) ou irá 'Forçar' (cancelar rolagem + notificação).",
+		"Choices": {
+			"Off": "Fazer nada",
+			"Enforce": "Forçar",
+			"Warn": "Avisar"
+		},
+		"Type": {
+			"Armor": {
+				"Enforce": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias. Magia cancelada!",
+				"Warn": "não é proficiente com a armadura equipada e pelas regras, não pode conjurar magias."
+			},
+			"Incapacitated": {
+				"Enforce": "está Incapacitado(a) e não pode usar nenhuma ação. Ação cancelada!",
+				"Warn": "está Incapacitado(a) e não pode usar nenhuma ação."
+			},
+			"Raging": {
+				"Enforce": "está em Fúria e não pode conjurar magias. Magia cancelada!",
+				"Warn": "está em Fúria e não pode conjurar magias."
+			},
+			"Silenced": {
+				"Enforce": "está Silenciado e não pode conjurar magias com componente verbal. Magia cancelada!",
+				"Warn": "está Silenciado e não pode conjurar magias com componente verbal."
+			}
+		}
+	},
+	"AC5E.AutoRangedAttacksName": "Automação de Ataques à Distância",
+	"AC5E.AutoRangedAttacksHint": "Se marcado, AC5e irá processar automaticamente a distância para desvantagem/falha baseado na distância do alvo e o os valores de alcance do item usado para o ataque.",
+	"AC5E.AutoRangedAttacksChoicesOff": "Desativado",
+	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Apenas Verificação de Alcance",
+	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Alcance + Inimigos Próximos",
+	"AC5E.AutoExhaustionName": "Automação de Exaustão",
+	"AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
+	"AC5E.AutoEncumbranceName": "Variante Sobrecarga",
+	"AC5E.AutoEncumbranceHint": "Se marcado, AC5e irá processar automaticamente as regras da variante Sobrecarga da 5e. O MJ também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
+	"AC5E.Targeting": {
+		"Name": "Opções de Alvos para Ataques",
+		"Hint": "Quando nenhum ou vários alvos são selecionados para um Ataque, Dano ou jogada semelhante, escolha como o AC5e deve responder.",
+		"Choices": {
+			"Source": "Usar Apenas Condições do Ator de Origem",
+			"Enforce": "Cancelar Rolagem Silenciosamente",
+			"Warn": "Cancelar Rolagem com Aviso"
+		},
+		"MultipleTargetsAttack": {
+			"Source": "AC5e: Vários alvos selecionados. Os resultados podem ser distorcidos. Usando apenas dados do ator de origem.",
+			"Enforce": "AC5e: Vários alvos selecionados. Rolagem cancelada!"
+		},
+		"NoTargetsAttack": {
+			"Source": "AC5e: Nenhum alvo selecionado. A vantagem/desvantagem pode ser imprecisa. Usando apenas dados do ator de origem.",
+			"Enforce": "AC5e: Nenhum alvo selecionado. Rolagem cancelada!"
+		}
+	},
+	"AC5E.KeypressOverrideName": "Atalhos Sobrepõem Cálculos AC5e",
+	"AC5E.KeypressOverrideHint": "Os atalhos de chave para vantagem, desvantagem e crítico devem substituir quaisquer cálculos do AC5e (habilitado) ou ser adicionados aos cálculos normais do AC5e (desabilitado).",
+	"AC5E.DebuggingName": "Debug",
+	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
+	"AC5E.WarCaster": "Conjurador de Guerra",
+	"AC5E.Fail": "Falha",
+	"AC5E.FailLowerCase": "falha",
+	"AC5E.Fumble": "Falha Crítica",
+	"AC5E.Rage": "Fúria",
+	"AC5E.Raging": "Em Fúria",
+	"AC5E.SubtleSpell": "Magia Sutil",
+	"AC5E.OutOfRange": "Fora do alcance",
+	"AC5E.Item": "Item",
+	"AC5E.Equipment": "Equipmento",
+	"AC5E.NearbyFoe": "Inimigo Próximo",
+	"AC5E.ButtonColorPicker": {
+		"Enabled": {
+			"Name": "Botões Coloridos",
+			"Hint": "Destaque os botões de diálogo de rolagem. Cores padrão: #288bcc (fundo), branco (texto/borda). Insira 'user' para usar 'game.user.color' (melhor para fundo). Insira 'false/none/null/0' para desativar qualquer um dos seletores de cores disponíveis. Exclua qualquer campo para retornar aos padrões."
+		},
+		"Background": {
+			"Name": "🎨 Cor de Fundo do Botão",
+			"Hint": "Exclui qualquer string da entrada para definir como padrão o game.user.color."
+		},
+		"Border": {
+			"Name": "🖍️ Cor da Borda do Botão",
+			"Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
+		},
+		"Text": {
+			"Name": "🔤 Cor do Texto do Botão",
+			"Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
+		}
+	},
+	"AC5E.Bonus": "Bônus",
+	"AC5E.Success": "Sucesso",
+	"AC5E.AbbreviationAdvantage": "vant.",
+	"AC5E.AbbreviationDisadvantage": "desv.",
+	"AC5E.AbbreviationCritical": "crít.",
+	"AC5E.Grants": "conceder",
+	"AC5E.Attacker": "Atacante",
+	"AC5E.FlagsInitiativeDisadv": "Desvantagem na Iniciativa",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Alvo Concede Vant.",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Alvo Concede Desv.",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Alvo Concede Desv.",
+	"AC5E.TargetGrantsFail": "Alvo Concede Falha",
+	"AC5E.TargetGrantsFumble": "Conceder Falha Crítica",
+	"AC5E.TargetGrantsSuccess": "Conceder Sucesso",
+	"AC5E.TargetGrantsBonus": "Conceder Bônus",
+	"AC5E.NoChanges": "Sem Mudanças",
+	"AC5E.SystemMode": "Modo do Sistema",
+	"AC5E.EnvironmentalHazards": {
+		"SettingsName": "Riscos Ambientais (2024)",
+		"SettingsHint": "Automatize as condições Chamuscado e Sufocamento, com base no conjunto de regras do D&D5e de 2024",
+		"BurningHazard": "Chamuscado",
+		"SuffocatingHazard": "Sufocamento"
+	},
+	"dae.fieldData.fieldCategories.AC5E": "AC5E",
+	"dae.AC5E.fieldData": {
+		"flags.automated-condition-5e.crossbowExpert": {
+			"name": "Especialista em Bestas",
+			"description": "Estar a até 5 pés de um inimigo, não impõe Desvantagem em suas jogadas de ataque com bestas."
+		},
+		"flags.automated-condition-5e.sharpShooter": {
+			"name": "Atirador de Elite",
+			"description": "Sem Desvantagem ao disparar armas no Alcance Longo ou a até 5 pés de um inimigo."
+		},
+		"flags.automated-conditions-5e.ACTIONTYPE": {
+			"advantage": {
+				"name": "Rolar com Vantagem",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"bonus": {
+				"name": "Rolagem Ganha Bônus",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex.: bonus=1d4 + 5 - @abilities.dex.mod."
+			},
+			"critical": {
+				"name": "Rolagem é Crítico (20 nat. ou dano crít.)",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+			},
+			"disadvantage": {
+				"name": "Rolar com Desvantagem",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+			},
+			"fail": {
+				"name": "Rolagem de d20 Falha",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+			},
+			"fumble": {
+				"name": "Rolagem de d20 Falha Crítica (1 nat.)",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+			},
+			"success": {
+				"name": "Rolagem de d20 Sucesso",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/save/skill/tool."
+			}
+		},
+		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
+			"advantage": {
+				"name": "Conceder Vantagem às Rolagens de d20 do Oponente",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+			},
+			"bonus": {
+				"name": "Conceder Bônus às Rolagens de d20 do Oponente",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com 'bonus=' seguido com um separador ';'. Ex.: bonus=1d4 + 5 - @abilities.dex.mod."
+			},
+			"critical": {
+				"name": "Conceder Crítico (20 nat. ou dano crít.) às Rolagens do Oponente",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+			},
+			"disadvantage": {
+				"name": "Conceder Desvantagem às Rolagens de d20 do Oponente",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+			},
+			"fail": {
+				"name": "Conceder Falha às Rolagens de d20 do Oponente",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+			},
+			"fumble": {
+				"name": "Conceder Falha Crítica (1 nat.) às Rolagens de d20 do Oponente",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+			},
+			"success": {
+				"name": "Sucesso às Rolagens de d20 Contra ou Causadas por Você",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+			}
+		},
+		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
+			"advantage": {
+				"name": "Uma Aura que Dá Vantagem",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: alcance;um ally/enemy/all;condições, Ex.: para uma ACTIONTYPE salvaguarda e: radius=15;includeSelf;allies;str;cha. Daria a todos os aliados, incluindo você mesmo, em um raio de 15 pés, vantagem em testes de força e/ou carisma."
+			},
+			"bonus": {
+				"name": "Uma Aura que Dá Bônus",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: alcance;ally enemy ou all;bônus;condições, Ex.: para ACTIONTYPE iniciativa e valores de efeitos de: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised. TODOS a até 20 pés terão suas rolagens reduzidas pelo mod. de CAR do ator origem se estiverem Surpresos."
+			},
+			"critical": {
+				"name": "Uma Aura Forçando Críticos (20 nat. ou dano)",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+			},
+			"disadvantage": {
+				"name": "Uma Aura que Dá Desvantagem",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+			},
+			"fail": {
+				"name": "Uma Aura Forçando Falha às Rolagens de d20",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+			},
+			"fumble": {
+				"name": "Uma Aura Forçando Falha Crítica às Rolagens de d20",
+				"description": "Uma aura em torno do ator que tem efeito sobre. Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+			},
+			"success": {
+				"name": "Uma Aura Forçando Sucesso",
+				"description": "Substitui ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+			}
+		}
+	}
 }

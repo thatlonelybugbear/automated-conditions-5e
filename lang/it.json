@@ -6,23 +6,43 @@
 	"AC5E.ShowToolTipsChoicesChat": "Solo su Messaggi Chat",
 	"AC5E.ShowToolTipsChoicesNone": "Non Mostrare",
 	"AC5E.ShowModuleNameInTooltipsName": "Mostra nome AC5e nei suggerimenti",
+	"AC5E.ShowTooltipChatVisibility.Name": "Mostra i suggerimenti della chat nei client del giocatore per",
+	"AC5E.ShowTooltipChatVisibility.Hint": "'Tutti' - Tutti i tiri dei Personaggi, 'Nessuno' - Nessun Tiro, 'Proprio' - Tiri proprio personaggio, 'Giocatori' -  Tiri Personaggi dei Giocatori",
+	"AC5E.ShowTooltipChatVisibility.All": "Tutti",
+	"AC5E.ShowTooltipChatVisibility.None": "Nessuno",
+	"AC5E.ShowTooltipChatVisibility.Owned": "Proprio",
+	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
 	"AC5E.ExpandedConditionsName": "Condizioni Ampliate AC5e",
 	"AC5E.ExpandedConditionsHint": "Se selezionato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
 	"AC5E.AutoArmorName": "Competenza nelle armature AC5e e svantaggio furtività equipaggiamento.",
 	"AC5E.AutoArmorHint": "Se selezionato, AC5e elaborerà automaticamente la competenza nell'armatura equipaggiata per abilità, abilità e tiri salvezza (STR || DEX) e controllerà l'equipaggiamento per la proprietà di svantaggio della furtività.",
-	"AC5E.AutoArmorSpellUseName": "Competenza armature e incantesimi AC5e",
-	"AC5E.AutoArmorSpellUseHint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
-	"AC5E.AutoArmorSpellUseChoicesOff": "Disattiva",
-	"AC5E.AutoArmorSpellUseChoicesEnforce": "Applica",
-	"AC5E.AutoArmorSpellUseChoicesWarn": "Avverti",
-	"AC5E.AutoArmorSpellUseChoicesEnforceToast": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi. Incantesimo annullato!",
-	"AC5E.AutoArmorSpellUseChoicesWarnToast": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi",
-	"AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast": "è incapacitato e non può lanciare incantesimi. Incantesimo annullato!",
-	"AC5E.AutoIncapacitatedSpellUseChoicesWarnToast": "è incapacitato e non può lanciare incantesimi.",
-	"AC5E.AutoRagingSpellUseChoicesEnforceToast": "è in ira e non può lanciare incantesimi. Incantesimo annullato!",
-	"AC5E.AutoRagingSpellUseChoicesWarnToast": "è in ira e non può lanciare incantesimi.",
-	"AC5E.AutoSilencedSpellUseChoicesEnforceToast": "è silenziato e non può lanciare incantesimi con componenti verbali. Incantesimo annullato!",
-	"AC5E.AutoSilencedSpellUseChoicesWarnToast": "è silenziato e non può lanciare incantesimi con componenti verbali.",
+	"AC5E.ActivityUse" : {
+		"Name": "Competenza armature e incantesimi AC5e",
+		"Hint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
+		"Choices": {
+			"Off": "Disattiva",
+			"Enforce": "Applica",
+			"Warn": "Avverti",
+		},
+		"Type": {
+			"Armor": {
+				"Enforce": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi"
+			},
+			"Incapacitated": {
+				"Enforce": "è incapacitato e non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "è incapacitato e non può lanciare incantesimi."
+			},
+			"Raging": {
+				"Enforce": "è in ira e non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "è in ira e non può lanciare incantesimi."
+			},
+			"Silenced": {
+				"Enforce": "è silenziato e non può lanciare incantesimi con componenti verbali. Incantesimo annullato!",
+				"Warn": "è silenziato e non può lanciare incantesimi con componenti verbali."
+			}
+		}		
+	},
 	"AC5E.AutoRangedAttacksName": "Automazione Attacchi a distanza AC5e:",
 	"AC5E.AutoRangedAttacksHint": "'Disattivato': AC5E non elaborerà alcun controllo a distanza; 'Solo controlli a distanza': AC5E elaborerà automaticamente lo svantaggio/fallimento della distanza in base alla distanza target e ai valori dell'intervallo dell'elemento utilizzato per attaccare; 'Distanza + Nemici Vicini': gli ostili adiacenti all'attaccante imporranno svantaggi agli attacchi a distanza.",
 	"AC5E.AutoRangedAttacksChoicesOff": "Disattivato",
@@ -32,15 +52,23 @@
 	"AC5E.AutoExhaustionHint": "Se selezionato e stai usando le regole DND5E legacy, AC5E elaborerà automaticamente le normali regole delle condizioni di esaurimento 5E.",
 	"AC5E.AutoEncumbranceName": "Variante Ingombro AC5e.",
 	"AC5E.AutoEncumbranceHint": "Se selezionato, AC5e elaborerà automaticamente le regole di ingombro della variante 5e. Il GM deve anche selezionare nelle impostazioni del sistema Dnd5e, l'opzione Variante (ingombrato e pesantemente ingombrato), altrimenti ciò non avrà alcun effetto.",
-	"AC5E.MultipleTargetsAttackWarn": "Condizioni automatizzate 5e: stai attaccando più bersagli e questo non è supportato. I risultati del tiro possono essere distorti.",
-	"AC5E.NoTargetsAttackWarn": "Condizioni automatizzate 5e: Non hai bersagli selezionati quando attacchi. Scegli sempre il target se desideri che AC5e suggerisca AdvantageModes correttamente.",
-	"AC5E.MultipleTargetsDamageWarn": "Condizioni automatizzate 5e: stai danneggiando più bersagli e questo non è supportato. I risultati del tiro possono essere distorti.",
-	"AC5E.NoTargetsDamageWarn": "Condizioni automatizzate 5e: Non hai bersagli selezionati quando tiri i danni. Scegli sempre il target se desideri che AC5e suggerisca correttamente le modalità di tiro.",
-	"AC5E.TargetingChoicesNone": "Non fare nulla",
-	"AC5E.TargetingChoicesSource": "Solo dalla fonte",
-	"AC5E.TargetingChoicesForce": "Imposta targeting",
-	"AC5E.TargetingName": "Opzioni Bersaglio AC5e",
-	"AC5E.TargetingHint": "Se nessuno o più bersagli vengono selezionati quando l'utente lancia il tiro per l'Attacco o il Danno, AC5e: 'Non fare nulla': nessun calcolo della Modalità vantaggio/Modalità danno per il tiro in arrivo; 'Solo dalla fonte': AdvantageMode/damageMode basato su qualsiasi effetto del personaggio sorgente; 'Imposta targeting': annulla il tiro e chiedi i bersagli prima di tirare di nuovo (usare con cautela).",
+	"AC5E.Targeting": {
+		"Name": "Opzioni di targeting per gli attacchi",
+		"Hint": "Quando nessuno o più bersagli vengono selezionati per un Attacco, Danno o tiro simile, scegli come dovrebbe rispondere AC5E",
+		"Choices": {
+			"Source": "Usa solo le condizioni del personaggio di origine",
+			"Enforce": "Annulla il tiro silenziosamente",
+			"Warn": "Annulla il tiro con avviso"
+		},
+		"MultipleTargetsAttack": {
+			"Source": "AC5E: Più bersagli selezionati. I risultati potrebbero essere distorti. Utilizzati solo i dati del personaggio di origine.",
+			"Enforce": "AC5E: Più bersagli selezionati. Tiro annullato!"
+		},
+		"NoTargetsAttack": {
+			"Source": "AC5E: Nessun bersaglio selezionato. Il vantaggio/svantaggio può essere impreciso. Utilizzati solo i dati del personaggio di origine.",
+			"Enforce": "AC5E: Nessun bersaglio selezionato. Tiro annullato!"
+		}
+	},	
 	"AC5E.KeypressOverrideName": "Le combinazioni di tasti sovrascrivono i calcoli AC5e",
 	"AC5E.KeypressOverrideHint": "Combinazioni di Tasti per vantaggio, svantaggio e critico dovrebbero sovrascrivere qualsiasi calcolo di AC5e (selezionato) o essere aggiunti ai normali calcoli di AC5e (non selezionato).",
 	"AC5E.DebuggingName": "Debug AC5E",
@@ -81,6 +109,7 @@
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "fornisce",
 	"AC5E.Attacker": "Attaccante",
+	"AC5E.FlagsInitiativeDisadv": "Svantaggio su Iniziativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Fornito vant",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Fornito svant",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Fornito crit",
@@ -89,7 +118,8 @@
 	"AC5E.TargetGrantsSuccess": "Fornito Successo",
 	"AC5E.TargetGrantsBonus": "Fornito Bonus",
 	"AC5E.NoChanges": "Nessun cambiamento",
-	"AC5E.EnviromentalHazards": {
+	"AC5E.SystemMode": "Modalità di sistema",
+	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Pericoli ambientali (2024)",
 		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
 		"BurningHazard": "Pericolo Ustioni",

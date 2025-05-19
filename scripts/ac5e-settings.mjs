@@ -3,7 +3,8 @@ import Constants from './ac5e-constants.mjs';
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
 	static SHOW_TOOLTIPS = 'showTooltips';
-	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'shownNameTooltip';
+	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'showNameTooltips';
+	static SHOW_CHAT_TOOLTIPS = 'showChatTooltips';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
 	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
@@ -20,7 +21,7 @@ export default class Settings {
 	static ColorPicker_Background = 'buttonColorBackground';
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
-	static AUTOMATE_ENVIROMENTAL_HAZARDS = 'autoHazards';
+	static AUTOMATE_ENVIRONMENTAL_HAZARDS = 'autoHazards';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -47,6 +48,20 @@ export default class Settings {
 			config: true,
 			default: true,
 			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.SHOW_CHAT_TOOLTIPS, {
+			name: 'AC5E.ShowTooltipChatVisibility.Name',
+			hint: 'AC5E.ShowTooltipChatVisibility.Hint',
+			scope: 'world',
+			config: true,
+			default: 'all',
+			type: String,
+			choices: {
+				all: 'AC5E.ShowTooltipChatVisibility.All',
+				none: 'AC5E.ShowTooltipChatVisibility.None',
+				owned: 'AC5E.ShowTooltipChatVisibility.Owned',
+				players: 'AC5E.ShowTooltipChatVisibility.Players',
+			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Enabled, {
 			name: 'AC5E.ButtonColorPicker.Enabled.Name',
@@ -88,9 +103,9 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENVIROMENTAL_HAZARDS, {
-			name: 'AC5E.EnviromentalHazards.SettingsName',
-			hint: 'AC5E.EnviromentalHazards.SettingsHint',
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS, {
+			name: 'AC5E.EnvironmentalHazards.SettingsName',
+			hint: 'AC5E.EnvironmentalHazards.SettingsHint',
 			scope: 'world',
 			config: true,
 			default: false,
@@ -105,16 +120,16 @@ export default class Settings {
 			type: Boolean,
 		}); //
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_SPELL_USE, {
-			name: 'AC5E.AutoArmorSpellUseName',
-			hint: 'AC5E.AutoArmorSpellUseHint',
+			name: 'AC5E.ActivityUse.Name',
+			hint: 'AC5E.ActivityUse.Hint',
 			scope: 'world',
 			config: true,
 			default: 'off',
 			type: String,
 			choices: {
-				off: 'AC5E.AutoArmorSpellUseChoicesOff',
-				enforce: 'AC5E.AutoArmorSpellUseChoicesEnforce',
-				warn: 'AC5E.AutoArmorSpellUseChoicesWarn',
+				off: 'AC5E.ActivityUse.Choices.Off',
+				enforce: 'AC5E.ActivityUse.Choices.Enforce',
+				warn: 'AC5E.ActivityUse.Choices.Warn',
 			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU, {
@@ -150,7 +165,7 @@ export default class Settings {
 			name: 'AC5E.AutoExhaustionName',
 			hint: 'AC5E.AutoExhaustionHint',
 			scope: 'world',
-			config: true,
+			config: !this.dnd5eModernRules,
 			default: true,
 			type: Boolean,
 		});
@@ -163,16 +178,16 @@ export default class Settings {
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.TARGETING, {
-			name: 'AC5E.TargetingName',
-			hint: 'AC5E.TargetingHint',
+			name: 'AC5E.Targeting.Name',
+			hint: 'AC5E.Targeting.Hint',
 			scope: 'world',
 			config: true,
 			default: 'source',
 			type: String,
 			choices: {
-				source: 'AC5E.TargetingChoicesSource',
-				none: 'AC5E.TargetingChoicesNone',
-				force: 'AC5E.TargetingChoicesForce',
+				source: 'AC5E.Targeting.Choices.Source',
+				force: 'AC5E.Targeting.Choices.Enforce',
+				warn: 'AC5E.Targeting.Choices.Warn',
 			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES, {
@@ -210,11 +225,15 @@ export default class Settings {
 	get showNameTooltips() {
 		return game.settings.get(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS);
 	}
+	get showChatTooltips() {
+		if (['both', 'chat'].includes(this.showTooltips)) return game.settings.get(Constants.MODULE_ID, Settings.SHOW_CHAT_TOOLTIPS);
+		else return 'none';
+	}
 	get expandedConditions() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS);
 	}
 	get autoHazards() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIROMENTAL_HAZARDS);
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS);
 	}
 	get autoArmor() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_STEALTH);

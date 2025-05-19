@@ -1,17 +1,22 @@
 # Automated Conditions 5e
 ![Latest Version](https://img.shields.io/badge/dynamic/json.svg?url=https://api.github.com/repos/thatlonelybugbear/automated-conditions-5e/releases/latest&label=AC5E%20Version&query=$.tag_name&colorB=yellow&style=for-the-badge)
-![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=ff6400&style=for-the-badge)
-![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=Foundry%20Version&query=$.compatibility.maximum&colorB=ff6400&style=for-the-badge)
-![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
 ![Total Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total?color=2b82fc&label=TOTAL%20DOWNLOADS&style=for-the-badge)
 ![Latest Release Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total?color=2b82fc&label=LATEST%20DOWNLOADS&style=for-the-badge)
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https://forge-vtt.com/api/bazaar/package/automated-conditions-5e&colorB=68a74f&style=for-the-badge)](https://forge-vtt.com/bazaar#package=automated-conditions-5e)
+<br>
+![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json&label=Foundry%20Version&query=$.compatibility.minimum&colorB=ff6400&style=for-the-badge)
+![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/v12/module.json&label=Foundry%20Version&query=$.compatibility.minimum&colorB=ff6400&style=for-the-badge)
+![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=ff6400&style=for-the-badge)
+<br>
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-2.4.1-red?style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-3.3.1-red?style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-4.4.3-red?style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
 
 ## Description
-A small module for Foundry and Dnd5e which uses dnd5e system Hooks to add the correct config options for Rolls, trying to automate the most common Dnd5e Conditions.
+A Foundry VTT module for the D&D 5e game system that allows status effects and custom AC5e flags to dynamically influence any roll, including attacks, saves, ability checks, and damage. It highlights the correct roll button based on active effects and the 5e ruleset, ensuring rolls are made with the proper advantage, disadvantage, bonuses, or critical damage.
 
-Rolling with Core, will indicate the correct button to press, on Attack Rolls, Damage Rolls, Saving Throws, Ability Checks and Skill Checks, according to the 5e ruleset.
-Fast Forwarding the rolls (holding SHIFT) will roll with advantage/disadvantage or when needed critical damage correctly.
+The module supports **auras** and **granting modes** that can affect nearby allies or enemies, automatically applying condition-based bonuses, penalties. etc. AC5e flags allow evaluation of data from the rolling actor, opposing actor, and aura source actors — enabling automation of more complex, context-sensitive scenarios.
 
 <hr>
 If you like what I do, consider supporting this lonely bugbear 🐾
@@ -25,7 +30,7 @@ Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
 👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
 <hr>
 
-# Dnd5e Conditions supported.
+## Dnd5e Conditions supported
 > [!IMPORTANT]
 > The module will adjust it's behaviour based on the 5e system's setting, for Modern vs Legacy rules.
 For example if Modern rules are selected, AC5E will not handle Exhaustion, but respect the system's handling.
@@ -60,7 +65,17 @@ Small adjustments for differences in the rest of the conditions too, as needed.
 - `Invisibility` will give advantage on initiative rolls, in addition to the legacy rules.
 </details>
 
-# Settings added for:
+## AC5e flags: `flags.automated-conditions-5e`
+Using the offered module flags in Active effects, you can affect rolls of actors, against actors or actors within the range of auras!!
+
+More info in: <https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-functionality>
+
+> 💡 If you have DAE module enabled, the flags can be auto completed in the DAE effect sheets.
+
+## Module Settings
+<details>
+  <summary><b>Quick walkthrough</b></summary>
+  
 - `Expanded Conditions` **(default off)**
   - `Dodging`: Attacker disadvantage if target not incapacitated, restrained and can see attacker (attacker doesn't have the Hiding condition). Also advantage on dex saves.
   - `Hiding`: Advantage on attacks.
@@ -102,20 +117,21 @@ Small adjustments for differences in the rest of the conditions too, as needed.
     - Exhaustion 3-5 applies disadvantage.
     - Heavy Encumbrance applies disadvantage.
     - War Caster named Item applies advantage.
+</details>
 
-# Compatibility
+## Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly
 - [X] MidiQOL
 - [X] Ready Set Roll (AC5e tooltips on dual cards is a WIP).
  
-# Credits
+## Credits
 - Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips) for distance calculations.
 - Special thanks to [Tim](https://gitlab.com/tposney) for parts of code used, from his [MidiQOL](https://gitlab.com/tposney/midi-qol) module!!
 
-# Manual installation
+## Manual installation
 <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json>
-## For dnd5e v3.x, use manifest: 
+### For dnd5e v3.x, use manifest: 
 <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v12.331.3.2/module.json>
-## For dnd5e v2.x, use manifest: 
+### For dnd5e v2.x, use manifest: 
 <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/dndv2/module.json>
 

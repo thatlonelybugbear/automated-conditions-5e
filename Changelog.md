@@ -1,3 +1,156 @@
+## 13.503.8.1
+* Limit uses of AC5e flags on owned actors by a specific Number
+  * `once`: adding this keyword in the effect's value, will limit the use of the flag to the next relevant roll only
+    * especially useful for any features that trigger a specific behaviour on the next roll by the actor with the effect
+    * For example, the actor has advantage in the next Attack, Check, or Save roll (3 entries in one active effect):
+      * `flags.automated-conditions-5e.attack.advantage | Override | once`,
+      * `flags.automated-conditions-5e.check.advantage | Override | once`,
+      * `flags.automated-conditions-5e.save.advantage | Override | once`
+  * `usesCount=Number`: will limit the use of the flag to the next \<Number\> of times
+  * **BEWARE**:
+    * The count will be reduced if the rest of the conditions evaluate to true, no matter what the user selects in any relevant Roll dialog if not fast-forwarding.
+    * If the effect is a `transfer: true` one, it will be disabled and if using `usesCount` they will be reset to the initial value
+    * Otherwise the effect will be deleted from the Actor when the uses run out!
+  * There are future plans for:
+    * allowing any Item/Activity uses to be consumed, even from not owned actors.
+    * User opt-in flags
+* Reworked how the module gets the actors rollData when creating its sandbox for evaluations, so that all the relevant data are included while trying to limit the system's compatibility warnings for `spell.dc` and `spell.mod` is pre-v5.0.0 setups
+* Removed some `dialog.configure` handling, until the system fully implements [#5454](<https://github.com/foundryvtt/dnd5e/pull/5454>)
+
+## 13.503.7.1
+* Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
+## 13.503.7
+* Added global Boolean parameter for `ac5e.logEvaluationData` which if set to true on the client, the available evaluation data will be logged in console after creation. A quick way to familiarize yourselves with what is available to use!
+* Tweaked some hooks
+* Reworked evaluation data, like `castingLevel`, `baseSpellLevel`, `scaling` and now they are avalable
+* Refactor: Limit code duplication by using unified regex-based replacement function.
+* Added Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
+## 13.503.6
+* Properly offer backwards compatibility for `targetActor`
+  * Fix for a `currentCombatant` undefined relevant error
+* Fix for autoRanged checks always returning ranged attacks in short range
+* Small tweaks for `canSee()` which probably now is at a good state 🤞
+* Fix for missing `notifyPreUse` function
+
+## 13.503.4.2
+* More `canSee()` fixes
+* Fix for missing `targetActor` from evaluations
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+  
+## 13.503.4
+* Exposes a checkNearby function to help with Pack Tactics:
+  * `flags.automated-conditions-5e.attack.advantage | Override | checkNearby(opponentId, 'different', 5, {count: 2})`
+    * `oppenentId` is the targeted token's id
+    * `'different'` designates different disposition compared to the target's; can also use `'same'`, `'opposite'` or `'all'`
+    * the 3rd passed parameter is the distance to check, `5 units` in this case
+    * the 4th parameter is an Object which can include:
+       * `count` for the number of tokens to check against
+       * `includeToken` (false by default), which adds the target token if needed by passing `includeToken: true`
+       * `includeIncapacitated` (false by default), which adds any incapacitated tokens if true
+* More visibility testing fixes
+
+## 13.503.3
+* Compatibility with combat carousel which calls `actor.rollinitiative()`
+* Fix attacks failing due to _canSee() 
+
+## v13.503.2
+* Some settings hints clarifications
+* Proper 5e versioning bump
+* Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
+## v13.502.2.1
+* Fix for using `initiative`, `concentration`, `death` as flag \<ACTIONTYPES\>
+* `rollingActor.canMove` (same as `canMove`), `opponentActor.canMove` will be true if the actor has at least one non zero movement type
+* Updates in Brazilian Portugese, Italian and Polish translation files
+* D&D 5.0.3 compatibility bump
+
+## v13.502.2
+* Clarification on Actor References in Evaluations
+  * Use `opponentActor` to access the opponent’s rollData during evaluations, instead of `targetActor`.
+    * `targetActor` remains available for backwards compatibility, but its usage is now discouraged.
+  * This change hopefully improves clarity, especially in cases like saving throws, where the actor rolling the save *can* also be the target of an item roll. For example:
+    * during an attack, you have a clear distinction between the attacking actor and the targeted actor.
+    * But during saves, the actor rolling the save can also be an actual target, and the other party (e.g., the spellcaster or trap) is better referred to as the opponent.
+* Fix for wrong localization string in some settings
+* Refactor setpieces code
+* Rework `_canSee()` 
+* Raging/silenced/incapacitated etc checks fixes
+  * `raging`, `silenced`, `no armor proficiency` checks for spell items use
+  * `incapacitated` will be checked for activities that have any relevant action as activation cost
+* Fix for `subjectTokenId` undefined when no message is created (like initiative rolls)
+* Update pt-BR.json by @Kharmans
+* Pre use activity issues cleanup
+  * the targeting options for attack changes slightly. Now the module will:
+    * Use source actor data only if zero or multiple targets are selected when attacking
+    * Cancel roll silently
+    * Cancel roll with a warning notification shown to the user's client
+      * In all cases a console warning will be shown in the user's client
+* Adds more data in the sandbox for easier evaluations, like `isSpell` etc to be added in the [WIKI](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki>) soon!
+
+
+## v13.502.1
+* Compatibility bump for v5.0.2
+* Small fix for not posting more than one warnings, for incapacitated/raging/silenced checks
+* Make sure that group or vehicle actors do not break processing
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+  
+## v13.501.1.1
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+  
+## v13.501.1
+* Deal with Foundry v13 and dnd5e v5.0.0 deprecations
+* Update compatibility and verify module for Foundry v13.342 and 5e v5.0.1
+* Exhaustion automation setting will be only available for 5e legacy rules
+* New GM setting for visibility of the tooltips in chat messages
+  * `All`: players will see tooltips in all chat messages, no matter the actor rolling
+  * `None`: players won't see any tooltips in chat messages
+  * `Owned`: a player will be able to see tooltips in chat messages for rolls from owned actors
+  * `Players`: players will be able to see tooltips in chat messages for rolls from all player owned actors
+* Settings tweaks, so Show tooltip module name and Show chat messages tooltips options are available, only when relevant.
+
+## v13.500.4.1
+* Hotfix for `ui` in `equippedItems` triggering an error collection...
+* Hotfix for the changelog showing an incorrect example of `equippedItems` usage
+  * corrected example: `rollingActor.equippedItems.filter(i => i.includes('Platinum')).length > 2` will be true when the rolling actor has more than 2 equipped items with their names including `Platinum`
+
+## v13.500.4
+* Guards against `aura` or `grants` flags being evaluated against non relevant actors
+* Guards against numerous deprecation warnings being generated for `attributes.spelldc` and `attributes.spellmod` which AC5e doesn't use, but inadvertently triggers when cloning actor.getRollData() objects
+* Guards against cases of `undefined: true` being present in the sandbox data
+* Adds for flag evaluations:
+  * `equippedItems` which is an Array of item names, currently equipped on the actor
+    * ie `rollingActor.equippedItems.filter(i => i.includes('Platinum')).length > 2` which will be true when the rolling actor has more than 2 equipped items with their names including `Platinum`
+  * `distance` for distance evaluations
+    * `distance > 15 && distance <= 20` would be true if the distance between the rolling token and opponent token is between 15 (excluded) and 20 (included), but only when distance is available 
+  * `allies`/`enemies` as evaluation conditions for non auras too
+     * `allies` will be true for rolls that the rolling token has the **same** disposition compared to its opponent (if an opponent is available for that roll)
+     * `enemies` will be true for rolls that the rolling token has a **different** disposition compared to its opponent (if an opponent is available for that roll)
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
+## v13.500.3.3
+* Damage hook hotfix
+
+## v13.500.3.2
+* Some more bugfixes for attack hooks
+* Fix for `effectOriginTokenId` evaluations
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## v13.500.3.1
+* Normalize roll data evaluations for ac5e flags
+ * In bonus mode flags, use:
+  * `@` or `rollingActor` to access roll data from the actor rolling, ie `@abilities.dex.mod` or `rollingActor.dex.mod`
+  * `##` or `targetActor` to access roll data from a targeted actor (single targeted actor), ie `##attributes.ac.bonus` or `targetActor.attributes.ac.bonus`
+  * for auras only, `auraActor` to access roll data from the aura's source actor, ie `auraActor.abilities.cha.mod`
+   * `flags.automated-conditions-5e.aura.save.bonus | Override | radius=10;bonus=auraActor.abilities.cha.mod;includeSelf;singleAura;allies` is essentially the level 6 Paladin's Aura of Protection.
+* Cleanup parameters pass to private functions
+* Concentration flag fixes
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## v13.500.2
 * Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 * Cleanup in available sandbox data for AC5e flags conditional evaluations

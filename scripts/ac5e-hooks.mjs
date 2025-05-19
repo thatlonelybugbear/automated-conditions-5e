@@ -21,9 +21,12 @@ export function _rollFunctions(hook, ...args) {
 	} else if (['check' /*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollAbilityTest(config, dialog, message, hook);
-	} else if (hook === 'consumptionHook') {
-		const [activity, config, dialog, message] = args;
-		return _postConsumptionHook(activity, config, dialog, message);
+	// } else if (hook === 'consumptionHook') {
+	// 	const [activity, config, dialog, message] = args;
+	// 	return _postConsumptionHook(activity, config, dialog, message);
+	} else if (hook === 'init') {
+		const [actor, rollConfig] = args;
+		return _preConfigureInitiative(actor, rollConfig, hook);
 	}
 }
 function getMessageData(config) {
@@ -51,84 +54,83 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (settings.debug) console.error('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
-	const options = chatButtonTriggered.options;
-	if (item.type == 'spell' && settings.autoArmorSpellUse !== 'off') {
-		if (_autoArmor(sourceActor).notProficient) {
-			if (settings.autoArmorSpellUse === 'warn') ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesWarnToast')}`);
-			else if (settings.autoArmorSpellUse === 'enforce') {
-				ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoArmorSpellUseChoicesEnforceToast')}`);
-				return false;
-			}
-		}
+	const options = { ability, skill, tool, hook, activity };
+
+	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
+	if (item.type === 'spell' && useWarnings) {
+		const notProficient = _autoArmor(sourceActor).notProficient;
+		const raging = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
+		const silenced = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
+		// const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Vocal')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellVocal;
+		// const somaticCheck = item.system.properties.has('somatic') && sourceActor.items.filter((i)=>i.system?.equipped && i.system.type === 'weapon' && !i.system.properties.has('foc'))?.length > 1 && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Somatic')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellSomatic;
+		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
+		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
+		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
+		if (useWarnings === 'Enforce' && (notProficient || raging || silenced)) return false;
 	}
-	const incapacitatedCheck = sourceActor.statuses.has('incapacitated');
-	const ragingCheck = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
-	const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
-	// const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Vocal')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellVocal;
-	// const somaticCheck = item.system.properties.has('somatic') && sourceActor.items.filter((i)=>i.system?.equipped && i.system.type === 'weapon' && !i.system.properties.has('foc'))?.length > 1 && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Somatic')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellSomatic;
-	if (incapacitatedCheck || ragingCheck || silencedCheck /*|| somaticCheck*/) {
-		if (settings.autoArmorSpellUse === 'warn') {
-			if (incapacitatedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesWarnToast')}`);
-			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesWarnToast')}`);
-			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesWarnToast')}`);
-			// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
-		} else if (settings.autoArmorSpellUse === 'enforce') {
-			if (incapacitatedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoIncapacitatedSpellUseChoicesEnforceToast')}`);
-			if (ragingCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoRagingSpellUseChoicesEnforceToast')}`);
-			if (silencedCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSilencedSpellUseChoicesEnforceToast')}`);
-			// if (somaticCheck) ui.notifications.warn(`${sourceActor.name} ${_localize('AC5E.AutoSomaticSpellUseChoicesWarnToast')}`);
-			return false;
-		}
+	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
+	if (incapacitated && useWarnings) {
+		notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
+		if (useWarnings === 'Enforce') return false;
 	}
+
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
 	let targets = game.user?.targets;
-	if (targets.size) {
-		for (const target of targets) {
-			let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, options);
-			ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: target.actor, opponentToken: target, ac5eConfig, hook, ability, skill, tool, distance: _getDistance(sourceToken, target), activity, options });
-			if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
-				const failString = `${item.name} cannot target ${target.name}, due to the following effects`;
-				const sourceString = ac5eConfig.subject.fail.length ? `, on the sourceActor: ${ac5eConfig.subject.fail.join(',')}` : '';
-				const targetString = ac5eConfig.opponent.fail.length ? `, on the targetActor: ${ac5eConfig.opponent.fail.join(',')}!` : '!';
-				ui.notifications.warn(failString + sourceString + targetString);
-				game.user.updateTokenTargets(
-					Array.from(game.user.targets)
-						.filter((t) => t !== target)
-						.map((t) => t.id)
-				);
-				if (_activeModule('midi-qol')) usageConfig.workflow.targets = new Set(game.user.targets);
-			}
-		}
-	}
+
+	//to-do: rework this to properly check for fail flags and fail use status effects
+	// if (targets.size) {
+	// 	for (const target of targets) {
+	// 		const distance = _getDistance(sourceToken, target);
+	// 		const perTargetOptions = foundry.utils.deepClone(options);
+	// 		perTargetOptions.distance = distance;
+	// 		let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, target.id, perTargetOptions);
+	// 		//ac5eConfig should include the options object
+	// 		ac5eConfig = _ac5eChecks({ subjectToken: sourceToken, opponentToken: target, ac5eConfig });
+	// 		if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
+	// 			const failString = `${item.name} cannot target ${target.name}, due to the following effects`;
+	// 			const sourceString = ac5eConfig.subject.fail.length ? `, on the sourceActor: ${ac5eConfig.subject.fail.join(',')}` : '';
+	// 			const targetString = ac5eConfig.opponent.fail.length ? `, on the targetActor: ${ac5eConfig.opponent.fail.join(',')}!` : '!';
+	// 			ui.notifications.warn(failString + sourceString + targetString);
+	// 			game.user.updateTokenTargets(
+	// 				Array.from(game.user.targets)
+	// 					.filter((t) => t !== target)
+	// 					.map((t) => t.id)
+	// 			);
+	// 			if (_activeModule('midi-qol')) usageConfig.workflow.targets = new Set(game.user.targets);
+	// 		}
+	// 	}
+	// }
 	//to-do: should we do something for !targets.size and midi?
-	targets = game.user.targets;
-	const singleTargetToken = targets?.first();
+
+	let singleTargetToken = targets?.first();
+	const needsTarget = settings.needsTarget;
+	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
+	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
+	if (invalidTargets && needsTarget === 'force') return false;
+	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
-	const singleTargetActor = singleTargetToken?.actor;
-	ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: singleTargetActor, opponentToken: singleTargetToken, ac5eConfig, hook, ability, skill, tool, distance: _getDistance(sourceToken, singleTargetToken), activity, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
-	if (!activity.parent.hasAttack && !activity.hasDamage) return true;
-	const targetsSize = targets?.size;
-	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
-	if (settings.needsTarget === 'force' && !_hasValidTargets(activity, targetsSize, 'pre', 'enforce')) return false;
-	if (settings.needsTarget === 'none') return true;
 	return true;
 }
 
-export function _postConsumptionHook(activity, config, dialog, message) {
-	const ac5eConfig = config[Constants.MODULE_ID] || {};
-	if (settings.debug) console.warn('AC5E._postConsumptionHook', { activity, config, dialog, message, ac5eConfig });
-	if (activity.isSpell) foundry.utils.mergeObject(ac5eConfig, { options: { spellLevel: dialog?.data?.flags?.use?.spellLevel || activity.item.system.level } });
-	_setAC5eProperties(ac5eConfig, config, dialog, message);
-}
+// export function _postConsumptionHook(activity, config, dialog, message) {
+// 	const ac5eConfig = config[Constants.MODULE_ID] || {};
+// 	if (settings.debug) console.warn('AC5E._postConsumptionHook', { activity, config, dialog, message, ac5eConfig });
+// 	if (activity.isSpell) foundry.utils.mergeObject(ac5eConfig, { options: { spellLevel: dialog?.data?.flags?.use?.spellLevel || activity.item.system.level } });
+// 	_setAC5eProperties(ac5eConfig, config, dialog, message);
+// }
 
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
+	options.hook = hook;
+	options.activity = activity;
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
@@ -139,8 +141,9 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const messageType = message?.flags?.dnd5e?.messageType;
 	const chatMessage = message?.document;
 
-	const subjectTokenId = speaker?.token;
+	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
+	if (attackingToken) options.distance = _getDistance(attackingToken, subjectToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, attackingToken?.id, options);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -148,21 +151,20 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (options.isDeathSave) {
 		const hasAdvantage = subject.system.attributes.death?.roll?.mode === 1;
 		const hasDisadvantage = subject.system.attributes.death?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
-		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
+		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 
 	if (options.isConcentration) {
-		if (_hasItem(subject, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize(itemName));
+		if (_hasItem(subject, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
 		const hasAdvantage = subject.system.attributes.concentration?.roll?.mode === 1;
 		const hasDisadvantage = subject.system.attributes.concentration?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemRollMode.ADV'));
-		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemRollMode.DIS'));
+		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 
-	ac5eConfig = _ac5eChecks({ subject, subjectToken, opponent: attackingActor, opponentToken: attackingToken, ac5eConfig, hook, ability, activity, options });
-	dialog.configure = !ac5eConfig.fastForward;
-	// _setAC5eProperties(ac5eConfig, config, dialog, message);
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: attackingToken });
+	// dialog.configure = !ac5eConfig.fastForward;
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
@@ -176,11 +178,13 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.skill = skill;
 	options.tool = tool;
 	options.ability = ability;
+	options.hook = hook;
+	options.activity = activity;
 
-	const subjectTokenId = speaker?.token;
+	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	let opponentToken;
-	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects 
+	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects
 	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 
@@ -188,7 +192,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 
 	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
 	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
-	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, subject, opponentToken, opponent: opponentToken?.actor, hook, ability, tool, skill, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
 	//check Auto Armor
 	//to-do: move to setPieces
 	if (settings.autoArmor) {
@@ -199,8 +203,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	if (_autoEncumbrance(subject, ability)) {
 		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 	}
-	if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
-	// _setAC5eProperties(ac5eConfig, config, dialog, message, options);
+	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest', { ac5eConfig });
 	return ac5eConfig;
@@ -212,40 +215,29 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
-
 	const chatButtonTriggered = getMessageData(config);
-	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, item, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
-	foundry.utils.mergeObject(options, chatButtonTriggered.options);
+	options.activity = activity;
+	options.hook = hook;
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
 	const targets = game.user.targets;
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
-	const targetsSize = targets?.size; //targets?.length;
-	const singleTargetToken = targets?.first(); //targets?.[0];
-	const singleTargetActor = singleTargetToken?.actor;
-	let targetActor = singleTargetActor;
-	let targetToken = singleTargetToken;
-	let distance = _getDistance(sourceToken, singleTargetToken);
-	if (targetsSize != 1) {
-		//to-do: Think about more than one targets
-		//to-do: Add keybind to target unseen tokens when 'force' is selected.
-		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
-		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
-		else {
-			//source only
-			targetToken = undefined;
-			targetToken = undefined;
-			distance = undefined;
-		}
-	}
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id);
+	let singleTargetToken = targets?.first();
+	const needsTarget = settings.needsTarget;
+	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
+	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
+	if (invalidTargets && needsTarget === 'force') return false;
+	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: targetActor, opponentToken: targetToken, ac5eConfig, hook, ability, distance, activity, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	let nearbyFoe, inRange, range;
-	if (settings.autoRangedCombined !== 'off' && targetToken) {
+	if (settings.autoRangedCombined !== 'off' && singleTargetToken) {
 		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken));
 		//Nearby Foe
 		if (nearbyFoe) {
@@ -282,31 +274,27 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config);
 	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
-	options.spellLevel = use?.spellLevel;
+	options.attackMode = attackMode;
+	options.ammo = ammunition;
+	options.activity = activity;
+	options.hook = hook;
+	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 	const targets = game.user?.targets;
-	const targetsSize = targets?.size;
-	const singleTargetToken = targets?.first(); //to-do: refactor for dnd5e 3.x target in messageData; flags.dnd5e.targets[0].uuid Actor5e#uuid not entirely useful.
-	const singleTargetActor = singleTargetToken?.actor;
-	let targetActor = singleTargetActor;
-	let targetToken = singleTargetToken;
-	let distance = _getDistance(sourceToken, singleTargetToken);
-	if (targetsSize != 1) {
-		//to-do: Think about more than one targets
-		//to-do: Add keybind to target unseen tokens when 'force' is selected.
-		if (settings.needsTarget == 'force' && !_hasValidTargets(activity, targetsSize, 'attack', 'enforce')) return false;
-		else if (settings.needsTarget == 'none' && !_hasValidTargets(item, targetsSize, 'attack', 'console')) return true;
-		else {
-			//source only
-			targetToken = undefined;
-			targetToken = undefined;
-			distance = undefined;
-		}
-	}
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, targetToken?.id);
+	let singleTargetToken = targets?.first();
+	const needsTarget = settings.needsTarget;
+
+	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
+	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
+	if (invalidTargets && needsTarget === 'force') return false;
+	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+
+	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
-	ac5eConfig = _ac5eChecks({ subject: sourceActor, subjectToken: sourceToken, opponent: targetActor, opponentToken: targetToken, ac5eConfig, hook, ability, distance, activity, options });
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
 	return true;
@@ -361,12 +349,6 @@ export function _renderHijack(hook, render, elem) {
 			subtitleElement.textContent = `${tokenName}`;
 			subtitleElement.style.display = 'block'; // Force a new line
 		}
-		// else if (getConfigAC5E?.tokenId && (hookType === 'attack' || hookType === 'damage')) {
-		// 	const subtitleElement = elem.querySelector('.window-subtitle');
-		// 	tokenName = canvas.tokens.get(getConfigAC5E.tokenId)?.name;
-		// 	subtitleElement.textContent = `${tokenName}`;
-		// 	subtitleElement.style.display = 'block'; // Force a new line
-		// }
 		if (newTitle) title.textContent = newTitle; //: render.title;
 		if (!['both', 'dialog'].includes(settings.showTooltips)) return true;
 		tooltip = _getTooltip(getConfigAC5E);
@@ -390,6 +372,12 @@ export function _renderHijack(hook, render, elem) {
 		return true;
 	} else if (hook === 'chat') {
 		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
+		if (!game.user.isGM) {
+			getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
+			if (settings.showChatTooltips === 'none') return true;
+			else if (settings.showChatTooltips === 'players' && !getConfigAC5E?.hasPlayerOwner) return true;
+			else if (settings.showChatTooltips === 'owned' && getConfigAC5E?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
+		}
 		if (_activeModule('midi-qol')) {
 			if (render?.rolls?.length > 1) {
 				getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID], render?.rolls?.[2]?.options?.[Constants.MODULE_ID]];
@@ -461,20 +449,23 @@ export async function _overtimeHazards(combat, update, options, user) {
 	const BURNING_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.mPBGM1vguT5IPzxT';
 	const PRONE_UUID = 'Compendium.dnd5e.rules.JournalEntry.w7eitkpD7QQTB6j0.JournalEntryPage.y0TkcdyoZlOTmAFT';
 
+	const TextEditorFn = game.version > '13' ? foundry.applications.ux.TextEditor.implementation : TextEditor;
+
 	if (previousActor?.statuses.has('suffocation')) {
 		const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;
-		if (maxExhaustion) {
+		const exhaustionLevel = previousActor.system.attributes.exhaustion ?? 0;
+		if (maxExhaustion && exhaustionLevel < maxExhaustion) {
 			await previousActor.update({
-				'system.attributes.exhaustion': Math.min((previousActor.system.attributes.exhaustion ?? 0) + 1, maxExhaustion),
+				'system.attributes.exhaustion': exhaustionLevel + 1,
 			});
 
-			let flavor = `<p>_localize('AC5E.EnviromentalHazards.Suffocating')</p>`;
+			let flavor = _localize('AC5E.EnvironmentalHazards.Suffocating');
 			if (hasPHB) {
 				const suffocationEntry = await fromUuid(SUFFOCATION_UUID);
-				flavor = suffocationEntry?.text?.content ?? flavor;
+				flavor = `<div align-text="center">${_localize('AC5E.EnvironmentalHazards.SettingsName')}</div>${suffocationEntry?.text?.content ?? flavor}`;
 			}
 
-			const enrichedHTML = (await TextEditor.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
+			const enrichedHTML = (await TextEditorFn.enrichHTML(flavor)).replace(/<a[^>]*data-action="apply"[^>]*>.*?<\/a>/g, '');
 
 			await ChatMessage.create({
 				content: enrichedHTML,
@@ -484,15 +475,15 @@ export async function _overtimeHazards(combat, update, options, user) {
 	}
 
 	if (actor?.statuses.has('burning')) {
-		let flavor = `<p>_localize('AC5E.EnviromentalHazards.BurningHazard')</p>`;
+		let flavor = _localize('AC5E.EnvironmentalHazards.BurningHazard');
 		if (hasPHB) {
 			const burningEntry = await fromUuid(BURNING_UUID);
-			flavor = burningEntry?.text?.content ?? flavor;
+			flavor = `<div align-text="center">${_localize('AC5E.EnvironmentalHazards.SettingsName')}</div>${burningEntry?.text?.content ?? flavor}`;
 		}
 
 		flavor = flavor.replace(/@UUID\[\.QxCrRcgMdUd3gfzz\]\{Prone\}/g, `@UUID[${PRONE_UUID}]{Prone}`);
 
-		const enrichedHTML = await TextEditor.enrichHTML(flavor);
+		const enrichedHTML = await TextEditorFn.enrichHTML(flavor);
 		const type = 'fire';
 
 		if (!_activeModule('midi-qol')) {
@@ -500,12 +491,12 @@ export async function _overtimeHazards(combat, update, options, user) {
 			return new CONFIG.Dice.DamageRoll('1d4', actor?.getRollData(), {
 				type,
 				appearance: { colorset: type },
-			}).toMessage({ content: enrichedHTML });
+			}).toMessage({ flavor: enrichedHTML });
 		} else {
 			const damageRoll = await new Roll('1d4', actor?.getRollData(), {
 				type,
 				appearance: { colorset: type },
-			}).toMessage({ content: enrichedHTML });
+			}).toMessage({ flavor: enrichedHTML });
 			const damage = damageRoll.rolls[0].total;
 
 			const forceApply = MidiQOL.configSettings()?.autoApplyDamage?.includes('yes') ?? false;
@@ -518,7 +509,12 @@ export async function _overtimeHazards(combat, update, options, user) {
 }
 
 export function _renderSettings(app, html, data) {
-	const $html = $(html);
+	html = html instanceof HTMLElement ? html : html[0];
+	renderChatTooltipsSettings(html);
+	renderColoredButtonSettings(html);
+}
+
+function renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
 		{ key: 'buttonColorBorder', default: 'white' },
@@ -527,60 +523,134 @@ export function _renderSettings(app, html, data) {
 
 	for (let { key, default: defaultValue } of colorSettings) {
 		const settingKey = `${Constants.MODULE_ID}.${key}`;
-		const input = $html.find(`[name="${settingKey}"]`);
-		if (input.length) {
-			let colorPicker = $('<input type="color" class="color-picker">');
+		const input = html.querySelector(`[name="${settingKey}"]`);
 
-			const updateColorPicker = () => {
-				const val = input.val().trim().toLowerCase();
-				const resolved = _getValidColor(val);
+		if (!input) continue;
 
-				// Remove color picker if input is falsy
-				if (resolved === false) {
-					colorPicker.hide();
-				} else {
-					if (!colorPicker || !colorPicker.parent().length) {
-						colorPicker = $('<input type="color" class="color-picker">');
-						input.after(colorPicker);
-					}
-					colorPicker.val(resolved).show();
-				}
-			};
+		let colorPicker = document.createElement('input');
+		colorPicker.type = 'color';
+		colorPicker.classList.add('color-picker');
 
-			// Sync picker -> input
-			colorPicker.on('input', function () {
-				const color = $(this).val();
-				input.val(color).trigger('change');
-			});
+		const updateColorPicker = () => {
+			const val = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(val);
 
-			// Sync input -> picker
-			input.on('input', function () {
+			if (resolved === false) {
+				colorPicker.style.display = 'none';
+			} else {
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+			}
+		};
+
+		colorPicker.addEventListener('input', () => {
+			input.value = colorPicker.value;
+			input.dispatchEvent(new Event('change'));
+		});
+
+		input.addEventListener('input', updateColorPicker);
+
+		input.addEventListener('blur', () => {
+			if (input.value.trim() === '') {
+				input.value = defaultValue;
+				input.dispatchEvent(new Event('change'));
 				updateColorPicker();
-			});
+			}
+		});
 
-			// Reset to default when blank
-			input.on('blur', function () {
-				if ($(this).val().trim() === '') {
-					$(this).val(defaultValue).trigger('change');
-					updateColorPicker();
-				}
-			});
-
-			input.after(colorPicker);
-			updateColorPicker();
-		}
+		input.insertAdjacentElement('afterend', colorPicker);
+		updateColorPicker();
 	}
 
-	// Toggle visibility based on the main checkbox
-	const toggle = $html.find(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
-	const updateVisibility = () => {
-		const visible = toggle.is(':checked');
-		const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
-		for (let key of keysToToggle) {
-			$html.find(`[data-setting-id="${Constants.MODULE_ID}.${key}"]`).toggle(visible);
-		}
-	};
+	// Visibility toggle
+	const toggle = html.querySelector(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
+	if (toggle) {
+		const updateVisibility = () => {
+			const visible = toggle.checked;
+			const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
+			for (let key of keysToToggle) {
+				const input = html.querySelector(`[name="${Constants.MODULE_ID}.${key}"]`);
+				if (input) {
+					const container = input.closest('.form-group') || input.parentElement;
+					if (container) container.style.display = visible ? 'flex' : 'none';
+				}
+			}
+		};
 
-	updateVisibility();
-	toggle.on('change', updateVisibility);
+		toggle.addEventListener('change', updateVisibility);
+		updateVisibility();
+	}
+}
+
+function renderChatTooltipsSettings(html) {
+	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
+	const chatTooltipSelect = html.querySelector(`select[name="${Constants.MODULE_ID}.showChatTooltips"]`);
+	const showNameTooltip = html.querySelector(`[name="${Constants.MODULE_ID}.showNameTooltips"]`);
+
+	if (!tooltipSelect || !chatTooltipSelect || !showNameTooltip) return;
+
+	function updateChatTooltipVisibility() {
+		const val = tooltipSelect.value;
+		const shouldShowChatTooltip = val === 'both' || val === 'chat';
+		const shouldShowTooltip = val !== 'none';
+		const containerChat = chatTooltipSelect.closest('.form-group') || chatTooltipSelect.parentElement;
+		if (containerChat) containerChat.style.display = shouldShowChatTooltip ? 'flex' : 'none';
+		const containerName = showNameTooltip.closest('.form-group') || showNameTooltip.parentElement;
+		if (containerName) containerName.style.display = shouldShowTooltip ? 'flex' : 'none';
+	}
+
+	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
+	updateChatTooltipVisibility();
+}
+
+function notifyPreUse(actorName, warning, type) {
+	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
+	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
+	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
+}
+
+export function _preConfigureInitiative(subject, rollConfig) {
+	const hook = 'check';
+	const subjectToken = subject.token?.object ?? subject.getActiveTokens()[0];
+	const config = rollConfig.options;
+	const options = {};
+	options.isInitiative = true;
+	options.preConfigInitiative = true;
+	options.hook = hook;
+	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
+	//to-do: match the flags or init mode with the tooltip blurb
+	if ((subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if ((subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
+	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
+	
+	//to-do: move to setPieces
+	if (_autoEncumbrance(subject, 'dex')) {
+		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
+	}
+	let advantageMode = 0;
+	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) advantageMode += 1;
+	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) advantageMode -= 1;
+	if (ac5eConfig.parts.length) rollConfig.parts = rollConfig.parts.concat(ac5eConfig.parts);
+	if (advantageMode > 0) {
+		rollConfig.advantageMode = 1;
+		rollConfig.options.advantageMode = 1;
+		rollConfig.advantage = true;
+		rollConfig.disadvantage = false;
+	}
+	else if (advantageMode < 0) {
+		rollConfig.advantageMode = -1;
+		rollConfig.options.advantageMode = -1;
+		rollConfig.advantage = false;
+		rollConfig.disadvantage = true;
+	}
+	else if  (advantageMode === 0) {
+		rollConfig.advantageMode = 0;
+		rollConfig.options.advantageMode = 0;
+		rollConfig.advantage = false;
+		rollConfig.disadvantage = false;
+	}
+	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
+	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
+	return ac5eConfig;
 }

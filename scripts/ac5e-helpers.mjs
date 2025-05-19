@@ -361,19 +361,36 @@ export function _dispositionCheck(t1, t2, check = false) {
 }
 
 export function _findNearby({
-	token, //Token5e or Token5e#Document to find nearby around.
-	disposition = 'all', //'all', 'same', 'different', false
-	radius = 5, //default radius 5
-	lengthTest = false, //false or integer which will test the length of the array against that number and return true/false.
-	includeToken = false, //includes or exclude source token
-	includeIncapacitated = false,
+	token, // Token5e, TokenDocument5e, ID string, or UUID
+	disposition = 'all', // 'same', 'different', 'opposite' or false === 'all'
+	radius = 5, // Distance radius (default 5)
+	lengthTest = false, // Number or false; if number, returns boolean test
+	includeToken = false, // Include source token in results
+	includeIncapacitated = false, // Include dead/incapacitated tokens
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
-	const validTokens = canvas.tokens.placeables.filter((placeable) => placeable !== token && (!includeIncapacitated ? !_hasStatuses(placeable.actor, ['dead', 'incapacitated'], true) : true) && _dispositionCheck(token, placeable, disposition) && _getDistance(token, placeable) <= radius);
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, validTokens);
-	if (lengthTest) return validTokens.length >= lengthTest;
-	if (includeToken) return validTokens.concat(token);
-	return validTokens;
+	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	if (token instanceof TokenDocument) {
+		token = token.object;
+	} else if (!(token instanceof tokenInstance)) {
+		const resolved = fromUuidSync(token);
+		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
+	}
+	if (!token) return false;
+	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
+		if (!includeToken && target === token) return false;
+		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
+		if (!_dispositionCheck(token, target, disposition)) return false;
+		const distance = _getDistance(token, target);
+		return distance <= radius;
+	});
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, nearbyTokens);
+	if (lengthTest) return nearbyTokens.length >= lengthTest;
+	return nearbyTokens;
+}
+
+export function checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
+	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
 }
 
 export function _autoArmor(actor) {
@@ -409,7 +426,7 @@ export function _autoRanged(activity, token, target) {
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange = midiCheckRange !== 'none' || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
+	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
@@ -423,10 +440,11 @@ export function _systemCheck(testVersion) {
 
 export function _getTooltip(ac5eConfig = {}) {
 	const { hookType, subject, opponent } = ac5eConfig;
-	let tooltip = settings.showNameTooltips ? '<center><strong>Automated Conditions 5e<hr></strong></center>' : '';
+	let tooltip = '<div class="ac5e-tooltip-content">';
+	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
 		if (condition) {
-			if (tooltip.includes(':')) tooltip += '<br>';
+			if (tooltip.includes('span')) tooltip += '<br>';
 			tooltip += text;
 		}
 	};
@@ -448,7 +466,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
 	}
-	return tooltip.includes(':') ? tooltip : (tooltip += `<center><strong>${_localize('AC5E.NoChanges')}</strong></center>`);
+	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
+	return tooltip;
 }
 
 export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
@@ -458,10 +477,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	// if (!foundry.utils.isEmpty(existingAC5e) && !reEval) foundry.utils.mergeObject(options, existingAC5e.options);
 	if (settings.debug) console.error('AC5E._getConfig', { mergedOptions: options });
 	const areKeysPressed = game.system.utils.areKeysPressed;
+	const token = canvas.tokens.get(tokenId);
+	const actor = token?.actor;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
 		targetId,
+		isOwner: token?.document.isOwner,
+		hasPlayerOwner: token?.document.hasPlayerOwner, //check again if it needs token.actor.hasPlayerOwner; what happens for Wild Shape?
+		ownership: actor?.ownership,
 		subject: {
 			advantage: [],
 			disadvantage: [],
@@ -520,29 +544,28 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
 		return ac5eConfig;
 	}
-	if ((config.advantage || ac5eConfig.preAC5eConfig.midiOptions?.advantage) && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig.subject.advantage.push(`${roller} (flags)`);
-	if ((config.disadvantage || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig.subject.disadvantage.push(`${roller} (flags)`);
-	if ((config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.subject.critical.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative && (config.advantage || ac5eConfig.preAC5eConfig.midiOptions?.advantage) && !ac5eConfig.preAC5eConfig.advKey) ac5eConfig.subject.advantage.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative && (config.disadvantage || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !ac5eConfig.preAC5eConfig.disKey) ac5eConfig.subject.disadvantage.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !ac5eConfig.preAC5eConfig.critKey) ac5eConfig.subject.critical.push(`${roller} (flags)`);
 
-	const actor = canvas.tokens.get(tokenId)?.actor;
 	const actorSystemRollMode = [];
 	if (options.skill && hookType === 'check') {
 		// actorSystemRollMode.push(getActorSkillRollModes({actor, skill: options.skill}));
 		const result = getActorSkillRollModes({ actor, skill: options.skill });
-		if (result > 0) ac5eConfig.subject.advantage.push('System mode');
-		if (result < 0) ac5eConfig.subject.disadvantage.push('System mode');
+		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 	if (options.tool && hookType === 'check') {
 		// actorSystemRollMode.push(getActorToolRollModes({actor, tool: options.tool}));
 		const result = getActorToolRollModes({ actor, tool: options.tool });
-		if (result > 0) ac5eConfig.subject.advantage.push('System mode');
-		if (result < 0) ac5eConfig.subject.disadvantage.push('System mode');
+		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 	if (options.ability && (hookType === 'check' || hookType === 'save')) {
 		// actorSystemRollMode.push(getActorAbilityRollModes({ability, actor, hook}));
 		const result = getActorAbilityRollModes({ ability: options.ability, actor, hookType });
-		if (result > 0) ac5eConfig.subject.advantage.push('System mode');
-		if (result < 0) ac5eConfig.subject.disadvantage.push('System mode');
+		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
+		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 	}
 	//for now we don't care about mutliple different sources, but instead a total result for each (counts not implemented yet by the system)
 	// const arrayLength = actorSystemRollMode.filter(Boolean).length;
@@ -581,34 +604,31 @@ export function _activeModule(moduleID) {
 	return game.modules.get(moduleID)?.active;
 }
 
-export function _canSee(source, target) {
-	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
-	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
-	//@ts-expect-error
-	const detectionModes = CONFIG.Canvas.detectionModes;
-	const sightDetectionModes = Object.keys(detectionModes).filter(
-		(d) =>
-			//@ts-expect-error DetectionMode
-			detectionModes[d].type === DetectionMode.DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d)
-	);
-	return canSense(source, target, sightDetectionModes);
-}
-
-function canSense(source, target, validModes = ['all']) {
-	return canSenseModes(source, target, validModes).length > 0;
-}
-
-function canSenseModes(token, target, validModesParam = ['all']) {
-	if (!token || !target) {
+export function _canSee(source, target, status) {
+	if (!source || !target) {
 		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
-		return ['noToken'];
+		return false;
 	}
+	if (source === target) {
+		if (settings.debug) console.warn('AC5e: Source and target are the same');
+		return true;
+	}
+
+	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
+
+	const hasSight = source.document.sight.enabled; //source.hasSight
+	const hasVision = source.vision; //can be undefined if the source isn't controlled at the time of the tests; can be the target of an attack etc, so won't be selected in this case or rolling without a token controlled.
+	if (!hasSight || !hasVision) {
+		_initializeVision(source);
+		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee(): Initializing vision as the source token has no visionSource available; `, { source: source?.id, target: target?.id, visionSourceId: source.sourceId });
+	}
+
+	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
 	const detectionModes = CONFIG.Canvas.detectionModes;
-	const DetectionModeCONST = DetectionMode;
-	//any non-owned, non-selected tokens will have their vision not initialized.
-	if (target.document?.hidden || token.document?.hidden) return [];
-	if (!token.hasSight) return ['senseAll'];
-	if ((!token.vision || !token.vision.los) && !_initializeVision(token)) return ['noSight'];
+	const DETECTION_TYPES = { SIGHT: 0, SOUND: 1, MOVE: 2, OTHER: 3 };
+	const { BASIC_MODE_ID } = game.version > '13' ? new foundry.canvas.perception.DetectionMode() : new DetectionMode();
+	const sightDetectionModes = Object.keys(detectionModes).filter((d) => detectionModes[d].type === DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d));
+
 	const matchedModes = new Set();
 	const t = Math.min(target.w, target.h) / 4;
 	const targetPoint = target.center;
@@ -628,61 +648,48 @@ function canSenseModes(token, target, validModesParam = ['all']) {
 			: [[0, 0]];
 	const tests = offsets.map((o) => ({
 		point: new PIXI.Point(targetPoint.x + o[0], targetPoint.y + o[1]),
-		elevation: target.document.elevation,
+		elevation: target?.document.elevation ?? 0,
 		los: new Map(),
 	}));
 	const config = { tests, object: target };
-	const tokenDetectionModes = token.detectionModes;
-	const modes = CONFIG.Canvas.detectionModes;
-	let validModes = new Set(validModesParam);
 
-	// First test basic detection for light sources which specifically provide vision
-	const lightSources = canvas?.effects?.lightSources;
-	for (const lightSource of lightSources ?? []) {
-		if (!lightSource.active || lightSource.data.disabled) continue;
-		if (!validModes.has(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID) && !validModes.has('all')) continue;
-		const result = lightSource.testVisibility && lightSource.testVisibility(config);
-		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
-	}
-	const lightPerception = tokenDetectionModes.find((m) => m.id === modes.lightPerception?.id);
-	if (lightPerception && ['lightPerception', 'all'].some((mode) => validModes.has(mode))) {
-		const result = lightPerception ? modes.lightPerception.testVisibility(token.vision, lightPerception, config) : false;
-		if (result === true) matchedModes.add(detectionModes.lightPerception?.id ?? DetectionModeCONST.BASIC_MODE_ID);
-	}
-	const basic = tokenDetectionModes.find((m) => m.id === DetectionModeCONST.BASIC_MODE_ID);
-	if (basic && ['basicSight', 'all'].some((mode) => validModes.has(mode))) {
-		const result = modes.basicSight.testVisibility(token.vision, basic, config);
-		if (result === true) matchedModes.add(detectionModes.basicSight?.id ?? DetectionModeCONST.BASIC_MODE_ID);
-	}
+	const tokenDetectionModes = source.detectionModes;
+	let validModes = new Set();
 
+	const sourceBlinded = source.actor?.statuses.has('blinded');
+	const targetInvisible = target.actor?.statuses.has('invisible');
+	const targetEthereal = target.actor?.statuses.has('ethereal');
+	if (!status && !sourceBlinded && !targetInvisible && !targetEthereal) {
+		validModes = new Set(sightDetectionModes);
+		const lightSources = canvas?.effects?.lightSources;
+		for (const lightSource of lightSources ?? []) {
+			if (!lightSource.active || lightSource.data.disabled) continue;
+			const result = lightSource.testVisibility?.(config);
+			if (result === true) matchedModes.add(detectionModes.lightPerception?.id);
+		}
+	} else if (status === 'blinded' || sourceBlinded) {
+		validModes = new Set(['blindsight', 'seeAll' /*'feelTremor'*/]);
+	} else if (status === 'invisible' || status === 'ethereal' || targetInvisible || targetEthereal) {
+		validModes = new Set(['seeAll', 'seeInvisibility']);
+	}
 	for (const detectionMode of tokenDetectionModes) {
-		if (detectionMode.id === DetectionModeCONST.BASIC_MODE_ID) continue;
-		if (!detectionMode.enabled) continue;
-		const dm = modes[detectionMode.id];
-		if (validModes.has('all') || validModes.has(detectionMode.id)) {
-			const result = dm?.testVisibility(token.vision, detectionMode, config);
-			if (result === true) {
-				matchedModes.add(detectionMode.id);
-			}
-		}
+		if (!detectionMode.enabled || !detectionMode.range) continue;
+		if (!validModes.has(detectionMode.id)) continue;
+		const mode = detectionModes[detectionMode.id];
+		const result = mode ? mode.testVisibility(source.vision, detectionMode, config) : false;
+		if (result === true) matchedModes.add(mode.id);
 	}
-	for (let tk of [token, target]) {
-		if (!tk.document.sight.enabled) {
-			const sourceId = tk.sourceId;
-			//@ts-expect-error
-			canvas?.effects?.visionSources.delete(sourceId);
-		}
-	}
-	if (settings.debug) console.warn(`${Constants.MODULE_SHORT_NAME} - _canSee()`, { sourceId: token?.id, targetId: target?.id, result: matchedModes });
-	return Array.from(matchedModes);
+	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { source: source?.id, target: target?.id, result: matchedModes, visionInitialized: !hasSight, sourceId: source.sourceId });
+	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source only if the source doesn't have sight enabled in the first place!
+	return Array.from(matchedModes).length > 0;
 }
 
 function _initializeVision(token) {
-	let sightEnabled = token.document.sight.enabled;
-	sightEnabled = true;
+	token.document.sight.enabled = true;
 	token.document._prepareDetectionModes();
 	const sourceId = token.sourceId;
-	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token }); //v12 only
+	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token });
+
 	token.vision.initialize({
 		x: token.center.x,
 		y: token.center.y,
@@ -696,15 +703,15 @@ function _initializeVision(token) {
 		attenuation: token.document.sight.attenuation,
 		rotation: token.document.rotation,
 		visionMode: token.document.sight.visionMode,
-		color: globalThis.Color.from(token.document.sight.color),
-		isPreview: !!token._original,
+		// preview: !!token._original,
+		color: token.document.sight.color?.toNearest(),
 		blinded: token.document.hasStatusEffect(CONFIG.specialStatusEffects.BLIND),
 	});
 	if (!token.vision.los) {
 		token.vision.shape = token.vision._createRestrictedPolygon();
 		token.vision.los = token.vision.shape;
 	}
-	token.vision.animated = false;
+	if (token.vision.visionMode) token.vision.visionMode.animated = false;
 	canvas?.effects?.visionSources.set(sourceId, token.vision);
 	return true;
 }
@@ -732,45 +739,87 @@ export function _getActionType(activity, returnClassifications = false) {
 	return actionType;
 }
 
-export function _getEffectOriginToken(effect /* ActiveEffect */) {
-	let effectOriginActor;
-	if (effect.parent instanceof CONFIG.Item.documentClass && effect.parent.isEmbedded) effectOriginActor = effect.parent.actor;
-	if (!effect.origin) return undefined;
-	const origin = fromUuidSync(effect.origin);
-	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
-		if (origin.parent instanceof CONFIG.Item.documentClass) effectOriginActor = origin.parent.actor;
-		if (origin.parent instanceof CONFIG.Actor.documentClass) effectOriginActor = origin.parent;
+export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, id, uuid */) {
+	if (!effect?.origin) return undefined;
+
+	let origin = fromUuidSync(effect.origin);
+	let actor = _resolveActorFromOrigin(origin);
+
+	// Check if origin itself has an origin (chained origin), resolve again
+	if (!actor && origin?.origin) {
+		const deeperOrigin = fromUuidSync(origin.origin);
+		actor = _resolveActorFromOrigin(deeperOrigin);
 	}
-	return effectOriginActor.getActiveTokens()[0];
+
+	if (!actor) return undefined;
+	const token = actor.getActiveTokens()[0];
+	if (!token) return undefined;
+
+	switch (type) {
+		case 'id':
+			return token.id;
+		case 'uuid':
+			return token.document.uuid;
+		case 'token':
+			return token;
+		default:
+			return undefined;
+	}
 }
 
-export function _hasValidTargets(activity, size, type = 'attack', warn = false) {
+export function _resolveActorFromOrigin(origin) {
+	if (!origin) return undefined;
+
+	// If origin is an ActiveEffect on an Item or Actor
+	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+		const parent = origin.parent;
+		if (parent instanceof CONFIG.Item.documentClass) return parent.actor;
+		if (parent instanceof CONFIG.Actor.documentClass) return parent;
+	}
+
+	// If origin is an Item or directly embedded in Actor
+	if (origin.parent instanceof CONFIG.Item.documentClass) return origin.parent.actor;
+	if (origin.parent instanceof CONFIG.Actor.documentClass) return origin.parent;
+
+	return undefined;
+}
+
+export function _hasValidTargets(activity, targetCount, setting) {
 	//will return true if the Item has an attack roll and targets are correctly set and selected, or false otherwise.
-	//type of hook, 'attack', 'roll'  ; seems that there is no need for a 'pre'
-	if (
-		activity.parent.hasAttack &&
-		(activity.target.affects?.type || (!activity.target.affects?.type && !(activity.target.template?.type || activity.target.affects?.type))) &&
-		size != 1 /*&&
-		!keyboard.downKeys.has('KeyU')*/
-	) {
-		sizeWarnings(size, type, warn);
+	if (!activity?.parent?.hasAttack) return true;
+	const { affects, template } = activity?.target || {};
+	const requiresTargeting = affects?.type || (!affects?.type && !template?.type);
+	// const override = game.keyboard?.downKeys?.has?.('KeyU');
+	const invalidTargetCount = requiresTargeting && targetCount !== 1;
+	if (invalidTargetCount /* && !override*/) {
+		sizeWarnings(targetCount, setting);
 		return false;
-	} else return true;
+	}
+	return true;
 }
 
-function sizeWarnings(size, type, warn = false) {
-	//size, by this point, can be either false or >1 so no need for other checks
-	//type for now can be 'damage' or 'attack'/'pre'
-	const translationString = type == 'damage' ? (size ? _localize('AC5E.MultipleTargetsDamageWarn') : _localize('AC5E.NoTargetsDamageWarn')) : size ? _localize('AC5E.MultipleTargetsAttackWarn') : _localize('AC5E.NoTargetsAttackWarn');
-	if (warn === 'enforce') ui.notifications.warn(translationString);
-	else if (warn === 'console') console.warn(translationString);
+function sizeWarnings(targetCount, setting) {
+	//targetCount, by this point, can be either false or >1 so no need for other checks
+	//setting 'source', 'enforce', 'warn' and we need to notify for cancelled rolls only if 'warn'. The rest are logged in console only.
+	const keySuffix = setting === 'source' ? 'Source' : 'Enforce';
+	const keyPrefix = targetCount ? 'MultipleTargets' : 'NoTargets';
+	const translationKey = `AC5E.${keyPrefix}.Attack.${keySuffix}`;
+	const message = _localize(translationKey);
+
+	if (setting === 'warn') ui.notifications.warn(message);
+	else console.warn(message);
 }
 
 export function _raceOrType(actor, dataType = 'race') {
 	const systemData = actor?.system;
 	if (!systemData) return {};
-	const data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
-	data.race = systemData.details.race?.identifier ?? data.value; //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
+	let data;
+	if (actor.type === 'character' || actor.type === 'npc') {
+		data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
+		data.race = systemData.details.race?.identifier ?? data.value; //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
+		data.type = actor.type;
+	} else if (actor.type === 'group') data = { type: 'group', value: systemData.type.value };
+	else if (actor.type === 'vehicle') data = { type: 'vehicle', value: systemData.vehicleType };
 	if (dataType === 'all') return Object.fromEntries(Object.entries(data).map(([k, v]) => [k, typeof v === 'string' ? v.toLocaleLowerCase() : v]));
 	else return data[dataType]?.toLocaleLowerCase();
 }
@@ -830,102 +879,112 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	if (expression.includes('canvas')) {
 		throw new Error(`Roll.safeEval expression cannot contain canvas.`);
 	}
-	if (expression.includes('ui')) {
-		throw new Error(`Roll.safeEval expression cannot contain ui.`);
-	}
 	let result;
 	try {
 		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
 	} catch (err) {
 		result = undefined;
 	}
-	// if (!Number.isNumeric(result)) {
-	// 	throw new Error(`Roll.safeEval produced a non-numeric result from expression "${expression}"`);
-	// }
 	if (settings.debug) console.log('AC5E._ac5eSafeEval:', { expression, result });
 	return result;
 }
 
-export function _createEvaluationSandbox({ subject, subjectToken, opponent, opponentToken, auraActor, auraToken, item, activity, options }) {
+export function _ac5eActorRollData(token) {
+	const actor = token.actor;
+	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
+	const actorData = actor.getRollData();
+	actorData.currencyWeight = actor.system.currencyWeight;
+	actorData.effects = actor.appliedEffects;
+	actorData.equippedItems = actor.items.filter((item) => item?.system?.equipped).map((item) => item.name);
+	actorData.type = actor.type;
+
+	actorData.canMove = Object.values(actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+	actorData.creatureType = Object.values(_raceOrType(actor, 'all'));
+	actorData.token = token;
+	actorData.tokenSize = token.document.width * token.document.height;
+	actorData.tokenElevation = token.document.elevation;
+	actorData.tokenSenses = token.document.detectionModes;
+	actorData.tokenUuid = token.document.uuid;
+	return actorData;
+}
+
+export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const sandbox = {};
-	if (subject) {
-		sandbox.rollingActor = subject.getRollData();
-		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subject, 'all'));
-		if (subjectToken) {
-			sandbox.rollingActor.token = subjectToken;
-			sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
-			sandbox.rollingActor.tokenElevation = subjectToken.document.elevation;
-			sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
-			sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
-			sandbox.tokenId = subjectToken.id;
-		};
-	};
-	if (opponent) {
-		sandbox.targetActor = opponent.getRollData();
-		sandbox.targetActor.creatureType = Object.values(_raceOrType(opponent, 'all'));
-		if (opponentToken) {
-			sandbox.targetActor.token = opponentToken;
-			sandbox.targetActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
-			sandbox.targetActor.tokenElevation = opponentToken.document.elevation;
-			sandbox.targetActor.tokenSenses = opponentToken.document.detectionModes;
-			sandbox.targetActor.tokenUuid = opponentToken.document.uuid;
-			sandbox.targetId = opponentToken.id;
-		};
-	};
-	if (auraActor) {
-		sandbox.auraActor = auraActor.getRollData();
-		sandbox.auraActor.creatureType = Object.values(_raceOrType(auraActor, 'all'));
-		if (auraToken) {
-			sandbox.auraActor.token = auraToken;
-			sandbox.auraActor.tokenSize = auraToken.document.width * auraToken.document.height;
-			sandbox.auraActor.tokenElevation = auraToken.document.elevation;
-			sandbox.auraActor.tokenSenses = auraToken.document.detectionModes;
-			sandbox.auraActor.tokenUuid = auraToken.document.uuid;
-		};
+	const { ability, activity, distance, skill, tool } = options;
+	const item = activity?.item;
+	sandbox.rollingActor = {};
+	sandbox.opponentActor = {};
+
+	if (subjectToken) {
+		sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
+		sandbox.tokenId = subjectToken.id;
+		sandbox.canMove = sandbox.rollingActor.canMove;
+		sandbox.canSee = _canSee(subjectToken, opponentToken);
 	}
-	sandbox.item = item?.getRollData().item;
-	sandbox.activity = activity?.getRollData().activity;
+	if (opponentToken) {
+		sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
+		sandbox.opponentId = opponentToken.id;
+		sandbox.isSeen = _canSee(opponentToken, subjectToken);
+		/* backwards compatibility */
+		sandbox.targetActor = sandbox.opponentActor;
+		sandbox.targetId = opponentToken.id;
+		/* end of backwards compatibility */
+	}
+	sandbox.activity = activity?.getRollData().activity || {};
+	sandbox.riderStatuses = options.activityEffectsStatusRiders;
 	if (activity) {
-		sandbox.activity.damageTypes = _getActivityDamageTypes(activity);
-		sandbox.activity.attackMode = options?.ac5eConfig?.attackMode;
-	        sandbox.activity.riderStatuses = _getActivityEffectsStatusRiders(activity);
-		sandbox.activity.actionType = _getActionType(activity);
-	};
-	if (game.combat?.active) {
-		sandbox.combat = { round: game.combat.round, turn: game.combat.turn, current: game.combat.current, turns: game.combat.turns };
-		sandbox.isCombatTurn = game.combat?.combatant?.tokenId === subjectToken?.id;
-		if (opponentToken) sandbox.targetActor.isCombatTurn = game.combat?.combatant?.tokenId === opponentToken.id;
-		if (auraToken) sandbox.auraActor.isCombatTurn = game.combat?.combatant?.tokenId === auraToken.id;
+		const activityData = sandbox.activity;
+		activityData.damageTypes = options.activityDamageTypes;
+		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => (sandbox[d] = true));
+		activityData.attackMode = options?.attackMode;
+		if (options?.attackMode) sandbox[options.attackMode] = true;
+		if (activity.actionType) sandbox[activity.actionType] = true;
+		sandbox[activityData.name] = true;
+		sandbox[activityData.activation.type] = true;
+		sandbox[activityData.type] = true;
+		sandbox.isSpell = activity.isSpell;
+		sandbox.isScaledScroll = activity.isScaledScroll;
+		sandbox.requiresSpellSlot = activity.requiresSpellSlot;
+		sandbox.spellCastingAbility = activity.spellCastingAbility;
+		sandbox.messageFlags = activity.messageFlags;
 	}
-	sandbox.worldTime = game.time?.worldTime;
-	sandbox.spellLevel = options?.spellLevel;
-	sandbox.options = options;
-	if (options?.skill) sandbox[options.skill] = true;
-	if (options?.ability) sandbox[options.ability] = true;
-	if (options?.tool) sandbox[options.tool] = true;
-	sandbox.canSee = _canSee(subjectToken, opponentToken);
-	sandbox.isSeen = _canSee(opponentToken, subjectToken);
-	
-	foundry.utils.mergeObject(sandbox, { ac5e: ac5e });
+
+	sandbox.item = item?.getRollData().item || {};
 	if (item) {
 		const itemData = sandbox.item;
-		sandbox[itemData.itemType] = true;
-		sandbox[itemData.school] = true;
-		sandbox[itemData.identifier] = true;
+		sandbox.itemType = item.type;
+		if (itemData.school) sandbox[itemData.school] = true;
+		if (itemData.identifier) sandbox[itemData.identifier] = true;
 		sandbox[itemData.name] = true;
-		sandbox.item.properties.filter(p=>sandbox[p] = true);
+		itemData.properties.filter((p) => (sandbox[p] = true));
+		sandbox.item.hasAttack = item.hasAttack;
+		sandbox.item.hasSave = item.system?.hasSave;
+		sandbox.item.hasSummoning = item.system?.hasSummoning;
+		sandbox.item.hasLimitedUses = item.system?.hasLimitedUses;
+		sandbox.item.isHealing = item.system?.isHealing;
 	}
-	if (activity) {
-		sandbox.riderStatuses = {};
-		const activityData = sandbox.activity;
-		activityData.damageTypes.filter(d=>sandbox[d]=true);
-		sandbox[activityData.activation.type] = true;
-		sandbox[activityData.name] = true;
-		sandbox[activityData.type] = true;
-		sandbox[activityData.actionType] = true;
-		if (activityData.attackMode) sandbox[activityData.attackMode] = true;
-		if (activityData.effectsStatusRiders) sandbox.riderStatuses = activityData.effectsStatusRiders;
-	}
+
+	const active = game.combat?.active;
+	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
+	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
+	sandbox.isTurn = currentCombatant === subjectToken?.id;
+	sandbox.isOpponentTurn = currentCombatant === opponentToken?.id;
+	sandbox.isTargetTurn = sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
+
+	sandbox.worldTime = game.time?.worldTime;
+	sandbox.options = options;
+	// in options there are options.isDeathSave options.isInitiative options.isConcentration
+	sandbox.isConcentration = options?.isConcentration;
+	sandbox.isDeathSave = options?.isDeathSave;
+	sandbox.isInitiative = options?.isInitiative;
+	sandbox.distance = options?.distance;
+	sandbox.hook = options?.hook;
+	sandbox.castingLevel = sandbox.item?.level;
+	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
+	sandbox.scaling = item?.flags?.dnd5e?.scaling;
+	if (options?.ability) sandbox[options.ability] = true;
+	if (options?.skill) sandbox[options.skill] = true;
+	if (options?.tool) sandbox[options.tool] = true;
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
@@ -933,15 +992,19 @@ export function _createEvaluationSandbox({ subject, subjectToken, opponent, oppo
 	} = CONFIG || {};
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
-
-	if (settings.debug) console.log('AC5E._createEvaluationSandbox:', { sandbox });
+	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor });
+	if (sandbox.undefined) {
+		delete sandbox.undefined; //guard against sandbox.undefined = true being present
+		console.warn('AC5E sandbox.undefined detected!!!');
+	}
+	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._createEvaluationSandbox logging the available data:', { evaluationData: sandbox });
 	return sandbox;
 }
 
-export function _getActivityDamageTypes(a) {
-	if (!a) return [];
-	if (['attack', 'damage', 'save'].includes(a?.type)) return a.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
-	if (a?.type === 'heal') return [...a.healing.types]; //parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
+export function _getActivityDamageTypes(activity) {
+	if (!activity) return [];
+	if (['attack', 'damage', 'save'].includes(activity?.type)) return activity.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
+	if (activity?.type === 'heal') return [...activity.healing.types]; //parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
 }
 
 export function _getActivityEffectsStatusRiders(activity) {

@@ -1,5 +1,5 @@
 import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
-import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 let daeFlags;
@@ -29,14 +29,13 @@ function ac5eSetup() {
 	const settings = new Settings();
 	const hooksRegistered = {};
 	const actionHooks = [
-		//abilityChecks
+		// { id: 'dnd5e.activityConsumption', type: 'consumptionHook' }, //@to-do: validate that there isn't an actual need for this
+		{ id: 'dnd5e.preConfigureInitiative', type: 'init' }, //needed for Combat Carousel at least, when using the actor.rollInitiative()
 		{ id: 'dnd5e.preRollAbilityCheckV2', type: 'check' },
 		{ id: 'dnd5e.preRollAttackV2', type: 'attack' },
 		{ id: 'dnd5e.preRollDamageV2', type: 'damage' },
-		// { id: 'dnd5e.preRollInitiative', type: 'init' }, //@to-do, double check if it is needed (using the actor.rollInitiative() probably)
 		{ id: 'dnd5e.preRollSavingThrowV2', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
-		{ id: 'dnd5e.activityConsumption', type: 'consumptionHook' },
 	];
 	const renderHooks = [
 		//renders
@@ -52,9 +51,12 @@ function ac5eSetup() {
 				if (settings.debug) console.warn(hook.id, { render, element });
 				return _renderHijack(hook.type, ...args);
 			} else {
-				if (hook.id === 'dnd5e.preUseActivity' || hook.id === 'dnd5e.activityConsumption') {
+				if (hook.id === 'dnd5e.preUseActivity') { //|| hook.id === 'dnd5e.activityConsumption') {
 					const [activity, config, dialog, message] = args;
 					if (settings.debug) console.warn(hook.id, { activity, config, dialog, message });
+				} else if (hook.id === 'dnd5e.preConfigureInitiative') {
+					const [actor, rollConfig] = args;
+					if (settings.debug) console.warn(hook.id, { actor, rollConfig });
 				} else {
 					const [config, dialog, message] = args;
 					if (settings.debug) console.warn(hook.id, { config, dialog, message });
@@ -75,7 +77,9 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkArmor = _autoArmor;
 	globalThis[Constants.MODULE_NAME_SHORT].checkCreatureType = _raceOrType;
 	globalThis[Constants.MODULE_NAME_SHORT].checkDistance = _getDistance;
+	globalThis[Constants.MODULE_NAME_SHORT].checkNearby = checkNearby;
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
-	globalThis[Constants.MODULE_NAME_SHORT].conditionData = _createEvaluationSandbox;
+	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
+	globalThis[Constants.MODULE_NAME_SHORT].logEvaluationData = false;
 }
