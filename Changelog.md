@@ -1,4 +1,4 @@
-## 13.503.8
+## 13.503.8.1
 * Limit uses of AC5e flags on owned actors by a specific Number
   * `once`: adding this keyword in the effect's value, will limit the use of the flag to the next relevant roll only
     * especially useful for any features that trigger a specific behaviour on the next roll by the actor with the effect
