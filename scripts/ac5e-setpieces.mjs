@@ -327,6 +327,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				{
 					auraActor: _ac5eActorRollData(token),
 					isAuraSourceTurn: currentCombatant === token?.id,
+					auraTokenId: token.id,
 				},
 				{ inplace: false }
 			);
@@ -334,6 +335,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			auraTokenEvaluationData = evaluationData;
 			auraTokenEvaluationData.auraActor = _ac5eActorRollData(token) || {};
 			auraTokenEvaluationData.isAuraSourceTurn = currentCombatant === token?.id;
+			auraTokenId = token.id;
 		}
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
@@ -382,9 +384,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		);
 	});
 	//cleanup for the line 324 workaround
-	if (valuationData.auraActor) {
+	if (evaluationData.auraActor) {
 		delete evaluationData.auraActor;
-		delete evaluationData.isActorSourceTurn;
+		delete evaluationData.isAuraSourceTurn;
+		delete evaluationData.auraTokenId;
 	};
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
