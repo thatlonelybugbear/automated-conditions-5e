@@ -289,7 +289,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 	};
 
-	const bonusReplacements = (expression, evalData, auraEvalData) => {
+	const bonusReplacements = (expression, evalData, isAura) => {
 		const staticMap = {
 			'@scaling': evalData.scaling,
 			'scaling': evalData.scaling,
@@ -303,13 +303,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 		expression = expression.replace(pattern, (match) => staticMap[match]);
-
-		if (expression.includes('@')) expression = Roll.fromTerms(Roll.parse(expression, auraEvalData ? auraEvalData.auraActor : evalData.rollingActor)).formula;
+		if (expression.includes('@')) expression = Roll.fromTerms(Roll.parse(expression, isAura ? evalData.auraActor : evalData.rollingActor)).formula;
 		if (expression.includes('rollingActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('rollingActor.', '@'), evalData.rollingActor)).formula;
-		if (expression.includes('##')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('##', '@'), auraEvalData ? auraEvalData.rollingActor : evalData.opponentActor)).formula;
+		if (expression.includes('##')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('##', '@'), isAura ? evalData.rollingActor : evalData.opponentActor)).formula;
 		if (expression.includes('targetActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('targetActor.', '@'), evalData.opponentActor)).formula;
 		if (expression.includes('opponentActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('opponentActor.', '@'), evalData.opponentActor)).formula;
-		if (auraEvalData && expression.includes('auraActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('auraActor.', '@'), auraEvalData.auraActor)).formula;
+		if (isAura && expression.includes('auraActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('auraActor.', '@'), evalData.auraActor)).formula;
 		return expression;
 	};
 
@@ -321,21 +320,21 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 		const distanceTokenToAuraSource = distanceToSource(token);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
-		const auraTokenEvaluationData = foundry.utils.mergeObject(
-			evaluationData,
-			{
-				auraActor: _ac5eActorRollData(token.actor),
-				['auraActor.canMove']: Object.values(token.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v),
-				['auraActor.creatureType']: Object.values(_raceOrType(token.actor, 'all')),
-				['auraActor.token']: token,
-				['auraActor.tokenSize']: token.document.width * token.document.height,
-				['auraActor.tokenElevation']: token.document.elevation,
-				['auraActor.tokenSenses']: token.document.detectionModes,
-				['auraActor.tokenUuid']: token.document.uuid,
-				isAuraSourceTurn: currentCombatant === token?.id,
-			},
-			{ inplace: false }
-		);
+		let auraTokenEvaluationData;
+		if (foundry.utils.isNewerVersion(game.system.version, '5.0.0')) {   //this is to save users from the numerous deprecation warnings for spell.mod and spell.dc when duplicating actors rollData, until v5...
+			auraTokenEvaluationData = foundry.utils.mergeObject(
+				evaluationData,
+				{
+					auraActor: _ac5eActorRollData(token),
+					isAuraSourceTurn: currentCombatant === token?.id,
+				},
+				{ inplace: false }
+			);
+		} else {
+			auraTokenEvaluationData = evaluationData;
+			auraTokenEvaluationData.auraActor = _ac5eActorRollData(token) || {};
+			auraTokenEvaluationData.isAuraSourceTurn = currentCombatant === token?.id;
+		}
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ token, change, actorType: 'aura', hook }))
@@ -349,7 +348,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 								?.find((e) => e.includes('bonus='))
 								.split('bonus=')?.[1]
 							: '';
-					bonus = bonusReplacements(bonus, evaluationData, auraTokenEvaluationData);
+					bonus = bonusReplacements(bonus, auraTokenEvaluationData, true);
 					const auraOnlyOne = el.value.includes('singleAura');
 					let valuesToEvaluate = el.value
 						.split(';')
@@ -382,7 +381,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				})
 		);
 	});
-
+	//cleanup for the line 324 workaround
+	if (valuationData.auraActor) {
+		delete evaluationData.auraActor;
+		delete evaluationData.isActorSourceTurn;
+	};
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
 			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook }))
