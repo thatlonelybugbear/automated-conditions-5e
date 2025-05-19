@@ -264,12 +264,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect }) => {
+	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect, effectDeletions, effectUpdates }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
-		const shouldProceedUses = handleUses({ effect, actorType, effectDeletions, effectUpdates, change });
+		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates });
 		if (!shouldProceedUses) return false;
 		if (change.key.includes('aura')) {
 			//isAura
@@ -504,10 +504,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 }
 
-function handleUses({ values, effect, actorType, effectDeletions, effectUpdates, change }) {
+function handleUses({ actorType, change, effect, effectDeletions, effectUpdates }) {
 	if (actorType !== 'subject') return true;
-	const hasCount = values.split(';').find((use) => use.includes('usesCount='));
-	const isOnce = values.split(';').find((use) => use.includes('once'));
+	const values = change.value.split(';');
+	const hasCount = values.find((use) => use.includes('usesCount='));
+	const isOnce = values.find((use) => use.includes('once'));
 	if (!hasCount && !isOnce) {
 		return true;
 	}
