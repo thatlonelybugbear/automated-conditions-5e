@@ -164,8 +164,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	}
 
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: attackingToken });
-	dialog.configure = !ac5eConfig.fastForward;
-	// _setAC5eProperties(ac5eConfig, config, dialog, message);
+	// dialog.configure = !ac5eConfig.fastForward;
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
@@ -204,8 +203,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	if (_autoEncumbrance(subject, ability)) {
 		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 	}
-	if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
-	// _setAC5eProperties(ac5eConfig, config, dialog, message, options);
+	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest', { ac5eConfig });
 	return ac5eConfig;
