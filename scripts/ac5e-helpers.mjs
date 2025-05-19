@@ -361,12 +361,12 @@ export function _dispositionCheck(t1, t2, check = false) {
 }
 
 export function _findNearby({
-	token,                         // Token5e, TokenDocument5e, ID string, or UUID
-	disposition = 'all',           // 'same', 'different', 'opposite' or false === 'all'
-	radius = 5,                    // Distance radius (default 5)
-	lengthTest = false,            // Number or false; if number, returns boolean test
-	includeToken = false,          // Include source token in results
-	includeIncapacitated = false,  // Include dead/incapacitated tokens
+	token, // Token5e, TokenDocument5e, ID string, or UUID
+	disposition = 'all', // 'same', 'different', 'opposite' or false === 'all'
+	radius = 5, // Distance radius (default 5)
+	lengthTest = false, // Number or false; if number, returns boolean test
+	includeToken = false, // Include source token in results
+	includeIncapacitated = false, // Include dead/incapacitated tokens
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
@@ -374,7 +374,7 @@ export function _findNearby({
 		token = token.object;
 	} else if (!(token instanceof tokenInstance)) {
 		const resolved = fromUuidSync(token);
-		token = (resolved?.type === 'Token') ? resolved.object : canvas.tokens.get(token);
+		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
 	if (!token) return false;
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
@@ -390,7 +390,7 @@ export function _findNearby({
 }
 
 export function checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
-	return _findNearby({token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count});
+	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
 }
 
 export function _autoArmor(actor) {
@@ -426,7 +426,7 @@ export function _autoRanged(activity, token, target) {
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert;
-	const inRange = midiCheckRange && midiCheckRange !== 'none' || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
+	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
@@ -613,11 +613,11 @@ export function _canSee(source, target, status) {
 		if (settings.debug) console.warn('AC5e: Source and target are the same');
 		return true;
 	}
-	
+
 	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
-	
-	const hasSight = source.document.sight.enabled;  //source.hasSight
-	const hasVision = source.vision;                 //can be undefined if the source isn't controlled at the time of the tests; can be the target of an attack etc, so won't be selected in this case or rolling without a token controlled.
+
+	const hasSight = source.document.sight.enabled; //source.hasSight
+	const hasVision = source.vision; //can be undefined if the source isn't controlled at the time of the tests; can be the target of an attack etc, so won't be selected in this case or rolling without a token controlled.
 	if (!hasSight || !hasVision) {
 		_initializeVision(source);
 		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee(): Initializing vision as the source token has no visionSource available; `, { source: source?.id, target: target?.id, visionSourceId: source.sourceId });
@@ -689,7 +689,7 @@ function _initializeVision(token) {
 	token.document._prepareDetectionModes();
 	const sourceId = token.sourceId;
 	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token });
-	
+
 	token.vision.initialize({
 		x: token.center.x,
 		y: token.center.y,
@@ -705,7 +705,7 @@ function _initializeVision(token) {
 		visionMode: token.document.sight.visionMode,
 		// preview: !!token._original,
 		color: token.document.sight.color?.toNearest(),
-		blinded: token.document.hasStatusEffect(CONFIG.specialStatusEffects.BLIND)
+		blinded: token.document.hasStatusEffect(CONFIG.specialStatusEffects.BLIND),
 	});
 	if (!token.vision.los) {
 		token.vision.shape = token.vision._createRestrictedPolygon();
@@ -889,13 +889,22 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	return result;
 }
 
-export function _ac5eActorRollData(actor) {
+export function _ac5eActorRollData(token) {
+	const actor = token.actor;
 	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
 	const actorData = actor.getRollData();
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
 	actorData.equippedItems = actor.items.filter((item) => item?.system?.equipped).map((item) => item.name);
 	actorData.type = actor.type;
+
+	actorData.canMove = Object.values(actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+	actorData.creatureType = Object.values(_raceOrType(actor, 'all'));
+	actorData.token = token;
+	actorData.tokenSize = token.document.width * token.document.height;
+	actorData.tokenElevation = token.document.elevation;
+	actorData.tokenSenses = token.document.detectionModes;
+	actorData.tokenUuid = token.document.uuid;
 	return actorData;
 }
 
@@ -907,29 +916,19 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.opponentActor = {};
 
 	if (subjectToken) {
-		sandbox.rollingActor = _ac5eActorRollData(subjectToken.actor) || {}; //subjectToken.actor.getRollData();
-		sandbox.rollingActor.canMove = Object.values(subjectToken.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
-		sandbox.canMove = sandbox.rollingActor.canMove;
-		sandbox.rollingActor.creatureType = Object.values(_raceOrType(subjectToken.actor, 'all'));
-		sandbox.rollingActor.token = subjectToken;
-		sandbox.rollingActor.tokenSize = subjectToken.document.width * subjectToken.document.height;
-		sandbox.rollingActor.tokenElevation = subjectToken.document.elevation;
-		sandbox.rollingActor.tokenSenses = subjectToken.document.detectionModes;
-		sandbox.rollingActor.tokenUuid = subjectToken.document.uuid;
+		sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
 		sandbox.tokenId = subjectToken.id;
+		sandbox.canMove = sandbox.rollingActor.canMove;
+		sandbox.canSee = _canSee(subjectToken, opponentToken);
 	}
 	if (opponentToken) {
-		sandbox.opponentActor = _ac5eActorRollData(opponentToken.actor) || {};
-		sandbox.opponentActor.canMove = Object.values(opponentToken.actor.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
-		sandbox.opponentActor.creatureType = Object.values(_raceOrType(opponentToken.actor, 'all'));
-		sandbox.opponentActor.token = opponentToken;
-		sandbox.opponentActor.tokenSize = opponentToken.document.width * opponentToken.document.height;
-		sandbox.opponentActor.tokenElevation = opponentToken.document.elevation;
-		sandbox.opponentActor.tokenSenses = opponentToken.document.detectionModes;
-		sandbox.opponentActor.tokenUuid = opponentToken.document.uuid;
+		sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
 		sandbox.opponentId = opponentToken.id;
-		sandbox.targetActor = sandbox.opponentActor; //backwards compatibility
-		sandbox.targetId = opponentToken.id; //backwards compatibility for changing the target to opponent for clarity.
+		sandbox.isSeen = _canSee(opponentToken, subjectToken);
+		/* backwards compatibility */
+		sandbox.targetActor = sandbox.opponentActor;
+		sandbox.targetId = opponentToken.id;
+		/* end of backwards compatibility */
 	}
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.riderStatuses = options.activityEffectsStatusRiders;
@@ -986,8 +985,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (options?.ability) sandbox[options.ability] = true;
 	if (options?.skill) sandbox[options.skill] = true;
 	if (options?.tool) sandbox[options.tool] = true;
-	sandbox.canSee = _canSee(subjectToken, opponentToken);
-	sandbox.isSeen = _canSee(opponentToken, subjectToken);
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
