@@ -335,7 +335,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			auraTokenEvaluationData = evaluationData;
 			auraTokenEvaluationData.auraActor = _ac5eActorRollData(token) || {};
 			auraTokenEvaluationData.isAuraSourceTurn = currentCombatant === token?.id;
-			auraTokenId = token.id;
+			auraTokenEvaluationData.auraTokenId = token.id;
 		}
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
