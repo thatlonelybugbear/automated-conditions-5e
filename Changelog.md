@@ -1,13 +1,19 @@
 ## 13.503.8
 * Limit uses of AC5e flags on owned actors by a specific Number
   * `once`: adding this keyword in the effect's value, will limit the use of the flag to the next relevant roll only
-  * `usesCount=Number`: will limit the use of the flag to the next <Number> of times
-    * Caveats! -- Will be reduced if the conditions evaluate to true, no matter what the user selects in any relevant Roll dialog if not fastforwarding.
+    * especially useful for any features that trigger a specific behaviour on the next roll by the actor with the effect
+    * For example, the actor has advantage in the next Attack, Check, or Save roll (3 entries in one active effect):
+      * `flags.automated-conditions-5e.attack.advantage | Override | once`,
+      * `flags.automated-conditions-5e.check.advantage | Override | once`,
+      * `flags.automated-conditions-5e.save.advantage | Override | once`
+  * `usesCount=Number`: will limit the use of the flag to the next \<Number\> of times
+  * **BEWARE**:
+    * The count will be reduced if the rest of the conditions evaluate to true, no matter what the user selects in any relevant Roll dialog if not fast-forwarding.
     * If the effect is a `transfer: true` one, it will be disabled and if using `usesCount` they will be reset to the initial value
     * Otherwise the effect will be deleted from the Actor when the uses run out!
-    * There are future plans for:
-      * allowing any Item/Activity uses to be consumed, even from not owned actors.
-      * User opt-in flags
+  * There are future plans for:
+    * allowing any Item/Activity uses to be consumed, even from not owned actors.
+    * User opt-in flags
 * Reworked how the module gets the actors rollData when creating its sandbox for evaluations, so that all the relevant data are included while trying to limit the system's compatibility warnings for `spell.dc` and `spell.mod` is pre-v5.0.0 setups
 * Removed some `dialog.configure` handling, until the system fully implements [#5454](<https://github.com/foundryvtt/dnd5e/pull/5454>)
 
