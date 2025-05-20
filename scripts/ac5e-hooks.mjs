@@ -107,12 +107,14 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
-	if (invalidTargets && needsTarget === 'force') return false;
-	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+	if (invalidTargets) {
+		if (needsTarget !== 'source') return false;
+		else singleTargetToken = undefined;
+	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
-	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);
+	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);   //@to-do: Still need to make a better check for `use` checks in setpieces, but no need to altering advMode or bonus etc
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	return true;
 }
@@ -229,8 +231,10 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
-	if (invalidTargets && needsTarget === 'force') return false;
-	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+	if (invalidTargets) {
+		if (needsTarget !== 'source') return false;
+	        else singleTargetToken = undefined;
+	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -287,9 +291,10 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
-	if (invalidTargets && needsTarget === 'force') return false;
-	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
-
+	if (invalidTargets) {
+		if (needsTarget !== 'source') return false;
+		else singleTargetToken = undefined;
+	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
