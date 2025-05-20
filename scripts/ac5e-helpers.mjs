@@ -803,7 +803,7 @@ function sizeWarnings(targetCount, setting) {
 	//setting 'source', 'enforce', 'warn' and we need to notify for cancelled rolls only if 'warn'. The rest are logged in console only.
 	const keySuffix = setting === 'source' ? 'Source' : 'Enforce';
 	const keyPrefix = targetCount ? 'MultipleTargets' : 'NoTargets';
-	const translationKey = `AC5E.${keyPrefix}.Attack.${keySuffix}`;
+	const translationKey = `AC5E.Targeting.${keyPrefix}Attack.${keySuffix}`;
 	const message = _localize(translationKey);
 
 	if (setting === 'warn') ui.notifications.warn(message);
