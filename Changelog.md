@@ -1,3 +1,7 @@
+## 13.503.8.2
+* Respect Targeting settings for attacks
+* Fix for incorrent localization string when targeting is set to cancel and warn
+
 ## 13.503.8.1
 * Limit uses of AC5e flags on owned actors by a specific Number
   * `once`: adding this keyword in the effect's value, will limit the use of the flag to the next relevant roll only
