@@ -1,3 +1,6 @@
+## 13.503.8.3
+* Guard against tokens without an actor
+
 ## 13.503.8.2
 * Respect Targeting settings for attacks
 * Fix for incorrent localization string when targeting is set to cancel and warn
