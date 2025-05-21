@@ -319,8 +319,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const effectUpdates = [];
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
-		if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
-		}
+		if (!token.actor) return false;
+		// if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
+		// }
 		const distanceTokenToAuraSource = distanceToSource(token);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
 		let auraTokenEvaluationData;
