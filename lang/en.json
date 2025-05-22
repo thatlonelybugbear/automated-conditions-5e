@@ -82,6 +82,11 @@
 	"AC5E.SubtleSpell": "Subtle Spell",
 	"AC5E.OutOfRange": "Out of range",
 	"AC5E.Item": "Item",
+	"AC5E.Feats": {
+		"CrossbowExpert": "Crossbow Expert",
+		"Sharpshooter": "Sharpshooter",
+		"SpellSniper": "Spell Sniper"
+	},
 	"AC5E.Equipment": "Equipment",
 	"AC5E.NearbyFoe": "Nearby Foe",
 	"AC5E.ButtonColorPicker": {
