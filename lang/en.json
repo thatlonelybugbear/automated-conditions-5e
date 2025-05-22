@@ -140,6 +140,10 @@
 			"name": "Sharpshooter",
 			"description": "No disadvantage for firing ranged weapons at long range or within 5 feet of an enemy"
 		},
+		"flags.automated-condition-5e.spellSniper": {
+			"name": "Spell Sniper",
+			"description": "For 2024 rules, no disadvantage for casting ranged spells within 5 feet of an enemy and if they have a range of at least 10ft, adds 60ft more"
+		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Roll with advantage",
