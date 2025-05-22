@@ -418,15 +418,15 @@ export function _autoRanged(activity, token, target) {
 	let { value: short, long, reach } = range;
 	const distance = target ? _getDistance(token, target) : undefined;
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
-	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'spell sniper');
+	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
 		if (modernRules && short >= 10) short += 60;
 		else short *= 2
 	}
 	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
-	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
+	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
-	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'crossbow expert');
+	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
 	
 	const nearbyFoe =
 		!midiNearbyFoe &&
