@@ -82,6 +82,11 @@
 	"AC5E.SubtleSpell": "Incantesimo Celato",
 	"AC5E.OutOfRange": "Fuori Gittata",
 	"AC5E.Item": "Oggetto",
+	"AC5E.Feats": {
+		"CrossbowExpert": "Esperto di Balestre",
+		"Sharpshooter": "Tiratore Scelto",
+		"SpellSniper": "Spell Sniper"
+	},
 	"AC5E.Equipment": "Equipaggiamento",
 	"AC5E.NearbyFoe": "Nemico Vicino",
 	"AC5E.ButtonColorPicker": {
