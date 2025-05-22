@@ -82,6 +82,11 @@
 	"AC5E.SubtleSpell": "Subtelne zaklęcie",
 	"AC5E.OutOfRange": "Poza zasięgiem",
 	"AC5E.Item": "Przedmiot",
+	"AC5E.Feats": {
+		"CrossbowExpert": "Ekspert kuszy",
+		"Sharpshooter": "Strzelec wyborowy",
+		"SpellSniper": "Spell Sniper"
+	},
 	"AC5E.Equipment": "Ekwipunek",
 	"AC5E.NearbyFoe": "Pobliski wróg",
 	"AC5E.ButtonColorPicker": {
