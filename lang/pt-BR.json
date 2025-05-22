@@ -82,6 +82,11 @@
 	"AC5E.SubtleSpell": "Magia Sutil",
 	"AC5E.OutOfRange": "Fora do alcance",
 	"AC5E.Item": "Item",
+	"AC5E.Feats": {
+		"CrossbowExpert": "Especialista em Bestas",
+		"Sharpshooter": "Atirador de Elite",
+		"SpellSniper": "Spell Sniper"
+	},
 	"AC5E.Equipment": "Equipmento",
 	"AC5E.NearbyFoe": "Inimigo Próximo",
 	"AC5E.ButtonColorPicker": {
