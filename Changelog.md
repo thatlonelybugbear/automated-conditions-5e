@@ -1,8 +1,9 @@
-## 13.503.9
+## 13.503.9.1
 * Added `Spell Sniper` feat (2014 vs 2024) rules
   * `2014`: Spells that have an attack roll, double their range
   * `2024`: Casting a ranged spells within 5 ft of an enemy doesn't impose disadvantage on any attack roll and if the spell has at least 10ft range, gets another 60ft
     * Either an item on the actor named `Spell Sniper` or a relevant flag for `flags.automated-conditions-5e.spellSniper | Override | 1` will cancel the disadvantage.
+* Foundry v13.344 compatibility
 
 ## 13.503.8.3
 * Guard against tokens without an actor
