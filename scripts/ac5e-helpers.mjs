@@ -409,23 +409,33 @@ export function _autoEncumbrance(actor, abilityId) {
 }
 
 export function _autoRanged(activity, token, target) {
+	const modernRules = settings.dnd5eModernRules;
+	const isSpell = activity.isSpell;
+	const isAttack = activity.type === 'attack';
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
-	const actionType = _getActionType(activity);
-	const { range, item } = activity || {};
+	const { actionType, item, range, } = activity || {};
 	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
 	const distance = target ? _getDistance(token, target) : undefined;
-	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
+	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'spell sniper');
+	if (spellSniper && isSpell && isAttack && !!short) {
+		if (modernRules && short >= 10) short += 60;
+		else short *= 2
+	}
+	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'crossbow expert');
+	
 	const nearbyFoe =
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
-		!crossbowExpert;
+		!crossbowExpert &&
+		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
+	
 	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
