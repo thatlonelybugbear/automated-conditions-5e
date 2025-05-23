@@ -130,7 +130,7 @@
 		"BurningHazard": "Chamuscado",
 		"SuffocatingHazard": "Sufocamento"
 	},
-	"dae.fieldData.fieldCategories.AC5E": "AC5E",
+	"dae.fieldData.fieldCategories.AC5E": "AC5e",
 	"dae.AC5E.fieldData": {
 		"flags.automated-condition-5e.crossbowExpert": {
 			"name": "Especialista em Bestas",
