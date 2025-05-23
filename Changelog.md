@@ -1,3 +1,6 @@
+## 13.503.9.2
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.503.9.1
 * Added `Spell Sniper` feat (2014 vs 2024) rules
   * `2014`: Spells that have an attack roll, double their range
