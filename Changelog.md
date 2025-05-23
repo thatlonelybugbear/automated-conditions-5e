@@ -1,4 +1,5 @@
 ## 13.503.9.2
+* Added `flags.automated-conditions-5e.spellSniper` in the DAE autocomplete options
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
 ## 13.503.9.1
