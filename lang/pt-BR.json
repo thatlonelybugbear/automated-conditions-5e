@@ -140,6 +140,10 @@
 			"name": "Atirador de Elite",
 			"description": "Sem Desvantagem ao disparar armas no Alcance Longo ou a até 5 pés de um inimigo."
 		},
+		"flags.automated-condition-5e.spellSniper": {
+      			"name": "Atirador de Magia",
+      			"description": "Para as regras de 2024, não há desvantagem em conjurar magias à distância a até 5 pés de um inimigo e se a magia tiver um alcance de ao menos 10 pés, adiciona mais 60 pés."
+    		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rolar com Vantagem",
