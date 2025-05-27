@@ -1,3 +1,7 @@
+## 13.503.9.3
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
 ## 13.503.9.2
 * Added `flags.automated-conditions-5e.spellSniper` in the DAE autocomplete options
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
