@@ -54,7 +54,7 @@
 	"AC5E.AutoEncumbranceHint": "Pokud je zaškrtnuto, AC5e automaticky zpracuje volitelná pravidla zatížení 5e. PJ musí též vybrat v nastavení systému Dnd5e možnost ´Volitelné´ (zatížený & těžce zatížený), jinak to nebude mít žádný efekt.",
 	"AC5E.Targeting": {
 		"Name": "Možnosti cílení útoků",
-		"Hint": "Jak má AC5e reagovat, když není vybrán žádný cíl útoku, nebo naopak více cílů?",
+		"Hint": "Jak má AC5e reagovat, když není vybrán žádný cíl útoku, nebo naopak více cílů.",
 		"Choices": {
 			"Source": "Použít pouze stavy zdrojového aktéra",
 			"Enforce": "Zrušit hod bez varování",
@@ -82,6 +82,11 @@
 	"AC5E.SubtleSpell": "Opatrné kouzlo",
 	"AC5E.OutOfRange": "Mimo dosah",
 	"AC5E.Item": "Položka",
+		"AC5E.Feats": {
+		"CrossbowExpert": "Kušiník",
+		"Sharpshooter": "Ostrostřelec",
+		"SpellSniper": "Vrhač kouzel"
+	},
 	"AC5E.Equipment": "Vybavení",
 	"AC5E.NearbyFoe": "Blízký nepřítel",
 	"AC5E.ButtonColorPicker": {
@@ -120,7 +125,7 @@
 	"AC5E.NoChanges": "Beze změn",
 	"AC5E.SystemMode": "Režim systému",
 	"AC5E.EnvironmentalHazards": {
-	    "SettingsName": "Používat hrozby prostředí (DnD2024)?",
+	    "SettingsName": "Používat hrozby prostředí (2024)?",
 	    "SettingsHint": "Automatizuje stavy ´hořící´ a ´dusící se´ dle pravidel DnD5e2024",
 	    "BurningHazard": "Hrozba hoření",
 	    "SuffocatingHazard": "Hrozba dušení"
@@ -129,11 +134,15 @@
 	"dae.AC5E.fieldData": {
 		"flags.automated-condition-5e.crossbowExpert": {
 			"name": "Kušiník",
-			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na tvé hod na útok kuší"
+			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na útok kuší"
 		},
 		"flags.automated-condition-5e.sharpShooter": {
 			"name": "Ostrostřelec",
-			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na tvé hod na útok lukem"
+			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na útok lukem"
+					},
+		"flags.automated-condition-5e.spellSniper": {
+			"name": "Vrhač kouzel",
+			"description": "Podle pravidel DnD2024, když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na útok kouzlem na dálku a pokud má kouzlo dosah alespoň 10 stop, přidává dalších 60 stop"
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
@@ -206,23 +215,23 @@
 			},
 			"critical": {
 				"name": "Aura vynucující kritický zásah (přirozená dvacítka, nebo zranění)",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
 			},
 			"disadvantage": {
 				"name": "Aura poskytující Nevýhodu",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
 			},
 			"fail": {
 				"name": "Aura vynucující selhání ověření k20",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
 			},
 			"fumble": {
 				"name": "Aura vynucující kritické selhání ověření k20",
-				"description": "Aura kolem postavy, která má efekt aktivní. Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;podmínky"
+				"description": "Aura kolem postavy, která má efekt aktivní. Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
 			},
 			"success": {
 				"name": "Aura vynucující úspěch",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
 			}
 		}
 	}
