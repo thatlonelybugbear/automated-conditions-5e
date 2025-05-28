@@ -1,3 +1,6 @@
+## 13.503.10
+* `paralyzed` and `unconscious` forces damage to be critical only when `activity.hasDamage` returns `true`
+
 ## 13.503.9.3
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
 * Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
