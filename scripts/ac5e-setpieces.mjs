@@ -111,7 +111,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: ['str', 'dex'].includes(ability) ? 'fail' : '' },
 			attack: { opponent: 'advantage' },
-			damage: { opponent: distance <= 5 ? 'critical' : '' },
+			damage: { opponent: activity?.hasDamage && distance <= 5 ? 'critical' : '' },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -147,7 +147,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: 'advantage' },
-			damage: { opponent: distance <= 5 ? 'critical' : '' },
+			damage: { opponent: activity?.hasDamage && distance <= 5 ? 'critical' : '' },
 			save: { subject: ['dex', 'str'].includes(ability) ? 'fail' : '' },
 		}),
 	};
