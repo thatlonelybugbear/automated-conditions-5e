@@ -247,7 +247,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		if (nearbyFoe) {
 			ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
 		}
-		if (!inRange) {
+		if (!config.workflow?.AoO && !inRange) {
 			ac5eConfig.subject.fail.push(_localize('AC5E.OutOfRange'));
 		}
 		if (range === 'long') {
