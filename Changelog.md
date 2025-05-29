@@ -1,3 +1,6 @@
+## 13.503.10.1
+* Compatibility with GPS attacks of opportunity
+
 ## 13.503.10
 * `paralyzed` and `unconscious` forces damage to be critical only when `activity.hasDamage` returns `true`
 
