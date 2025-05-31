@@ -1,46 +1,238 @@
 {
-    "AC5E.ShowTooltipsName": "Afficher les info-bulles de l'AC5e :",
-    "AC5E.ShowTooltipsHint": "Lorsqu'une option pertinente est sélectionnée, AC5e affichera une info-bulle utile lorsque vous survolerez le bouton Jet suggéré ou un message généré ou les deux, résumant les raisons de cette suggestion.",
-    "AC5E.ShowToolTipsChoicesBoth": "Messages de jet et discussion",
-    "AC5E.ShowToolTipsChoicesDialog": "Uniquement sur les messages de jet",
-    "AC5E.ShowToolTipsChoicesChat": "Uniquement sur les messages de tchat",
-    "AC5E.ShowToolTipsChoicesNone": "Ne pas montrer",
-    "AC5E.ShowModuleNameInTooltipsName": "Afficher le nom du module AC5e dans les info-bulles",
-    "AC5E.ExpandedConditionsName": "Etats étendues AC5e",
-    "AC5E.ExpandedConditionsHint": "Lorsque cette case est cochée, AC5e tentera d'automatiser certains états supplémentaires, comme l'esquive et la furtivité.",
-    "AC5E.AutoArmorName": "Maîtrise d'armure AC5e et désavantage en matière de furtivité de l'équipement.",
-    "AC5E.AutoArmorHint": "Lorsqu'il est coché, AC5e traitera automatiquement la maîtrise de la pièce d'armure équipée pour les aptitudes, les compétences et les jets de sauvegarde (FOR || DEX) et vérifiera l'équipement pour la propriété de désavantage furtif.",
-    "AC5E.AutoArmorSpellUseName": "Maîtrise de l'armure et sorts AC5e",
-    "AC5E.AutoArmorSpellUseHint": "Désactivé : Ne rien faire, Appliquer : Si l'acteur ne maîtrise pas la pièce d'armure équipée, l'utilisation de sorts n'est pas autorisée et annulée, Avertir : Si l'acteur ne maîtrise pas la pièce d'armure équipée, informe l'utilisateur qu'il n'est pas en mesure de le faire. ",
-    "AC5E.AutoArmorSpellUseChoicesOff": "Ne rien faire",
-    "AC5E.AutoArmorSpellUseChoicesEnforce": "Imposer",
-    "AC5E.AutoArmorSpellUseChoicesWarn": "Avertir",
-    "AC5E.AutoArmorSpellUseChoicesEnforceToast": "ne maîtrise pas l'armure équipée et ne peut pas lancer de sorts. ",
-    "AC5E.AutoArmorSpellUseChoicesWarnToast": "ne maîtrise pas l'armure équipée et ne peut pas lancer de sorts",
-    "AC5E.AutoRangedAttacksName": "Automatisation des attaques à distance AC5e.",
-    "AC5E.AutoRangedAttacksHint": "Lorsque cette case est cochée, AC5e traitera automatiquement le désavantage/l'échec de distance en fonction de la distance cible et des valeurs de portée de l'objet utilisé pour attaquer.",
-    "AC5E.AutoRangedNearbyFoeName": "AC5e attaque à distance à proximité de l'automatisation de l'ennemi",
-    "AC5E.AutoRangedNearbyFoeHint": "Lorsque l'automatisation des attaques vérifiées ET à distance est également activée, une créature adjacente avec la disposition opposée à celle de l'attaquant imposera un désavantage à tous les jets d'attaque à distance.",
-    "AC5E.AutoExhaustionName": "Automatisation de l'épuisement AC5e.",
-    "AC5E.AutoExhaustionHint": "Lorsque cette case est cochée, AC5e traitera automatiquement les règles normales des états d'épuisement 5e. Désactivez cette option si vous souhaitez être compatible avec d'autres modules d'épuisement ou avec vos propres règles (les règles du dnd-1 seront ajoutées lors d'une prochaine mise à jour).",
-    "AC5E.AutoEncumbranceName": "Variante d'encombrement AC5e.",
-    "AC5E.AutoEncumbranceHint": "Lorsque cette case est cochée, AC5e traitera automatiquement les règles d'encombrement de la variante 5e. Le MJ doit également sélectionner dans les paramètres du système Dnd5e, l'option Variante sinon cela n'aura aucun effet",
-    "AC5E.MultipleTargetsAttackWarn": "Etats automatisées 5e : Vous attaquez plusieurs cibles et cela n'est pas pris en charge. Les résultats du Roll peuvent être faussés.",
-    "AC5E.NoTargetsAttackWarn": "Etats automatisées 5e : Vous n'avez aucune cible sélectionnée lors de l'attaque. Veuillez toujours cibler si vous voulez qu'AC5e suggère correctement les modes d'avantage.",
-    "AC5E.MultipleTargetsDamageWarn": "Etats automatisées 5e : Vous endommagez plusieurs cibles et cela n'est pas pris en charge. Les résultats du Roll peuvent être faussés.",
-    "AC5E.NoTargetsDamageWarn": "Etats automatisées 5e : Vous n'avez aucune cible sélectionnée lors du lancer des dégâts. Veuillez toujours cibler si vous voulez qu'AC5e suggère correctement les modes de jet.",
-    "AC5E.TargetingChoicesNone": "Ne rien faire",
-    "AC5E.TargetingChoicesSource": "À partir de la source uniquement",
-    "AC5E.TargetingChoicesForce": "Appliquer le ciblage",
-    "AC5E.TargetingName": "Options de ciblage AC5e",
-    "AC5E.TargetingHint": "Si aucune ou plusieurs cibles sont sélectionnées lorsque l'utilisateur lance un jet d'attaque ou de dégâts, AC5e : 'Ne rien faire' : aucun calcul de mode avantage/mode dégât pour le jet entrant ; 'A partir de la source uniquement': mode avantage/dégât basé sur les effets de l'acteur de la source ; 'Appliquer le ciblage': Annuler le jet et demander des cibles avant de relancer le jet (à utiliser avec précaution)",
-    "AC5E.KeypressOverrideName": "Les raccourcis clavier remplacent les calculs AC5e",
-    "AC5E.KeypressOverrideHint": "Les raccourcis clavier pour l'avantage, le désavantage et la critique doivent remplacer tous les calculs par AC5e (coché) ou être ajoutées aux calculs normaux de l'AC5e (non coché).",
-    "AC5E.DebuggingName": "Débogage AC5E",
-    "AC5E.DebuggingHint": "Juste quelques journaux utiles pour le débogage lors du développement. Cela n'a probablement pas beaucoup de sens pour les utilisateurs de l'avoir activé :) ",
-    "AC5E.WarCaster": "Mage de guerre",
-    "AC5E.Fail": "Échouer",
-    "AC5E.OutOfRange": "Hors de portée",
-    "AC5E.Item": "Article",
-    "AC5E.Equipment": "Équipement"
+  "AC5E.ShowTooltipsName": "Afficher les info-bulles de l'AC5e :",
+  "AC5E.ShowTooltipsHint": "Lorsqu'une option est sélectionnée, AC5e affichera une info-bulle lorsque vous survolerez le bouton 'Jet', un message ou les deux qui résument les raisons de cette suggestion.",
+  "AC5E.ShowToolTipsChoicesBoth": "Messages sur le bouton 'jet' et dans le tchat",
+  "AC5E.ShowToolTipsChoicesDialog": "Uniquement sur le bouton 'jet'",
+  "AC5E.ShowToolTipsChoicesChat": "Uniquement dans le tchat",
+  "AC5E.ShowToolTipsChoicesNone": "Ne pas montrer",
+  "AC5E.ShowModuleNameInTooltipsName": "Afficher le nom du module AC5e dans les info-bulles",
+  "AC5E.ShowTooltipChatVisibility.Name": "Afficher les info-bulles de chat pour",
+  "AC5E.ShowTooltipChatVisibility.Hint": "'Tous' - tous les jets des acteurs, 'Aucun' - aucun jet, 'Propriétaires' - jets de tous acteurs en droit 'propriétaire', 'Joueurs' - jets de l'acteur unique lié au compte du joueur ; (le MJ voit tout)",
+  "AC5E.ShowTooltipChatVisibility.All": "Tous",
+  "AC5E.ShowTooltipChatVisibility.None": "Aucun",
+  "AC5E.ShowTooltipChatVisibility.Owned": "Propriétaires",
+  "AC5E.ShowTooltipChatVisibility.Players": "Joueurs",
+  "AC5E.ExpandedConditionsName": "Etats étendues AC5e",
+  "AC5E.ExpandedConditionsHint": "Lorsque cette case est cochée, AC5e tentera d'automatiser certains états supplémentaires, comme l'esquive et la furtivité.",
+  "AC5E.AutoArmorName": "Maîtrise d'armure AC5e et désavantage en matière de furtivité de l'équipement.",
+  "AC5E.AutoArmorHint": "Lorsqu'il est coché, AC5e traitera automatiquement la maîtrise de la pièce d'armure équipée pour les aptitudes, les compétences et les jets de sauvegarde (FOR || DEX) et vérifiera l'équipement pour la propriété de désavantage aux jets de furtivités.",
+  "AC5E.ActivityUse": {
+    "Name": "Vérifications d'utilisation des objets",
+    "Hint": "Lorsque l'utilisation d'un objet n'est pas permise, AC5e peut 'Ne rien faire', simplement 'Avertir' (notification) ou 'Appliquer' (annulation du jet + notification). Les conditions vérifiées sont : incapacitaté pour l'action désignée, la rage, le silence et l'absence de maîtrise d'armure pour le lancer un sort.",
+    "Choices": {
+      "Off": "Ne rien faire",
+      "Enforce": "Appliquer",
+      "Warn": "Avertir"
+    },
+    "Type": {
+      "Armor": {
+        "Enforce": "n'est pas compétent avec l'armure équipée et, selon les règles, ne peut pas lancer de sorts. Sort annulé !",
+        "Warn": "n'est pas compétent avec l'armure équipée et, selon les règles, ne peut pas lancer de sorts."
+      },
+      "Incapacitated": {
+        "Enforce": "est incapacité et ne peut effectuer aucune action. Action annulée !",
+        "Warn": "est incapacité et ne peut effectuer aucune action."
+      },
+      "Raging": {
+        "Enforce": "est en rage et ne peut pas lancer de sorts. Sort annulé !",
+        "Warn": "est en rage et ne peut pas lancer de sorts."
+      },
+      "Silenced": {
+        "Enforce": "est réduit au silence et ne peut pas lancer de sorts avec des composants verbaux. Sort annulé !",
+        "Warn": "est réduit au silence et ne peut pas lancer de sorts avec des composants verbaux."
+      }
+    }
+  },
+  "AC5E.AutoRangedAttacksName": "Automatisation des attaques à distance AC5e.",
+  "AC5E.AutoRangedAttacksHint": "Lorsque cette case est cochée, AC5e traitera automatiquement le désavantage/l'échec de distance en fonction de la distance cible et des valeurs de portée de l'objet utilisé pour attaquer.",
+  "AC5E.AutoRangedAttacksChoicesOff": "Désactivé",
+  "AC5E.AutoRangedAttacksChoicesRangeOnly": "Vérifications de portée uniquement",
+  "AC5E.AutoRangedAttacksChoicesNearbyFoes": "Portée + Adversaires proches",
+  "AC5E.AutoExhaustionName": "Automatisation de l'épuisement AC5e",
+  "AC5E.AutoExhaustionHint": "Lorsque cette option est activée et que vous utilisez les règles v2014 de dnd5e, AC5e appliquera automatiquement les règles normales de condition d'épuisement de D&D 5e.",
+  "AC5E.AutoEncumbranceName": "Variante d'encombrement AC5e",
+  "AC5E.AutoEncumbranceHint": "Lorsque cette case est cochée, AC5e traitera automatiquement la variante des règles d'encombrement 5e. Le MJ doit également sélectionner dans les paramètres du système Dnd5e, l'option 'Variante' sinon cela n'aura aucun effet.",
+  "AC5E.Targeting": {
+    "Name": "Options de ciblage pour les attaques",
+    "Hint": "Lorsque aucun ou plusieurs cibles sont sélectionnées pour une attaque, choisissez comment AC5e doit réagir",
+    "Choices": {
+      "Source": "Utiliser uniquement les conditions de l'acteur source",
+      "Enforce": "Annuler le jet sans avertissement",
+      "Warn": "Annuler le jet avec avertissement"
+    },
+    "MultipleTargetsAttack": {
+      "Source": "AC5e : Plusieurs cibles sélectionnées. Les résultats peuvent être faussés. Utilisation uniquement des données de l'acteur source.",
+      "Enforce": "AC5e : Plusieurs cibles sélectionnées. Jet annulé !"
+    },
+    "NoTargetsAttack": {
+      "Source": "AC5e : Aucune cible sélectionnée. L'avantage/désavantage peut être inexact. Utilisation uniquement des données de l'acteur source.",
+      "Enforce": "AC5e : Aucune cible sélectionnée. Jet annulé !"
+    }
+  },
+  "AC5E.KeypressOverrideName": "Les raccourcis clavier remplacent les calculs AC5e",
+  "AC5E.KeypressOverrideHint": "L'utilisation de raccourcis clavier pour aplliquer l'avantage, le désavantage et la critique remplaceront les automatisations d'AC5e (si coché) ou seront ajoutés (non coché).",
+  "AC5E.DebuggingName": "Débogage AC5E",
+  "AC5E.DebuggingHint": "Juste quelques journaux utiles pour le débogage lors du développement. Cela n'a probablement pas beaucoup de sens pour les utilisateurs de l'avoir activé :) ",
+  "AC5E.WarCaster": "Mage de guerre",
+  "AC5E.Fail": "Échouer",
+  "AC5E.FailLowerCase": "échouer",
+  "AC5E.Fumble": "Échec critique",
+  "AC5E.Rage": "Rage",
+  "AC5E.Raging": "Enragé",
+  "AC5E.SubtleSpell": "Sort subtil",
+  "AC5E.OutOfRange": "Hors de portée",
+  "AC5E.Item": "Objet",
+  "AC5E.Feats": {
+    "CrossbowExpert": "Expert en arbalète",
+    "Sharpshooter": "Tireur d'élite",
+    "SpellSniper": "Incantateur d'élite"
+  },
+  "AC5E.Equipment": "Équipement",
+  "AC5E.NearbyFoe": "Adversaire proche",
+  "AC5E.ButtonColorPicker": {
+    "Enabled": {
+      "Name": "Boutons colorés",
+      "Hint": "Faites ressortir vos boutons de dialogue de jet. Couleurs par défaut : #288bcc (arrière-plan), blanc (texte/bordure). Saisir 'user' pour utiliser 'game.user.color' (meilleur pour l’arrière-plan). Saisir 'false/none/null/0' pour désactiver l’un des sélecteurs de couleur disponibles. Supprimez la valeur d'un champ pour revenir aux valeurs par défaut."
+    },
+    "Background": {
+      "Name": "🎨 Couleur de fond du bouton",
+      "Hint": "Supprimez la valeur pour revenir à la couleur 'game.user.color'"
+    },
+    "Border": {
+      "Name": "🖍️ Couleur de bordure du bouton",
+      "Hint": "Supprimez la valeur pour revenir au blanc"
+    },
+    "Text": {
+      "Name": "🔤 Couleur du texte du bouton",
+      "Hint": "Supprimez la valeur de l'entrée pour revenir au blanc"
+    }
+  },
+  "AC5E.Bonus": "Bonus",
+  "AC5E.Success": "Succès",
+  "AC5E.AbbreviationAdvantage": "avantage",
+  "AC5E.AbbreviationDisadvantage": "désavantage",
+  "AC5E.AbbreviationCritical": "critique",
+  "AC5E.Grants": "accorde",
+  "AC5E.Attacker": "Attaquant",
+  "AC5E.FlagsInitiativeDisadv": "Désavantage à l'initiative",
+  "AC5E.TargetGrantsAdvantageAbbreviated": "Accorde avantage",
+  "AC5E.TargetGrantsDisadvantageAbbreviated": "Accorde désavantage",
+  "AC5E.TargetGrantsCriticalAbbreviated": "Accorde critique",
+  "AC5E.TargetGrantsFail": "Accorde échec",
+  "AC5E.TargetGrantsFumble": "Accorde maladresse",
+  "AC5E.TargetGrantsSuccess": "Accorde succès",
+  "AC5E.TargetGrantsBonus": "Accorde bonus",
+  "AC5E.NoChanges": "Aucun changement",
+  "AC5E.SystemMode": "Mode système",
+  "AC5E.EnvironmentalHazards": {
+    "SettingsName": "Dangers environnementaux (2024)",
+    "SettingsHint": "Automatise les conditions de brûlure et de suffocation, selon les règles D&D 5e de 2024",
+    "BurningHazard": "Danger de brûlure",
+    "SuffocatingHazard": "Suffocation"
+  },
+  "dae.fieldData.fieldCategories.AC5E": "AC5E",
+  "dae.AC5E.fieldData": {
+    "flags.automated-condition-5e.crossbowExpert": {
+      "name": "Expert en arbalète",
+      "description": "Être à moins de 1,5 m d'un ennemi n'impose pas de désavantage sur vos jets d'attaque avec des arbalètes."
+    },
+    "flags.automated-condition-5e.sharpShooter": {
+      "name": "Tireur d'élite",
+      "description": "Aucun désavantage pour tirer avec des armes à distance à longue portée ou à moins de 1,5 m d'un ennemi."
+    },
+    "flags.automated-condition-5e.spellSniper": {
+      "name": "Incantateur d'élite",
+      "description": "Selon les règles de 2024, aucun désavantage pour lancer des sorts à distance à moins de 1,5 m d'un ennemi et si leur portée est d'au moins 3 m, ajoute 18 m supplémentaires."
+    },
+    "flags.automated-conditions-5e.ACTIONTYPE": {
+      "advantage": {
+        "name": "Jet avec avantage",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "bonus": {
+        "name": "Jet avec bonus",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/initiative/save/skill/tool. Exemple : bonus=1d4 + 5 - @abilities.dex.mod."
+      },
+      "critical": {
+        "name": "Jet en critique (20 naturel ou en cas de dégâts critiques)",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      },
+      "disadvantage": {
+        "name": "Jet avec désavantage",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "fail": {
+        "name": "Les jets de d20 échoués (d20)",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/save/skill/tool."
+      },
+      "fumble": {
+        "name": "Les échecs critiques au d20 (1 naturel)",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "success": {
+        "name": "Les jets de d20 réussies",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/save/skill/tool."
+      }
+    },
+    "flags.automated-conditions-5e.grants.ACTIONTYPE": {
+      "advantage": {
+        "name": "Accorde un avantage aux jets de d20 de l'adversaire",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "bonus": {
+        "name": "Accorde un bonus aux jets de l'adversaire",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/initiative/save/skill/tool. Exemple : bonus=1d4 + 5 - @abilities.dex.mod."
+      },
+      "critical": {
+        "name": "Accorde un coup critique (20 naturel ou dégâts) aux jets de l'adversaire",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      },
+      "disadvantage": {
+        "name": "Accorde un désavantage aux jets de d20 de l'adversaire",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "fail": {
+        "name": "Accorde un échec aux jets de d20 de l'adversaire",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/save/skill/tool."
+      },
+      "fumble": {
+        "name": "Accorde un échec critique (1 naturelle) aux jets de d20 de l'adversaire",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "success": {
+        "name": "Les jets de d20 contre vous ou causés par vous réussies",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/save/skill/tool."
+      }
+    },
+    "flags.automated-conditions-5e.aura.ACTIONTYPE": {
+      "advantage": {
+        "name": "Une aura accordant un avantage",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool. Exemple : radius=15;includeSelf;allies;str;cha; accorde à tous les alliés, y compris soi-même, dans un rayon de 4,5 m un avantage sur les sauvegardes de Force ou Charisme."
+      },
+      "bonus": {
+        "name": "Une aura accordant des bonus",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/initiative/save/skill/tool. Exemple : radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised, réduit les jets de tous ceux qui sont surpris dans un rayon de 6 m par le modificateur de Charisme de la source."
+      },
+      "critical": {
+        "name": "Une aura imposant un coup critique (20 naturel ou dégâts)",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      },
+      "disadvantage": {
+        "name": "Une aura imposant un désavantage",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool."
+      },
+      "fail": {
+        "name": "Une aura imposant l'échec des jets de d20",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/save/skill/tool. Format des valeurs : rayon=Nombre;alliés ou ennemis ou omis pour TOUS;autres conditions"
+      },
+      "fumble": {
+        "name": "Une aura imposant l'échec critique des jets de d20",
+        "description": "Une aura autour de l'acteur qui a cet effet. Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/initiative/save/skill/tool. Format des valeurs : rayon=Nombre;alliés ou ennemis ou omis pour TOUS;autres conditions"
+      },
+      "success": {
+        "name": "Une aura imposant la réussite",
+        "description": "Remplacez ACTIONTYPE par l'une des options suivantes : all/attack/check/concentration/death/save/skill/tool. Format des valeurs : rayon=Nombre;alliés ou ennemis ou omis pour TOUS;autres conditions"
+      }
+    }
   }
+}
