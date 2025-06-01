@@ -1,3 +1,6 @@
+## 13.503.10.2
+* Updated French translation by [CaosFR](<https://github.com/CaosFR>) 🤗
+
 ## 13.503.10.1
 * Compatibility with GPS attacks of opportunity
 
