@@ -75,6 +75,7 @@
 	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
 	"AC5E.WarCaster": "War Caster",
 	"AC5E.Fail": "Fail",
+	"AC5E.Alert": "Alert",
 	"AC5E.FailLowerCase": "fail",
 	"AC5E.Fumble": "Fumble",
 	"AC5E.Rage": "Rage",
