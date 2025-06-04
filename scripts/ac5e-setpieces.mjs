@@ -40,7 +40,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-
+	
 	const mkStatus = (id, name, data) => ({ _id: _staticID(id), name, ...data });
 
 	const hasStatusFromOpponent = (actor, status, origin) => actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect, 'token')?.actor.uuid === origin?.uuid);
@@ -59,12 +59,14 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
+	const opponentAlert2014 = !modernRules && opponent?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
 
 	const tables = {
 		blinded: mkStatus('blinded', _i18nConditions('Blinded'), {
 			attack: {
 				subject: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '',
-				opponent: !_canSee(opponentToken, subjectToken) ? 'advantage' : '',
+				opponent: !_canSee(opponentToken, subjectToken) && !subjectAlert2014 ? 'advantage' : '',
 			},
 		}),
 
@@ -102,7 +104,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		invisible: mkStatus('invisible', _i18nConditions('Invisible'), {
 			attack: {
-				subject: !_canSee(opponentToken, subjectToken) ? 'advantage' : '',
+				subject: !opponentAlert2014 && !_canSee(opponentToken, subjectToken) ? 'advantage' : '',
 				opponent: !_canSee(subjectToken, opponentToken) ? 'disadvantage' : '',
 			},
 			check: { subject: modernRules && isInitiative ? 'advantage' : '' },
@@ -169,7 +171,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		});
 
 		tables.hiding = mkStatus('hiding', _i18nConditions('Hiding'), {
-			attack: { subject: 'advantage', opponent: 'disadvantage' },
+			attack: { subject: !opponentAlert2014 ? 'advantage' : '', opponent: 'disadvantage' },
 			check: { subject: modernRules && isInitiative ? 'advantage' : '' },
 		});
 
