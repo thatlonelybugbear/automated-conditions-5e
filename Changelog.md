@@ -1,3 +1,7 @@
+## 13.503.10.3
+* Added 2014 Alert automation (checking for Alert - or its translated string for supported languages - item on the actor)
+* Fix for Transform activities triggering an error
+
 ## 13.503.10.2
 * Updated French translation by [CaosFR](<https://github.com/CaosFR>) 🤗
 
