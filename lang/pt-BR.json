@@ -75,6 +75,7 @@
 	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
 	"AC5E.WarCaster": "Conjurador de Guerra",
 	"AC5E.Fail": "Falha",
+	"AC5E.Alert": "Alerta",
 	"AC5E.FailLowerCase": "falha",
 	"AC5E.Fumble": "Falha Crítica",
 	"AC5E.Rage": "Fúria",
@@ -85,7 +86,7 @@
 	"AC5E.Feats": {
 		"CrossbowExpert": "Especialista em Bestas",
 		"Sharpshooter": "Atirador de Elite",
-		"SpellSniper": "Spell Sniper"
+		"SpellSniper": "Atirador de Magia"
 	},
 	"AC5E.Equipment": "Equipmento",
 	"AC5E.NearbyFoe": "Inimigo Próximo",
