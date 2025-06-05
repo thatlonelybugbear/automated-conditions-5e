@@ -1020,7 +1020,7 @@ export function _getActivityDamageTypes(activity) {
 export function _getActivityEffectsStatusRiders(activity) {
 	const statuses = {};
 	// const riders = {};
-	activity?.applicableEffects.forEach((effect) => {
+	activity?.applicableEffects?.forEach((effect) => {
 		Array.from(effect?.statuses).forEach((status) => (statuses[status] = true));
 		effect.flags?.dnd5e?.riders?.statuses?.forEach((rider) => (statuses[rider] = true));
 	});
