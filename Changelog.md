@@ -1,3 +1,7 @@
+## 13.503.10.4
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
 ## 13.503.10.3
 * Added 2014 Alert automation (checking for Alert - or its translated string for supported languages - item on the actor for Legacy Rules)
 * Fix for Transform activities triggering an error
