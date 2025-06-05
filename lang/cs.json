@@ -14,7 +14,7 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Hráči",
 	"AC5E.ExpandedConditionsName": "Používat rozšířené stavy AC5e?",
 	"AC5E.ExpandedConditionsHint": "Pokud je zaškrtnuto, tak se AC5e pokusí automatizovat některé další stavy, například Uhýbání či Skrývání se.",
-	"AC5E.AutoArmorName": "Automatizovat AC5e výcvik v používání zbrojí a Nevýhodu na Nenápadnost?",
+	"AC5E.AutoArmorName": "Má AC5e automatizovat výcvik v používání zbrojí a Nevýhodu na Nenápadnost?",
 	"AC5E.AutoArmorHint": "Pokud je zaškrtnuto, AC5e automaticky kontroluje zdatnost s nasazenou zbrojí pro hody na vlastnosti, dovednosti a záchrany (na Sílu a Obratnost). Též kontroluje vybavení kvůli možné Nevýhodě na Nenápadnost.",
 		"AC5E.ActivityUse" : {
 		"Name": "Kontroly použití položek",
@@ -26,20 +26,20 @@
 		},
 		"Type": {
 			"Armor": {
-				"Enforce": "nemá výcvik s nasazenou zbrojí a podle striktního výkladu pravidel nemůže sesílat kouzla. Kouzlo zrušeno!",
-				"Warn": "nemá výcvik s nasazenou zbrojí a podle podle striktního výkladu pravidel nemůže sesílat kouzla."
+				"Enforce": "nemá výcvik s nasazenou zbrojí a podle pravidel nemůže sesílat kouzla. Kouzlo zrušeno!",
+				"Warn": "nemá výcvik s nasazenou zbrojí a podle podle pravidel nemůže sesílat kouzla."
 			},
 			"Incapacitated": {
-				"Enforce": "je ´zneschopněný´ a nemůže provádět žádné akce. Akce zrušena!",
-				"Warn": "je ´zneschopněný´ a nemůže provádět žádné akce."
+				"Enforce": "je ´zneschopněný/á´ a nemůže provádět žádné akce. Akce zrušena!",
+				"Warn": "je ´zneschopněný/á´ a nemůže provádět žádné akce."
 			},
 			"Raging": {
 				"Enforce": "zuří a nemůže sesílat kouzla. Kouzlo zrušeno!",
 				"Warn": "zuří a nemůže sesílat kouzla."
 			},
 			"Silenced": {
-				"Enforce": "je ´ztišený´ a nemůže sesílat kouzla s verbální složkou. Kouzlo zrušeno!",
-				"Warn": "je ´ztišený´ a nemůže sesílat kouzla s verbální složkou."
+				"Enforce": "je ´ztišený/á´ a nemůže sesílat kouzla s verbální složkou. Kouzlo zrušeno!",
+				"Warn": "je ´ztišený/á´ a nemůže sesílat kouzla s verbální složkou."
 			}
 		}		
 	},
@@ -75,6 +75,7 @@
 	"AC5E.DebuggingHint": "Pár užitečných logů pro ladění při vývoji. Pro běžné uživatele to pravděpodobně není potřebné :)",
 	"AC5E.WarCaster": "Válečný sesilatel",
 	"AC5E.Fail": "Selhání",
+	"AC5E.Alert": "Bdělý ochránce",
 	"AC5E.FailLowerCase": "selhání",
 	"AC5E.Fumble": "Kritické selhání",
 	"AC5E.Rage": "Zuřivost",
@@ -82,7 +83,7 @@
 	"AC5E.SubtleSpell": "Opatrné kouzlo",
 	"AC5E.OutOfRange": "Mimo dosah",
 	"AC5E.Item": "Položka",
-		"AC5E.Feats": {
+	"AC5E.Feats": {
 		"CrossbowExpert": "Kušiník",
 		"Sharpshooter": "Ostrostřelec",
 		"SpellSniper": "Vrhač kouzel"
