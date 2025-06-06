@@ -636,7 +636,7 @@ export function _canSee(source, target, status) {
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
 	const detectionModes = CONFIG.Canvas.detectionModes;
 	const DETECTION_TYPES = { SIGHT: 0, SOUND: 1, MOVE: 2, OTHER: 3 };
-	const { BASIC_MODE_ID } = game.version > '13' ? new foundry.canvas.perception.DetectionMode() : new DetectionMode();
+	const { BASIC_MODE_ID } = game.version > '13' ? foundry.canvas.perception.DetectionMode : new DetectionMode();
 	const sightDetectionModes = Object.keys(detectionModes).filter((d) => detectionModes[d].type === DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d));
 
 	const matchedModes = new Set();
