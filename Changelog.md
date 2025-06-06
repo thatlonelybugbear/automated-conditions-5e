@@ -1,3 +1,6 @@
+## 13.503.11
+* v13.345 compatibility
+
 ## 13.503.10.4
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
