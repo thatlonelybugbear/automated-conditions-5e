@@ -75,6 +75,7 @@
 	"AC5E.DebuggingHint": "Solo alcuni log utili per il debug durante lo sviluppo. Probabilmente non ha molto senso che gli utenti lo usino :)",
 	"AC5E.WarCaster": "Mago da Battaglia",
 	"AC5E.Fail": "Fallito",
+	"AC5E.Alert": "Allerta",
 	"AC5E.FailLowerCase": "fallito",
 	"AC5E.Fumble": "Fallimento Critico",
 	"AC5E.Rage": "Ira",
@@ -129,7 +130,7 @@
 		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
 		"BurningHazard": "Pericolo Ustioni",
 		"SuffocatingHazard": "Soffocamento"
-		},
+	},
 	"dae.fieldData.fieldCategories.AC5E": "AC5E",
 	"dae.AC5E.fieldData": {
 	"flags.automated-condition-5e.crossbowExpert": {
@@ -139,6 +140,10 @@
 	"flags.automated-condition-5e.sharpShooter": {
 		"name": "Tiratore Scelto",
 		"description": "Nessuno svantaggio quando si usano armi a distanza alla massima gittata o entro 1,5 metri da un nemico"
+	},
+	"flags.automated-condition-5e.spellSniper": {
+		"name": "Cecchino Magico",
+		"description": "Per le regole del 2024, nessuno svantaggio nel lanciare incantesimi a distanza entro 5 piedi da un nemico e se hanno una gittata di almeno 10 piedi, aggiunge altri 60 piedi"
 	},
 	"flags.automated-conditions-5e.ACTIONTYPE": {
 		"advantage": {
@@ -162,7 +167,7 @@
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/save/skill/tool"
 		},
 		"fumble": {
-			"name": "Tiri d20 inciampano (1 naturale)",
+			"name": "Tiri d20 falliscono malamente (1 naturale)",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration/death/initiative/save/skill/tool"
 		},
 		"success": {
