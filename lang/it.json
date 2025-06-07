@@ -22,7 +22,7 @@
 		"Choices": {
 			"Off": "Disattiva",
 			"Enforce": "Applica",
-			"Warn": "Avverti",
+			"Warn": "Avverti"
 		},
 		"Type": {
 			"Armor": {
