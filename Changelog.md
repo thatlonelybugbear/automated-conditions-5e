@@ -1,3 +1,6 @@
+## 13.503.11.1
+* Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.503.11
 * v13.345 compatibility
 
