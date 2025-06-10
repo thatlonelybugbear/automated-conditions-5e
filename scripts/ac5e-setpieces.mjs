@@ -293,7 +293,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 	};
 
-	const bonusReplacements = (expression, evalData, isAura) => {
+	const bonusReplacements = (expression, evalData, isAura, effect) => {
 		const staticMap = {
 			'@scaling': evalData.scaling ?? 0,
 			scaling: evalData.scaling ?? 0,
@@ -307,6 +307,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 		expression = expression.replace(pattern, (match) => staticMap[match]);
+		if (expression.includes('effectOriginActor')) {
+			const tok = _getEffectOriginToken(effect, 'token');
+			if (tok?.actor) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('effectOriginActor.', '@'), _ac5eActorRollData(tok))).formula;
+		};
 		if (expression.includes('@')) expression = Roll.fromTerms(Roll.parse(expression, isAura ? evalData.auraActor : evalData.rollingActor)).formula;
 		if (expression.includes('rollingActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('rollingActor.', '@'), evalData.rollingActor)).formula;
 		if (expression.includes('##')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('##', '@'), isAura ? evalData.rollingActor : evalData.opponentActor)).formula;
@@ -357,7 +361,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 									?.find((e) => e.includes('bonus='))
 									.split('bonus=')?.[1]
 							: '';
-					bonus = bonusReplacements(bonus, auraTokenEvaluationData, true);
+					bonus = bonusReplacements(bonus, auraTokenEvaluationData, true, effect);
 					const auraOnlyOne = el.value.includes('singleAura');
 					let valuesToEvaluate = el.value
 						.split(';')
@@ -409,7 +413,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 								?.find((e) => e.includes('bonus='))
 								.split('bonus=')?.[1]
 						: '';
-				bonus = bonusReplacements(bonus, evaluationData);
+				bonus = bonusReplacements(bonus, evaluationData, false, effect);
 				let valuesToEvaluate = el.value
 					.split(';')
 					.reduce((acc, v) => {
@@ -445,7 +449,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 									?.find((e) => e.includes('bonus='))
 									.split('bonus=')?.[1]
 							: '';
-					bonus = bonusReplacements(bonus, evaluationData);
+					bonus = bonusReplacements(bonus, evaluationData, false, effect);
 					let valuesToEvaluate = el.value
 						.split(';')
 						.reduce((acc, v) => {
