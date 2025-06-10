@@ -1,3 +1,7 @@
+## 13.503.12
+* Adds `effectOriginActor` data for bonus flags
+  * Usage example: `bonus=effectOriginActor.abilities.wis.mod;`
+
 ## 13.503.11.1
 * Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
