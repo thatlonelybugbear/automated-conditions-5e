@@ -10,7 +10,7 @@ const settings = new Settings();
  * evaluating all grid spaces they occupy, based in Illandril's work
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
-export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false) {
+export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true) {  //always override MidiQOL until some fixes are implemented
 	if (typeof tokenA === 'string') {
 		if (tokenA.includs('.')) tokenA = fromUuidSync(tokenA)?.object;
 		else tokenA = canvas.tokens.get(tokenA);
@@ -20,6 +20,50 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		else tokenB = canvas.tokens.get(tokenB);
 	}
 	if (!tokenA || !tokenB) return undefined;
+	if (canvas.grid.isGridless) {
+		const grid = canvas.grid;
+		const gridDistance = grid.distance;
+		let distance = Infinity;
+		const tokenA = canvas.tokens.controlled[0];
+		const tokenB = canvas.tokens.controlled[1] ?? game.user.targets.first();
+		
+		tokenA.z0 = tokenA.document.elevation / grid.distance;
+		tokenA.z1 = tokenA.z0 + Math.min(tokenA.document.width | 0, tokenA.document.height | 0);
+		tokenB.z0 = tokenB.document.elevation / grid.distance;
+		tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
+		
+		const is3D = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
+		
+		const intersects = tokenA.bounds.intersects(tokenB.bounds);
+		const elevationDistance = is3D * gridDistance;
+		if (intersects) return ((elevationDistance * 100) | 0) / 100;
+		const adjacent = canvas.tokens.quadtree.getObjects(tokenA.bounds).filter((tok) => tok === tokenB).size;
+		if (adjacent) {
+			distance = is3D ? Math.sqrt(elevationDistance * elevationDistance + gridDistance * gridDistance) : elevationDistance;
+			return ((distance * 100) | 0) / 100;
+		}
+		
+		const intersection = tokenA.bounds.intersection(tokenB.bounds);
+		
+		let pointA = {};
+		let pointB = {};
+		
+		if ((intersection.x === tokenA.x && intersection.y === tokenA.y) || (intersection.x === tokenB.x && intersection.y === tokenB.y)) {
+			pointA = { x: intersection.x, y: intersection.y };
+			pointB = { x: intersection.x + Math.min(intersection.width, 0), y: intersection.y + Math.min(intersection.height, 0) };
+		}
+		
+		else if ((intersection.x === tokenA.x && intersection.y === tokenB.y) || (intersection.x === tokenB.x && intersection.y === tokenA.y)) {
+			pointA = { x: intersection.x + Math.min(intersection.width, 0), y: intersection.y };
+			pointB = { x: intersection.x, y: intersection.y + Math.min(intersection.height, 0) };
+		}
+		distance = (grid.measurePath([pointA, pointB])?.distance || 0) + gridDistance;
+		if (is3D) {
+			distance = Math.sqrt(distance * distance + elevationDistance * elevationDistance);
+		}
+		if (includeUnits) return (distance * 100) | 0) / 100 + canvas.grid.units;
+		return ((distance * 100) | 0) / 100;
+	}
 	
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
