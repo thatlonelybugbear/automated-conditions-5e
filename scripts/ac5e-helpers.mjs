@@ -934,12 +934,18 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (subjectToken) {
 		sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
 		sandbox.tokenId = subjectToken.id;
+		sandbox.tokenUuid = subjectToken.document?.uuid;
+		sandbox.actorId = subjectToken.actor?.id;
+		sandbox.actorUuid = subjectToken.actor?.uuid;
 		sandbox.canMove = sandbox.rollingActor.canMove;
 		sandbox.canSee = _canSee(subjectToken, opponentToken);
 	}
 	if (opponentToken) {
 		sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
 		sandbox.opponentId = opponentToken.id;
+		sandbox.opponentUuid = opponentToken.document?.uuid;
+		sandbox.opponentActorId = opponentToken.actor?.id;
+		sandbox.opponentActorUuid = opponentToken.actor?.uuid;
 		sandbox.isSeen = _canSee(opponentToken, subjectToken);
 		/* backwards compatibility */
 		sandbox.targetActor = sandbox.opponentActor;
