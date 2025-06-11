@@ -11,6 +11,16 @@ const settings = new Settings();
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false) {
+	if (typeof tokenA === 'string') {
+		if (tokenA.includs('.')) tokenA = fromUuidSync(tokenA)?.object;
+		else tokenA = canvas.tokens.get(tokenA);
+	}
+	if (typeof tokenB === 'string') {
+		if (tokenB.includs('.')) tokenB = fromUuidSync(tokenB)?.object;
+		else tokenB = canvas.tokens.get(tokenB);
+	}
+	if (!tokenA || !tokenB) return undefined;
+	
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units: canvas.scene.grid.units });
@@ -18,11 +28,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		if (result === -1) return undefined;
 		return result;
 	}
-	if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
-	else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
-	if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
-	else if (typeof tokenB === 'string' && tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
-	if (!tokenA || !tokenB) return undefined;
+	
 	const PointsAndCenter = {
 		points: [],
 		trueCenternt: {},
