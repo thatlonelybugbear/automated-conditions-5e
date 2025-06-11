@@ -11,6 +11,7 @@ const settings = new Settings();
  * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true) {  //always override MidiQOL until some fixes are implemented
+	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;	
 	if (typeof tokenA === 'string') {
 		if (tokenA.includs('.')) tokenA = fromUuidSync(tokenA)?.object;
 		else tokenA = canvas.tokens.get(tokenA);
@@ -19,7 +20,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		if (tokenB.includs('.')) tokenB = fromUuidSync(tokenB)?.object;
 		else tokenB = canvas.tokens.get(tokenB);
 	}
-	if (!tokenA || !tokenB) return undefined;
+	if (!(tokenA instanceof Token) || !(tokenB instanceof Token)) return undefined;
 	if (canvas.grid.isGridless) {
 		const grid = canvas.grid;
 		const gridDistance = grid.distance;
