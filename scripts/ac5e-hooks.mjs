@@ -21,9 +21,6 @@ export function _rollFunctions(hook, ...args) {
 	} else if (['check' /*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollAbilityTest(config, dialog, message, hook);
-	// } else if (hook === 'consumptionHook') {
-	// 	const [activity, config, dialog, message] = args;
-	// 	return _postConsumptionHook(activity, config, dialog, message);
 	} else if (hook === 'init') {
 		const [actor, rollConfig] = args;
 		return _preConfigureInitiative(actor, rollConfig, hook);
@@ -175,6 +172,13 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
+	let ac5eConfig;
+	if (options.isInitiative) {
+		ac5eConfig = config?.rolls[0]?.options?.[Constants.MODULE_ID];
+		dialog.options.advantageMode = ac5eConfig.advantageMode;
+		dialog.options.defaultButton = ac5eConfig.defaultButton;
+		return _setAC5eProperties(ac5eConfig, config, dialog, message, ac5eConfig.options);
+	}
 	const { subject, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const speaker = message?.data?.speaker;
 	options.skill = skill;
@@ -186,14 +190,12 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	let opponentToken;
-	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects
+	//to-do: not ready for this yet. The following line would make it so checks would be perfomred based on target's data/effects
 	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
-	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 
+	ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
 
-	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
-	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
 	//check Auto Armor
 	//to-do: move to setPieces
@@ -233,7 +235,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
 	if (invalidTargets) {
 		if (needsTarget !== 'source') return false;
-	        else singleTargetToken = undefined;
+		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
@@ -620,14 +622,20 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	const config = rollConfig.options;
 	const options = {};
 	options.isInitiative = true;
-	options.preConfigInitiative = true;
 	options.hook = hook;
+	const initAbility = rollConfig.data?.attributes?.init?.ability;
+	const ability = initAbility === '' ? 'dex' : initAbility;
+	options.ability = ability;
 	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
 	//to-do: match the flags or init mode with the tooltip blurb
-	if ((subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
-	if ((subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
+	if (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
-	
+
+	//to-do: move to setPieces
+	if (settings.autoArmor) {
+		if (['dex', 'str'].includes(ability) && _autoArmor(subject).notProficient) ac5eConfig.subject.disadvantage.push(`${_localize(_autoArmor(subject).notProficient)} (${_localize('NotProficient')})`);
+	}
 	//to-do: move to setPieces
 	if (_autoEncumbrance(subject, 'dex')) {
 		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
@@ -641,19 +649,21 @@ export function _preConfigureInitiative(subject, rollConfig) {
 		rollConfig.options.advantageMode = 1;
 		rollConfig.advantage = true;
 		rollConfig.disadvantage = false;
-	}
-	else if (advantageMode < 0) {
+	} else if (advantageMode < 0) {
 		rollConfig.advantageMode = -1;
 		rollConfig.options.advantageMode = -1;
 		rollConfig.advantage = false;
 		rollConfig.disadvantage = true;
-	}
-	else if  (advantageMode === 0) {
+	} else if (advantageMode === 0) {
 		rollConfig.advantageMode = 0;
 		rollConfig.options.advantageMode = 0;
 		rollConfig.advantage = false;
 		rollConfig.disadvantage = false;
 	}
+
+	ac5eConfig.advantageMode = advantageMode;
+	ac5eConfig.defaultButton = advantageMode === 0 ? 'normal' : advantageMode > 0 ? 'advantage' : 'disadvantage';
+
 	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
 	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
 	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
