@@ -1,3 +1,9 @@
+## 13.503.13
+* Fix for double initiative bonus and not proper highlighting
+* You can now use any of the following in addition to `tokenId` and `opponentId`:
+  * `tokenUuid`, `actorId`, `actorUuid` for rolling actor/token identification
+  * `opponentUuid`, `opponentActorId`, `opponentActorUuid`
+
 ## 13.503.12
 * Adds `effectOriginActor` data for bonus flags
   * Usage example: `bonus=effectOriginActor.abilities.wis.mod;`
