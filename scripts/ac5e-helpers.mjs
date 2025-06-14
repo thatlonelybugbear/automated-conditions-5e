@@ -593,15 +593,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 }
 
 export function getActorAbilityRollModes({ actor, hookType, ability }) {
-	return actor.system.abilities[ability]?.[hookType]?.roll.mode;
+	return actor?.system?.abilities?.[ability]?.[hookType]?.roll.mode;
 }
 
 export function getActorSkillRollModes({ actor, skill }) {
-	return actor.system.skills[skill]?.roll.mode;
+	return actor?.system?.skills?.[skill]?.roll.mode;
 }
 
 export function getActorToolRollModes({ actor, tool }) {
-	return actor.system.tools[tool]?.roll.mode;
+	return actor?.system?.tools?.[tool]?.roll.mode;
 }
 
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
