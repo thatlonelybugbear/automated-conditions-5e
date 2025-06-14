@@ -1,3 +1,6 @@
+## 13.503.13.1
+* Guard against actor being undefined at `getActorToolRollModes`
+
 ## 13.503.13
 * Fix for double initiative bonus and not proper highlighting
 * You can now use any of the following in addition to `tokenId` and `opponentId`:
