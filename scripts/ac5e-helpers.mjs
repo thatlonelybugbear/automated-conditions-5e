@@ -963,7 +963,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (options?.attackMode) sandbox[options.attackMode] = true;
 		if (activity.actionType) sandbox[activity.actionType] = true;
 		sandbox[activityData.name] = true;
-		sandbox[activityData.activation.type] = true;
+		if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
 		sandbox.isSpell = activity.isSpell;
 		sandbox.isScaledScroll = activity.isScaledScroll;
@@ -985,6 +985,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox.item.hasSummoning = item.system?.hasSummoning;
 		sandbox.item.hasLimitedUses = item.system?.hasLimitedUses;
 		sandbox.item.isHealing = item.system?.isHealing;
+		sandbox.item.isEnchantment = item.system?.isEnchantment;
+		sandbox.item.transferredEffects = item.transferredEffects;
 	}
 
 	const active = game.combat?.active;
@@ -1016,8 +1018,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
 	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor });
-	if (sandbox.undefined) {
+	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
+		delete sandbox[''];
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
 	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._createEvaluationSandbox logging the available data:', { evaluationData: sandbox });
