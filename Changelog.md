@@ -1,3 +1,8 @@
+## 13.503.13.2
+* Added in sandbox:
+ * `item.isEnchantment`: Boolean, true if it is an enchantment, or enchanted item.
+	* `item.transferredEffects`: Array of transferred effects
+
 ## 13.503.13.1
 * Guard against actor being undefined at `getActorToolRollModes`
 
