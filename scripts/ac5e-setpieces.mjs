@@ -303,6 +303,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			castingLevel: evalData.castingLevel ?? 0,
 			'@baseSpellLevel': evalData.baseSpellLevel ?? 0,
 			baseSpellLevel: evalData.baseSpellLevel ?? 0,
+			effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.counter.value ?? 1,
+			stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.counter.value ?? 1,
 		};
 
 		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
