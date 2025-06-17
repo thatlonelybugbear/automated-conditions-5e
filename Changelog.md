@@ -1,3 +1,9 @@
+## 13.504.1
+* System compatibility bump for 5.0.4
+* Fix for a forgotten Token instance deprecation
+* Added for bonus ac5e flags, support for `effectStacks`, when using DAE or Status Icon Counters stacking of effects.
+ * Example `bonus=(effectStacks + 2)d4`
+
 ## 13.503.13.3
 * Fix for not properly pushing parts for bonuses
 
