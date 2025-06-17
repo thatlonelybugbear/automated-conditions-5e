@@ -1,3 +1,6 @@
+## 13.503.13.3
+* Fix for not properly pushing parts for bonuses
+
 ## 13.503.13.2
 * Added in sandbox:
   * `item.isEnchantment`: Boolean, true if it is an enchantment, or enchanted item.
