@@ -10,7 +10,7 @@
 <br>
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-2.4.1-red?style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-3.3.1-red?style=for-the-badge)
-![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-4.4.3-red?style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-4.4.4-red?style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
 
 ## Description
