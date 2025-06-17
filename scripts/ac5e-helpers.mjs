@@ -346,7 +346,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (ac5eConfig.hookType === 'damage') dialog.options.defaultButton = 'critical';
 	}
 	if (ac5eConfig.parts.length) {
-		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [ac5eConfig.parts]);
+		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
 		else if (config.parts) config.parts.push(ac5eConfig.parts);
 	}
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
