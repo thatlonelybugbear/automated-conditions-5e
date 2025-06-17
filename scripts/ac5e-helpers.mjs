@@ -20,7 +20,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		if (tokenB.includs('.')) tokenB = fromUuidSync(tokenB)?.object;
 		else tokenB = canvas.tokens.get(tokenB);
 	}
-	if (!(tokenA instanceof Token) || !(tokenB instanceof Token)) return undefined;
+	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return undefined;
 	
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
