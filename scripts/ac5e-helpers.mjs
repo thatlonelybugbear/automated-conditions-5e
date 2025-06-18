@@ -954,6 +954,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		/* end of backwards compatibility */
 	}
 	sandbox.activity = activity?.getRollData().activity || {};
+	sandbox.activity.ability = activity.ability;
 	sandbox.riderStatuses = options.activityEffectsStatusRiders;
 	if (activity) {
 		const activityData = sandbox.activity;
