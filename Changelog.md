@@ -1,3 +1,6 @@
+## 13.504.2
+- Added `activity.ability` in the available evaluation data.
+
 ## 13.504.1
 * System compatibility bump for 5.0.4
 * Fix for a forgotten Token instance deprecation
