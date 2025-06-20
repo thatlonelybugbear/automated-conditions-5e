@@ -932,27 +932,25 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.rollingActor = {};
 	sandbox.opponentActor = {};
 
-	if (subjectToken) {
-		sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
-		sandbox.tokenId = subjectToken.id;
-		sandbox.tokenUuid = subjectToken.document?.uuid;
-		sandbox.actorId = subjectToken.actor?.id;
-		sandbox.actorUuid = subjectToken.actor?.uuid;
-		sandbox.canMove = sandbox.rollingActor.canMove;
-		sandbox.canSee = _canSee(subjectToken, opponentToken);
-	}
-	if (opponentToken) {
-		sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
-		sandbox.opponentId = opponentToken.id;
-		sandbox.opponentUuid = opponentToken.document?.uuid;
-		sandbox.opponentActorId = opponentToken.actor?.id;
-		sandbox.opponentActorUuid = opponentToken.actor?.uuid;
-		sandbox.isSeen = _canSee(opponentToken, subjectToken);
-		/* backwards compatibility */
-		sandbox.targetActor = sandbox.opponentActor;
-		sandbox.targetId = opponentToken.id;
-		/* end of backwards compatibility */
-	}
+	sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
+	sandbox.tokenId = subjectToken?.id;
+	sandbox.tokenUuid = subjectToken?.document?.uuid;
+	sandbox.actorId = subjectToken?.actor?.id;
+	sandbox.actorUuid = subjectToken?.actor?.uuid;
+	sandbox.canMove = sandbox.rollingActor?.canMove;
+	sandbox.canSee = _canSee(subjectToken, opponentToken);
+
+	sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
+	sandbox.opponentId = opponentToken.id;
+	sandbox.opponentUuid = opponentToken.document?.uuid;
+	sandbox.opponentActorId = opponentToken.actor?.id;
+	sandbox.opponentActorUuid = opponentToken.actor?.uuid;
+	sandbox.isSeen = _canSee(opponentToken, subjectToken);
+	/* backwards compatibility */
+	sandbox.targetActor = sandbox.opponentActor;
+	sandbox.targetId = opponentToken?.id;
+	/* end of backwards compatibility */
+	
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.consumptionItemName = {};
 	sandbox.consumptionItemIdentifier = {};
@@ -966,7 +964,14 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	});
 	sandbox.activity.ability = activity.ability;
-	sandbox.riderStatuses = options.activityEffectsStatusRiders;
+	sandbox.riderStatuses = options.activityEffectsStatusRiders || {};
+	sandbox.isSpell = activity?.isSpell;
+	sandbox.isScaledScroll = activity?.isScaledScroll;
+	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
+	sandbox.spellCastingAbility = activity?.spellCastingAbility;
+	sandbox.messageFlags = activity?.messageFlags;
+	sandbox.damageTypes = options.activityDamageTypes || {};
+	sandbox.actionType = activity?.
 	if (activity) {
 		const activityData = sandbox.activity;
 		activityData.damageTypes = options.activityDamageTypes;
@@ -977,11 +982,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox[activityData.name] = true;
 		if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
-		sandbox.isSpell = activity.isSpell;
-		sandbox.isScaledScroll = activity.isScaledScroll;
-		sandbox.requiresSpellSlot = activity.requiresSpellSlot;
-		sandbox.spellCastingAbility = activity.spellCastingAbility;
-		sandbox.messageFlags = activity.messageFlags;
 	}
 
 	sandbox.item = item?.getRollData().item || {};
