@@ -956,7 +956,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.consumptionItemName = {};
 	sandbox.consumptionItemIdentifier = {};
-	activity.consumption?.targets?.forEach(({target}) => {
+	activity?.consumption?.targets?.forEach(({target}) => {
 		if (target) {
 			const targetItem = activity?.actor?.items.get(target);
 			if (targetItem) {
