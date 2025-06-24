@@ -354,6 +354,26 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
+export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
+	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
+
+	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	
+	if (config) foundry.utils.mergeObject(config, ac5eConfigObject);
+	//@to-do: double-check if there is a need for the line above and the commented line below
+	// if (config.rolls?.[0]?.data?.flags) foundry.utils.mergeObject(config.rolls[0].data.flags, ac5eConfigObject);
+	if (config.rolls?.[0]?.options) {
+		foundry.utils.setProperty(config.rolls[0].options, [Constants.MODULE_ID], ac5eConfig);   //changes to reset the ac5eConfig so that the render hijacks will show the re-evaluated values correctly
+		foundry.utils.mergeObject(config.rolls[0].options, { classes: ['ac5e'] });	
+	}
+	if (message?.data?.flags) {
+		message.data.flags[Constants.MODULE_ID] = ac5eConfig;     //changes to reset the ac5eConfig so that the chat render hijacks will show re-evaluated values correctly
+		foundry.utils.mergeObject(message.data.flags, { classes: ['ac5e'] });
+	}
+	else foundry.utils.setProperty(message, 'data.flags', ac5eConfigObject);
+	if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
+}
+
 //check for 'same' 'different' or 'all' (=false) dispositions
 //t1, t2 Token5e or Token5e#Document
 export function _dispositionCheck(t1, t2, check = false) {
@@ -602,19 +622,6 @@ export function getActorSkillRollModes({ actor, skill }) {
 
 export function getActorToolRollModes({ actor, tool }) {
 	return actor?.system?.tools?.[tool]?.roll.mode;
-}
-
-export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
-	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
-
-	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
-
-	if (config) foundry.utils.mergeObject(config, ac5eConfigObject);
-	if (config.rolls?.[0]?.data?.flags) foundry.utils.mergeObject(config.rolls[0].data.flags, ac5eConfigObject);
-	if (config.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigObject);
-	if (message?.data?.flags) foundry.utils.mergeObject(message?.data.flags, ac5eConfigObject);
-	else foundry.utils.setProperty(message, 'data.flags', ac5eConfigObject);
-	if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 
 export function _activeModule(moduleID) {
