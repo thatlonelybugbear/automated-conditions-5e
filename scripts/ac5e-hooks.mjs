@@ -284,6 +284,18 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	options.ammo = ammunition;
 	options.activity = activity;
 	options.hook = hook;
+	const rollOptions = rolls?.[0]?.options;
+	options.isCritical = rollOptions?.isCritical;
+	options.defaultDamageType = rollOptions?.type;
+	options.otherDamageTypes =
+		rollOptions?.parts
+			?.flatMap((part) => {
+				const match = part.match(/\[(.*?)\]/g); // Find all brackets
+				console.log(match);
+				return match ? match.map((m) => m.slice(1, -1)) : [];
+			})
+			.filter((type) => !!type && type !== options.defaultDamageType) ?? [];
+	options.damageTypes = options.otherDamageTypes.concat(options.defaultDamageType);
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
@@ -304,7 +316,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
-	return true;
+	return ac5eConfig;  //return the object so that it can be picked up again in the renderHijack to re-evaluate after changing the default damage type dropdown in the Damage roll config dialog.
 }
 
 export function _renderHijack(hook, render, elem) {
@@ -332,6 +344,32 @@ export function _renderHijack(hook, render, elem) {
 				if (settings.buttonColorEnabled && oldDefaultButton !== newDefaultButton) {
 					const testButtons = ['advantage', 'disadvantage', 'normal'].find((a) => oldDefaultButton !== a && newDefaultButton !== a);
 					const getOtherButtonDefaults = elem.querySelector(`button[data-action="${testButtons}"]`);
+					if (settings.buttonColorBackground) getEvaluatedAC5eButton.style.backgroundColor = getOtherButtonDefaults.style.backgroundColor;
+					if (settings.buttonColorBorder) getEvaluatedAC5eButton.style.border = getOtherButtonDefaults.style.border;
+					if (settings.buttonColorText) getEvaluatedAC5eButton.style.color = getOtherButtonDefaults.style.color;
+				}
+			}
+		} else if (hook === 'damageDialog') {
+			const select = render.form.querySelector('select[name="roll.0.damageType"]');
+			const value = select.value;
+			const damageLabel = select.options[select.selectedIndex].text;
+			const selectedDamageType = damageLabel.toLocaleLowerCase();
+			const oldSelectedDamageType = getConfigAC5E.options.defaultDamageType; // ?? 'piercing';
+			if (selectedDamageType !== oldSelectedDamageType) {
+				const newConfig = render.config;
+				render.config.rolls[0].options.type = selectedDamageType;
+				const oldDefaultButton = getConfigAC5E.defaultButton;
+				const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
+				getEvaluatedAC5eButton.classList.remove('ac5e-button');
+				getEvaluatedAC5eButton.removeAttribute('data-tooltip');
+				const newDialog = { options: { window: { title: render.message.data.flavor }, isCritical: getConfigAC5E.isCritical, defaultButton: oldDefaultButton } };
+				const newMessage = render.message;
+				if (newMessage?.data?.flags) newMessage.data.flags[Constants.MODULE_ID] = getConfigAC5E;
+				getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage');
+
+				const newDefaultButton = getConfigAC5E.defaultButton;
+				if (settings.buttonColorEnabled) {
+					const getOtherButtonDefaults = elem.querySelector(`button[data-action="${newDefaultButton}"]`);
 					if (settings.buttonColorBackground) getEvaluatedAC5eButton.style.backgroundColor = getOtherButtonDefaults.style.backgroundColor;
 					if (settings.buttonColorBorder) getEvaluatedAC5eButton.style.border = getOtherButtonDefaults.style.border;
 					if (settings.buttonColorText) getEvaluatedAC5eButton.style.color = getOtherButtonDefaults.style.color;
