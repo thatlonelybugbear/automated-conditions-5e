@@ -284,6 +284,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	options.ammo = ammunition;
 	options.activity = activity;
 	options.hook = hook;
+	_getRollDamageTypes(options, rolls?.[0]?.options); //adds options.defaultDamageType, options.otherDamageTypes, options.damageTYpes	
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
