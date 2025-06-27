@@ -52,6 +52,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
 	const options = { ability, skill, tool, hook, activity };
+	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
 	if (item.type === 'spell' && useWarnings) {
@@ -133,6 +134,8 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
+	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 	const speaker = message?.data?.speaker;
 	const rollTypeObj = message?.flags?.dnd5e?.roll;
@@ -186,6 +189,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.ability = ability;
 	options.hook = hook;
 	options.activity = activity;
+        _getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
@@ -224,6 +228,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
+        _getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -284,7 +289,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	options.ammo = ammunition;
 	options.activity = activity;
 	options.hook = hook;
-	_getRollDamageTypes(options, rolls?.[0]?.options); //adds options.defaultDamageType, options.otherDamageTypes, options.damageTYpes	
+	_getRollDamageTypes(options, rolls); //adds options.defaultDamageType, options.damageTypes	
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
