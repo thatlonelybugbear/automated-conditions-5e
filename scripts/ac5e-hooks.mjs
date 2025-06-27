@@ -189,7 +189,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.ability = ability;
 	options.hook = hook;
 	options.activity = activity;
-        _getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
@@ -228,7 +228,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
-        _getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
+	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
