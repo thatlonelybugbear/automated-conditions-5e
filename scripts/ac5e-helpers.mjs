@@ -954,7 +954,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.consumptionItemName = {};
 	sandbox.consumptionItemIdentifier = {};
-	activity.consumption?.targets?.forEach(({target}) => {
+	activity?.consumption?.targets?.forEach(({target}) => {
 		if (target) {
 			const targetItem = activity?.actor?.items.get(target);
 			if (targetItem) {
@@ -965,24 +965,29 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	});
 	sandbox.activity.ability = activity?.ability;
 	sandbox.riderStatuses = options.activityEffectsStatusRiders || {};
+	sandbox.hasAttack = activity?.hasAttack;
+	sandbox.hasDamage = activity?.hasDamage;
+	sandbox.hasHealing = activity?.hasHealing;
+	sandbox.hasSave = activity?.hasSave;
 	sandbox.isSpell = activity?.isSpell;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
 	sandbox.spellCastingAbility = activity?.spellCastingAbility;
 	sandbox.messageFlags = activity?.messageFlags;
+	sandbox.activityName = activity ? { [activity.name]: true } : {};
 	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
 	sandbox.damageTypes = options.damagetypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
-	sandbox.otherDamageTypes = options.otherDamageTypes;
+	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes);
+	
 	if (activity) {
 		const activityData = sandbox.activity;
-		activityData.damageTypes = options.damageDamageTypes;
-		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => (sandbox[d] = true));
-		activityData.attackMode = options?.attackMode;
+		sandbox.activity.damageTypes = options.damageTypes;
+		sandbox.activity.defaultDamageType = options.defaultDamageType;
+		sandbox.activity.attackMode = options?.attackMode;
 		if (options?.attackMode) sandbox[options.attackMode] = true;
 		if (activity.actionType) sandbox[activity.actionType] = true;
-		sandbox.activityName = { [activityData.name]: true };
 		if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
 	}
@@ -1012,6 +1017,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = options;
+	sandbox.ability = options.ability ? { [options.ability]: true } : {};
+	sandbox.skill = options.skill ? { [options.skill]: true } : {};
+	sandbox.tool = options.tool ? { [options.tool]: true } : {};
+	if (options?.ability) sandbox[options.ability] = true;
+	if (options?.skill) sandbox[options.skill] = true;
+	if (options?.tool) sandbox[options.tool] = true;
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 	sandbox.isConcentration = options?.isConcentration;
 	sandbox.isDeathSave = options?.isDeathSave;
@@ -1021,9 +1032,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.castingLevel = sandbox.item?.level;
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
 	sandbox.scaling = item?.flags?.dnd5e?.scaling;
-	if (options?.ability) sandbox[options.ability] = true;
-	if (options?.skill) sandbox[options.skill] = true;
-	if (options?.tool) sandbox[options.tool] = true;
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
@@ -1041,10 +1049,64 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	return sandbox;
 }
 
-export function _getActivityDamageTypes(activity) {
-	if (!activity) return [];
-	if (['attack', 'damage', 'save'].includes(activity?.type)) return activity.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
-	if (activity?.type === 'heal') return [...activity.healing.types]; //parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
+export function _getActivityDamageTypes(activity, options) {
+	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
+	if (!activity) {
+		options.activityDefaultDamageType = {};
+		options.activityDamageTypes = {};
+		return;
+	}
+	const returnDamageTypes = {};
+	let returnDefaultDamageType = undefined;
+	const activityType = activity?.type === 'heal' ? 'healing' : 'damage';
+	for (const d of activity[activityType].parts) {
+		if (d.types.size > 1) {
+			ui.notifications.warn('Multiple damage types available for selection; cannot properly evaluate');
+			break;
+		} else if (d.types.size) {
+			const type = d.types.first();
+			if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
+			returnDamageTypes[type] = true;
+			const formula = d.custom?.formula;
+			if (formula !== '') {
+				const match = formula.match(/\[([^\]]+)\]/g);
+				if (match) {
+					for (const m of match) {
+						const partType = m.slice(1, -1).toLowerCase();
+						if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
+						returnDamageTypes[partType] = true;
+					}
+				}
+			}
+		}
+	}
+	options.defaultDamageType = returnDefaultDamageType || {};
+	options.damageTypes = returnDamageTypes;
+	return;
+}
+
+export function _getRollDamageTypes(options, rolls) {
+	const damageTypes = {};
+	let defaultType = undefined;
+
+	for (const roll of rolls) {
+		const type = roll.options?.type;
+		if (type && !defaultType) defaultType = type;
+		if (type) damageTypes[type] = true;
+
+		for (const part of roll.parts ?? []) {
+			const match = part.match(/\[([^\]]+)\]/g); // Matches all [type]
+			if (match) {
+				for (const m of match) {
+					const partType = m.slice(1, -1).toLowerCase();
+					if (!defaultType) defaultType = partType;
+					damageTypes[partType] = true;
+				}
+			}
+		}
+	}
+	options.defaultDamageType = defaultType ? { [defaultType]: true } : {};
+	options.damageTypes = damageTypes;
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
