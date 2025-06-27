@@ -941,10 +941,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.canSee = _canSee(subjectToken, opponentToken);
 
 	sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
-	sandbox.opponentId = opponentToken.id;
-	sandbox.opponentUuid = opponentToken.document?.uuid;
-	sandbox.opponentActorId = opponentToken.actor?.id;
-	sandbox.opponentActorUuid = opponentToken.actor?.uuid;
+	sandbox.opponentId = opponentToken?.id;
+	sandbox.opponentUuid = opponentToken?.document?.uuid;
+	sandbox.opponentActorId = opponentToken?.actor?.id;
+	sandbox.opponentActorUuid = opponentToken?.actor?.uuid;
 	sandbox.isSeen = _canSee(opponentToken, subjectToken);
 	/* backwards compatibility */
 	sandbox.targetActor = sandbox.opponentActor;
@@ -963,50 +963,52 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 			}
 		}
 	});
-	sandbox.activity.ability = activity.ability;
+	sandbox.activity.ability = activity?.ability;
 	sandbox.riderStatuses = options.activityEffectsStatusRiders || {};
 	sandbox.isSpell = activity?.isSpell;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
 	sandbox.spellCastingAbility = activity?.spellCastingAbility;
 	sandbox.messageFlags = activity?.messageFlags;
-	sandbox.damageTypes = options.activityDamageTypes || {};
-	sandbox.actionType = activity?.
+	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
+	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
+	sandbox.damageTypes = options.damagetypes;
+	sandbox.defaultDamageType = options.defaultDamageType;
+	sandbox.otherDamageTypes = options.otherDamageTypes;
 	if (activity) {
 		const activityData = sandbox.activity;
-		activityData.damageTypes = options.activityDamageTypes;
+		activityData.damageTypes = options.damageDamageTypes;
 		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => (sandbox[d] = true));
 		activityData.attackMode = options?.attackMode;
 		if (options?.attackMode) sandbox[options.attackMode] = true;
 		if (activity.actionType) sandbox[activity.actionType] = true;
-		sandbox[activityData.name] = true;
+		sandbox.activityName = { [activityData.name]: true };
 		if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 		sandbox[activityData.type] = true;
 	}
 
 	sandbox.item = item?.getRollData().item || {};
-	if (item) {
-		const itemData = sandbox.item;
-		sandbox.itemType = item.type;
-		if (itemData.school) sandbox[itemData.school] = true;
-		if (itemData.identifier) sandbox[itemData.identifier] = true;
-		sandbox[itemData.name] = true;
-		itemData.properties.filter((p) => (sandbox[p] = true));
-		sandbox.item.hasAttack = item.hasAttack;
-		sandbox.item.hasSave = item.system?.hasSave;
-		sandbox.item.hasSummoning = item.system?.hasSummoning;
-		sandbox.item.hasLimitedUses = item.system?.hasLimitedUses;
-		sandbox.item.isHealing = item.system?.isHealing;
-		sandbox.item.isEnchantment = item.system?.isEnchantment;
-		sandbox.item.transferredEffects = item.transferredEffects;
-	}
+	const itemData = sandbox.item;
+	sandbox.itemType = item?.type;
+	if (itemData.school) sandbox[itemData.school] = true;
+	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
+	sandbox.itemName = item ? { [itemData.name]: true } : {};
+	itemData.properties.filter((p) => (sandbox[p] = true));
+	sandbox.item.hasAttack = item?.hasAttack;
+	sandbox.item.hasSave = item?.system?.hasSave;
+	sandbox.item.hasSummoning = item?.system?.hasSummoning;
+	sandbox.item.hasLimitedUses = item?.system?.hasLimitedUses;
+	sandbox.item.isHealing = item?.system?.isHealing;
+	sandbox.item.isEnchantment = item?.system?.isEnchantment;
+	sandbox.item.transferredEffects = item?.transferredEffects;
+
 
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
 	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
-	sandbox.isTurn = currentCombatant === subjectToken?.id;
-	sandbox.isOpponentTurn = currentCombatant === opponentToken?.id;
-	sandbox.isTargetTurn = sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
+	sandbox.isTurn = active && currentCombatant === subjectToken?.id;
+	sandbox.isOpponentTurn = active && currentCombatant === opponentToken?.id;
+	sandbox.isTargetTurn = active && sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = options;
