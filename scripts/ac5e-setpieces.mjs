@@ -224,8 +224,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const subject = subjectToken?.actor;
 	const opponent = opponentToken?.actor;
 	const item = activity?.item;
-	options.activityDamageTypes = _getActivityDamageTypes(activity);
-	options.activityEffectsStatusRiders = _getActivityEffectsStatusRiders(activity);
 
 	//flags.ac5e.<actionType>.<mode>
 	// actionType = all/attack/damage/check/conc/death/init/save/skill/tool
