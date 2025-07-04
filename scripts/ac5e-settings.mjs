@@ -22,6 +22,7 @@ export default class Settings {
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
 	static AUTOMATE_ENVIRONMENTAL_HAZARDS = 'autoHazards';
+	static AUTOMATE_HEAVY = 'automateHeavy';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -212,6 +213,13 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY, {
+			name: 'AC5E.AutomateHeavy',
+			scope: 'world',
+			config: false,
+			default: true,
+			type: Boolean,
+		});
 	}
 	get dnd5eModernRules() {
 		return game.settings.get('dnd5e', 'rulesVersion') === 'modern';
@@ -281,5 +289,8 @@ export default class Settings {
 	}
 	get migrated() {
 		return game.settings.get(Constants.MODULE_ID, Settings.MIGRATION);
+	}
+	get automateHeavy() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY);
 	}
 }
