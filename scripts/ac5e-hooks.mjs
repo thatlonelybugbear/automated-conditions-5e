@@ -275,14 +275,15 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const automateHeavy = settings.automateHeavy;
 	if (automateHeavy) {
 		const isHeavy = item?.system.properties.has('hvy');
-		const isSmall = modernRules 
-			? (activity?.ability === 'str' && sourceActor.system.abilities.str.value < 13) || (activity?.ability === 'dex' && sourceActor.system.abilities.dex.value < 13) 
-			: sourceToken.document.width * sourceToken.document.height * sourceToken.document.scale < 1 /*|| sourceActor?.system.traits.size === 'sm' || sourceActor?.system.traits.size === 'tiny'*/;
-		if (isSmall && isHeavy) {
-			ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize('DND5E.Item.Property.Heavy')}`);
+		if (isHeavy) {
+			const isSmall = modernRules 
+				? (activity?.actionType === 'mwak' && sourceActor.system.abilities.str.value < 13) || (activity?.actionType === 'rwak' && sourceActor.system.abilities.dex.value < 13) 
+				: sourceToken.document.width * sourceToken.document.height * sourceToken.document.scale < 1 /*|| sourceActor?.system.traits.size === 'sm' || sourceActor?.system.traits.size === 'tiny'*/;
+			if (isSmall) {
+				ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize('DND5E.Item.Property.Heavy')}`);
+			}
 		}
-	}
-	
+	}	
 	if (settings.debug) console.warn('AC5E._preRollAttackV2:', { ac5eConfig });
 	// _setAC5eProperties(ac5eConfig, config, dialog, message);
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
