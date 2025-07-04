@@ -214,7 +214,7 @@ export default class Settings {
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY, {
-			name: 'AC5E.AutomateHeavy',
+			name: 'Heavy property',
 			scope: 'world',
 			config: false,
 			default: true,
