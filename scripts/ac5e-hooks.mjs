@@ -224,10 +224,11 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
 	const chatButtonTriggered = getMessageData(config);
-	const { messageId, item, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
+	const item = activity?.item;
 	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
@@ -269,6 +270,19 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	if (_autoEncumbrance(sourceActor, ability)) {
 		ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(_i18nConditions('HeavilyEncumbered'));
 	}
+	const modernRules = settings.dnd5eModernRules;
+	//check for heavy item proprty	
+	const automateHeavy = settings.automateHeavy;
+	if (automateHeavy) {
+		const isHeavy = item?.system.properties.has('hvy');
+		const isSmall = modernRules 
+			? (activity?.ability === 'str' && sourceActor.system.abilities.str.value < 13) || (activity?.ability === 'dex' && sourceActor.system.abilities.dex.value < 13) 
+			: sourceToken.document.width * sourceToken.document.height * sourceToken.document.scale < 1 /*|| sourceActor?.system.traits.size === 'sm' || sourceActor?.system.traits.size === 'tiny'*/;
+		if (isSmall && isHeavy) {
+			ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize('DND5E.Item.Property.Heavy')}`);
+		}
+	}
+	
 	if (settings.debug) console.warn('AC5E._preRollAttackV2:', { ac5eConfig });
 	// _setAC5eProperties(ac5eConfig, config, dialog, message);
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
