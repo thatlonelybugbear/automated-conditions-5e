@@ -253,7 +253,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const validFlags = {};
 	const inAuraRadius = (token, radius) => {
-		radius = radius?.match(/\d+$/)?.[0];
+		//radius = radius?.match(/\d+$/)?.[0];  // no need anymore as we are evaluating the radius beforehand.
 		if (!radius) return false;
 		return distanceToSource(token) <= radius;
 	};
@@ -264,7 +264,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect, effectDeletions, effectUpdates }) => {
+	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
@@ -273,9 +273,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!shouldProceedUses) return false;
 		if (change.key.includes('aura')) {
 			//isAura
+			if (token === subjectToken) return change.value.includes('includeSelf');
 			if (!friendOrFoe(token, subjectToken, change.value)) return false;
-			if (!change.value.includes('includeSelf') && token === subjectToken) return false;
-			const radius = change.value.split(';')?.find((e) => e.includes('radius')) || undefined;
+			let radius = getBlacklistedKeysValue('radius', change.value);
+			if (radius) radius = _ac5eSafeEval({ expression: bonusReplacements(radius, auraTokenEvaluationData, true, effect), sandbox: auraTokenEvaluationData });
 			if (inAuraRadius(token, radius)) return true;
 			else return false;
 		} else if (change.key.includes('grants')) {
@@ -307,20 +308,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 		expression = expression.replace(pattern, (match) => staticMap[match]);
+		if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
+		if (expression.includes('##')) expression = isAura ? expression.replaceAll('##', 'rollingActor.') : expression.replaceAll('##', 'opponentActor.');
 		if (expression.includes('effectOriginActor')) {
 			const tok = _getEffectOriginToken(effect, 'token');
 			if (tok?.actor) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('effectOriginActor.', '@'), _ac5eActorRollData(tok))).formula;
 		};
-		if (expression.includes('@')) expression = Roll.fromTerms(Roll.parse(expression, isAura ? evalData.auraActor : evalData.rollingActor)).formula;
-		if (expression.includes('rollingActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('rollingActor.', '@'), evalData.rollingActor)).formula;
-		if (expression.includes('##')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('##', '@'), isAura ? evalData.rollingActor : evalData.opponentActor)).formula;
-		if (expression.includes('targetActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('targetActor.', '@'), evalData.opponentActor)).formula;
-		if (expression.includes('opponentActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('opponentActor.', '@'), evalData.opponentActor)).formula;
-		if (isAura && expression.includes('auraActor')) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('auraActor.', '@'), evalData.auraActor)).formula;
 		return expression;
 	};
 
-	const blacklist = ['bonus=', 'radius=', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once', 'usesCount=']; // 'radius =', 'bonus =',
+	const blacklist = ['bonus', 'radius', 'usesCount', 'threshold', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once',]; // bonus, radius, usesCount, threshold will be followed by : or =
+	
 	const effectDeletions = [];
 	const effectUpdates = [];
 	// const placeablesWithRelevantAuras = {};
@@ -350,28 +348,23 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token, change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates }))
+				.filter((change) => effectChangesTest({ token, change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
-					let bonus =
-						mode === 'bonus'
-							? el.value
-									.split(';')
-									?.find((e) => e.includes('bonus='))
-									.split('bonus=')?.[1]
-							: '';
-					bonus = bonusReplacements(bonus, auraTokenEvaluationData, true, effect);
+					let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
+					let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
+					if (bonus) bonus = _ac5eSafeEval({ expression: bonusReplacements(bonus, auraTokenEvaluationData, true, effect), sandbox: auraTokenEvaluationData });
+					if (threshold) threshold = _ac5eSafeEval({ expression: bonusReplacements(threshold, auraTokenEvaluationData, true, effect), sandbox: auraTokenEvaluationData });
 					const auraOnlyOne = el.value.includes('singleAura');
 					let valuesToEvaluate = el.value
 						.split(';')
-						.reduce((acc, v) => {
-							const trimmed = v.trim();
-							if (trimmed && !blacklist.some((q) => trimmed.includes(q))) {
-								acc.push(trimmed);
-							}
-							return acc;
-						}, [])
+						.map(v => v.trim())
+						.filter(v => {
+							if (!v) return false;
+							const [key] = v.split(/[:=]/).map(s => s.trim());
+							return !blacklist.includes(key);
+						})
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
@@ -390,7 +383,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 							}
 						}
 					}
-					validFlags[`${effect.name} - Aura (${token.name})`] = { name: effect.name, actorType, mode, bonus, evaluation, isAura: true, auraUuid: effect.uuid, auraTokenUuid: token.document.uuid, distance: _getDistance(token, subjectToken) };
+					validFlags[`${effect.name} - Aura (${token.name})`] = { name: effect.name, actorType, mode, bonus, threshold, evaluation, isAura: true, auraUuid: effect.uuid, auraTokenUuid: token.document.uuid, distance: _getDistance(token, subjectToken) };
 				})
 		);
 	});
@@ -406,23 +399,18 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
-				let bonus =
-					mode === 'bonus'
-						? el.value
-								.split(';')
-								?.find((e) => e.includes('bonus='))
-								.split('bonus=')?.[1]
-						: '';
-				bonus = bonusReplacements(bonus, evaluationData, false, effect);
+				let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
+				let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
+				if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, true, effect), sandbox: evaluationData });
+				if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, true, effect), sandbox: evaluationData });
 				let valuesToEvaluate = el.value
 					.split(';')
-					.reduce((acc, v) => {
-						const trimmed = v.trim();
-						if (trimmed && !blacklist.some((q) => trimmed.includes(q))) {
-							acc.push(trimmed);
-						}
-						return acc;
-					}, [])
+					.map(v => v.trim())
+					.filter(v => {
+						if (!v) return false;
+						const [key] = v.split(/[:=]/).map(s => s.trim());
+						return !blacklist.includes(key);
+					})
 					.join(';');
 				if (!valuesToEvaluate) valuesToEvaluate = 'true';
 				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
@@ -431,6 +419,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					actorType,
 					mode,
 					bonus,
+					threshold,
 					evaluation: getMode({ value: valuesToEvaluate }),
 				};
 			})
@@ -442,23 +431,18 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
-					let bonus =
-						mode === 'bonus'
-							? el.value
-									.split(';')
-									?.find((e) => e.includes('bonus='))
-									.split('bonus=')?.[1]
-							: '';
-					bonus = bonusReplacements(bonus, evaluationData, false, effect);
+					let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
+					let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
+					if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, true, effect), sandbox: evaluationData });
+					if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, true, effect), sandbox: evaluationData });
 					let valuesToEvaluate = el.value
 						.split(';')
-						.reduce((acc, v) => {
-							const trimmed = v.trim();
-							if (trimmed && !blacklist.some((q) => trimmed.includes(q))) {
-								acc.push(trimmed);
-							}
-							return acc;
-						}, [])
+						.map(v => v.trim())
+						.filter(v => {
+							if (!v) return false;
+							const [key] = v.split(/[:=]/).map(s => s.trim());
+							return !blacklist.includes(key);
+						})
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
@@ -467,6 +451,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						actorType,
 						mode,
 						bonus,
+						threshold,
 						evaluation: getMode({ value: valuesToEvaluate }),
 					};
 				})
@@ -475,7 +460,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	const validFlagsEffectUpdates = [];
 	for (const el in validFlags) {
-		let { actorType, evaluation, mode, name, bonus, isAura } = validFlags[el];
+		let { actorType, evaluation, mode, name, bonus, threshold, isAura } = validFlags[el];
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
 			const hasEffectUpdate = effectUpdates.find((u) => u.name === name);
@@ -483,6 +468,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
 			if (bonus) ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
+			if (threshold) ac5eConfig.threshold = threshold;
 		}
 	}
 	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
@@ -514,7 +500,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 function handleUses({ actorType, change, effect, effectDeletions, effectUpdates }) {
 	if (actorType !== 'subject') return true;
 	const values = change.value.split(';');
-	const hasCount = values.find((use) => use.includes('usesCount='));
+	const hasCount = getBlacklistedKeysValue('usesCount', change.value);
 	const isOnce = values.find((use) => use.includes('once'));
 	if (!hasCount && !isOnce) {
 		return true;
@@ -542,7 +528,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 				const index = changes.findIndex((c) => c.key === change.key);
 
 				if (index >= 0) {
-					changes[index].value = changes[index].value.replace(`usesCount=${isNumber}`, `usesCount=${newUses}`);
+					changes[index].value = changes[index].value.replace(/usesCount\s*[:=]\s*\d+/, `usesCount=${newUses}`);
 
 					if (!isTransfer) {
 						effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes }, documentType: 'ActiveEffect' });
@@ -551,7 +537,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 						if (newUses === 0) {
 							if (!hasInitialUsesFlag) effect.update({ disabled: true });
 							else {
-								changes[index].value = changes[index].value.replace(`usesCount=${newUses}`, `usesCount=${hasInitialUsesFlag}`);
+								changes[index].value = changes[index].value.replace(/usesCount\s*[:=]\s*\d+/, `usesCount=${hasInitialUsesFlag}`);
 								effect.update({ changes, disabled: true });
 							}
 						} else {
@@ -565,3 +551,13 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 	}
 	return true;
 }
+
+function getBlacklistedKeysValue(key, values) {
+	const regex = new RegExp(`^\\s*${key}\\s*[:=]\\s*(.+)$`);
+	const parts = values
+		.split(';')
+		.map(e => e.trim())
+		.map(e => regex.exec(e))
+		.find(Boolean);
+	return parts ? parts[1].trim() : '';
+};
