@@ -511,9 +511,8 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 	} else if (isOnce && isTransfer) {
 		effect.update({ disabled: true });
 	} else if (hasCount && actorType === 'subject') {
-		const string = hasCount.split('usesCount=')[1];
-		const isNumber = parseInt(string, 10);
-		const isUuid = foundry.utils.parseUuid(string);
+		const isNumber = parseInt(hasCount, 10);
+		const isUuid = foundry.utils.parseUuid(hasCount);
 
 		if (!isNaN(isNumber)) {
 			if (isNumber === 0) {
