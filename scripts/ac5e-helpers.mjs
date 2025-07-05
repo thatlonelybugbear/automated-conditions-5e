@@ -349,6 +349,12 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
 		else if (config.parts) config.parts.push(ac5eConfig.parts);
 	}
+	//Interim solution until system supports this
+	if (!foundry.utils.isEmpty(ac5eConfig.modifiers)) {
+	        const {maximum, minimum} = ac5eConfig.modifiers;
+	        if (maximum) roll0.options.maximum = maximum;
+	        if (minimum) roll0.options.minimum = minimum;
+	}
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -473,6 +479,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subject.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subject.disadvantage.join(', ')}</span>`);
 		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
 		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
+		addTooltip(!foundry.utils.isEmpty(subject.modifiers), `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
 	}
 	if (opponent) {
 		addTooltip(opponent.critical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsCriticalAbbreviated')}: ${opponent.critical.join(', ')}</span>`);
@@ -511,6 +518,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			critical: [],
 			success: [],
 			fumble: [],
+			modifiers: [],
 		},
 		opponent: {
 			advantage: [],
@@ -520,9 +528,11 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			critical: [],
 			success: [],
 			fumble: [],
+			modifiers: [],
 		},
 		options,
 		parts: [],
+		modifiers: {},
 		preAC5eConfig: {
 			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
 			disKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
@@ -583,6 +593,16 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		const result = getActorAbilityRollModes({ ability: options.ability, actor, hookType });
 		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
 		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
+		//Interim solution until system supports this
+		const {max: maximum, min: minimum} = actor?.overrides?.system?.abilities?.[options.ability]?.[hookType]?.roll || {};
+		if (maximum) {
+			ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${maximum})`);
+			ac5eConfig.modifiers.maximum = maximum;
+		};
+		if (minimum) {
+			ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${minimum})`);
+			ac5eConfig.modifiers.minimum = minimum;
+		};
 	}
 	//for now we don't care about mutliple different sources, but instead a total result for each (counts not implemented yet by the system)
 	// const arrayLength = actorSystemRollMode.filter(Boolean).length;
