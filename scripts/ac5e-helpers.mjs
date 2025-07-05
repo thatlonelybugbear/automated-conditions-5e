@@ -13,11 +13,11 @@ const settings = new Settings();
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false) {
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (typeof tokenA === 'string') {
-		if (tokenA.includs('.')) tokenA = fromUuidSync(tokenA)?.object;
+		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
 		else tokenA = canvas.tokens.get(tokenA);
 	}
 	if (typeof tokenB === 'string') {
-		if (tokenB.includs('.')) tokenB = fromUuidSync(tokenB)?.object;
+		if (tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
 		else tokenB = canvas.tokens.get(tokenB);
 	}
 	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return undefined;
@@ -255,6 +255,7 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	const { ADVANTAGE: ADV_MODE, DISADVANTAGE: DIS_MODE, NORMAL: NORM_MODE } = CONFIG.Dice.D20Roll.ADV_MODE;
 	const roll0 = config.rolls?.[0];
+	roll0.options = roll0.options || {};
 	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) {
 		config.advantage = true;
 		dialog.options.advantageMode = ADV_MODE;
@@ -351,9 +352,9 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	//Interim solution until system supports this
 	if (!foundry.utils.isEmpty(ac5eConfig.modifiers)) {
-	        const {maximum, minimum} = ac5eConfig.modifiers;
-	        if (maximum) roll0.options.maximum = maximum;
-	        if (minimum) roll0.options.minimum = minimum;
+		const {maximum, minimum} = ac5eConfig.modifiers;
+		if (maximum) roll0.options.maximum = maximum;
+		if (minimum) roll0.options.minimum = minimum;
 	}
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
