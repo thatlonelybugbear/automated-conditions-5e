@@ -1070,14 +1070,15 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	return sandbox;
 }
 
-export function _getActivityDamageTypes(activity, options) {
+export function _getActivityDamageTypes(activity, options = {}) {
 	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
 	if (!activity) {
 		options.activityDefaultDamageType = {};
 		options.activityDamageTypes = {};
 		return;
 	}
-	const returnDamageTypes = {};
+	const existingTypes = options?.damageTypes ?? {};
+	const returnDamageTypes = { ...existingTypes };
 	let returnDefaultDamageType = undefined;
 	const activityType = activity?.type === 'heal' ? 'healing' : 'damage';
 	for (const d of activity[activityType].parts) {
@@ -1086,28 +1087,27 @@ export function _getActivityDamageTypes(activity, options) {
 			break;
 		} else if (d.types.size) {
 			const type = d.types.first();
-			if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
-			returnDamageTypes[type] = true;
+			if (type && !returnDefaultDamageType) returnDefaultDamageType = type;
+			if (type) returnDamageTypes[type] = true;
 			const formula = d.custom?.formula;
 			if (formula !== '') {
-				const match = formula.match(/\[([^\]]+)\]/g);
-				if (match) {
-					for (const m of match) {
-						const partType = m.slice(1, -1).toLowerCase();
-						if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
-						returnDamageTypes[partType] = true;
-					}
+				const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type]
+				for (const m of match) {
+					if (!returnDefaultDamageType) returnDefaultDamageType = m;
+					returnDamageTypes[m] = true;
 				}
 			}
 		}
 	}
-	options.defaultDamageType = returnDefaultDamageType || {};
+	const defaultDamageType = returnDefaultDamageType ? { [returnDefaultDamageType]: true } : {};
 	options.damageTypes = returnDamageTypes;
+	if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
 	return;
 }
 
-export function _getRollDamageTypes(options, rolls) {
-	const damageTypes = {};
+export function _collectDamageRollTypes(rolls, options) {
+	const existingTypes = options?.damageTypes ?? {};
+	const damageTypes = { ...existingTypes };
 	let defaultType = undefined;
 
 	for (const roll of rolls) {
@@ -1116,18 +1116,20 @@ export function _getRollDamageTypes(options, rolls) {
 		if (type) damageTypes[type] = true;
 
 		for (const part of roll.parts ?? []) {
-			const match = part.match(/\[([^\]]+)\]/g); // Matches all [type]
-			if (match) {
-				for (const m of match) {
-					const partType = m.slice(1, -1).toLowerCase();
-					if (!defaultType) defaultType = partType;
-					damageTypes[partType] = true;
-				}
+			if (!part?.length) continue;
+			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase());  //returns an Array of inner type strings from each [type]
+			for (const partType of match) {
+				if (!defaultType) defaultType = partType;
+				damageTypes[partType] = true;
 			}
 		}
 	}
-	options.defaultDamageType = defaultType ? { [defaultType]: true } : {};
-	options.damageTypes = damageTypes;
+	const defaultDamageType = defaultType ? { [defaultType]: true } : {};
+	if (options) {
+		options.damageTypes = damageTypes;
+		if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
+	}
+	else return { damageTypes, defaultDamageType };
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
