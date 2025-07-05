@@ -333,6 +333,7 @@ export function _renderHijack(hook, render, elem) {
 	if (settings.debug) console.warn('AC5E._renderHijack:', { hook, render, elem });
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
 		getConfigAC5E = render.config?.[Constants.MODULE_ID] ?? render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
+		
 		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
 		if (getConfigAC5E.options.skill || getConfigAC5E.options.tool) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
@@ -353,6 +354,32 @@ export function _renderHijack(hook, render, elem) {
 				if (settings.buttonColorEnabled && oldDefaultButton !== newDefaultButton) {
 					const testButtons = ['advantage', 'disadvantage', 'normal'].find((a) => oldDefaultButton !== a && newDefaultButton !== a);
 					const getOtherButtonDefaults = elem.querySelector(`button[data-action="${testButtons}"]`);
+					if (settings.buttonColorBackground) getEvaluatedAC5eButton.style.backgroundColor = getOtherButtonDefaults.style.backgroundColor;
+					if (settings.buttonColorBorder) getEvaluatedAC5eButton.style.border = getOtherButtonDefaults.style.border;
+					if (settings.buttonColorText) getEvaluatedAC5eButton.style.color = getOtherButtonDefaults.style.color;
+				}
+			}			
+		} else if (hook === 'damageDialog') {
+			const select = render.form.querySelector('select[name="roll.0.damageType"]');
+			const value = select.value;
+			const damageLabel = select.options[select.selectedIndex].text;
+			const selectedDamageType = damageLabel.toLocaleLowerCase();
+			const oldSelectedDamageType = getConfigAC5E.options.defaultDamageType; // ?? 'piercing';
+			if (selectedDamage !== oldSelectedDamageType) {
+				const newConfig = render.config;
+				newConfig.rolls[0].options.type = selectedDamageType;
+				const oldDefaultButton = getConfigAC5E.defaultButton;
+				const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
+				getEvaluatedAC5eButton.classList.remove('ac5e-button');
+				getEvaluatedAC5eButton.removeAttribute('data-tooltip');
+				const newDialog = { options: { window: { title: render.message.data.flavor }, isCritical: getConfigAC5E.isCritical, defaultButton: oldDefaultButton } };
+				const newMessage = render.message;
+				if (newMessage?.data?.flags) newMessage.data.flags[Constants.MODULE_ID] = getConfigAC5E;
+				getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage');
+
+				const newDefaultButton = getConfigAC5E.defaultButton;
+				if (settings.buttonColorEnabled) {
+					const getOtherButtonDefaults = elem.querySelector(`button[data-action="${newDefaultButton}"]`);
 					if (settings.buttonColorBackground) getEvaluatedAC5eButton.style.backgroundColor = getOtherButtonDefaults.style.backgroundColor;
 					if (settings.buttonColorBorder) getEvaluatedAC5eButton.style.border = getOtherButtonDefaults.style.border;
 					if (settings.buttonColorText) getEvaluatedAC5eButton.style.color = getOtherButtonDefaults.style.color;
@@ -424,7 +451,7 @@ export function _renderHijack(hook, render, elem) {
 				if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
 				else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
 				else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
-				//to-do: add AC5E pill on Item card. Next release
+				//to-do: Maybe add AC5E pill on Item card.
 				if (thisTargetElement) thisTargetElement.setAttribute('data-tooltip', tooltip);
 			}
 			if (settings.debug) {
