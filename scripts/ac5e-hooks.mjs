@@ -359,6 +359,8 @@ export function _renderHijack(hook, render, elem) {
 				const newConfig = render.config;
 				render.config.rolls[0].options.type = selectedDamageType;
 				const oldDefaultButton = getConfigAC5E.defaultButton;
+				getConfigAC5E.options.defaultDamageType = undefined;
+				getConfigAC5E.options.damageTypes = undefined;
 				const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
 				getEvaluatedAC5eButton.classList.remove('ac5e-button');
 				getEvaluatedAC5eButton.removeAttribute('data-tooltip');
