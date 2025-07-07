@@ -91,12 +91,6 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 			check: { subject: isFrightenedByVisibleSource() ? 'disadvantage' : '' },
 		}),
 
-		grappled: mkStatus('grappled', _i18nConditions('Grappled'), {
-			attack: {
-				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && (!e.origin || _getEffectOriginToken(e, 'token') !== opponentToken)) ? 'disadvantage' : '',
-			},
-		}),
-
 		incapacitated: mkStatus('incapacitated', _i18nConditions('Incapacitated'), {
 			use: { subject: ['action', 'bonus', 'reaction'].includes(activity?.activation?.type) ? 'fail' : '' },
 			check: { subject: modernRules && isInitiative ? 'disadvantage' : '' },
@@ -157,6 +151,11 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	if (modernRules) {
 		tables.surprised = mkStatus('surprised', _i18nConditions('Surprised'), {
 			check: { subject: isInitiative ? 'disadvantage' : '' },
+		});
+		tables.grappled = mkStatus('grappled', _i18nConditions('Grappled'), {
+			attack: {
+				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && (!e.origin || _getEffectOriginToken(e, 'token') !== opponentToken)) ? 'disadvantage' : '',
+			},
 		});
 	}
 
