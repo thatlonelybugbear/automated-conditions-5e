@@ -60,6 +60,7 @@ Small adjustments for differences in the rest of the conditions too, as needed.
   <summary><b>Modern Rules</b></summary>
   
 - No `exhaustion` automation, as this is handled by the system,
+- `Grappled` will give disadvantage on all attacks, except for ones against your Grappler,
 - `Hiding` will give advantage on initiative rolls,
 - `Incapacitated` will give disadvantage on initiative rolls, in addition to the legacy rules,
 - `Invisibility` will give advantage on initiative rolls, in addition to the legacy rules.
