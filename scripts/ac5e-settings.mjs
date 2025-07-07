@@ -78,7 +78,7 @@ export default class Settings {
 			scope: 'client',
 			config: true,
 			default: '#288bcc',
-			type: String
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
 			name: 'AC5E.ButtonColorPicker.Border.Name',
@@ -86,7 +86,7 @@ export default class Settings {
 			scope: 'client',
 			config: true,
 			default: 'white',
-			type: String
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
 			name: 'AC5E.ButtonColorPicker.Text.Name',
@@ -94,7 +94,7 @@ export default class Settings {
 			scope: 'client',
 			config: true,
 			default: 'white',
-			type: String
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS, {
 			name: 'AC5E.ExpandedConditionsName',
@@ -217,7 +217,7 @@ export default class Settings {
 			name: 'Heavy property',
 			scope: 'world',
 			config: false,
-			default: true,
+			default: false,
 			type: Boolean,
 		});
 	}
