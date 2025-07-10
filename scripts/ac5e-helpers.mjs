@@ -1053,6 +1053,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.castingLevel = sandbox.item?.level;
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
 	sandbox.scaling = item?.flags?.dnd5e?.scaling;
+	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
+	sandbox.attackRollD20 = options?.d20?.attackRollD20;
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
