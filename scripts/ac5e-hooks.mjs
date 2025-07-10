@@ -26,7 +26,7 @@ export function _rollFunctions(hook, ...args) {
 		return _preConfigureInitiative(actor, rollConfig, hook);
 	}
 }
-function getMessageData(config) {
+function getMessageData(config, hook) {
 	const messageId = config.event?.currentTarget?.dataset?.messageId; //config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid;
 	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : false;
@@ -35,6 +35,12 @@ function getMessageData(config) {
 	const item = fromUuidSync(itemObj?.uuid);
 	const activity = fromUuidSync(activityObj?.uuid);
 	const options = {};
+	options.d20 = {};
+	if (hook === 'damage') {
+		const findAttackRoll = game.messages.filter(m => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
+		options.d20.attackRollTotal = findAttackRoll?.total;
+		options.d20.attackRollD20 = findAttackRoll?.d20?.total;
+	}
 	options.messageId = messageId;
 	options.spellLevel = activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message.speaker || {};
@@ -125,7 +131,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 // }
 
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
-	const chatButtonTriggered = getMessageData(config);
+	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
@@ -172,7 +178,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 
 export function _preRollAbilityTest(config, dialog, message, hook) {
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest:', { config, dialog, message });
-	const chatButtonTriggered = getMessageData(config);
+	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
 	let ac5eConfig;
@@ -223,7 +229,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
-	const chatButtonTriggered = getMessageData(config);
+	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
@@ -297,7 +303,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
-	const chatButtonTriggered = getMessageData(config);
+	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.attackMode = attackMode;
