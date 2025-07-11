@@ -489,7 +489,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
 			if (bonus) ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
-			if (threshold) ac5eConfig.threshold = threshold;
+			if (threshold) ac5eConfig.threshold = ac5eConfig.threshold.concat(threshold);
 		}
 	}
 	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
