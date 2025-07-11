@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _getActionType, _getActivityDamageTypes, _getRollDamageTypes, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -58,7 +58,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
 	const options = { ability, skill, tool, hook, activity };
-	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
 	if (item.type === 'spell' && useWarnings) {
@@ -140,7 +140,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
-	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 	const speaker = message?.data?.speaker;
@@ -195,7 +195,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.ability = ability;
 	options.hook = hook;
 	options.activity = activity;
-	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
@@ -235,7 +235,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	options.activity = activity;
 	options.hook = hook;
 	const item = activity?.item;
-	_getActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -310,7 +310,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 	options.ammo = ammunition;
 	options.activity = activity;
 	options.hook = hook;
-	_getRollDamageTypes(options, rolls); //adds options.defaultDamageType, options.damageTypes	
+	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes	
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
