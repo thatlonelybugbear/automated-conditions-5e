@@ -422,8 +422,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!actorType || !mode) return;
 				let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
 				let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
-				if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, true, effect), sandbox: evaluationData });
-				if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, true, effect), sandbox: evaluationData });
+				if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, false, effect), sandbox: evaluationData });
+				if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, false, effect), sandbox: evaluationData });
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -454,8 +454,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (!actorType || !mode) return;
 					let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
 					let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
-					if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, true, effect), sandbox: evaluationData });
-					if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, true, effect), sandbox: evaluationData });
+					if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, false, effect), sandbox: evaluationData });
+					if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, false, effect), sandbox: evaluationData });
 					let valuesToEvaluate = el.value
 						.split(';')
 						.map((v) => v.trim())
