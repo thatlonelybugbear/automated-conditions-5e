@@ -520,6 +520,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			success: [],
 			fumble: [],
 			modifiers: [],
+			criticalThreshold: [],
 		},
 		opponent: {
 			advantage: [],
@@ -530,9 +531,11 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			success: [],
 			fumble: [],
 			modifiers: [],
+			criticalThreshold: [],
 		},
 		options,
 		parts: [],
+		threshold: [],
 		modifiers: {},
 		preAC5eConfig: {
 			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
