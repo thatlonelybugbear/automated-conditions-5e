@@ -703,6 +703,55 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	dialog.render();
 }
 
-function doDialogDamageRender(dialog, elem, getConfigAC5E) {}
+function doDialogDamageRender(dialog, elem, getConfigAC5E, selectedDamages) {
+	const rollsLength = dialog.config.rolls.length;
+	const selects = Array.fromRange(rollsLength)
+		.map((el) => elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value)
+		.filter(Boolean);
+
+	const formulas = Array.from(elem.querySelectorAll('.formula'))
+		.map((el) => el.textContent?.trim())
+		.filter(Boolean);
+	const damageTypes = getConfigAC5E.options.damageTypes;
+	const hasNewDamageType = selects.some((type) => !damageTypes[type]);
+	if (!hasNewDamageType) return;
+	const damageTypesArray = getConfigAC5E.options.damageTypesArray;
+	const compared = compareArrays(damageTypesArray, selects);
+	if (compared.equal) return; //no need but extra cautious
+	const newConfig = dialog.config;
+	newConfig.rolls[compared.index].options.type = compared.selectedValue;
+
+	for (const roll of newConfig.rolls) {
+		roll.parts = [];
+		roll.options.maximum = null;
+		roll.options.minimum = null;
+	}
+
+	const oldDefaultButton = getConfigAC5E.defaultButton;
+	const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
+	getEvaluatedAC5eButton.classList.remove('ac5e-button');
+	getEvaluatedAC5eButton.removeAttribute('data-tooltip');
+
+	const reEval = getConfigAC5E.reEval ?? {};
+	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
+	const newDialog = { options: { window: { title: render.message.data.flavor }, isCritical: getConfigAC5E.isCritical, defaultButton: oldDefaultButton } };
+	const newMessage = render.message;
+
+	getConfigAC5E = _pewRollDamageV2(newConfig, newDialog, newMessage, 'damage', reEval);
+	dialog.rebuild();
+	dialog.render();
+}
+
 
 function doDialogAttackRender(dialog, elem, getConfigAC5E) {}
+
+function compareArrays(a, b) {
+	const len = Math.max(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		if (a[i] !== b[i]) {
+			return { equal: false, index: i, initialValue: a[i], selectedValue: b[i] };
+		}
+	}
+	return { equal: true };
+}
+
