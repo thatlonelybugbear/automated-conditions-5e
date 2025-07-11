@@ -21,7 +21,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		else tokenB = canvas.tokens.get(tokenB);
 	}
 	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return undefined;
-	
+
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units: canvas.scene.grid.units });
@@ -29,7 +29,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		if (result === -1) return undefined;
 		return result;
 	}
-	
+
 	const PointsAndCenter = {
 		points: [],
 		trueCenternt: {},
@@ -272,6 +272,87 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		dialog.options.advantageMode = NORM_MODE;
 		dialog.options.defaultButton = 'normal';
 	}
+	if (ac5eConfig.hookType === 'attack' && ac5eConfig.threshold?.length) {
+		//for attack rolls
+		const additivePattern = /^[+-]?\d+$|^[+-]?\d*d\d+$/i;
+		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i;
+		const maxDiceCap = 100;
+
+		let minTotal = 0;
+		let maxTotal = 0;
+
+		const additiveValues = [];
+		const staticValues = [];
+
+		for (const item of ac5eConfig.threshold) {
+			if (item == null) continue;
+
+			const cleaned = String(item).trim().replace(/\s+/g, '');
+
+			// Split into additive parts, e.g., '+2-1d4-1' -> ['+2', '-1d4', '-1']
+			const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
+
+			for (let part of parts) {
+				part = part.trim();
+
+				if (!additivePattern.test(part)) {
+					// Treat anything that doesn’t match as static (e.g., '5')
+					const parsed = parseInt(part);
+					if (!isNaN(parsed)) staticValues.push(parsed);
+					continue;
+				}
+
+				// Integer modifier (e.g., +2, -1)
+				if (/^[+-]?\d+$/.test(part)) {
+					const val = parseInt(part);
+					additiveValues.push(val);
+					minTotal += val;
+					maxTotal += val;
+					continue;
+				}
+
+				// Dice expression (e.g., -1d4)
+				const match = part.match(dicePattern);
+				if (match) {
+					const sign = match[1] === '-' ? -1 : 1;
+					const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
+					const sides = parseInt(match[3]);
+
+					let total = 0;
+					const rolls = [];
+					for (let i = 0; i < count; i++) {
+						const roll = Math.floor(Math.random() * sides) + 1;
+						rolls.push(roll);
+						total += roll;
+					}
+					const signedTotal = sign * total;
+					additiveValues.push(signedTotal);
+					minTotal += sign * count * 1; // min = 1 per die
+					maxTotal += sign * count * sides; // max = sides per die
+
+					if (settings.debug) {
+						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice crit threshold:`, `Dice roll: ${sign > 0 ? '+' : '-'}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count}, max: ${sign * count * sides})`);
+					}
+				}
+			}
+		}
+
+		// Include original static threshold (e.g., roll0.options.criticalSuccess)
+		staticValues.push(roll0.options.criticalSuccess ?? 20);
+
+		const newStaticThreshold = Math.min(...staticValues);
+		const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
+		const finalThreshold = newStaticThreshold + totalModifier;
+		// Optional output
+		if (settings.debug) {
+			console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - Crit threshold:`, {
+				initialThreshold: roll0.options.criticalSuccess,
+				finalThreshold,
+			});
+		}
+		roll0.options.criticalSuccess = finalThreshold;
+		ac5eConfig.alteredCritThreshold = finalThreshold;
+	}
 	if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
 		// config.target = 1000;
 		if (_activeModule('midi-qol')) {
@@ -352,7 +433,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	//Interim solution until system supports this
 	if (!foundry.utils.isEmpty(ac5eConfig.modifiers)) {
-		const {maximum, minimum} = ac5eConfig.modifiers;
+		const { maximum, minimum } = ac5eConfig.modifiers;
 		if (maximum) roll0.options.maximum = maximum;
 		if (minimum) roll0.options.minimum = minimum;
 	}
@@ -427,7 +508,7 @@ export function _autoRanged(activity, token, target) {
 	const isSpell = activity.isSpell;
 	const isAttack = activity.type === 'attack';
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
-	const { actionType, item, range, } = activity || {};
+	const { actionType, item, range } = activity || {};
 	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
 	const distance = target ? _getDistance(token, target) : undefined;
@@ -435,13 +516,13 @@ export function _autoRanged(activity, token, target) {
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
 		if (modernRules && short >= 10) short += 60;
-		else short *= 2
+		else short *= 2;
 	}
 	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
-	
+
 	const nearbyFoe =
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
@@ -449,7 +530,7 @@ export function _autoRanged(activity, token, target) {
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert &&
 		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
-	
+
 	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
@@ -492,7 +573,7 @@ export function _getTooltip(ac5eConfig = {}) {
 	//critical threshold
 	if (subject.criticalThreshold.length || opponent.criticalThreshold.length) {
 		const combinedArray = [...subject.criticalThreshold, opponent.criticalThreshold];
-		const translationString = game.i18n.translations.DND5E.Critical + " " + game.i18n.translations.DND5E.Threshold + " " + alteredCritThreshold;
+		const translationString = game.i18n.translations.DND5E.Critical + ' ' + game.i18n.translations.DND5E.Threshold + ' ' + alteredCritThreshold;
 		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
@@ -602,15 +683,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
 		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
 		//Interim solution until system supports this
-		const {max: maximum, min: minimum} = actor?.overrides?.system?.abilities?.[options.ability]?.[hookType]?.roll || {};
+		const { max: maximum, min: minimum } = actor?.overrides?.system?.abilities?.[options.ability]?.[hookType]?.roll || {};
 		if (maximum) {
 			ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${maximum})`);
 			ac5eConfig.modifiers.maximum = maximum;
-		};
+		}
 		if (minimum) {
 			ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${minimum})`);
 			ac5eConfig.modifiers.minimum = minimum;
-		};
+		}
 	}
 	//for now we don't care about mutliple different sources, but instead a total result for each (counts not implemented yet by the system)
 	// const arrayLength = actorSystemRollMode.filter(Boolean).length;
@@ -978,11 +1059,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetActor = sandbox.opponentActor;
 	sandbox.targetId = opponentToken?.id;
 	/* end of backwards compatibility */
-	
+
 	sandbox.activity = activity?.getRollData().activity || {};
 	sandbox.consumptionItemName = {};
 	sandbox.consumptionItemIdentifier = {};
-	activity?.consumption?.targets?.forEach(({target}) => {
+	activity?.consumption?.targets?.forEach(({ target }) => {
 		if (target) {
 			const targetItem = activity?.actor?.items.get(target);
 			if (targetItem) {
@@ -1008,7 +1089,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.damageTypes = options.damagetypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
 	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes);
-	
+
 	if (activity) {
 		const activityData = sandbox.activity;
 		sandbox.activity.damageTypes = options.damageTypes;
@@ -1034,7 +1115,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.isHealing = item?.system?.isHealing;
 	sandbox.item.isEnchantment = item?.system?.isEnchantment;
 	sandbox.item.transferredEffects = item?.transferredEffects;
-
 
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
@@ -1125,7 +1205,7 @@ export function _getRollDamageTypes(options, rolls) {
 		if (type) damageTypes[type] = true;
 
 		for (const part of roll.parts ?? []) {
-			const match = part.match(/\[([^\]]+)\]/g); // Matches all [type]
+			const match = part.match(/\[([^\]]+)\]/g); // Matches all [type
 			if (match) {
 				for (const m of match) {
 					const partType = m.slice(1, -1).toLowerCase();
