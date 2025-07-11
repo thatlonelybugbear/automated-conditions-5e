@@ -243,6 +243,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		else if (!testTypes.includes('aura') && !testTypes.includes('grants')) actorType = 'subject';
 		if (testTypes.includes('dis')) mode = 'disadvantage';
 		else if (testTypes.includes('adv')) mode = 'advantage';
+		else if (testTypes.includes('thres')) mode = 'criticalThreshold';
 		else if (testTypes.includes('crit')) mode = 'critical';
 		else if (testTypes.includes('fail')) mode = 'fail';
 		else if (testTypes.includes('bonus')) mode = 'bonus';
