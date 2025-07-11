@@ -176,7 +176,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
-export function _preRollAbilityTest(config, dialog, message, hook) {
+export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest:', { config, dialog, message });
 	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
@@ -223,7 +223,7 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	return ac5eConfig;
 }
 
-export function _preRollAttackV2(config, dialog, message, hook) {
+export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.error('AC5e _preRollAttackV2', hook, { config, dialog, message });
 	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls } = config || {};
 	const {
@@ -250,7 +250,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
@@ -292,10 +292,11 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	}	
 	if (settings.debug) console.warn('AC5E._preRollAttackV2:', { ac5eConfig });
 	// _setAC5eProperties(ac5eConfig, config, dialog, message);
-	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
+	_calcAdvantageMode(ac5eConfig, config, dialog, message);
+	return ac5eConfig; //we need to be returning the ac5eConfig object to re-eval when needed in the renderHijacks
 }
 
-export function _preRollDamageV2(config, dialog, message, hook) {
+export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollDamageV2', hook, { config, dialog, message });
 	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition } = config || {};
 	const {
@@ -325,7 +326,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
@@ -342,29 +343,10 @@ export function _renderHijack(hook, render, elem) {
 		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
 		if (getConfigAC5E.options.skill || getConfigAC5E.options.tool) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
-			if (selectedAbility !== getConfigAC5E.options.ability) {
-				const newConfig = render.config;
-				newConfig.ability = selectedAbility;
-				newConfig.advantage = undefined;
-				newConfig.disadvantage = undefined;
-				newConfig.rolls[0].options.advantageMode = 0;
-				const oldDefaultButton = getConfigAC5E.defaultButton;
-				const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
-				getEvaluatedAC5eButton.classList.remove('ac5e-button');
-				getEvaluatedAC5eButton.removeAttribute('data-tooltip');
-				const newDialog = { options: { window: { title: render.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-				const newMessage = render.message;
-				getConfigAC5E = _preRollAbilityTest(newConfig, newDialog, newMessage, 'check');
-				const newDefaultButton = getConfigAC5E.defaultButton;
-				if (settings.buttonColorEnabled && oldDefaultButton !== newDefaultButton) {
-					const testButtons = ['advantage', 'disadvantage', 'normal'].find((a) => oldDefaultButton !== a && newDefaultButton !== a);
-					const getOtherButtonDefaults = elem.querySelector(`button[data-action="${testButtons}"]`);
-					if (settings.buttonColorBackground) getEvaluatedAC5eButton.style.backgroundColor = getOtherButtonDefaults.style.backgroundColor;
-					if (settings.buttonColorBorder) getEvaluatedAC5eButton.style.border = getOtherButtonDefaults.style.border;
-					if (settings.buttonColorText) getEvaluatedAC5eButton.style.color = getOtherButtonDefaults.style.color;
-				}
-			}
+			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility);
 		}
+		else if (hook === 'damageDialog') doDialogDamageRender(dialog, elem, getConfigAC5E);
+		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(dialog, elem, getConfigAC5E);
 		const { hookType, options } = getConfigAC5E || {};
 		if (!hookType) return true;
 		let tokenName;
@@ -696,3 +678,31 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
 }
+
+function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility) {
+	const newConfig = dialog.config;
+	newConfig.ability = selectedAbility;
+	newConfig.advantage = undefined;
+	newConfig.disadvantage = undefined;
+	newConfig.rolls[0].options.advantageMode = 0;
+	newConfig.rolls[0].parts = [];
+	newConfig.rolls[0].options.maximum = null;
+	newConfig.rolls[0].options.minimum = null;
+	const oldDefaultButton = getConfigAC5E.defaultButton;
+	const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
+	getEvaluatedAC5eButton.classList.remove('ac5e-button');
+	getEvaluatedAC5eButton.removeAttribute('data-tooltip');
+	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newMessage = dialog.message;
+	const reEval = getConfigAC5E.reEval ?? {};
+	let currentFormula = elem.querySelector('.formula').textContent?.trim();
+	reEval.initialFormula = getConfigAC5E.reEval?.initialFormula ?? currentFormula;
+	
+	getConfigAC5E = _preRollAbilityTest(newConfig, newDialog, newMessage, 'check', reEval);
+	dialog.rebuild()
+	dialog.render();
+}
+
+function doDialogDamageRender(dialog, elem, getConfigAC5E) {}
+
+function doDialogAttackRender(dialog, elem, getConfigAC5E) {}
