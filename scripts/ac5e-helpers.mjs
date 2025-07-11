@@ -1196,12 +1196,14 @@ export function _collectActivityDamageTypes(activity, options) {
 }
 
 export function _collectRollDamageTypes(rolls, options) {
+	const damageTypesArray = [];
 	const damageTypes = {};
 	let defaultType = undefined;
 
 	for (const roll of rolls) {
 		const type = roll.options?.type;
 		if (type) {
+			damageTypesArray.push(type);
 			if (!defaultType) defaultType = type;
 			damageTypes[type] = true;
 		}
@@ -1210,6 +1212,7 @@ export function _collectRollDamageTypes(rolls, options) {
 			if (!part?.length) continue;
 			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase());  //returns an Array of inner type strings from each [type]
 			for (const partType of match) {
+				damageTypesArray.push(partType);
 				if (!defaultType) defaultType = partType;
 				damageTypes[partType] = true;
 			}
@@ -1217,10 +1220,11 @@ export function _collectRollDamageTypes(rolls, options) {
 	}
 	const defaultDamageType = defaultType ? { [defaultType]: true } : {};
 	if (options) {
+		options.damageTypesArray = damageTypesArray;
 		options.damageTypes = damageTypes;
 		if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
 	}
-	else return { damageTypes, defaultDamageType };
+	else return { damageTypes, defaultDamageType, damageTypesArray };
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
