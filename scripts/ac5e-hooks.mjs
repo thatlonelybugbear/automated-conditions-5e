@@ -331,7 +331,7 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
-	return true;
+	return ac5eConfig;   //we need to be returning the ac5eConfig object to re-eval when needed in the renderHijacks
 }
 
 export function _renderHijack(hook, render, elem) {
