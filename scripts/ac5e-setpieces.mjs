@@ -313,12 +313,33 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (expression.includes('effectOriginActor')) {
 			const tok = _getEffectOriginToken(effect, 'token');
 			if (tok?.actor) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('effectOriginActor.', '@'), _ac5eActorRollData(tok))).formula;
-		};
+		}
+		if (expression.includes('rollingActor')) {
+			const pattern = /\brollingActor(?:\.[a-zA-Z_$][\w$]*)+/g;
+			expression = expression.replaceAll(pattern, (match) => {
+				const replaced = match.replace('rollingActor.', '@');
+				return Roll.fromTerms(Roll.parse(replaced, evalData.rollingActor)).formula;
+			});
+		}
+		if (expression.includes('opponentActor')) {
+			const pattern = /\bopponentActor(?:\.[a-zA-Z_$][\w$]*)+/g;
+			expression = expression.replaceAll(pattern, (match) => {
+				const replaced = match.replace('opponentActor.', '@');
+				return Roll.fromTerms(Roll.parse(replaced, evalData.opponentActor)).formula;
+			});
+		}
+		if (isAura && expression.includes('auraActor')) {
+			const pattern = /\bauraActor(?:\.[a-zA-Z_$][\w$]*)+/g;
+			expression = expression.replaceAll(pattern, (match) => {
+				const replaced = match.replace('auraActor.', '@');
+				return Roll.fromTerms(Roll.parse(replaced, evalData.auraActor)).formula;
+			});
+		}
 		return expression;
 	};
 
-	const blacklist = ['bonus', 'radius', 'usesCount', 'threshold', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once',]; // bonus, radius, usesCount, threshold will be followed by : or =
-	
+	const blacklist = ['bonus', 'radius', 'usesCount', 'threshold', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once']; // bonus, radius, usesCount, threshold will be followed by : or =
+
 	const effectDeletions = [];
 	const effectUpdates = [];
 	// const placeablesWithRelevantAuras = {};
@@ -359,10 +380,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const auraOnlyOne = el.value.includes('singleAura');
 					let valuesToEvaluate = el.value
 						.split(';')
-						.map(v => v.trim())
-						.filter(v => {
+						.map((v) => v.trim())
+						.filter((v) => {
 							if (!v) return false;
-							const [key] = v.split(/[:=]/).map(s => s.trim());
+							const [key] = v.split(/[:=]/).map((s) => s.trim());
 							return !blacklist.includes(key);
 						})
 						.join(';');
@@ -405,10 +426,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, true, effect), sandbox: evaluationData });
 				let valuesToEvaluate = el.value
 					.split(';')
-					.map(v => v.trim())
-					.filter(v => {
+					.map((v) => v.trim())
+					.filter((v) => {
 						if (!v) return false;
-						const [key] = v.split(/[:=]/).map(s => s.trim());
+						const [key] = v.split(/[:=]/).map((s) => s.trim());
 						return !blacklist.includes(key);
 					})
 					.join(';');
@@ -437,10 +458,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, true, effect), sandbox: evaluationData });
 					let valuesToEvaluate = el.value
 						.split(';')
-						.map(v => v.trim())
-						.filter(v => {
+						.map((v) => v.trim())
+						.filter((v) => {
 							if (!v) return false;
-							const [key] = v.split(/[:=]/).map(s => s.trim());
+							const [key] = v.split(/[:=]/).map((s) => s.trim());
 							return !blacklist.includes(key);
 						})
 						.join(';');
@@ -555,8 +576,8 @@ function getBlacklistedKeysValue(key, values) {
 	const regex = new RegExp(`^\\s*${key}\\s*[:=]\\s*(.+)$`);
 	const parts = values
 		.split(';')
-		.map(e => e.trim())
-		.map(e => regex.exec(e))
+		.map((e) => e.trim())
+		.map((e) => regex.exec(e))
 		.find(Boolean);
 	return parts ? parts[1].trim() : '';
-};
+}
