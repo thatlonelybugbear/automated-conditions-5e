@@ -463,7 +463,7 @@ export function _systemCheck(testVersion) {
 }
 
 export function _getTooltip(ac5eConfig = {}) {
-	const { hookType, subject, opponent } = ac5eConfig;
+	const { hookType, subject, opponent, alteredCritThreshold } = ac5eConfig;
 	let tooltip = '<div class="ac5e-tooltip-content">';
 	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
@@ -472,24 +472,28 @@ export function _getTooltip(ac5eConfig = {}) {
 			tooltip += text;
 		}
 	};
-	if (subject) {
-		addTooltip(subject.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subject.critical.join(', ')}</span>`);
-		addTooltip(subject.advantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subject.advantage.join(', ')}</span>`);
-		addTooltip(subject.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${subject.fail.join(', ')}</span>`);
-		addTooltip(subject.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fumble')}: ${subject.fumble.join(', ')}</span>`);
-		addTooltip(subject.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subject.disadvantage.join(', ')}</span>`);
-		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
-		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
-		addTooltip(!foundry.utils.isEmpty(subject.modifiers), `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
-	}
-	if (opponent) {
-		addTooltip(opponent.critical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsCriticalAbbreviated')}: ${opponent.critical.join(', ')}</span>`);
-		addTooltip(opponent.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFail')}: ${opponent.fail.join(', ')}</span>`);
-		addTooltip(opponent.advantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${opponent.advantage.join(', ')}</span>`);
-		addTooltip(opponent.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${opponent.disadvantage.join(', ')}</span>`);
-		addTooltip(opponent.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsSuccess')}: ${opponent.success.join(', ')}</span>`);
-		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
-		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
+	//subject
+	addTooltip(subject.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subject.critical.join(', ')}</span>`);
+	addTooltip(subject.advantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subject.advantage.join(', ')}</span>`);
+	addTooltip(subject.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${subject.fail.join(', ')}</span>`);
+	addTooltip(subject.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fumble')}: ${subject.fumble.join(', ')}</span>`);
+	addTooltip(subject.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subject.disadvantage.join(', ')}</span>`);
+	addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
+	addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
+	addTooltip(!foundry.utils.isEmpty(subject.modifiers), `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
+	//opponent
+	addTooltip(opponent.critical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsCriticalAbbreviated')}: ${opponent.critical.join(', ')}</span>`);
+	addTooltip(opponent.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFail')}: ${opponent.fail.join(', ')}</span>`);
+	addTooltip(opponent.advantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${opponent.advantage.join(', ')}</span>`);
+	addTooltip(opponent.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${opponent.disadvantage.join(', ')}</span>`);
+	addTooltip(opponent.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsSuccess')}: ${opponent.success.join(', ')}</span>`);
+	addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
+	addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
+	//critical threshold
+	if (subject.criticalThreshold.length || opponent.criticalThreshold.length) {
+		const combinedArray = [...subject.criticalThreshold, opponent.criticalThreshold];
+		const translationString = game.i18n.translations.DND5E.Critical + " " + game.i18n.translations.DND5E.Threshold + " " + alteredCritThreshold;
+		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
 	return tooltip;
