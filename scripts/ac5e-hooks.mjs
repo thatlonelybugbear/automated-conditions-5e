@@ -696,3 +696,40 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
 }
+
+function doDialogOptins(dialog, elem, hook, ac5eConfig) {
+	const fieldset = elem.querySelector('fieldset[data-application-part="configuration"]');
+	if (!fieldset) return;
+
+	if (fieldset.querySelector(`[name="flags.automated-conditions-5e.${hook}optins"`)) return;
+
+	const options = Object.entries(ac5eConfig.optins).map(([k, v]) => ({
+		value: k,
+		label: v.label,
+		selected: false
+	}));
+	const multiSelectElem = foundry.applications.fields.createMultiSelectInput({
+		type: "select",
+		name: `flags.automated-conditions-5e.${hook}optins`,
+		options
+	});
+
+	const formGroup = document.createElement('div');
+	formGroup.classList.add('form-group');
+	const label = document.createElement('label');
+	label.setAttribute('for', multiSelectElem.id ?? `flags.automated-conditions-5e.${hook}optins`);
+	label.textContent = 'AC5e optins';
+	formGroup.appendChild(label);
+
+	const formFields = document.createElement('div');
+	formFields.classList.add('form-fields');
+	formFields.appendChild(multiSelectElem);
+	formGroup.appendChild(formFields);
+
+	const hint = document.createElement('p');
+	hint.classList.add('hint');
+	hint.textContent = 'Select AC5e opt-in effects.';
+	formGroup.appendChild(hint);
+
+	fieldset.appendChild(formGroup);
+}
