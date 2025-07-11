@@ -1194,7 +1194,7 @@ export function _collectActivityDamageTypes(activity, options) {
 	return;
 }
 
-export function _collectRollDamageTypes(options, rolls) {
+export function _collectRollDamageTypes(rolls, options) {
 	const damageTypes = {};
 	let defaultType = undefined;
 
