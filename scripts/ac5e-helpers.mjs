@@ -1089,25 +1089,24 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.damageTypes = options.damagetypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
 	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes);
-
-	if (activity) {
-		const activityData = sandbox.activity;
-		sandbox.activity.damageTypes = options.damageTypes;
-		sandbox.activity.defaultDamageType = options.defaultDamageType;
-		sandbox.activity.attackMode = options?.attackMode;
-		if (options?.attackMode) sandbox[options.attackMode] = true;
-		if (activity.actionType) sandbox[activity.actionType] = true;
-		if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
-		sandbox[activityData.type] = true;
-	}
-
+	//activity data
+	const activityData = sandbox.activity;
+	sandbox.activity.damageTypes = options.damageTypes;
+	sandbox.activity.defaultDamageType = options.defaultDamageType;
+	sandbox.activity.attackMode = options?.attackMode;
+	if (options?.attackMode) sandbox[options.attackMode] = true;
+	if (activity.actionType) sandbox[activity.actionType] = true;
+	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
+	sandbox[activityData.type] = true;
+	
+	//item data
 	sandbox.item = item?.getRollData().item || {};
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	if (itemData.school) sandbox[itemData.school] = true;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
-	itemData.properties.filter((p) => (sandbox[p] = true));
+	itemData?.properties?.filter((p) => (sandbox[p] = true));
 	sandbox.item.hasAttack = item?.hasAttack;
 	sandbox.item.hasSave = item?.system?.hasSave;
 	sandbox.item.hasSummoning = item?.system?.hasSummoning;
