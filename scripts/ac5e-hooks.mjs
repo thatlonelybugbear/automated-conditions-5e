@@ -701,29 +701,33 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	dialog.render();
 }
 
-function doDialogDamageRender(dialog, elem, getConfigAC5E) {
+function doDialogDamageRender(dialog, elem, getConfigAC5E, selectedDamages) {
 	const rollsLength = dialog.config.rolls.length;
-	const selects = Array.fromRange(rollsLength).map((el) => {
-		const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
-		if (labelSpan) return labelSpan;
-	
-		// If there's no <select>, get the roll options damage type
-		const damageType = dialog.config.rolls[el].options.type;
-		if (damageType) return damageType;
-	}).filter(Boolean);
+	const selects = Array.fromRange(rollsLength)
+		.map((el) => {
+			const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
+			if (labelSpan) return labelSpan;
+
+			// If there's no <select>, get the roll options damage type
+			const damageType = dialog.config.rolls[el].options.type;
+			if (damageType) return damageType;
+		})
+		.filter(Boolean);
 	const formulas = Array.from(elem.querySelectorAll('.formula'))
 		.map((el) => el.textContent?.trim())
 		.filter(Boolean);
+
 	const damageTypes = getConfigAC5E.options.damageTypes;
 	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
 	const compared = compareArrays(damageTypesArray, selects);
-
-	if (compared.equal) return;
-
+	if (compared.equal) {
+		dialog.config[Constants.MODULE_ID].usedParts = dialog.config[Constants.MODULE_ID].usedParts ?? dialog.config[Constants.MODULE_ID].parts;
+		return;
+	}
 	const newConfig = dialog.config;
 	getConfigAC5E.options.defaultDamageType = undefined;
 	getConfigAC5E.options.damageTypes = undefined;
-	getConfigAC5E.options.damageTypesArray = undefined;
+	getConfigAC5E.options.selectedDamageTypes = undefined;
 
 	const oldDefaultButton = getConfigAC5E.defaultButton;
 	const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
@@ -734,12 +738,12 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
 	reEval.initialRolls = getConfigAC5E.reEval?.initialRolls ?? newConfig.rolls.map((roll) => ({ parts: roll.parts, options: { maximum: roll.options.maximum, minimum: roll.options.minimum } }));
 	reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
-
 	newConfig.rolls[compared.index].options.type = compared.selectedValue;
 	const wasCritical = getConfigAC5E.preAC5eConfig.wasCritical;
 	for (let i = 0; i < rollsLength; i++) {
 		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
-		//newConfig.rolls[i]._formula = reEval.initialFormulas[i];
+		console.log(newConfig.rolls[i].parts, getConfigAC5E.parts);
+		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedParts?.includes(part));
 		newConfig.rolls[i].options.maximum = reEval.initialRolls[i].options.maximum;
 		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
 		newConfig.rolls[i].options.isCritical = wasCritical;
