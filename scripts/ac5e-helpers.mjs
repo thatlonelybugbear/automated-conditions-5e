@@ -631,6 +631,8 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		returnEarly: false,
 	};
 	if (reEval) ac5eConfig.reEval = reEval;
+	const wasCritical = config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical || ac5eConfig.preAC5eConfig.critKey;
+	ac5eConfig.preAC5eConfig.wasCritical = wasCritical;
 	if (options.skill || options.tool) ac5eConfig.title = dialog?.options?.window?.title;
 	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
 	if (_activeModule('midi-qol')) ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(config.midiOptions || {});
