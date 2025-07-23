@@ -1199,12 +1199,14 @@ export function _collectActivityDamageTypes(activity, options) {
 
 export function _collectRollDamageTypes(rolls, options) {
 	const damageTypes = {};
+	const selectedDamageTypes = [];
 	let defaultType = undefined;
 
 	for (const roll of rolls) {
 		const type = roll.options?.type;
 		if (type) {
 			if (!defaultType) defaultType = type;
+			selectedDamageTypes.push(type);
 			damageTypes[type] = true;
 		}
 
@@ -1220,9 +1222,10 @@ export function _collectRollDamageTypes(rolls, options) {
 	const defaultDamageType = defaultType ? { [defaultType]: true } : {};
 	if (options) {
 		options.damageTypes = damageTypes;
+		options.selectedDamageTypes = selectedDamageTypes;
 		if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
 	}
-	else return { damageTypes, defaultDamageType };
+	else return { damageTypes, defaultDamageType, selectedDamageTypes };
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
