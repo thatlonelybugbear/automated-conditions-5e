@@ -1101,6 +1101,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	
 	//item data
 	sandbox.item = item?.getRollData().item || {};
+	sandbox.item.uuid = item?.uuid;
+	sandbox.item.id = item?.id;
+	sandbox.item.type = item?.type;	
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	if (itemData.school) sandbox[itemData.school] = true;
