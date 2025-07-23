@@ -701,7 +701,7 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	dialog.render();
 }
 
-function doDialogDamageRender(dialog, elem, getConfigAC5E, selectedDamages) {
+function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	const rollsLength = dialog.config.rolls.length;
 	const selects = Array.fromRange(rollsLength)
 		.map((el) => {
