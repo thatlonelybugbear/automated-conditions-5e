@@ -295,7 +295,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
-export function _preRollDamageV2(config, dialog, message, hook) {
+export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollDamageV2', hook, { config, dialog, message });
 	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition } = config || {};
 	const {
@@ -344,6 +344,7 @@ export function _renderHijack(hook, render, elem) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
 			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility);
 		}
+		else if (hook === 'damageDialog') doDialogDamageRender(dialog, elem, getConfigAC5E);
 		const { hookType, options } = getConfigAC5E || {};
 		if (!hookType) return true;
 		let tokenName;
@@ -699,3 +700,66 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	dialog.rebuild()
 	dialog.render();
 }
+
+function doDialogDamageRender(dialog, elem, getConfigAC5E) {
+	const rollsLength = dialog.config.rolls.length;
+	const selects = Array.fromRange(rollsLength).map((el) => {
+		const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
+		if (labelSpan) return labelSpan;
+	
+		// If there's no <select>, get the roll options damage type
+		const damageType = dialog.config.rolls[el].options.type;
+		if (damageType) return damageType;
+	}).filter(Boolean);
+	const formulas = Array.from(elem.querySelectorAll('.formula'))
+		.map((el) => el.textContent?.trim())
+		.filter(Boolean);
+	const damageTypes = getConfigAC5E.options.damageTypes;
+	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
+	const compared = compareArrays(damageTypesArray, selects);
+
+	if (compared.equal) return;
+
+	const newConfig = dialog.config;
+	getConfigAC5E.options.defaultDamageType = undefined;
+	getConfigAC5E.options.damageTypes = undefined;
+	getConfigAC5E.options.damageTypesArray = undefined;
+
+	const oldDefaultButton = getConfigAC5E.defaultButton;
+	const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
+	getEvaluatedAC5eButton.classList.remove('ac5e-button');
+	getEvaluatedAC5eButton.removeAttribute('data-tooltip');
+
+	const reEval = getConfigAC5E.reEval ?? {};
+	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
+	reEval.initialRolls = getConfigAC5E.reEval?.initialRolls ?? newConfig.rolls.map((roll) => ({ parts: roll.parts, options: { maximum: roll.options.maximum, minimum: roll.options.minimum } }));
+	reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
+
+	newConfig.rolls[compared.index].options.type = compared.selectedValue;
+	const wasCritical = getConfigAC5E.preAC5eConfig.wasCritical;
+	for (let i = 0; i < rollsLength; i++) {
+		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
+		//newConfig.rolls[i]._formula = reEval.initialFormulas[i];
+		newConfig.rolls[i].options.maximum = reEval.initialRolls[i].options.maximum;
+		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
+		newConfig.rolls[i].options.isCritical = wasCritical;
+	}
+
+	const newDialog = { options: { window: { title: dialog.message.data.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
+	const newMessage = dialog.message;
+
+	getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage', reEval);
+	dialog.rebuild();
+	dialog.render();
+}
+
+function compareArrays(a, b) {
+	const len = Math.max(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		if (a[i] !== b[i]) {
+			return { equal: false, index: i, initialValue: a[i], selectedValue: b[i] };
+		}
+	}
+	return { equal: true };
+}
+
