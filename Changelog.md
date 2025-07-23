@@ -4,6 +4,7 @@
   - For example, a passive transfer effect from a weapon, adding a damage bonus when that weapon is being used only.
 - Changes in Roll Configuration dialogs should trigger proper AC5e re-evaluation of flags
   - Reworked `doDialogSkillOrTollRender`
+  - Added `doDialogDamageRender`
 
 ## 13.504.1
 * System compatibility bump for 5.0.4
