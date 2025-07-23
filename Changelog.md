@@ -1,7 +1,7 @@
 ## 13.504.2
 - Added `activity.ability` in the available evaluation data.
 - Added `itemLimited` keyword for ac5e flags, limiting the conditional flag application when the rolling item is the same that applied the effect to the actor.
- - For example, a passive transfer effect from a weapon, adding a damage bonus when that weapon is being used only.
+  - For example, a passive transfer effect from a weapon, adding a damage bonus when that weapon is being used only.
 
 ## 13.504.1
 * System compatibility bump for 5.0.4
