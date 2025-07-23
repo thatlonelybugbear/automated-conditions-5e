@@ -264,13 +264,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }) => {
+	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData, evaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
 		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates });
 		if (!shouldProceedUses) return false;
+		if (change.value.toLocaleLowerCase().includes('itemLimited')) {
+			if (evaluationData && evaluationData.item?.uuid === effect.origin) return true;
+			else return false;
+		};
 		if (change.key.includes('aura')) {
 			//isAura
 			if (token === subjectToken) return change.value.includes('includeSelf');
@@ -338,7 +342,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return expression;
 	};
 
-	const blacklist = ['bonus', 'radius', 'usesCount', 'threshold', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once']; // bonus, radius, usesCount, threshold will be followed by : or =
+	const blacklist = ['bonus', 'radius', 'usesCount', 'threshold', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once', 'itemLimited']; // bonus, radius, usesCount, threshold will be followed by : or =
 
 	const effectDeletions = [];
 	const effectUpdates = [];
@@ -416,7 +420,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
-			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, effectDeletions, effectUpdates }))
+			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, effectDeletions, effectUpdates, evaluationData }))
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
@@ -448,7 +452,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (opponent) {
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, effectDeletions, effectUpdates }))
+				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, effectDeletions, effectUpdates, evaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
