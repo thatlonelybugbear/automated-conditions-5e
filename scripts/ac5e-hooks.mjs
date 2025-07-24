@@ -286,7 +286,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	if (automateHeavy) {
 		const isHeavy = item?.system.properties.has('hvy');
 		if (isHeavy) {
-			const isSmall = modernRules ? (activity?.actionType === 'mwak' && sourceActor.system.abilities.str.value < 13) || (activity?.actionType === 'rwak' && sourceActor.system.abilities.dex.value < 13) : sourceToken.document.width * sourceToken.document.height * sourceToken.document.scale < 1; /*|| sourceActor?.system.traits.size === 'sm' || sourceActor?.system.traits.size === 'tiny'*/
+			const isSmall = modernRules ? (activity?.actionType === 'mwak' && sourceActor.system.abilities.str.value < 13) || (activity?.actionType === 'rwak' && sourceActor.system.abilities.dex.value < 13) : sourceToken.document.width * sourceToken.document.height * sourceToken.document.texture.scaleX * sourceToken.document.texture.scaleY < 1;
 			if (isSmall) {
 				ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize('DND5E.Item.Property.Heavy')}`);
 			}
