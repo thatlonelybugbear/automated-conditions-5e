@@ -1064,7 +1064,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	/* end of backwards compatibility */
 
 	sandbox.activity = activity?.getRollData().activity || {};
-	sandbox.ammunition = options.ammunitionName ? { [options.ammunitionName]: true } : {};
+	sandbox.ammunition = options.ammunition;
+	sandbox.ammunitionName = options.ammunition?.name;
 	sandbox.consumptionItemName = {};
 	sandbox.consumptionItemIdentifier = {};
 	activity?.consumption?.targets?.forEach(({ target }) => {
