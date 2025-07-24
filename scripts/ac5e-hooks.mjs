@@ -346,9 +346,9 @@ export function _renderHijack(hook, render, elem) {
 		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
 		if (getConfigAC5E.options.skill || getConfigAC5E.options.tool) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
-			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility);
-		} else if (hook === 'damageDialog') doDialogDamageRender(dialog, elem, getConfigAC5E);
-		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(dialog, elem, getConfigAC5E);
+			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
+		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
+		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
 		const { hookType, options } = getConfigAC5E || {};
 		if (!hookType) return true;
 		let tokenName;
