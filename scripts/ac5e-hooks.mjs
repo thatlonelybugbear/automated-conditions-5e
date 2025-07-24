@@ -309,10 +309,6 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
-	if (ammunition) {
-		const ammunitionName = sourceActor.items.get(ammunition)?.name;
-		if (ammunitionName) options.ammunitionName = ammunitionName;
-	}
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	options.activity = activity;
