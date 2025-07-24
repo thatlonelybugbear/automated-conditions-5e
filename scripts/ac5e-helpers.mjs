@@ -1089,15 +1089,16 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
 	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
+	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
 	sandbox.damageTypes = options.damagetypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
-	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes);
+	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
 	//activity data
 	const activityData = sandbox.activity;
 	sandbox.activity.damageTypes = options.damageTypes;
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
-	sandbox.activity.attackMode = options?.attackMode;
-	if (options?.attackMode) sandbox[options.attackMode] = true;
+	sandbox.activity.attackMode = options.attackMode;
+	sandbox.activity.mastery = options.mastery;
 	if (activity.actionType) sandbox[activity.actionType] = true;
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 	sandbox[activityData.type] = true;
