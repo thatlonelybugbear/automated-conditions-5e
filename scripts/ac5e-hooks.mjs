@@ -235,10 +235,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.activity = activity;
 	options.hook = hook;
 	options.ammo = ammunition;
-	if (ammunition) {
-		const ammunitionName = sourceActor.items.get(ammunition)?.name;
-		if (ammunitionName) options.ammunitionName = ammunitionName;
-	}
+	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	const item = activity?.item;
@@ -312,8 +309,8 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 
 	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
-	options.ability = ability;
 	options.ammo = ammunition;
+	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	if (ammunition) {
 		const ammunitionName = sourceActor.items.get(ammunition)?.name;
 		if (ammunitionName) options.ammunitionName = ammunitionName;
@@ -716,24 +713,34 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 }
 
 function doDialogAttackRender(dialog, elem, getConfigAC5E) {
+	const selectedAmmunition = elem.querySelector('select[name="ammunition"]')?.value;
 	const selectedAttackMode = elem.querySelector('select[name="attackMode"]')?.value;
 	const selectedMastery = elem.querySelector('select[name="mastery"]')?.value;
+	const hasAmmunition = getConfigAC5E.options.ammo;
 	const hasAttackMode = getConfigAC5E.options.attackMode;
 	const hasMastery = getConfigAC5E.options.mastery;
-	const change = hasAttackMode && selectedAttackMode && hasAttackMode !== selectedAttackMode ? 'attackMode' : hasMastery && selectedMastery && hasMastery !== selectedMastery ? 'mastery' : false;
+	const change = hasAmmunition && selectedAmmunition && hasAmmunition !== selectedAmmunition ? 'ammunition' : hasAttackMode && selectedAttackMode && hasAttackMode !== selectedAttackMode ? 'attackMode' : hasMastery && selectedMastery && hasMastery !== selectedMastery ? 'mastery' : false;
 	if (!change) {
+		if (hasAmmunition && selectedAmmunition) dialog.config[Constants.MODULE_ID].usedPartsAmmunition = dialog.config[Constants.MODULE_ID].usedPartsAmmunition ?? dialog.config[Constants.MODULE_ID].parts;
 		if (hasAttackMode) dialog.config[Constants.MODULE_ID].usedPartsAttackMode = dialog.config[Constants.MODULE_ID].usedPartsAttackMode ?? dialog.config[Constants.MODULE_ID].parts;
 		if (hasMastery) dialog.config[Constants.MODULE_ID].usedPartsMastery = dialog.config[Constants.MODULE_ID].usedPartsMastery ?? dialog.config[Constants.MODULE_ID].parts;
 		return;
 	}
 	const newConfig = dialog.config;
-	if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
-	if (selectedMastery) newConfig.mastery = selectedMastery;
-	if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
-	if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
+	if (selectedAmmunition) newConfig.ammunition = selectedAmmunition;
+	else if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
+	else if (selectedMastery) newConfig.mastery = selectedMastery;
+	if (change === 'ammunition') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
+	else if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
+	else if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
 	newConfig.advantage = undefined;
 	newConfig.disadvantage = undefined;
 	newConfig.rolls[0].options.advantageMode = 0;
+	if (newConfig.midiOptions) {
+		 newConfig.midiOptions.isCritical = false;
+		 newConfig.midiOptions.advantage = false;
+		 newConfig.midiOptions.disadvantage = false;
+	}
 	newConfig.rolls[0].options.maximum = null;
 	newConfig.rolls[0].options.minimum = null;
 	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
@@ -770,18 +777,14 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	getConfigAC5E.options.defaultDamageType = undefined;
 	getConfigAC5E.options.damageTypes = undefined;
 	getConfigAC5E.options.selectedDamageTypes = undefined;
-/*
-	const oldDefaultButton = getConfigAC5E.defaultButton;
-	const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
-	getEvaluatedAC5eButton.classList.remove('ac5e-button');
-	getEvaluatedAC5eButton.removeAttribute('data-tooltip');
-*/
+
 	const reEval = getConfigAC5E.reEval ?? {};
 	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
 	reEval.initialRolls = getConfigAC5E.reEval?.initialRolls ?? newConfig.rolls.map((roll) => ({ parts: roll.parts, options: { maximum: roll.options.maximum, minimum: roll.options.minimum } }));
 	reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
 	newConfig.rolls[compared.index].options.type = compared.selectedValue;
 	const wasCritical = getConfigAC5E.preAC5eConfig.wasCritical;
+	if (newConfig.midiOptions) newConfig.midiOptions.isCritical = wasCritical;
 	for (let i = 0; i < rollsLength; i++) {
 		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
 		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedParts?.includes(part));
