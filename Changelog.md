@@ -1,10 +1,26 @@
 ## 13.504.2
 - Added `activity.ability` in the available evaluation data.
+- Added `criticalThreshold` mode for AC5e attack flags, triggered by using keyword `threshold=18` or `threshold=-2` in the effect value, setting to a new if lower static threshold or adding the provided bonus (negative to lower), respectively.
 - Added `itemLimited` keyword for ac5e flags, limiting the conditional flag application when the rolling item is the same that applied the effect to the actor.
   - For example, a passive transfer effect from a weapon, adding a damage bonus when that weapon is being used only.
 - Changes in Roll Configuration dialogs should trigger proper AC5e re-evaluation of flags
-  - Reworked `doDialogSkillOrTollRender`
-  - Added `doDialogDamageRender`
+  - Reworked `doDialogSkillOrTollRender` (changes tracked: ability used)
+  - Added `doDialogDamageRender` (changes tracked: selected damage type from multiple types)
+  - Added `doDialogAttackRender` (changes tracked: Ammunition, Attack Mode, Mastery dropdowns)
+- Cleanup of sandbox data to make those work better. Additions:
+  - `attackRollD20` and `attackRollTotal` for grabbing those in damage evaluations after having rolled a d20 to attack.
+  - reworked damage types for evaluations based on selected damages from multiple available ones
+    - use as `damageTypes.fire || damageTypes.cold` for mutliple ones being true, or `['cold', 'fire'].some(d=>damageTypes[d])`
+    - the old way of damage types being readily available is still supported `fire; cold` but using `damageTypes` is recommended and can be more robust
+  - `consumptionItemName` and `consumptionItemIdentifier` to be used when an activity consumes uses of another, eg
+    - For Dragonhide Belt items consuming Focus uses, `consumptionItemName.Focus` will evaluate to true
+- Limit Grappled attacks disadvantage to only modern rules
+- Added interim support for min/max system flags for saves and checks until system updates.
+- Added proper `Heavy` rules for modern and legacy rules:
+  - To disable them use in console `game.settings.set('automated-conditions-5e', 'automateHeavy', false)`
+  - For the legacy rules, the `token.document.width * token.document.height * token.document.scale` will need to be lower than `1` in order for the attacking Token to be considered small.
+- Allow `bonus` and `radius` to be fully evaluated too, so you could use `radius=auraActor.details.level > 17 ? 30 : 10` for example.
+- Verified for Foundry v13.345
 
 ## 13.504.1
 * System compatibility bump for 5.0.4
