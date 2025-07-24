@@ -235,6 +235,10 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.activity = activity;
 	options.hook = hook;
 	options.ammo = ammunition;
+	if (ammunition) {
+		const ammunitionName = sourceActor.items.get(ammunition)?.name;
+		if (ammunitionName) options.ammunitionName = ammunitionName;
+	}
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	const item = activity?.item;
@@ -310,6 +314,10 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.ammo = ammunition;
+	if (ammunition) {
+		const ammunitionName = sourceActor.items.get(ammunition)?.name;
+		if (ammunitionName) options.ammunitionName = ammunitionName;
+	}
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	options.activity = activity;
