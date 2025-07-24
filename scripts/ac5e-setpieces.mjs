@@ -297,6 +297,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 
 	const bonusReplacements = (expression, evalData, isAura, effect) => {
+		if (typeof expression !== 'string') return expression;
+		// Short-circuit: skip if formula is just plain dice + numbers + brackets (no dynamic content)
+		const isStaticFormula = /^[\d\s+\-*/().\[\]d]+$/i.test(expression) &&
+			!expression.includes('@') &&
+			!expression.includes('Actor') &&
+			!expression.includes('##');
+
+		if (isStaticFormula) return expression;
+		
 		const staticMap = {
 			'@scaling': evalData.scaling ?? 0,
 			scaling: evalData.scaling ?? 0,
@@ -377,10 +386,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
-					let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
-					let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
-					if (bonus) bonus = _ac5eSafeEval({ expression: bonusReplacements(bonus, auraTokenEvaluationData, true, effect), sandbox: auraTokenEvaluationData });
-					if (threshold) threshold = _ac5eSafeEval({ expression: bonusReplacements(threshold, auraTokenEvaluationData, true, effect), sandbox: auraTokenEvaluationData });
+					let bonus, threshold;
+					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					if (isBonus) {
+						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
+						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
+						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, /*canBeStatic: true*/ });
+					}
+					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
+					if (isThreshold) {
+						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
+						if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
+						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+					}
 					const auraOnlyOne = el.value.includes('singleAura');
 					let valuesToEvaluate = el.value
 						.split(';')
@@ -424,10 +442,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
-				let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
-				let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
-				if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, false, effect), sandbox: evaluationData });
-				if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, false, effect), sandbox: evaluationData });
+				let bonus, threshold;
+				let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
+				if (isBonus) {
+					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
+					if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
+					else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, /*canBeStatic: true*/ });
+				}
+				const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
+				if (isThreshold) {
+					const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
+					if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
+					else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+				}
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -456,10 +483,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
-					let bonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : '';
-					let threshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : '';
-					if (bonus) bonus = bonus === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(bonus, evaluationData, false, effect), sandbox: evaluationData });
-					if (threshold) threshold = threshold === '' ? '' : _ac5eSafeEval({ expression: bonusReplacements(threshold, evaluationData, false, effect), sandbox: evaluationData });
+					let bonus, threshold;
+					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					if (isBonus) {
+						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
+						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
+						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, /*canBeStatic: true*/ });
+					}
+					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
+					if (isThreshold) {
+						const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
+						if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
+						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+					}
 					let valuesToEvaluate = el.value
 						.split(';')
 						.map((v) => v.trim())
@@ -585,3 +621,20 @@ function getBlacklistedKeysValue(key, values) {
 		.find(Boolean);
 	return parts ? parts[1].trim() : '';
 }
+
+function isLiteralOrDiceExpression(expression) {
+	const trimmed = expression.trim();
+
+	// Allow: numbers, dice terms, + - * / ( ), optional damage tags
+	// Block: anything with variable names, @, game, canvas, etc
+	const diceLikePattern = /^[\d+\-*/().\s\[\]d]+$/i;
+
+	// Sanitize: if it contains any letters **not** part of a [tag], it's unsafe
+	const hasUnsafeLetters = /[a-zA-Z]/.test(
+		trimmed.replace(/\[\w+]/g, '') // ignore damageType brackets like [fire]
+		       .replace(/d\d+/g, '')   // ignore dice like d6, d12
+	);
+
+	return diceLikePattern.test(trimmed) || !hasUnsafeLetters;
+}
+
