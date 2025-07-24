@@ -1,3 +1,7 @@
+## 13.504.2.1
+* Added the `...criticalThreshold` flags to be picked up by DAE autocompletion
+* Fix for change in `DND5E.ITEM.Property.Heavy` instead of `...Item...`
+
 ## 13.504.2
 * Added `criticalThreshold` mode for AC5e attack flags, triggered by using keyword `threshold=18` or `threshold=-2` in the effect value, setting to a new if lower static threshold or adding the provided bonus (negative to lower), respectively.
 * Added `itemLimited` keyword for ac5e flags, limiting the conditional flag application when the rolling item is the same that applied the effect to the actor.
