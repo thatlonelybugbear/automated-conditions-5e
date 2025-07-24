@@ -1019,7 +1019,7 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 }
 
 export function _ac5eActorRollData(token) {
-	const actor = token.actor;
+	const actor = token?.actor;
 	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
 	const actorData = actor.getRollData();
 	actorData.currencyWeight = actor.system.currencyWeight;
@@ -1103,9 +1103,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
-	if (activity.actionType) sandbox[activity.actionType] = true;
+	if (activity?.actionType) sandbox[activity.actionType] = true;
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
-	sandbox[activityData.type] = true;
+	if (activityData) sandbox[activityData.type] = true;
 	
 	//item data
 	sandbox.item = item?.getRollData().item || {};
@@ -1114,7 +1114,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.type = item?.type;	
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
-	if (itemData.school) sandbox[itemData.school] = true;
+	if (itemData?.school) sandbox[itemData.school] = true;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
 	itemData?.properties?.filter((p) => (sandbox[p] = true));
