@@ -1176,8 +1176,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 export function _collectActivityDamageTypes(activity, options) {
 	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
 	if (!activity) {
-		options.activityDefaultDamageType = {};
-		options.activityDamageTypes = {};
+		options.defaultDamageType = {};
+		options.damageTypes = {};
 		return;
 	}
 	const returnDamageTypes = {};
@@ -1185,21 +1185,19 @@ export function _collectActivityDamageTypes(activity, options) {
 	const activityType = activity?.type === 'heal' ? 'healing' : 'damage';
 	for (const d of activity[activityType].parts) {
 		if (d.types.size > 1) {
-			ui.notifications.warn('Multiple damage types available for selection; cannot properly evaluate');
-			break;
-		} else if (d.types.size) {
-			const type = d.types.first();
-			if (type) {
-				if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
-				returnDamageTypes[type] = true;
-			}
-			const formula = d.custom?.formula;
-			if (formula !== '') {
-				const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
-				for (const m of match) {
-					if (!returnDefaultDamageType) returnDefaultDamageType = { [m]: true };
-					returnDamageTypes[m] = true;
-				}
+			console.warn('AC5E: Multiple damage types available for selection; cannot properly evaluate; damageTypes will grab the first of multiple ones');
+		} 
+		const type = d.types.first();
+		if (type) {
+			if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
+			returnDamageTypes[type] = true;
+		}
+		const formula = d.custom?.formula;
+		if (formula && formula !== '') {
+			const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
+			for (const m of match) {
+				if (!returnDefaultDamageType) returnDefaultDamageType = { [m]: true };
+				returnDamageTypes[m] = true;
 			}
 		}
 	}
