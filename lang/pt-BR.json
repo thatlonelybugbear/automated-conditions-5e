@@ -145,6 +145,18 @@
       			"name": "Atirador de Magia",
       			"description": "Para as regras de 2024, não há desvantagem em conjurar magias à distância a até 5 pés de um inimigo e se a magia tiver um alcance de ao menos 10 pés, adiciona mais 60 pés."
     		},
+		"flags.automated-conditions-5e.attack.criticalThreshold": {
+      			"name": "Alterar Margem de Crítico de Ataques",
+      			"description": "Use threshold=18 ou threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+    		},
+    		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+      			"name": "Conceder Alteração de Margem de Crítico de Ataques do Oponente",
+      			"description": "Use threshold=18 ou threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+    		},
+    		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
+      			"name": "Aura para Alterar Margem de Crítico de Ataques em Raio",
+      			"description": "Use radius=10;threshold=13; ou radius=15;threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+    		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rolar com Vantagem",
