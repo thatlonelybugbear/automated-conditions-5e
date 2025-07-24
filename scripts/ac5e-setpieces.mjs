@@ -396,8 +396,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
 						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
-						if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
-						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+						// if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
+						// else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
 					}
 					const auraOnlyOne = el.value.includes('singleAura');
 					let valuesToEvaluate = el.value
@@ -451,9 +452,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				}
 				const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 				if (isThreshold) {
-					const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
-					if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
-					else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+					const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
+					// if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
+					// else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+					threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
 				}
 				let valuesToEvaluate = el.value
 					.split(';')
@@ -492,9 +494,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					}
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
-						const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
-						if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
-						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
+						// if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
+						// else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
+						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
 					}
 					let valuesToEvaluate = el.value
 						.split(';')
