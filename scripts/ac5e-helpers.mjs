@@ -1091,6 +1091,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
 	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
+	if (options.attackMode) sandbox[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
 	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
 	sandbox.damageTypes = options.damagetypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
@@ -1099,6 +1100,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const activityData = sandbox.activity;
 	sandbox.activity.damageTypes = options.damageTypes;
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
+
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
 	if (activity.actionType) sandbox[activity.actionType] = true;
