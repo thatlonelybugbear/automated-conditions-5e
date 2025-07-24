@@ -225,7 +225,7 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 
 export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.error('AC5e _preRollAttackV2', hook, { config, dialog, message });
-	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls } = config || {};
+	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls, ammunition, attackMode, mastery } = config || {};
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
@@ -234,8 +234,9 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
-	options.attackMode = config?.attackMode;
-	options.mastery = config?.mastery;
+	options.ammo = ammunition;
+	options.attackMode = attackMode;
+	options.mastery = mastery;
 	const item = activity?.item;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
@@ -299,17 +300,18 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 
 export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollDamageV2', hook, { config, dialog, message });
-	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition } = config || {};
+	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const {
 		//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets for now, unless we don't care for multiple tokens of a linked actor.
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
-	options.attackMode = attackMode;
 	options.ammo = ammunition;
+	options.attackMode = attackMode;
+	options.mastery = mastery;
 	options.activity = activity;
 	options.hook = hook;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes	
