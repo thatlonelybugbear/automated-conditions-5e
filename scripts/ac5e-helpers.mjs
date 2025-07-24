@@ -1105,7 +1105,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activity.mastery = options.mastery;
 	if (activity?.actionType) sandbox[activity.actionType] = true;
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
-	if (activityData) sandbox[activityData.type] = true;
+	if (activityData?.type) sandbox[activityData.type] = true;
 	
 	//item data
 	sandbox.item = item?.getRollData().item || {};
