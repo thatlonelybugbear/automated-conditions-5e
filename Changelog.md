@@ -1,3 +1,8 @@
+## 13.504.3
+* Fix for `threshold` evaluations
+* Fix type `options.damagetypes` => `options.damageTypes`
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.504.2.1
 * Added the `...criticalThreshold` flags to be picked up by DAE autocompletion
 * Fix for change in `DND5E.ITEM.Property.Heavy` instead of `...Item...`
