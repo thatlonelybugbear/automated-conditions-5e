@@ -145,6 +145,18 @@
 			"name": "Spell Sniper",
 			"description": "For 2024 rules, no disadvantage for casting ranged spells within 5 feet of an enemy and if they have a range of at least 10ft, adds 60ft more"
 		},
+		"flags.automated-conditions-5e.attack.criticalThreshold": {
+			"name": "Alter the criticalThreshold of the attacks",
+			"description": "Use threshold=18 or threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+		},
+		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+			"name": "Grant altered criticalThreshold to opponent's attacks",
+			"description": "Use threshold=18 or threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+		},
+		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
+			"name": "An aura altering the criticalThreshold of the attacks in radius",
+			"description": "Use radius=10;threshold=13; or radius=15;threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Roll with advantage",
