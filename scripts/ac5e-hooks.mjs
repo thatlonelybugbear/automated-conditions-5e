@@ -697,11 +697,11 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	}
 	const newConfig = dialog.config;
 	if (selectedAmmunition) newConfig.ammunition = selectedAmmunition;
-	else if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
-	else if (selectedMastery) newConfig.mastery = selectedMastery;
+	if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
+	if (selectedMastery) newConfig.mastery = selectedMastery;
 	if (change === 'ammunition') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
-	else if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
-	else if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
+	if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
+	if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
 	newConfig.advantage = undefined;
 	newConfig.disadvantage = undefined;
 	newConfig.rolls[0].options.advantageMode = 0;
