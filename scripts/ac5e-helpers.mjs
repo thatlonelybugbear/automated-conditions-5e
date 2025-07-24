@@ -1103,7 +1103,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
 	if (options.attackMode) sandbox[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
 	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
-	sandbox.damageTypes = options.damagetypes;
+	sandbox.damageTypes = options.damageTypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
 	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
 	//activity data
