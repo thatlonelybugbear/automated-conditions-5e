@@ -234,6 +234,8 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
+	options.attackMode = config?.attackMode;
+	options.mastery = config?.mastery;
 	const item = activity?.item;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
@@ -292,7 +294,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	}	
 	if (settings.debug) console.warn('AC5E._preRollAttackV2:', { ac5eConfig });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
-	return ac5eConfig;
+	return ac5eConfig; //return so if we retrigger the function manually we get updated results.
 }
 
 export function _preRollDamageV2(config, dialog, message, hook, reEval) {
