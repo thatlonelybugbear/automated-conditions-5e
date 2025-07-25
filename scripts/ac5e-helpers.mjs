@@ -254,8 +254,10 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	const { ADVANTAGE: ADV_MODE, DISADVANTAGE: DIS_MODE, NORMAL: NORM_MODE } = CONFIG.Dice.D20Roll.ADV_MODE;
-	const roll0 = config.rolls?.[0];
-	roll0.options = roll0.options || {};
+	config.rolls ??= [];
+	config.rolls[0] ??= {};
+	const roll0 = config.rolls[0];
+	roll0.options ??= {};
 	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) {
 		config.advantage = true;
 		dialog.options.advantageMode = ADV_MODE;
