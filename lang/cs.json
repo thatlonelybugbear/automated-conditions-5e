@@ -155,7 +155,7 @@
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Aura měnící práh kritického zásahu útoků v dosahu",
-			"description": "Použij radius=10;threshold=13; nebo radius=15;threshold=-1d6. První nastaví hodnotu na 18, pokud je nižší, a druhá přičte k aktuální; pro snížení použij záporné číslo"
+			"description": "Použij radius=10;threshold=18; nebo radius=15;threshold=-1d6. První nastaví hodnotu na 18, pokud je nižší, a druhá přičte k aktuální; pro snížení použij záporné číslo"
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
