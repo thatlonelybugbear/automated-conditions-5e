@@ -1,3 +1,7 @@
+## 13.504.4
+* Fix for error when no damage entry exists on a damage roll...
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
 ## 13.504.3
 * Fix for `threshold` evaluations
 * Fix type `options.damagetypes` => `options.damageTypes`
