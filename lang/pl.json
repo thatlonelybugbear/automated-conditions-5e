@@ -75,6 +75,7 @@
 	"AC5E.DebuggingHint": "Po prostu przydatne dzienniki do debugowania podczas programowania. Prawdopodobnie nie ma sensu, aby użytkownicy go włączali :)",
 	"AC5E.WarCaster": "Bitewny Mag",
 	"AC5E.Fail": "Porażka",
+	"AC5E.Alert": "Alarm",
 	"AC5E.FailLowerCase": "porażka",
 	"AC5E.Fumble": "Porażka",
 	"AC5E.Rage": "Szał",
@@ -143,6 +144,18 @@
 		"flags.automated-condition-5e.spellSniper": {
 			"name": "Strzelec zaklęć",
 			"description": "W przypadku zasad z 2024 r. nie ma utrudnień w rzucaniu zaklęć dystansowych w odległości do 5 stóp od wroga, a jeśli mają one zasięg co najmniej 10 stóp, dodaje się 60 stóp więcej."
+		},
+		"flags.automated-conditions-5e.attack.criticalThreshold": {
+			"name": "Zmiana krytycznego progu ataków",
+			"description": "Użyj threshold=18 lub threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+		},
+		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+			"name": "Zmodyfikuj wartość krytycznego progu dla ataków przeciwnika",
+			"description": "Użyj threshold=18 lub threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+		},
+		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
+			"name": "Aura modyfikująca krytyczny próg ataków w obszarze działania",
+			"description": "Użyj radius=10;threshold=18; lub radius=15;threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
