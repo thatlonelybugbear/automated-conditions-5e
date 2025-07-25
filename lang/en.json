@@ -155,7 +155,7 @@
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "An aura altering the criticalThreshold of the attacks in radius",
-			"description": "Use radius=10;threshold=13; or radius=15;threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use radius=10;threshold=18; or radius=15;threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
