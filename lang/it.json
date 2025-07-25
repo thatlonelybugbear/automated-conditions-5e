@@ -145,6 +145,18 @@
 		"name": "Cecchino Magico",
 		"description": "Per le regole del 2024, nessuno svantaggio nel lanciare incantesimi a distanza entro 5 piedi da un nemico e se hanno una gittata di almeno 10 piedi, aggiunge altri 60 piedi"
 	},
+	"flags.automated-conditions-5e.attack.criticalThreshold": {
+			"name": "Modificare la soglia critica degli attacchi",
+			"description": "Usa soglia=18 o soglia=-1d6. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
+		},
+		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+			"name": "Garantisci soglia critica alterata per gli attacchi dell'avversario",
+			"description": "Usa soglia=18 o soglia=-1d6. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
+		},
+		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
+			"name": "Un'aura che altera la soglia critica degli attacchi nel raggio",
+			"description": "Usa raggio=10; soglia=18; oppure raggio=15; soglia=-1d6. Il primo valore verrà impostato a 18 se inferiore, mentre il secondo verrà aggiunto al valore attuale; usa negativo per ridurre."
+		},
 	"flags.automated-conditions-5e.ACTIONTYPE": {
 		"advantage": {
 			"name": "Tiro con vantaggio",
@@ -234,6 +246,6 @@
 			"name": "Un’aura che forza il successo",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: all/attack/check/concentration//death/save/skill/tool. Modifica formato del valore: radius=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		}
-	}
-    }
+	  }
+     }
 }
