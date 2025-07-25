@@ -155,7 +155,7 @@
     		},
     		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
       			"name": "Aura para Alterar Margem de Crítico de Ataques em Raio",
-      			"description": "Use radius=10;threshold=13; ou radius=15;threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+      			"description": "Use radius=10;threshold=18; ou radius=15;threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
     		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
