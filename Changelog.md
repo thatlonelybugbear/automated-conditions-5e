@@ -1,3 +1,11 @@
+## 13.504.4.1
+* Fix for buttons color pickers misbehaving
+* Changed default `white` to `#f8f8ff` to remove a warning for not conforming to the required format, until the user click outside of the string field
+* added `default` as a keyword to return the default module colors, same like erasing any entry.
+  * `default` or delete the entry to get the default module colors
+  * `false`, `null`, `0`, `none` to disable the specific attributes color changes
+  * `game.user.color` or `user` to match the user's Foundry color
+
 ## 13.504.4
 * Fix for error when no damage entry exists on a damage roll...
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
