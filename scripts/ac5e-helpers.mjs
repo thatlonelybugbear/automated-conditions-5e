@@ -981,12 +981,13 @@ export function _generateAC5eFlags() {
 
 let tempDiv = null;
 
-export function _getValidColor(color, fallback, game) {
+export function _getValidColor(color, fallback, user) {
 	if (!color) return fallback;
 
 	const lower = color.trim().toLowerCase();
 	if (['false', 'none', 'null', '0'].includes(lower)) return false;
-	if (lower === 'user') return game && game.user && game.user.color && game.user.color.css ? game.user.color.css : fallback;
+	if (['game.user.color', 'user'].includes(lower)) return user?.color?.css || fallback;
+	if (lower === 'default') return fallback;
 
 	// Create a hidden element once and reuse it
 	if (!tempDiv) {
