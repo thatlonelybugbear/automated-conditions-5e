@@ -1,6 +1,6 @@
 ## 13.504.5
 * Added new flags for `max`, `min` modifiers on d20 rolls.
-  * usage `flags.automated-conditions-5e.<ACTIONTYPE>.modifier | Override | modifier=rollingActor.attributes.hp.pct < 50 ? 'max12' : 'min8'` which will append to a relevant d20 roll, a `max12` if the rolling actor is below half health, or `min8` otherwise.
+  * usage `flags.automated-conditions-5e.<ACTIONTYPE>.modifier | Override | modifier=attributes.hp.pct < 50 ? 'max12' : 'min8'` which will append to a relevant d20 roll, a `max12` if the rolling actor is below half health, or `min8` otherwise.
   * available also:
     * `flags.automated-conditions-5e.aura.<ACTIONTYPE>.modifier`
     * `flags.automated-conditions-5e.grants.<ACTIONTYPE>.modifier`
