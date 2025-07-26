@@ -164,7 +164,7 @@
 			},
 			"bonus": {
 				"name": "Roll gets bonus",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. eg bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. eg bonus=1d4 + 5 - @abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Roll is critical (nat20 or crit damage)",
@@ -176,7 +176,7 @@
 			},
 			"modifier": {
 				"name": "Roll modifiers for max, min",
-				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier=attributes.hp.pct < 50 ? 'max8' : 'min12'"
 			},
 			"fail": {
 				"name": "d20 rolls fail",
@@ -198,7 +198,7 @@
 			},
 			"bonus": {
 				"name": "Grant bonus to opponent's rolls",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus=1d4 + 5 - @abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Grant critical (nat20 or damage) to opponent's rolls",
