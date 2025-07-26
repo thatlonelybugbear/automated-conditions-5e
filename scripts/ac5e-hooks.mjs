@@ -552,7 +552,7 @@ function renderColoredButtonSettings(html) {
 
 		const updateColorPicker = () => {
 			const val = input.value.trim().toLowerCase();
-			const resolved = _getValidColor(val);
+			const resolved = _getValidColor(val, defaultValue, game.user);
 
 			if (resolved === false) {
 				colorPicker.style.display = 'none';
