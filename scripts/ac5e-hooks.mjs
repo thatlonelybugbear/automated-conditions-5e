@@ -536,8 +536,8 @@ export function _renderSettings(app, html, data) {
 function renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
-		{ key: 'buttonColorBorder', default: 'white' },
-		{ key: 'buttonColorText', default: 'white' },
+		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
+		{ key: 'buttonColorText', default: '#f8f8ff' },  //this is Ghost White
 	];
 
 	for (let { key, default: defaultValue } of colorSettings) {
