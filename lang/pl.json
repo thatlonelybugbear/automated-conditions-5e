@@ -164,7 +164,7 @@
 			},
 			"bonus": {
 				"name": "Rzut otrzymuje premię",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - @abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Rzut jest krytyczny (nat20 lub obrażenia krytyczne)",
@@ -173,6 +173,10 @@
 			"disadvantage": {
 				"name": "Rzut z utrudnieniem",
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Modyfikatory maksymalnej i minimalnej wartości",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
 			},
 			"fail": {
 				"name": "porażka przy rzucie k20",
@@ -194,7 +198,7 @@
 			},
 			"bonus": {
 				"name": "Przyznaj bonus dla rzutów przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - @abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Przyznaj krytyk (nat20 lub obrażenia) dla rzutów przeciwnika",
@@ -203,6 +207,10 @@
 			"disadvantage": {
 				"name": "Przyznaj utrudnienie dla rzutów k20 przeciwnika",
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Przyznaj przeciwnikowi modyfikator minimalny lub maksymalny do rzutów kostką k20",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'"
 			},
 			"fail": {
 				"name": "Przyznaj porażkę dla rzutów k20 przeciwnika",
@@ -233,6 +241,10 @@
 			"disadvantage": {
 				"name": "Aura zapewniająca utrudnienie",
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
+			},
+			"modifier": {
+				"name": "Aura nadająca minimalny lub maksymalny modyfikator do rzutów kostką k20",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. radius=details.level < 10 ? 15 : 30; modifier='min10'"
 			},
 			"fail": {
 				"name": "Aura wymuszająca porażkę dla rzutów k20",
