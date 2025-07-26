@@ -174,10 +174,6 @@
 				"name": "Roll with disadvantage",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
-			"modifier": {
-				"name": "Roll modifiers for max, min",
-				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier=attributes.hp.pct < 50 ? 'max8' : 'min12'"
-			},
 			"fail": {
 				"name": "d20 rolls fail",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool"
@@ -208,10 +204,6 @@
 				"name": "Grant disadvantage to opponent's d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
-			"modifier": {
-				"name": "Grant min or max modifier to opponent's d20 rolls",
-				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier='min10'"
-			},
 			"fail": {
 				"name": "Grant failure to opponent's d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool"
@@ -241,10 +233,6 @@
 			"disadvantage": {
 				"name": "An aura giving disadvantage",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
-			},
-			"modifier": {
-				"name": "An aura giving min or max modifier to d20 rolls",
-				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg radius=details.level < 10 ? 15 : 30; modifier='min10'"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",
