@@ -245,7 +245,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		else if (testTypes.includes('adv')) mode = 'advantage';
 		else if (testTypes.includes('thres')) mode = 'criticalThreshold';
 		else if (testTypes.includes('crit')) mode = 'critical';
-		else if (tesTypes.includes('mod')) mode = 'modifier';
+		else if (testTypes.includes('mod')) mode = 'modifier';
 		else if (testTypes.includes('fail')) mode = 'fail';
 		else if (testTypes.includes('bonus')) mode = 'bonus';
 		else if (testTypes.includes('success')) mode = 'success';
