@@ -276,8 +276,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	if (ac5eConfig.hookType === 'attack' && ac5eConfig.threshold?.length) {
 		//for attack rolls
-		const additivePattern = /^[+-]?\d+$|^[+-]?\d*d\d+$/i;
-		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i;
+		const signedPattern = /^[+-]/;                        // Only matches if starts with + or -
+		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i;          // Dice expressions with optional sign
 		const maxDiceCap = 100;
 
 		let minTotal = 0;
@@ -288,38 +288,20 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 
 		for (const item of ac5eConfig.threshold) {
 			if (item == null) continue;
-
+		
 			const cleaned = String(item).trim().replace(/\s+/g, '');
-
-			// Split into additive parts, e.g., '+2-1d4-1' -> ['+2', '-1d4', '-1']
 			const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
-
-			for (let part of parts) {
+		
+			for (const part of parts) {
 				part = part.trim();
-
-				if (!additivePattern.test(part)) {
-					// Treat anything that doesn’t match as static (e.g., '5')
-					const parsed = parseInt(part);
-					if (!isNaN(parsed)) staticValues.push(parsed);
-					continue;
-				}
-
-				// Integer modifier (e.g., +2, -1)
-				if (/^[+-]?\d+$/.test(part)) {
-					const val = parseInt(part);
-					additiveValues.push(val);
-					minTotal += val;
-					maxTotal += val;
-					continue;
-				}
-
-				// Dice expression (e.g., -1d4)
+		
+				// If it matches the dice pattern (with or without sign)
 				const match = part.match(dicePattern);
 				if (match) {
-					const sign = match[1] === '-' ? -1 : 1;
+					const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
 					const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
 					const sides = parseInt(match[3]);
-
+		
 					let total = 0;
 					const rolls = [];
 					for (let i = 0; i < count; i++) {
@@ -327,25 +309,44 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 						rolls.push(roll);
 						total += roll;
 					}
-					const signedTotal = sign * total;
-					additiveValues.push(signedTotal);
-					minTotal += sign * count * 1; // min = 1 per die
-					maxTotal += sign * count * sides; // max = sides per die
-
-					if (settings.debug) {
-						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice crit threshold:`, `Dice roll: ${sign > 0 ? '+' : '-'}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count}, max: ${sign * count * sides})`);
+		
+					const signedTotal = (sign === 0 ? 1 : sign) * total;
+		
+					if (sign !== 0) {
+						additiveValues.push(signedTotal);
+						minTotal += sign * count * 1;
+						maxTotal += sign * count * sides;
+					} else {
+						staticValues.push(total);
 					}
+		
+					if (settings.debug) {
+						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice threshold:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
+					}
+		
+					continue;
 				}
+		
+				// Signed integer (must start with + or -)
+				if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
+					const val = parseInt(part);
+					additiveValues.push(val);
+					minTotal += val;
+					maxTotal += val;
+					continue;
+				}
+		
+				// Unsigned static value
+				const parsed = parseInt(part);
+				if (!isNaN(parsed)) staticValues.push(parsed);
 			}
 		}
-
-		// Include original static threshold (e.g., roll0.options.criticalSuccess)
+		// Include original static threshold
 		staticValues.push(roll0.options.criticalSuccess ?? 20);
 
 		const newStaticThreshold = Math.min(...staticValues);
 		const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
 		const finalThreshold = newStaticThreshold + totalModifier;
-		// Optional output
 		if (settings.debug) {
 			console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - Crit threshold:`, {
 				initialThreshold: roll0.options.criticalSuccess,
