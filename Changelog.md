@@ -1,5 +1,6 @@
 ## 13.504.5.1
-* Change to `user` settings instead of per `client` for non-world settings.
+* Change to `user` settings instead of per `client` for non-world settings (available for Foundry v13 only)
+  * This means that when a specific user is connected, their editable settings will be used, no matter the client they are connecting from.
 * Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 
 ## 13.504.5
