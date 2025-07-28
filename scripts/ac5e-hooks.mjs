@@ -536,27 +536,28 @@ export function _renderSettings(app, html, data) {
 function renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
-		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
+		{ key: 'buttonColorBorder', default: '#f8f8ff' },  //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
 		{ key: 'buttonColorText', default: '#f8f8ff' },  //this is Ghost White
-	];
-
+ 	];
 	for (let { key, default: defaultValue } of colorSettings) {
 		const settingKey = `${Constants.MODULE_ID}.${key}`;
 		const input = html.querySelector(`[name="${settingKey}"]`);
-
 		if (!input) continue;
 
-		let colorPicker = document.createElement('input');
+		const colorPicker = document.createElement('input');
 		colorPicker.type = 'color';
 		colorPicker.classList.add('color-picker');
 
 		const updateColorPicker = () => {
 			const val = input.value.trim().toLowerCase();
 			const resolved = _getValidColor(val, defaultValue, game.user);
-
 			if (resolved === false) {
 				colorPicker.style.display = 'none';
 			} else {
+				if (resolved !== val) {
+					input.value = resolved;
+					input.dispatchEvent(new Event('change'));
+				}
 				colorPicker.value = resolved;
 				colorPicker.style.display = '';
 			}
@@ -567,14 +568,37 @@ function renderColoredButtonSettings(html) {
 			input.dispatchEvent(new Event('change'));
 		});
 
-		input.addEventListener('input', updateColorPicker);
+		input.addEventListener('input', () => {
+			const val = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(val, defaultValue, game.user);
+
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+			} else {
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+			}
+		});
 
 		input.addEventListener('blur', () => {
-			if (input.value.trim() === '') {
-				input.value = defaultValue;
-				input.dispatchEvent(new Event('change'));
-				updateColorPicker();
+			const raw = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(raw, defaultValue, game.user);
+
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+
+				input.value = resolved; // Normalize input display here
+				game.settings.set(Constants.MODULE_ID, key, resolved);
+			} else {
+				input.value = resolved;
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+				game.settings.set(Constants.MODULE_ID, key, resolved);
 			}
+		});
+
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') input.blur(); // triggers blur logic
 		});
 
 		input.insertAdjacentElement('afterend', colorPicker);
@@ -595,11 +619,11 @@ function renderColoredButtonSettings(html) {
 				}
 			}
 		};
-
 		toggle.addEventListener('change', updateVisibility);
 		updateVisibility();
 	}
 }
+
 
 function renderChatTooltipsSettings(html) {
 	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
