@@ -1,3 +1,6 @@
+## 13.504.5.1
+* Change to `user` settings instead of per `client` for non-world settings.
+
 ## 13.504.5
 * Added new flags for `max`, `min` modifiers on d20 rolls.
   * usage `flags.automated-conditions-5e.<ACTIONTYPE>.modifier | Override | modifier=rollingActor.attributes.hp.pct < 50 ? 'max12' : 'min8'` which will append to a relevant d20 roll, a `max12` if the rolling actor is below half health, or `min8` otherwise.
