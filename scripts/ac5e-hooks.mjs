@@ -539,9 +539,6 @@ function renderColoredButtonSettings(html) {
 		{ key: 'buttonColorBorder', default: '#f8f8ff' },  //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
 		{ key: 'buttonColorText', default: '#f8f8ff' },  //this is Ghost White
  	];
-		{ key: 'buttonColorText', default: '#f8f8ff' },
-	];
-
 	for (let { key, default: defaultValue } of colorSettings) {
 		const settingKey = `${Constants.MODULE_ID}.${key}`;
 		const input = html.querySelector(`[name="${settingKey}"]`);
