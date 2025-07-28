@@ -1,5 +1,6 @@
 ## 13.504.5.1
 * Change to `user` settings instead of per `client` for non-world settings.
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
 
 ## 13.504.5
 * Added new flags for `max`, `min` modifiers on d20 rolls.
