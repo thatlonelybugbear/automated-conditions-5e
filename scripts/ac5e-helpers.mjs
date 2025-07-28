@@ -445,17 +445,43 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
-//check for 'same' 'different' or 'all' (=false) dispositions
-//t1, t2 Token5e or Token5e#Document
-export function _dispositionCheck(t1, t2, check = false) {
+/**
+ * Check relative or exact disposition between two tokens.
+ * @param {Token5e|TokenDocument5e} t1
+ * @param {Token5e|TokenDocument5e} t2
+ * @param {string|number|} check - Disposition type or constant
+ * @returns {boolean}
+ */
+export function _dispositionCheck(t1, t2, check = 'all', mult) {
 	if (!t1 || !t2) return false;
+	if (check === 'all') return true;
+
 	t1 = t1 instanceof TokenDocument ? t1 : t1.document;
 	t2 = t2 instanceof TokenDocument ? t2 : t2.document;
-	if (check === 'different') return t1.disposition !== t2.disposition;
-	if (check === 'opposite') return t1.disposition * t2.disposition === -1;
-	if (check === 'same') return t1.disposition === t2.disposition;
-	if (!check || check === 'all') return true;
-	//to-do: 1. what about secret? 2. might need more granular checks in the future.
+
+	if (typeof check === 'number') return t2.disposition === check;
+
+	let result;
+	switch (check) {
+		case 'different':
+			result = t1.disposition !== t2.disposition;
+			break;
+		case 'opposite':
+		case 'enemy':
+			result = t1.disposition * t2.disposition === -1;
+			break;
+		case 'same':
+		case 'ally':
+			result = t1.disposition === t2.disposition;
+			break;
+		default: {
+			const constVal = CONST.TOKEN_DISPOSITIONS[check.toUpperCase()];
+			result = constVal !== undefined && t2.disposition === constVal;
+			break;
+		}
+	}
+	if (mult) return !result;
+	return result;
 }
 
 export function _findNearby({
@@ -475,10 +501,31 @@ export function _findNearby({
 		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
 	if (!token) return false;
+	let mult;
+	const foundryDispositionCONST = CONST.TOKEN_DISPOSITIONS;
+	const usableUserProvidedDispositions = ['all', 'ally', 'different', 'enemy', 'friendly', 'neutral', 'opposite', 'same', 'secret'];
+	if (typeof disposition === 'number') {
+		if (!Object.values(foundryDispositionCONST).includes(disposition)) {
+			ui.notifications.error(`AC5e disposition check error. User provided disposition: ${disposition} but Foundry available ones are -2, -1, 0, 1; returning all tokens instead`);
+			disposition = 'all';
+		}
+	} else if (typeof disposition === 'string') {
+		disposition = disposition.toLowerCase();
+		if (disposition.startsWith('!')) {
+			mult = true;
+			disposition = disposition.slice(1);
+		}
+		if (!usableUserProvidedDispositions.includes(disposition)) {
+			ui.notifications.error(`AC5e disposition check error. User provided disposition: "${disposition}". Use one of: "${usableUserProvidedDispositions.join('"/"')}"; returning all tokens instead`);
+			disposition = 'all';
+		}
+	} else disposition = 'all';
+
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
 		if (!includeToken && target === token) return false;
 		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
-		if (!_dispositionCheck(token, target, disposition)) return false;
+		if (!_dispositionCheck(token, target, disposition, mult)) return false;
+
 		const distance = _getDistance(token, target);
 		return distance <= radius;
 	});
