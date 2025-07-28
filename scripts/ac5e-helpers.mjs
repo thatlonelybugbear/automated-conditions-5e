@@ -1038,7 +1038,7 @@ export function _getValidColor(color, fallback, user) {
 	if (['false', 'none', 'null', '0'].includes(lower)) return lower;
 	else if (['user', 'game.user.color'].includes(lower)) return user?.color?.css || fallback;
 	else if (lower === 'default') return fallback;
-	else return fallback;
+	
 	// Accept valid hex format directly
 	if (/^#[0-9a-f]{6}$/i.test(lower)) return lower;
 
