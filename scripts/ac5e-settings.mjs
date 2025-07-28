@@ -1,5 +1,5 @@
 import Constants from './ac5e-constants.mjs';
-import { scopeUser } from './ac5e-main/.mjs';
+import { scopeUser } from './ac5e-main.mjs';
 
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
