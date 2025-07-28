@@ -276,8 +276,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	if (ac5eConfig.hookType === 'attack' && ac5eConfig.threshold?.length) {
 		//for attack rolls
-		const additivePattern = /^[+-]?\d+$|^[+-]?\d*d\d+$/i;
-		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i;
+		const signedPattern = /^[+-]/; // Only matches if starts with + or -
+		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice expressions with optional sign
 		const maxDiceCap = 100;
 
 		let minTotal = 0;
@@ -290,33 +290,15 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			if (item == null) continue;
 
 			const cleaned = String(item).trim().replace(/\s+/g, '');
-
-			// Split into additive parts, e.g., '+2-1d4-1' -> ['+2', '-1d4', '-1']
 			const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
 
-			for (let part of parts) {
+			for (const part of parts) {
 				part = part.trim();
 
-				if (!additivePattern.test(part)) {
-					// Treat anything that doesn’t match as static (e.g., '5')
-					const parsed = parseInt(part);
-					if (!isNaN(parsed)) staticValues.push(parsed);
-					continue;
-				}
-
-				// Integer modifier (e.g., +2, -1)
-				if (/^[+-]?\d+$/.test(part)) {
-					const val = parseInt(part);
-					additiveValues.push(val);
-					minTotal += val;
-					maxTotal += val;
-					continue;
-				}
-
-				// Dice expression (e.g., -1d4)
+				// If it matches the dice pattern (with or without sign)
 				const match = part.match(dicePattern);
 				if (match) {
-					const sign = match[1] === '-' ? -1 : 1;
+					const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
 					const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
 					const sides = parseInt(match[3]);
 
@@ -327,25 +309,44 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 						rolls.push(roll);
 						total += roll;
 					}
-					const signedTotal = sign * total;
-					additiveValues.push(signedTotal);
-					minTotal += sign * count * 1; // min = 1 per die
-					maxTotal += sign * count * sides; // max = sides per die
+
+					const signedTotal = (sign === 0 ? 1 : sign) * total;
+
+					if (sign !== 0) {
+						additiveValues.push(signedTotal);
+						minTotal += sign * count * 1;
+						maxTotal += sign * count * sides;
+					} else {
+						staticValues.push(total);
+					}
 
 					if (settings.debug) {
-						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice crit threshold:`, `Dice roll: ${sign > 0 ? '+' : '-'}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count}, max: ${sign * count * sides})`);
+						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice threshold:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
 					}
+
+					continue;
 				}
+
+				// Signed integer (must start with + or -)
+				if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
+					const val = parseInt(part);
+					additiveValues.push(val);
+					minTotal += val;
+					maxTotal += val;
+					continue;
+				}
+
+				// Unsigned static value
+				const parsed = parseInt(part);
+				if (!isNaN(parsed)) staticValues.push(parsed);
 			}
 		}
-
-		// Include original static threshold (e.g., roll0.options.criticalSuccess)
+		// Include original static threshold
 		staticValues.push(roll0.options.criticalSuccess ?? 20);
 
 		const newStaticThreshold = Math.min(...staticValues);
 		const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
 		const finalThreshold = newStaticThreshold + totalModifier;
-		// Optional output
 		if (settings.debug) {
 			console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - Crit threshold:`, {
 				initialThreshold: roll0.options.criticalSuccess,
@@ -360,7 +361,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (_activeModule('midi-qol')) {
 			ac5eConfig.parts.push(-999);
 			if (config.workflow) {
-				config.workflow._isCritical = false;
+				// config.workflow._isCritical = false;
 				config.workflow.isCritical = false;
 			}
 			if (config.midiOptions) {
@@ -378,7 +379,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (_activeModule('midi-qol')) {
 			ac5eConfig.parts.push(+999);
 			if (config.workflow) {
-				config.workflow._isFumble = false;
+				// config.workflow._isFumble = false;
 				config.workflow.isFumble = false;
 			}
 			if (config.midiOptions) {
@@ -395,7 +396,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
 		// config.target = 1000;
 		if (config.workflow) {
-			config.workflow._isFumble = true;
+			// config.workflow._isFumble = true;
 			config.workflow.isFumble = true;
 		}
 		if (config.midiOptions) {
@@ -414,7 +415,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		// config.target = -1000;
 		if (roll0) roll0.options.target = -Infinity;
 		if (config.workflow) {
-			config.workflow._isCritical = true;
+			// config.workflow._isCritical = true;
 			config.workflow.isCritical = true;
 		}
 		if (config.midiOptions) {
@@ -444,17 +445,43 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
-//check for 'same' 'different' or 'all' (=false) dispositions
-//t1, t2 Token5e or Token5e#Document
-export function _dispositionCheck(t1, t2, check = false) {
+/**
+ * Check relative or exact disposition between two tokens.
+ * @param {Token5e|TokenDocument5e} t1
+ * @param {Token5e|TokenDocument5e} t2
+ * @param {string|number|} check - Disposition type or constant
+ * @returns {boolean}
+ */
+export function _dispositionCheck(t1, t2, check = 'all', mult) {
 	if (!t1 || !t2) return false;
+	if (check === 'all') return true;
+
 	t1 = t1 instanceof TokenDocument ? t1 : t1.document;
 	t2 = t2 instanceof TokenDocument ? t2 : t2.document;
-	if (check === 'different') return t1.disposition !== t2.disposition;
-	if (check === 'opposite') return t1.disposition * t2.disposition === -1;
-	if (check === 'same') return t1.disposition === t2.disposition;
-	if (!check || check === 'all') return true;
-	//to-do: 1. what about secret? 2. might need more granular checks in the future.
+
+	if (typeof check === 'number') return t2.disposition === check;
+
+	let result;
+	switch (check) {
+		case 'different':
+			result = t1.disposition !== t2.disposition;
+			break;
+		case 'opposite':
+		case 'enemy':
+			result = t1.disposition * t2.disposition === -1;
+			break;
+		case 'same':
+		case 'ally':
+			result = t1.disposition === t2.disposition;
+			break;
+		default: {
+			const constVal = CONST.TOKEN_DISPOSITIONS[check.toUpperCase()];
+			result = constVal !== undefined && t2.disposition === constVal;
+			break;
+		}
+	}
+	if (mult) return !result;
+	return result;
 }
 
 export function _findNearby({
@@ -474,10 +501,31 @@ export function _findNearby({
 		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
 	if (!token) return false;
+	let mult;
+	const foundryDispositionCONST = CONST.TOKEN_DISPOSITIONS;
+	const usableUserProvidedDispositions = ['all', 'ally', 'different', 'enemy', 'friendly', 'neutral', 'opposite', 'same', 'secret'];
+	if (typeof disposition === 'number') {
+		if (!Object.values(foundryDispositionCONST).includes(disposition)) {
+			ui.notifications.error(`AC5e disposition check error. User provided disposition: ${disposition} but Foundry available ones are -2, -1, 0, 1; returning all tokens instead`);
+			disposition = 'all';
+		}
+	} else if (typeof disposition === 'string') {
+		disposition = disposition.toLowerCase();
+		if (disposition.startsWith('!')) {
+			mult = true;
+			disposition = disposition.slice(1);
+		}
+		if (!usableUserProvidedDispositions.includes(disposition)) {
+			ui.notifications.error(`AC5e disposition check error. User provided disposition: "${disposition}". Use one of: "${usableUserProvidedDispositions.join('"/"')}"; returning all tokens instead`);
+			disposition = 'all';
+		}
+	} else disposition = 'all';
+
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
 		if (!includeToken && target === token) return false;
 		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
-		if (!_dispositionCheck(token, target, disposition)) return false;
+		if (!_dispositionCheck(token, target, disposition, mult)) return false;
+
 		const distance = _getDistance(token, target);
 		return distance <= radius;
 	});
@@ -564,7 +612,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subject.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subject.disadvantage.join(', ')}</span>`);
 		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
 		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
-		addTooltip(!foundry.utils.isEmpty(subject.modifiers), `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
+		addTooltip(subject.modifiers.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
 	}
 	//opponent
 	if (opponent) {
@@ -575,6 +623,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponent.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsSuccess')}: ${opponent.success.join(', ')}</span>`);
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
+		addTooltip(opponent.modifiers.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsModifier')}: ${opponent.modifiers.join(', ')}</span>`);
 	}
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
@@ -967,6 +1016,7 @@ export function _generateAC5eFlags() {
 		'flags.automated-conditions-5e.grants.attack.criticalThreshold',
 		'flags.automated-conditions-5e.aura.attack.criticalThreshold',
 	];
+
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'success'];
 	const types = ['source', 'grants', 'aura'];
@@ -981,12 +1031,13 @@ export function _generateAC5eFlags() {
 
 let tempDiv = null;
 
-export function _getValidColor(color, fallback, game) {
+export function _getValidColor(color, fallback, user) {
 	if (!color) return fallback;
 
 	const lower = color.trim().toLowerCase();
 	if (['false', 'none', 'null', '0'].includes(lower)) return false;
-	if (lower === 'user') return game && game.user && game.user.color && game.user.color.css ? game.user.color.css : fallback;
+	if (['game.user.color', 'user'].includes(lower)) return user?.color?.css || fallback;
+	if (lower === 'default') return fallback;
 
 	// Create a hidden element once and reuse it
 	if (!tempDiv) {
@@ -1118,12 +1169,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activity?.actionType) sandbox[activity.actionType] = true;
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 	if (activityData?.type) sandbox[activityData.type] = true;
-	
+
 	//item data
 	sandbox.item = item?.getRollData().item || {};
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
-	sandbox.item.type = item?.type;	
+	sandbox.item.type = item?.type;
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	if (itemData?.school) sandbox[itemData.school] = true;
@@ -1183,31 +1234,39 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 
 export function _collectActivityDamageTypes(activity, options) {
 	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
-	if (!activity) {
+	if (!activity || !['attack', 'damage', 'heal', 'save'].includes(activity.type)) {
 		options.defaultDamageType = {};
 		options.damageTypes = {};
 		return;
 	}
 	const returnDamageTypes = {};
 	let returnDefaultDamageType = undefined;
-	const activityType = activity?.type === 'heal' ? 'healing' : 'damage';
-	for (const d of activity[activityType].parts) {
-		if (d.types.size > 1) {
+
+	const partTypes = (part) => {
+		if (part.types.size > 1) {
 			console.warn('AC5E: Multiple damage types available for selection; cannot properly evaluate; damageTypes will grab the first of multiple ones');
-		} 
-		const type = d.types.first();
+		}
+		const type = part.types.first();
 		if (type) {
 			if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
 			returnDamageTypes[type] = true;
 		}
-		const formula = d.custom?.formula;
+		const formula = part.custom?.formula;
 		if (formula && formula !== '') {
-			const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
+			const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
 			for (const m of match) {
 				if (!returnDefaultDamageType) returnDefaultDamageType = { [m]: true };
 				returnDamageTypes[m] = true;
 			}
 		}
+	};
+
+	const activityType = activity.type === 'heal' ? 'healing' : 'damage';
+	if (activityType === 'healing') {
+		const part = activity[activityType];
+		partTypes(part);
+	} else {
+		for (const part of activity[activityType].parts) partTypes(part);
 	}
 	options.defaultDamageType = returnDefaultDamageType || {};
 	options.damageTypes = returnDamageTypes;
@@ -1229,7 +1288,7 @@ export function _collectRollDamageTypes(rolls, options) {
 
 		for (const part of roll.parts ?? []) {
 			if (!part?.length) continue;
-			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase());  //returns an Array of inner type strings from each [type]
+			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type]
 			for (const partType of match) {
 				if (!defaultType) defaultType = partType;
 				damageTypes[partType] = true;
@@ -1241,8 +1300,7 @@ export function _collectRollDamageTypes(rolls, options) {
 		options.damageTypes = damageTypes;
 		options.selectedDamageTypes = selectedDamageTypes;
 		if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
-	}
-	else return { damageTypes, defaultDamageType, selectedDamageTypes };
+	} else return { damageTypes, defaultDamageType, selectedDamageTypes };
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
