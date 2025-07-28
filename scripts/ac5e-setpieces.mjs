@@ -399,6 +399,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
 						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
+
 						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const auraOnlyOne = el.value.includes('singleAura');
@@ -460,6 +461,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (isThreshold) {
 					const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
 					threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
+
 				}
 				let valuesToEvaluate = el.value
 					.split(';')
@@ -506,6 +508,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (isThreshold) {
 						const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
 						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
+						const replacementThreshold = bonusReplacements(isThreshold, evaluationData, true, effect);
+						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, /*canBeStatic: true*/ });
 					}
 					let valuesToEvaluate = el.value
 						.split(';')
