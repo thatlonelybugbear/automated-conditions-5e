@@ -123,6 +123,7 @@
 	"AC5E.TargetGrantsFumble": "Granted fumble",
 	"AC5E.TargetGrantsSuccess": "Granted success",
 	"AC5E.TargetGrantsBonus": "Granted bonus",
+	"AC5E.TargetGrantsModifier": "Granted modifier",
 	"AC5E.NoChanges": "No changes",
 	"AC5E.SystemMode": "System mode",
 	"AC5E.EnvironmentalHazards": {
@@ -164,7 +165,7 @@
 			},
 			"bonus": {
 				"name": "Roll gets bonus",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. eg bonus=1d4 + 5 - @abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. eg bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Roll is critical (nat20 or crit damage)",
@@ -173,6 +174,10 @@
 			"disadvantage": {
 				"name": "Roll with disadvantage",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "d20 rolls modifiers for max, min",
+				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
 			},
 			"fail": {
 				"name": "d20 rolls fail",
@@ -194,7 +199,7 @@
 			},
 			"bonus": {
 				"name": "Grant bonus to opponent's rolls",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus=1d4 + 5 - @abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Grant critical (nat20 or damage) to opponent's rolls",
@@ -203,6 +208,10 @@
 			"disadvantage": {
 				"name": "Grant disadvantage to opponent's d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Grant modifiers for max, min for opponent's d20 rolls",
+				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier='min10'"
 			},
 			"fail": {
 				"name": "Grant failure to opponent's d20 rolls",
@@ -233,6 +242,10 @@
 			"disadvantage": {
 				"name": "An aura giving disadvantage",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
+			},
+			"modifier": {
+				"name": "An aura giving modifiers for max, min on d20 rolls",
+				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",

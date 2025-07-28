@@ -1,3 +1,23 @@
+## 13.504.5
+* Added new flags for `max`, `min` modifiers on d20 rolls.
+  * usage `flags.automated-conditions-5e.<ACTIONTYPE>.modifier | Override | modifier=rollingActor.attributes.hp.pct < 50 ? 'max12' : 'min8'` which will append to a relevant d20 roll, a `max12` if the rolling actor is below half health, or `min8` otherwise.
+  * available also:
+    * `flags.automated-conditions-5e.aura.<ACTIONTYPE>.modifier`
+    * `flags.automated-conditions-5e.grants.<ACTIONTYPE>.modifier`
+  * for <ACTIONTYPE> use one of `attack/check/concentration/death/initiative/save/skill/tool`
+* Updated disposition checks. Now the following can be used:
+ * `-2`, `-1`, `0`, `1` for exact match based on Foundry's dispositions for SECRET, HOSTILE, NEUTRAL, FRIEDNLY
+ * `secret`, `hostile`, `neutral`, `friendly` for exact match of tokens' disposition
+ * `ally or same` for relative disposition checks, when both of the tokens need to be of the same disposition
+ * `enemy or opposite` for relative disposition checks, which will test between friendly and hostile dispositions only
+ * `different` for relative disposition checks, returning all tokens with different dispositions
+ * `all` just returns all tokens in range, no matter the disposition
+* Fix for healing activities triggering an error when gathering damage types
+* Properly evaluate critical threshold additions
+* More colorpicker fixes
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
 ## 13.504.4.1
 * Fix for buttons color pickers misbehaving
 * Changed default `white` to `#f8f8ff` to remove a warning for not conforming to the required format, until the user click outside of the string field
@@ -5,6 +25,7 @@
   * `default` or delete the entry to get the default module colors
   * `false`, `null`, `0`, `none` to disable the specific attributes color changes
   * `game.user.color` or `user` to match the user's Foundry color
+
 
 ## 13.504.4
 * Fix for error when no damage entry exists on a damage roll...

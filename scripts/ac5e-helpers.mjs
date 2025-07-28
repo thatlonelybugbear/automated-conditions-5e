@@ -361,7 +361,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (_activeModule('midi-qol')) {
 			ac5eConfig.parts.push(-999);
 			if (config.workflow) {
-				config.workflow._isCritical = false;
+				// config.workflow._isCritical = false;
 				config.workflow.isCritical = false;
 			}
 			if (config.midiOptions) {
@@ -379,7 +379,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (_activeModule('midi-qol')) {
 			ac5eConfig.parts.push(+999);
 			if (config.workflow) {
-				config.workflow._isFumble = false;
+				// config.workflow._isFumble = false;
 				config.workflow.isFumble = false;
 			}
 			if (config.midiOptions) {
@@ -396,7 +396,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
 		// config.target = 1000;
 		if (config.workflow) {
-			config.workflow._isFumble = true;
+			// config.workflow._isFumble = true;
 			config.workflow.isFumble = true;
 		}
 		if (config.midiOptions) {
@@ -415,7 +415,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		// config.target = -1000;
 		if (roll0) roll0.options.target = -Infinity;
 		if (config.workflow) {
-			config.workflow._isCritical = true;
+			// config.workflow._isCritical = true;
 			config.workflow.isCritical = true;
 		}
 		if (config.midiOptions) {
@@ -612,7 +612,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subject.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subject.disadvantage.join(', ')}</span>`);
 		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
 		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
-		addTooltip(!foundry.utils.isEmpty(subject.modifiers), `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
+		addTooltip(subject.modifiers.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
 	}
 	//opponent
 	if (opponent) {
@@ -623,6 +623,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponent.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsSuccess')}: ${opponent.success.join(', ')}</span>`);
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
+		addTooltip(opponent.modifiers.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsModifier')}: ${opponent.modifiers.join(', ')}</span>`);
 	}
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
@@ -1008,9 +1009,16 @@ export function _raceOrType(actor, dataType = 'race') {
 }
 
 export function _generateAC5eFlags() {
-	const daeFlags = ['flags.automated-condition-5e.crossbowExpert', 'flags.automated-condition-5e.sharpShooter', 'flags.automated-conditions-5e.attack.criticalThreshold', 'flags.automated-conditions-5e.aura.attack.criticalThreshold', 'flags.automated-conditions-5e.grant.attack.criticalThreshold'];
+	const daeFlags = [
+		'flags.automated-condition-5e.crossbowExpert',
+		'flags.automated-condition-5e.sharpShooter',
+		'flags.automated-conditions-5e.attack.criticalThreshold',
+		'flags.automated-conditions-5e.grants.attack.criticalThreshold',
+		'flags.automated-conditions-5e.aura.attack.criticalThreshold',
+	];
+
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
-	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'success'];
+	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'success'];
 	const types = ['source', 'grants', 'aura'];
 	for (const type of types) {
 		for (const mode of modes) {
@@ -1226,7 +1234,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 
 export function _collectActivityDamageTypes(activity, options) {
 	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
-	if (!activity) {
+	if (!activity || !['attack', 'damage', 'heal', 'save'].includes(activity.type)) {
 		options.defaultDamageType = {};
 		options.damageTypes = {};
 		return;
