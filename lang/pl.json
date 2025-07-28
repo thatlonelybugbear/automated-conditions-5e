@@ -123,6 +123,7 @@
 	"AC5E.TargetGrantsFumble": "Przyznanie porażki",
 	"AC5E.TargetGrantsSuccess": "Przyznanie sukcesu",
 	"AC5E.TargetGrantsBonus": "Przyznanie bonusu",
+	"AC5E.TargetGrantsModifier": "Przyznany modyfikator",
 	"AC5E.NoChanges": "Bez zmian",
 	"AC5E.SystemMode": "Tryb systemowy",
 	"AC5E.EnvironmentalHazards": {
@@ -175,7 +176,7 @@
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "Modyfikatory maksymalnej i minimalnej wartości",
+				"name": "Rzuty modyfikatorów k20 dla wartości maksymalnej i minimalnej",
 				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
 			},
 			"fail": {
@@ -209,7 +210,7 @@
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "Przyznaj przeciwnikowi modyfikator minimalny lub maksymalny do rzutów kostką k20",
+				"name": "Modyfikatory do maksymalnych i minimalnych wyników rzutów kostką k20 przeciwnika",
 				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'"
 			},
 			"fail": {
@@ -243,8 +244,8 @@
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"modifier": {
-				"name": "Aura nadająca minimalny lub maksymalny modyfikator do rzutów kostką k20",
-				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. radius=details.level < 10 ? 15 : 30; modifier='min10'"
+				"name": "Aura nadająca modyfikatory do maksymalnej i minimalnej wartości rzutu k20",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
 			},
 			"fail": {
 				"name": "Aura wymuszająca porażkę dla rzutów k20",
