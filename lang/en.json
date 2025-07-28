@@ -123,6 +123,7 @@
 	"AC5E.TargetGrantsFumble": "Granted fumble",
 	"AC5E.TargetGrantsSuccess": "Granted success",
 	"AC5E.TargetGrantsBonus": "Granted bonus",
+	"AC5E.TargetGrantsModifier": "Granted modifier",
 	"AC5E.NoChanges": "No changes",
 	"AC5E.SystemMode": "System mode",
 	"AC5E.EnvironmentalHazards": {
