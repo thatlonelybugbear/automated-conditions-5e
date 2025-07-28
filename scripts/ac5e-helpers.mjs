@@ -1033,13 +1033,16 @@ let tempDiv = null;
 
 export function _getValidColor(color, fallback, user) {
 	if (!color) return fallback;
-
 	const lower = color.trim().toLowerCase();
-	if (['false', 'none', 'null', '0'].includes(lower)) return false;
-	if (['game.user.color', 'user'].includes(lower)) return user?.color?.css || fallback;
-	if (lower === 'default') return fallback;
 
-	// Create a hidden element once and reuse it
+	if (['false', 'none', 'null', '0'].includes(lower)) return lower;
+	else if (['user', 'game.user.color'].includes(lower)) return user?.color?.css || fallback;
+	else if (lower === 'default') return fallback;
+	else return fallback;
+	// Accept valid hex format directly
+	if (/^#[0-9a-f]{6}$/i.test(lower)) return lower;
+
+	// Use hidden div to resolve computed color
 	if (!tempDiv) {
 		tempDiv = document.createElement('div');
 		tempDiv.style.display = 'none';
@@ -1049,7 +1052,6 @@ export function _getValidColor(color, fallback, user) {
 	tempDiv.style.color = color;
 	const computedColor = window.getComputedStyle(tempDiv).color;
 
-	// Convert RGB to hex if valid
 	const match = computedColor.match(/\d+/g);
 	if (match && match.length >= 3) {
 		return `#${match
@@ -1057,6 +1059,7 @@ export function _getValidColor(color, fallback, user) {
 			.map((n) => parseInt(n).toString(16).padStart(2, '0'))
 			.join('')}`;
 	}
+
 	return fallback;
 }
 
