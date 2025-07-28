@@ -32,7 +32,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipsName',
 			hint: 'AC5E.ShowTooltipsHint',
-			scope: 'client',
+			scope: 'user',
 			config: true,
 			default: 'both',
 			type: String,
@@ -45,7 +45,7 @@ export default class Settings {
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS, {
 			name: 'AC5E.ShowModuleNameInTooltipsName',
-			scope: 'client',
+			scope: 'user',
 			config: true,
 			default: true,
 			type: Boolean,
@@ -67,7 +67,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Enabled, {
 			name: 'AC5E.ButtonColorPicker.Enabled.Name',
 			hint: 'AC5E.ButtonColorPicker.Enabled.Hint',
-			scope: 'client',
+			scope: 'user',
 			config: true,
 			default: true,
 			type: Boolean,
@@ -75,7 +75,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Background, {
 			name: 'AC5E.ButtonColorPicker.Background.Name',
 			hint: 'AC5E.ButtonColorPicker.Background.Hint',
-			scope: 'client',
+			scope: 'user',
 			config: true,
 			default: '#288bcc',
 			type: String,
@@ -83,7 +83,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
 			name: 'AC5E.ButtonColorPicker.Border.Name',
 			hint: 'AC5E.ButtonColorPicker.Border.Hint',
-			scope: 'client',
+			scope: 'user',
 			config: true,
 			default: 'white',
 			type: String,
@@ -91,7 +91,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
 			name: 'AC5E.ButtonColorPicker.Text.Name',
 			hint: 'AC5E.ButtonColorPicker.Text.Hint',
-			scope: 'client',
+			scope: 'user',
 			config: true,
 			default: 'white',
 			type: String,
