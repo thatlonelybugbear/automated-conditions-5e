@@ -276,8 +276,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	if (ac5eConfig.hookType === 'attack' && ac5eConfig.threshold?.length) {
 		//for attack rolls
-		const signedPattern = /^[+-]/;                        // Only matches if starts with + or -
-		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i;          // Dice expressions with optional sign
+		const signedPattern = /^[+-]/; // Only matches if starts with + or -
+		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice expressions with optional sign
 		const maxDiceCap = 100;
 
 		let minTotal = 0;
@@ -288,20 +288,20 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 
 		for (const item of ac5eConfig.threshold) {
 			if (item == null) continue;
-		
+
 			const cleaned = String(item).trim().replace(/\s+/g, '');
 			const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
-		
+
 			for (const part of parts) {
 				part = part.trim();
-		
+
 				// If it matches the dice pattern (with or without sign)
 				const match = part.match(dicePattern);
 				if (match) {
 					const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
 					const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
 					const sides = parseInt(match[3]);
-		
+
 					let total = 0;
 					const rolls = [];
 					for (let i = 0; i < count; i++) {
@@ -309,9 +309,9 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 						rolls.push(roll);
 						total += roll;
 					}
-		
+
 					const signedTotal = (sign === 0 ? 1 : sign) * total;
-		
+
 					if (sign !== 0) {
 						additiveValues.push(signedTotal);
 						minTotal += sign * count * 1;
@@ -319,14 +319,14 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 					} else {
 						staticValues.push(total);
 					}
-		
+
 					if (settings.debug) {
 						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice threshold:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
 					}
-		
+
 					continue;
 				}
-		
+
 				// Signed integer (must start with + or -)
 				if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
 					const val = parseInt(part);
@@ -335,7 +335,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 					maxTotal += val;
 					continue;
 				}
-		
+
 				// Unsigned static value
 				const parsed = parseInt(part);
 				if (!isNaN(parsed)) staticValues.push(parsed);
@@ -961,13 +961,7 @@ export function _raceOrType(actor, dataType = 'race') {
 }
 
 export function _generateAC5eFlags() {
-	const daeFlags = [
-		'flags.automated-condition-5e.crossbowExpert',
-		'flags.automated-condition-5e.sharpShooter',
-		'flags.automated-conditions-5e.attack.criticalThreshold',
-		'flags.automated-conditions-5e.aura.attack.criticalThreshold',
-		'flags.automated-conditions-5e.grant.attack.criticalThreshold'
-	];
+	const daeFlags = ['flags.automated-condition-5e.crossbowExpert', 'flags.automated-condition-5e.sharpShooter', 'flags.automated-conditions-5e.attack.criticalThreshold', 'flags.automated-conditions-5e.aura.attack.criticalThreshold', 'flags.automated-conditions-5e.grant.attack.criticalThreshold'];
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'success'];
 	const types = ['source', 'grants', 'aura'];
@@ -1120,12 +1114,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activity?.actionType) sandbox[activity.actionType] = true;
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 	if (activityData?.type) sandbox[activityData.type] = true;
-	
+
 	//item data
 	sandbox.item = item?.getRollData().item || {};
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
-	sandbox.item.type = item?.type;	
+	sandbox.item.type = item?.type;
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	if (itemData?.school) sandbox[itemData.school] = true;
@@ -1192,24 +1186,32 @@ export function _collectActivityDamageTypes(activity, options) {
 	}
 	const returnDamageTypes = {};
 	let returnDefaultDamageType = undefined;
-	const activityType = activity?.type === 'heal' ? 'healing' : 'damage';
-	for (const d of activity[activityType].parts) {
-		if (d.types.size > 1) {
+
+	const partTypes = (part) => {
+		if (part.types.size > 1) {
 			console.warn('AC5E: Multiple damage types available for selection; cannot properly evaluate; damageTypes will grab the first of multiple ones');
-		} 
-		const type = d.types.first();
+		}
+		const type = part.types.first();
 		if (type) {
 			if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
 			returnDamageTypes[type] = true;
 		}
-		const formula = d.custom?.formula;
+		const formula = part.custom?.formula;
 		if (formula && formula !== '') {
-			const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
+			const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
 			for (const m of match) {
 				if (!returnDefaultDamageType) returnDefaultDamageType = { [m]: true };
 				returnDamageTypes[m] = true;
 			}
 		}
+	};
+
+	const activityType = activity.type === 'heal' ? 'healing' : 'damage';
+	if (activityType === 'healing') {
+		const part = activity[activityType];
+		partTypes(part);
+	} else {
+		for (const part of activity[activityType].parts) partTypes(part);
 	}
 	options.defaultDamageType = returnDefaultDamageType || {};
 	options.damageTypes = returnDamageTypes;
@@ -1231,7 +1233,7 @@ export function _collectRollDamageTypes(rolls, options) {
 
 		for (const part of roll.parts ?? []) {
 			if (!part?.length) continue;
-			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toLowerCase());  //returns an Array of inner type strings from each [type]
+			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type]
 			for (const partType of match) {
 				if (!defaultType) defaultType = partType;
 				damageTypes[partType] = true;
@@ -1243,8 +1245,7 @@ export function _collectRollDamageTypes(rolls, options) {
 		options.damageTypes = damageTypes;
 		options.selectedDamageTypes = selectedDamageTypes;
 		if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
-	}
-	else return { damageTypes, defaultDamageType, selectedDamageTypes };
+	} else return { damageTypes, defaultDamageType, selectedDamageTypes };
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
