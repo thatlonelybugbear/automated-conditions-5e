@@ -361,7 +361,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (_activeModule('midi-qol')) {
 			ac5eConfig.parts.push(-999);
 			if (config.workflow) {
-				config.workflow._isCritical = false;
+				// config.workflow._isCritical = false;
 				config.workflow.isCritical = false;
 			}
 			if (config.midiOptions) {
@@ -379,7 +379,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (_activeModule('midi-qol')) {
 			ac5eConfig.parts.push(+999);
 			if (config.workflow) {
-				config.workflow._isFumble = false;
+				// config.workflow._isFumble = false;
 				config.workflow.isFumble = false;
 			}
 			if (config.midiOptions) {
@@ -396,7 +396,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
 		// config.target = 1000;
 		if (config.workflow) {
-			config.workflow._isFumble = true;
+			// config.workflow._isFumble = true;
 			config.workflow.isFumble = true;
 		}
 		if (config.midiOptions) {
@@ -415,7 +415,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		// config.target = -1000;
 		if (roll0) roll0.options.target = -Infinity;
 		if (config.workflow) {
-			config.workflow._isCritical = true;
+			// config.workflow._isCritical = true;
 			config.workflow.isCritical = true;
 		}
 		if (config.midiOptions) {
@@ -1234,7 +1234,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 
 export function _collectActivityDamageTypes(activity, options) {
 	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
-	if (!activity) {
+	if (!activity || !['attack', 'damage', 'heal', 'save'].includes(activity.type)) {
 		options.defaultDamageType = {};
 		options.damageTypes = {};
 		return;
