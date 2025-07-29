@@ -292,7 +292,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			const cleaned = String(item).trim().replace(/\s+/g, '');
 			const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
 
-			for (const part of parts) {
+			for (let part of parts) {
 				part = part.trim();
 
 				// If it matches the dice pattern (with or without sign)
