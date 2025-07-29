@@ -1,3 +1,8 @@
+## 13.504.5.2
+* Fix for assignment to constant variable.
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.504.5.1
 * Change to `user` settings instead of per `client` for non-world settings (available for Foundry v13 only)
   * This means that when a specific user is connected, their editable settings will be used, no matter the client they are connecting from.
