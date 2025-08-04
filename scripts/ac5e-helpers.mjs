@@ -1145,8 +1145,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	});
 	sandbox.activity.ability = activity?.ability;
 	sandbox.riderStatuses = options.activityEffectsStatusRiders || {};
-	sandbox.hasAttack = activity?.hasAttack;
-	sandbox.hasDamage = activity?.hasDamage;
+	sandbox.hasAttack = !!activity?.attack;
+	sandbox.hasDamage = !!activity?.damage;
 	sandbox.hasHealing = activity?.hasHealing;
 	sandbox.hasSave = activity?.hasSave;
 	sandbox.isSpell = activity?.isSpell;
@@ -1180,7 +1180,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.type = item?.type;
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
-	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel ?? itemData?.level === 0;
+	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
 	if (itemData?.school) sandbox[itemData.school] = true;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
@@ -1214,12 +1214,16 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
-	sandbox.castingLevel = options?.spellLevel ?? itemData?.level;   //should test this some more, but depending on timing and hooks, this will give the proper cast level
+	sandbox.castingLevel = options.spellLevel ?? itemData?.level;   //should test this some more, but depending on timing and hooks, this will give the proper cast level
 	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
 	sandbox.scaling = item?.flags?.dnd5e?.scaling;
 	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
 	sandbox.attackRollD20 = options?.d20?.attackRollD20;
+	sandbox.hasAdvantage = options?.d20?.hasAdvantage;
+	sandbox.hasDisadvantage = options?.d20?.hasDisadvantage;
+	sandbox.isCritical = options?.d20?.isCritical;
+	sandbox.isFumble = options?.d20?.isFumble;
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
