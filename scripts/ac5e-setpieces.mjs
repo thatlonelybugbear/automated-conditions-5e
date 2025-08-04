@@ -388,12 +388,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
-						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
+						//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
+						//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
+						//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
+						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();  
 						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 					if (isModifier) {
-						const replacementModifier = bonusReplacements(isModifier, auraTokenEvaluationData, true, effect);
+						const replacementModifier = bonusReplacements(isModifier, auraTokenEvaluationData, true, effect);  //
 						modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
@@ -411,7 +414,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 							return !blacklist.includes(key);
 						})
 						.join(';');
-					if (!valuesToEvaluate) valuesToEvaluate = 'true';
+					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 
 					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData });
@@ -448,6 +451,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 				if (isBonus) {
 					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
+					//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
+					//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
+					//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
 					if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
 					else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 				}
@@ -470,7 +476,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						return !blacklist.includes(key);
 					})
 					.join(';');
-				if (!valuesToEvaluate) valuesToEvaluate = 'true';
+				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 				validFlags[effect.id] = {
 					name: effect.name,
@@ -494,6 +500,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
+						//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
+						//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
+						//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
 						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
 						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 					}
@@ -516,7 +525,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 							return !blacklist.includes(key);
 						})
 						.join(';');
-					if (!valuesToEvaluate) valuesToEvaluate = 'true';
+					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 					validFlags[effect.id] = {
 						name: effect.name,
