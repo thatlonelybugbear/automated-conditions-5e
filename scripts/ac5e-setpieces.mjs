@@ -12,19 +12,21 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 		opponent: opponentToken?.actor,
 	};
 
-	for (const [type, actor] of Object.entries(actorTokens)) {
-		if (foundry.utils.isEmpty(actor)) continue;
-		const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
-		const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
-		const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
-
-		for (const status of actor.statuses) {
-			const test = status === 'exhaustion' && isSubjectExhausted ? tables?.[status]?.[exhaustionLvl]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
-
-			if (!test) continue;
-			if (settings.debug) console.log(type, test);
-			const effectName = tables?.[status]?.name;
-			if (effectName) ac5eConfig[type][test].push(effectName);
+	if (settings.automateStatuses) {
+		for (const [type, actor] of Object.entries(actorTokens)) {
+			if (foundry.utils.isEmpty(actor)) continue;
+			const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
+			const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
+			const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
+	
+			for (const status of actor.statuses) {
+				const test = status === 'exhaustion' && isSubjectExhausted ? tables?.[status]?.[exhaustionLvl]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
+	
+				if (!test) continue;
+				if (settings.debug) console.log(type, test);
+				const effectName = tables?.[status]?.name;
+				if (effectName) ac5eConfig[type][test].push(effectName);
+			}
 		}
 	}
 
