@@ -1,3 +1,7 @@
+## 13.504.6
+* Added `isCantrip` Boolean for condition evaluation
+* Reworked `castingLevel` to properly grab the used spell slot
+
 ## 13.504.5.2
 * Fix for assignment to constant variable.
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
