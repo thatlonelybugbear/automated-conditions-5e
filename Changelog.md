@@ -3,7 +3,7 @@
 * Reworked `castingLevel` to properly reflect the used spell slot/
 * Improved `bonus` mode behavior:
   * If the evaluated bonus returns 0 or false, the Active Effect will be ignored in tooltips (since it wouldn't affect the roll).
-    *  eg when `bonus = opponentActor.attributes.hp.pct > 50 ? 0 : '1d4[acid]'` (instead of `0`, use `false` too)
+    *  eg when `bonus = opponentActor.attributes.hp.pct > 50 ? 0 : '1d4[acid]'` (you can use `0`, `false`, `null`)
   * Acceptable forms:
     * Pure formula: `bonus=1d4[acid] + 5 - 1d2[fire]`. Use when only dice and numeric values are needed.
     * Conditional (evaluated): `bonus=opponentActor.attributes.hp.pct < 50 ? '1d4[acid]' : 22;`. Use string-wrapped dice formulas (`1d4[acid]`) or plain numbers when logic is required.
