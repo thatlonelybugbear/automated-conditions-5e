@@ -1180,6 +1180,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.type = item?.type;
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
+	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel ?? itemData?.level === 0;
 	if (itemData?.school) sandbox[itemData.school] = true;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
@@ -1213,7 +1214,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
-	sandbox.castingLevel = sandbox.item?.level;
+	sandbox.castingLevel = options?.spellLevel ?? itemData?.level;   //should test this some more, but depending on timing and hooks, this will give the proper cast level
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
 	sandbox.scaling = item?.flags?.dnd5e?.scaling;
 	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
