@@ -1,3 +1,8 @@
+## 13.504.6.1
+* Make sure `game.i18n.translations.DND5E` is available.
+* Rework `getMessageData`
+* Proper added `hasAdvantage`, `hasDisadvantage`, `hasAttack`, `hasDamage`, `isCritical`, `isFumble`, `attackRollTotal`, `attackRollD20` to evaluation conditions
+  
 ## 13.504.6
 * Added `isCantrip` boolean for condition evaluation.
 * Reworked `castingLevel` to properly reflect the used spell slot/
