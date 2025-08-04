@@ -1152,7 +1152,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isSpell = activity?.isSpell;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
-	sandbox.spellCastingAbility = activity?.spellCastingAbility;
+	sandbox.spellcastingAbility = activity?.spellcastingAbility;
 	sandbox.messageFlags = activity?.messageFlags;
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
 	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
@@ -1214,10 +1214,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
-	sandbox.castingLevel = options.spellLevel ?? itemData?.level;   //should test this some more, but depending on timing and hooks, this will give the proper cast level
+	sandbox.castingLevel = options.spellLevel ?? itemData?.level ?? null;
+	sandbox.spellLevel = sandbox.castingLevel;
 	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
-	sandbox.scaling = item?.flags?.dnd5e?.scaling;
+	sandbox.scaling = item?.flags?.dnd5e?.scaling || 0;
 	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
 	sandbox.attackRollD20 = options?.d20?.attackRollD20;
 	sandbox.hasAdvantage = options?.d20?.hasAdvantage;
