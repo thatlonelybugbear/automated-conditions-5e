@@ -1,6 +1,12 @@
 ## 13.504.6
-* Added `isCantrip` Boolean for condition evaluation
-* Reworked `castingLevel` to properly grab the used spell slot
+* Added `isCantrip` boolean for condition evaluation.
+* Reworked `castingLevel` to properly reflect the used spell slot/
+* Improved `bonus` mode behavior:
+  * If the evaluated bonus returns 0 or false, the Active Effect will be ignored in tooltips (since it wouldn't affect the roll).
+    *  eg when `bonus = opponentActor.attributes.hp.pct > 50 ? 0 : '1d4[acid]'` (instead of `0`, use `false` too)
+  * Acceptable forms:
+    * Pure formula: `bonus=1d4[acid] + 5 - 1d2[fire]`. Use when only dice and numeric values are needed.
+    * Conditional (evaluated): `bonus=opponentActor.attributes.hp.pct < 50 ? '1d4[acid]' : 22;`. Use string-wrapped dice formulas (`1d4[acid]`) or plain numbers when logic is required.
 
 ## 13.504.5.2
 * Fix for assignment to constant variable.
