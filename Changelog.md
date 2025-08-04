@@ -1,7 +1,10 @@
 ## 13.504.6.1
-* Make sure `game.i18n.translations.DND5E` is available.
-* Rework `getMessageData`
-* Proper added `hasAdvantage`, `hasDisadvantage`, `hasAttack`, `hasDamage`, `isCritical`, `isFumble`, `attackRollTotal`, `attackRollD20` to evaluation conditions
+* Made sure `game.i18n.translations.DND5E` is available
+* Reworked `getMessageData`
+* Properly added `hasAdvantage`, `hasDisadvantage`, `hasAttack`, `hasDamage`, `isCritical`, `isFumble`, `attackRollTotal`, `attackRollD20` to evaluation conditions
+* Fixed `spellcastingAbility` typo
+* `scaling` will be either `0` or the system available flag
+* Added `spellLevel` to match the system's variable, which is the same like `castingLevel` (`baseSpellLevel` is also available as the spell's base level)
   
 ## 13.504.6
 * Added `isCantrip` boolean for condition evaluation.
