@@ -1215,6 +1215,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
 	sandbox.castingLevel = options?.spellLevel ?? itemData?.level;   //should test this some more, but depending on timing and hooks, this will give the proper cast level
+	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
 	sandbox.scaling = item?.flags?.dnd5e?.scaling;
 	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
