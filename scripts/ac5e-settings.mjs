@@ -24,12 +24,21 @@ export default class Settings {
 	static ColorPicker_Text = 'buttonColorText';
 	static AUTOMATE_ENVIRONMENTAL_HAZARDS = 'autoHazards';
 	static AUTOMATE_HEAVY = 'automateHeavy';
+	static AUTOMATE_STATUSES = 'automateStatuses';
 
 	registerSettings() {
 		this._registerWorldSettings();
 	}
 
 	_registerWorldSettings() {
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_STATUSES, {
+			name: 'AC5E.AutomateStatuses.Name',
+			hint: 'AC5E.AutomateStatuses.Hint',
+			scope: 'world',
+			config: true,
+			default: true,
+			type: Boolean,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipsName',
 			hint: 'AC5E.ShowTooltipsHint',
@@ -221,6 +230,9 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+	}
+	get automateStatuses() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_STATUSES);
 	}
 	get dnd5eModernRules() {
 		return game.settings.get('dnd5e', 'rulesVersion') === 'modern';
