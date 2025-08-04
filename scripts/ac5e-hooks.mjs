@@ -27,7 +27,7 @@ export function _rollFunctions(hook, ...args) {
 	}
 }
 function getMessageData(config, hook) {
-	const messageId = config.event?.currentTarget?.dataset?.messageId ?? /config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
+	const messageId = config.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
 	const messageUuid = config?.workflow?.itemCardUuid; //for midi
 	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : false;
 
