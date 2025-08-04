@@ -1,4 +1,8 @@
 {
+	"AC5E.AutomateStatuses": {
+		"Name": "Automate D&D5E Statuses",
+		"Hint": "When enabled, AC5E will automate dis/advantage and roll mode modifiers based on system statuses."
+	},
 	"AC5E.ShowTooltipsName": "Show AC5e tooltips:",
 	"AC5E.ShowTooltipsHint": "When a relevant option is selected, AC5e will show a helpful tooltip when hovering over the suggested Roll button or a generated message or both, summing up the reasons for that suggestion.",
 	"AC5E.ShowToolTipsChoicesBoth": "Roll dialogs and chat messages",
@@ -13,9 +17,9 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Owned",
 	"AC5E.ShowTooltipChatVisibility.Players": "Players",
 	"AC5E.ExpandedConditionsName": "Expanded conditions",
-	"AC5E.ExpandedConditionsHint": "When checked, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
+	"AC5E.ExpandedConditionsHint": "When enabled, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.AutoArmorName": "AC5e armor proficiency and equipment stealth disadvantage.",
-	"AC5E.AutoArmorHint": "When checked, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
+	"AC5E.AutoArmorHint": "When enabled, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
 	"AC5E.ActivityUse" : {
 		"Name": "Item Use Checks",
 		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification). The checked conditions are: incapacitated for relevant actions, and raging, silenced and not-proficient with armor when casting spells",
@@ -49,9 +53,9 @@
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Range checks only",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Range + Nearby foes",
 	"AC5E.AutoExhaustionName": "Exhaustion automation.",
-	"AC5E.AutoExhaustionHint": "When checked, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
+	"AC5E.AutoExhaustionHint": "When enabled, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
 	"AC5E.AutoEncumbranceName": "Variant encumbrance.",
-	"AC5E.AutoEncumbranceHint": "When checked, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
+	"AC5E.AutoEncumbranceHint": "When enabled, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
 	"AC5E.Targeting": {
 		"Name": "Targeting options for attacks",
 		"Hint": "When no or multiple targets are selected for an Attack, choose how AC5e should respond",
