@@ -1,5 +1,5 @@
 ## 13.504.7
-* Added settings for Automate D&D5e statuses. If disabled, AC5e will allow the system or other modules to automate statuses like Blinded, Frightened etc
+* Added setting: Automate D&D5e statuses. If disabled (default enabled), AC5e will allow the system or other modules to automate statuses like Blinded, Frightened etc
 * Made sure `game.i18n.translations.DND5E` is available
 * Reworked `getMessageData`
 * Properly added `hasAdvantage`, `hasDisadvantage`, `hasAttack`, `hasDamage`, `isCritical`, `isFumble`, `attackRollTotal`, `attackRollD20` to evaluation conditions
