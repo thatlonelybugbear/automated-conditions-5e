@@ -44,8 +44,7 @@ function getMessageData(config, hook) {
 			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
 			options.d20.isCritical = config?.midiOptions?.isCritical;
 			options.d20.isFumble = config?.midiOptions?.isFumble;
-		}
-		else {
+		} else {
 			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
 			options.d20.attackRollTotal = findAttackRoll?.total;
 			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
@@ -550,9 +549,9 @@ export function _renderSettings(app, html, data) {
 function renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
-		{ key: 'buttonColorBorder', default: '#f8f8ff' },  //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
-		{ key: 'buttonColorText', default: '#f8f8ff' },  //this is Ghost White
- 	];
+		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
+		{ key: 'buttonColorText', default: '#f8f8ff' }, //this is Ghost White
+	];
 	for (let { key, default: defaultValue } of colorSettings) {
 		const settingKey = `${Constants.MODULE_ID}.${key}`;
 		const input = html.querySelector(`[name="${settingKey}"]`);
@@ -637,7 +636,6 @@ function renderColoredButtonSettings(html) {
 		updateVisibility();
 	}
 }
-
 
 function renderChatTooltipsSettings(html) {
 	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
