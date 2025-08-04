@@ -6,7 +6,7 @@
     *  eg when `bonus = opponentActor.attributes.hp.pct > 50 ? 0 : '1d4[acid]'`
   * Acceptable forms:
     * Pure formula: `bonus=1d4[acid] + 5 - 1d2[fire]`. Use when only dice and numeric values are needed.
-    * Conditional (evaluated): `bonus=opponentActor.attributes.hp.pct < 50 ? '1d4[acid]' : 22;`. Use string-wrapped dice formulas (`1d4[acid]`) or plain numbers when logic is required.
+    * Conditional (evaluated): `bonus=opponentActor.attributes.hp.pct < 50 ? '1d4[acid]' : 22;`. Use string-wrapped dice formulas (`'1d4[acid]'`) or plain numbers when logic is required.
 * Want to support this module? Check out the Automated Condition UI [ko-fi goal](<https://ko-fi.com/thatlonelybugbear/goal?g=39>)
 
 ## 13.504.5.2
