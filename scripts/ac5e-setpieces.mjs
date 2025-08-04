@@ -391,12 +391,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
 						//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
 						//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
-						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();  
+						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
 						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 					if (isModifier) {
-						const replacementModifier = bonusReplacements(isModifier, auraTokenEvaluationData, true, effect);  //
+						const replacementModifier = bonusReplacements(isModifier, auraTokenEvaluationData, true, effect);
 						modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
