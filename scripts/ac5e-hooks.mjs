@@ -27,8 +27,8 @@ export function _rollFunctions(hook, ...args) {
 	}
 }
 function getMessageData(config, hook) {
-	const messageId = config.event?.currentTarget?.dataset?.messageId; //config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageUuid = config?.midiOptions?.itemCardUuid;
+	const messageId = config.event?.currentTarget?.dataset?.messageId ?? /config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
+	const messageUuid = config?.workflow?.itemCardUuid; //for midi
 	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : false;
 
 	const { activity: activityObj, item: itemObj, targets, messageType, use } = message?.flags?.dnd5e || {};
@@ -37,9 +37,23 @@ function getMessageData(config, hook) {
 	const options = {};
 	options.d20 = {};
 	if (hook === 'damage') {
-		const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
-		options.d20.attackRollTotal = findAttackRoll?.total;
-		options.d20.attackRollD20 = findAttackRoll?.d20?.total;
+		if (_activeModule('midi-qol')) {
+			options.d20.attackRollTotal = config?.workflow?.attackTotal;
+			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
+			options.d20.hasAdvantage = config?.workflow?.advantage;
+			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
+			options.d20.isCritical = config?.midiOptions?.isCritical;
+			options.d20.isFumble = config?.midiOptions?.isFumble;
+		}
+		else {
+			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
+			options.d20.attackRollTotal = findAttackRoll?.total;
+			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
+			options.d20.hasAdvantage = findAttackRoll?.options?.advantageMode > 0;
+			options.d20.hasDisadvantage = findAttackRoll?.options?.advantageMode < 0;
+			options.d20.isCritical = findAttackRoll?.options?.isCritical ?? config?.isCritical;
+			options.d20.isFumble = findAttackRoll?.options?.isFumble ?? config?.isFumble;
+		}
 	}
 	options.messageId = messageId;
 	options.spellLevel = activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
