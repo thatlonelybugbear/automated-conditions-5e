@@ -1,3 +1,6 @@
+## 13.504.8
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.504.7
 * Added setting: Automate D&D5e statuses. If disabled (default enabled), AC5e will allow the system or other modules to automate statuses like Blinded, Frightened etc
 * Made sure `game.i18n.translations.DND5E` is available
