@@ -1,4 +1,8 @@
 {
+  	"AC5E.AutomateStatuses": {
+    		"Name": "Automatizar Status do D&D 5E",
+    		"Hint": "Quando ativado, o AC5e irá automatizar os modificadores de desvantagem/vantagem e modo de rolagem, com base nos status do sistema."
+  	},
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5e",
 	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5e mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
