@@ -1,4 +1,8 @@
 {
+	"AC5E.AutomateStatuses": {
+		"Name": "Automatizza Stati D&D5E",
+		"Hint": "Se abilitato, AC5E automatizzerà i modificatori di svantaggio/vantaggio e modalità tiro in base agli stati del sistema."
+	},
 	"AC5E.ShowTooltipsName": "Mostra Suggerimenti AC5e:",
 	"AC5E.ShowTooltipsHint": "Quando viene selezionata un'opzione pertinente, AC5e mostrerà un suggerimento utile quando si passa con il mouse sul pulsante Roll suggerito o su un messaggio generato o su entrambi, riassumendo le ragioni di quel suggerimento.",
 	"AC5E.ShowToolTipsChoicesBoth": "Finestre Dialogo e Messaggi Chat",
@@ -13,9 +17,9 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Proprio",
 	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
 	"AC5E.ExpandedConditionsName": "Condizioni Ampliate AC5e",
-	"AC5E.ExpandedConditionsHint": "Se selezionato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
+	"AC5E.ExpandedConditionsHint": "Se abilitato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
 	"AC5E.AutoArmorName": "Competenza nelle armature AC5e e svantaggio furtività equipaggiamento.",
-	"AC5E.AutoArmorHint": "Se selezionato, AC5e elaborerà automaticamente la competenza nell'armatura equipaggiata per abilità, abilità e tiri salvezza (STR || DEX) e controllerà l'equipaggiamento per la proprietà di svantaggio della furtività.",
+	"AC5E.AutoArmorHint": "Se abilitato, AC5e elaborerà automaticamente la competenza nell'armatura equipaggiata per abilità, abilità e tiri salvezza (STR || DEX) e controllerà l'equipaggiamento per la proprietà di svantaggio della furtività.",
 	"AC5E.ActivityUse" : {
 		"Name": "Competenza armature e incantesimi AC5e",
 		"Hint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
@@ -49,9 +53,9 @@
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Solo controlli a distanza",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Distanza + Nemici Vicini",
 	"AC5E.AutoExhaustionName": "Automazione Indebolimento AC5e.",
-	"AC5E.AutoExhaustionHint": "Se selezionato e stai usando le regole DND5E legacy, AC5E elaborerà automaticamente le normali regole delle condizioni di esaurimento 5E.",
+	"AC5E.AutoExhaustionHint": "Se abilitato e stai usando le regole DND5E legacy, AC5E elaborerà automaticamente le normali regole delle condizioni di esaurimento 5E.",
 	"AC5E.AutoEncumbranceName": "Variante Ingombro AC5e.",
-	"AC5E.AutoEncumbranceHint": "Se selezionato, AC5e elaborerà automaticamente le regole di ingombro della variante 5e. Il GM deve anche selezionare nelle impostazioni del sistema Dnd5e, l'opzione Variante (ingombrato e pesantemente ingombrato), altrimenti ciò non avrà alcun effetto.",
+	"AC5E.AutoEncumbranceHint": "Se abilitato, AC5e elaborerà automaticamente le regole di ingombro della variante 5e. Il GM deve anche selezionare nelle impostazioni del sistema Dnd5e, l'opzione Variante (ingombrato e pesantemente ingombrato), altrimenti ciò non avrà alcun effetto.",
 	"AC5E.Targeting": {
 		"Name": "Opzioni di targeting per gli attacchi",
 		"Hint": "Quando nessuno o più bersagli vengono selezionati per un Attacco, Danno o tiro simile, scegli come dovrebbe rispondere AC5E",
