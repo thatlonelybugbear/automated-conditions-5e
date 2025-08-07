@@ -1,4 +1,8 @@
 {
+	"AC5E.AutomateStatuses": {
+		"Name": "Automatizovat stavy D&D5E?",
+		"Hint": "Po zaškrtnutí bude AC5E automatizovat Nevýhody/Výhody a opravy režimu hodu na základě stavů systému."
+	},
 	"AC5E.ShowTooltipsName": "Zobrazení popisek AC5e",
 	"AC5E.ShowTooltipsHint": "Když je příslušná možnost vybrána, AC5e zobrazí užitečný popisek při přejetí myší nad navrhovaným tlačítkem hodu či vygenerovanou zprávu, případně nad obojím, a shrne důvody pro tento návrh.",
 	"AC5E.ShowToolTipsChoicesBoth": "Nad dialogy hodů a zprávami v chatu",
@@ -16,7 +20,7 @@
 	"AC5E.ExpandedConditionsHint": "Po zaškrtnutí se AC5e pokusí automatizovat některé další stavy, například Uhýbání či Skrývání se.",
 	"AC5E.AutoArmorName": "Kontrolovat výcvik a Nenápadnost se zbrojemi?",
 	"AC5E.AutoArmorHint": "Po zaškrtnutí bude AC5e automaticky kontrolovat výcvik s nasazenou zbrojí pro hody na vlastnosti, dovednosti a záchrany (na Sílu a Obratnost). Též kontroluje vybavení kvůli možné Nevýhodě na Nenápadnost.",
-		"AC5E.ActivityUse" : {
+	"AC5E.ActivityUse": {
 		"Name": "Kontroly použití položek",
 		"Hint": "Když je snaha o použití pravidly nedovolené položky, AC5e může 'Nedělat nic', pouze 'Varovat' (oznámení), nebo 'Zakázat' (zrušení hodu + oznámení). Kontrolované stavy jsou: zneschopnění pro dané akce, zuřivost, ztišení a sesílání kouzel ve zbroji bez výcviku.",
 		"Choices": {
@@ -41,7 +45,7 @@
 				"Enforce": "je ztišený/á a nemůže sesílat kouzla s verbální složkou. Kouzlo zrušeno!",
 				"Warn": "je ztišený/á a nemůže sesílat kouzla s verbální složkou."
 			}
-		}		
+		}
 	},
 	"AC5E.AutoRangedAttacksName": "Automatizace útoků střelbou AC5e",
 	"AC5E.AutoRangedAttacksHint": "'Vypnout': AC5e nebude dostřel kontrolovat; 'Pouze kontroly dostřelu': AC5e automaticky zpracuje Nevýhodu/selhání na základě vzdálenosti cíle a parametrů dostřelu položky použité k útoku; 'Dostřel + blízcí nepřátelé': Nepřátelé blízko útočníka udělují Nevýhodu na útoky střelbou.",
@@ -83,7 +87,7 @@
 	"AC5E.SubtleSpell": "Opatrné kouzlo",
 	"AC5E.OutOfRange": "Mimo dosah",
 	"AC5E.Item": "Položka",
-		"AC5E.Feats": {
+	"AC5E.Feats": {
 		"CrossbowExpert": "Kušiník",
 		"Sharpshooter": "Ostrostřelec",
 		"SpellSniper": "Vrhač kouzel"
@@ -95,18 +99,18 @@
 			"Name": "Barvit tlačítka?",
 			"Hint": "Nech vyniknout dialogová tlačítka hodu. Výchozí barvy: #288bcc (pozadí), bílá (text/okraj). Nech uživatele, aby použili game.user.color (nejlépe pro pozadí). Zadáním false/none/null/0 lze vypnout některé z dostupných voleb barev. Vymazáním libovolného pole se vrátíš k výchozímu nastavení."
 		},
-	    "Background": {
-	       "Name": "🎨 Barva pozadí tlačítka",
-	        "Hint": "Smaže jakýkoli text vstupu na výchozí barvu game.user.color."
-	    },
-	    "Border": {
-	        "Name": "🖍️ Barva ohraničení tlačítka",
-	        "Hint": "Smaže jakýkoli text vstupu na výchozí bílou barvu."
-	    },
-	    "Text": {
- 	       "Name": "🔤 Barva textu tlačítka",
-	        "Hint": "Smaže jakýkoli text vstupu na výchozí bílou barvu."
-	    }
+		"Background": {
+			"Name": "🎨 Barva pozadí tlačítka",
+			"Hint": "Smaže jakýkoli text vstupu na výchozí barvu game.user.color."
+		},
+		"Border": {
+			"Name": "🖍️ Barva ohraničení tlačítka",
+			"Hint": "Smaže jakýkoli text vstupu na výchozí bílou barvu."
+		},
+		"Text": {
+			"Name": "🔤 Barva textu tlačítka",
+			"Hint": "Smaže jakýkoli text vstupu na výchozí bílou barvu."
+		}
 	},
 	"AC5E.Bonus": "Bonus",
 	"AC5E.Success": "Úspěch",
@@ -123,13 +127,14 @@
 	"AC5E.TargetGrantsFumble": "Cíl zajišťuje kritické selhání",
 	"AC5E.TargetGrantsSuccess": "Cíl zajišťuje úspěch",
 	"AC5E.TargetGrantsBonus": "Cíl zajišťuje bonus",
+	"AC5E.TargetGrantsModifier": "Cíl zajišťuje opravu",
 	"AC5E.NoChanges": "Beze změn",
 	"AC5E.SystemMode": "Režim systému",
 	"AC5E.EnvironmentalHazards": {
-	    "SettingsName": "Používat hrozby prostředí (2024)?",
-	    "SettingsHint": "Automatizuje podle pravidel DnD5e2024 stavy hořící a dusící se.",
-	    "BurningHazard": "Hrozba hoření",
-	    "SuffocatingHazard": "Hrozba dušení"
+		"SettingsName": "Používat hrozby prostředí (2024)?",
+		"SettingsHint": "Automatizuje podle pravidel DnD5e2024 stavy hořící a dusící se.",
+		"BurningHazard": "Hrozba hoření",
+		"SuffocatingHazard": "Hrozba dušení"
 	},
 	"dae.fieldData.fieldCategories.AC5E": "AC5E",
 	"dae.AC5E.fieldData": {
@@ -172,7 +177,11 @@
 			},
 			"disadvantage": {
 				"name": "Hod s Nevýhodou",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Nahraď ACTIONTYPE jedním z následujících: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Opravy hodů k20 maxima a minima",
+				"description": "Nahraď ACTIONTYPE jedním z následujících: attack/check/concentration/death/initiative/save/skill/tool. Např. modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
 			},
 			"fail": {
 				"name": "Selhání v hodu k20",
@@ -185,7 +194,7 @@
 			"success": {
 				"name": "Ověření k20 je úspěšné",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/save/skill/tool"
-						}
+			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 			"advantage": {
@@ -203,6 +212,10 @@
 			"disadvantage": {
 				"name": "Zajistí Nevýhodu ověření k20 protivníka",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Zajistí opravy maxima a minima hodů na k20 protivníka",
+				"description": "Nahraď ACTIONTYPE jedním z následujících: attack/check/concentration/death/initiative/save/skill/tool. např. modifier='min10'"
 			},
 			"fail": {
 				"name": "Zajistí selhání ověření k20 protivníka",
@@ -228,23 +241,27 @@
 			},
 			"critical": {
 				"name": "Aura vynucující kritický zásah (přirozená dvacítka, nebo zranění)",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
 			},
 			"disadvantage": {
 				"name": "Aura poskytující Nevýhodu",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
+			},
+			"modifier": {
+				"name": "Aura poskytující opravy minima a maxima hodů na k20",
+				"description": "Nahraď ACTIONTYPE jedním z následujících: attack/check/concentration/death/initiative/save/skill/tool. např. modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
 			},
 			"fail": {
 				"name": "Aura vynucující selhání ověření k20",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
 			},
 			"fumble": {
 				"name": "Aura vynucující kritické selhání ověření k20",
-				"description": "Aura kolem postavy, která má efekt aktivní. Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
+				"description": "Aura kolem postavy, která má efekt aktivní. Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
 			},
 			"success": {
 				"name": "Aura vynucující úspěch",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další stavy"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
 			}
 		}
 	}
