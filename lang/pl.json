@@ -1,4 +1,8 @@
 {
+	"AC5E.AutomateStatuses": {
+		"Name": "Automatyzacja statusów D&D5E",
+		"Hint": "Po włączeniu AC5E automatycznie dostosuje modyfikatory trybu utrudnienia/ułatwienia oraz trybu rzutów w oparciu o statusy systemu."
+	},
 	"AC5E.ShowTooltipsName": "Pokaż podpowiedzi AC5e:",
 	"AC5E.ShowTooltipsHint": "Po wybraniu odpowiedniej opcji, AC5e wyświetli przydatną podpowiedź po najechaniu kursorem na sugerowany przycisk Rzutu lub wygenerowaną wiadomość lub oba te elementy, podsumowując powody tej sugestii.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rzuty okien dialogowych i wiadomości czatu",
@@ -13,9 +17,9 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Własne",
 	"AC5E.ShowTooltipChatVisibility.Players": "Gracze",
 	"AC5E.ExpandedConditionsName": "Rozszerzone stany",
-	"AC5E.ExpandedConditionsHint": "Po zaznaczeniu tej opcji AC5e spróbuje zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
+	"AC5E.ExpandedConditionsHint": "Po włączeniu AC5e będzie próbował zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
 	"AC5E.AutoArmorName": "Biegłość w pancerzu AC5e i sprzęt utrudniający skradanie się.",
-	"AC5E.AutoArmorHint": "Po sprawdzeniu, AC5e automatycznie przetworzy biegłość w wyposażonym elemencie zbroi dla zdolności, umiejętności i rzutów obronnych (SIŁ || ZRĘ) oraz sprawdzi wyposażenie pod kątem kary skradania się.",
+	"AC5E.AutoArmorHint": "Po włączeniu tej opcji AC5e automatycznie uwzględni biegłość w posługiwaniu się wyposażonym elementem zbroi podczas rzutów na atrybuty, umiejętności i rzuty obronne (SIŁ || ZR) oraz sprawdzi wyposażenie pod kątem kary skradania się.",
 	"AC5E.ActivityUse" : {
 		"Name": "Sprawdzanie użycia przedmiotów",
 		"Hint": "Gdy użycie przedmiotu jest niedozwolone, AC5e „nie podejmuje żadnych działań”, jedynie „ostrzega” (powiadomienie) lub „egzekwuje” (anulowanie rzutu + powiadomienie). Sprawdzane są następujące stany: obezwładnienie uniemożliwiające wykonanie odpowiednich działań, szał, uciszenie oraz brak biegłości w posługiwaniu się zbroją podczas rzucania zaklęć.",
@@ -49,9 +53,9 @@
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Tylko sprawdzanie zasięgu",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Zasięg + pobliscy wrogowie",
 	"AC5E.AutoExhaustionName": "Automatyzacja wyczerpania.",
-	"AC5E.AutoExhaustionHint": "Po zaznaczeniu tej opcji i korzystaniu ze starszych zasad dnd5e, AC5e będzie automatycznie przetwarzać normalne zasady stanu Wyczerpania z 5e.",
+	"AC5E.AutoExhaustionHint": "Po włączeniu tej opcji i korzystaniu ze starych zasad dnd5e, AC5e automatycznie przetworzy normalne zasady dotyczące stanu Wyczerpania z 5e.",
 	"AC5E.AutoEncumbranceName": "Wariant obciążenia.",
-	"AC5E.AutoEncumbranceHint": "Po zaznaczeniu tej opcji, AC5e będzie automatycznie przetwarzać zasady Obciążenia z wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
+	"AC5E.AutoEncumbranceHint": "Po włączeniu AC5e automatycznie przetworzy zasady Obciążenia wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
 	"AC5E.Targeting": {
 		"Name": "Opcje celowania ataków",
 		"Hint": "Jeśli nie wybrano żadnego celu lub wybrano wiele celów do ataku, wybierz sposób, w jaki AC5e ma zareagować.",
