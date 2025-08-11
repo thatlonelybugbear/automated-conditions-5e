@@ -59,6 +59,37 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 				}
 			}
 		}
+	} else {
+		const areTokensIntersencting = tokenA.bounds.intersects(tokenB.bounds);
+		if (areTokensIntersencting) {
+			totalDistance = 0;
+			diagonals = 0;
+			spaces = 0;
+		} else if (grid.isGridless) {
+			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA);
+			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
+			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
+			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+			for (const pointA of tokenASquares) {
+				for (const pointB of tokenBSquares) {
+					if (
+						checkCollision &&
+						CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
+							source: tokenB.document,
+							mode: 'any',
+							type: checkCollision,
+						})
+					)
+						continue;
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						totalDistance = distance2D < 6.25 ? 5 : distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+					}
+				}
+			}
+		}
 	}
 
 	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid);
@@ -133,6 +164,26 @@ function getHexTranslatedPoint(point, direction, distance) {
 	const s = ((distance / canvas.grid.distance) * canvas.grid.size) / ((Math.abs(r) + Math.abs(q) + Math.abs(q + r)) / 2);
 	const newPoint = { x: point.x + dx * s, y: point.y + dy * s };
 	return newPoint;
+}
+
+function getGridlessSquaresOnPerimeter(t) {
+	const perimeterCenterPoints = {};
+	if (t.bounds.width === canvas.grid.sizeX && t.bounds.height === canvas.grid.sizeY) perimeterCenterPoints['one'] = { x: t.x + Math.floor(canvas.grid.size / 2), y: t.y + Math.floor(canvas.grid.size / 2) };
+	else {
+		const bounds = t.bounds;
+		for (let x = bounds.x; x < bounds.right; x += canvas.grid.size) {
+			for (let y = bounds.y; y < bounds.bottom; y += canvas.grid.size) {
+				if (x === bounds.x || x === bounds.right - canvas.grid.size || y === bounds.y || y === bounds.bottom - canvas.grid.size) {
+					const newX = x;
+					const newY = y;
+					const centerPoint = { x: newX + Math.floor(canvas.grid.size / 2), y: newY + Math.floor(canvas.grid.size / 2) };
+					const newID = `${centerPoint.x}_${centerPoint.y}`;
+					if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
+				}
+			}
+		}
+	}
+	return Object.values(perimeterCenterPoints);
 }
 
 function calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) {
