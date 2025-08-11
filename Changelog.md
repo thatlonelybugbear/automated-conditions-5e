@@ -1,4 +1,5 @@
 ## 13.504.8
+* Reworked distance calculations for Hex, Gridless and Square gridded scenes
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
