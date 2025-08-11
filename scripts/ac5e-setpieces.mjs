@@ -232,7 +232,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	if (settings.debug) console.error('AC5E._ac5eFlags:', { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
 
-	const distanceToSource = (token) => _getDistance(token, subjectToken);
+	const distanceToSource = (token, wallsBlock) => _getDistance(token, subjectToken, false, true, wallsBlock, true);
 	// const distanceToTarget = (token) => _getDistance(token, opponentToken);
 
 	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
@@ -255,11 +255,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return { actorType, mode, isAll: el.key.includes('all') };
 	};
 	const validFlags = {};
-	const inAuraRadius = (token, radius) => {
-		//radius = radius?.match(/\d+$/)?.[0];  // no need anymore as we are evaluating the radius beforehand.
-		if (!radius) return false;
-		return distanceToSource(token) <= radius;
-	};
+
 	//Will return false only in case of both tokens being available AND the value includes allies OR enemies and the test of dispositionCheck returns false;
 	const friendOrFoe = (tokenA, tokenB, value) => {
 		if (!tokenA || !tokenB) return true;
@@ -267,24 +263,33 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ token = undefined, change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData, evaluationData }) => {
+	const effectChangesTest = ({ change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData, evaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
 		if (!hasHook) return false;
 		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates });
 		if (!shouldProceedUses) return false;
-		if (change.value.toLocaleLowerCase().includes('itemLimited')) {
+		if (change.value.toLowerCase().includes('itemlimited')) {
 			if (evaluationData && evaluationData.item?.uuid === effect.origin) return true;
 			else return false;
 		}
-		if (change.key.includes('aura')) {
+		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
-			if (token === subjectToken) return change.value.includes('includeSelf');
-			if (!friendOrFoe(token, subjectToken, change.value)) return false;
+			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
+			if (auraTokenEvaluationData.auraTokenId === subjectToken.id) return change.value.toLowerCase().includes('includeself');
+			if (!friendOrFoe(auraToken, subjectToken, change.value)) return false;
 			let radius = getBlacklistedKeysValue('radius', change.value);
-			if (radius) radius = _ac5eSafeEval({ expression: bonusReplacements(radius, auraTokenEvaluationData, true, effect), sandbox: auraTokenEvaluationData });
-			if (inAuraRadius(token, radius)) return true;
+			if (!radius) return false;
+			radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
+			if (!radius) return false;
+			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData });
+			if (!radius) return false;
+			const distanceTokenToAuraSource = distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock'));
+			if (distanceTokenToAuraSource <= radius) {
+				auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
+				return true;
+			}
 			else return false;
 		} else if (change.key.includes('grants')) {
 			//isGrants
@@ -325,34 +330,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (expression.includes('##')) expression = isAura ? expression.replaceAll('##', 'rollingActor.') : expression.replaceAll('##', 'opponentActor.');
 		if (expression.includes('effectOriginActor')) {
 			const tok = _getEffectOriginToken(effect, 'token');
-			if (tok?.actor) expression = Roll.fromTerms(Roll.parse(expression.replaceAll('effectOriginActor.', '@'), _ac5eActorRollData(tok))).formula;
-		}
-		if (expression.includes('rollingActor')) {
-			const pattern = /\brollingActor(?:\.[a-zA-Z_$][\w$]*)+/g;
-			expression = expression.replaceAll(pattern, (match) => {
-				const replaced = match.replace('rollingActor.', '@');
-				return Roll.fromTerms(Roll.parse(replaced, evalData.rollingActor)).formula;
-			});
-		}
-		if (expression.includes('opponentActor')) {
-			const pattern = /\bopponentActor(?:\.[a-zA-Z_$][\w$]*)+/g;
-			expression = expression.replaceAll(pattern, (match) => {
-				const replaced = match.replace('opponentActor.', '@');
-				return Roll.fromTerms(Roll.parse(replaced, evalData.opponentActor)).formula;
-			});
-		}
-		if (isAura && expression.includes('auraActor')) {
-			const pattern = /\bauraActor(?:\.[a-zA-Z_$][\w$]*)+/g;
-			expression = expression.replaceAll(pattern, (match) => {
-				const replaced = match.replace('auraActor.', '@');
-				return Roll.fromTerms(Roll.parse(replaced, evalData.auraActor)).formula;
-			});
+			evalData.effectOriginActor = _ac5eActorRollData(tok);
 		}
 		return expression;
 	};
 
-	const blacklist = ['bonus', 'radius', 'modifier', 'usesCount', 'threshold', 'singleAura', 'includeSelf', 'allies', 'enemies', 'once', 'itemLimited']; // bonus, radius, usesCount, threshold will be followed by : or =
-
+	const blacklist = new Set(['bonus', 'radius', 'modifier', 'usescount', 'threshold', 'singleaura', 'includeself', 'allies', 'enemies', 'once', 'itemlimited', 'wallsblock']);
+	
 	const effectDeletions = [];
 	const effectUpdates = [];
 	// const placeablesWithRelevantAuras = {};
@@ -360,7 +344,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!token.actor) return false;
 		// if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
 		// }
-		const distanceTokenToAuraSource = distanceToSource(token);
+		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
 		let auraTokenEvaluationData;
 		if (foundry.utils.isNewerVersion(game.system.version, '5.0.0')) {
@@ -371,6 +355,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					auraActor: _ac5eActorRollData(token),
 					isAuraSourceTurn: currentCombatant === token?.id,
 					auraTokenId: token.id,
+					//distanceTokenToAuraSource,
 				},
 				{ inplace: false }
 			);
@@ -379,14 +364,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			auraTokenEvaluationData.auraActor = _ac5eActorRollData(token) || {};
 			auraTokenEvaluationData.isAuraSourceTurn = currentCombatant === token?.id;
 			auraTokenEvaluationData.auraTokenId = token.id;
+			//auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
 		}
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token, change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }))
+				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
 					let bonus, modifier, threshold;
+					const wallsBlock = el.value.toLowerCase().includes('wallsblock');
 					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
@@ -404,16 +391,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
 						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
-						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
+						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
-					const auraOnlyOne = el.value.includes('singleAura');
+					const auraOnlyOne = el.value.toLowerCase().includes('singleaura');
 					let valuesToEvaluate = el.value
 						.split(';')
 						.map((v) => v.trim())
 						.filter((v) => {
 							if (!v) return false;
 							const [key] = v.split(/[:=]/).map((s) => s.trim());
-							return !blacklist.includes(key);
+							return !blacklist.has(key.toLowerCase());
 						})
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
@@ -427,7 +414,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						if (sameAuras.length) {
 							for (const aura of sameAuras) {
 								const auraBonus = validFlags[aura].bonus;
-								if ((!auraBonus.includes('d') && !bonus.includes('d') && auraBonus < bonus) || ((!auraBonus.includes('d') || !bonus.includes('d')) && validFlags[aura].distance > _getDistance(token, subjectToken))) {
+								// if ((!auraBonus.includes('d') && !bonus.includes('d') && auraBonus < bonus) || ((!auraBonus.includes('d') || !bonus.includes('d')) && validFlags[aura].distance > _getDistance(token, subjectToken, false, true, wallsBlock))) {
+								if ((!isNaN(auraBonus) && !isNaN(bonus) && auraBonus < bonus) || ((!isNaN(auraBonus) || !isNaN(bonus)) && validFlags[aura].distance > _getDistance(token, subjectToken, false, true, wallsBlock))) {
 									delete validFlags[aura];
 								} else return true;
 							}
@@ -442,6 +430,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		delete evaluationData.auraActor;
 		delete evaluationData.isAuraSourceTurn;
 		delete evaluationData.auraTokenId;
+		delete evaluationData.distanceTokenToAuraSource; //might be added in the data and we want it gone if not needed
 	}
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
@@ -475,7 +464,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					.filter((v) => {
 						if (!v) return false;
 						const [key] = v.split(/[:=]/).map((s) => s.trim());
-						return !blacklist.includes(key);
+						return !blacklist.has(key.toLowerCase());
 					})
 					.join(';');
 				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
@@ -524,7 +513,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						.filter((v) => {
 							if (!v) return false;
 							const [key] = v.split(/[:=]/).map((s) => s.trim());
-							return !blacklist.includes(key);
+							return !blacklist.has(key.toLowerCase());
 						})
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
@@ -597,7 +586,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 function handleUses({ actorType, change, effect, effectDeletions, effectUpdates }) {
 	if (actorType !== 'subject') return true;
 	const values = change.value.split(';');
-	const hasCount = getBlacklistedKeysValue('usesCount', change.value);
+	const hasCount = getBlacklistedKeysValue('usescount', change.value.toLowerCase());
 	const isOnce = values.find((use) => use.includes('once'));
 	if (!hasCount && !isOnce) {
 		return true;
@@ -624,7 +613,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 				const index = changes.findIndex((c) => c.key === change.key);
 
 				if (index >= 0) {
-					changes[index].value = changes[index].value.replace(/usesCount\s*[:=]\s*\d+/, `usesCount=${newUses}`);
+					changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${newUses}`);
 
 					if (!isTransfer) {
 						effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes }, documentType: 'ActiveEffect' });
@@ -633,7 +622,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 						if (newUses === 0) {
 							if (!hasInitialUsesFlag) effect.update({ disabled: true });
 							else {
-								changes[index].value = changes[index].value.replace(/usesCount\s*[:=]\s*\d+/, `usesCount=${hasInitialUsesFlag}`);
+								changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${hasInitialUsesFlag}`);
 								effect.update({ changes, disabled: true });
 							}
 						} else {
@@ -651,6 +640,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 function getBlacklistedKeysValue(key, values) {
 	const regex = new RegExp(`^\\s*${key}\\s*[:=]\\s*(.+)$`);
 	const parts = values
+		.toLowerCase()
 		.split(';')
 		.map((e) => e.trim())
 		.map((e) => regex.exec(e))
