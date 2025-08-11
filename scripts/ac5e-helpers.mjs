@@ -89,6 +89,31 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					}
 				}
 			}
+		} else if (grid.isSquare) {
+			//const tokensIntersection = tokenA.bounds.intersection(tokenB.bounds);
+			const tokenASquares = getSquaresOnPerimeter(tokenA);
+			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
+			const tokenBSquares = getSquaresOnPerimeter(tokenB);
+			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+			for (const pointA of tokenASquares) {
+				for (const pointB of tokenBSquares) {
+					if (
+						checkCollision &&
+						CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
+							source: tokenB.document,
+							mode: 'any',
+							type: checkCollision,
+						})
+					)
+						continue;
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						totalDistance = distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+					}
+				}
+			}
 		}
 	}
 
@@ -180,6 +205,23 @@ function getGridlessSquaresOnPerimeter(t) {
 					const newID = `${centerPoint.x}_${centerPoint.y}`;
 					if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
 				}
+			}
+		}
+	}
+	return Object.values(perimeterCenterPoints);
+}
+
+function getSquaresOnPerimeter(t) {
+	const perimeterCenterPoints = {};
+	const clipperPoints = t.shape.toClipperPoints();
+	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
+		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
+			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
+				const newX = t.x + x;
+				const newY = t.y + y;
+				const centerPoint = canvas.grid.getCenterPoint({ i: Math.floor(newY / canvas.grid.size), j: Math.floor(newX / canvas.grid.size) });
+				const newID = `${centerPoint.x}_${centerPoint.y}`;
+				if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
 			}
 		}
 	}
@@ -1038,13 +1080,7 @@ export function _raceOrType(actor, dataType = 'race') {
 }
 
 export function _generateAC5eFlags() {
-	const daeFlags = [
-		'flags.automated-condition-5e.crossbowExpert',
-		'flags.automated-condition-5e.sharpShooter',
-		'flags.automated-conditions-5e.attack.criticalThreshold',
-		'flags.automated-conditions-5e.grants.attack.criticalThreshold',
-		'flags.automated-conditions-5e.aura.attack.criticalThreshold',
-	];
+	const daeFlags = ['flags.automated-condition-5e.crossbowExpert', 'flags.automated-condition-5e.sharpShooter', 'flags.automated-conditions-5e.attack.criticalThreshold', 'flags.automated-conditions-5e.grants.attack.criticalThreshold', 'flags.automated-conditions-5e.aura.attack.criticalThreshold'];
 
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'success'];
@@ -1067,7 +1103,7 @@ export function _getValidColor(color, fallback, user) {
 	if (['false', 'none', 'null', '0'].includes(lower)) return lower;
 	else if (['user', 'game.user.color'].includes(lower)) return user?.color?.css || fallback;
 	else if (lower === 'default') return fallback;
-	
+
 	// Accept valid hex format directly
 	if (/^#[0-9a-f]{6}$/i.test(lower)) return lower;
 
