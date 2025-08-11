@@ -10,6 +10,8 @@ const settings = new Settings();
  * evaluating perimeter grid spaces they occupy and checking for walls blocking.
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, checkCollision = false, includeHeight = true) {
+	let totalDistance = Infinity;
+	
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (typeof tokenA === 'string') {
 		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
@@ -19,18 +21,18 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		if (tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
 		else tokenB = canvas.tokens.get(tokenB);
 	}
-	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return undefined;
+	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
 
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units: canvas.scene.grid.units });
 		if (includeUnits) return result + (includeUnits ? canvas.scene.grid.units : '');
-		if (result === -1) return undefined;
+		if (result === -1) return totalDistance;
 		return result;
 	}
 
 	const { grid } = canvas || {};
-	if (!grid) return Infinity;
+	if (!grid) return totalDistance;
 	const { grid: { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance } = {} } = canvas || {};
 	let diagonals, spaces;
 
