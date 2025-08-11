@@ -9,7 +9,7 @@ const settings = new Settings();
  * Gets the minimum distance between two tokens,
  * evaluating perimeter grid spaces they occupy and checking for walls blocking.
  */
-export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, collisionCheck = false, includeHeight = true) {
+export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, checkCollision = false, includeHeight = true) {
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (typeof tokenA === 'string') {
 		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
