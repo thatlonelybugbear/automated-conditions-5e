@@ -1147,7 +1147,7 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	} catch (err) {
 		result = undefined;
 	}
-	if (settings.debug) console.log('AC5E._ac5eSafeEval:', { expression, result });
+	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval:', { result, expression, evaluationData: sandbox });
 	return result;
 }
 
@@ -1305,7 +1305,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox[''];
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
-	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._createEvaluationSandbox logging the available data:', { evaluationData: sandbox });
+	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: sandbox });
 	return sandbox;
 }
 
