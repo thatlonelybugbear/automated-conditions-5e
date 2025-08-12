@@ -1,6 +1,14 @@
 ## 13.504.8
 * Compatibility bump Foundry v13.347
 * Reworked distance calculations for Hex, Gridless and Square gridded scenes
+  * Changed the _getDistance signature to comply with newest version
+  * Reworked logic for wallsBlocking auras (new keyword)
+* Support for non case sensitive keywords (blacklist is now a Set; faster)
+  * Reworked handleUses to support this
+  * You can now use usesCount or usescount or UsEsCoUnT etc
+* Fixes for includeSelf and allies/enemies issues
+* Added `effectOriginActor` in available evaluation data as needed.
+* Supporing dashes in evaluations of rollData (useful for scale value, use as @scale.paladin['aura-range'].value
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
