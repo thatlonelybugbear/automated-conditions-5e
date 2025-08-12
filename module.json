@@ -14,7 +14,7 @@
     "compatibility": {
         "minimum": "12",
         "maximum": "13",
-        "verified": "13.346"
+        "verified": "13.347"
     },
     "esmodules": ["scripts/ac5e-main.mjs"],
     "relationships": {
