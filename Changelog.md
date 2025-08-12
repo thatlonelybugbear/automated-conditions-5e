@@ -1,6 +1,8 @@
 ## 13.504.8
 * Compatibility bump Foundry v13.347
 * Reworked distance calculations for Hex, Gridless and Square gridded scenes
+  * Gridless distance calculations offer some leeway for close together tokens. Any distance longer than `canvas.grid.distance` and shorter than `canvas.grid.distance * 1.25` will be considered equal to `canvas.grid.distance`
+    * eg if the grid distance is 5ft and a token is between 5ft and 6.25ft away, it will be considered 5ft away, so that you can still use targeting rules (if you don't force targeting, this will not be taken into consideration).
   * Changed the _getDistance signature to comply with newest version
   * Reworked logic for wallsBlocking auras (new keyword)
 * Support for non case sensitive keywords (blacklist is now a Set; faster)
