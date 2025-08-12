@@ -84,4 +84,16 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
 	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
 	globalThis[Constants.MODULE_NAME_SHORT].logEvaluationData = false;
+	globalThis[Constants.MODULE_NAME_SHORT]._target = targetDef;
 }
+
+function targetDef () {
+	// Dynamically returns the first selected target of the current user via ac5e._target
+	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], "_target", {
+		get() {
+			return game?.user?.targets?.first();
+		},
+		configurable: true
+	});
+}
+
