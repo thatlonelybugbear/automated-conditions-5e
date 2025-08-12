@@ -18,10 +18,10 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
 			const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
 			const tables = testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
-	
+
 			for (const status of actor.statuses) {
 				const test = status === 'exhaustion' && isSubjectExhausted ? tables?.[status]?.[exhaustionLvl]?.[options.hook]?.[type] : tables?.[status]?.[options.hook]?.[type];
-	
+
 				if (!test) continue;
 				if (settings.debug) console.log(type, test);
 				const effectName = tables?.[status]?.name;
@@ -289,8 +289,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (distanceTokenToAuraSource <= radius) {
 				auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
 				return true;
-			}
-			else return false;
+			} else return false;
 		} else if (change.key.includes('grants')) {
 			//isGrants
 			if (actorType !== 'opponent') return false;
@@ -336,7 +335,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 
 	const blacklist = new Set(['bonus', 'radius', 'modifier', 'usescount', 'threshold', 'singleaura', 'includeself', 'allies', 'enemies', 'once', 'itemlimited', 'wallsblock']);
-	
+
 	const effectDeletions = [];
 	const effectUpdates = [];
 	// const placeablesWithRelevantAuras = {};
@@ -589,7 +588,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 function handleUses({ actorType, change, effect, effectDeletions, effectUpdates }) {
 	if (actorType !== 'subject') return true;
 	const values = change.value.split(';');
-	const hasCount = getBlacklistedKeysValue('usescount', change.value.toLowerCase());
+	const hasCount = getBlacklistedKeysValue('usescount', change.value);
 	const isOnce = values.find((use) => use.includes('once'));
 	if (!hasCount && !isOnce) {
 		return true;
@@ -601,13 +600,18 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 		effect.update({ disabled: true });
 	} else if (hasCount && actorType === 'subject') {
 		const isNumber = parseInt(hasCount, 10);
-		const isUuid = foundry.utils.parseUuid(hasCount);
+		const commaSeparated = hasCount.split(',');
+		let itemActivityfromUuid = !!fromUuidSync(commaSeparated[0]) && fromUuidSync(commaSeparated[0]);
+		const consumeMoreUses = parseInt(commaSeparated[1], 10); //consume more than one; usage: usesCount=5,2 meaning consume 2 uses per activation
 
 		if (!isNaN(isNumber)) {
 			if (isNumber === 0) {
 				return false;
 			}
-			const newUses = isNumber - 1;
+
+			const newUses = isNaN(consumeMoreUses) ? isNumber - 1 : isNumber - consumeMoreUses;
+
+			if (newUses < 0) return false; //if you need to consume more uses than available (can only happen if moreUses exists)
 
 			if (newUses === 0 && !isTransfer) {
 				effectDeletions.push(effect.id);
@@ -635,13 +639,33 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 					}
 				}
 			}
+		} else {
+			if (hasCount.toLowerCase().includes('origin')) {
+				itemActivityfromUuid = fromUuidSync(effect.origin);
+				if (itemActivityfromUuid instanceof Actor) {
+					//to-do: Allow for consuming actor attributes etc directly and not only via activities, like consuming hp; probably not be needed, but could be done.
+					ui.notifications.error(`You are using 'origin' in effect ${effect.name}, but you have created it directly on the actor and does not have an associated item or activity; Returning false in ac5e.handleUses;`);
+					return false;
+				}
+			}
+			if (itemActivityfromUuid) {
+				const item = itemActivityfromUuid instanceof Item && itemActivityfromUuid;
+				const activity = !item && itemActivityfromUuid.type !== 'undefined' && itemActivityfromUuid;
+				const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
+				if (!currentUses) return false;
+				const newUses = isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses;
+				if (newUses < 0) return false;
+				const spent = (item?.system?.uses?.spent ?? activity?.uses?.spent) + consumeMoreUses;
+				if (item) item.update({ 'system.uses.spent': spent });
+				else if (activity) activity.update({ 'uses.spent': spent });
+			}
 		}
 	}
 	return true;
 }
 
 function getBlacklistedKeysValue(key, values) {
-	const regex = new RegExp(`^\\s*${key}\\s*[:=]\\s*(.+)$`, 'i');  //matching usesCOunT: 6 or usesCount=6 and returning the value after the :=
+	const regex = new RegExp(`^\\s*${key}\\s*[:=]\\s*(.+)$`, 'i'); //matching usesCOunT: 6 or usesCount=6 and returning the value after the :=
 	const parts = values
 		.split(';')
 		.map((e) => e.trim())
