@@ -85,7 +85,8 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
-						totalDistance = distance2D < 6.25 ? 5 : distance2D;
+						const leeway = settings.autoRangedCombined !== 'off' ? gridDistance * 1.25 : false; //@to-do: offer a setting to turn on and set to user choice.
+						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
 						diagonals = pathDiagonals;
 						spaces = pathSpaces;
 					}
