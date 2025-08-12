@@ -9,6 +9,10 @@
   * Reworked handleUses to support this
   * You can now use usesCount or usescount or UsEsCoUnT etc
 * Fixes for includeSelf and allies/enemies issues
+* Added logic to consume uses from Owned Items. Use with:
+ * `usesCount: origin, 2` to consume 2 uses from the activity or item that has applied the AE on the actor
+ * `usesCount= item or activity UUID` to consume 1 use from the linked item or activity
+   * If you include a comma separated Number, it will be the amount of uses needed to be available and then consumed.
 * Added `effectOriginActor` in available evaluation data as needed.
 * Support dashes in evaluations of rollData (useful for scale value, use as @scale.paladin['aura-range'].value
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
