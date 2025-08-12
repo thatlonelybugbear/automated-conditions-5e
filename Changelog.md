@@ -1,4 +1,5 @@
 ## 13.504.8
+* Compatibility bump Foundry v13.347
 * Reworked distance calculations for Hex, Gridless and Square gridded scenes
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
