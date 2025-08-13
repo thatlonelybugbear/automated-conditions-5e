@@ -11,7 +11,7 @@ const settings = new Settings();
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, checkCollision = false, includeHeight = true) {
 	let totalDistance = Infinity;
-	
+
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (typeof tokenA === 'string') {
 		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
@@ -132,12 +132,11 @@ function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid
 	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
 	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
 	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
-	const versionTest = grid.isGridless && 'nogrid' || grid.isHexagonal && game.version < 13 && 'v12hex';
-	if (test === 'nogrid') {
+	const versionTest = (grid.isGridless && 'nogrid') || (grid.isHexagonal && game.version < 13 && 'v12hex');
+	if (versionTest === 'nogrid') {
 		const verticalDistance = dz * grid.distance;
-		totalDistance = (dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance);
-	}
-	else if (test === 'v12hex') totalDistance += dz * grid.distance;
+		totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance;
+	} else if (versionTest === 'v12hex') totalDistance += dz * grid.distance;
 	else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
 	return totalDistance;
 }
@@ -158,7 +157,7 @@ function getHexesOnPerimeter(t) {
 		const hex = canvas.grid.getCenterPoint(pointToCube);
 		hex.id = hex.x + hex.y;
 		if (!foundHexes[hex.id] && hex.x > t.bounds.left && hex.x < t.bounds.right && hex.y < t.bounds.bottom && hex.y > t.bounds.top) {
-			foundHexes[hex.id] = hex; // or hexID
+			foundHexes[hex.id] = hex;
 		}
 	}
 	return Object.values(foundHexes);
@@ -169,7 +168,6 @@ function nudgeToward(point, center, distance = 0.2) {
 	const radians = Math.atan2(dy, dx);
 	const degrees = radians * (180 / Math.PI);
 	const nudgedPoint = getHexTranslatedPoint(point, degrees, distance);
-	//	console.log(`Nudged point from (${point.x}, ${point.y}) to (${nudgedPoint.x}, ${nudgedPoint.y}) towards center (${center.x}, ${center.y})`);
 	return [nudgedPoint.x, nudgedPoint.y];
 }
 
