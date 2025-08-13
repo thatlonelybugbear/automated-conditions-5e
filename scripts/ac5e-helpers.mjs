@@ -129,7 +129,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid) {
 	tokenA.z0 = (tokenA.document.elevation / grid.distance) | 0;
 	tokenA.z1 = tokenA.z0 + Math.min(tokenA.document.width | 0, tokenA.document.height | 0);
-	tokenB.z0 = tokenB.document.elevation / grid.distance;
+	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
 	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
 	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
 	const versionTest = grid.isGridless && 'nogrid' || grid.isHexagonal && game.version < 13 && 'v12hex';
