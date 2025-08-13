@@ -1,4 +1,4 @@
-## 13.504.8.1
+## 13.504.8.2
 * Small fixes for distance calculations
 
 ## 13.504.8
