@@ -127,12 +127,17 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 }
 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid) {
-	tokenA.z0 = tokenA.document.elevation / grid.distance;
+	tokenA.z0 = (tokenA.document.elevation / grid.distance) | 0;
 	tokenA.z1 = tokenA.z0 + Math.min(tokenA.document.width | 0, tokenA.document.height | 0);
 	tokenB.z0 = tokenB.document.elevation / grid.distance;
 	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
 	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
-	if (grid.isGridless) totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + dz * dz) : totalDistance;
+	const versionTest = grid.isGridless && 'nogrid' || grid.isHexagonal && game.version < 13 && 'v12hex';
+	if (test === 'nogrid') {
+		const verticalDistance = dz * grid.distance;
+		totalDistance = (dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance);
+	}
+	else if (test === 'v12hex') totalDistance += dz * grid.distance;
 	else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
 	return totalDistance;
 }
@@ -216,7 +221,7 @@ function getGridlessSquaresOnPerimeter(t) {
 
 function getSquaresOnPerimeter(t) {
 	const perimeterCenterPoints = {};
-	const clipperPoints = t.shape.toClipperPoints();
+	const clipperPoints = game.version < 13 ? t.shape.toPolygon().toClipperPoints() : t.shape.toClipperPoints();
 	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
 		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
 			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
