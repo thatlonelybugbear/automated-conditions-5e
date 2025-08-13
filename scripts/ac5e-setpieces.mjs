@@ -252,6 +252,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		else if (testTypes.includes('bonus')) mode = 'bonus';
 		else if (testTypes.includes('success')) mode = 'success';
 		else if (testTypes.includes('fumble')) mode = 'fumble';
+		else if (testTypes.includes('ac')) mode = 'targetAC';
+		else if (testTypes.includes('dc')) mode = 'targetDC';
 		return { actorType, mode, isAll: el.key.includes('all') };
 	};
 	const validFlags = {};
@@ -371,7 +373,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
-					let bonus, modifier, threshold;
+					let bonus, modifier, threshold, target;
 					const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
 					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
@@ -386,6 +388,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (isModifier) {
 						const replacementModifier = bonusReplacements(isModifier, auraTokenEvaluationData, true, effect);
 						modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
+					}
+					const isTargetAC = hook === 'attack' ? getBlacklistedKeysValue('targetac', el.value) : false;
+					if (isTargetAC) {
+						const replacementTargetAC = bonusReplacements(isTargetAC, auraTokenEvaluationData, true, effect);
+						if (isLiteralOrDiceExpression(replacementTargetAC)) target = replacementTargetAC.trim();
+						else target = _ac5eSafeEval({ expression: replacementTargetAC, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
+					}
+					if (isTargetDC) {
+						const replacementTargetDC = bonusReplacements(isTargetDC, auraTokenEvaluationData, true, effect);
+						if (isLiteralOrDiceExpression(replacementTargetDC)) target = replacementTargetDC.trim();
+						else target = _ac5eSafeEval({ expression: replacementTargetDC, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
@@ -421,7 +434,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 							}
 						}
 					}
-					validFlags[`${effect.name} - Aura (${token.name})`] = { name: effect.name, actorType, mode, bonus, modifier, threshold, evaluation, isAura: true, auraUuid: effect.uuid, auraTokenUuid: token.document.uuid, distance: _getDistance(token, subjectToken) };
+					validFlags[`${effect.name} - Aura (${token.name})`] = { name: effect.name, actorType, mode, bonus, modifier, target, threshold, evaluation, isAura: true, auraUuid: effect.uuid, auraTokenUuid: token.document.uuid, distance: _getDistance(token, subjectToken) };
 				})
 		);
 	});
@@ -438,7 +451,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
-				let bonus, modifier, threshold;
+				let bonus, modifier, threshold, target;
 				let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 				if (isBonus) {
 					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
@@ -452,6 +465,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (isModifier) {
 					const replacementModifier = bonusReplacements(isModifier, evaluationData, false, effect);
 					modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData /*canBeStatic: true*/ });
+				}
+				const isTargetAC = hook === 'attack' ? getBlacklistedKeysValue('targetac', el.value) : false;
+				if (isTargetAC) {
+					const replacementTargetAC = bonusReplacements(isTargetAC, evaluationData, false, effect);
+					if (isLiteralOrDiceExpression(replacementTargetAC)) target = replacementTargetAC.trim();
+					else target = _ac5eSafeEval({ expression: replacementTargetAC, sandbox: evaluationData /*canBeStatic: true*/ });
+				}
+				if (isTargetDC) {
+					const replacementTargetDC = bonusReplacements(isTargetDC, evaluationData, false, effect);
+					if (isLiteralOrDiceExpression(replacementTargetDC)) target = replacementTargetDC.trim();
+					else target = _ac5eSafeEval({ expression: replacementTargetDC, sandbox: evaluationData /*canBeStatic: true*/ });
 				}
 				const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 				if (isThreshold) {
@@ -476,6 +500,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					mode,
 					bonus,
 					modifier,
+					target,
 					threshold,
 					evaluation: getMode({ value: valuesToEvaluate }),
 				};
@@ -488,7 +513,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
-					let bonus, modifier, threshold;
+					let bonus, modifier, target, threshold;
 					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
@@ -502,6 +527,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (isModifier) {
 						const replacementModifier = bonusReplacements(isModifier, evaluationData, false, effect);
 						modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData /*canBeStatic: true*/ });
+					}
+					if (isTargetAC) {
+						const replacementTargetAC = bonusReplacements(isTargetAC, evaluationData, false, effect);
+						if (isLiteralOrDiceExpression(replacementTargetAC)) target = replacementTargetAC.trim();
+						else target = _ac5eSafeEval({ expression: replacementTargetAC, sandbox: evaluationData /*canBeStatic: true*/ });
+					}
+					if (isTargetDC) {
+						const replacementTargetDC = bonusReplacements(isTargetDC, evaluationData, false, effect);
+						if (isLiteralOrDiceExpression(replacementTargetDC)) target = replacementTargetDC.trim();
+						else target = _ac5eSafeEval({ expression: replacementTargetDC, sandbox: evaluationData /*canBeStatic: true*/ });
 					}
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
@@ -526,6 +561,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						mode,
 						bonus,
 						modifier,
+						target,
 						threshold,
 						evaluation: getMode({ value: valuesToEvaluate }),
 					};
@@ -556,6 +592,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (mod) ac5eConfig.modifiers.minimum = !inplaceMod || inplaceMod < mod ? mod : inplaceMod;
 				}
 			}
+			if (target) ac5eConfig.target = ac5eConfig.target.concat(target);
 			if (threshold) ac5eConfig.threshold = ac5eConfig.threshold.concat(threshold);
 		}
 	}
