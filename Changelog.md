@@ -1,3 +1,6 @@
+## 13.504.8.1
+* Small fixes for distance calculations
+
 ## 13.504.8
 * Compatibility bump Foundry v13.347
 * Distance Calculation Rework for Hex, Gridless, and Square-gridded scenes:
