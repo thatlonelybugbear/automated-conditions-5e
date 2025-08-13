@@ -15,6 +15,7 @@
    * Comma-separated number = required number of available uses and how many to consume.
 * Added `effectOriginActor` in available evaluation data as needed.
 * Now supports dashes in keys (useful for scale value, eg `@scale.paladin['aura-range'].value`)
+* Added global `ac5e._target` which returns `game.user.targets.first()`.
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
