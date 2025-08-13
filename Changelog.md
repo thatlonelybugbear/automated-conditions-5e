@@ -1,20 +1,20 @@
 ## 13.504.8
 * Compatibility bump Foundry v13.347
-* Reworked distance calculations for Hex, Gridless and Square gridded scenes
-  * Gridless distance calculations offer some leeway for close together tokens. Any distance longer than `canvas.grid.distance` and shorter than `canvas.grid.distance * 1.25` will be considered equal to `canvas.grid.distance`
-    * eg if the grid distance is 5ft and a token is between 5ft and 6.25ft away, it will be considered 5ft away, so that you can still use targeting rules (if you don't force targeting, this will not be taken into consideration).
-  * Changed the _getDistance signature to comply with newest version
-  * Reworked logic for wallsBlocking auras (new keyword)
-* Support for non case sensitive keywords (blacklist is now a Set; faster)
-  * Reworked handleUses to support this
-  * You can now use usesCount or usescount or UsEsCoUnT etc
-* Fixes for includeSelf and allies/enemies issues
-* Added logic to consume uses from Owned Items. Use with:
- * `usesCount: origin, 2` to consume 2 uses from the activity or item that has applied the AE on the actor
- * `usesCount= item or activity UUID` to consume 1 use from the linked item or activity
-   * If you include a comma separated Number, it will be the amount of uses needed to be available and then consumed.
+* Distance Calculation Rework for Hex, Gridless, and Square-gridded scenes:
+  * Gridless distances greater than `canvas.grid.distance` but less than `canvas.grid.distance * 1.25` are considered equal to `canvas.grid.distance`.
+    * Example: If grid distance is 5 ft, and a token is 5–6.25 ft away, it's treated as 5 ft — helpful for targeting when not enforcing strict distance.
+  * Updated _getDistance method signature.
+  * Reworked logic for `wallsBlocking` auras (new keyword)
+* Keyword Matching is Now Case-Insensitive
+  * Reworked `handleUses()` to support this change
+  * You can now use `usesCount` or `usescount` or `UsEsCoUnT` etc
+* Fixes for `includeSelf` and `allies`/`enemies` issues
+* Added logic to consume uses from `Owned Items`. Use with:
+ * `usesCount: origin, 2` consumes 2 uses from the origin item/activity.
+ * `usesCount = itemOrActivityUUID, uses` consumes 1 or specified number of uses.
+   * Comma-separated number = required number of available uses and how many to consume.
 * Added `effectOriginActor` in available evaluation data as needed.
-* Support dashes in evaluations of rollData (useful for scale value, use as @scale.paladin['aura-range'].value
+* Now supports dashes in keys (useful for scale value, eg `@scale.paladin['aura-range'].value`)
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 * Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
