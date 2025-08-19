@@ -335,177 +335,75 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	config.rolls[0] ??= {};
 	const roll0 = config.rolls[0];
 	roll0.options ??= {};
-	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) {
-		config.advantage = true;
-		dialog.options.advantageMode = ADV_MODE;
-		dialog.options.defaultButton = 'advantage';
-	}
-	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) {
-		config.disadvantage = true;
-		dialog.options.advantageMode = DIS_MODE;
-		dialog.options.defaultButton = 'disadvantage';
-	}
-	if (config.advantage === config.disadvantage) {
-		config.advantage = false;
-		config.disadvantage = false;
-		dialog.options.advantageMode = NORM_MODE;
-		dialog.options.defaultButton = 'normal';
-	}
-	if (ac5eConfig.hookType === 'attack' && ac5eConfig.threshold?.length) {
-		//for attack rolls
-		const signedPattern = /^[+-]/; // Only matches if starts with + or -
-		const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice expressions with optional sign
-		const maxDiceCap = 100;
-
-		let minTotal = 0;
-		let maxTotal = 0;
-
-		const additiveValues = [];
-		const staticValues = [];
-
-		for (const item of ac5eConfig.threshold) {
-			if (item == null) continue;
-
-			const cleaned = String(item).trim().replace(/\s+/g, '');
-			const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
-
-			for (let part of parts) {
-				part = part.trim();
-
-				// If it matches the dice pattern (with or without sign)
-				const match = part.match(dicePattern);
-				if (match) {
-					const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
-					const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
-					const sides = parseInt(match[3]);
-
-					let total = 0;
-					const rolls = [];
-					for (let i = 0; i < count; i++) {
-						const roll = Math.floor(Math.random() * sides) + 1;
-						rolls.push(roll);
-						total += roll;
-					}
-
-					const signedTotal = (sign === 0 ? 1 : sign) * total;
-
-					if (sign !== 0) {
-						additiveValues.push(signedTotal);
-						minTotal += sign * count * 1;
-						maxTotal += sign * count * sides;
-					} else {
-						staticValues.push(total);
-					}
-
-					if (settings.debug) {
-						console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - dice threshold:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
-					}
-
-					continue;
+	dialog.options.defaultButton = 'normal';
+	const hook = ac5eConfig.hookType;
+	const ac5eForcedRollTarget = 999;
+	if (hook === 'damage') {
+		if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
+			ac5eConfig.isCritical = true;
+			dialog.options.defaultButton = 'critical';
+		}
+	} else {
+		if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) {
+			config.advantage = true;
+			dialog.options.advantageMode = ADV_MODE;
+			dialog.options.defaultButton = 'advantage';
+		}
+		if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) {
+			config.disadvantage = true;
+			dialog.options.advantageMode = DIS_MODE;
+			dialog.options.defaultButton = 'disadvantage';
+		}
+		if (config.advantage === config.disadvantage) {
+			config.advantage = false;
+			config.disadvantage = false;
+			dialog.options.advantageMode = NORM_MODE;
+			dialog.options.defaultButton = 'normal';
+		}
+		if (hook === 'attack' && ac5eConfig.threshold?.length) {
+			//for attack rolls
+			const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
+			roll0.options.criticalSuccess = finalThreshold;
+			ac5eConfig.alteredCritThreshold = finalThreshold;
+		}
+		if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
+			if (roll0) {
+				roll0.options.criticalSuccess = 21;
+				roll0.options.target = ac5eForcedRollTarget;
+				if (hook === 'attack') {
+					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
+					const targets = message?.data?.flags?.dnd5e?.targets;
+					if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
 				}
-
-				// Signed integer (must start with + or -)
-				if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
-					const val = parseInt(part);
-					additiveValues.push(val);
-					minTotal += val;
-					maxTotal += val;
-					continue;
+			}
+		}
+		if (ac5eConfig.subject.success.length || ac5eConfig.opponent.success.length) {
+			if (roll0) {
+				roll0.options.criticalFailure = 0;
+				roll0.options.target = -ac5eForcedRollTarget;
+				if (hook === 'attack') {
+					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
+					const targets = message?.data?.flags?.dnd5e?.targets;
+					if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
 				}
-
-				// Unsigned static value
-				const parsed = parseInt(part);
-				if (!isNaN(parsed)) staticValues.push(parsed);
 			}
 		}
-		// Include original static threshold
-		staticValues.push(roll0.options.criticalSuccess ?? 20);
-
-		const newStaticThreshold = Math.min(...staticValues);
-		const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
-		const finalThreshold = newStaticThreshold + totalModifier;
-		if (settings.debug) {
-			console.warn(`${Constants.MODULE_NAME_SHORT} - ac5e.calcAdvantageMode() - Crit threshold:`, {
-				initialThreshold: roll0.options.criticalSuccess,
-				finalThreshold,
-			});
-		}
-		roll0.options.criticalSuccess = finalThreshold;
-		ac5eConfig.alteredCritThreshold = finalThreshold;
-	}
-	if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
-		// config.target = 1000;
-		if (_activeModule('midi-qol')) {
-			ac5eConfig.parts.push(-999);
-			if (config.workflow) {
-				// config.workflow._isCritical = false;
-				config.workflow.isCritical = false;
-			}
-			if (config.midiOptions) {
-				config.midiOptions.isCritical = false;
-				if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isCritical = false;
+		if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
+			ac5eConfig.isFumble = true;
+			if (roll0) {
+				roll0.options.criticalSuccess = 21;
+				roll0.options.criticalFailure = 20;
+				if (hook !== 'attack') roll0.options.target = ac5eForcedRollTarget;
 			}
 		}
-		if (roll0) {
-			roll0.options.criticalSuccess = 21;
-			roll0.options.target = 1000;
-		}
-	}
-	if (ac5eConfig.subject.success.length || ac5eConfig.opponent.success.length) {
-		// config.target = -1000;
-		if (_activeModule('midi-qol')) {
-			ac5eConfig.parts.push(+999);
-			if (config.workflow) {
-				// config.workflow._isFumble = false;
-				config.workflow.isFumble = false;
-			}
-			if (config.midiOptions) {
-				config.midiOptions.isFumble = false;
-				if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isFumble = false;
+		if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
+			ac5eConfig.isCritical = true;
+			if (roll0) {
+				roll0.options.criticalSuccess = 1;
+				roll0.options.criticalFailure = 0;
+				if (hook !== 'attack') roll0.options.target = -ac5eForcedRollTarget;
 			}
 		}
-
-		if (roll0) {
-			roll0.options.criticalFailure = 0;
-			roll0.options.target = -1000;
-		}
-	}
-	if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
-		// config.target = 1000;
-		if (config.workflow) {
-			// config.workflow._isFumble = true;
-			config.workflow.isFumble = true;
-		}
-		if (config.midiOptions) {
-			config.midiOptions.isFumble = true;
-			if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isFumble = true;
-		}
-		if (roll0) {
-			roll0.options.criticalSuccess = 21;
-			roll0.options.criticalFailure = 20;
-			roll0.options.isFumble = true;
-			roll0.options.target = 1000;
-		}
-	}
-	if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
-		ac5eConfig.isCritical = true;
-		// config.target = -1000;
-		if (roll0) roll0.options.target = -Infinity;
-		if (config.workflow) {
-			// config.workflow._isCritical = true;
-			config.workflow.isCritical = true;
-		}
-		if (config.midiOptions) {
-			config.midiOptions.isCritical = true;
-			if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isCritical = true;
-		}
-		if (roll0) {
-			roll0.options.criticalSuccess = 1;
-			roll0.options.criticalFailure = 0;
-			roll0.options.isCritical = true;
-			roll0.options.target = -1000;
-		}
-		if (ac5eConfig.hookType === 'damage') dialog.options.defaultButton = 'critical';
 	}
 	if (ac5eConfig.parts.length) {
 		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
@@ -520,6 +418,87 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
+}
+
+function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
+	const signedPattern = /^[+-]/; // Only matches if starts with + or -
+	const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice expressions with optional sign
+	const maxDiceCap = 100;
+
+	let minTotal = 0;
+	let maxTotal = 0;
+
+	const additiveValues = [];
+	const staticValues = [];
+
+	for (const item of ac5eValues) {
+		if (item == null) continue;
+
+		const cleaned = String(item).trim().replace(/\s+/g, '');
+		const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
+
+		for (let part of parts) {
+			part = part.trim();
+
+			// If it matches the dice pattern (with or without sign)
+			const match = part.match(dicePattern);
+			if (match) {
+				const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
+				const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
+				const sides = parseInt(match[3]);
+
+				let total = 0;
+				const rolls = [];
+				for (let i = 0; i < count; i++) {
+					const roll = Math.floor(Math.random() * sides) + 1;
+					rolls.push(roll);
+					total += roll;
+				}
+
+				const signedTotal = (sign === 0 ? 1 : sign) * total;
+
+				if (sign !== 0) {
+					additiveValues.push(signedTotal);
+					minTotal += sign * count * 1;
+					maxTotal += sign * count * sides;
+				} else {
+					staticValues.push(total);
+				}
+
+				if (settings.debug) {
+					console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
+				}
+
+				continue;
+			}
+
+			// Signed integer (must start with + or -)
+			if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
+				const val = parseInt(part);
+				additiveValues.push(val);
+				minTotal += val;
+				maxTotal += val;
+				continue;
+			}
+
+			// Unsigned static value
+			const parsed = parseInt(part);
+			if (!isNaN(parsed)) staticValues.push(parsed);
+		}
+	}
+	// Include original static value if provided
+	staticValues.push(initialValue ?? 20);
+
+	const newStaticThreshold = Math.min(...staticValues);
+	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
+	const finalValue = newStaticThreshold + totalModifier;
+	if (settings.debug) {
+		console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, {
+			initialValue,
+			finalValue,
+		});
+	}
+	return finalValue;
 }
 
 /**
