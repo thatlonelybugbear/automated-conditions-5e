@@ -1,6 +1,6 @@
 ## 13.504.9
 * Fix for incorrect doubling up of criticals.
- * For v13 and MidiQOL users, you'd better update your Midi to v13.0.16
+  * For v13 and MidiQOL users, you'd better update your Midi to v13.0.16
 
 ## 13.504.8.2
 * Small fixes for distance calculations
