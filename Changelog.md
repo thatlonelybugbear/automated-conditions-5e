@@ -1,7 +1,9 @@
+## 13.504.10
+* Added flags for `ac.bonus`, `aura.ac.bonus`, `grants.ac.bonus`, with a `bonus` provided in the effect value as normal
+
 ## 13.504.9
 * Fix for incorrect doubling up of criticals.
   * For v13 and MidiQOL users, you'd better update your Midi to v13.0.16
-* Added flags for `ac.bonus`, `aura.ac.bonus`, `grants.ac.bonus`, with a `bonus` provided in the effect value as normal
 
 ## 13.504.8.2
 * Small fixes for distance calculations
