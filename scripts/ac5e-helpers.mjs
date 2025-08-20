@@ -360,11 +360,39 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			dialog.options.advantageMode = NORM_MODE;
 			dialog.options.defaultButton = 'normal';
 		}
-		if (hook === 'attack' && ac5eConfig.threshold?.length) {
-			//for attack rolls
-			const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
-			roll0.options.criticalSuccess = finalThreshold;
-			ac5eConfig.alteredCritThreshold = finalThreshold;
+		if (hook === 'attack') {
+			if (ac5eConfig.threshold?.length) {
+				//for attack rolls
+				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
+				roll0.options.criticalSuccess = finalThreshold;
+				ac5eConfig.alteredCritThreshold = finalThreshold;
+			}
+			if (ac5eConfig.targetADC?.length) {
+				const targets = message?.data?.flags?.dnd5e?.targets;
+				const initialTargetAC = targets[0].ac;
+				let lowerTargetAC;
+				if (!foundry.utils.isEmpty(targets)) {
+					targets.forEach((target, index) => {
+						const alteredTargetAC = getAlteredTargetValueOrThreshold(targets[index].ac, ac5eConfig.targetADC, 'acBonus');
+						if (!isNaN(alteredTargetAC)) {
+							targets[index].ac = alteredTargetAC;
+							if (!lowerTargetAC || alteredTargetAC < lowerTargetAC) lowerTargetAC = alteredTargetAC;
+						}
+					});
+				}
+				if (!isNaN(lowerTargetAC)) {
+					roll0.options.target = lowerTargetAC;
+					ac5eConfig.alteredTargetAC = lowerTargetAC - initialTargetAC; //might be discrepancies for multiple targets
+				}
+			}
+		}
+		if (ac5eConfig.targetADC?.length && (hook === 'save' || hook === 'check' || hook === 'skill')) {
+			const initialTargetDC = roll0.options.target;
+			const alteredTargetDC = getAlteredTargetValueOrThreshold(initialTargetDC, ac5eConfig.targetADC, 'dcBonus');
+			if (!isNaN(alteredTargetDC)) {
+				roll0.options.target = alteredTargetDC;
+				ac5eConfig.alteredTargetDC = alteredTargetDC - initialTargetDC;
+			}
 		}
 		if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
 			if (roll0) {
@@ -687,6 +715,11 @@ export function _getTooltip(ac5eConfig = {}) {
 		const translationString = game.i18n.translations.DND5E.Critical + ' ' + game.i18n.translations.DND5E.Threshold + ' ' + alteredCritThreshold;
 		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
+	if (subject?.targetADC.length || opponent?.targetADC.length) {
+		const combinedArray = [...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])];
+		const translationString = hookType === 'attack' ? `AC ${game.i18n.translations.DND5E.Bonus} ${alteredTargetAC}` : `DC ${game.i18n.translations.DND5E.Bonus} ${alteredTargetDC}`;
+		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
+	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
 	return tooltip;
 }
@@ -717,6 +750,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			fumble: [],
 			modifiers: [],
 			criticalThreshold: [],
+			targetADC: [],
 		},
 		opponent: {
 			advantage: [],
@@ -728,9 +762,11 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			fumble: [],
 			modifiers: [],
 			criticalThreshold: [],
+			targetADC: [],
 		},
 		options,
 		parts: [],
+		targetADC: [],
 		threshold: [],
 		modifiers: {},
 		preAC5eConfig: {
