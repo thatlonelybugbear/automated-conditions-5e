@@ -1,4 +1,7 @@
-## 13.504.10
+## 13.512.1 
+* **System version 5.1.x compatible only**
+
+## 13.504.10 (system < v5.1.0 compatible)
 * This is the ***last release before 5.1.0*** becomes the minimum required version of the module.
   * Bugfixes will continue, but no new features will be added for versions < 5.1.0.
 * Added flags for modifying AC (you can use full evaluation conditions as normal).
