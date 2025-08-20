@@ -1093,7 +1093,7 @@ function sizeWarnings(targetCount, setting) {
 
 export function _raceOrType(actor, dataType = 'race') {
 	const systemData = actor?.system;
-	if (!systemData) return {};
+	if (!systemData || !systemData.details?.type) return {}; //the second conditional was needed due to a system but and was fixed in 5.1.1
 	let data;
 	if (actor.type === 'character' || actor.type === 'npc') {
 		data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
