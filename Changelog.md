@@ -1,17 +1,17 @@
 ## 13.504.10
-* This is the last release before 5.1.0 becomes the minimum required version of the module.
+* This is the ***last release before 5.1.0*** becomes the minimum required version of the module.
   * Bugfixes will continue, but no new features will be added for versions < 5.1.0.
 * Added flags for modifying AC (you can use full evaluation conditions as normal).
   * Usage with `bonus='+2'` to add 2, `bonus='1d20'` to set it to the result. Negative values to reduce.
-  * `flags.automated-conditions-5e.modifyAC`: (use `bonus='+2'`) will modify the AC of the actor it is applied on.
-  * `flags.automated-conditions-5e.grants.modifyAC`: (use `bonus='+2'`) will modify the AC of the attack's target.
+  * `flags.automated-conditions-5e.modifyAC`:  will modify the AC of the actor it is applied on.
+  * `flags.automated-conditions-5e.grants.modifyAC`:  will modify the AC of the attack's target.
   * `flags.automated-conditions-5e.aura.modifyAC`: (use `bonus` and `radius` etc as usual) will modify the AC of the actors in the aura.
 * Added flags for modifying DC, mainly to be used with `actionType` of `save`, `death`, `conc` (if `skill/tool/check` have a set DC then it will work there too)
   *  Usage with `bonus='+2'` to add 2, `bonus='1d20'` to set it to the result. Negative values to reduce.
   * `flags.automated-conditions-5e.<ACTIONTYPE>.modifyDC`: will modify the DC of the action the actor takes.
   * `flags.automated-conditions-5e.grants.<ACTIONTYPE>.modifyDC`: will modify the DC of the action another actor takes against the one with the effect.
-  * `flags.automated-conditions-5e.modifyAC`: (use `radius` as usual) will modify the DC of actions taken by actors in the aura.
-* Some small fixed and code refactor.
+  * `flags.automated-conditions-5e.aura.<ACTIONTYPE>.modifyDC`: (use `radius` as usual) will modify the DC of actions taken by actors in the aura.
+* Some small fixes and code refactor.
 
 ## 13.504.9
 * Fix for incorrect doubling up of criticals.
