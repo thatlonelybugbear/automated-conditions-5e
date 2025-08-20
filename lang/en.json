@@ -199,7 +199,7 @@
 			},
 			"modifyDC": {
 				"name": "Modify the DC of your actions. Will work for concentation checks and death saves you make too",
-				"description": "Replace ACTIONTYPE with one of: save/check/skill/tool/conc/death. eg bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). eg bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
 			},
 			"fail": {
 				"name": "d20 rolls fail",
@@ -237,7 +237,7 @@
 			},
 			"modifyDC": {
 				"name": "Modify the DC of a roll you make against an action taken by another",
-				"description": "Replace ACTIONTYPE with one of: save/check/skill/tool/conc/death. eg bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). eg bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
 			},
 			"fail": {
 				"name": "Grant failure to opponent's d20 rolls",
@@ -275,7 +275,7 @@
 			},
 			"modifyDC": {
 				"name": "An aura that modifies the DC of actions the affected tokens take.",
-				"description": "Replace ACTIONTYPE with one of: save/check/skill/tool/conc/death. Use bonus, radius as usual"
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus, radius as usual"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",
