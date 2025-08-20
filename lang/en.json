@@ -166,11 +166,11 @@
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modify the AC of the actor against incoming attacks",
-			"description": "Use bonus='18' or threshold='+5'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+			"description": "Use bonus='18' or bonus='+5'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.grant.modifyAC": {
 			"name": "Grant modified AC to the opponent of the attack",
-			"description": "Use bonus='18' or threshold='1d6'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+			"description": "Use bonus='18' or bonus='1d6'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "An aura modifying the AC of the relevant tokens in radius",
