@@ -233,27 +233,34 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (settings.debug) console.error('AC5E._ac5eFlags:', { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
 
 	const distanceToSource = (token, wallsBlock) => _getDistance(token, subjectToken, false, true, wallsBlock, true);
-	// const distanceToTarget = (token) => _getDistance(token, opponentToken);
+	const distanceToTarget = (token, wallsBlock) => _getDistance(token, opponentToken, false, true, wallsBlock, true);
 
 	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
 
 	const getActorAndModeType = (el, includeAuras = false) => {
-		let actorType, mode; //actorType designates which actor's rollData should this be evaluated upon; subject, opponent, aura
-		const testTypes = el.key?.toLocaleLowerCase();
-		if (testTypes.includes('grants')) actorType = 'opponent';
-		else if (includeAuras && testTypes.includes('aura')) actorType = 'subject';
-		else if (!testTypes.includes('aura') && !testTypes.includes('grants')) actorType = 'subject';
-		if (testTypes.includes('dis')) mode = 'disadvantage';
-		else if (testTypes.includes('adv')) mode = 'advantage';
-		else if (testTypes.includes('thres')) mode = 'criticalThreshold';
-		else if (testTypes.includes('crit')) mode = 'critical';
-		else if (testTypes.includes('mod')) mode = 'modifiers';
-		else if (testTypes.includes('fail')) mode = 'fail';
-		else if (testTypes.includes('bonus')) mode = 'bonus';
-		else if (testTypes.includes('success')) mode = 'success';
-		else if (testTypes.includes('fumble')) mode = 'fumble';
-		return { actorType, mode, isAll: el.key.includes('all') };
+		const key = el.key?.toLowerCase() ?? '';
+		const isAll = key.includes('all');
+
+		const actorType = key.includes('grants') ? 'opponent' : (includeAuras && key.includes('aura')) || (!key.includes('aura') && !key.includes('grants')) ? 'subject' : undefined;
+
+		const modeMap = [
+			['dis', 'disadvantage'],
+			['adv', 'advantage'],
+			['thres', 'criticalThreshold'],
+			['crit', 'critical'],
+			['modifyac', 'targetADC'], //we cleared the conflict with "mod" mode by going first
+			['modifydc', 'targetADC'],
+			['mod', 'modifiers'],
+			['bonus', 'bonus'],
+			['fail', 'fail'],
+			['fumble', 'fumble'],
+			['success', 'success'],
+		];
+
+		const mode = modeMap.find(([m]) => key.includes(m))?.[1];
+		return { actorType, mode, isAll };
 	};
+
 	const validFlags = {};
 
 	//Will return false only in case of both tokens being available AND the value includes allies OR enemies and the test of dispositionCheck returns false;
@@ -266,7 +273,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const effectChangesTest = ({ change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData, evaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
-		const hasHook = change.key.includes('all') || change.key.includes(hook) || (skill && change.key.includes('skill')) || (tool && change.key.includes('tool')) || (isConcentration && hook === 'save' && change.key.includes('conc')) || (isDeathSave && hook === 'save' && change.key.includes('death')) || (isInitiative && hook === 'check' && change.key.includes('init'));
+		const isAll = change.key.includes('all');
+		const isSkill = skill && change.key.includes('skill');
+		const isTool = tool && change.key.includes('tool');
+		const isConc = isConcentration && hook === 'save' && change.key.includes('conc');
+		const isInit = isInitiative && hook === 'check' && change.key.includes('init');
+		const isDeath = isDeathSave && hook === 'save' && change.key.includes('death');
+		const isModifyAC = change.key.includes('modifyAC') && hook === 'attack';
+		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isSkill || isTool);
+		const modifyHooks = isModifyAC || isModifyDC;
+		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks;
 		if (!hasHook) return false;
 		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates });
 		if (!shouldProceedUses) return false;
@@ -285,18 +301,23 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (!radius) return false;
 			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData });
 			if (!radius) return false;
-			const distanceTokenToAuraSource = distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
+			const distanceTokenToAuraSource = !isModifyAC ? distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight') : distanceToTarget(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
 			if (distanceTokenToAuraSource <= radius) {
 				auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
 				return true;
 			} else return false;
 		} else if (change.key.includes('grants')) {
 			//isGrants
-			if (actorType !== 'opponent') return false;
+			if (actorType === 'aura') return false;
+			else if (actorType === 'subject' && !(isModifyAC || isModifyDC)) return false;
+			else if (actorType === 'opponent' && isModifyDC) return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 			return true;
 		} else {
 			//isSelf
+			if (actorType === 'aura') return false;
+			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC)) return false;
+			else if (actorType === 'subject' && isModifyAC) return false;
 			if (actorType !== 'subject') return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 			return true;
@@ -373,14 +394,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (!actorType || !mode) return;
 					let bonus, modifier, threshold;
 					const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
-					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					let isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
-						//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
-						//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
 						//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
-						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
-						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
+						//bonus=`1d4[acid] + ${opponentActor.attributes.hp.value + 5}d12[fire]`
+						//v13.504.10 removing the isLiteralOrDiceExpression as it created more issues than the ones it solved.
+						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 					if (isModifier) {
@@ -439,14 +459,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
 				let bonus, modifier, threshold;
-				let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
+				let isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
 				if (isBonus) {
 					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
-					//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
-					//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
-					//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
-					if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
-					else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
+					bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 				}
 				const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 				if (isModifier) {
@@ -489,14 +505,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
 					let bonus, modifier, threshold;
-					let isBonus = mode === 'bonus' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					let isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
-						//isLiteralOrDiceExpression will return true if a bonus is a formula that can be used directly in a roll, like bonus=1d4[acid] + 5 +2d12[fire]
-						//otherwise we send it to be evaluated. In that case if for example we use ternary operators for evaluation, we need to add the bonuses as strings or Numbers, ie
-						//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
-						if (isLiteralOrDiceExpression(replacementBonus)) bonus = replacementBonus.trim();
-						else bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
+						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 					}
 					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 					if (isModifier) {
@@ -542,7 +554,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (hasEffectUpdate) validFlagsEffectUpdates.push(hasEffectUpdate.updates);
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
-			if (bonus) ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
+			if (bonus) {
+				if (mode === 'bonus') ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
+				else if (mode === 'targetADC') ac5eConfig.targetADC = ac5eConfig.targetADC.concat(bonus);
+			}
 			if (modifier) {
 				let mod;
 				if (modifier.includes('max')) {
