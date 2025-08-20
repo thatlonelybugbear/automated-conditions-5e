@@ -318,7 +318,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (actorType === 'aura') return false;
 			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC)) return false;
 			else if (actorType === 'subject' && isModifyAC) return false;
-			if (actorType !== 'subject') return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 			return true;
 		}
