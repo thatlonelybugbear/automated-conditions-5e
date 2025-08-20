@@ -20,7 +20,7 @@
 	"AC5E.ExpandedConditionsHint": "When enabled, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.AutoArmorName": "AC5e armor proficiency and equipment stealth disadvantage.",
 	"AC5E.AutoArmorHint": "When enabled, AC5e will automatically process proficiency in the equipped piece of armor for ability, skills and save rolls (STR || DEX) and check equipment for the stealth disadvantage property.",
-	"AC5E.ActivityUse" : {
+	"AC5E.ActivityUse": {
 		"Name": "Item Use Checks",
 		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification). The checked conditions are: incapacitated for relevant actions, and raging, silenced and not-proficient with armor when casting spells",
 		"Choices": {
@@ -45,7 +45,7 @@
 				"Enforce": "is silenced and cannot cast spells with verbal components. Spell cancelled!",
 				"Warn": "is silenced and cannot cast spells with verbal components."
 			}
-		}		
+		}
 	},
 	"AC5E.AutoRangedAttacksName": "Ranged attacks automation:",
 	"AC5E.AutoRangedAttacksHint": "'Off': AC5e will not process any distance checks; 'Ranged checks only': AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack; 'Range + Nearby foes': Hostiles adjacent to attacker will impose disadvantage on ranged attacks.",
@@ -164,6 +164,18 @@
 			"name": "An aura altering the criticalThreshold of the attacks in radius",
 			"description": "Use radius=10;threshold=18; or radius=15;threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
 		},
+		"flags.automated-conditions-5e.modifyAC": {
+			"name": "Modify the AC of the actor against incoming attacks",
+			"description": "Use bonus='18' or threshold='+5'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+		},
+		"flags.automated-conditions-5e.grant.modifyAC": {
+			"name": "Grant modified AC to the opponent of the attack",
+			"description": "Use bonus='18' or threshold='1d6'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+		},
+		"flags.automated-conditions-5e.aura.modifyAC": {
+			"name": "An aura modifying the AC of the relevant tokens in radius",
+			"description": "Use radius=10;bonus='18'; or radius=15;bonus='-1d6'. The former will set AC to 18 and the latter will add to the current; use negative to reduce"
+		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Roll with advantage",
@@ -184,6 +196,10 @@
 			"modifier": {
 				"name": "d20 rolls modifiers for max, min",
 				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+			},
+			"modifyDC": {
+				"name": "Modify the DC of your actions. Will work for concentation checks and death saves you make too",
+				"description": "Replace ACTIONTYPE with one of: save/check/skill/tool/conc/death. eg bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
 			},
 			"fail": {
 				"name": "d20 rolls fail",
@@ -219,6 +235,10 @@
 				"name": "Grant modifiers for max, min for opponent's d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier='min10'"
 			},
+			"modifyDC": {
+				"name": "Modify the DC of a roll you make against an action taken by another",
+				"description": "Replace ACTIONTYPE with one of: save/check/skill/tool/conc/death. eg bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
+			},
 			"fail": {
 				"name": "Grant failure to opponent's d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool"
@@ -252,6 +272,10 @@
 			"modifier": {
 				"name": "An aura giving modifiers for max, min on d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: attack/check/concentration/death/initiative/save/skill/tool. eg modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
+			},
+			"modifyDC": {
+				"name": "An aura that modifies the DC of actions the affected tokens take.",
+				"description": "Replace ACTIONTYPE with one of: save/check/skill/tool/conc/death. Use bonus, radius as usual"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",
