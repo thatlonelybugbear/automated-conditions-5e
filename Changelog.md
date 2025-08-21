@@ -1,3 +1,6 @@
+## 13.504.10.2
+* Fix for Modified AC and Modified DC translation strings missing
+
 ## 13.504.10.1
 * Reinstate riderStatuses in the evaluation data
   * Example of usage: `flags.automated-conditions-5e.save.advantage | Override | riderStatuses.poisoned` to automate Dwarven Resilience against getting the poisoned condition.
