@@ -1,4 +1,8 @@
 {
+	"AC5E.AutomateStatuses": {
+		"Name": "Automatyzacja statusów D&D5E",
+		"Hint": "Po włączeniu AC5E automatycznie dostosuje modyfikatory trybu utrudnienia/ułatwienia oraz trybu rzutów w oparciu o statusy systemu."
+	},
 	"AC5E.ShowTooltipsName": "Pokaż podpowiedzi AC5e:",
 	"AC5E.ShowTooltipsHint": "Po wybraniu odpowiedniej opcji, AC5e wyświetli przydatną podpowiedź po najechaniu kursorem na sugerowany przycisk Rzutu lub wygenerowaną wiadomość lub oba te elementy, podsumowując powody tej sugestii.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rzuty okien dialogowych i wiadomości czatu",
@@ -13,9 +17,9 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Własne",
 	"AC5E.ShowTooltipChatVisibility.Players": "Gracze",
 	"AC5E.ExpandedConditionsName": "Rozszerzone stany",
-	"AC5E.ExpandedConditionsHint": "Po zaznaczeniu tej opcji AC5e spróbuje zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
+	"AC5E.ExpandedConditionsHint": "Po włączeniu AC5e będzie próbował zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
 	"AC5E.AutoArmorName": "Biegłość w pancerzu AC5e i sprzęt utrudniający skradanie się.",
-	"AC5E.AutoArmorHint": "Po sprawdzeniu, AC5e automatycznie przetworzy biegłość w wyposażonym elemencie zbroi dla zdolności, umiejętności i rzutów obronnych (SIŁ || ZRĘ) oraz sprawdzi wyposażenie pod kątem kary skradania się.",
+	"AC5E.AutoArmorHint": "Po włączeniu tej opcji AC5e automatycznie uwzględni biegłość w posługiwaniu się wyposażonym elementem zbroi podczas rzutów na atrybuty, umiejętności i rzuty obronne (SIŁ || ZR) oraz sprawdzi wyposażenie pod kątem kary skradania się.",
 	"AC5E.ActivityUse" : {
 		"Name": "Sprawdzanie użycia przedmiotów",
 		"Hint": "Gdy użycie przedmiotu jest niedozwolone, AC5e „nie podejmuje żadnych działań”, jedynie „ostrzega” (powiadomienie) lub „egzekwuje” (anulowanie rzutu + powiadomienie). Sprawdzane są następujące stany: obezwładnienie uniemożliwiające wykonanie odpowiednich działań, szał, uciszenie oraz brak biegłości w posługiwaniu się zbroją podczas rzucania zaklęć.",
@@ -49,9 +53,9 @@
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Tylko sprawdzanie zasięgu",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Zasięg + pobliscy wrogowie",
 	"AC5E.AutoExhaustionName": "Automatyzacja wyczerpania.",
-	"AC5E.AutoExhaustionHint": "Po zaznaczeniu tej opcji i korzystaniu ze starszych zasad dnd5e, AC5e będzie automatycznie przetwarzać normalne zasady stanu Wyczerpania z 5e.",
+	"AC5E.AutoExhaustionHint": "Po włączeniu tej opcji i korzystaniu ze starych zasad dnd5e, AC5e automatycznie przetworzy normalne zasady dotyczące stanu Wyczerpania z 5e.",
 	"AC5E.AutoEncumbranceName": "Wariant obciążenia.",
-	"AC5E.AutoEncumbranceHint": "Po zaznaczeniu tej opcji, AC5e będzie automatycznie przetwarzać zasady Obciążenia z wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
+	"AC5E.AutoEncumbranceHint": "Po włączeniu AC5e automatycznie przetworzy zasady Obciążenia wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
 	"AC5E.Targeting": {
 		"Name": "Opcje celowania ataków",
 		"Hint": "Jeśli nie wybrano żadnego celu lub wybrano wiele celów do ataku, wybierz sposób, w jaki AC5e ma zareagować.",
@@ -75,6 +79,7 @@
 	"AC5E.DebuggingHint": "Po prostu przydatne dzienniki do debugowania podczas programowania. Prawdopodobnie nie ma sensu, aby użytkownicy go włączali :)",
 	"AC5E.WarCaster": "Bitewny Mag",
 	"AC5E.Fail": "Porażka",
+	"AC5E.Alert": "Alarm",
 	"AC5E.FailLowerCase": "porażka",
 	"AC5E.Fumble": "Porażka",
 	"AC5E.Rage": "Szał",
@@ -82,6 +87,11 @@
 	"AC5E.SubtleSpell": "Subtelne zaklęcie",
 	"AC5E.OutOfRange": "Poza zasięgiem",
 	"AC5E.Item": "Przedmiot",
+	"AC5E.Feats": {
+		"CrossbowExpert": "Ekspert kuszy",
+		"Sharpshooter": "Strzelec wyborowy",
+		"SpellSniper": "Strzelec zaklęć"
+	},
 	"AC5E.Equipment": "Ekwipunek",
 	"AC5E.NearbyFoe": "Pobliski wróg",
 	"AC5E.ButtonColorPicker": {
@@ -117,6 +127,7 @@
 	"AC5E.TargetGrantsFumble": "Przyznanie porażki",
 	"AC5E.TargetGrantsSuccess": "Przyznanie sukcesu",
 	"AC5E.TargetGrantsBonus": "Przyznanie bonusu",
+	"AC5E.TargetGrantsModifier": "Przyznany modyfikator",
 	"AC5E.NoChanges": "Bez zmian",
 	"AC5E.SystemMode": "Tryb systemowy",
 	"AC5E.EnvironmentalHazards": {
@@ -135,6 +146,22 @@
 			"name": "Strzelec wyborowy",
 			"description": "Brak utrudnienia przy strzelaniu z broni dystansowej z dużej odległości lub z odległości mniejszej niż 5 stóp od wroga"
 		},
+		"flags.automated-condition-5e.spellSniper": {
+			"name": "Strzelec zaklęć",
+			"description": "W przypadku zasad z 2024 r. nie ma utrudnień w rzucaniu zaklęć dystansowych w odległości do 5 stóp od wroga, a jeśli mają one zasięg co najmniej 10 stóp, dodaje się 60 stóp więcej."
+		},
+		"flags.automated-conditions-5e.attack.criticalThreshold": {
+			"name": "Zmiana krytycznego progu ataków",
+			"description": "Użyj threshold=18 lub threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+		},
+		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+			"name": "Zmodyfikuj wartość krytycznego progu dla ataków przeciwnika",
+			"description": "Użyj threshold=18 lub threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+		},
+		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
+			"name": "Aura modyfikująca krytyczny próg ataków w obszarze działania",
+			"description": "Użyj radius=10;threshold=18; lub radius=15;threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rzut z ułatwieniem",
@@ -142,7 +169,7 @@
 			},
 			"bonus": {
 				"name": "Rzut otrzymuje premię",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - @abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Rzut jest krytyczny (nat20 lub obrażenia krytyczne)",
@@ -151,6 +178,10 @@
 			"disadvantage": {
 				"name": "Rzut z utrudnieniem",
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Rzuty modyfikatorów k20 dla wartości maksymalnej i minimalnej",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
 			},
 			"fail": {
 				"name": "porażka przy rzucie k20",
@@ -172,7 +203,7 @@
 			},
 			"bonus": {
 				"name": "Przyznaj bonus dla rzutów przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - @abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Przyznaj krytyk (nat20 lub obrażenia) dla rzutów przeciwnika",
@@ -181,6 +212,10 @@
 			"disadvantage": {
 				"name": "Przyznaj utrudnienie dla rzutów k20 przeciwnika",
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+			},
+			"modifier": {
+				"name": "Modyfikatory do maksymalnych i minimalnych wyników rzutów kostką k20 przeciwnika",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'"
 			},
 			"fail": {
 				"name": "Przyznaj porażkę dla rzutów k20 przeciwnika",
@@ -211,6 +246,10 @@
 			"disadvantage": {
 				"name": "Aura zapewniająca utrudnienie",
 				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
+			},
+			"modifier": {
+				"name": "Aura nadająca modyfikatory do maksymalnej i minimalnej wartości rzutu k20",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
 			},
 			"fail": {
 				"name": "Aura wymuszająca porażkę dla rzutów k20",

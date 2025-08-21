@@ -10,7 +10,7 @@
 <br>
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-2.4.1-red?style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-3.3.1-red?style=for-the-badge)
-![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-4.4.3-red?style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-4.4.4-red?style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
 
 ## Description
@@ -25,7 +25,7 @@ Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/thatlonelybugbear)
 
-🏰 You can also join the Bugbear’s Den to hang out, get help, or check what I might be working on!
+You can also join the Bugbear’s Den to hang out, get help, or check what I might be working on!
 
 👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
 <hr>
@@ -60,6 +60,7 @@ Small adjustments for differences in the rest of the conditions too, as needed.
   <summary><b>Modern Rules</b></summary>
   
 - No `exhaustion` automation, as this is handled by the system,
+- `Grappled` will give disadvantage on all attacks, except for ones against your Grappler,
 - `Hiding` will give advantage on initiative rolls,
 - `Incapacitated` will give disadvantage on initiative rolls, in addition to the legacy rules,
 - `Invisibility` will give advantage on initiative rolls, in addition to the legacy rules.

@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _getActionType, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -21,23 +21,39 @@ export function _rollFunctions(hook, ...args) {
 	} else if (['check' /*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
 		return _preRollAbilityTest(config, dialog, message, hook);
-	// } else if (hook === 'consumptionHook') {
-	// 	const [activity, config, dialog, message] = args;
-	// 	return _postConsumptionHook(activity, config, dialog, message);
 	} else if (hook === 'init') {
 		const [actor, rollConfig] = args;
 		return _preConfigureInitiative(actor, rollConfig, hook);
 	}
 }
-function getMessageData(config) {
-	const messageId = config.event?.currentTarget?.dataset?.messageId; //config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageUuid = config?.midiOptions?.itemCardUuid;
+function getMessageData(config, hook) {
+	const messageId = config.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
+	const messageUuid = config?.workflow?.itemCardUuid; //for midi
 	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : false;
 
 	const { activity: activityObj, item: itemObj, targets, messageType, use } = message?.flags?.dnd5e || {};
 	const item = fromUuidSync(itemObj?.uuid);
 	const activity = fromUuidSync(activityObj?.uuid);
 	const options = {};
+	options.d20 = {};
+	if (hook === 'damage') {
+		if (_activeModule('midi-qol')) {
+			options.d20.attackRollTotal = config?.workflow?.attackTotal;
+			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
+			options.d20.hasAdvantage = config?.workflow?.advantage;
+			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
+			options.d20.isCritical = config?.midiOptions?.isCritical;
+			options.d20.isFumble = config?.midiOptions?.isFumble;
+		} else {
+			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
+			options.d20.attackRollTotal = findAttackRoll?.total;
+			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
+			options.d20.hasAdvantage = findAttackRoll?.options?.advantageMode > 0;
+			options.d20.hasDisadvantage = findAttackRoll?.options?.advantageMode < 0;
+			options.d20.isCritical = findAttackRoll?.options?.isCritical ?? config?.isCritical;
+			options.d20.isFumble = findAttackRoll?.options?.isFumble ?? config?.isFumble;
+		}
+	}
 	options.messageId = messageId;
 	options.spellLevel = activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message.speaker || {};
@@ -55,6 +71,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
 	const options = { ability, skill, tool, hook, activity };
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
 	if (item.type === 'spell' && useWarnings) {
@@ -107,12 +124,14 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
-	if (invalidTargets && needsTarget === 'force') return false;
-	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+	if (invalidTargets) {
+		if (needsTarget !== 'source') return false;
+		else singleTargetToken = undefined;
+	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
-	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);
+	// _calcAdvantageMode(ac5eConfig, usageConfig, dialogConfig, messageConfig);   //@to-do: Still need to make a better check for `use` checks in setpieces, but no need to altering advMode or bonus etc
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	return true;
 }
@@ -125,7 +144,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 // }
 
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
-	const chatButtonTriggered = getMessageData(config);
+	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
@@ -134,6 +153,8 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 	const speaker = message?.data?.speaker;
 	const rollTypeObj = message?.flags?.dnd5e?.roll;
@@ -168,11 +189,18 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
-export function _preRollAbilityTest(config, dialog, message, hook) {
+export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest:', { config, dialog, message });
-	const chatButtonTriggered = getMessageData(config);
+	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
+	let ac5eConfig;
+	if (options.isInitiative) {
+		ac5eConfig = config?.rolls[0]?.options?.[Constants.MODULE_ID];
+		dialog.options.advantageMode = ac5eConfig.advantageMode;
+		dialog.options.defaultButton = ac5eConfig.defaultButton;
+		return _setAC5eProperties(ac5eConfig, config, dialog, message, ac5eConfig.options);
+	}
 	const { subject, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const speaker = message?.data?.speaker;
 	options.skill = skill;
@@ -180,18 +208,17 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	options.ability = ability;
 	options.hook = hook;
 	options.activity = activity;
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
 	const subjectToken = canvas.tokens.get(subjectTokenId);
 	let opponentToken;
-	//to-do: not ready for this yet. The following like would make it so checks would be perfomred based on target's data/effects
+	//to-do: not ready for this yet. The following line would make it so checks would be perfomred based on target's data/effects
 	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
-	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 
+	ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
 
-	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
-	if (options.isInitiative && (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
 	//check Auto Armor
 	//to-do: move to setPieces
@@ -209,17 +236,23 @@ export function _preRollAbilityTest(config, dialog, message, hook) {
 	return ac5eConfig;
 }
 
-export function _preRollAttackV2(config, dialog, message, hook) {
+export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.error('AC5e _preRollAttackV2', hook, { config, dialog, message });
-	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls } = config || {};
+	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls, ammunition, attackMode, mastery } = config || {};
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
-	const chatButtonTriggered = getMessageData(config);
-	const { messageId, item, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const chatButtonTriggered = getMessageData(config, hook);
+	const { messageId, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
+	options.ammo = ammunition;
+	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
+	options.attackMode = attackMode;
+	options.mastery = mastery;
+	const item = activity?.item;
+	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -229,10 +262,12 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
-	if (invalidTargets && needsTarget === 'force') return false;
-	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
+	if (invalidTargets) {
+		if (needsTarget !== 'source') return false;
+		else singleTargetToken = undefined;
+	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
@@ -243,7 +278,7 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 		if (nearbyFoe) {
 			ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
 		}
-		if (!inRange) {
+		if (!config.workflow?.AoO && !inRange) {
 			ac5eConfig.subject.fail.push(_localize('AC5E.OutOfRange'));
 		}
 		if (range === 'long') {
@@ -258,26 +293,41 @@ export function _preRollAttackV2(config, dialog, message, hook) {
 	if (_autoEncumbrance(sourceActor, ability)) {
 		ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(_i18nConditions('HeavilyEncumbered'));
 	}
+	const modernRules = settings.dnd5eModernRules;
+	//check for heavy item property
+	const automateHeavy = settings.automateHeavy;
+	if (automateHeavy) {
+		const isHeavy = item?.system.properties.has('hvy');
+		if (isHeavy) {
+			const isSmall = modernRules ? (activity?.actionType === 'mwak' && sourceActor.system.abilities.str.value < 13) || (activity?.actionType === 'rwak' && sourceActor.system.abilities.dex.value < 13) : sourceToken.document.width * sourceToken.document.height * sourceToken.document.texture.scaleX * sourceToken.document.texture.scaleY < 1;
+			if (isSmall) {
+				const localizationStr = game.version > 13 ? 'DND5E.ITEM.Property.Heavy' : 'DND5E.Item.Property.Heavy';
+				ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize(localizationStr)}`);
+			}
+		}
+	}
 	if (settings.debug) console.warn('AC5E._preRollAttackV2:', { ac5eConfig });
-	// _setAC5eProperties(ac5eConfig, config, dialog, message);
-	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
+	_calcAdvantageMode(ac5eConfig, config, dialog, message);
+	return ac5eConfig; //return so if we retrigger the function manually we get updated results.
 }
 
-export function _preRollDamageV2(config, dialog, message, hook) {
+export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollDamageV2', hook, { config, dialog, message });
-	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition } = config || {};
+	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const {
 		//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets for now, unless we don't care for multiple tokens of a linked actor.
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
-	const chatButtonTriggered = getMessageData(config);
-	const { messageId, item, /*activity,*/ attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
-	options.ability = ability;
-	options.attackMode = attackMode;
+	const chatButtonTriggered = getMessageData(config, hook);
+	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
+	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
+	options.attackMode = attackMode;
+	options.mastery = mastery;
 	options.activity = activity;
 	options.hook = hook;
+	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
@@ -287,17 +337,18 @@ export function _preRollDamageV2(config, dialog, message, hook) {
 
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
-	if (invalidTargets && needsTarget === 'force') return false;
-	else if (invalidTargets && needsTarget === 'source') singleTargetToken = undefined;
-
+	if (invalidTargets) {
+		if (needsTarget !== 'source') return false;
+		else singleTargetToken = undefined;
+	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
-	return true;
+	return ac5eConfig; //we need to be returning the ac5eConfig object to re-eval when needed in the renderHijacks
 }
 
 export function _renderHijack(hook, render, elem) {
@@ -305,32 +356,13 @@ export function _renderHijack(hook, render, elem) {
 	if (settings.debug) console.warn('AC5E._renderHijack:', { hook, render, elem });
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
 		getConfigAC5E = render.config?.[Constants.MODULE_ID] ?? render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
+		if (!getConfigAC5E) return;
 		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
 		if (getConfigAC5E.options.skill || getConfigAC5E.options.tool) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
-			if (selectedAbility !== getConfigAC5E.options.ability) {
-				const newConfig = render.config;
-				newConfig.ability = selectedAbility;
-				newConfig.advantage = undefined;
-				newConfig.disadvantage = undefined;
-				newConfig.rolls[0].options.advantageMode = 0;
-				const oldDefaultButton = getConfigAC5E.defaultButton;
-				const getEvaluatedAC5eButton = elem.querySelector(`button[data-action="${oldDefaultButton}"]`);
-				getEvaluatedAC5eButton.classList.remove('ac5e-button');
-				getEvaluatedAC5eButton.removeAttribute('data-tooltip');
-				const newDialog = { options: { window: { title: render.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-				const newMessage = render.message;
-				getConfigAC5E = _preRollAbilityTest(newConfig, newDialog, newMessage, 'check');
-				const newDefaultButton = getConfigAC5E.defaultButton;
-				if (settings.buttonColorEnabled && oldDefaultButton !== newDefaultButton) {
-					const testButtons = ['advantage', 'disadvantage', 'normal'].find((a) => oldDefaultButton !== a && newDefaultButton !== a);
-					const getOtherButtonDefaults = elem.querySelector(`button[data-action="${testButtons}"]`);
-					if (settings.buttonColorBackground) getEvaluatedAC5eButton.style.backgroundColor = getOtherButtonDefaults.style.backgroundColor;
-					if (settings.buttonColorBorder) getEvaluatedAC5eButton.style.border = getOtherButtonDefaults.style.border;
-					if (settings.buttonColorText) getEvaluatedAC5eButton.style.color = getOtherButtonDefaults.style.color;
-				}
-			}
-		}
+			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
+		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
+		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
 		const { hookType, options } = getConfigAC5E || {};
 		if (!hookType) return true;
 		let tokenName;
@@ -517,27 +549,28 @@ export function _renderSettings(app, html, data) {
 function renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
-		{ key: 'buttonColorBorder', default: 'white' },
-		{ key: 'buttonColorText', default: 'white' },
+		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
+		{ key: 'buttonColorText', default: '#f8f8ff' }, //this is Ghost White
 	];
-
 	for (let { key, default: defaultValue } of colorSettings) {
 		const settingKey = `${Constants.MODULE_ID}.${key}`;
 		const input = html.querySelector(`[name="${settingKey}"]`);
-
 		if (!input) continue;
 
-		let colorPicker = document.createElement('input');
+		const colorPicker = document.createElement('input');
 		colorPicker.type = 'color';
 		colorPicker.classList.add('color-picker');
 
 		const updateColorPicker = () => {
 			const val = input.value.trim().toLowerCase();
-			const resolved = _getValidColor(val);
-
-			if (resolved === false) {
+			const resolved = _getValidColor(val, defaultValue, game.user);
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
 				colorPicker.style.display = 'none';
 			} else {
+				if (resolved !== val) {
+					input.value = resolved;
+					input.dispatchEvent(new Event('change'));
+				}
 				colorPicker.value = resolved;
 				colorPicker.style.display = '';
 			}
@@ -548,14 +581,37 @@ function renderColoredButtonSettings(html) {
 			input.dispatchEvent(new Event('change'));
 		});
 
-		input.addEventListener('input', updateColorPicker);
+		input.addEventListener('input', () => {
+			const val = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(val, defaultValue, game.user);
+
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+			} else {
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+			}
+		});
 
 		input.addEventListener('blur', () => {
-			if (input.value.trim() === '') {
-				input.value = defaultValue;
-				input.dispatchEvent(new Event('change'));
-				updateColorPicker();
+			const raw = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(raw, defaultValue, game.user);
+
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+
+				input.value = resolved; // Normalize input display here
+				game.settings.set(Constants.MODULE_ID, key, resolved);
+			} else {
+				input.value = resolved;
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+				game.settings.set(Constants.MODULE_ID, key, resolved);
 			}
+		});
+
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') input.blur(); // triggers blur logic
 		});
 
 		input.insertAdjacentElement('afterend', colorPicker);
@@ -576,7 +632,6 @@ function renderColoredButtonSettings(html) {
 				}
 			}
 		};
-
 		toggle.addEventListener('change', updateVisibility);
 		updateVisibility();
 	}
@@ -615,14 +670,20 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	const config = rollConfig.options;
 	const options = {};
 	options.isInitiative = true;
-	options.preConfigInitiative = true;
 	options.hook = hook;
+	const initAbility = rollConfig.data?.attributes?.init?.ability;
+	const ability = initAbility === '' ? 'dex' : initAbility;
+	options.ability = ability;
 	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
 	//to-do: match the flags or init mode with the tooltip blurb
-	if ((subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0)) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
-	if ((subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0)) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
+	if (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
-	
+
+	//to-do: move to setPieces
+	if (settings.autoArmor) {
+		if (['dex', 'str'].includes(ability) && _autoArmor(subject).notProficient) ac5eConfig.subject.disadvantage.push(`${_localize(_autoArmor(subject).notProficient)} (${_localize('NotProficient')})`);
+	}
 	//to-do: move to setPieces
 	if (_autoEncumbrance(subject, 'dex')) {
 		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
@@ -636,21 +697,139 @@ export function _preConfigureInitiative(subject, rollConfig) {
 		rollConfig.options.advantageMode = 1;
 		rollConfig.advantage = true;
 		rollConfig.disadvantage = false;
-	}
-	else if (advantageMode < 0) {
+	} else if (advantageMode < 0) {
 		rollConfig.advantageMode = -1;
 		rollConfig.options.advantageMode = -1;
 		rollConfig.advantage = false;
 		rollConfig.disadvantage = true;
-	}
-	else if  (advantageMode === 0) {
+	} else if (advantageMode === 0) {
 		rollConfig.advantageMode = 0;
 		rollConfig.options.advantageMode = 0;
 		rollConfig.advantage = false;
 		rollConfig.disadvantage = false;
 	}
+
+	ac5eConfig.advantageMode = advantageMode;
+	ac5eConfig.defaultButton = advantageMode === 0 ? 'normal' : advantageMode > 0 ? 'advantage' : 'disadvantage';
+
 	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
 	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
 	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
+}
+
+function doDialogAttackRender(dialog, elem, getConfigAC5E) {
+	const selectedAmmunition = elem.querySelector('select[name="ammunition"]')?.value;
+	const selectedAttackMode = elem.querySelector('select[name="attackMode"]')?.value;
+	const selectedMastery = elem.querySelector('select[name="mastery"]')?.value;
+	const hasAmmunition = getConfigAC5E.options.ammo;
+	const hasAttackMode = getConfigAC5E.options.attackMode;
+	const hasMastery = getConfigAC5E.options.mastery;
+	const change = hasAmmunition && selectedAmmunition && hasAmmunition !== selectedAmmunition ? 'ammunition' : hasAttackMode && selectedAttackMode && hasAttackMode !== selectedAttackMode ? 'attackMode' : hasMastery && selectedMastery && hasMastery !== selectedMastery ? 'mastery' : false;
+	if (!change) {
+		if (hasAmmunition && selectedAmmunition) dialog.config[Constants.MODULE_ID].usedPartsAmmunition = dialog.config[Constants.MODULE_ID].usedPartsAmmunition ?? dialog.config[Constants.MODULE_ID].parts;
+		if (hasAttackMode) dialog.config[Constants.MODULE_ID].usedPartsAttackMode = dialog.config[Constants.MODULE_ID].usedPartsAttackMode ?? dialog.config[Constants.MODULE_ID].parts;
+		if (hasMastery) dialog.config[Constants.MODULE_ID].usedPartsMastery = dialog.config[Constants.MODULE_ID].usedPartsMastery ?? dialog.config[Constants.MODULE_ID].parts;
+		return;
+	}
+	const newConfig = dialog.config;
+	if (selectedAmmunition) newConfig.ammunition = selectedAmmunition;
+	if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
+	if (selectedMastery) newConfig.mastery = selectedMastery;
+	if (change === 'ammunition') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
+	if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
+	if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
+	newConfig.advantage = undefined;
+	newConfig.disadvantage = undefined;
+	newConfig.rolls[0].options.advantageMode = 0;
+	if (newConfig.midiOptions) {
+		newConfig.midiOptions.isCritical = false;
+		newConfig.midiOptions.advantage = false;
+		newConfig.midiOptions.disadvantage = false;
+	}
+	newConfig.rolls[0].options.maximum = null;
+	newConfig.rolls[0].options.minimum = null;
+	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newMessage = dialog.message;
+	getConfigAC5E = _preRollAttackV2(newConfig, newDialog, newMessage, 'attack');
+	dialog.rebuild();
+	dialog.render();
+}
+
+function doDialogDamageRender(dialog, elem, getConfigAC5E) {
+	const rollsLength = dialog.config.rolls.length;
+	const selects = Array.fromRange(rollsLength)
+		.map((el) => {
+			const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
+			if (labelSpan) return labelSpan;
+
+			// If there's no <select>, get the roll options damage type
+			const damageType = dialog.config.rolls[el].options.type;
+			if (damageType) return damageType;
+		})
+		.filter(Boolean);
+	const formulas = Array.from(elem.querySelectorAll('.formula'))
+		.map((el) => el.textContent?.trim())
+		.filter(Boolean);
+
+	const damageTypes = getConfigAC5E.options.damageTypes;
+	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
+	const compared = compareArrays(damageTypesArray, selects);
+	if (compared.equal) {
+		dialog.config[Constants.MODULE_ID].usedParts = dialog.config[Constants.MODULE_ID].usedParts ?? dialog.config[Constants.MODULE_ID].parts;
+		return;
+	}
+	const newConfig = dialog.config;
+	getConfigAC5E.options.defaultDamageType = undefined;
+	getConfigAC5E.options.damageTypes = undefined;
+	getConfigAC5E.options.selectedDamageTypes = undefined;
+
+	const reEval = getConfigAC5E.reEval ?? {};
+	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
+	reEval.initialRolls = getConfigAC5E.reEval?.initialRolls ?? newConfig.rolls.map((roll) => ({ parts: roll.parts, options: { maximum: roll.options.maximum, minimum: roll.options.minimum } }));
+	reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
+	newConfig.rolls[compared.index].options.type = compared.selectedValue;
+	const wasCritical = getConfigAC5E.preAC5eConfig.wasCritical;
+	if (newConfig.midiOptions) newConfig.midiOptions.isCritical = wasCritical;
+	for (let i = 0; i < rollsLength; i++) {
+		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
+		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedParts?.includes(part));
+		newConfig.rolls[i].options.maximum = reEval.initialRolls[i].options.maximum;
+		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
+		newConfig.rolls[i].options.isCritical = wasCritical;
+	}
+	const newDialog = { options: { window: { title: dialog.message.data.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
+	const newMessage = dialog.message;
+	getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage', reEval);
+	dialog.rebuild();
+	dialog.render();
+}
+
+function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility) {
+	const newConfig = dialog.config;
+	newConfig.ability = selectedAbility;
+	newConfig.advantage = undefined;
+	newConfig.disadvantage = undefined;
+	newConfig.rolls[0].options.advantageMode = 0;
+	newConfig.rolls[0].parts = [];
+	newConfig.rolls[0].options.maximum = null;
+	newConfig.rolls[0].options.minimum = null;
+
+	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newMessage = dialog.message;
+	const reEval = getConfigAC5E.reEval ?? {};
+
+	getConfigAC5E = _preRollAbilityTest(newConfig, newDialog, newMessage, 'check', reEval);
+	dialog.rebuild();
+	dialog.render();
+}
+
+function compareArrays(a, b) {
+	const len = Math.max(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		if (a[i] !== b[i]) {
+			return { equal: false, index: i, initialValue: a[i], selectedValue: b[i] };
+		}
+	}
+	return { equal: true };
 }

@@ -1,4 +1,5 @@
 import Constants from './ac5e-constants.mjs';
+import { scopeUser } from './ac5e-main.mjs';
 
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
@@ -22,16 +23,26 @@ export default class Settings {
 	static ColorPicker_Border = 'buttonColorBorder';
 	static ColorPicker_Text = 'buttonColorText';
 	static AUTOMATE_ENVIRONMENTAL_HAZARDS = 'autoHazards';
+	static AUTOMATE_HEAVY = 'automateHeavy';
+	static AUTOMATE_STATUSES = 'automateStatuses';
 
 	registerSettings() {
 		this._registerWorldSettings();
 	}
 
 	_registerWorldSettings() {
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_STATUSES, {
+			name: 'AC5E.AutomateStatuses.Name',
+			hint: 'AC5E.AutomateStatuses.Hint',
+			scope: 'world',
+			config: true,
+			default: true,
+			type: Boolean,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipsName',
 			hint: 'AC5E.ShowTooltipsHint',
-			scope: 'client',
+			scope: scopeUser,
 			config: true,
 			default: 'both',
 			type: String,
@@ -44,7 +55,7 @@ export default class Settings {
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_MODULE_NAME_IN_TOOLTIPS, {
 			name: 'AC5E.ShowModuleNameInTooltipsName',
-			scope: 'client',
+			scope: scopeUser,
 			config: true,
 			default: true,
 			type: Boolean,
@@ -66,7 +77,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Enabled, {
 			name: 'AC5E.ButtonColorPicker.Enabled.Name',
 			hint: 'AC5E.ButtonColorPicker.Enabled.Hint',
-			scope: 'client',
+			scope: scopeUser,
 			config: true,
 			default: true,
 			type: Boolean,
@@ -74,26 +85,26 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Background, {
 			name: 'AC5E.ButtonColorPicker.Background.Name',
 			hint: 'AC5E.ButtonColorPicker.Background.Hint',
-			scope: 'client',
+			scope: scopeUser,
 			config: true,
 			default: '#288bcc',
-			type: String
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Border, {
 			name: 'AC5E.ButtonColorPicker.Border.Name',
 			hint: 'AC5E.ButtonColorPicker.Border.Hint',
-			scope: 'client',
+			scope: scopeUser,
 			config: true,
 			default: 'white',
-			type: String
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Text, {
 			name: 'AC5E.ButtonColorPicker.Text.Name',
 			hint: 'AC5E.ButtonColorPicker.Text.Hint',
-			scope: 'client',
+			scope: scopeUser,
 			config: true,
 			default: 'white',
-			type: String
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS, {
 			name: 'AC5E.ExpandedConditionsName',
@@ -212,6 +223,16 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY, {
+			name: 'Heavy property',
+			scope: 'world',
+			config: false,
+			default: false,
+			type: Boolean,
+		});
+	}
+	get automateStatuses() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_STATUSES);
 	}
 	get dnd5eModernRules() {
 		return game.settings.get('dnd5e', 'rulesVersion') === 'modern';
@@ -281,5 +302,8 @@ export default class Settings {
 	}
 	get migrated() {
 		return game.settings.get(Constants.MODULE_ID, Settings.MIGRATION);
+	}
+	get automateHeavy() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY);
 	}
 }

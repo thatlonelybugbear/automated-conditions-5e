@@ -7,199 +7,283 @@ const settings = new Settings();
 /**
  * Foundry v12 updated.
  * Gets the minimum distance between two tokens,
- * evaluating all grid spaces they occupy, based in Illandril's work
- * updated by thatlonelybugbear for 3D and tailored to AC5e needs!.
+ * evaluating perimeter grid spaces they occupy and checking for walls blocking.
  */
-export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false) {
+export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, checkCollision = false, includeHeight = true) {
+	let totalDistance = Infinity;
+
+	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	if (typeof tokenA === 'string') {
+		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
+		else tokenA = canvas.tokens.get(tokenA);
+	}
+	if (typeof tokenB === 'string') {
+		if (tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
+		else tokenB = canvas.tokens.get(tokenB);
+	}
+	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
+
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units: canvas.scene.grid.units });
 		if (includeUnits) return result + (includeUnits ? canvas.scene.grid.units : '');
-		if (result === -1) return undefined;
+		if (result === -1) return totalDistance;
 		return result;
 	}
-	if (typeof tokenA === 'string' && !tokenA.includes('.')) tokenA = canvas.tokens.get(tokenA);
-	else if (typeof tokenA === 'string' && tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
-	if (typeof tokenB === 'string' && !tokenB.includes('.')) tokenB = canvas.tokens.get(tokenB);
-	else if (typeof tokenB === 'string' && tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
-	if (!tokenA || !tokenB) return undefined;
-	const PointsAndCenter = {
-		points: [],
-		trueCenternt: {},
-	};
 
-	const getPolygon = (grid /*: foundry.grid.BaseGrid*/, token /*: Token*/) => {
-		let poly; // PIXI.Polygon;
-		if (token.shape instanceof PIXI.Circle) {
-			poly = token.shape.toPolygon({ density: (token.shape.radius * 8) / grid.size });
-		} else if (token.shape instanceof PIXI.Rectangle) {
-			poly = token.shape.toPolygon();
-		} else {
-			poly = token.shape;
-		}
+	const { grid } = canvas || {};
+	if (!grid) return totalDistance;
+	const { grid: { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance } = {} } = canvas || {};
+	let diagonals, spaces;
 
-		return new PIXI.Polygon(poly.points.map((point, i) => point + (i % 2 ? token.bounds.top : token.bounds.left)));
-	};
+	if (grid.isHexagonal) {
+		const tokenAHexes = getHexesOnPerimeter(tokenA);
+		if (settings.debug) tokenAHexes.forEach((e) => canvas.ping(e));
+		const tokenBHexes = getHexesOnPerimeter(tokenB);
+		if (settings.debug) tokenBHexes.forEach((e) => canvas.ping(e));
 
-	const getPointsAndCenter = (grid, shape) => {
-		const points = [];
-		for (let i = 0; i < shape.points.length; i += 2) {
-			const x = shape.points[i];
-			const y = shape.points[i + 1];
-			points.push({ x, y });
-
-			const nextX = shape.points[i + 2] ?? shape.points[0];
-			const nextY = shape.points[i + 3] ?? shape.points[1];
-			const d = Math.sqrt((x - nextX) ** 2 + (y - nextY) ** 2);
-			const steps = Math.ceil((d * 2) / grid.size);
-
-			for (let step = 1; step < steps; step++) {
-				points.push({ x: ((nextX - x) / steps) * step + x, y: ((nextY - y) / steps) * step + y });
-			}
-		}
-
-		return {
-			points: points,
-			trueCenter: shape.getBounds().center,
-		};
-	};
-
-	const getPoints = (grid /*: foundry.grid.BaseGrid*/, poly /*: PIXI.Polygon*/) => {
-		const bounds = poly.getBounds();
-		const pointsToMeasure = [bounds.center];
-
-		// If either dimension is one grid space long or less, just use the center point for measurements
-		// Otherwise, we use the center of the grid spaces along the token's perimeter
-		const forcedX = bounds.width <= grid.sizeX ? bounds.center.x : null;
-		const forcedY = bounds.height <= grid.sizeY ? bounds.center.x : null;
-
-		if (typeof forcedX !== 'number' || typeof forcedY !== 'number') {
-			const { points, trueCenter } = getPointsAndCenter(grid, poly);
-			for (const point of points) {
-				const x = (point.x - trueCenter.x) * 0.99 + trueCenter.x;
-				const y = (point.y - trueCenter.y) * 0.99 + trueCenter.y;
-				const pointToMeasure = grid.getCenterPoint({ x, y });
-				pointToMeasure.x = forcedX ?? pointToMeasure.x;
-				pointToMeasure.y = forcedY ?? pointToMeasure.y;
-				if (!pointsToMeasure.some((priorPoint) => priorPoint.x === pointToMeasure.x && priorPoint.y === pointToMeasure.y)) {
-					pointsToMeasure.push(pointToMeasure);
+		for (const pointA of tokenAHexes) {
+			for (const pointB of tokenBHexes) {
+				if (
+					checkCollision &&
+					CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
+						source: tokenB.document,
+						mode: 'any',
+						type: checkCollision,
+					})
+				)
+					continue;
+				const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+				if (distance2D < totalDistance) {
+					totalDistance = distance2D;
+					diagonals = pathDiagonals;
+					spaces = pathSpaces;
 				}
 			}
 		}
-		return pointsToMeasure;
-	};
-
-	const squareDistance = (pointA /*: Point*/, pointB /*: Point*/) => (pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2;
-
-	const getComparisonPoints = (grid /*: foundry.grid.BaseGrid*/, token /*: Token*/, other /*: Token*/) => {
-		const polyA = getPolygon(grid, token);
-		const polyB = getPolygon(grid, other);
-
-		const pointsA = getPoints(grid, polyA);
-		const pointsB = getPoints(grid, polyB);
-		const containedPoint = pointsA.find((point) => polyB.contains(point.x, point.y)) ?? pointsB.find((point) => polyA.contains(point.x, point.y));
-		if (containedPoint) {
-			// A contains B or B contains A... so ensure the distance is 0
-			return [containedPoint, containedPoint];
-		}
-
-		let closestPointA = token.center;
-		let closestPointB = other.center;
-		let closestD2 = squareDistance(closestPointA, closestPointB);
-		for (const pointA of pointsA) {
-			for (const pointB of pointsB) {
-				const d2 = squareDistance(pointA, pointB);
-				if (d2 < closestD2) {
-					closestD2 = d2;
-					closestPointA = pointA;
-					closestPointB = pointB;
+	} else {
+		const areTokensIntersencting = tokenA.bounds.intersects(tokenB.bounds);
+		if (areTokensIntersencting) {
+			totalDistance = 0;
+			diagonals = 0;
+			spaces = 0;
+		} else if (grid.isGridless) {
+			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA);
+			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
+			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
+			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+			for (const pointA of tokenASquares) {
+				for (const pointB of tokenBSquares) {
+					if (
+						checkCollision &&
+						CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
+							source: tokenB.document,
+							mode: 'any',
+							type: checkCollision,
+						})
+					)
+						continue;
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						const leeway = settings.autoRangedCombined !== 'off' ? gridDistance * 1.25 : false; //@to-do: offer a setting to turn on and set to user choice.
+						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+					}
+				}
+			}
+		} else if (grid.isSquare) {
+			//const tokensIntersection = tokenA.bounds.intersection(tokenB.bounds);
+			const tokenASquares = getSquaresOnPerimeter(tokenA);
+			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
+			const tokenBSquares = getSquaresOnPerimeter(tokenB);
+			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+			for (const pointA of tokenASquares) {
+				for (const pointB of tokenBSquares) {
+					if (
+						checkCollision &&
+						CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
+							source: tokenB.document,
+							mode: 'any',
+							type: checkCollision,
+						})
+					)
+						continue;
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						totalDistance = distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+					}
 				}
 			}
 		}
-		return [closestPointA, closestPointB];
-	};
-	const calculateDistanceWithUnits = (scene, grid, token, other) => {
-		let totalDistance = 0;
-		let { distance, diagonals, spaces } = grid.measurePath(getComparisonPoints(grid, token, other));
+	}
 
-		if (canvas.grid.isSquare) {
-			token.z0 = token.document.elevation / grid.distance;
-			token.z1 = token.z0 + Math.min(token.document.width | 0, token.document.height | 0);
-			other.z0 = other.document.elevation / grid.distance;
-			other.z1 = other.z0 + Math.min(other.document.width | 0, other.document.height | 0);
+	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid);
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units: canvas.scene.grid.units });
+	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + grid.units;
+	return ((totalDistance * 100) | 0) / 100;
+}
 
-			let dz = other.z0 >= token.z1 ? other.z0 - token.z1 + 1 : token.z0 >= other.z1 ? token.z0 - other.z1 + 1 : 0;
+function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid) {
+	tokenA.z0 = (tokenA.document.elevation / grid.distance) | 0;
+	tokenA.z1 = tokenA.z0 + Math.min(tokenA.document.width | 0, tokenA.document.height | 0);
+	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
+	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
+	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
+	const versionTest = (grid.isGridless && 'nogrid') || (grid.isHexagonal && game.version < 13 && 'v12hex');
+	if (versionTest === 'nogrid') {
+		const verticalDistance = dz * grid.distance;
+		totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance;
+	} else if (versionTest === 'v12hex') totalDistance += dz * grid.distance;
+	else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
+	return totalDistance;
+}
 
-			if (!dz) {
-				totalDistance = distance;
-			} else {
-				const XY = { diagonals, illegal: spaces };
-				const Z = { illegal: dz, diagonals: Math.min(XY.illegal, dz) };
-				Z.diagonalsXYZ = Math.min(XY.diagonals, Z.diagonals);
-				Z.diagonalsXZ_YZ = Z.diagonals - Z.diagonalsXYZ;
-				XY.moves = spaces - (XY.diagonals + Z.diagonalsXZ_YZ);
-				Z.moves = dz - Z.diagonals;
-				const overallDiagonals = Math.max(XY.diagonals, Z.diagonals);
+function getHexesOnPerimeter(t) {
+	const perimeterPoints = getHexPerimeterPoints(t);
+	if (!perimeterPoints || perimeterPoints.length === 0) {
+		console.warn('No perimeter points found for the token.');
+		return [];
+	}
 
-				switch (grid.diagonals) {
-					case CONST.GRID_DIAGONALS.EQUIDISTANT:
-						totalDistance = XY.moves + Z.moves + overallDiagonals;
-						break;
+	const foundHexes = {};
 
-					case CONST.GRID_DIAGONALS.ALTERNATING_1:
-						for (let i = 1; i <= overallDiagonals; i++) {
-							totalDistance += i & 1 ? 1 : 2; // Odd/even check with bitwise
-						}
-						totalDistance += XY.moves + Z.moves;
-						break;
-
-					case CONST.GRID_DIAGONALS.ALTERNATING_2:
-						for (let i = 1; i <= overallDiagonals; i++) {
-							totalDistance += i & 1 ? 2 : 1; // Alternate between 2 and 1
-						}
-						totalDistance += XY.moves + Z.moves;
-						break;
-
-					case CONST.GRID_DIAGONALS.ILLEGAL:
-						totalDistance = XY.illegal + Z.illegal;
-						break;
-
-					case CONST.GRID_DIAGONALS.EXACT:
-						totalDistance = XY.moves + Z.moves + (overallDiagonals - Z.diagonalsXYZ) * Math.sqrt(2) + Z.diagonalsXYZ * Math.sqrt(3);
-						break;
-
-					case CONST.GRID_DIAGONALS.APPROXIMATE:
-						totalDistance = XY.moves + Z.moves + overallDiagonals * 1.5;
-						break;
-
-					case CONST.GRID_DIAGONALS.RECTILINEAR:
-						totalDistance = XY.moves + Z.moves + overallDiagonals * 2;
-						break;
-
-					default:
-						throw new Error(`Unknown diagonal rule: ${grid.diagonals}`);
-				}
-
-				totalDistance *= grid.distance;
-			}
-		} else {
-			token.z0 = token.document.elevation;
-			token.z1 = token.z0 + Math.min(token.document.width * grid.distance, token.document.height * grid.distance);
-			other.z0 = other.document.elevation;
-			other.z1 = other.z0 + Math.min(other.document.width * grid.distance, other.document.height * grid.distance);
-			let dz = other.z0 > token.z1 ? other.z0 - token.z1 + grid.distance : token.z0 > other.z1 ? token.z0 - other.z1 + grid.distance : 0;
-			totalDistance = dz ? Math.sqrt(distance * distance + dz * dz) : distance;
+	for (let i = 0; i < perimeterPoints.length; i += 1) {
+		const p = perimeterPoints[i];
+		const nudged = nudgeToward(p, t.center);
+		const pointToCube = canvas.grid.pointToCube({ x: nudged[0], y: nudged[1] });
+		const hex = canvas.grid.getCenterPoint(pointToCube);
+		hex.id = hex.x + hex.y;
+		if (!foundHexes[hex.id] && hex.x > t.bounds.left && hex.x < t.bounds.right && hex.y < t.bounds.bottom && hex.y > t.bounds.top) {
+			foundHexes[hex.id] = hex;
 		}
+	}
+	return Object.values(foundHexes);
+}
+function nudgeToward(point, center, distance = 0.2) {
+	const dx = center.x - point.x;
+	const dy = center.y - point.y;
+	const radians = Math.atan2(dy, dx);
+	const degrees = radians * (180 / Math.PI);
+	const nudgedPoint = getHexTranslatedPoint(point, degrees, distance);
+	return [nudgedPoint.x, nudgedPoint.y];
+}
 
-		return {
-			value: totalDistance,
-			units: scene.grid.units,
-		};
-	};
-	const { value: result, units } = calculateDistanceWithUnits(canvas.scene, canvas.grid, tokenA, tokenB) || {};
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result, units });
-	if (includeUnits) return ((result * 100) | 0) / 100 + units;
-	return ((result * 100) | 0) / 100;
+function getHexPerimeterPoints(t) {
+	const clipperP = t.shape.toClipperPoints();
+
+	const points = [];
+	clipperP.forEach((r) => points.push({ x: t.x + r.X, y: t.y + r.Y }));
+	return points;
+}
+
+function getHexTranslatedPoint(point, direction, distance) {
+	direction = Math.toRadians(direction);
+	const dx = Math.cos(direction);
+	const dy = Math.sin(direction);
+	let q;
+	let r;
+	if (canvas.grid.columns) {
+		q = 2 * Math.SQRT1_3 * dx;
+		r = -0.5 * q + dy;
+	} else {
+		r = 2 * Math.SQRT1_3 * dy;
+		q = -0.5 * r + dx;
+	}
+	const s = ((distance / canvas.grid.distance) * canvas.grid.size) / ((Math.abs(r) + Math.abs(q) + Math.abs(q + r)) / 2);
+	const newPoint = { x: point.x + dx * s, y: point.y + dy * s };
+	return newPoint;
+}
+
+function getGridlessSquaresOnPerimeter(t) {
+	const perimeterCenterPoints = {};
+	if (t.bounds.width === canvas.grid.sizeX && t.bounds.height === canvas.grid.sizeY) perimeterCenterPoints['one'] = { x: t.x + Math.floor(canvas.grid.size / 2), y: t.y + Math.floor(canvas.grid.size / 2) };
+	else {
+		const bounds = t.bounds;
+		for (let x = bounds.x; x < bounds.right; x += canvas.grid.size) {
+			for (let y = bounds.y; y < bounds.bottom; y += canvas.grid.size) {
+				if (x === bounds.x || x === bounds.right - canvas.grid.size || y === bounds.y || y === bounds.bottom - canvas.grid.size) {
+					const newX = x;
+					const newY = y;
+					const centerPoint = { x: newX + Math.floor(canvas.grid.size / 2), y: newY + Math.floor(canvas.grid.size / 2) };
+					const newID = `${centerPoint.x}_${centerPoint.y}`;
+					if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
+				}
+			}
+		}
+	}
+	return Object.values(perimeterCenterPoints);
+}
+
+function getSquaresOnPerimeter(t) {
+	const perimeterCenterPoints = {};
+	const clipperPoints = game.version < 13 ? t.shape.toPolygon().toClipperPoints() : t.shape.toClipperPoints();
+	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
+		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
+			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
+				const newX = t.x + x;
+				const newY = t.y + y;
+				const centerPoint = canvas.grid.getCenterPoint({ i: Math.floor(newY / canvas.grid.size), j: Math.floor(newX / canvas.grid.size) });
+				const newID = `${centerPoint.x}_${centerPoint.y}`;
+				if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
+			}
+		}
+	}
+	return Object.values(perimeterCenterPoints);
+}
+
+function calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) {
+	const XY = { diagonals, illegal: spaces, moves: 0 };
+	const Z = { illegal: dz, diagonals: Math.min(XY.illegal, dz), diagonalsXYZ: 0, diagonalsXZ_YZ: 0, moves: 0 };
+	Z.diagonalsXYZ = Math.min(XY.diagonals, Z.diagonals);
+	Z.diagonalsXZ_YZ = Z.diagonals - Z.diagonalsXYZ;
+	XY.moves = spaces - (XY.diagonals + Z.diagonalsXZ_YZ);
+	Z.moves = dz - Z.diagonals;
+	const overallDiagonals = Math.max(XY.diagonals, Z.diagonals);
+
+	switch (grid.diagonals) {
+		case CONST.GRID_DIAGONALS.EQUIDISTANT:
+			totalDistance = XY.moves + Z.moves + overallDiagonals;
+			break;
+
+		case CONST.GRID_DIAGONALS.ALTERNATING_1:
+			for (let i = 1; i <= overallDiagonals; i++) {
+				totalDistance += i & 1 ? 1 : 2; // Odd/even check with bitwise
+			}
+			totalDistance += XY.moves + Z.moves;
+			break;
+
+		case CONST.GRID_DIAGONALS.ALTERNATING_2:
+			for (let i = 1; i <= overallDiagonals; i++) {
+				totalDistance += i & 1 ? 2 : 1; // Alternate between 2 and 1
+			}
+			totalDistance += XY.moves + Z.moves;
+			break;
+
+		case CONST.GRID_DIAGONALS.ILLEGAL:
+			totalDistance = XY.illegal + Z.illegal;
+			break;
+
+		case CONST.GRID_DIAGONALS.EXACT:
+			totalDistance = XY.moves + Z.moves + (overallDiagonals - Z.diagonalsXYZ) * Math.sqrt(2) + Z.diagonalsXYZ * Math.sqrt(3);
+			break;
+
+		case CONST.GRID_DIAGONALS.APPROXIMATE:
+			totalDistance = XY.moves + Z.moves + overallDiagonals * 1.5;
+			break;
+
+		case CONST.GRID_DIAGONALS.RECTILINEAR:
+			totalDistance = XY.moves + Z.moves + overallDiagonals * 2;
+			break;
+
+		default:
+			throw new Error(`${Constants.MODULE_NAME_SHORT}: Unknown diagonal rule: ${grid.diagonals}`);
+	}
+
+	totalDistance *= grid.distance;
+	return totalDistance;
 }
 
 export function _i18nConditions(name) {
@@ -209,7 +293,7 @@ export function _i18nConditions(name) {
 }
 
 export function _localize(string) {
-	return game.i18n.translations.DND5E[string] ?? game.i18n.localize(string);
+	return game.i18n.translations.DND5E?.[string] ?? game.i18n.localize(string);
 }
 
 export function _hasStatuses(actor, statuses, quick = false) {
@@ -247,117 +331,245 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	const { ADVANTAGE: ADV_MODE, DISADVANTAGE: DIS_MODE, NORMAL: NORM_MODE } = CONFIG.Dice.D20Roll.ADV_MODE;
-	const roll0 = config.rolls?.[0];
-	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) {
-		config.advantage = true;
-		dialog.options.advantageMode = ADV_MODE;
-		dialog.options.defaultButton = 'advantage';
-	}
-	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) {
-		config.disadvantage = true;
-		dialog.options.advantageMode = DIS_MODE;
-		dialog.options.defaultButton = 'disadvantage';
-	}
-	if (config.advantage === config.disadvantage) {
-		config.advantage = false;
-		config.disadvantage = false;
-		dialog.options.advantageMode = NORM_MODE;
-		dialog.options.defaultButton = 'normal';
-	}
-	if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
-		// config.target = 1000;
-		if (_activeModule('midi-qol')) {
-			ac5eConfig.parts.push(-999);
-			if (config.workflow) {
-				config.workflow._isCritical = false;
-				config.workflow.isCritical = false;
+	config.rolls ??= [];
+	config.rolls[0] ??= {};
+	const roll0 = config.rolls[0];
+	roll0.options ??= {};
+	dialog.options.defaultButton = 'normal';
+	const hook = ac5eConfig.hookType;
+	const ac5eForcedRollTarget = 999;
+	if (hook === 'damage') {
+		if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
+			ac5eConfig.isCritical = true;
+			dialog.options.defaultButton = 'critical';
+		}
+	} else {
+		if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) {
+			config.advantage = true;
+			dialog.options.advantageMode = ADV_MODE;
+			dialog.options.defaultButton = 'advantage';
+		}
+		if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) {
+			config.disadvantage = true;
+			dialog.options.advantageMode = DIS_MODE;
+			dialog.options.defaultButton = 'disadvantage';
+		}
+		if (config.advantage === config.disadvantage) {
+			config.advantage = false;
+			config.disadvantage = false;
+			dialog.options.advantageMode = NORM_MODE;
+			dialog.options.defaultButton = 'normal';
+		}
+		if (hook === 'attack') {
+			if (ac5eConfig.threshold?.length) {
+				//for attack rolls
+				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
+				roll0.options.criticalSuccess = finalThreshold;
+				ac5eConfig.alteredCritThreshold = finalThreshold;
 			}
-			if (config.midiOptions) {
-				config.midiOptions.isCritical = false;
-				if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isCritical = false;
+			if (ac5eConfig.targetADC?.length) {
+				const targets = message?.data?.flags?.dnd5e?.targets;
+				const initialTargetADC = targets[0].ac;
+				let lowerTargetADC;
+				if (!foundry.utils.isEmpty(targets)) {
+					targets.forEach((target, index) => {
+						const alteredTargetADC = getAlteredTargetValueOrThreshold(targets[index].ac, ac5eConfig.targetADC, 'acBonus');
+						if (!isNaN(alteredTargetADC)) {
+							targets[index].ac = alteredTargetADC;
+							if (!lowerTargetADC || alteredTargetADC < lowerTargetADC) lowerTargetADC = alteredTargetADC;
+						}
+					});
+				}
+				if (!isNaN(lowerTargetADC)) {
+					roll0.options.target = lowerTargetADC;
+					ac5eConfig.alteredTargetADC = lowerTargetADC;
+					ac5eConfig.initialTargetADC = initialTargetADC; //might be discrepancies for multiple targets
+				}
 			}
 		}
-		if (roll0) {
-			roll0.options.criticalSuccess = 21;
-			roll0.options.target = 1000;
-		}
-	}
-	if (ac5eConfig.subject.success.length || ac5eConfig.opponent.success.length) {
-		// config.target = -1000;
-		if (_activeModule('midi-qol')) {
-			ac5eConfig.parts.push(+999);
-			if (config.workflow) {
-				config.workflow._isFumble = false;
-				config.workflow.isFumble = false;
-			}
-			if (config.midiOptions) {
-				config.midiOptions.isFumble = false;
-				if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isFumble = false;
+		if (ac5eConfig.targetADC?.length && hook !== 'attack') {
+			//check, save, skill
+			const initialTargetADC = config.target;
+			const alteredTargetADC = getAlteredTargetValueOrThreshold(initialTargetADC, ac5eConfig.targetADC, 'dcBonus');
+			if (!isNaN(alteredTargetADC)) {
+				ac5eConfig.initialTargetADC = roll0.options.target;
+				roll0.options.target = alteredTargetADC;
+				ac5eConfig.alteredTargetADC = alteredTargetADC;
+				ac5eConfig.initialTargetADC = initialTargetADC;
 			}
 		}
-
-		if (roll0) {
-			roll0.options.criticalFailure = 0;
-			roll0.options.target = -1000;
+		if (ac5eConfig.subject.fail.length || ac5eConfig.opponent.fail.length) {
+			if (roll0) {
+				roll0.options.criticalSuccess = 21;
+				roll0.options.target = ac5eForcedRollTarget;
+				if (hook === 'attack') {
+					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
+					const targets = message?.data?.flags?.dnd5e?.targets;
+					if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
+				}
+			}
 		}
-	}
-	if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
-		// config.target = 1000;
-		if (config.workflow) {
-			config.workflow._isFumble = true;
-			config.workflow.isFumble = true;
+		if (ac5eConfig.subject.success.length || ac5eConfig.opponent.success.length) {
+			if (roll0) {
+				roll0.options.criticalFailure = 0;
+				roll0.options.target = -ac5eForcedRollTarget;
+				if (hook === 'attack') {
+					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
+					const targets = message?.data?.flags?.dnd5e?.targets;
+					if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
+				}
+			}
 		}
-		if (config.midiOptions) {
-			config.midiOptions.isFumble = true;
-			if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isFumble = true;
+		if (ac5eConfig.subject.fumble.length || ac5eConfig.opponent.fumble.length) {
+			ac5eConfig.isFumble = true;
+			if (roll0) {
+				roll0.options.criticalSuccess = 21;
+				roll0.options.criticalFailure = 20;
+				if (hook !== 'attack') roll0.options.target = ac5eForcedRollTarget;
+			}
 		}
-		if (roll0) {
-			roll0.options.criticalSuccess = 21;
-			roll0.options.criticalFailure = 20;
-			roll0.options.isFumble = true;
-			roll0.options.target = 1000;
+		if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
+			ac5eConfig.isCritical = true;
+			if (roll0) {
+				roll0.options.criticalSuccess = 1;
+				roll0.options.criticalFailure = 0;
+				if (hook !== 'attack') roll0.options.target = -ac5eForcedRollTarget;
+			}
 		}
-	}
-	if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
-		ac5eConfig.isCritical = true;
-		// config.target = -1000;
-		if (roll0) roll0.options.target = -Infinity;
-		if (config.workflow) {
-			config.workflow._isCritical = true;
-			config.workflow.isCritical = true;
-		}
-		if (config.midiOptions) {
-			config.midiOptions.isCritical = true;
-			if (config.midiOptions.workflowOptions) config.midiOptions.workflowOptions.isCritical = true;
-		}
-		if (roll0) {
-			roll0.options.criticalSuccess = 1;
-			roll0.options.criticalFailure = 0;
-			roll0.options.isCritical = true;
-			roll0.options.target = -1000;
-		}
-		if (ac5eConfig.hookType === 'damage') dialog.options.defaultButton = 'critical';
 	}
 	if (ac5eConfig.parts.length) {
-		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [ac5eConfig.parts]);
+		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
 		else if (config.parts) config.parts.push(ac5eConfig.parts);
+	}
+	//Interim solution until system supports this
+	if (!foundry.utils.isEmpty(ac5eConfig.modifiers)) {
+		const { maximum, minimum } = ac5eConfig.modifiers;
+		if (maximum) roll0.options.maximum = maximum;
+		if (minimum) roll0.options.minimum = minimum;
 	}
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
-//check for 'same' 'different' or 'all' (=false) dispositions
-//t1, t2 Token5e or Token5e#Document
-export function _dispositionCheck(t1, t2, check = false) {
+function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
+	const signedPattern = /^[+-]/; // Only matches if starts with + or -
+	const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice expressions with optional sign
+	const maxDiceCap = 100;
+
+	let minTotal = 0;
+	let maxTotal = 0;
+
+	const additiveValues = [];
+	const staticValues = [];
+
+	for (const item of ac5eValues) {
+		if (item == null) continue;
+
+		const cleaned = String(item).trim().replace(/\s+/g, '');
+		const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
+
+		for (let part of parts) {
+			part = part.trim();
+
+			// If it matches the dice pattern (with or without sign)
+			const match = part.match(dicePattern);
+			if (match) {
+				const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
+				const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
+				const sides = parseInt(match[3]);
+
+				let total = 0;
+				const rolls = [];
+				for (let i = 0; i < count; i++) {
+					const roll = Math.floor(Math.random() * sides) + 1;
+					rolls.push(roll);
+					total += roll;
+				}
+
+				const signedTotal = (sign === 0 ? 1 : sign) * total;
+
+				if (sign !== 0) {
+					additiveValues.push(signedTotal);
+					minTotal += sign * count * 1;
+					maxTotal += sign * count * sides;
+				} else {
+					staticValues.push(total);
+				}
+
+				if (settings.debug) {
+					console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
+				}
+
+				continue;
+			}
+
+			// Signed integer (must start with + or -)
+			if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
+				const val = parseInt(part);
+				additiveValues.push(val);
+				minTotal += val;
+				maxTotal += val;
+				continue;
+			}
+
+			// Unsigned static value
+			const parsed = parseInt(part);
+			if (!isNaN(parsed)) staticValues.push(parsed);
+		}
+	}
+	// Include original static value if provided
+	staticValues.push(initialValue ?? 20);
+
+	const newStaticThreshold = Math.min(...staticValues);
+	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
+	const finalValue = newStaticThreshold + totalModifier;
+	if (settings.debug) {
+		console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, {
+			initialValue,
+			finalValue,
+		});
+	}
+	return finalValue;
+}
+
+/**
+ * Check relative or exact disposition between two tokens.
+ * @param {Token5e|TokenDocument5e} t1
+ * @param {Token5e|TokenDocument5e} t2
+ * @param {string|number|} check - Disposition type or constant
+ * @returns {boolean}
+ */
+export function _dispositionCheck(t1, t2, check = 'all', mult) {
 	if (!t1 || !t2) return false;
+	if (check === 'all') return true;
+
 	t1 = t1 instanceof TokenDocument ? t1 : t1.document;
 	t2 = t2 instanceof TokenDocument ? t2 : t2.document;
-	if (check === 'different') return t1.disposition !== t2.disposition;
-	if (check === 'opposite') return t1.disposition * t2.disposition === -1;
-	if (check === 'same') return t1.disposition === t2.disposition;
-	if (!check || check === 'all') return true;
-	//to-do: 1. what about secret? 2. might need more granular checks in the future.
+
+	if (typeof check === 'number') return t2.disposition === check;
+
+	let result;
+	switch (check) {
+		case 'different':
+			result = t1.disposition !== t2.disposition;
+			break;
+		case 'opposite':
+		case 'enemy':
+			result = t1.disposition * t2.disposition === -1;
+			break;
+		case 'same':
+		case 'ally':
+			result = t1.disposition === t2.disposition;
+			break;
+		default: {
+			const constVal = CONST.TOKEN_DISPOSITIONS[check.toUpperCase()];
+			result = constVal !== undefined && t2.disposition === constVal;
+			break;
+		}
+	}
+	if (mult) return !result;
+	return result;
 }
 
 export function _findNearby({
@@ -377,10 +589,31 @@ export function _findNearby({
 		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
 	if (!token) return false;
+	let mult;
+	const foundryDispositionCONST = CONST.TOKEN_DISPOSITIONS;
+	const usableUserProvidedDispositions = ['all', 'ally', 'different', 'enemy', 'friendly', 'neutral', 'opposite', 'same', 'secret'];
+	if (typeof disposition === 'number') {
+		if (!Object.values(foundryDispositionCONST).includes(disposition)) {
+			ui.notifications.error(`AC5e disposition check error. User provided disposition: ${disposition} but Foundry available ones are -2, -1, 0, 1; returning all tokens instead`);
+			disposition = 'all';
+		}
+	} else if (typeof disposition === 'string') {
+		disposition = disposition.toLowerCase();
+		if (disposition.startsWith('!')) {
+			mult = true;
+			disposition = disposition.slice(1);
+		}
+		if (!usableUserProvidedDispositions.includes(disposition)) {
+			ui.notifications.error(`AC5e disposition check error. User provided disposition: "${disposition}". Use one of: "${usableUserProvidedDispositions.join('"/"')}"; returning all tokens instead`);
+			disposition = 'all';
+		}
+	} else disposition = 'all';
+
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
 		if (!includeToken && target === token) return false;
 		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
-		if (!_dispositionCheck(token, target, disposition)) return false;
+		if (!_dispositionCheck(token, target, disposition, mult)) return false;
+
 		const distance = _getDistance(token, target);
 		return distance <= radius;
 	});
@@ -409,23 +642,33 @@ export function _autoEncumbrance(actor, abilityId) {
 }
 
 export function _autoRanged(activity, token, target) {
+	const modernRules = settings.dnd5eModernRules;
+	const isSpell = activity.isSpell;
+	const isAttack = activity.type === 'attack';
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
-	const actionType = _getActionType(activity);
-	const { range, item } = activity || {};
+	const { actionType, item, range } = activity || {};
 	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
 	const distance = target ? _getDistance(token, target) : undefined;
-	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
-	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'sharpshooter');
+	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
+	if (spellSniper && isSpell && isAttack && !!short) {
+		if (modernRules && short >= 10) short += 60;
+		else short *= 2;
+	}
+	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
+	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
-	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'crossbow expert');
+	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
+
 	const nearbyFoe =
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
 		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
-		!crossbowExpert;
+		!crossbowExpert &&
+		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
+
 	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
@@ -439,7 +682,7 @@ export function _systemCheck(testVersion) {
 }
 
 export function _getTooltip(ac5eConfig = {}) {
-	const { hookType, subject, opponent } = ac5eConfig;
+	const { hookType, subject, opponent, alteredCritThreshold, alteredTargetADC, initialTargetADC } = ac5eConfig;
 	let tooltip = '<div class="ac5e-tooltip-content">';
 	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
@@ -448,6 +691,7 @@ export function _getTooltip(ac5eConfig = {}) {
 			tooltip += text;
 		}
 	};
+	//subject
 	if (subject) {
 		addTooltip(subject.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subject.critical.join(', ')}</span>`);
 		addTooltip(subject.advantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subject.advantage.join(', ')}</span>`);
@@ -456,7 +700,9 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subject.disadvantage.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subject.disadvantage.join(', ')}</span>`);
 		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
 		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
+		addTooltip(subject.modifiers.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
 	}
+	//opponent
 	if (opponent) {
 		addTooltip(opponent.critical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsCriticalAbbreviated')}: ${opponent.critical.join(', ')}</span>`);
 		addTooltip(opponent.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFail')}: ${opponent.fail.join(', ')}</span>`);
@@ -465,6 +711,19 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponent.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsSuccess')}: ${opponent.success.join(', ')}</span>`);
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
+		addTooltip(opponent.modifiers.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsModifier')}: ${opponent.modifiers.join(', ')}</span>`);
+	}
+	//critical threshold
+	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
+		const combinedArray = [...(subject?.criticalThreshold ?? []), ...(opponent?.criticalThreshold ?? [])];
+		const translationString = game.i18n.translations.DND5E.Critical + ' ' + game.i18n.translations.DND5E.Threshold + ' ' + alteredCritThreshold;
+		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
+	}
+	if (subject?.targetADC.length || opponent?.targetADC.length) {
+		const combinedArray = [...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])];
+		let translationString = hookType === 'attack' ? 'AC5E.ModifyAC' : 'AC5E.ModifyAC';
+		translationString += ` ${alteredTargetADC} (${initialTargetADC})`;
+		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
 	return tooltip;
@@ -494,6 +753,9 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			critical: [],
 			success: [],
 			fumble: [],
+			modifiers: [],
+			criticalThreshold: [],
+			targetADC: [],
 		},
 		opponent: {
 			advantage: [],
@@ -503,9 +765,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			critical: [],
 			success: [],
 			fumble: [],
+			modifiers: [],
+			criticalThreshold: [],
+			targetADC: [],
 		},
 		options,
 		parts: [],
+		targetADC: [],
+		threshold: [],
+		modifiers: {},
 		preAC5eConfig: {
 			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
 			disKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
@@ -514,6 +782,9 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		},
 		returnEarly: false,
 	};
+	if (reEval) ac5eConfig.reEval = reEval;
+	const wasCritical = config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical || ac5eConfig.preAC5eConfig.critKey;
+	ac5eConfig.preAC5eConfig.wasCritical = wasCritical;
 	if (options.skill || options.tool) ac5eConfig.title = dialog?.options?.window?.title;
 	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
 	if (_activeModule('midi-qol')) ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(config.midiOptions || {});
@@ -566,6 +837,16 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		const result = getActorAbilityRollModes({ ability: options.ability, actor, hookType });
 		if (result > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
 		if (result < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
+		//Interim solution until system supports this
+		const { max: maximum, min: minimum } = actor?.overrides?.system?.abilities?.[options.ability]?.[hookType]?.roll || {};
+		if (maximum) {
+			ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${maximum})`);
+			ac5eConfig.modifiers.maximum = maximum;
+		}
+		if (minimum) {
+			ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${minimum})`);
+			ac5eConfig.modifiers.minimum = minimum;
+		}
 	}
 	//for now we don't care about mutliple different sources, but instead a total result for each (counts not implemented yet by the system)
 	// const arrayLength = actorSystemRollMode.filter(Boolean).length;
@@ -576,15 +857,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 }
 
 export function getActorAbilityRollModes({ actor, hookType, ability }) {
-	return actor.system.abilities[ability]?.[hookType]?.roll.mode;
+	return actor?.system?.abilities?.[ability]?.[hookType]?.roll.mode;
 }
 
 export function getActorSkillRollModes({ actor, skill }) {
-	return actor.system.skills[skill]?.roll.mode;
+	return actor?.system?.skills?.[skill]?.roll.mode;
 }
 
 export function getActorToolRollModes({ actor, tool }) {
-	return actor.system.tools[tool]?.roll.mode;
+	return actor?.system?.tools?.[tool]?.roll.mode;
 }
 
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
@@ -626,7 +907,7 @@ export function _canSee(source, target, status) {
 	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
 	const detectionModes = CONFIG.Canvas.detectionModes;
 	const DETECTION_TYPES = { SIGHT: 0, SOUND: 1, MOVE: 2, OTHER: 3 };
-	const { BASIC_MODE_ID } = game.version > '13' ? new foundry.canvas.perception.DetectionMode() : new DetectionMode();
+	const { BASIC_MODE_ID } = game.version > '13' ? foundry.canvas.perception.DetectionMode : new DetectionMode();
 	const sightDetectionModes = Object.keys(detectionModes).filter((d) => detectionModes[d].type === DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d));
 
 	const matchedModes = new Set();
@@ -803,7 +1084,7 @@ function sizeWarnings(targetCount, setting) {
 	//setting 'source', 'enforce', 'warn' and we need to notify for cancelled rolls only if 'warn'. The rest are logged in console only.
 	const keySuffix = setting === 'source' ? 'Source' : 'Enforce';
 	const keyPrefix = targetCount ? 'MultipleTargets' : 'NoTargets';
-	const translationKey = `AC5E.${keyPrefix}.Attack.${keySuffix}`;
+	const translationKey = `AC5E.Targeting.${keyPrefix}Attack.${keySuffix}`;
 	const message = _localize(translationKey);
 
 	if (setting === 'warn') ui.notifications.warn(message);
@@ -825,9 +1106,10 @@ export function _raceOrType(actor, dataType = 'race') {
 }
 
 export function _generateAC5eFlags() {
-	const daeFlags = ['flags.automated-condition-5e.crossbowExpert', 'flags.automated-condition-5e.sharpShooter'];
+	const daeFlags = ['flags.automated-condition-5e.crossbowExpert', 'flags.automated-condition-5e.sharpShooter', 'flags.automated-conditions-5e.attack.criticalThreshold', 'flags.automated-conditions-5e.grants.attack.criticalThreshold', 'flags.automated-conditions-5e.aura.attack.criticalThreshold', 'flags.automated-conditions-5e.modifyAC', 'flags.automated-conditions-5e.grants.modifyAC', 'flags.automated-conditions-5e.aura.modifyAC'];
+
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
-	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'success'];
+	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'success'];
 	const types = ['source', 'grants', 'aura'];
 	for (const type of types) {
 		for (const mode of modes) {
@@ -840,14 +1122,18 @@ export function _generateAC5eFlags() {
 
 let tempDiv = null;
 
-export function _getValidColor(color, fallback, game) {
+export function _getValidColor(color, fallback, user) {
 	if (!color) return fallback;
-
 	const lower = color.trim().toLowerCase();
-	if (['false', 'none', 'null', '0'].includes(lower)) return false;
-	if (lower === 'user') return game && game.user && game.user.color && game.user.color.css ? game.user.color.css : fallback;
 
-	// Create a hidden element once and reuse it
+	if (['false', 'none', 'null', '0'].includes(lower)) return lower;
+	else if (['user', 'game.user.color'].includes(lower)) return user?.color?.css || fallback;
+	else if (lower === 'default') return fallback;
+
+	// Accept valid hex format directly
+	if (/^#[0-9a-f]{6}$/i.test(lower)) return lower;
+
+	// Use hidden div to resolve computed color
 	if (!tempDiv) {
 		tempDiv = document.createElement('div');
 		tempDiv.style.display = 'none';
@@ -857,7 +1143,6 @@ export function _getValidColor(color, fallback, game) {
 	tempDiv.style.color = color;
 	const computedColor = window.getComputedStyle(tempDiv).color;
 
-	// Convert RGB to hex if valid
 	const match = computedColor.match(/\d+/g);
 	if (match && match.length >= 3) {
 		return `#${match
@@ -865,6 +1150,7 @@ export function _getValidColor(color, fallback, game) {
 			.map((n) => parseInt(n).toString(16).padStart(2, '0'))
 			.join('')}`;
 	}
+
 	return fallback;
 }
 
@@ -885,12 +1171,12 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 	} catch (err) {
 		result = undefined;
 	}
-	if (settings.debug) console.log('AC5E._ac5eSafeEval:', { expression, result });
+	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval:', { result, expression, evaluationData: sandbox });
 	return result;
 }
 
 export function _ac5eActorRollData(token) {
-	const actor = token.actor;
+	const actor = token?.actor;
 	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
 	const actorData = actor.getRollData();
 	actorData.currencyWeight = actor.system.currencyWeight;
@@ -915,76 +1201,121 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.rollingActor = {};
 	sandbox.opponentActor = {};
 
-	if (subjectToken) {
-		sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
-		sandbox.tokenId = subjectToken.id;
-		sandbox.canMove = sandbox.rollingActor.canMove;
-		sandbox.canSee = _canSee(subjectToken, opponentToken);
-	}
-	if (opponentToken) {
-		sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
-		sandbox.opponentId = opponentToken.id;
-		sandbox.isSeen = _canSee(opponentToken, subjectToken);
-		/* backwards compatibility */
-		sandbox.targetActor = sandbox.opponentActor;
-		sandbox.targetId = opponentToken.id;
-		/* end of backwards compatibility */
-	}
-	sandbox.activity = activity?.getRollData().activity || {};
-	sandbox.riderStatuses = options.activityEffectsStatusRiders;
-	if (activity) {
-		const activityData = sandbox.activity;
-		activityData.damageTypes = options.activityDamageTypes;
-		if (!foundry.utils.isEmpty(activityData.damageTypes)) activityData.damageTypes.filter((d) => (sandbox[d] = true));
-		activityData.attackMode = options?.attackMode;
-		if (options?.attackMode) sandbox[options.attackMode] = true;
-		if (activity.actionType) sandbox[activity.actionType] = true;
-		sandbox[activityData.name] = true;
-		sandbox[activityData.activation.type] = true;
-		sandbox[activityData.type] = true;
-		sandbox.isSpell = activity.isSpell;
-		sandbox.isScaledScroll = activity.isScaledScroll;
-		sandbox.requiresSpellSlot = activity.requiresSpellSlot;
-		sandbox.spellCastingAbility = activity.spellCastingAbility;
-		sandbox.messageFlags = activity.messageFlags;
-	}
+	sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
+	sandbox.tokenId = subjectToken?.id;
+	sandbox.tokenUuid = subjectToken?.document?.uuid;
+	sandbox.actorId = subjectToken?.actor?.id;
+	sandbox.actorUuid = subjectToken?.actor?.uuid;
+	sandbox.canMove = sandbox.rollingActor?.canMove;
+	sandbox.canSee = _canSee(subjectToken, opponentToken);
 
+	sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
+	sandbox.opponentId = opponentToken?.id;
+	sandbox.opponentUuid = opponentToken?.document?.uuid;
+	sandbox.opponentActorId = opponentToken?.actor?.id;
+	sandbox.opponentActorUuid = opponentToken?.actor?.uuid;
+	sandbox.isSeen = _canSee(opponentToken, subjectToken);
+	/* backwards compatibility */
+	sandbox.targetActor = sandbox.opponentActor;
+	sandbox.targetId = opponentToken?.id;
+	/* end of backwards compatibility */
+
+	sandbox.activity = activity?.getRollData().activity || {};
+	sandbox.ammunition = options.ammunition;
+	sandbox.ammunitionName = options.ammunition?.name;
+	sandbox.consumptionItemName = {};
+	sandbox.consumptionItemIdentifier = {};
+	activity?.consumption?.targets?.forEach(({ target }) => {
+		if (target) {
+			const targetItem = activity?.actor?.items.get(target);
+			if (targetItem) {
+				sandbox.consumptionItemName[targetItem.name] = true;
+				sandbox.consumptionItemIdentifier[targetItem.identifier] = true;
+			}
+		}
+	});
+	sandbox.activity.ability = activity?.ability;
+	sandbox.riderStatuses = options.activityEffectsStatusRiders || {};
+	sandbox.hasAttack = !!activity?.attack;
+	sandbox.hasDamage = !!activity?.damage;
+	sandbox.hasHealing = activity?.hasHealing;
+	sandbox.hasSave = activity?.hasSave;
+	sandbox.isSpell = activity?.isSpell;
+	sandbox.isScaledScroll = activity?.isScaledScroll;
+	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
+	sandbox.spellcastingAbility = activity?.spellcastingAbility;
+	sandbox.messageFlags = activity?.messageFlags;
+	sandbox.activityName = activity ? { [activity.name]: true } : {};
+	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
+	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
+	if (options.attackMode) sandbox[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
+	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
+	sandbox.damageTypes = options.damageTypes;
+	sandbox.defaultDamageType = options.defaultDamageType;
+	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
+	//activity data
+	const activityData = sandbox.activity;
+	sandbox.activity.damageTypes = options.damageTypes;
+	sandbox.activity.defaultDamageType = options.defaultDamageType;
+
+	sandbox.activity.attackMode = options.attackMode;
+	sandbox.activity.mastery = options.mastery;
+	if (activity?.actionType) sandbox[activity.actionType] = true;
+	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
+	if (activityData?.type) sandbox[activityData.type] = true;
+
+	//item data
 	sandbox.item = item?.getRollData().item || {};
-	if (item) {
-		const itemData = sandbox.item;
-		sandbox.itemType = item.type;
-		if (itemData.school) sandbox[itemData.school] = true;
-		if (itemData.identifier) sandbox[itemData.identifier] = true;
-		sandbox[itemData.name] = true;
-		itemData.properties.filter((p) => (sandbox[p] = true));
-		sandbox.item.hasAttack = item.hasAttack;
-		sandbox.item.hasSave = item.system?.hasSave;
-		sandbox.item.hasSummoning = item.system?.hasSummoning;
-		sandbox.item.hasLimitedUses = item.system?.hasLimitedUses;
-		sandbox.item.isHealing = item.system?.isHealing;
-	}
+	sandbox.item.uuid = item?.uuid;
+	sandbox.item.id = item?.id;
+	sandbox.item.type = item?.type;
+	const itemData = sandbox.item;
+	sandbox.itemType = item?.type;
+	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
+	if (itemData?.school) sandbox[itemData.school] = true;
+	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
+	sandbox.itemName = item ? { [itemData.name]: true } : {};
+	itemData?.properties?.filter((p) => (sandbox[p] = true));
+	sandbox.item.hasAttack = item?.hasAttack;
+	sandbox.item.hasSave = item?.system?.hasSave;
+	sandbox.item.hasSummoning = item?.system?.hasSummoning;
+	sandbox.item.hasLimitedUses = item?.system?.hasLimitedUses;
+	sandbox.item.isHealing = item?.system?.isHealing;
+	sandbox.item.isEnchantment = item?.system?.isEnchantment;
+	sandbox.item.transferredEffects = item?.transferredEffects;
 
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
 	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
-	sandbox.isTurn = currentCombatant === subjectToken?.id;
-	sandbox.isOpponentTurn = currentCombatant === opponentToken?.id;
-	sandbox.isTargetTurn = sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
+	sandbox.isTurn = active && currentCombatant === subjectToken?.id;
+	sandbox.isOpponentTurn = active && currentCombatant === opponentToken?.id;
+	sandbox.isTargetTurn = active && sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = options;
+	sandbox.ability = options.ability ? { [options.ability]: true } : {};
+	sandbox.skill = options.skill ? { [options.skill]: true } : {};
+	sandbox.tool = options.tool ? { [options.tool]: true } : {};
+	if (options?.ability) sandbox[options.ability] = true;
+	if (options?.skill) sandbox[options.skill] = true;
+	if (options?.tool) sandbox[options.tool] = true;
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 	sandbox.isConcentration = options?.isConcentration;
 	sandbox.isDeathSave = options?.isDeathSave;
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
-	sandbox.castingLevel = sandbox.item?.level;
+	sandbox.castingLevel = options.spellLevel ?? itemData?.level ?? null;
+	sandbox.spellLevel = sandbox.castingLevel;
+	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
-	sandbox.scaling = item?.flags?.dnd5e?.scaling;
-	if (options?.ability) sandbox[options.ability] = true;
-	if (options?.skill) sandbox[options.skill] = true;
-	if (options?.tool) sandbox[options.tool] = true;
+	sandbox.scaling = item?.flags?.dnd5e?.scaling || 0;
+	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
+	sandbox.attackRollD20 = options?.d20?.attackRollD20;
+	sandbox.hasAdvantage = options?.d20?.hasAdvantage;
+	sandbox.hasDisadvantage = options?.d20?.hasDisadvantage;
+	sandbox.isCritical = options?.d20?.isCritical;
+	sandbox.isFumble = options?.d20?.isFumble;
 
 	const {
 		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes },
@@ -993,24 +1324,90 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcastingTypes, spellLevels, validProperties, weaponTypes, statusEffects } });
 	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor });
-	if (sandbox.undefined) {
+	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
+		delete sandbox[''];
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
-	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._createEvaluationSandbox logging the available data:', { evaluationData: sandbox });
+	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: sandbox });
 	return sandbox;
 }
 
-export function _getActivityDamageTypes(activity) {
-	if (!activity) return [];
-	if (['attack', 'damage', 'save'].includes(activity?.type)) return activity.damage.parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
-	if (activity?.type === 'heal') return [...activity.healing.types]; //parts.reduce((acc, d) => acc.concat([...d.types] ?? []), []);
+export function _collectActivityDamageTypes(activity, options) {
+	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
+	if (!activity || !['attack', 'damage', 'heal', 'save'].includes(activity.type)) {
+		options.defaultDamageType = {};
+		options.damageTypes = {};
+		return;
+	}
+	const returnDamageTypes = {};
+	let returnDefaultDamageType = undefined;
+
+	const partTypes = (part) => {
+		if (part.types.size > 1) {
+			console.warn('AC5E: Multiple damage types available for selection; cannot properly evaluate; damageTypes will grab the first of multiple ones');
+		}
+		const type = part.types.first();
+		if (type) {
+			if (!returnDefaultDamageType) returnDefaultDamageType = { [type]: true };
+			returnDamageTypes[type] = true;
+		}
+		const formula = part.custom?.formula;
+		if (formula && formula !== '') {
+			const match = [...formula.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type];
+			for (const m of match) {
+				if (!returnDefaultDamageType) returnDefaultDamageType = { [m]: true };
+				returnDamageTypes[m] = true;
+			}
+		}
+	};
+
+	const activityType = activity.type === 'heal' ? 'healing' : 'damage';
+	if (activityType === 'healing') {
+		const part = activity[activityType];
+		partTypes(part);
+	} else {
+		for (const part of activity[activityType].parts) partTypes(part);
+	}
+	options.defaultDamageType = returnDefaultDamageType || {};
+	options.damageTypes = returnDamageTypes;
+	return;
+}
+
+export function _collectRollDamageTypes(rolls, options) {
+	const damageTypes = {};
+	const selectedDamageTypes = [];
+	let defaultType = undefined;
+
+	for (const roll of rolls) {
+		const type = roll.options?.type;
+		if (type) {
+			if (!defaultType) defaultType = type;
+			selectedDamageTypes.push(type);
+			damageTypes[type] = true;
+		}
+
+		for (const part of roll.parts ?? []) {
+			if (!part?.length) continue;
+			const match = [...part.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1].trim().toLowerCase()); //returns an Array of inner type strings from each [type]
+			for (const partType of match) {
+				if (!defaultType) defaultType = partType;
+				damageTypes[partType] = true;
+			}
+		}
+	}
+	const defaultDamageType = defaultType ? { [defaultType]: true } : {};
+	if (options) {
+		options.damageTypes = damageTypes;
+		options.selectedDamageTypes = selectedDamageTypes;
+		if (!options.defaultDamageType) options.defaultDamageType = defaultDamageType;
+	} else return { damageTypes, defaultDamageType, selectedDamageTypes };
 }
 
 export function _getActivityEffectsStatusRiders(activity) {
 	const statuses = {};
 	// const riders = {};
-	activity?.applicableEffects.forEach((effect) => {
+	activity?.applicableEffects?.forEach((effect) => {
 		Array.from(effect?.statuses).forEach((status) => (statuses[status] = true));
 		effect.flags?.dnd5e?.riders?.statuses?.forEach((rider) => (statuses[rider] = true));
 	});

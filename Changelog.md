@@ -1,3 +1,215 @@
+## 13.504.10
+* This is the ***last release before 5.1.0*** becomes the minimum required version of the module.
+  * Bugfixes will continue, but no new features will be added for versions < 5.1.0.
+* Added flags for modifying AC (you can use full evaluation conditions as normal).
+  * Usage with `bonus='+2'` to add 2, `bonus='1d20'` to set it to the result. Negative values to reduce.
+  * `flags.automated-conditions-5e.modifyAC`:  will modify the AC of the actor it is applied on.
+  * `flags.automated-conditions-5e.grants.modifyAC`:  will modify the AC of the attack's target.
+  * `flags.automated-conditions-5e.aura.modifyAC`: (use `bonus` and `radius` etc as usual) will modify the AC of the actors in the aura.
+* Added flags for modifying DC, mainly to be used with `actionType` of `save`, `death`, `conc` (if `skill/tool/check` have a set DC then it will work there too)
+  *  Usage with `bonus='+2'` to add 2, `bonus='1d20'` to set it to the result. Negative values to reduce.
+  * `flags.automated-conditions-5e.<ACTIONTYPE>.modifyDC`: will modify the DC of the action the actor takes.
+  * `flags.automated-conditions-5e.grants.<ACTIONTYPE>.modifyDC`: will modify the DC of the action another actor takes against the one with the effect.
+  * `flags.automated-conditions-5e.aura.<ACTIONTYPE>.modifyDC`: (use `radius` as usual) will modify the DC of actions taken by actors in the aura.
+* Some small fixes and code refactor.
+
+## 13.504.9
+* Fix for incorrect doubling up of criticals.
+  * For v13 and MidiQOL users, you'd better update your Midi to v13.0.16
+
+## 13.504.8.2
+* Small fixes for distance calculations
+
+## 13.504.8
+* Compatibility bump Foundry v13.347
+* Distance Calculation Rework for Hex, Gridless, and Square-gridded scenes:
+  * Gridless distances greater than `canvas.grid.distance` but less than `canvas.grid.distance * 1.25` are considered equal to `canvas.grid.distance`.
+    * Example: If grid distance is 5 ft, and a token is 5–6.25 ft away, it's treated as 5 ft — helpful for targeting when not enforcing strict distance.
+  * Updated _getDistance method signature.
+  * Reworked logic for `wallsBlocking` auras (new keyword)
+* Keyword Matching is Now Case-Insensitive
+  * Reworked `handleUses()` to support this change
+  * You can now use `usesCount` or `usescount` or `UsEsCoUnT` etc
+* Fixes for `includeSelf` and `allies`/`enemies` issues
+* Added logic to consume uses from `Owned Items`. Use with:
+ * `usesCount: origin, 2` consumes 2 uses from the origin item/activity.
+ * `usesCount = itemOrActivityUUID, uses` consumes 1 or specified number of uses.
+   * Comma-separated number = required number of available uses and how many to consume.
+* Added `effectOriginActor` in available evaluation data as needed.
+* Now supports dashes in keys (useful for scale value, eg `@scale.paladin['aura-range'].value`)
+* Added global `ac5e._target` which returns `game.user.targets.first()`.
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
+## 13.504.7
+* Added setting: Automate D&D5e statuses. If disabled (default enabled), AC5e will allow the system or other modules to automate statuses like Blinded, Frightened etc
+* Made sure `game.i18n.translations.DND5E` is available
+* Reworked `getMessageData`
+* Properly added `hasAdvantage`, `hasDisadvantage`, `hasAttack`, `hasDamage`, `isCritical`, `isFumble`, `attackRollTotal`, `attackRollD20` to evaluation conditions
+* Fixed `spellcastingAbility` typo
+* `scaling` will be either `0` or the system available flag
+* Added `spellLevel` to match the system's variable, which is the same like `castingLevel` (`baseSpellLevel` is also available as the spell's base level)
+  
+## 13.504.6
+* Added `isCantrip` boolean for condition evaluation.
+* Reworked `castingLevel` to properly reflect the used spell slot/
+* Improved `bonus` mode behavior:
+  * If the evaluated bonus returns `0`, `false`, or `null`, the Active Effect will be ignored in tooltips (since it wouldn’t affect the roll).
+    *  eg when `bonus = opponentActor.attributes.hp.pct > 50 ? 0 : '1d4[acid]'`
+  * Acceptable forms:
+    * Pure formula: `bonus=1d4[acid] + 5 - 1d2[fire]`. Use when only dice and numeric values are needed.
+    * Conditional (evaluated): `bonus=opponentActor.attributes.hp.pct < 50 ? '1d4[acid]' : 22;`. Use string-wrapped dice formulas (`'1d4[acid]'`) or plain numbers when logic is required.
+* Want to support this module? Check out the Automated Condition UI [ko-fi goal](<https://ko-fi.com/thatlonelybugbear/goal?g=39>)
+
+## 13.504.5.2
+* Fix for assignment to constant variable.
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## 13.504.5.1
+* Change to `user` settings instead of per `client` for non-world settings (available for Foundry v13 only)
+  * This means that when a specific user is connected, their editable settings will be used, no matter the client they are connecting from.
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
+## 13.504.5
+* Added new flags for `max`, `min` modifiers on d20 rolls.
+  * usage `flags.automated-conditions-5e.<ACTIONTYPE>.modifier | Override | modifier=rollingActor.attributes.hp.pct < 50 ? 'max12' : 'min8'` which will append to a relevant d20 roll, a `max12` if the rolling actor is below half health, or `min8` otherwise.
+  * available also:
+    * `flags.automated-conditions-5e.aura.<ACTIONTYPE>.modifier`
+    * `flags.automated-conditions-5e.grants.<ACTIONTYPE>.modifier`
+  * for <ACTIONTYPE> use one of `attack/check/concentration/death/initiative/save/skill/tool`
+* Updated disposition checks. Now the following can be used:
+  * `-2`, `-1`, `0`, `1` for exact match based on Foundry's dispositions for SECRET, HOSTILE, NEUTRAL, FRIEDNLY
+  * `secret`, `hostile`, `neutral`, `friendly` for exact match of tokens' disposition
+  * `ally or same` for relative disposition checks, when both of the tokens need to be of the same disposition
+  * `enemy or opposite` for relative disposition checks, which will test between friendly and hostile dispositions only
+  * `different` for relative disposition checks, returning all tokens with different dispositions
+  * `all` just returns all tokens in range, no matter the disposition
+* Fix for healing activities triggering an error when gathering damage types
+* Properly evaluate critical threshold additions
+* More colorpicker fixes
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
+## 13.504.4.1
+* Fix for buttons color pickers misbehaving
+* Changed default `white` to `#f8f8ff` to remove a warning for not conforming to the required format, until the user click outside of the string field
+* added `default` as a keyword to return the default module colors, same like erasing any entry.
+  * `default` or delete the entry to get the default module colors
+  * `false`, `null`, `0`, `none` to disable the specific attributes color changes
+  * `game.user.color` or `user` to match the user's Foundry color
+
+
+## 13.504.4
+* Fix for error when no damage entry exists on a damage roll...
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
+## 13.504.3
+* Fix for `threshold` evaluations
+* Fix type `options.damagetypes` => `options.damageTypes`
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## 13.504.2.1
+* Added the `...criticalThreshold` flags to be picked up by DAE autocompletion
+* Fix for change in `DND5E.ITEM.Property.Heavy` instead of `...Item...`
+
+## 13.504.2
+* Added `criticalThreshold` mode for AC5e attack flags, triggered by using keyword `threshold=18` or `threshold=-2` in the effect value, setting to a new if lower static threshold or adding the provided bonus (negative to lower), respectively.
+* Added `itemLimited` keyword for ac5e flags, limiting the conditional flag application when the rolling item is the same that applied the effect to the actor.
+  * For example, a passive transfer effect from a weapon, adding a damage bonus when that weapon is being used only.
+* Changes in Roll Configuration dialogs should trigger proper AC5e re-evaluation of flags
+  * Reworked `doDialogSkillOrTollRender` (changes tracked: ability used)
+  * Added `doDialogDamageRender` (changes tracked: selected damage type from multiple types)
+  * Added `doDialogAttackRender` (changes tracked: Ammunition, Attack Mode, Mastery dropdowns)
+* Cleanup of sandbox data to make those work better. Additions:
+  * `activity.ability` in the available evaluation data.
+  * `attackRollD20` and `attackRollTotal` for grabbing those in damage evaluations after having rolled a d20 to attack.
+  * reworked damage types for evaluations based on selected damages from multiple available ones
+    * use as `damageTypes.fire || damageTypes.cold` for mutliple ones being true, or `['cold', 'fire'].some(d=>damageTypes[d])`
+    * the old way of damage types being readily available is still supported `fire; cold` but using `damageTypes` is recommended and can be more robust
+  * `consumptionItemName` and `consumptionItemIdentifier` to be used when an activity consumes uses of another, eg
+    * For Dragonhide Belt items consuming Focus uses, `consumptionItemName.Focus` will evaluate to true
+* Limit Grappled attacks disadvantage to only modern rules
+* Added interim support for min/max system flags for saves and checks until system updates.
+* Added proper `Heavy` rules for modern and legacy rules:
+  * To disable them use in console `game.settings.set('automated-conditions-5e', 'automateHeavy', false)`
+  * For the legacy rules, the `token.document.width * token.document.height * token.document.scale` will need to be lower than `1` in order for the attacking Token to be considered small.
+* Allow `bonus` and `radius` to be fully evaluated too, so you could use `radius=auraActor.details.level > 17 ? 30 : 10` for example.
+* Verified for Foundry v13.346
+
+## 13.504.1
+* System compatibility bump for 5.0.4
+* Fix for a forgotten Token instance deprecation
+* Added for bonus ac5e flags, support for `effectStacks`, when using DAE or Status Icon Counters stacking of effects.
+ * Example `bonus=(effectStacks + 2)d4`
+
+## 13.503.13.3
+* Fix for not properly pushing parts for bonuses
+
+## 13.503.13.2
+* Added in sandbox:
+  * `item.isEnchantment`: Boolean, true if it is an enchantment, or enchanted item.
+  * `item.transferredEffects`: Array of transferred effects
+
+## 13.503.13.1
+* Guard against actor being undefined at `getActorToolRollModes`
+
+## 13.503.13
+* Fix for double initiative bonus and not proper highlighting
+* You can now use any of the following in addition to `tokenId` and `opponentId`:
+  * `tokenUuid`, `actorId`, `actorUuid` for rolling actor/token identification
+  * `opponentUuid`, `opponentActorId`, `opponentActorUuid`
+
+## 13.503.12
+* Adds `effectOriginActor` data for bonus flags
+  * Usage example: `bonus=effectOriginActor.abilities.wis.mod;`
+
+## 13.503.11.1
+* Italian translation update by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
+## 13.503.11
+* v13.345 compatibility
+
+## 13.503.10.4
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
+## 13.503.10.3
+* Added 2014 Alert automation (checking for Alert - or its translated string for supported languages - item on the actor for Legacy Rules)
+* Fix for Transform activities triggering an error
+
+## 13.503.10.2
+* Updated French translation by [CaosFR](<https://github.com/CaosFR>) 🤗
+
+## 13.503.10.1
+* Compatibility with GPS attacks of opportunity
+
+## 13.503.10
+* `paralyzed` and `unconscious` forces damage to be critical only when `activity.hasDamage` returns `true`
+
+## 13.503.9.3
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+* Updated Polish translation by [Lioheart](<https://github.com/Lioheart>) 🤗
+
+## 13.503.9.2
+* Added `flags.automated-conditions-5e.spellSniper` in the DAE autocomplete options
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## 13.503.9.1
+* Added `Spell Sniper` feat (2014 vs 2024) rules
+  * `2014`: Spells that have an attack roll, double their range
+  * `2024`: Casting a ranged spells within 5 ft of an enemy doesn't impose disadvantage on any attack roll and if the spell has at least 10ft range, gets another 60ft
+    * Either an item on the actor named `Spell Sniper` or a relevant flag for `flags.automated-conditions-5e.spellSniper | Override | 1` will cancel the disadvantage.
+* Foundry v13.344 compatibility
+
+## 13.503.8.3
+* Guard against tokens without an actor
+
+## 13.503.8.2
+* Respect Targeting settings for attacks
+* Fix for incorrent localization string when targeting is set to cancel and warn
+
 ## 13.503.8.1
 * Limit uses of AC5e flags on owned actors by a specific Number
   * `once`: adding this keyword in the effect's value, will limit the use of the flag to the next relevant roll only

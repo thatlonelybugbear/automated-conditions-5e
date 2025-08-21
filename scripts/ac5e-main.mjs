@@ -2,6 +2,7 @@ import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from
 import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
+export let scopeUser;
 let daeFlags;
 
 Hooks.once('init', ac5eRegisterOnInit);
@@ -13,6 +14,7 @@ function ac5eRegisterOnInit() {
 	Hooks.on('dae.setFieldData', (fieldData) => {
 		fieldData['AC5E'] = daeFlags;
 	});
+	scopeUser = game.version > 13 ? 'user' : 'client';
 	return new Settings().registerSettings();
 }
 
@@ -82,4 +84,16 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
 	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
 	globalThis[Constants.MODULE_NAME_SHORT].logEvaluationData = false;
+	globalThis[Constants.MODULE_NAME_SHORT]._target = targetDef;
 }
+
+function targetDef () {
+	// Dynamically returns the first selected target of the current user via ac5e._target
+	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], "_target", {
+		get() {
+			return game?.user?.targets?.first();
+		},
+		configurable: true
+	});
+}
+
