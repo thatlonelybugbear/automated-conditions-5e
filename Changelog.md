@@ -1,7 +1,11 @@
 ## 13.512.1 
 * **System version 5.1.x compatible only**
 
-## 13.504.10 (system < v5.1.0 compatible)
+## 13.504.10.1 (system < v5.1.0 compatible)
+* Reinstate riderStatuses in the evaluation data
+  * Example of usage: `flags.automated-conditions-5e.save.advantage | Override | riderStatuses.poisoned` to automate Dwarven Resilience against getting the poisoned condition.
+
+## 13.504.10
 * This is the ***last release before 5.1.0*** becomes the minimum required version of the module.
   * Bugfixes will continue, but no new features will be added for versions < 5.1.0.
 * Added flags for modifying AC (you can use full evaluation conditions as normal).
