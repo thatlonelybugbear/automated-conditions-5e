@@ -1235,7 +1235,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	});
 	sandbox.activity.ability = activity?.ability;
-	sandbox.riderStatuses = options.activityEffectsStatusRiders || {};
+	sandbox.riderStatuses = _getActivityEffectsStatusRiders(activity) || _options.activityEffectsStatusRiders || {}; //@to-do: check this, can we move the call somewhere more central to avoid multiple calls?
 	sandbox.hasAttack = !!activity?.attack;
 	sandbox.hasDamage = !!activity?.damage;
 	sandbox.hasHealing = activity?.hasHealing;
