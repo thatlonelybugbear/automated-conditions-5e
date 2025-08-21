@@ -721,9 +721,9 @@ export function _getTooltip(ac5eConfig = {}) {
 	}
 	if (subject?.targetADC.length || opponent?.targetADC.length) {
 		const combinedArray = [...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])];
-		let translationString = hookType === 'attack' ? 'AC5E.ModifyAC' : 'AC5E.ModifyAC';
+		let translationString = _localize(hookType === 'attack' ? 'AC5E.ModifyAC' : 'AC5E.ModifyDC');
 		translationString += ` ${alteredTargetADC} (${initialTargetADC})`;
-		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
+		addTooltip(true, `<span style="display: block; text-align: left;">${translationString}: ${combinedArray.join(', ')}</span>`);
 	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
 	return tooltip;

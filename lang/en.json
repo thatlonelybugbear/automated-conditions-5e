@@ -78,8 +78,8 @@
 	"AC5E.DebuggingName": "AC5e debug",
 	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
 	"AC5E.WarCaster": "War Caster",
-	"AC5E.ModifyAC": "Modify AC",
-	"AC5E.ModifyDC": "Modify DC",
+	"AC5E.ModifyAC": "Modified AC",
+	"AC5E.ModifyDC": "Modified DC",
 	"AC5E.Fail": "Fail",
 	"AC5E.Alert": "Alert",
 	"AC5E.FailLowerCase": "fail",
@@ -154,15 +154,15 @@
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
 			"name": "Alter the criticalThreshold of the attacks",
-			"description": "Use threshold=18 or threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use threshold='18' or threshold='-1d6'. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
 			"name": "Grant altered criticalThreshold to opponent's attacks",
-			"description": "Use threshold=18 or threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use threshold='18' or threshold='-1d6'. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "An aura altering the criticalThreshold of the attacks in radius",
-			"description": "Use radius=10;threshold=18; or radius=15;threshold=-1d6. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use radius=10;threshold='18'; or radius=15;threshold='-1d6'. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modify the AC of the actor against incoming attacks",
@@ -170,7 +170,7 @@
 		},
 		"flags.automated-conditions-5e.grant.modifyAC": {
 			"name": "Grant modified AC to the opponent of the attack",
-			"description": "Use bonus='18' or bonus='1d6'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+			"description": "Use bonus='18' or bonus='+1d6'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "An aura modifying the AC of the relevant tokens in radius",
@@ -183,7 +183,7 @@
 			},
 			"bonus": {
 				"name": "Roll gets bonus",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. eg bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. eg bonus='1d4 + 5' - rollingActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Roll is critical (nat20 or crit damage)",
@@ -221,7 +221,7 @@
 			},
 			"bonus": {
 				"name": "Grant bonus to opponent's rolls",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus='1d4 + 5' - opponentActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Grant critical (nat20 or damage) to opponent's rolls",
@@ -259,7 +259,7 @@
 			},
 			"bonus": {
 				"name": "An aura giving bonuses",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format example for initiative ACTIONTYPE and effect value of: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised ALL within 20ft will have their rolls reduced by the source actor's cha mod if they are surprised"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format example for initiative ACTIONTYPE and effect value of: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised ALL within 20ft will have their rolls reduced by the source actor's cha mod if they are surprised"
 			},
 			"critical": {
 				"name": "An aura forcing critical (nat20 or damage)",
