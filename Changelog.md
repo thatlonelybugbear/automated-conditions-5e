@@ -1,3 +1,7 @@
+## 13.504.10.1
+* Reinstate riderStatuses in the evaluation data
+  * Example of usage: `flags.automated-conditions-5e.save.advantage | Override | riderStatuses.poisoned` to automate Dwarven Resilience against getting the poisoned condition.
+
 ## 13.504.10
 * This is the ***last release before 5.1.0*** becomes the minimum required version of the module.
   * Bugfixes will continue, but no new features will be added for versions < 5.1.0.
