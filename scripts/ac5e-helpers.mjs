@@ -1315,6 +1315,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.scaling = item?.flags?.dnd5e?.scaling || 0;
 	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
 	sandbox.attackRollD20 = options?.d20?.attackRollD20;
+	const attackRollOverAC = sandbox.attackRollTotal - sandbox.opponentAC;
+	sandbox.attackRollOverAC = !isNaN(attackRollOverAC) ? attackRollOverAC : undefined;
 	sandbox.hasAdvantage = options?.d20?.hasAdvantage;
 	sandbox.hasDisadvantage = options?.d20?.hasDisadvantage;
 	sandbox.isCritical = options?.d20?.isCritical;
