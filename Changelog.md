@@ -1,3 +1,10 @@
+## 13.504.10.3
+* Reinstates using the actual token's name to Checks and Saves roll configuration dialogs.
+* Adds the following as available data for conditions evaluation
+  * `options.targets`, Array of the activity's targets 
+  * `opponentAC`, the opponent actor's AC value
+  * `singleTarget`, will be `true` is there is only one target selected.
+
 ## 13.504.10.2
 * Fix for Modified AC and Modified DC translation strings missing
 
