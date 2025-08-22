@@ -1210,6 +1210,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.canSee = _canSee(subjectToken, opponentToken);
 
 	sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
+	sandbox.opponentAC = opponentToken?.actor?.system?.attributes?.ac?.value;
 	sandbox.opponentId = opponentToken?.id;
 	sandbox.opponentUuid = opponentToken?.document?.uuid;
 	sandbox.opponentActorId = opponentToken?.actor?.id;
@@ -1305,6 +1306,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isInitiative = options?.isInitiative;
 	sandbox.distance = options?.distance;
 	sandbox.hook = options?.hook;
+	sandbox.targets = options?.targets ?? [];
+	sandbox.singleTarget = options?.targets?.length === 1 && true;
 	sandbox.castingLevel = options.spellLevel ?? itemData?.level ?? null;
 	sandbox.spellLevel = sandbox.castingLevel;
 	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
