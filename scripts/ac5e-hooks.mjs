@@ -363,11 +363,16 @@ export function _renderHijack(hook, render, elem) {
 			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
 		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
 		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
-		const { hookType, options } = getConfigAC5E || {};
+		const { hookType, options, tokenId } = getConfigAC5E || {};
 		if (!hookType) return true;
 		let tokenName;
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
 		let newTitle;
+		if (tokenId && (hookType === 'save' || hookType === 'check')) {
+			const subtitleElement = elem.querySelector('.window-subtitle');
+			const tokenName = canvas.tokens.get(tokenId)?.name;
+			subtitleElement.textContent = `${tokenName}`;
+		}
 		if (render.config?.isConcentration) {
 			newTitle = `${game.i18n.translations.DND5E.AbbreviationDC} ${render.config.target} ${game.i18n.translations.DND5E.Concentration}`;
 			if (render.config.ability !== 'con') newTitle += ` (${render.config.ability.toLocaleUpperCase()})`;
