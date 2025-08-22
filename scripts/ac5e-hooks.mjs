@@ -70,7 +70,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (settings.debug) console.error('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
 	if (!sourceActor) return;
 	const chatButtonTriggered = getMessageData(usageConfig);
-	const options = { ability, skill, tool, hook, activity };
+	const options = { ability, skill, tool, hook, activity, targets: messageConfig?.data?.flags?.dnd5e?.targets };
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
@@ -153,6 +153,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
+	options.targets = targets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
@@ -208,6 +209,7 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	options.ability = ability;
 	options.hook = hook;
 	options.activity = activity;
+	options.targets = targets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
@@ -243,7 +245,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, activity: messageActivity, attackingActor, attackingToken, targets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
@@ -251,6 +253,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
+	options.targets = targets;
 	const item = activity?.item;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
@@ -320,13 +323,14 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	} = message || {};
 
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, item, attackingActor, attackingToken, targets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	options.activity = activity;
 	options.hook = hook;
+	options.targets = targets;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
