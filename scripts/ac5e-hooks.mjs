@@ -245,7 +245,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, activity: messageActivity, attackingActor, attackingToken, targets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, activity: messageActivity, attackingActor, attackingToken, targets: initialTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
@@ -253,7 +253,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
-	options.targets = targets;
+	options.targets = initialTargets;
 	const item = activity?.item;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
@@ -323,14 +323,14 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	} = message || {};
 
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, attackingActor, attackingToken, targets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, item, attackingActor, attackingToken, targets: initialTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	options.activity = activity;
 	options.hook = hook;
-	options.targets = targets;
+	options.targets = initialTargets;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
