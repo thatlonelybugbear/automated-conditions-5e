@@ -20,7 +20,7 @@
 	"AC5E.ExpandedConditionsHint": "Se abilitato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
 	"AC5E.AutoArmorName": "Competenza nelle armature AC5e e svantaggio furtività equipaggiamento.",
 	"AC5E.AutoArmorHint": "Se abilitato, AC5e elaborerà automaticamente la competenza nell'armatura equipaggiata per abilità, abilità e tiri salvezza (STR || DEX) e controllerà l'equipaggiamento per la proprietà di svantaggio della furtività.",
-	"AC5E.ActivityUse" : {
+	"AC5E.ActivityUse": {
 		"Name": "Competenza armature e incantesimi AC5e",
 		"Hint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
 		"Choices": {
@@ -45,7 +45,7 @@
 				"Enforce": "è silenziato e non può lanciare incantesimi con componenti verbali. Incantesimo annullato!",
 				"Warn": "è silenziato e non può lanciare incantesimi con componenti verbali."
 			}
-		}		
+		}
 	},
 	"AC5E.AutoRangedAttacksName": "Automazione Attacchi a distanza AC5e:",
 	"AC5E.AutoRangedAttacksHint": "'Disattivato': AC5E non elaborerà alcun controllo a distanza; 'Solo controlli a distanza': AC5E elaborerà automaticamente lo svantaggio/fallimento della distanza in base alla distanza target e ai valori dell'intervallo dell'elemento utilizzato per attaccare; 'Distanza + Nemici Vicini': gli ostili adiacenti all'attaccante imporranno svantaggi agli attacchi a distanza.",
@@ -78,6 +78,8 @@
 	"AC5E.DebuggingName": "Debug AC5E",
 	"AC5E.DebuggingHint": "Solo alcuni log utili per il debug durante lo sviluppo. Probabilmente non ha molto senso che gli utenti lo usino :)",
 	"AC5E.WarCaster": "Mago da Battaglia",
+	"AC5E.ModifyAC": "CA Modificata",
+	"AC5E.ModifyDC": "CD Modificata",
 	"AC5E.Fail": "Fallito",
 	"AC5E.Alert": "Allerta",
 	"AC5E.FailLowerCase": "fallito",
@@ -152,15 +154,27 @@
 	},
 	"flags.automated-conditions-5e.attack.criticalThreshold": {
 			"name": "Modificare la soglia critica degli attacchi",
-			"description": "Usa soglia=18 o soglia=-1d6. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
+			"description": "Usa soglia='18' o soglia='-1d6'. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
 		},
 		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
 			"name": "Garantisci soglia critica alterata per gli attacchi dell'avversario",
-			"description": "Usa soglia=18 o soglia=-1d6. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
+			"description": "Usa soglia='18' o soglia='-1d6'. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Un'aura che altera la soglia critica degli attacchi nel raggio",
 			"description": "Usa raggio=10; soglia=18; oppure raggio=15; soglia=-1d6. Il primo valore verrà impostato a 18 se inferiore, mentre il secondo verrà aggiunto al valore attuale; usa negativo per ridurre."
+		},
+	"flags.automated-conditions-5e.modifyAC": {
+			"name": "Modifica la CA del Personaggio contro gli attacchi in arrivo",
+			"description": "Usa bonus='18' o bonus='+5'. Il primo imposterà la CA a 18 e il secondo aggiungerà CA a quella attuale; utilizzare il negativo per ridurla"
+		},
+		"flags.automated-conditions-5e.grant.modifyAC": {
+			"name": "Concedi CA modificato all'avversario dell'attacco",
+			"description": "Usa bonus='18' o bonus='+1d6'. Il primo imposterà la CA a 18 e il secondo aggiungerà CA a quella attuale; utilizzare il negativo per ridurla"
+		},
+		"flags.automated-conditions-5e.aura.modifyAC": {
+			"name": "Un'aura che modifica la CA dei token rilevanti nel raggio",
+			"description": "Usa raggio=10;bonus='18'; o raggio=15;bonus='-1d6'. TIl primo imposterà la CA a 18 e il secondo aggiungerà CA a quella attuale; utilizzare il negativo per ridurla"
 		},
 	"flags.automated-conditions-5e.ACTIONTYPE": {
 		"advantage": {
@@ -169,7 +183,7 @@
 		},
 		"bonus": {
 			"name": "Tiro con bonus",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: bonus='1d4 + 5' - rollingActor.abilities.dex.mod;"
 		},
 		"critical": {
 			"name": "Tiro è critico (20 naturale o danno critico)",
@@ -182,6 +196,10 @@
 		"modifier": {
 			"name": "modificatori tiri d20 per max, min",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. es: modificatore=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+		},
+		"modifyDC": {
+				"name": "Modifica la CD delle tue azioni. Funzionerà anche per i controlli di concentrazione e i tiri salvezza sulla morte che effettui.",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). es bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
 		},
 		"fail": {
 			"name": "Tiri d20 falliscono",
@@ -203,7 +221,7 @@
 		},
 		"bonus": {
 			"name": "Concede bonus ai tiri dell'avversario",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Inserire bonus= seguito da ; come separatore, es: bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Inserire bonus= seguito da ; come separatore, es: bonus='1d4 + 5' - opponentActor.abilities.dex.mod;"
 		},
 		"critical": {
 			"name": "Concede critico (20 naturale o danno) ai tiri dell'avversario",
@@ -216,6 +234,10 @@
 		"modifier": {
 			"name": "Concede modificatori per max, min tiri d20 dell'avversario",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'"
+		},
+		"modifyDC": {
+			"name": "Modifica la CD di un tiro che effettui contro un'azione intrapresa da un altro",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). es bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
 		},
 		"fail": {
 			"name": "Concede fallimento ai tiri d20 dell'avversario",
@@ -237,7 +259,7 @@
 		},
 		"bonus": {
 			"name": "Un’aura che concede bonus",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Esempio di formato del valore di modifica per l'iniziativa ACTIONTYPE e valore dell'effetto di: raggio=20;bonus=-source.abilities.cha.mod;target.statuses.surprised tutti entro 20 piedi vedranno i propri tiri ridotti dal modificatore di Carisma dell’attore sorgente se sono sorpresi"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Esempio di formato del valore di modifica per l'iniziativa ACTIONTYPE e valore dell'effetto di: raggio=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised tutti entro 20 piedi vedranno i propri tiri ridotti dal modificatore di Carisma dell’attore sorgente se sono sorpresi"
 		},
 		"critical": {
 			"name": "Un’aura che forza i critici (20 naturale o danno critico)",
@@ -250,6 +272,10 @@
 		"modifier": {
 			"name": "An aura giving modifiers for max, min on d20 rolls",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'; raggio=rollingActor.details.level < 10 ? 15 : 30; modificatore='min10'"
+		},
+		"modifyDC": {
+			"name": "Un'aura che modifica la CD delle azioni intraprese dai token interessati.",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus, raggio come al solito"
 		},
 		"fail": {
 			"name": "Un’aura che forza il fallimento dei tiri d20",
