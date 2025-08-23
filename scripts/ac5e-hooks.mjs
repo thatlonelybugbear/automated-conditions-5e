@@ -57,7 +57,7 @@ function getMessageData(config, hook) {
 	}
 	options.messageId = messageId;
 	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
-	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message.speaker || {};
+	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
 	const attackingActor = attackingToken?.actor ?? item?.actor;
 	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
@@ -67,7 +67,7 @@ function getMessageData(config, hook) {
 function getTargets(message) {
 	const messageTargets = message?.data?.flags?.dnd5e?.targets;
 	if (messageTargets?.length) return messageTargets;
-	return [...game.user.targets];
+	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
 }
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
@@ -82,7 +82,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	options.skill = skill;
 	options.tool = tool;
 	options.hook = hook;
-	optiions.activity = activity;
+	options.activity = activity;
 	options.targets = messageTargets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
