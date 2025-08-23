@@ -5,6 +5,9 @@
   * `opponentAC`, the opponent actor's AC value
   * `singleTarget`, will be `true` is there is only one target selected.
   * `attackRollOverAC`, the attack roll total minus the opponent's AC or undefined.
+* Fix for infinite loop possibility when MidiQOL is active.
+* Fix for preActivityUse hook failing when looking for a message.
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.504.10.2
 * Fix for Modified AC and Modified DC translation strings missing
