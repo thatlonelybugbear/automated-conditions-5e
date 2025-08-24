@@ -876,7 +876,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (config) foundry.utils.mergeObject(config, ac5eConfigObject);
 	if (config.rolls?.[0]?.data?.flags) foundry.utils.mergeObject(config.rolls[0].data.flags, ac5eConfigObject);
 	if (config.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigObject);
-	if (message?.flags) foundry.utils.mergeObject(message?.flags, ac5eConfigObject);
+	if (message?.data?.flags) foundry.utils.mergeObject(message.data.flags, ac5eConfigObject);
 	else foundry.utils.setProperty(message, 'data.flags', ac5eConfigObject);
 	if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
