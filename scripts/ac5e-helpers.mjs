@@ -368,7 +368,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 				ac5eConfig.alteredCritThreshold = finalThreshold;
 			}
 			if (ac5eConfig.targetADC?.length) {
-				const targets = message?.data?.flags?.dnd5e?.targets;
+				const targets = message?.flags?.dnd5e?.targets;
 				const initialTargetADC = targets[0].ac;
 				let lowerTargetADC;
 				if (!foundry.utils.isEmpty(targets)) {
@@ -404,7 +404,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 				roll0.options.target = ac5eForcedRollTarget;
 				if (hook === 'attack') {
 					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
-					const targets = message?.data?.flags?.dnd5e?.targets;
+					const targets = message?.flags?.dnd5e?.targets;
 					if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
 				}
 			}
@@ -415,7 +415,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 				roll0.options.target = -ac5eForcedRollTarget;
 				if (hook === 'attack') {
 					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
-					const targets = message?.data?.flags?.dnd5e?.targets;
+					const targets = message?.flags?.dnd5e?.targets;
 					if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
 				}
 			}
@@ -876,7 +876,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (config) foundry.utils.mergeObject(config, ac5eConfigObject);
 	if (config.rolls?.[0]?.data?.flags) foundry.utils.mergeObject(config.rolls[0].data.flags, ac5eConfigObject);
 	if (config.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigObject);
-	if (message?.data?.flags) foundry.utils.mergeObject(message?.data.flags, ac5eConfigObject);
+	if (message?.flags) foundry.utils.mergeObject(message?.flags, ac5eConfigObject);
 	else foundry.utils.setProperty(message, 'data.flags', ac5eConfigObject);
 	if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
