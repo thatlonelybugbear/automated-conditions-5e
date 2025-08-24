@@ -28,10 +28,11 @@ export function _rollFunctions(hook, ...args) {
 }
 function getMessageData(config, hook) {
 	const messageId = config.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageUuid = config?.workflow?.itemCardUuid; //for midi
-	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : false;
+	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
+	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : undefined;
 
-	const { activity: activityObj, item: itemObj, targets, messageType, use } = message?.flags?.dnd5e || {};
+	const messageTargets = getTargets(message);
+	const { activity: activityObj, item: itemObj, messageType, use } = message?.flags?.dnd5e || {};
 	const item = fromUuidSync(itemObj?.uuid);
 	const activity = fromUuidSync(activityObj?.uuid);
 	const options = {};
@@ -55,12 +56,18 @@ function getMessageData(config, hook) {
 		}
 	}
 	options.messageId = messageId;
-	options.spellLevel = activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
-	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message.speaker || {};
+	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
+	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
 	const attackingActor = attackingToken?.actor ?? item?.actor;
-	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, targets, config, messageConfig: message?.config, use, options });
-	return { messageId: message?.id, activity, item, attackingActor, attackingToken, targets, config, messageConfig: message?.config, use, options };
+	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
+	return { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options };
+}
+
+function getTargets(message) {
+	const messageTargets = message?.flags?.dnd5e?.targets;
+	if (messageTargets?.length) return messageTargets;
+	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
 }
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
@@ -69,8 +76,14 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	const sourceActor = item.actor;
 	if (settings.debug) console.error('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
 	if (!sourceActor) return;
-	const chatButtonTriggered = getMessageData(usageConfig);
-	const options = { ability, skill, tool, hook, activity };
+	const chatButtonTriggered = getMessageData(usageConfig, hook);
+	const { messageTargets, options } = chatButtonTriggered;
+	options.ability = ability;
+	options.skill = skill;
+	options.tool = tool;
+	options.hook = hook;
+	options.activity = activity;
+	options.targets = messageTargets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
@@ -93,7 +106,6 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
 	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
-	let targets = game.user?.targets;
 
 	//to-do: rework this to properly check for fail flags and fail use status effects
 	// if (targets.size) {
@@ -119,7 +131,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	// 	}
 	// }
 	//to-do: should we do something for !targets.size and midi?
-
+	let targets = game.user?.targets;
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
@@ -145,7 +157,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 
 export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
+	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
 	options.hook = hook;
@@ -153,10 +165,11 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
+	options.targets = messageTargets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
-	const speaker = message?.data?.speaker;
+	const speaker = message?.speaker;
 	const rollTypeObj = message?.flags?.dnd5e?.roll;
 
 	const messageType = message?.flags?.dnd5e?.messageType;
@@ -192,7 +205,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest:', { config, dialog, message });
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, activity, attackingActor, attackingToken, targets, options = {}, use } = chatButtonTriggered || {};
+	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
 	let ac5eConfig;
 	if (options.isInitiative) {
@@ -202,12 +215,13 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message, ac5eConfig.options);
 	}
 	const { subject, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
-	const speaker = message?.data?.speaker;
+	const speaker = message?.speaker;
 	options.skill = skill;
 	options.tool = tool;
 	options.ability = ability;
 	options.hook = hook;
 	options.activity = activity;
+	options.targets = messageTargets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
@@ -243,7 +257,7 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, activity: messageActivity, attackingActor, attackingToken, /* targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, activity: messageActivity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
@@ -251,12 +265,13 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
+	options.targets = messageTargets;
 	const item = activity?.item;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
-	const targets = game.user.targets;
+	const targets = game.user?.targets;
 	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
@@ -320,13 +335,14 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	} = message || {};
 
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, attackingActor, attackingToken, /*targets, config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, item, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	options.activity = activity;
 	options.hook = hook;
+	options.targets = messageTargets;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
 	// options.spellLevel = use?.spellLevel;
 	const sourceTokenID = speaker.token;
@@ -363,11 +379,16 @@ export function _renderHijack(hook, render, elem) {
 			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
 		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
 		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
-		const { hookType, options } = getConfigAC5E || {};
+		const { hookType, options, tokenId } = getConfigAC5E || {};
 		if (!hookType) return true;
 		let tokenName;
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
 		let newTitle;
+		if (tokenId && (hookType === 'save' || hookType === 'check')) {
+			const subtitleElement = elem.querySelector('.window-subtitle');
+			const tokenName = canvas.tokens.get(tokenId)?.name;
+			subtitleElement.textContent = `${tokenName}`;
+		}
 		if (render.config?.isConcentration) {
 			newTitle = `${game.i18n.translations.DND5E.AbbreviationDC} ${render.config.target} ${game.i18n.translations.DND5E.Concentration}`;
 			if (render.config.ability !== 'con') newTitle += ` (${render.config.ability.toLocaleUpperCase()})`;
@@ -749,7 +770,7 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	}
 	newConfig.rolls[0].options.maximum = null;
 	newConfig.rolls[0].options.minimum = null;
-	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
 	getConfigAC5E = _preRollAttackV2(newConfig, newDialog, newMessage, 'attack');
 	dialog.rebuild();
@@ -798,7 +819,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
 		newConfig.rolls[i].options.isCritical = wasCritical;
 	}
-	const newDialog = { options: { window: { title: dialog.message.data.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
+	const newDialog = { options: { window: { title: dialog.message.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
 	const newMessage = dialog.message;
 	getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage', reEval);
 	dialog.rebuild();
@@ -815,7 +836,7 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	newConfig.rolls[0].options.maximum = null;
 	newConfig.rolls[0].options.minimum = null;
 
-	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
 	const reEval = getConfigAC5E.reEval ?? {};
 
