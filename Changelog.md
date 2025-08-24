@@ -1,12 +1,13 @@
 ## 13.504.10.3
 * Reinstates using the actual token's name to Checks and Saves roll configuration dialogs.
 * Adds the following as available data for conditions evaluation:
-  * `options.targets`, Array of the activity's targets 
-  * `opponentAC`, the opponent actor's AC value
+  * `options.targets`, Array of the activity's targets.
+  * `opponentAC`, the opponent actor's AC value.
   * `singleTarget`, will be `true` is there is only one target selected.
   * `attackRollOverAC`, the attack roll total minus the opponent's AC or undefined.
 * Fix for infinite loop possibility when MidiQOL is active.
 * Fix for preActivityUse hook failing when looking for a message.
+* Fix for some deprecations.
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.504.10.2
