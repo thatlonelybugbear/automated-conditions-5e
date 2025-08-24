@@ -1,3 +1,6 @@
+## 13.512.1 
+* **System version 5.1.x compatible only**
+
 ## 13.504.10.3
 * Reinstates using the actual token's name to Checks and Saves roll configuration dialogs.
 * Adds the following as available data for conditions evaluation:
