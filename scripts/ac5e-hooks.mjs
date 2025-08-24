@@ -65,7 +65,7 @@ function getMessageData(config, hook) {
 }
 
 function getTargets(message) {
-	const messageTargets = message?.data?.flags?.dnd5e?.targets;
+	const messageTargets = message?.flags?.dnd5e?.targets;
 	if (messageTargets?.length) return messageTargets;
 	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
 }
@@ -169,7 +169,7 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
-	const speaker = message?.data?.speaker;
+	const speaker = message?.speaker;
 	const rollTypeObj = message?.flags?.dnd5e?.roll;
 
 	const messageType = message?.flags?.dnd5e?.messageType;
@@ -215,7 +215,7 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message, ac5eConfig.options);
 	}
 	const { subject, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
-	const speaker = message?.data?.speaker;
+	const speaker = message?.speaker;
 	options.skill = skill;
 	options.tool = tool;
 	options.ability = ability;
@@ -770,7 +770,7 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	}
 	newConfig.rolls[0].options.maximum = null;
 	newConfig.rolls[0].options.minimum = null;
-	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
 	getConfigAC5E = _preRollAttackV2(newConfig, newDialog, newMessage, 'attack');
 	dialog.rebuild();
@@ -819,7 +819,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
 		newConfig.rolls[i].options.isCritical = wasCritical;
 	}
-	const newDialog = { options: { window: { title: dialog.message.data.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
+	const newDialog = { options: { window: { title: dialog.message.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
 	const newMessage = dialog.message;
 	getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage', reEval);
 	dialog.rebuild();
@@ -836,7 +836,7 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	newConfig.rolls[0].options.maximum = null;
 	newConfig.rolls[0].options.minimum = null;
 
-	const newDialog = { options: { window: { title: dialog.message.data.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
 	const reEval = getConfigAC5E.reEval ?? {};
 
