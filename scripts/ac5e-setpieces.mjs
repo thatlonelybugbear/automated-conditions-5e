@@ -80,10 +80,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		deafened: mkStatus('deafened', _i18nConditions('Deafened'), {}),
 
 		exhaustion: mkStatus('exhaustion', `${_i18nConditions('Exhaustion')} ${exhaustionLvl}`, {
-			1: { check: { subject: 'disadvantage' } },
 			3: {
-				check: { subject: 'disadvantage' },
-				save: { subject: 'disadvantage' },
 				attack: { subject: 'disadvantage' },
 			},
 		}),
@@ -119,7 +116,6 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		poisoned: mkStatus('poisoned', _i18nConditions('Poisoned'), {
 			attack: { subject: 'disadvantage' },
-			check: { subject: 'disadvantage' },
 		}),
 
 		prone: mkStatus('prone', _i18nConditions('Prone'), {
@@ -131,7 +127,6 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		restrained: mkStatus('restrained', _i18nConditions('Restrained'), {
 			attack: { subject: 'disadvantage', opponent: 'advantage' },
-			save: { subject: ability === 'dex' ? 'disadvantage' : '' },
 		}),
 
 		silenced: mkStatus('silenced', _i18nConditions('Silenced'), {
