@@ -1,3 +1,6 @@
+## 13.504.10.5
+* Adds ammoProperties to itemProperties
+
 ## 13.504.10.4
 * Quick fix for activities not functioning properly
 
