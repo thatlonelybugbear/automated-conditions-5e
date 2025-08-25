@@ -1093,7 +1093,7 @@ function sizeWarnings(targetCount, setting) {
 
 export function _raceOrType(actor, dataType = 'race') {
 	const systemData = actor?.system;
-	if (!systemData) return {};
+	if (!systemData?.details?.type) return {}; //needed for 5.1.x and some type of actors that might be on the canvas?!
 	let data;
 	if (actor.type === 'character' || actor.type === 'npc') {
 		data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
