@@ -1,5 +1,5 @@
 ## 13.504.10.5
-* Adds ammoProperties to itemProperties
+* Adds ammoProperties to itemProperties, so if an arrow for example is `magical` but the weapon shooting it is not, the attack will be treated as magical
 
 ## 13.504.10.4
 * Quick fix for activities not functioning properly
