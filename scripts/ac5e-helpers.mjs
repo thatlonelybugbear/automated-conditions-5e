@@ -747,7 +747,9 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		ownership: actor?.ownership,
 		subject: {
 			advantage: [],
+			advantageNames: new Set(),
 			disadvantage: [],
+			disadvantageNames: new Set(),
 			fail: [],
 			bonus: [],
 			critical: [],
@@ -759,7 +761,9 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		},
 		opponent: {
 			advantage: [],
+			advantageNames: new Set(),
 			disadvantage: [],
+			disadvantageNames: new Set(),
 			fail: [],
 			bonus: [],
 			critical: [],
