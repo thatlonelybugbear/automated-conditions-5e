@@ -25,7 +25,10 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!test) continue;
 				if (settings.debug) console.log(type, test);
 				const effectName = tables?.[status]?.name;
-				if (effectName) ac5eConfig[type][test].push(effectName);
+				if (effectName) {
+					if (test.includes('advantageNames')) ac5eConfig[type][test].add(effectName);
+					else ac5eConfig[type][test].push(effectName);
+				}
 			}
 		}
 	}
@@ -80,7 +83,10 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		deafened: mkStatus('deafened', _i18nConditions('Deafened'), {}),
 
 		exhaustion: mkStatus('exhaustion', `${_i18nConditions('Exhaustion')} ${exhaustionLvl}`, {
+			1: { check: { subject: 'disadvantageNames' } },
 			3: {
+				check: { subject: 'disadvantageNames' },
+				save: { subject: 'disadvantageNames' },
 				attack: { subject: 'disadvantage' },
 			},
 		}),
@@ -116,6 +122,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		poisoned: mkStatus('poisoned', _i18nConditions('Poisoned'), {
 			attack: { subject: 'disadvantage' },
+			check: { subject: 'disadvantageNames' },
 		}),
 
 		prone: mkStatus('prone', _i18nConditions('Prone'), {
@@ -127,6 +134,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		restrained: mkStatus('restrained', _i18nConditions('Restrained'), {
 			attack: { subject: 'disadvantage', opponent: 'advantage' },
+			save: { subject: ability === 'dex' ? 'disadvantageNames' : '' },
 		}),
 
 		silenced: mkStatus('silenced', _i18nConditions('Silenced'), {

@@ -182,21 +182,6 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
-	if (options.isDeathSave) {
-		const hasAdvantage = subject.system.attributes.death?.roll?.mode === 1;
-		const hasDisadvantage = subject.system.attributes.death?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
-		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
-	}
-
-	if (options.isConcentration) {
-		if (_hasItem(subject, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
-		const hasAdvantage = subject.system.attributes.concentration?.roll?.mode === 1;
-		const hasDisadvantage = subject.system.attributes.concentration?.roll?.mode === -1;
-		if (hasAdvantage) ac5eConfig.subject.advantage.push(_localize('AC5E.SystemMode'));
-		if (hasDisadvantage) ac5eConfig.subject.disadvantage.push(_localize('AC5E.SystemMode'));
-	}
-
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: attackingToken });
 	// dialog.configure = !ac5eConfig.fastForward;
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
@@ -208,12 +193,6 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
 	let ac5eConfig;
-	if (options.isInitiative) {
-		ac5eConfig = config?.rolls[0]?.options?.[Constants.MODULE_ID];
-		dialog.options.advantageMode = ac5eConfig.advantageMode;
-		dialog.options.defaultButton = ac5eConfig.defaultButton;
-		return _setAC5eProperties(ac5eConfig, config, dialog, message, ac5eConfig.options);
-	}
 	const { subject, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const speaker = message?.speaker;
 	options.skill = skill;
@@ -368,18 +347,22 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 }
 
 export function _renderHijack(hook, render, elem) {
-	let getConfigAC5E, targetElement, hookType, roller, tooltip, message;
+	let getConfigAC5E = hook === 'chat' ?
+		render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID]:
+		render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.config?.[Constants.MODULE_ID];
 	if (settings.debug) console.warn('AC5E._renderHijack:', { hook, render, elem });
+	if (!getConfigAC5E) return;
+	let { hookType, roller, tokenId, options } = getConfigAC5E || {};
+	let targetElement, tooltip;
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
-		getConfigAC5E = render.config?.[Constants.MODULE_ID] ?? render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
-		if (!getConfigAC5E) return;
 		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
 		if (getConfigAC5E.options.skill || getConfigAC5E.options.tool) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
 			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
-		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
+		} 
+		else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
 		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
-		const { hookType, options, tokenId } = getConfigAC5E || {};
+		
 		if (!hookType) return true;
 		let tokenName;
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
@@ -423,10 +406,9 @@ export function _renderHijack(hook, render, elem) {
 			console.warn('ac5e hijack targetElement:', targetElement);
 		}
 		return true;
-	} else if (hook === 'chat') {
+	} else if (hook === 'chat' && hookType !== 'use') {
 		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
 		if (!game.user.isGM) {
-			getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
 			if (settings.showChatTooltips === 'none') return true;
 			else if (settings.showChatTooltips === 'players' && !getConfigAC5E?.hasPlayerOwner) return true;
 			else if (settings.showChatTooltips === 'owned' && getConfigAC5E?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
@@ -434,10 +416,7 @@ export function _renderHijack(hook, render, elem) {
 		if (_activeModule('midi-qol')) {
 			if (render?.rolls?.length > 1) {
 				getConfigAC5E = [render?.rolls?.[0]?.options?.[Constants.MODULE_ID], render?.rolls?.[1]?.options?.[Constants.MODULE_ID], render?.rolls?.[2]?.options?.[Constants.MODULE_ID]];
-				if (!getConfigAC5E[0]?.hookType) return true;
-			} else {
-				getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
-				if (!getConfigAC5E) return true;
+				if (!getConfigAC5E?.[0]?.hookType) return true;
 			}
 			if (!getConfigAC5E.length) getConfigAC5E = [getConfigAC5E];
 			for (const ac5eElement of getConfigAC5E) {
@@ -458,9 +437,6 @@ export function _renderHijack(hook, render, elem) {
 			}
 			return true;
 		} else {
-			getConfigAC5E = render.rolls?.[0]?.options?.[Constants.MODULE_ID];
-			if (!getConfigAC5E) return true;
-			({ hookType, roller } = getConfigAC5E);
 			tooltip = _getTooltip(getConfigAC5E);
 			if (roller === 'Core') {
 				if (tooltip === '') return true;
@@ -748,18 +724,18 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	const hasMastery = getConfigAC5E.options.mastery;
 	const change = hasAmmunition && selectedAmmunition && hasAmmunition !== selectedAmmunition ? 'ammunition' : hasAttackMode && selectedAttackMode && hasAttackMode !== selectedAttackMode ? 'attackMode' : hasMastery && selectedMastery && hasMastery !== selectedMastery ? 'mastery' : false;
 	if (!change) {
-		if (hasAmmunition && selectedAmmunition) dialog.config[Constants.MODULE_ID].usedPartsAmmunition = dialog.config[Constants.MODULE_ID].usedPartsAmmunition ?? dialog.config[Constants.MODULE_ID].parts;
-		if (hasAttackMode) dialog.config[Constants.MODULE_ID].usedPartsAttackMode = dialog.config[Constants.MODULE_ID].usedPartsAttackMode ?? dialog.config[Constants.MODULE_ID].parts;
-		if (hasMastery) dialog.config[Constants.MODULE_ID].usedPartsMastery = dialog.config[Constants.MODULE_ID].usedPartsMastery ?? dialog.config[Constants.MODULE_ID].parts;
+		if (hasAmmunition && selectedAmmunition) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsAmmunition ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
+		if (hasAttackMode) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsAttackMode ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
+		if (hasMastery) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsMastery ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
 		return;
 	}
 	const newConfig = dialog.config;
 	if (selectedAmmunition) newConfig.ammunition = selectedAmmunition;
 	if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
 	if (selectedMastery) newConfig.mastery = selectedMastery;
-	if (change === 'ammunition') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
-	if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
-	if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
+	if (change === 'ammunition') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
+	if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
+	if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
 	newConfig.advantage = undefined;
 	newConfig.disadvantage = undefined;
 	newConfig.rolls[0].options.advantageMode = 0;
@@ -797,7 +773,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
 	const compared = compareArrays(damageTypesArray, selects);
 	if (compared.equal) {
-		dialog.config[Constants.MODULE_ID].usedParts = dialog.config[Constants.MODULE_ID].usedParts ?? dialog.config[Constants.MODULE_ID].parts;
+		dialog.config.rolls[0].options[Constants.MODULE_ID].usedParts ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
 		return;
 	}
 	const newConfig = dialog.config;
@@ -814,7 +790,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	if (newConfig.midiOptions) newConfig.midiOptions.isCritical = wasCritical;
 	for (let i = 0; i < rollsLength; i++) {
 		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
-		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.[Constants.MODULE_ID]?.usedParts?.includes(part));
+		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.[Constants.MODULE_ID]?.usedParts?.includes(part));
 		newConfig.rolls[i].options.maximum = reEval.initialRolls[i].options.maximum;
 		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
 		newConfig.rolls[i].options.isCritical = wasCritical;
