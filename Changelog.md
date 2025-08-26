@@ -1,3 +1,10 @@
+## 13.512.1
+- D&D5e v5.1.2 system compatibility bump
+  - This release in **NOT** compatible with v5.0.4 or earlier (install 13.504.10.5: <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v13.504.10.5/module.json>)
+- Adds the following as available data for conditions evaluation:
+  - `movementLastSegment`: when in combat, returns the distance of the attacking token's last movement segment (distance between the two last waypoints)
+  - `movementTurn`: when in combat returns the distance the attacking token has travelled during that turn
+
 ## 13.504.10.5
 * Adds ammoProperties to itemProperties, so if an arrow for example is `magical` but the weapon shooting it is not, the attack will be treated as magical
 
