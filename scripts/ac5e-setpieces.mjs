@@ -25,7 +25,10 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!test) continue;
 				if (settings.debug) console.log(type, test);
 				const effectName = tables?.[status]?.name;
-				if (effectName) ac5eConfig[type][test].push(effectName);
+				if (effectName) {
+					if (test.includes('advantageNames')) ac5eConfig[type][test].add(effectName);
+					else ac5eConfig[type][test].push(effectName);
+				}
 			}
 		}
 	}
