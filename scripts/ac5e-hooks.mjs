@@ -437,7 +437,6 @@ export function _renderHijack(hook, render, elem) {
 			}
 			return true;
 		} else {
-			if (!getConfigAC5E) return true;
 			tooltip = _getTooltip(getConfigAC5E);
 			if (roller === 'Core') {
 				if (tooltip === '') return true;
