@@ -348,8 +348,8 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 
 export function _renderHijack(hook, render, elem) {
 	let getConfigAC5E = hook === 'chat' ?
-		render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID] ?? game.ac5e?.[Constants.MODULE_ID] :
-		render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.config?.[Constants.MODULE_ID] ?? game.ac5e?.[Constants.MODULE_ID];
+		render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID]:
+		render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.config?.[Constants.MODULE_ID];
 	if (settings.debug) console.warn('AC5E._renderHijack:', { hook, render, elem });
 	if (!getConfigAC5E) return;
 	let { hookType, roller, tokenId, options } = getConfigAC5E || {};
