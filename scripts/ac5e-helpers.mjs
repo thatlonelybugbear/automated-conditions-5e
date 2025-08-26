@@ -909,12 +909,18 @@ export function getActorToolRollObject({ actor, tool }) {
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 
-	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	ac5eConfig.subject.advantageNames = [...ac5eConfig.subject.advantageNames];
+	ac5eConfig.subject.disadvantageNames = [...ac5eConfig.subject.disadvantageNames];
+	ac5eConfig.opponent.advantageNames = [...ac5eConfig.opponent.advantageNames];
+	ac5eConfig.opponent.disadvantageNames = [...ac5eConfig.opponent.disadvantageNames];
 
-	if (config?.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigObject);
-	else if (config) foundry.utils.mergeObject(config, ac5eConfigObject);
-	if (message?.data?.flags) foundry.utils.mergeObject(message.data.flags, ac5eConfigObject);
-	else foundry.utils.setProperty(message, 'data.flags', ac5eConfigObject);
+	const ac5eConfigDialog = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	const ac5eConfigMessage = { [Constants.MODULE_ID]: { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType } };
+
+	if (config?.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigDialog);
+	else if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
+	if (message?.data?.flags) foundry.utils.mergeObject(message.data.flags, ac5eConfigMessage);
+	else foundry.utils.setProperty(message, 'data.flags', ac5eConfigMessage);
 	if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 
