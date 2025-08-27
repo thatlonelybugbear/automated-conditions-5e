@@ -914,7 +914,8 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	ac5eConfig.opponent.advantageNames = [...ac5eConfig.opponent.advantageNames];
 	ac5eConfig.opponent.disadvantageNames = [...ac5eConfig.opponent.disadvantageNames];
 
-	const ac5eConfigDialog = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	const ac5eConfigDialog = { [Constants.MODULE_ID]: ac5eConfig };
+	if (dialog?.options) dialog.options.classes = dialog.options.classes?.concat('ac5e') ?? ['ac5e'];
 	const ac5eConfigMessage = { [Constants.MODULE_ID]: { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType } };
 
 	if (config?.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigDialog);
