@@ -1,3 +1,6 @@
+## 13.512.1.2
+* Reinstate `ac5e` dialog class
+
 ## 13.512.1.1
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
