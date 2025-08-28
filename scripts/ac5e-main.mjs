@@ -53,7 +53,7 @@ function ac5eSetup() {
 				if (settings.debug) console.warn(hook.id, { render, element });
 				return _renderHijack(hook.type, ...args);
 			} else {
-				if (hook.id === 'dnd5e.preUseActivity') { //|| hook.id === 'dnd5e.activityConsumption') {
+				if (hook.id === 'dnd5e.preUseActivity') {
 					const [activity, config, dialog, message] = args;
 					if (settings.debug) console.warn(hook.id, { activity, config, dialog, message });
 				} else if (hook.id === 'dnd5e.preConfigureInitiative') {
@@ -87,13 +87,12 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT]._target = targetDef;
 }
 
-function targetDef () {
+function targetDef() {
 	// Dynamically returns the first selected target of the current user via ac5e._target
-	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], "_target", {
+	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], '_target', {
 		get() {
 			return game?.user?.targets?.first();
 		},
-		configurable: true
+		configurable: true,
 	});
 }
-
