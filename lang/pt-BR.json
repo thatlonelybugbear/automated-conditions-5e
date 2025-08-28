@@ -18,8 +18,6 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Jogadores",
 	"AC5E.ExpandedConditionsName": "Condições Expandidas AC5e",
 	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
-	"AC5E.AutoArmorName": "Automação de Armadura",
-	"AC5E.AutoArmorHint": "Se marcado, AC5e irá processar automaticamente a proficiência da armadura equipada para rolagens de testes de atributo, perícias e salvaguardas (FOR || DES) e Desvantagem em Furtividade.",
 	"AC5E.ActivityUse": {
 		"Name": "Testes para Usos de Itens",
 		"Hint": "Quando o uso de um item não for permitido, AC5e irá 'Fazer nada', apenas 'Avisar' (notificação) ou irá 'Forçar' (cancelar rolagem + notificação).",
@@ -121,6 +119,7 @@
 	"AC5E.AbbreviationCritical": "crít.",
 	"AC5E.Grants": "conceder",
 	"AC5E.Attacker": "Atacante",
+	"AC5E.FlagsInitiativeAdv": "Vantagem na Iniciativa",
 	"AC5E.FlagsInitiativeDisadv": "Desvantagem na Iniciativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Alvo Concede Vant.",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Alvo Concede Desv.",
