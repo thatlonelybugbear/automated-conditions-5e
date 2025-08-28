@@ -708,8 +708,8 @@ export function _preConfigureInitiative(subject, rollConfig) {
 
 	ac5eConfig.advantageMode = advantageMode;
 	ac5eConfig.defaultButton = advantageMode === 0 ? 'normal' : advantageMode > 0 ? 'advantage' : 'disadvantage';
-
-	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig, classes: ['ac5e'] };
+	_getTooltip(ac5eConfig);
+	const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig };
 	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
 	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
