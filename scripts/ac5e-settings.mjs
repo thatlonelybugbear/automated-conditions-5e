@@ -7,7 +7,6 @@ export default class Settings {
 	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'showNameTooltips';
 	static SHOW_CHAT_TOOLTIPS = 'showChatTooltips';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
-	static AUTOMATE_ARMOR_PROF_STEALTH = 'autoArmor';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
 	static AUTOMATE_RANGED_ATTACKS_MENU = 'autoRangedAttacksMenu';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
@@ -122,14 +121,6 @@ export default class Settings {
 			default: false,
 			type: Boolean,
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_STEALTH, {
-			name: 'AC5E.AutoArmorName',
-			hint: 'AC5E.AutoArmorHint',
-			scope: 'world',
-			config: true,
-			default: false,
-			type: Boolean,
-		}); //
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_SPELL_USE, {
 			name: 'AC5E.ActivityUse.Name',
 			hint: 'AC5E.ActivityUse.Hint',
@@ -255,9 +246,6 @@ export default class Settings {
 	}
 	get autoHazards() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS);
-	}
-	get autoArmor() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_STEALTH);
 	}
 	get autoArmorSpellUse() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_SPELL_USE);
