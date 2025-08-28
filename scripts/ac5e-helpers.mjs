@@ -891,7 +891,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 		collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 	}
 	if (autoArmorChecks.notProficient && ['dex', 'str'].includes(ability)) {
-		ac5eConfig.subject.disadvantageNames.add(`${_localize(notProficientArmor)} (${_localize('NotProficient')})`);
+		ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.notProficient)} (${_localize('NotProficient')})`);
 		systemMode.dis++;
 	}
 	if (_autoEncumbrance(actor, ability)) {
