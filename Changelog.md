@@ -1,3 +1,6 @@
+## 13.512.2.1
+* Foundry v13.348 compatibility
+
 ## 13.512.2
 * Reworked `autoArmor` and `autoEncumbrance`
   * Removed `autoArmor` settings, as the system supports Stealth Disadvantage and Disadvantage on rolls when not proficient in donned armor.
