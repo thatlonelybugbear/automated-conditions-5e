@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -216,16 +216,7 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
 
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
-	//check Auto Armor
-	//to-do: move to setPieces
-	if (settings.autoArmor) {
-		if (['dex', 'str'].includes(ability) && _autoArmor(subject).notProficient) ac5eConfig.subject.disadvantage.push(`${_localize(_autoArmor(subject).notProficient)} (${_localize('NotProficient')})`);
-		if (skill === 'ste' && _autoArmor(subject).hasStealthDisadvantage) ac5eConfig.subject.disadvantage.push(`${_localize(_autoArmor(subject).hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
-	}
-	//to-do: move to setPieces
-	if (_autoEncumbrance(subject, ability)) {
-		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
-	}
+	
 	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollAbilityTest', { ac5eConfig });
@@ -283,13 +274,6 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 		}
 	}
 
-	//check Auto Armor
-	if (settings.autoArmor && ['dex', 'str'].includes(ability) && _autoArmor(sourceActor).notProficient) {
-		ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize(_autoArmor(sourceActor).notProficient)} (${_localize('NotProficient')})`);
-	}
-	if (_autoEncumbrance(sourceActor, ability)) {
-		ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(_i18nConditions('HeavilyEncumbered'));
-	}
 	const modernRules = settings.dnd5eModernRules;
 	//check for heavy item property
 	const automateHeavy = settings.automateHeavy;
@@ -326,7 +310,7 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	options.hook = hook;
 	options.targets = messageTargets;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
-	// options.spellLevel = use?.spellLevel;
+
 	const sourceTokenID = speaker.token;
 	const sourceToken = canvas.tokens.get(sourceTokenID);
 	const targets = game.user?.targets;
@@ -676,18 +660,11 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	options.ability = ability;
 	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
 	//to-do: match the flags or init mode with the tooltip blurb
-	if (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0) ac5eConfig.subject.advantage.push(_localize('DND5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	//v5.1.x the flags.dnd5e.initiaiveAdv/Disadv are no more, and they are getting automatically replaced by the system with system.attributes.init.roll.mode
+	if (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.FlagsInitiativeAdv')); //to-do: move to setPieces
 	if (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
 
-	//to-do: move to setPieces
-	if (settings.autoArmor) {
-		if (['dex', 'str'].includes(ability) && _autoArmor(subject).notProficient) ac5eConfig.subject.disadvantage.push(`${_localize(_autoArmor(subject).notProficient)} (${_localize('NotProficient')})`);
-	}
-	//to-do: move to setPieces
-	if (_autoEncumbrance(subject, 'dex')) {
-		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
-	}
 	let advantageMode = 0;
 	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) advantageMode += 1;
 	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) advantageMode -= 1;
