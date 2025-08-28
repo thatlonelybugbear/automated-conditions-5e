@@ -1297,7 +1297,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	});
 	sandbox.activity.ability = activity?.ability;
-	sandbox.riderStatuses = _options.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
+	sandbox.riderStatuses = options.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
 	sandbox.hasAttack = !!activity?.attack;
 	sandbox.hasDamage = !!activity?.damage;
 	sandbox.hasHealing = activity?.hasHealing;
