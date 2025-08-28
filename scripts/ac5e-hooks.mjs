@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -36,6 +36,10 @@ function getMessageData(config, hook) {
 	const item = fromUuidSync(itemObj?.uuid);
 	const activity = fromUuidSync(activityObj?.uuid);
 	const options = {};
+	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
+	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
+	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message. 
+	
 	options.d20 = {};
 	if (hook === 'damage') {
 		if (_activeModule('midi-qol')) {
@@ -76,16 +80,15 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	const sourceActor = item.actor;
 	if (settings.debug) console.error('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
 	if (!sourceActor) return;
-	const chatButtonTriggered = getMessageData(usageConfig, hook);
-	const { messageTargets, options } = chatButtonTriggered;
+	const options = {};
 	options.ability = ability;
 	options.skill = skill;
 	options.tool = tool;
 	options.hook = hook;
 	options.activity = activity;
-	options.targets = messageTargets;
+	options.targets = getTargets();
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
-
+	options.riderStatuses = _getActivityEffectsStatusRiders(activity);
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
 	if (item.type === 'spell' && useWarnings) {
 		const notProficient = _autoArmor(sourceActor).notProficient;
