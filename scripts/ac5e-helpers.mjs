@@ -847,7 +847,8 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 	}
 	if (mode < 0) {
 		systemMode.dis++;
-		if (!actor.hasConditionEffect(`ability${capitalizeHook}Disadvantage`)) ac5eConfig.subject.disadvantageNames.add(_localize(typeLabel));
+		//Do not add System Mode for stealth disadvantage; already added by name
+		if (!actor.hasConditionEffect(`ability${capitalizeHook}Disadvantage`) && ac5eConfig?.options?.skill !== 'ste') ac5eConfig.subject.disadvantageNames.add(_localize(typeLabel));
 	}
 	if (max) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${max})`);
 	if (min) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${min})`);
@@ -855,15 +856,18 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 }
 
 function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
-	if (!actor || hookType === 'attack' || hookType === 'damage' || hookType === 'use') return {};
+	if (!actor || hookType === 'damage' || hookType === 'use') return {};
 	const systemMode = { adv: 0, dis: 0 };
+	const autoArmorChecks = _autoArmor(actor);
+	const { ability, skill, tool } = options || {};
 	if (hookType === 'check') {
-		if (options.skill) {
-			const { mode, max, min } = getActorSkillRollObject({ actor, skill: options.skill });
+		if (skill) {
+			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage) ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
+			const { mode, max, min } = getActorSkillRollObject({ actor, skill });
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 		}
-		if (options.tool) {
-			const { mode, max, min } = getActorToolRollObject({ actor, tool: options.tool });
+		if (tool) {
+			const { mode, max, min } = getActorToolRollObject({ actor, tool });
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 		}
 		if (options.isConcentration) {
@@ -878,13 +882,21 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 		}
 	}
-	if (options.ability && ['check', 'save'].includes(hookType)) {
-		const { mode, max, min } = getActorAbilityRollObject({ actor, ability: options.ability, hookType });
+	if (ability && ['check', 'save'].includes(hookType)) {
+		const { mode, max, min } = getActorAbilityRollObject({ actor, ability, hookType });
 		collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 	}
 	if (options.isDeathSave && hookType === 'save') {
 		const { mode, max, min } = getConcOrDeathOrInitRollObject({ actor, type: 'death' });
 		collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
+	}
+	if (autoArmorChecks.notProficient && ['dex', 'str'].includes(ability)) {
+		ac5eConfig.subject.disadvantageNames.add(`${_localize(notProficientArmor)} (${_localize('NotProficient')})`);
+		systemMode.dis++;
+	}
+	if (_autoEncumbrance(actor, ability)) {
+		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
+		systemMode.dis++
 	}
 	if (settings.debug) console.warn('AC5E_getSystemRollConfig', { ac5eConfig });
 	return systemMode;
