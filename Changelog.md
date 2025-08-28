@@ -4,6 +4,7 @@
   * Attack rolls disadvantage still handled by AC5e as the system doesn't automate those yet.
 * Added a workaround for `riderStatuses` not being properly populated when using a Destroy on empty item.
   * Some more work is needed for adjacent use cases.
+* Compatibility with Combat Carousel when rolling for initiative (and generally for `dnd5e.preConfigureInitiative` hooks)
 
 ## 13.512.1.2
 * Reinstate `ac5e` dialog class
