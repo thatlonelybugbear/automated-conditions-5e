@@ -18,8 +18,6 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
 	"AC5E.ExpandedConditionsName": "Condizioni Ampliate AC5e",
 	"AC5E.ExpandedConditionsHint": "Se abilitato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
-	"AC5E.AutoArmorName": "Competenza nelle armature AC5e e svantaggio furtività equipaggiamento.",
-	"AC5E.AutoArmorHint": "Se abilitato, AC5e elaborerà automaticamente la competenza nell'armatura equipaggiata per abilità, abilità e tiri salvezza (STR || DEX) e controllerà l'equipaggiamento per la proprietà di svantaggio della furtività.",
 	"AC5E.ActivityUse": {
 		"Name": "Competenza armature e incantesimi AC5e",
 		"Hint": "Disattiva: non fare nulla, Applica: se il personaggio non è competente nell'armatura equipaggiata, l'uso degli incantesimi non è consentito e annullato, Avverti: se l'attore non è competente nell'armatura equipaggiata, avvisa l'utente che non è in grado di farlo lanciare incantesimi",
@@ -121,7 +119,8 @@
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "fornisce",
 	"AC5E.Attacker": "Attaccante",
-	"AC5E.FlagsInitiativeDisadv": "Svantaggio su Iniziativa",
+	"AC5E.FlagsInitiativeAdv": "Vantaggio di Sistema su Iniziativa",
+	"AC5E.FlagsInitiativeDisadv": "Svantaggio di Sistema su Iniziativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Fornito vant",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Fornito svant",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Fornito crit",
@@ -131,7 +130,7 @@
 	"AC5E.TargetGrantsBonus": "Fornito Bonus",
 	"AC5E.TargetGrantsModifier": "Fornito Modificatore",
 	"AC5E.NoChanges": "Nessun cambiamento",
-	"AC5E.SystemMode": "Modalità di sistema",
+	"AC5E.SystemMode": "Modalità di Sistema",
 	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Pericoli ambientali (2024)",
 		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
