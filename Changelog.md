@@ -1,3 +1,10 @@
+## 13.512.2
+* Reworked `autoArmor` and `autoEncumbrance`
+  * Removed `autoArmor` settings, as the system supports Stealth Disadvantage and Disadvantage on rolls when not proficient in donned armor.
+  * Attack rolls disadvantage still handled by AC5e as the system doesn't automate those yet.
+* Added a workaround for `riderStatuses` not being properly populated when using a Destroy on empty item.
+  * Some more work is needed for adjacent use cases.
+
 ## 13.512.1.2
 * Reinstate `ac5e` dialog class
 
