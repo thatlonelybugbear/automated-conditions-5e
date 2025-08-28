@@ -908,12 +908,17 @@ export function getActorToolRollObject({ actor, tool }) {
 
 export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
-
+	
+	if (ac5eConfig.hookType === 'use') {
+		foundry.utils.setProperty(message.data.flags, Constants.MODULE_ID, ac5eConfig.options);
+		if (settings.debug) console.warn('AC5e post helpers._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
+		return;
+	}
 	ac5eConfig.subject.advantageNames = [...ac5eConfig.subject.advantageNames];
 	ac5eConfig.subject.disadvantageNames = [...ac5eConfig.subject.disadvantageNames];
 	ac5eConfig.opponent.advantageNames = [...ac5eConfig.opponent.advantageNames];
 	ac5eConfig.opponent.disadvantageNames = [...ac5eConfig.opponent.disadvantageNames];
-
+	
 	const ac5eConfigDialog = { [Constants.MODULE_ID]: ac5eConfig };
 	if (dialog?.options) dialog.options.classes = dialog.options.classes?.concat('ac5e') ?? ['ac5e'];
 	const ac5eConfigMessage = { [Constants.MODULE_ID]: { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType } };
@@ -1280,7 +1285,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	});
 	sandbox.activity.ability = activity?.ability;
-	sandbox.riderStatuses = _getActivityEffectsStatusRiders(activity) || _options.activityEffectsStatusRiders || {}; //@to-do: check this, can we move the call somewhere more central to avoid multiple calls?
+	sandbox.riderStatuses = _options.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
 	sandbox.hasAttack = !!activity?.attack;
 	sandbox.hasDamage = !!activity?.damage;
 	sandbox.hasHealing = activity?.hasHealing;
