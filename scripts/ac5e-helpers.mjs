@@ -1298,10 +1298,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	});
 	sandbox.activity.ability = activity?.ability;
 	sandbox.riderStatuses = options.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
-	sandbox.hasAttack = !!activity?.attack;
-	sandbox.hasDamage = !!activity?.damage;
-	sandbox.hasHealing = activity?.hasHealing;
-	sandbox.hasSave = activity?.hasSave;
+	sandbox.hasAttack = !foundry.utils.isEmpty(activity?.attack);
+	sandbox.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
+	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);
+	sandbox.hasSave = !foundry.utils.isEmpty(activity?.save);
+	sandbox.hasCheck = !foundry.utils.isEmpty(activity?.check);
 	sandbox.isSpell = activity?.isSpell;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
