@@ -4,6 +4,7 @@
 
 ## 13.512.3
 * Added `rollingActor.combatTurn` and `opponentActor.combatTurn` for condition evaluations
+  * Example usage: <https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-examples-(automating-5e-items)#bugbears-surprise-attack>
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
