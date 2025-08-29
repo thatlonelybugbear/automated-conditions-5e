@@ -1,3 +1,7 @@
+## 13.513.1
+* Verified for D&D5e v5.1.3
+* Properly add getters for activities `hasAttack`, `hasCheck`, `hasDamage`, `hasHealing`, `hasSave` returning true if relevant
+
 ## 13.512.3
 * Added `rollingActor.combatTurn` and `opponentActor.combatTurn` for condition evaluations
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
