@@ -1,3 +1,8 @@
+## 13.512.3
+* Added `rollingActor.combatTurn` and `opponentActor.combatTurn` for condition evaluations
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.512.2.1
 * Foundry v13.348 compatibility
 
