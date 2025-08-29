@@ -1354,6 +1354,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isTurn = active && currentCombatant === subjectToken?.id;
 	sandbox.isOpponentTurn = active && currentCombatant === opponentToken?.id;
 	sandbox.isTargetTurn = active && sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
+	sandbox.rollingActor.combatTurn = active ? game.combat.turns.findIndex(combatant => combatant.tokenId === subjectToken?.id) : undefined;
+	sandbox.opponentActor.combatTurn = active ? game.combat.turns.findIndex(combatant => combatant.tokenId === opponentToken?.id) : undefined;
 	const lastMovementSegment = active && subjectToken?.document.movementHistory?.filter((m) => m.movementId === subjectToken.document.movementHistory.at(-1).movementId).reduce((acc, c) => (acc += c.cost ?? 0), 0);
 	const movementCost = active && subjectToken?.document.movementHistory?.reduce((acc, c) => (acc += c.cost ?? 0), 0);
 	sandbox.movementLastSegment = lastMovementSegment;
