@@ -45,7 +45,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	if (activity) activity.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
+	if (activity && !_activeModule('midi-qol')) activity.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts); //Cannot set property hasDamage of #<MidiActivityMixin> which has only a getter
 	const mkStatus = (id, name, data) => ({ _id: _staticID(id), name, ...data });
 
 	const hasStatusFromOpponent = (actor, status, origin) => actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect, 'token')?.actor.uuid === origin?.uuid);
