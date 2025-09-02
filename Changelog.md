@@ -1,3 +1,7 @@
+## 13.514.1
+* Expanded `<actorType>.movementTurn`, `<actorType>.movementLastSegment`, `<actorType>.isTurn` and `<actorType>.combatTurn`
+  * Replace `<actorType>` with one of `auraActor`, `effectOriginActor`, `opponentActor` or `rollingActor`
+
 ## 13.513.1
 * Verified for D&D5e v5.1.3
 * Properly add getters for activities `hasAttack`, `hasCheck`, `hasDamage`, `hasHealing`, `hasSave` returning true if relevant
