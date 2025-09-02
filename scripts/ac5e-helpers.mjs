@@ -1252,6 +1252,12 @@ export function _ac5eActorRollData(token) {
 	actorData.tokenElevation = token.document.elevation;
 	actorData.tokenSenses = token.document.detectionModes;
 	actorData.tokenUuid = token.document.uuid;
+	const active = game.combat?.active;
+	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
+	actorData.isTurn = active && currentCombatant === token.id;
+	actorData.combatTurn = active ? game.combat.turns.findIndex(combatant => combatant.tokenId === token.id) : undefined;
+	actorData.movementLastSegment = active && token.document.movementHistory?.filter((m) => m.movementId === token.document.movementHistory.at(-1).movementId).reduce((acc, c) => (acc += c.cost ?? 0), 0);
+	actorData.movementTurn = active && token.document.movementHistory?.reduce((acc, c) => (acc += c.cost ?? 0), 0);
 	return actorData;
 }
 
@@ -1349,18 +1355,13 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.isEnchantment = item?.system?.isEnchantment;
 	sandbox.item.transferredEffects = item?.transferredEffects;
 
-	const active = game.combat?.active;
-	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
-	sandbox.combat = { active, round: game.combat?.round, turn: game.combat?.turn, current: game.combat?.current, turns: game.combat?.turns };
-	sandbox.isTurn = active && currentCombatant === subjectToken?.id;
-	sandbox.isOpponentTurn = active && currentCombatant === opponentToken?.id;
-	sandbox.isTargetTurn = active && sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
-	sandbox.rollingActor.combatTurn = active ? game.combat.turns.findIndex(combatant => combatant.tokenId === subjectToken?.id) : undefined;
-	sandbox.opponentActor.combatTurn = active ? game.combat.turns.findIndex(combatant => combatant.tokenId === opponentToken?.id) : undefined;
-	const lastMovementSegment = active && subjectToken?.document.movementHistory?.filter((m) => m.movementId === subjectToken.document.movementHistory.at(-1).movementId).reduce((acc, c) => (acc += c.cost ?? 0), 0);
-	const movementCost = active && subjectToken?.document.movementHistory?.reduce((acc, c) => (acc += c.cost ?? 0), 0);
-	sandbox.movementLastSegment = lastMovementSegment;
-	sandbox.movementTurn = movementCost;
+	const combat = game.combat;
+	sandbox.combat = { active: combat?.active, round: combat?.round, turn: combat?.turn, current: combat?.current, turns: combat?.turns };
+	sandbox.isTurn = sandbox.rollingActor.isTurn;
+	sandbox.isOpponentTurn = sandbox.opponentActor.isTurn;
+	sandbox.isTargetTurn = sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
+	sandbox.movementLastSegment = sandbox.rollingActor.movementLastSegment; //backwards compatibility. Moved into _ac5eActorRollData
+	sandbox.movementTurn = sandbox.rollingActor.movementTurn;
 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = options;
