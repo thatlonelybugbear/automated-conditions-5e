@@ -1,4 +1,5 @@
 ## 13.514.1
+* Verified for d&d5e v5.1.4
 * Expanded `<actorType>.movementTurn`, `<actorType>.movementLastSegment`, `<actorType>.isTurn` and `<actorType>.combatTurn`
   * Replace `<actorType>` with one of `auraActor`, `effectOriginActor`, `opponentActor` or `rollingActor`
 
