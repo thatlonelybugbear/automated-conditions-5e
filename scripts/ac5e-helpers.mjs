@@ -1242,9 +1242,15 @@ export function _ac5eActorRollData(token) {
 	const actorData = actor.getRollData();
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
-	actorData.equippedItems = actor.items.filter((item) => item?.system?.equipped).map((item) => item.name);
+	actorData.equippedItems = [];
+	actorData.equippedItemIdentifiers = [];
+	for (const item of actor.items) {
+		if (item?.system?.equipped) {
+			actorData.equippedItems.push(item.name);
+			actorData.equippedItemIdentifiers.push(item.identifier);
+		}
+	}
 	actorData.type = actor.type;
-
 	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
 	actorData.creatureType = Object.values(_raceOrType(actor, 'all'));
 	actorData.token = token;
