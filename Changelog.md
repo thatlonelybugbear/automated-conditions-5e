@@ -1,3 +1,6 @@
+## 13.514.2
+* Added `equippedItemIdentifiers` for condition evaluations
+
 ## 13.514.1
 * Verified for d&d5e v5.1.4
 * Expanded `<actorType>.movementTurn`, `<actorType>.movementLastSegment`, `<actorType>.isTurn` and `<actorType>.combatTurn`
