@@ -1,5 +1,6 @@
-## 13.514.2
+## 13.514.1.1
 * Added `equippedItemIdentifiers` for condition evaluations
+* Properly populate item.getRollData().item.type
 
 ## 13.514.1
 * Verified for d&d5e v5.1.4
