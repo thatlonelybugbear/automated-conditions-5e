@@ -53,7 +53,7 @@
 	"AC5E.AutoExhaustionName": "Automação de Exaustão",
 	"AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
 	"AC5E.AutoEncumbranceName": "Variante Sobrecarga",
-	"AC5E.AutoEncumbranceHint": "Se marcado, AC5e irá processar automaticamente as regras da variante Sobrecarga da 5e. O MJ também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
+	"AC5E.AutoEncumbranceHint": "Se marcado, AC5e irá processar automaticamente as regras da variante Sobrecarga da 5e. O Mestre também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
 	"AC5E.Targeting": {
 		"Name": "Opções de Alvos para Ataques",
 		"Hint": "Quando nenhum ou vários alvos são selecionados para um Ataque, Dano ou jogada semelhante, escolha como o AC5e deve responder.",
