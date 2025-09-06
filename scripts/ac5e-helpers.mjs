@@ -1343,7 +1343,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item = item?.getRollData().item || {};
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
-	sandbox.item.type = item?.type;
 	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
