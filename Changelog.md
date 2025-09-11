@@ -18,6 +18,8 @@
     * `id` (useful for linked actors)
     * `uuid` (more useful for unlinked actors)
     * example `const shield = ac5e.getItemOrActivity("Shield", null, "Bob the Fighter");` returning the Item named Shield on the linked actor named Bob the Fighter.
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+* Verified for D&D 5e system v5.1.8
    
 ## 13.514.1.1
 * Added `equippedItemIdentifiers` for condition evaluations
