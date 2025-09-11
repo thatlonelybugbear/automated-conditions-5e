@@ -1501,7 +1501,7 @@ export function _getActivityEffectsStatusRiders(activity) {
  * @function _getItemOrActivity
  * @param {string} itemID - Identifier of the item to find. Matches against `name`, `identifier`, `id`, or `uuid`.
  * @param {string} [activityID] - Optional identifier of the activity to find within the resolved item.
- *                                Matches against `name`, `identifier`, `id`, or `uuid`.
+ *                                Matches against `name`, `type`, `identifier` (needs MidiQOL), `id`, or `uuid`.
  * @param {Actor|string} [actor] - Actor to search within. Can be:
  *   - An Actor document,
  *   - An actor name,
@@ -1540,5 +1540,5 @@ export function _getItemOrActivity(itemID, activityID, actor) {
 	if (!item) return {};
 	if (!activityID) return item;
 
-	return item.system?.activities?.find((a) => a.name === activityID || a.identifier === activityID || a.id === activityID || a.uuid === activityID) || {};
+	return item.system?.activities?.find((a) => a.name === activityID || a.type === activityID || a.identifier === activityID || a.id === activityID || a.uuid === activityID) || {};
 }
