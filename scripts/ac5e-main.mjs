@@ -1,5 +1,5 @@
 import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
-import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _getItemOrActivity, _raceOrType, _canSee } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 export let scopeUser;
@@ -83,6 +83,7 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
 	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
+	globalThis[Constants.MODULE_NAME_SHORT].getItemOrActivity = _getItemOrActivity;
 	globalThis[Constants.MODULE_NAME_SHORT].logEvaluationData = false;
 	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], "_target", {
 		get() {
