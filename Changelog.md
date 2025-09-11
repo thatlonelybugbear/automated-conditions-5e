@@ -1,3 +1,24 @@
+## 13.518.1
+* Added `getItemOrActivity(itemID, activityID)` helper for evaluation conditions or macros
+  * Will return the Item (if no activityID is provided) or the Activity of the rolling actor
+  * `itemID` can be:
+    * `name`
+    * `identifier`
+    * `id` (not that useful)
+    * `uuid`  (not that useful, use instead fromUuidSync(uuid))
+  * `activityID` can be:
+    * `activity.name`
+    * `activity.type`
+    * `activity.identifier` (available only if MidiQOL is active)
+    * `activity.id` (not that useful)
+    * `activity.uuid` (not that useful, use instead `fromUuidSync(activityID)` in this case)
+  * Can also be used in macros if you provide an Actor, which can be
+    * `Actor` document
+    * `name` (useful for linked actors)
+    * `id` (useful for linked actors)
+    * `uuid` (more useful for unlinked actors)
+    * example `const shield = ac5e.getItemOrActivity("Shield", null, "Bob the Fighter");` returning the Item named Shield on the linked actor named Bob the Fighter.
+   
 ## 13.514.1.1
 * Added `equippedItemIdentifiers` for condition evaluations
 * Properly populate item.getRollData().item.type
