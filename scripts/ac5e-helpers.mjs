@@ -1261,7 +1261,7 @@ export function _ac5eActorRollData(token) {
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
 	actorData.isTurn = active && currentCombatant === token.id;
-	actorData.combatTurn = active ? game.combat.turns.findIndex(combatant => combatant.tokenId === token.id) : undefined;
+	actorData.combatTurn = active ? game.combat.turns.findIndex((combatant) => combatant.tokenId === token.id) : undefined;
 	actorData.movementLastSegment = active && token.document.movementHistory?.filter((m) => m.movementId === token.document.movementHistory.at(-1).movementId).reduce((acc, c) => (acc += c.cost ?? 0), 0);
 	actorData.movementTurn = active && token.document.movementHistory?.reduce((acc, c) => (acc += c.cost ?? 0), 0);
 	return actorData;
@@ -1404,7 +1404,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	} = CONFIG || {};
 	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
 	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcasting, spellLevels, validProperties, weaponTypes, statusEffects } });
-	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, checkArmor: ac5e.checkArmor });
+	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, getItemOrActivity: ac5e.getItemOrActivity.bind(subjectToken?.actor), checkArmor: ac5e.checkArmor });
 	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		delete sandbox[''];
@@ -1494,4 +1494,51 @@ export function _getActivityEffectsStatusRiders(activity) {
 	});
 	if (settings.debug) console.log('AC5E._getActivityEffectsStatusRiders:', { statuses });
 	return statuses;
+}
+
+/**
+ * Retrieve an Item or one of its activities from an actor.
+ * @function _getItemOrActivity
+ * @param {string} itemID - Identifier of the item to find. Matches against `name`, `identifier`, `id`, or `uuid`.
+ * @param {string} [activityID] - Optional identifier of the activity to find within the resolved item.
+ *                                Matches against `name`, `identifier`, `id`, or `uuid`.
+ * @param {Actor|string} [actor] - Actor to search within. Can be:
+ *   - An Actor document,
+ *   - An actor name,
+ *   - An actor ID,
+ *   - Or a UUID string (use this for unlinked actors).
+ *   If omitted, falls back to the bound Actor from _createEvaluationSandbox (subjectToken.actor).
+ *
+ * @returns {Item|object} - Returns the matching Item if `activityID` is not provided.
+ *                          Returns the matching Activity object if `activityID` is provided.
+ *                          Returns an empty object `{}` if no match is found.
+ *
+ * @example
+ * // For evaluation of ac5e flags, adds a bonus based on uses left of the Attack activity
+ * flags.automated-conditions-5e.damage.bonus | Override | bonus=getItemOrActivity("Empowered Longsword", "Attack").uses.value;
+ *
+ * @example
+ * // Use in macros to find an activity within an item
+ * const attackActivity = ac5e.getItemOrActivity("item-id", "attack-id", actor);
+ *
+ * @example
+ * // Resolve actor by name
+ * const shield = ac5e.getItemOrActivity("Shield", null, "Bob the Fighter");
+ */
+export function _getItemOrActivity(itemID, activityID, actor) {
+	if (actor && !(actor instanceof Actor)) {
+		if (game.actors.getName(actor) instanceof Actor) actor = game.actors.getName(actor);
+		else if (actor.includes('.')) actor = fromUuidSync(actor);
+		else actor = game.actors.get(actor);
+		if (!(actor instanceof Actor)) {
+			actor = undefined;
+			ui.notifications.warn('ac5e.getItemOrActivity warning: actor parameter provided is not in the right format, which is for linked actors either the Name or the id, and for unlinked the UUID');
+		}
+	}
+	const item = actor ? actor.items?.find((i) => i.name === itemID || i.identifier === itemID || i.id === itemID || i.uuid === itemID) : this.items?.find((i) => i.name === itemID || i.identifier === itemID || i.id === itemID || i.uuid === itemID); //this will be the 'ac5e' object always
+
+	if (!item) return {};
+	if (!activityID) return item;
+
+	return item.system?.activities?.find((a) => a.name === activityID || a.identifier === activityID || a.id === activityID || a.uuid === activityID) || {};
 }
