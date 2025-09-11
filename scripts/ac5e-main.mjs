@@ -85,7 +85,7 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
 	globalThis[Constants.MODULE_NAME_SHORT].getItemOrActivity = _getItemOrActivity;
 	globalThis[Constants.MODULE_NAME_SHORT].logEvaluationData = false;
-	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], "_target", {
+	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], '_target', {
 		get() {
 			return game?.user?.targets?.first();
 		},
