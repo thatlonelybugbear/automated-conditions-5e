@@ -1,3 +1,6 @@
+## 13.518.1.1
+* Hotfix for error when calculating `spent` uses and `isNaN(consumeMoreUses)`
+
 ## 13.518.1
 * Added `getItemOrActivity(itemID, activityID)` helper for evaluation conditions or macros
   * Will return the Item (if no activityID is provided) or the Activity of the rolling actor
