@@ -672,7 +672,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 				if (!currentUses) return false;
 				const newUses = isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses;
 				if (newUses < 0) return false;
-				const spent = (item?.system?.uses?.spent ?? activity?.uses?.spent) + consumeMoreUses;
+				const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
 				if (item) item.update({ 'system.uses.spent': spent });
 				else if (activity) activity.update({ 'uses.spent': spent });
 			}
