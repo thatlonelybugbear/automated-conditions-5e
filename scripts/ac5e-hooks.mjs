@@ -11,16 +11,16 @@ export function _rollFunctions(hook, ...args) {
 		return _preUseActivity(activity, config, dialog, message, hook);
 	} else if ([/*'conc', 'death', */ 'save'].includes(hook)) {
 		const [config, dialog, message] = args;
-		return _preRollSavingThrowV2(config, dialog, message, hook);
+		return _preRollSavingThrow(config, dialog, message, hook);
 	} else if (hook === 'attack') {
 		const [config, dialog, message] = args;
-		return _preRollAttackV2(config, dialog, message, hook);
+		return _preRollAttack(config, dialog, message, hook);
 	} else if (hook === 'damage') {
 		const [config, dialog, message] = args;
-		return _preRollDamageV2(config, dialog, message, hook);
+		return _preRollDamage(config, dialog, message, hook);
 	} else if (['check' /*, 'init', 'tool', 'skill'*/].includes(hook)) {
 		const [config, dialog, message] = args;
-		return _preRollAbilityTest(config, dialog, message, hook);
+		return _preRollAbilityCheck(config, dialog, message, hook);
 	} else if (hook === 'init') {
 		const [actor, rollConfig] = args;
 		return _preConfigureInitiative(actor, rollConfig, hook);
@@ -158,14 +158,14 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 // 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 // }
 
-export function _preRollSavingThrowV2(config, dialog, message, hook) {
+export function _preRollSavingThrow(config, dialog, message, hook) {
 	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
 	options.hook = hook;
 	options.activity = activity;
-	if (settings.debug) console.error('ac5e _preRollSavingThrowV2:', hook, options, { config, dialog, message });
+	if (settings.debug) console.error('ac5e _preRollSavingThrow:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
 	options.targets = messageTargets;
@@ -190,8 +190,8 @@ export function _preRollSavingThrowV2(config, dialog, message, hook) {
 	return _calcAdvantageMode(ac5eConfig, config, dialog, message);
 }
 
-export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
-	if (settings.debug) console.warn('AC5E._preRollAbilityTest:', { config, dialog, message });
+export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
+	if (settings.debug) console.warn('AC5E._preRollAbilityCheck:', { config, dialog, message });
 	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
@@ -219,12 +219,12 @@ export function _preRollAbilityTest(config, dialog, message, hook, reEval) {
 	
 	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
-	if (settings.debug) console.warn('AC5E._preRollAbilityTest', { ac5eConfig });
+	if (settings.debug) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
 	return ac5eConfig;
 }
 
-export function _preRollAttackV2(config, dialog, message, hook, reEval) {
-	if (settings.debug) console.error('AC5e _preRollAttackV2', hook, { config, dialog, message });
+export function _preRollAttack(config, dialog, message, hook, reEval) {
+	if (settings.debug) console.error('AC5e _preRollAttack', hook, { config, dialog, message });
 	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls, ammunition, attackMode, mastery } = config || {};
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
@@ -287,13 +287,13 @@ export function _preRollAttackV2(config, dialog, message, hook, reEval) {
 			}
 		}
 	}
-	if (settings.debug) console.warn('AC5E._preRollAttackV2:', { ac5eConfig });
+	if (settings.debug) console.warn('AC5E._preRollAttack:', { ac5eConfig });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	return ac5eConfig; //return so if we retrigger the function manually we get updated results.
 }
 
-export function _preRollDamageV2(config, dialog, message, hook, reEval) {
-	if (settings.debug) console.warn('AC5E._preRollDamageV2', hook, { config, dialog, message });
+export function _preRollDamage(config, dialog, message, hook, reEval) {
+	if (settings.debug) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
 	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const {
 		//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets for now, unless we don't care for multiple tokens of a linked actor.
@@ -329,7 +329,7 @@ export function _preRollDamageV2(config, dialog, message, hook, reEval) {
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
-	if (settings.debug) console.warn('AC5E._preRollDamageV2:', { ac5eConfig });
+	if (settings.debug) console.warn('AC5E._preRollDamage:', { ac5eConfig });
 	return ac5eConfig; //we need to be returning the ac5eConfig object to re-eval when needed in the renderHijacks
 }
 
@@ -728,7 +728,7 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	newConfig.rolls[0].options.minimum = null;
 	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
-	getConfigAC5E = _preRollAttackV2(newConfig, newDialog, newMessage, 'attack');
+	getConfigAC5E = _preRollAttack(newConfig, newDialog, newMessage, 'attack');
 	dialog.rebuild();
 	dialog.render();
 }
@@ -777,7 +777,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	}
 	const newDialog = { options: { window: { title: dialog.message.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
 	const newMessage = dialog.message;
-	getConfigAC5E = _preRollDamageV2(newConfig, newDialog, newMessage, 'damage', reEval);
+	getConfigAC5E = _preRollDamage(newConfig, newDialog, newMessage, 'damage', reEval);
 	dialog.rebuild();
 	dialog.render();
 }
@@ -796,7 +796,7 @@ function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility)
 	const newMessage = dialog.message;
 	const reEval = getConfigAC5E.reEval ?? {};
 
-	getConfigAC5E = _preRollAbilityTest(newConfig, newDialog, newMessage, 'check', reEval);
+	getConfigAC5E = _preRollAbilityCheck(newConfig, newDialog, newMessage, 'check', reEval);
 	dialog.rebuild();
 	dialog.render();
 }
