@@ -33,10 +33,10 @@ function ac5eSetup() {
 	const actionHooks = [
 		// { id: 'dnd5e.activityConsumption', type: 'consumptionHook' }, //@to-do: validate that there isn't an actual need for this
 		{ id: 'dnd5e.preConfigureInitiative', type: 'init' }, //needed for Combat Carousel at least, when using the actor.rollInitiative()
-		{ id: 'dnd5e.preRollAbilityCheckV2', type: 'check' },
-		{ id: 'dnd5e.preRollAttackV2', type: 'attack' },
-		{ id: 'dnd5e.preRollDamageV2', type: 'damage' },
-		{ id: 'dnd5e.preRollSavingThrowV2', type: 'save' },
+		{ id: 'dnd5e.preRollAbilityCheck', type: 'check' },
+		{ id: 'dnd5e.preRollAttack', type: 'attack' },
+		{ id: 'dnd5e.preRollDamage', type: 'damage' },
+		{ id: 'dnd5e.preRollSavingThrow', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
 	];
 	const renderHooks = [
