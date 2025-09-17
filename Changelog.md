@@ -1,3 +1,6 @@
+## 13.518.2
+* Migrated to non-V2 system hooks
+
 ## 13.518.1.1
 * Hotfix for error when calculating `spent` uses and `isNaN(consumeMoreUses)`
 
