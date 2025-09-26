@@ -1,3 +1,8 @@
+## 13.519.2
+* Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
+  * `hasArmorLight`, `hasArmorMedium`, `hasArmorHeavy`
+* Removed `maximum: 13` from the manifest for users to test on v14 Prototype 1.
+
 ## 13.519.1
 * Fix for initiative bonuses added twice
 * Verified for d&d5e v5.1.9
