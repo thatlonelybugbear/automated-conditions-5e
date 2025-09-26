@@ -1,5 +1,6 @@
-## 13.518.2.1
+## 13.519.1
 * Fix for initiative bonuses added twice
+* Verified for d&d5e v5.1.9
 
 ## 13.518.2
 * Migrated to non-V2 system hooks
