@@ -195,6 +195,7 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	const chatButtonTriggered = getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
+	if (options.isInitiative) return true;
 	let ac5eConfig;
 	const { subject, ability, rolls, advantage: initialAdv, disadvantage: initialDis, tool, skill } = config || {};
 	const speaker = message?.speaker;
