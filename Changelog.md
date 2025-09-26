@@ -1,3 +1,6 @@
+## 13.518.2.1
+* Fix for initiative bonuses added twice
+
 ## 13.518.2
 * Migrated to non-V2 system hooks
 
