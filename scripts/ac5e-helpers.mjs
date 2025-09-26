@@ -1250,6 +1250,9 @@ export function _ac5eActorRollData(token) {
 			actorData.equippedItemIdentifiers.push(item.identifier);
 		}
 	}
+	actorData.hasArmor = !!actorData.attributes.ac?.equippedArmor;
+	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
+	actorData.hasShield = !!actorData.attributes.ac?.equippedShield;
 	actorData.type = actor.type;
 	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
 	actorData.creatureType = Object.values(_raceOrType(actor, 'all'));
