@@ -592,7 +592,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 		return clauses.some((clause) => {
 			let mult = null;
-			if (clause.startsWith('!')) {
+			if (clause.startsWith('!') && !clause.includes('&') && !clause.includes('?') && !clause.includes('|')) {
 				clause = clause.slice(1).trim();
 				mult = '!';
 			}
