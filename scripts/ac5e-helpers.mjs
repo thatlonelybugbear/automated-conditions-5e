@@ -473,7 +473,7 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 			continue;
 		}
 		
-		const matched = cleaned.match(dicePattern);
+		const match = cleaned.match(dicePattern);
 		if (match) {
 			const sign = match[1] === "-" ? -1 : match[1] === "+" ? 1 : 0;
 			const count = Math.min(parseInt(match[2] || "1"), maxDiceCap);
