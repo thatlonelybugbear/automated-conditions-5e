@@ -24,7 +24,7 @@ export default class Settings {
 	static AUTOMATE_ENVIRONMENTAL_HAZARDS = 'autoHazards';
 	static AUTOMATE_HEAVY = 'automateHeavy';
 	static AUTOMATE_STATUSES = 'automateStatuses';
-	static REMOVE_NON5E_STATUSES = 'removeNon5eStatuses';
+	static REMOVE_NON5E_STATUSES = 'displayOnly5eStatuses';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -302,7 +302,7 @@ export default class Settings {
 	get automateHeavy() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY);
 	}
-	get removeNon5eStatuses() {
+	get displayOnly5eStatuses() {
 		return game.settings.get(Constants.MODULE_ID, Settings.REMOVE_NON5E_STATUSES);
 	}
 }
