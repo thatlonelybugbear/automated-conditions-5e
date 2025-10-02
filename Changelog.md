@@ -9,6 +9,7 @@
 * Added `rollingActor.uuid` as the actor's uuid
 * Changed the equippedItems logic:
   * actorType.equippedItems.names and actorType.equippedItems.identifiers are Arrays of the relevant data.
+* Fix for aura mode of `modifyAC` and `allies/enemies`
 
 ## 13.519.2
 * Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
