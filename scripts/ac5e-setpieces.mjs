@@ -297,8 +297,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
-			if (auraTokenEvaluationData.auraTokenId === subjectToken.id) return change.value.toLowerCase().includes('includeself');
-			if (!friendOrFoe(auraToken, subjectToken, change.value)) return false;
+			if (auraTokenEvaluationData.auraTokenId === (isModifyAC ? opponentToken.id : subjectToken.id)) return change.value.toLowerCase().includes('includeself');
+			if (!friendOrFoe(auraToken, isModifyAC ? opponentToken : subjectToken, change.value)) return false;
 			let radius = getBlacklistedKeysValue('radius', change.value);
 			if (!radius) return false;
 			radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
