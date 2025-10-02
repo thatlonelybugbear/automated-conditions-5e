@@ -1378,7 +1378,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
 	const ammoProperties = sandbox.ammunition?.system?.properties;
 	if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-	itemData?.properties?.filter((p) => (sandbox[p] = true));
+	sandbox.itemProperties = {};
+	itemData?.properties.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
 	sandbox.item.hasAttack = item?.hasAttack;
 	sandbox.item.hasSave = item?.system?.hasSave;
 	sandbox.item.hasSummoning = item?.system?.hasSummoning;
