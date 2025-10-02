@@ -1144,18 +1144,31 @@ export function _raceOrType(actor, dataType = 'race') {
 }
 
 export function _generateAC5eFlags() {
-	const daeFlags = ['flags.automated-condition-5e.crossbowExpert', 'flags.automated-condition-5e.sharpShooter', 'flags.automated-conditions-5e.attack.criticalThreshold', 'flags.automated-conditions-5e.grants.attack.criticalThreshold', 'flags.automated-conditions-5e.aura.attack.criticalThreshold', 'flags.automated-conditions-5e.modifyAC', 'flags.automated-conditions-5e.grants.modifyAC', 'flags.automated-conditions-5e.aura.modifyAC'];
-
+	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
+	const moduleFlags = [
+		`${moduleFlagScope}.crossbowExpert`,
+		`${moduleFlagScope}.sharpShooter`,
+		`${moduleFlagScope}.attack.criticalThreshold`,
+		`${moduleFlagScope}.grants.attack.criticalThreshold`,
+		`${moduleFlagScope}.aura.attack.criticalThreshold`,
+		`${moduleFlagScope}.damage.extraDice`,
+		`${moduleFlagScope}.grants.damage.extraDice`,
+        `${moduleFlagScope}.aura.damage.extraDice`,
+		`${moduleFlagScope}.modifyAC`,
+		`${moduleFlagScope}.grants.modifyAC`,
+		`${moduleFlagScope}.aura.modifyAC`,
+	]
+	
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'success'];
 	const types = ['source', 'grants', 'aura'];
 	for (const type of types) {
 		for (const mode of modes) {
-			if (type === 'source') daeFlags.push(`flags.${Constants.MODULE_ID}.ACTIONTYPE.${mode}`);
-			else daeFlags.push(`flags.${Constants.MODULE_ID}.${type}.ACTIONTYPE.${mode}`);
+			if (type === 'source') moduleFlags.push(`${moduleFlagScope}.ACTIONTYPE.${mode}`);
+			else moduleFlags.push(`${moduleFlagScope}.${type}.ACTIONTYPE.${mode}`);
 		}
 	}
-	return daeFlags;
+	return moduleFlags;
 }
 
 let tempDiv = null;
