@@ -16,6 +16,7 @@
   * `actorType.equippedItems.names` and `actorType.equippedItems.identifiers` are Arrays of the relevant data.
 * Fix for aura mode of `modifyAC` and `allies/enemies`
 * Fix for removal of `!` from conditions in some cases.
+* Fix for missing `itemProperties` from sandbox data.
 
 ## 13.519.2
 * Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
