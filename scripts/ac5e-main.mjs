@@ -21,7 +21,7 @@ function ac5eRegisterOnInit() {
 
 function ac5ei18nInit() {
 	const settings = new Settings();
-	if (settings.removeNon5eStatuses) {
+	if (settings.displayOnly5eStatuses) {
 		const basic = Object.values(CONFIG.DND5E.conditionTypes).filter(e=>!e.pseudo).map(e=>e.name.toLowerCase()).concat(['burning', 'suffocation']);
 		CONFIG.statusEffects.forEach((effect) => {
 			if (!basic.includes(effect.id)) effect.hud = false;
