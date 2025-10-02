@@ -86,7 +86,7 @@ function ac5eSetup() {
 
 	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
 	globalThis[Constants.MODULE_NAME_SHORT] = {};
-	globalThis[Constants.MODULE_NAME_SHORT].info = { moduleName: Constants.MODULE_NAME, hooksRegistered };
+	globalThis[Constants.MODULE_NAME_SHORT].info = { moduleName: Constants.MODULE_NAME, hooksRegistered, version: game.modules.get(Constants.MODULE_ID).version };
 	globalThis[Constants.MODULE_NAME_SHORT].checkArmor = _autoArmor;
 	globalThis[Constants.MODULE_NAME_SHORT].checkCreatureType = _raceOrType;
 	globalThis[Constants.MODULE_NAME_SHORT].checkDistance = _getDistance;
