@@ -676,6 +676,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
 		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
 		addTooltip(subject.modifiers.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
+		addTooltip(subject.extraDice.length, `<span style="display: block; text-align: left;">${_localize('AC5E.ExtraDice')}: ${subject.extraDice.join(', ')}</span>`);
 	}
 	if (opponent) {
 		const opponentAdvantageModes = [...(opponent?.advantage ?? []), ...([...opponent?.advantageNames] ?? [])];
@@ -688,6 +689,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
 		addTooltip(opponent.modifiers.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsModifier')}: ${opponent.modifiers.join(', ')}</span>`);
+		addTooltip(opponent.extraDice.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponent.extraDice.join(', ')}</span>`);
 	}
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
@@ -736,6 +738,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			modifiers: [],
 			criticalThreshold: [],
 			targetADC: [],
+			extraDice: [],
 		},
 		opponent: {
 			advantage: [],
@@ -750,10 +753,12 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			modifiers: [],
 			criticalThreshold: [],
 			targetADC: [],
+			extraDice: [],
 		},
 		options,
 		parts: [],
 		targetADC: [],
+		extraDice: [],
 		threshold: [],
 		damageModifiers: [],
 		modifiers: {},
