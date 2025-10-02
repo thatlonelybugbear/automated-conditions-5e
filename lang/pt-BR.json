@@ -112,6 +112,7 @@
 			"Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
 		}
 	},
+	"AC5E.ExtraDice": "Dado Extra",
 	"AC5E.Bonus": "Bônus",
 	"AC5E.Success": "Sucesso",
 	"AC5E.AbbreviationAdvantage": "vant.",
@@ -121,14 +122,15 @@
 	"AC5E.Attacker": "Atacante",
 	"AC5E.FlagsInitiativeAdv": "Vantagem na Iniciativa",
 	"AC5E.FlagsInitiativeDisadv": "Desvantagem na Iniciativa",
-	"AC5E.TargetGrantsAdvantageAbbreviated": "Alvo Concede Vant.",
-	"AC5E.TargetGrantsDisadvantageAbbreviated": "Alvo Concede Desv.",
-	"AC5E.TargetGrantsCriticalAbbreviated": "Alvo Concede Desv.",
-	"AC5E.TargetGrantsFail": "Alvo Concede Falha",
-	"AC5E.TargetGrantsFumble": "Conceder Falha Crítica",
-	"AC5E.TargetGrantsSuccess": "Conceder Sucesso",
-	"AC5E.TargetGrantsBonus": "Conceder Bônus",
-	"AC5E.TargetGrantsModifier": "Conceder Modificador",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Vantagem Concedida",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Desvantagem Concedida",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Crítico Concedido",
+	"AC5E.TargetGrantsFail": "Falha Concedida",
+	"AC5E.TargetGrantsFumble": "Falha Crítica Concedida",
+	"AC5E.TargetGrantsSuccess": "Sucesso Concedido",
+	"AC5E.TargetGrantsBonus": "Bônus Concedido",
+	"AC5E.TargetGrantsModifier": "Modificador Concedido",
+	"AC5E.TargetGrantsExtraDice": "Dado Extra Concendido",
 	"AC5E.NoChanges": "Sem Mudanças",
 	"AC5E.SystemMode": "Modo do Sistema",
 	"AC5E.EnvironmentalHazards": {
@@ -163,6 +165,18 @@
       		"name": "Aura para Alterar Margem de Crítico de Ataques em Raio",
       		"description": "Use radius=10;threshold=18; ou radius=15;threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
     	},
+		"flags.automated-conditions-5e.damage.extraDice": {
+      		"name": "Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
+      		"description": "Use bonus=4 para aumentar o número de dados rolados em 4."
+    	},
+    	"flags.automated-conditions-5e.grants.damage.extraDice": {
+      		"name": "Cenceder Aumento/Diminuição do Número de Dados Rolados para Cada Denominação",
+      		"description": "Use bonus=-1 para diminuir o número de dados rolados em 1"
+    	},
+    	"flags.automated-conditions-5e.aura.damage.extraDice": {
+      		"name": "Aura para Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
+      		"description": "Use bonus=2; radius=10 para aumentar o número de dados rolados para cada denominação em um raio de 10 unidades de distância."
+    	},
     	"flags.automated-conditions-5e.modifyAC": {
       		"name": "Modificar CA Contra Ataques Sofridos",
       		"description": "Use bonus='18' ou bonus='+5'. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
@@ -193,8 +207,8 @@
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
 			},
 			"modifier": {
-        		"name": "Rolagem de d20 com Modificador Máx/Min",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/death/initiative/save/skill/tool. Ex: modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'."
+        		"name": "Modificar Rolagem de d20 ou Dano com Máx/Min",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'."
       			},
 			"modifyDC": {
         		"name": "Modificar CD de Ações (também funciona em Concentração e Salvaguardas Contra Morte)",
@@ -231,8 +245,8 @@
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
 			},
 			"modifier": {
-        		"name": "Conceder Modificador Máx/Min às Rolagens de d20 do Oponente",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/death/initiative/save/skill/tool. Ex: modifier='min10'."
+        		"name": "Conceder Modificar Rolagem de d20 ou Dano do Oponente com Máx/Min",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier='min10'."
       			},
 			"modifyDC": {
         		"name": "Modificar CD de Rolagem Resistida de Ação de Outros",
@@ -269,8 +283,8 @@
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
 			},
 			"modifier": {
-        		"name": "Aura que Dá Modificador Máx/Min às Rolagens de d20",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/death/initiative/save/skill/tool. Ex: modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'."
+        		"name": "Aura que Modifica Rolagem de d20 ou Dano com Máx/Min",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'."
       			},
 			"modifyDC": {
         		"name": "Aura que Modifica CD de Ações de Tokens Afetados",
