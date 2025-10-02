@@ -370,25 +370,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
 		let auraTokenEvaluationData;
-		if (foundry.utils.isNewerVersion(game.system.version, '5.0.0')) {
-			//this is to save users from the numerous deprecation warnings for spell.mod and spell.dc when duplicating actors rollData, until v5...
-			auraTokenEvaluationData = foundry.utils.mergeObject(
-				evaluationData,
-				{
-					auraActor: _ac5eActorRollData(token),
-					isAuraSourceTurn: currentCombatant === token?.id,
-					auraTokenId: token.id,
-					//distanceTokenToAuraSource,
-				},
-				{ inplace: false }
-			);
-		} else {
-			auraTokenEvaluationData = evaluationData;
-			auraTokenEvaluationData.auraActor = _ac5eActorRollData(token) || {};
-			auraTokenEvaluationData.isAuraSourceTurn = currentCombatant === token?.id;
-			auraTokenEvaluationData.auraTokenId = token.id;
-			//auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
-		}
+		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token),	isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id, }, { inplace: false });
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }))
@@ -449,11 +431,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				})
 		);
 	});
-	//cleanup for the line 324 workaround
 	if (evaluationData.auraActor) {
-		delete evaluationData.auraActor;
-		delete evaluationData.isAuraSourceTurn;
-		delete evaluationData.auraTokenId;
 		delete evaluationData.distanceTokenToAuraSource; //might be added in the data and we want it gone if not needed
 	}
 	subject?.appliedEffects.filter((effect) =>
