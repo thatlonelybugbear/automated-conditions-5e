@@ -1,3 +1,7 @@
+## 13.519.3.1
+* Hotfix
+* Added `ac5e.info.version`
+
 ## 13.519.3
 * Added a console only setting, to remove all non 5e statuses from the Token HUD.
   * `game.settings.set('automated-conditions-5e', 'displayOnly5eStatuses', true);`
