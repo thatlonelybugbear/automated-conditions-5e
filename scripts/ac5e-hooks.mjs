@@ -38,8 +38,8 @@ function getMessageData(config, hook) {
 	const options = {};
 	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
 	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
-	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message. 
-	
+	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
+
 	options.d20 = {};
 	if (hook === 'damage') {
 		if (_activeModule('midi-qol')) {
@@ -217,7 +217,7 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
 
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
-	
+
 	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message);
 	if (settings.debug) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
@@ -335,9 +335,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 }
 
 export function _renderHijack(hook, render, elem) {
-	let getConfigAC5E = hook === 'chat' ?
-		render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID]:
-		render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.config?.[Constants.MODULE_ID];
+	let getConfigAC5E = hook === 'chat' ? render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID] : render.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.config?.[Constants.MODULE_ID];
 	if (settings.debug) console.warn('AC5E._renderHijack:', { hook, render, elem });
 	if (!getConfigAC5E) return;
 	let { hookType, roller, tokenId, options } = getConfigAC5E || {};
@@ -347,10 +345,9 @@ export function _renderHijack(hook, render, elem) {
 		if (getConfigAC5E.options.skill || getConfigAC5E.options.tool) {
 			const selectedAbility = render.form.querySelector('select[name="ability"]').value;
 			if (selectedAbility !== getConfigAC5E.options.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
-		} 
-		else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
+		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
 		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
-		
+
 		if (!hookType) return true;
 		let tokenName;
 		const title = elem.querySelector('header.window-header h1.window-title') ?? elem.querySelector('dialog.application.dnd5e2.roll-configuration .window-header .window-title');
@@ -740,23 +737,45 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		.map((el) => {
 			const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
 			if (labelSpan) return labelSpan;
-
-			// If there's no <select>, get the roll options damage type
-			const damageType = dialog.config.rolls[el].options.type;
-			if (damageType) return damageType;
+			return dialog.config.rolls[el].options.type;
 		})
 		.filter(Boolean);
 	const formulas = Array.from(elem.querySelectorAll('.formula'))
 		.map((el) => el.textContent?.trim())
 		.filter(Boolean);
 
-	const damageTypes = getConfigAC5E.options.damageTypes;
+	const changed = applyOrResetFormulaChanges(elem, getConfigAC5E);
+	const effectiveFormulas = getConfigAC5E.preservedInitialData?.modified ?? formulas;
+
+	for (let i = 0; i < rollsLength; i++) {
+		if (effectiveFormulas[i]) {
+			dialog.config.rolls[i].formula = effectiveFormulas[i];
+			dialog.config.rolls[i].parts = effectiveFormulas[i]
+				.split('+')
+				.map((p) => p.trim())
+				.filter(Boolean);
+		}
+	}
+
+	// Compare damage types
 	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
-	const compared = compareArrays(damageTypesArray, selects);
-	if (compared.equal) {
+	const compared = _compareArrays(damageTypesArray, selects);
+	const damageTypesChanged = !compared.equal;
+
+	// Case 1: Only modifiers/extra dice changed
+	if (!damageTypesChanged && changed) {
+		dialog.rebuild();
+		dialog.render();
+		return;
+	}
+
+	// Case 2: Nothing changed
+	if (!damageTypesChanges && !changed) {
 		dialog.config.rolls[0].options[Constants.MODULE_ID].usedParts ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
 		return;
 	}
+
+	// Case 3: Damage type changed
 	const newConfig = dialog.config;
 	getConfigAC5E.options.defaultDamageType = undefined;
 	getConfigAC5E.options.damageTypes = undefined;
@@ -764,11 +783,21 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 
 	const reEval = getConfigAC5E.reEval ?? {};
 	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
-	reEval.initialRolls = getConfigAC5E.reEval?.initialRolls ?? newConfig.rolls.map((roll) => ({ parts: roll.parts, options: { maximum: roll.options.maximum, minimum: roll.options.minimum } }));
+	reEval.initialRolls =
+		getConfigAC5E.reEval?.initialRolls ??
+		newConfig.rolls.map((roll) => ({
+			parts: roll.parts,
+			options: {
+				maximum: roll.options.maximum,
+				minimum: roll.options.minimum,
+			},
+		}));
 	reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
+
 	newConfig.rolls[compared.index].options.type = compared.selectedValue;
 	const wasCritical = getConfigAC5E.preAC5eConfig.wasCritical;
 	if (newConfig.midiOptions) newConfig.midiOptions.isCritical = wasCritical;
+
 	for (let i = 0; i < rollsLength; i++) {
 		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
 		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.[Constants.MODULE_ID]?.usedParts?.includes(part));
@@ -776,11 +805,88 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
 		newConfig.rolls[i].options.isCritical = wasCritical;
 	}
-	const newDialog = { options: { window: { title: dialog.message.flavor }, isCritical: wasCritical, defaultButton: wasCritical ? 'critical' : 'normal' } };
+
+	const newDialog = {
+		options: {
+			window: { title: dialog.message.flavor },
+			isCritical: wasCritical,
+			defaultButton: wasCritical ? 'critical' : 'normal',
+		},
+	};
 	const newMessage = dialog.message;
+
 	getConfigAC5E = _preRollDamage(newConfig, newDialog, newMessage, 'damage', reEval);
+
+	applyOrResetFormulaChanges(elem, getConfigAC5E);
+
 	dialog.rebuild();
 	dialog.render();
+}
+
+function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply') {
+	const formulas = Array.from(elem.querySelectorAll('.formula'))
+		.map((el) => el.textContent?.trim())
+		.filter(Boolean);
+
+	const modifiers = getConfigAC5E.damageModifiers ?? [];
+	const suffixModifiers = modifiers.filter((m) => m !== 'adv' && m !== 'dis');
+	const suffix = suffixModifiers.join('');
+	const hasAdv = modifiers.includes('adv');
+	const hasDis = modifiers.includes('dis');
+
+	const isCritical = getConfigAC5E.preAC5eConfig?.wasCritical ?? false;
+	const extraDiceTotal = (getConfigAC5E.extraDice ?? []).reduce((a, b) => a + b, 0) * (isCritical ? 2 : 1);
+
+	if (!getConfigAC5E.preservedInitialData) {
+		getConfigAC5E.preservedInitialData = {
+			formulas: [...formulas],
+			modified: [...formulas],
+			activeModifiers: '',
+			activeExtraDice: 0,
+			activeAdvDis: '',
+		};
+	}
+
+	const { formulas: originals, activeModifiers, activeExtraDice, activeAdvDis } = getConfigAC5E.preservedInitialData;
+
+	const diceRegex = /(\d+)d(\d+)([a-z0-9]*)?/gi;
+	const suffixChanged = activeModifiers !== suffix;
+	const diceChanged = activeExtraDice !== extraDiceTotal;
+	const advDis = hasAdv ? 'adv' : hasDis ? 'dis' : '';
+	const advDisChanged = advDis !== activeAdvDis;
+
+	if (mode === 'apply' && !suffixChanged && !diceChanged && !advDisChanged) return false; // no changes
+
+	if (mode === 'reset' || (!suffixModifiers.length && extraDiceTotal === 0 && !advDis)) {
+		getConfigAC5E.preservedInitialData.modified = [...originals];
+		getConfigAC5E.preservedInitialData.activeModifiers = '';
+		getConfigAC5E.preservedInitialData.activeExtraDice = 0;
+		getConfigAC5E.preservedInitialData.activeAdvDis = '';
+		return true;
+	}
+
+	getConfigAC5E.preservedInitialData.modified = originals.map((formula) => {
+		return formula.replace(diceRegex, (match, count, sides, existing = '') => {
+			const newCount = parseInt(count, 10) + extraDiceTotal;
+			if (newCount <= 0) return `0d${sides}${existing}`;
+
+			// Dice base with suffix (applied inside the roll)
+			const diceTerm = `${newCount}d${sides}${suffix}`;
+
+			let term;
+			if (advDis === 'adv') term = `{${diceTerm},${diceTerm}}kh`;
+			else if (advDis === 'dis') term = `{${diceTerm},${diceTerm}}kl`;
+			else term = diceTerm;
+
+			// Preserve any existing [tag]
+			return `${term}${existing}`;
+		});
+	});
+
+	getConfigAC5E.preservedInitialData.activeModifiers = suffix;
+	getConfigAC5E.preservedInitialData.activeExtraDice = extraDiceTotal;
+	getConfigAC5E.preservedInitialData.activeAdvDis = advDis;
+	return true;
 }
 
 function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility) {
