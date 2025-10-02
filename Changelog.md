@@ -1,15 +1,21 @@
 ## 13.519.3
 * Added a console only setting, to remove all non 5e statuses from the Token HUD.
   * `game.settings.set('automated-conditions-5e', 'displayOnly5eStatuses', true);`
-* Fixed removal of `!` from conditions in some cases.
-* Reworked sandbox evaluations to make condition syntax more user friendly.
+* Reworked sandbox evaluations to make conditionals syntax more user friendly.
+* Added damage roll modifiers, with the keyword `modifier` and any of the [Foundry dice modifiers](<https://foundryvtt.com/article/dice-modifiers/>)
+  * Added logic for damage advantage and disadvantage, using `modifier='adv'` and `modifier='dis'`
+* Added flags a new flag for Damage Rolls. `extraDice` mode, increasing or decreasing the number of dice per denomination.
+  * `flags.automated-conditions-5e.damage.extraDice` with a `bonus=5` will add 5 to each dice part of the formula.
+    * eg. 1d4 + 4 + 2d8 => 5d4 + 4 + 7d8 (respects doubling up for critical; not compatible with other critical rules yet)
+  * Same for `aura` and `grants` keys
 * Added `set` keyword, similar to `bonus`, but that will set a value to the provided.
   * eg. for the `modifyAC` if one uses `set=15`, it will set the AC to 15.
   * to be used in flags for `criticalThrehsold`, `modifyAC`, `modifyDC`
-* Added `rollingActor.uuid` as the actor's uuid
+* Added `actorType.uuid` as the actor's uuid
 * Changed the equippedItems logic:
-  * actorType.equippedItems.names and actorType.equippedItems.identifiers are Arrays of the relevant data.
+  * `actorType.equippedItems.names` and `actorType.equippedItems.identifiers` are Arrays of the relevant data.
 * Fix for aura mode of `modifyAC` and `allies/enemies`
+* Fix for removal of `!` from conditions in some cases.
 
 ## 13.519.2
 * Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
