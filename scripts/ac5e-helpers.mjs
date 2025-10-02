@@ -360,7 +360,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			dialog.options.advantageMode = NORM_MODE;
 			dialog.options.defaultButton = 'normal';
 		}
-		if (hook === 'attack') {
+		if (hook === 'attack' || hook === 'damage') { // need to allow damage hooks too for results shown?
 			if (ac5eConfig.threshold?.length) {
 				//for attack rolls
 				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
@@ -387,7 +387,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 				}
 			}
 		}
-		if (ac5eConfig.targetADC?.length && hook !== 'attack') {
+		if (ac5eConfig.targetADC?.length && hook !== 'attack' && hook !== 'damage') {
 			//check, save, skill
 			const initialTargetADC = config.target;
 			const alteredTargetADC = getAlteredTargetValueOrThreshold(initialTargetADC, ac5eConfig.targetADC, 'dcBonus');
