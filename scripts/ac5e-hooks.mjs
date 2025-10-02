@@ -770,7 +770,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	}
 
 	// Case 2: Nothing changed
-	if (!damageTypesChanges && !changed) {
+	if (!damageTypesChanged && !changed) {
 		dialog.config.rolls[0].options[Constants.MODULE_ID].usedParts ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
 		return;
 	}
