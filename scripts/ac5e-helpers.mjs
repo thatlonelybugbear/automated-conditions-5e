@@ -755,6 +755,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		parts: [],
 		targetADC: [],
 		threshold: [],
+		damageModifiers: [],
 		modifiers: {},
 		preAC5eConfig: {
 			advKey: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogAdvantage') : false,
