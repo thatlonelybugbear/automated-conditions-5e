@@ -401,7 +401,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
 						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
-					const isSet = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('set', el.value) : false;
+					const isSet = mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack') ? getBlacklistedKeysValue('set', el.value) : false;
 					if (isSet) {
 						const replacementBonus = bonusReplacements(isSet, auraTokenEvaluationData, true, effect);
 						set = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
@@ -414,8 +414,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
 						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
-						if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
-						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
+						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const auraOnlyOne = el.value.toLowerCase().includes('singleaura');
 					let valuesToEvaluate = el.value
@@ -468,7 +467,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
 					bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 				}
-				const isSet = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('set', el.value) : false;
+				const isSet = mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack') ? getBlacklistedKeysValue('set', el.value) : false;
 				if (isSet) {
 					const replacementBonus = bonusReplacements(isSet, evaluationData, false, effect);
 					set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
@@ -481,8 +480,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 				if (isThreshold) {
 					const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
-					if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
-					else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
+					threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
 				}
 				let valuesToEvaluate = el.value
 					.split(';')
@@ -520,7 +518,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
 						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 					}
-					const isSet = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('set', el.value) : false;
+					const isSet = mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack') ? getBlacklistedKeysValue('set', el.value) : false;
 					if (isSet) {
 						const replacementBonus = bonusReplacements(isSet, evaluationData, false, effect);
 						set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
@@ -533,8 +531,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
 					if (isThreshold) {
 						const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
-						if (isLiteralOrDiceExpression(replacementThreshold)) threshold = replacementThreshold.trim();
-						else threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
+						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
 					}
 					let valuesToEvaluate = el.value
 						.split(';')
@@ -592,7 +589,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (mod) ac5eConfig.modifiers.minimum = !inplaceMod || inplaceMod < mod ? mod : inplaceMod;
 				}
 			}
-			if (threshold) ac5eConfig.threshold = ac5eConfig.threshold.concat(threshold);
+			if (mode === 'criticalThreshold') {
+				if (threshold) {
+					if (typeof threshold === 'string' && !(threshold.includes('+') || threshold.includes('-'))) threshold = `+${threshold}`;
+					ac5eConfig.threshold.push(threshold);
+				}
+				if (set) ac5eConfig.threshold.push(`${set}`);
+			}
 		}
 	}
 	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
