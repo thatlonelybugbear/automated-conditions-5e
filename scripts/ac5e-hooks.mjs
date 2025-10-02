@@ -759,7 +759,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 
 	// Compare damage types
 	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
-	const compared = _compareArrays(damageTypesArray, selects);
+	const compared = compareArrays(damageTypesArray, selects);
 	const damageTypesChanged = !compared.equal;
 
 	// Case 1: Only modifiers/extra dice changed
