@@ -454,84 +454,55 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 }
 
 function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
-	const signedPattern = /^[+-]/; // Only matches if starts with + or -
-	const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice expressions with optional sign
+	const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice with optional sign
 	const maxDiceCap = 100;
-
-	let minTotal = 0;
-	let maxTotal = 0;
-
 	const additiveValues = [];
 	const staticValues = [];
 
 	for (const item of ac5eValues) {
 		if (item == null) continue;
 
-		const cleaned = String(item).trim().replace(/\s+/g, '');
-		const parts = cleaned.match(/([+-]?[^+-]+)/g) ?? [];
+		if (typeof item === "number") {
+			additiveValues.push(item);
+			continue;
+		}
 
-		for (let part of parts) {
-			part = part.trim();
+		const cleaned = String(item).trim();
+		if (/^-?\d+$/.test(cleaned)) {
+			staticValues.push(parseInt(cleaned, 10));
+			continue;
+		}
+		
+		const matched = cleaned.match(dicePattern);
+		if (match) {
+			const sign = match[1] === "-" ? -1 : match[1] === "+" ? 1 : 0;
+			const count = Math.min(parseInt(match[2] || "1"), maxDiceCap);
+			const sides = parseInt(match[3]);
 
-			// If it matches the dice pattern (with or without sign)
-			const match = part.match(dicePattern);
-			if (match) {
-				const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
-				const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
-				const sides = parseInt(match[3]);
-
-				let total = 0;
-				const rolls = [];
-				for (let i = 0; i < count; i++) {
-					const roll = Math.floor(Math.random() * sides) + 1;
-					rolls.push(roll);
-					total += roll;
-				}
-
-				const signedTotal = (sign === 0 ? 1 : sign) * total;
-
-				if (sign !== 0) {
-					additiveValues.push(signedTotal);
-					minTotal += sign * count * 1;
-					maxTotal += sign * count * sides;
-				} else {
-					staticValues.push(total);
-				}
-
-				if (settings.debug) {
-					console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal} (min: ${sign * count || count}, max: ${sign * count * sides || count * sides})`);
-				}
-
-				continue;
+			let total = 0;
+			const rolls = [];
+			for (let i = 0; i < count; i++) {
+				const roll = Math.floor(Math.random() * sides) + 1;
+				rolls.push(roll);
+				total += roll;
 			}
 
-			// Signed integer (must start with + or -)
-			if (signedPattern.test(part) && /^[+-]?\d+$/.test(part)) {
-				const val = parseInt(part);
-				additiveValues.push(val);
-				minTotal += val;
-				maxTotal += val;
-				continue;
-			}
+			const signedTotal = (sign === 0 ? 1 : sign) * total;
 
-			// Unsigned static value
-			const parsed = parseInt(part);
-			if (!isNaN(parsed)) staticValues.push(parsed);
+			if (sign !== 0) additiveValues.push(signedTotal);
+			else staticValues.push(total);
+
+			if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? "+" : sign < 0 ? "-" : ""}${count}d${sides}`, `Rolls: [${rolls.join(", ")}]`, `Total: ${signedTotal}`);
+			continue;
 		}
 	}
-	// Include original static value if provided
-	staticValues.push(initialValue ?? 20);
-
-	const newStaticThreshold = Math.min(...staticValues);
+	const newStaticThreshold = staticValues.length > 0 ? staticValues[staticValues.length - 1] : initialValue;
 	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
 	const finalValue = newStaticThreshold + totalModifier;
-	if (settings.debug) {
-		console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, {
-			initialValue,
-			finalValue,
-		});
-	}
-	return finalValue;
+
+	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue, });
+
+	return finalValue;		
 }
 
 /**
