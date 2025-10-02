@@ -6,6 +6,9 @@
 * Added `set` keyword, similar to `bonus`, but that will set a value to the provided.
   * eg. for the `modifyAC` if one uses `set=15`, it will set the AC to 15.
   * to be used in flags for `criticalThrehsold`, `modifyAC`, `modifyDC`
+* Added `rollingActor.uuid` as the actor's uuid
+* Changed the equippedItems logic:
+  * actorType.equippedItems.names and actorType.equippedItems.identifiers are Arrays of the relevant data.
 
 ## 13.519.2
 * Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
