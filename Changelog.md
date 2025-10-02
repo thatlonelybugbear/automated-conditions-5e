@@ -1,7 +1,7 @@
 ## 13.519.3
 * Added a console only setting, to remove all non 5e statuses from the Token HUD.
   * `game.settings.set('automated-conditions-5e', 'displayOnly5eStatuses', true);`
-* Fixed removal if `!` from conditions in some cases.
+* Fixed removal of `!` from conditions in some cases.
 
 ## 13.519.2
 * Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
