@@ -1227,13 +1227,47 @@ export function _ac5eSafeEval({ expression, sandbox }) {
 		throw new Error(`Roll.safeEval expression cannot contain canvas.`);
 	}
 	let result;
+
+	const proxySandbox = new Proxy(sandbox, {
+		get(target, prop) {
+			if (prop in target) return target[prop];
+			return false; // default fallback for missing properties. We can now use directly in conditionals: dex || str
+		},
+	});
+
 	try {
-		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(sandbox);
+		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(proxySandbox);
+		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (full evaluation):', { result, expression, evaluationData: sandbox });
+		return result;
 	} catch (err) {
-		result = undefined;
+		// If evaluation fails, fall back
 	}
-	if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval:', { result, expression, evaluationData: sandbox });
-	return result;
+
+	const tokenRegex = /\b[a-zA-Z_][\w.]*\b/g;
+	const rebuilt = expression.replace(tokenRegex, (match) => {
+		try {
+			const tokenResult = new Function('sandbox', `with (sandbox) { return ${match}}`)(proxySandbox);
+			if (typeof tokenResult === 'function') return match; // keep function refs
+			return tokenResult; // includes false, 0, null
+		} catch (e) {
+			return false; // default for unresolved identifiers
+		}
+	});
+	try {
+		const protectedExpr = rebuilt.replace(/(\d+d\d+([+-]\d+)*)/gi, '"$1"'); // Protect dice terms; replace with JS parce-friendly quoted placeholders
+		result = new Function('sandbox', `with (sandbox) { return ${protectedExpr}}`)(proxySandbox);
+
+		if (typeof result === 'string') {
+			if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (partial unresolved):', { result, expression, evaluationData: sandbox });
+			return rebuilt; // could be a leftover string with dice
+		}
+
+		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (partial resolved):', { result, expression, evaluationData: sandbox });
+		return result;
+	} catch (err) {
+		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (fallback string):', { result: rebuilt, expression, evaluationData: sandbox });
+		return rebuilt;
+	}
 }
 
 export function _ac5eActorRollData(token) {
