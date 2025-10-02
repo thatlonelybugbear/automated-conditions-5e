@@ -258,6 +258,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['fail', 'fail'],
 			['fumble', 'fumble'],
 			['success', 'success'],
+			['extradice', 'extraDice'],
 		];
 
 		const mode = modeMap.find(([m]) => key.includes(m))?.[1];
@@ -396,7 +397,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (!actorType || !mode) return;
 					let bonus, modifier, set, threshold;
 					const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
-					const isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					const isBonus = mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
 						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
@@ -462,7 +463,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
 				let bonus, modifier, set, threshold;
-				const isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
+				const isBonus = mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' ? getBlacklistedKeysValue('bonus', el.value) : false;
 				if (isBonus) {
 					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
 					bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
@@ -513,7 +514,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
 					let bonus, modifier, set, threshold;
-					const isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					const isBonus = mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
 						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
@@ -567,8 +568,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (hasEffectUpdate) validFlagsEffectUpdates.push(hasEffectUpdate.updates);
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
-			if (mode === 'bonus' || mode === 'targetADC') {
-				const configMode = mode === 'bonus' ? 'parts' : 'targetADC';
+			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') {
+				const configMode = mode === 'bonus' ? 'parts' : mode === 'targetADC' ? 'targetADC' : 'extraDice';
 				if (bonus) {
 					if (bonus.constructor?.metadata) bonus = String(bonus); // special case for rollingActor.scale.rogue['sneak-attack'] for example; returns the .formula
 					if (typeof bonus === 'string' && !(bonus.includes('+') || bonus.includes('-'))) bonus = `+${bonus}`;
