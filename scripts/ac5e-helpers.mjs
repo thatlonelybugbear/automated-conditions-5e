@@ -1153,7 +1153,7 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.aura.attack.criticalThreshold`,
 		`${moduleFlagScope}.damage.extraDice`,
 		`${moduleFlagScope}.grants.damage.extraDice`,
-        `${moduleFlagScope}.aura.damage.extraDice`,
+		`${moduleFlagScope}.aura.damage.extraDice`,
 		`${moduleFlagScope}.modifyAC`,
 		`${moduleFlagScope}.grants.modifyAC`,
 		`${moduleFlagScope}.aura.modifyAC`,
