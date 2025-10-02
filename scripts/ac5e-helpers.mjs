@@ -1266,12 +1266,11 @@ export function _ac5eActorRollData(token) {
 	const actorData = actor.getRollData();
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
-	actorData.equippedItems = [];
-	actorData.equippedItemIdentifiers = [];
+	actorData.equippedItems = { names: [], identifiers: [] };
 	for (const item of actor.items) {
 		if (item?.system?.equipped) {
-			actorData.equippedItems.push(item.name);
-			actorData.equippedItemIdentifiers.push(item.identifier);
+			actorData.equippedItems.names.push(item.name);
+			actorData.equippedItems.identifiers.push(item.identifier);
 		}
 	}
 	actorData.hasArmor = !!actorData.attributes.ac?.equippedArmor;
@@ -1285,6 +1284,7 @@ export function _ac5eActorRollData(token) {
 	actorData.tokenElevation = token.document.elevation;
 	actorData.tokenSenses = token.document.detectionModes;
 	actorData.tokenUuid = token.document.uuid;
+	actorData.uuid = token.actor.uuid;
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
 	actorData.isTurn = active && currentCombatant === token.id;
