@@ -577,16 +577,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (set) ac5eConfig[configMode].push(`${set}`);
 			}
 			if (modifier) {
-				let mod;
-				if (modifier.includes('max')) {
-					mod = Number(modifier.replace('max', ''));
-					const inplaceMod = ac5eConfig.modifiers.maximum;
-					if (mod) ac5eConfig.modifiers.maximum = !inplaceMod || inplaceMod > mod ? mod : inplaceMod;
-				}
-				if (modifier.includes('min')) {
-					mod = Number(modifier.replace('min', ''));
-					const inplaceMod = ac5eConfig.modifiers.minimum;
-					if (mod) ac5eConfig.modifiers.minimum = !inplaceMod || inplaceMod < mod ? mod : inplaceMod;
+				if (hook === 'damage') ac5eConfig.damageModifiers.push(modifier);
+				else {
+					let mod;
+					if (modifier.includes('max')) {
+						mod = Number(modifier.replace('max', ''));
+						const inplaceMod = ac5eConfig.modifiers.maximum;
+						if (mod) ac5eConfig.modifiers.maximum = !inplaceMod || inplaceMod > mod ? mod : inplaceMod;
+					}
+					if (modifier.includes('min')) {
+						mod = Number(modifier.replace('min', ''));
+						const inplaceMod = ac5eConfig.modifiers.minimum;
+						if (mod) ac5eConfig.modifiers.minimum = !inplaceMod || inplaceMod < mod ? mod : inplaceMod;
+					}
 				}
 			}
 			if (mode === 'criticalThreshold') {
