@@ -3,6 +3,9 @@
   * `game.settings.set('automated-conditions-5e', 'displayOnly5eStatuses', true);`
 * Fixed removal of `!` from conditions in some cases.
 * Reworked sandbox evaluations to make condition syntax more user friendly.
+* Added `set` keyword, similar to `bonus`, but that will set a value to the provided.
+  * eg. for the `modifyAC` if one uses `set=15`, it will set the AC to 15.
+  * to be used in flags for `criticalThrehsold`, `modifyAC`, `modifyDC`
 
 ## 13.519.2
 * Added `hasArmor`: Boolean, `hasArmorType`: Boolean, `hasShield`: Boolean
