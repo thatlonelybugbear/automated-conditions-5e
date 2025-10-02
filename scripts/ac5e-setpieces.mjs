@@ -357,7 +357,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return expression;
 	};
 
-	const blacklist = new Set(['bonus', 'radius', 'modifier', 'usescount', 'threshold', 'singleaura', 'includeself', 'allies', 'enemies', 'once', 'itemlimited', 'wallsblock']);
+	const blacklist = new Set(['allies', 'bonus', 'enemies', 'includeself', 'itemlimited', 'modifier', 'once', 'radius', 'set', 'singleaura', 'threshold', 'usescount', 'wallsblock']);
 
 	const effectDeletions = [];
 	const effectUpdates = [];
@@ -394,15 +394,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
-					let bonus, modifier, threshold;
+					let bonus, modifier, set, threshold;
 					const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
-					let isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					const isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
-						//bonus= 1+1 === 2 ? '1d4[acid]' : 2;
-						//bonus=`1d4[acid] + ${opponentActor.attributes.hp.value + 5}d12[fire]`
-						//v13.504.10 removing the isLiteralOrDiceExpression as it created more issues than the ones it solved.
 						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
+					}
+					const isSet = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('set', el.value) : false;
+					if (isSet) {
+						const replacementBonus = bonusReplacements(isSet, auraTokenEvaluationData, true, effect);
+						set = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
 					}
 					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 					if (isModifier) {
@@ -443,7 +445,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 							}
 						}
 					}
-					validFlags[`${effect.name} - Aura (${token.name})`] = { name: effect.name, actorType, mode, bonus, modifier, threshold, evaluation, isAura: true, auraUuid: effect.uuid, auraTokenUuid: token.document.uuid, distance: _getDistance(token, subjectToken) };
+					validFlags[`${effect.name} - Aura (${token.name})`] = { name: effect.name, actorType, mode, bonus, modifier, set, threshold, evaluation, isAura: true, auraUuid: effect.uuid, auraTokenUuid: token.document.uuid, distance: _getDistance(token, subjectToken) };
 				})
 		);
 	});
@@ -460,11 +462,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
-				let bonus, modifier, threshold;
-				let isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
+				let bonus, modifier, set, threshold;
+				const isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
 				if (isBonus) {
 					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
 					bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
+				}
+				const isSet = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('set', el.value) : false;
+				if (isSet) {
+					const replacementBonus = bonusReplacements(isSet, evaluationData, false, effect);
+					set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 				}
 				const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 				if (isModifier) {
@@ -494,6 +501,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					mode,
 					bonus,
 					modifier,
+					set,
 					threshold,
 					evaluation: getMode({ value: valuesToEvaluate }),
 				};
@@ -506,12 +514,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
-					let bonus, modifier, threshold;
-					let isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
+					let bonus, modifier, set, threshold;
+					const isBonus = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('bonus', el.value) : false;
 					if (isBonus) {
 						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
 						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
 					}
+					const isSet = mode === 'bonus' || mode === 'targetADC' ? getBlacklistedKeysValue('set', el.value) : false;
+					if (isSet) {
+						const replacementBonus = bonusReplacements(isSet, evaluationData, false, effect);
+						set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
+					}						
 					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
 					if (isModifier) {
 						const replacementModifier = bonusReplacements(isModifier, evaluationData, false, effect);
@@ -540,6 +553,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						mode,
 						bonus,
 						modifier,
+						set,
 						threshold,
 						evaluation: getMode({ value: valuesToEvaluate }),
 					};
@@ -549,16 +563,21 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
 	const validFlagsEffectUpdates = [];
 	for (const el in validFlags) {
-		let { actorType, evaluation, mode, name, bonus, modifier, threshold, isAura } = validFlags[el];
+		let { actorType, evaluation, mode, name, bonus, modifier, set, threshold, isAura } = validFlags[el];
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
 			const hasEffectUpdate = effectUpdates.find((u) => u.name === name);
 			if (hasEffectUpdate) validFlagsEffectUpdates.push(hasEffectUpdate.updates);
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
-			if (bonus) {
-				if (mode === 'bonus') ac5eConfig.parts = ac5eConfig.parts.concat(bonus);
-				else if (mode === 'targetADC') ac5eConfig.targetADC = ac5eConfig.targetADC.concat(bonus);
+			if (mode === 'bonus' || mode === 'targetADC') {
+				const configMode = mode === 'bonus' ? 'parts' : 'targetADC';
+				if (bonus) {
+					if (bonus.constructor?.metadata) bonus = String(bonus); // special case for rollingActor.scale.rogue['sneak-attack'] for example; returns the .formula
+					if (typeof bonus === 'string' && !(bonus.includes('+') || bonus.includes('-'))) bonus = `+${bonus}`;
+					ac5eConfig[configMode].push(bonus);
+				}
+				if (set) ac5eConfig[configMode].push(`${set}`);
 			}
 			if (modifier) {
 				let mod;
