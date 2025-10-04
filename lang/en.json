@@ -155,15 +155,15 @@
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
 			"name": "Alter the criticalThreshold of the attacks",
-			"description": "Use threshold='18' or threshold='-1d6'. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use threshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
 		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
 			"name": "Grant altered criticalThreshold to opponent's attacks",
-			"description": "Use threshold='18' or threshold='-1d6'. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use threshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "An aura altering the criticalThreshold of the attacks in radius",
-			"description": "Use radius=10;threshold='18'; or radius=15;threshold='-1d6'. The former will set to 18 if lower and the latter will add to the current; use negative to reduce"
+			"description": "Use radius=15;threshold=-5 to reduce by 5 or radius=20;set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
 		"flags.automated-conditions-5e.damage.extraDice": {
 			"name": "Increase or decrease the number of dice rolled for each denomination",
@@ -179,15 +179,15 @@
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modify the AC of the actor against incoming attacks",
-			"description": "Use bonus='18' or bonus='+5'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+			"description": "Use bonus=5 to add 5 to AC or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
 		"flags.automated-conditions-5e.grant.modifyAC": {
 			"name": "Grant modified AC to the opponent of the attack",
-			"description": "Use bonus='18' or bonus='+1d6'. The former will set the AC to 18 and the latter will add to the current; use negative to reduce"
+			"description": "Use bonus=-5 to subtract 5 from the AC or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "An aura modifying the AC of the relevant tokens in radius",
-			"description": "Use radius=10;bonus='18'; or radius=15;bonus='-1d6'. The former will set AC to 18 and the latter will add to the current; use negative to reduce"
+			"description": "Use radius=10;bonus='1d4'; or radius=15;set=15. The former will give a bonus to AC and the latter will set to the value provided"
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
@@ -212,7 +212,7 @@
 			},
 			"modifyDC": {
 				"name": "Modify the DC of your actions. Will work for concentation checks and death saves you make too",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). eg bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided eshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 			},
 			"fail": {
 				"name": "d20 rolls fail",
@@ -234,7 +234,7 @@
 			},
 			"bonus": {
 				"name": "Grant bonus to opponent's rolls",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus='1d4 + 5' - opponentActor.abilities.dex.mod;"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Lead with the bonus= followed by a ; separator, eg bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Grant critical (nat20 or damage) to opponent's rolls",
@@ -250,7 +250,7 @@
 			},
 			"modifyDC": {
 				"name": "Modify the DC of a roll you make against an action taken by another",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). eg bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided. You can use roll data, dice formulas and evaluate conditions too."
 			},
 			"fail": {
 				"name": "Grant failure to opponent's d20 rolls",
@@ -288,7 +288,7 @@
 			},
 			"modifyDC": {
 				"name": "An aura that modifies the DC of actions the affected tokens take.",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus, radius as usual"
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus/set, radius as usual"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",
