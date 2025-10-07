@@ -113,6 +113,7 @@
 		}
 	},
 	"AC5E.Bonus": "Bonus",
+	"AC5E.ExtraDice": "Dadi Extra",
 	"AC5E.Success": "Successo",
 	"AC5E.AbbreviationAdvantage": "vant",
 	"AC5E.AbbreviationDisadvantage": "svant",
@@ -129,6 +130,7 @@
 	"AC5E.TargetGrantsSuccess": "Fornito Successo",
 	"AC5E.TargetGrantsBonus": "Fornito Bonus",
 	"AC5E.TargetGrantsModifier": "Fornito Modificatore",
+	"AC5E.TargetGrantsExtraDice": "Dadi extra concessi",
 	"AC5E.NoChanges": "Nessun cambiamento",
 	"AC5E.SystemMode": "Modalità di Sistema",
 	"AC5E.EnvironmentalHazards": {
@@ -153,27 +155,39 @@
 	},
 	"flags.automated-conditions-5e.attack.criticalThreshold": {
 			"name": "Modificare la soglia critica degli attacchi",
-			"description": "Usa soglia='18' o soglia='-1d6'. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
+			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
 		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
 			"name": "Garantisci soglia critica alterata per gli attacchi dell'avversario",
-			"description": "Usa soglia='18' o soglia='-1d6'. La prima verrà impostata a 18 se inferiore e la seconda verrà aggiunta alla attuale; usa negativo per ridurre"
+			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Un'aura che altera la soglia critica degli attacchi nel raggio",
-			"description": "Usa raggio=10; soglia=18; oppure raggio=15; soglia=-1d6. Il primo valore verrà impostato a 18 se inferiore, mentre il secondo verrà aggiunto al valore attuale; usa negativo per ridurre."
+			"description": "Utilizzare radius=15;threshold=-5 per ridurre di 5 oppure radius=20;set=15 per impostare il valore su 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
-	"flags.automated-conditions-5e.modifyAC": {
+		"flags.automated-conditions-5e.damage.extraDice": {
+			"name": "Aumentare o diminuire il numero di dadi lanciati per ogni denominazione",
+			"description": "Usa bonus=4 per aumentare di 4 il numero di dadi lanciati."
+		},
+		"flags.automated-conditions-5e.grants.damage.extraDice": {
+			"name": "Concedi un aumento o una diminuzione al numero di dadi lanciati per ogni denominazione",
+			"description": "Usa bonus=-1 per diminuire di 1 il numero di dadi lanciati"
+		},
+		"flags.automated-conditions-5e.aura.damage.extraDice": {
+			"name": "Un'aura che aumenta o diminuisce il numero di dadi lanciati per ogni denominazione",
+			"description": "Utilizzare bonus=2; raggio=10 per aumentare il numero di dadi lanciati per ogni denominazione in un raggio di 10 unità di distanza."
+		},
+	    "flags.automated-conditions-5e.modifyAC": {
 			"name": "Modifica la CA del Personaggio contro gli attacchi in arrivo",
-			"description": "Usa bonus='18' o bonus='+5'. Il primo imposterà la CA a 18 e il secondo aggiungerà CA a quella attuale; utilizzare il negativo per ridurla"
+			"description": "Usa bonus=5 per aggiungere 5 a CA o set=15 per impostare il valore a 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
 		},
 		"flags.automated-conditions-5e.grant.modifyAC": {
 			"name": "Concedi CA modificato all'avversario dell'attacco",
-			"description": "Usa bonus='18' o bonus='+1d6'. Il primo imposterà la CA a 18 e il secondo aggiungerà CA a quella attuale; utilizzare il negativo per ridurla"
+			"description": "Usa bonus=-5 per sottrarre 5 dalla CA o set=15 per impostare il valore a 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "Un'aura che modifica la CA dei token rilevanti nel raggio",
-			"description": "Usa raggio=10;bonus='18'; o raggio=15;bonus='-1d6'. TIl primo imposterà la CA a 18 e il secondo aggiungerà CA a quella attuale; utilizzare il negativo per ridurla"
+			"description": "Usa raggio=10;bonus='1d4'; o raggio=15;imposta=15. Il primo darà un bonus alla CA e il secondo imposterà il valore fornito"
 		},
 	"flags.automated-conditions-5e.ACTIONTYPE": {
 		"advantage": {
@@ -193,12 +207,12 @@
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
 		},
 		"modifier": {
-			"name": "modificatori tiri d20 per max, min",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. es: modificatore=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+			"name": "modificatori min e max per i tiri d20, modificatori max e qualsiasi per i tiri di danno",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: modificatore=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
 		},
 		"modifyDC": {
 				"name": "Modifica la CD delle tue azioni. Funzionerà anche per i controlli di concentrazione e i tiri salvezza sulla morte che effettui.",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). es bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 a DC o set=15 per impostarlo sul valore fornito, threshold=-5 per ridurlo di 5 o set=15 per impostare il valore su 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
 		},
 		"fail": {
 			"name": "Tiri d20 falliscono",
@@ -220,7 +234,7 @@
 		},
 		"bonus": {
 			"name": "Concede bonus ai tiri dell'avversario",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Inserire bonus= seguito da ; come separatore, es: bonus='1d4 + 5' - opponentActor.abilities.dex.mod;"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Inserire bonus= seguito da ; come separatore, es: bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
 		},
 		"critical": {
 			"name": "Concede critico (20 naturale o danno) ai tiri dell'avversario",
@@ -231,12 +245,12 @@
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
 		},
 		"modifier": {
-			"name": "Concede modificatori per max, min tiri d20 dell'avversario",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'"
+			"name": "Concedi modificatori minimi e massimi per i tiri d20, modificatori massimi e qualsiasi per i tiri di danno",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'"
 		},
 		"modifyDC": {
 			"name": "Modifica la CD di un tiro che effettui contro un'azione intrapresa da un altro",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). es bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 alla DC o set=15 per impostarla al valore fornito. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
 		},
 		"fail": {
 			"name": "Concede fallimento ai tiri d20 dell'avversario",
@@ -269,12 +283,12 @@
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		},
 		"modifier": {
-			"name": "An aura giving modifiers for max, min on d20 rolls",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'; raggio=rollingActor.details.level < 10 ? 15 : 30; modificatore='min10'"
+			"name": "Un'aura che fornisce modificatori minimi e massimi per i tiri d20, modificatori max e qualsiasi per i tiri di danno",
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'; raggio=rollingActor.details.level < 10 ? 15 : 30; modificatore='min10'"
 		},
 		"modifyDC": {
 			"name": "Un'aura che modifica la CD delle azioni intraprese dai token interessati.",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus, raggio come al solito"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus/set, raggio come al solito"
 		},
 		"fail": {
 			"name": "Un’aura che forza il fallimento dei tiri d20",
