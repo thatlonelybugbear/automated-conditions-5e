@@ -1293,7 +1293,8 @@ function buildRollFormula(expression, sandbox, debugLog) {
 	expression = expression.replace(/\(([^)]+)\)\s*(d\d+\b(?:\[[^\]]+\])?)/gi, (m, mult, dice) => {
 		return `(${mult.trim()})${dice}`;
 	});
-
+	expression = expression.replace(/\bMath\./g, ""); // we don't want Math in Foundry Roll formulas
+	
 	// Resolve @ replacements for multiple actor contexts
 	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectOriginActor'];
 	let resultExpr = expression;
