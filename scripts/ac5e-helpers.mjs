@@ -1203,7 +1203,7 @@ export function _getValidColor(color, fallback, user) {
  *  - Math.* and shorthand helpers (min, max, floor, etc.)
  *  - Fails safely to false if evaluation breaks
  */
-export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition' }) {
+export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'formula' }) {
 	if (!expression || typeof expression !== 'string') return undefined;
 	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
