@@ -601,7 +601,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				mult = '!';
 			}
 			const sandbox = auraTokenEvaluationData ? auraTokenEvaluationData : evaluationData;
-			return mult ? !_ac5eSafeEval({ expression: clause, sandbox }) : _ac5eSafeEval({ expression: clause, sandbox });
+			const result = _ac5eSafeEval({ expression: clause, sandbox, mode: 'condition' });
+			return mult ? !result : result;
 		});
 	}
 }
