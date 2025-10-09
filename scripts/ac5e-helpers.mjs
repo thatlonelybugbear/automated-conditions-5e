@@ -360,7 +360,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			dialog.options.advantageMode = NORM_MODE;
 			dialog.options.defaultButton = 'normal';
 		}
-		if (hook === 'attack' || hook === 'damage') { // need to allow damage hooks too for results shown?
+		if (hook === 'attack' || hook === 'damage') {
+			// need to allow damage hooks too for results shown?
 			if (ac5eConfig.threshold?.length) {
 				//for attack rolls
 				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
@@ -462,7 +463,7 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 	for (const item of ac5eValues) {
 		if (item == null) continue;
 
-		if (typeof item === "number") {
+		if (typeof item === 'number') {
 			additiveValues.push(item);
 			continue;
 		}
@@ -472,11 +473,11 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 			staticValues.push(parseInt(cleaned, 10));
 			continue;
 		}
-		
+
 		const match = cleaned.match(dicePattern);
 		if (match) {
-			const sign = match[1] === "-" ? -1 : match[1] === "+" ? 1 : 0;
-			const count = Math.min(parseInt(match[2] || "1"), maxDiceCap);
+			const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
+			const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
 			const sides = parseInt(match[3]);
 
 			let total = 0;
@@ -492,7 +493,7 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 			if (sign !== 0) additiveValues.push(signedTotal);
 			else staticValues.push(total);
 
-			if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? "+" : sign < 0 ? "-" : ""}${count}d${sides}`, `Rolls: [${rolls.join(", ")}]`, `Total: ${signedTotal}`);
+			if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal}`);
 			continue;
 		}
 	}
@@ -500,9 +501,9 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
 	const finalValue = newStaticThreshold + totalModifier;
 
-	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue, });
+	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue });
 
-	return finalValue;		
+	return finalValue;
 }
 
 /**
@@ -1145,20 +1146,8 @@ export function _raceOrType(actor, dataType = 'race') {
 
 export function _generateAC5eFlags() {
 	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
-	const moduleFlags = [
-		`${moduleFlagScope}.crossbowExpert`,
-		`${moduleFlagScope}.sharpShooter`,
-		`${moduleFlagScope}.attack.criticalThreshold`,
-		`${moduleFlagScope}.grants.attack.criticalThreshold`,
-		`${moduleFlagScope}.aura.attack.criticalThreshold`,
-		`${moduleFlagScope}.damage.extraDice`,
-		`${moduleFlagScope}.grants.damage.extraDice`,
-		`${moduleFlagScope}.aura.damage.extraDice`,
-		`${moduleFlagScope}.modifyAC`,
-		`${moduleFlagScope}.grants.modifyAC`,
-		`${moduleFlagScope}.aura.modifyAC`,
-	]
-	
+	const moduleFlags = [`${moduleFlagScope}.crossbowExpert`, `${moduleFlagScope}.sharpShooter`, `${moduleFlagScope}.attack.criticalThreshold`, `${moduleFlagScope}.grants.attack.criticalThreshold`, `${moduleFlagScope}.aura.attack.criticalThreshold`, `${moduleFlagScope}.damage.extraDice`, `${moduleFlagScope}.grants.damage.extraDice`, `${moduleFlagScope}.aura.damage.extraDice`, `${moduleFlagScope}.modifyAC`, `${moduleFlagScope}.grants.modifyAC`, `${moduleFlagScope}.aura.modifyAC`];
+
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'success'];
 	const types = ['source', 'grants', 'aura'];
@@ -1205,59 +1194,163 @@ export function _getValidColor(color, fallback, user) {
 	return fallback;
 }
 
-export function _ac5eSafeEval({ expression, sandbox }) {
-	if (!expression) return undefined;
-	if (typeof expression !== 'string') {
-		throw new Error(`Roll.safeEval expected a string expression, got ${typeof expression}`);
-	}
-	if (expression.includes('game')) {
-		throw new Error(`Roll.safeEval expression cannot contain game.`);
-	}
-	if (expression.includes('canvas')) {
-		throw new Error(`Roll.safeEval expression cannot contain canvas.`);
-	}
-	let result;
+/**
+ * Safely evaluate a string expression within a controlled sandbox.
+ * Supports:
+ *  - mode="condition": returns boolean
+ *  - mode="formula": returns Foundry roll formula string
+ *  - Resolve actor contexts: rollingActor, opponentActor, targetActor, auraActor, effectOriginActor
+ *  - Math.* and shorthand helpers (min, max, floor, etc.)
+ *  - Fails safely to false if evaluation breaks
+ */
+export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition' }) {
+	if (!expression || typeof expression !== 'string') return undefined;
+	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
+	const debugEnabled = settings.debug || ac5e.safeEvalDebug;
+	const debugLog = debugEnabled ? console.warn : console.debug;
+
+	// --- Shared Safe Globals ---
+	const mathShortcuts = {
+		abs: Math.abs,
+		ceil: Math.ceil,
+		floor: Math.floor,
+		round: Math.round,
+		min: Math.min,
+		max: Math.max,
+		sign: Math.sign,
+		pow: Math.pow,
+		sqrt: Math.sqrt,
+		clamp: Math.clamp,
+		random: Math.random,
+		trunc: Math.trunc,
+		log: Math.log,
+		exp: Math.exp,
+		sin: Math.sin,
+		cos: Math.cos,
+		tan: Math.tan,
+	};
+
+	const safeGlobals = {
+		Math,
+		Number,
+		String,
+		Boolean,
+		Array,
+		Object,
+		Date,
+		RegExp,
+		JSON,
+		...mathShortcuts,
+	};
+
+	const safeSandbox = { ...safeGlobals, ...sandbox };
+
+	if (mode === 'condition') return evaluateCondition(expression, safeSandbox, debugLog);
+	if (mode === 'formula') return buildRollFormula(expression, safeSandbox, debugLog);
+	throw new Error(`Invalid mode for _ac5eSafeEval: ${mode}`);
+}
+
+// CONDITION EVALUATION
+function evaluateCondition(expression, sandbox, debugLog) {
 	const proxySandbox = new Proxy(sandbox, {
 		get(target, prop) {
 			if (prop in target) return target[prop];
-			return false; // default fallback for missing properties. We can now use directly in conditionals: dex || str
+			return undefined; // Turning unknowns to undefined
 		},
 	});
 
 	try {
-		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(proxySandbox);
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (full evaluation):', { result, expression, evaluationData: sandbox });
-		return result;
+		const result = new Function('sandbox', `with (sandbox) { return (${expression}); }`)(proxySandbox);
+		if (settings.debug || ac5e.safeEvalDebug) console.log('AC5E._ac5eSafeEval [condition OK]', { expression, result });
+		return !!result;
 	} catch (err) {
-		// If evaluation fails, fall back
+		let reason = 'unknown error';
+		if (err.name === 'ReferenceError') reason = 'missing variable';
+		else if (err.name === 'SyntaxError') reason = 'syntax error';
+		else if (err.name === 'TypeError') reason = 'type error';
+		else reason = `${err.name}: ${err.message}`;
+
+		debugLog(`AC5E._ac5eSafeEval [condition fail false]: ${reason}`, { expression });
+		return false; // always fail safe
+	}
+}
+
+// FORMULA EVALUATION (Roll-aware)
+function buildRollFormula(expression, sandbox, debugLog) {
+	expression = expression.trim();
+
+	// Handle ternary logic (supports nesting)
+	if (expression.includes('?') && expression.includes(':')) {
+		const [cond, rest] = expression.split('?');
+		const [truePart, falsePart] = splitTernaryRest(rest);
+		const condResult = evaluateCondition(cond.trim(), sandbox, debugLog);
+		const chosen = condResult ? truePart.trim() : falsePart.trim();
+		return buildRollFormula(chosen, sandbox, debugLog);
 	}
 
-	const tokenRegex = /\b[a-zA-Z_][\w.]*\b/g;
-	const rebuilt = expression.replace(tokenRegex, (match) => {
-		try {
-			const tokenResult = new Function('sandbox', `with (sandbox) { return ${match}}`)(proxySandbox);
-			if (typeof tokenResult === 'function') return match; // keep function refs
-			return tokenResult; // includes false, 0, null
-		} catch (e) {
-			return false; // default for unresolved identifiers
-		}
+	// Preserve dice multiplier syntax (X)dY
+	expression = expression.replace(/\(([^)]+)\)\s*(d\d+\b(?:\[[^\]]+\])?)/gi, (m, mult, dice) => {
+		return `(${mult.trim()})${dice}`;
 	});
-	try {
-		const protectedExpr = rebuilt.replace(/(\d+d\d+([+-]\d+)*)/gi, '"$1"'); // Protect dice terms; replace with JS parce-friendly quoted placeholders
-		result = new Function('sandbox', `with (sandbox) { return ${protectedExpr}}`)(proxySandbox);
 
-		if (typeof result === 'string') {
-			if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (partial unresolved):', { result, expression, evaluationData: sandbox });
-			return rebuilt; // could be a leftover string with dice
+	// Resolve @ replacements for multiple actor contexts
+	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectOriginActor'];
+	let resultExpr = expression;
+
+	for (const actorName of actorNames) {
+		const actor = sandbox[actorName];
+		if (!actor) continue;
+
+		const refRegex = new RegExp(`\\b${actorName}\\.[\\w.-]+`, 'g');
+		const matches = [...expression.matchAll(refRegex)];
+		for (const match of matches) {
+			const ref = match[0];
+			try {
+				const newExpr = ref.replace(new RegExp(`^${actorName}\\.`), '@');
+				const roll = new Roll(newExpr, actor);
+				const formula = roll.formula ?? newExpr;
+				resultExpr = resultExpr.replace(ref, formula);
+			} catch (e) {
+				debugLog(`AC5E._ac5eSafeEval [Roll parse failed for ${ref}]`, e.message);
+			}
 		}
-
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (partial resolved):', { result, expression, evaluationData: sandbox });
-		return result;
-	} catch (err) {
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (fallback string):', { result: rebuilt, expression, evaluationData: sandbox });
-		return rebuilt;
 	}
+
+	// Resolve any simple values from sandbox (math, constants, etc.)
+	const tokenRegex = /\b[a-zA-Z_][\w.\[\]']*\b/g;
+	resultExpr = resultExpr.replace(tokenRegex, (match) => {
+		if (/^\d*d\d+/.test(match)) return match; // dice literals
+		if (match.startsWith('@')) return match; // Foundry @refs left alone; @to-do: rework bonusReplacement
+		if (actorNames.some((n) => match.startsWith(n + '.'))) return match;
+		if (match in sandbox) return match;
+
+		try {
+			const val = new Function('sandbox', `with (sandbox) { return ${match} }`)(sandbox);
+			if (typeof val === 'object' && val?.formula) return val.formula;
+			if (typeof val === 'object' && val?.value != null) return val.value;
+			if (typeof val === 'string' || typeof val === 'number') return val;
+		} catch {
+			/* ignore unresolved */
+		}
+		return match;
+	});
+
+	if (settings.debug || ac5e.safeEvalDebug) console.log('AC5E._ac5eSafeEval [formula]', { expression, resultExpr });
+
+	return resultExpr;
+}
+
+function splitTernaryRest(rest) {
+	let depth = 0;
+	for (let i = 0; i < rest.length; i++) {
+		if (rest[i] === '?') depth++;
+		else if (rest[i] === ':') {
+			if (depth === 0) return [rest.slice(0, i), rest.slice(i + 1)];
+			depth--;
+		}
+	}
+	return [rest, ''];
 }
 
 export function _ac5eActorRollData(token) {
