@@ -346,28 +346,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
-					let bonus, modifier, set, threshold;
+					const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData: auraTokenEvaluationData, isAura: true });
 					const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
-					const isBonus = mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' ? getBlacklistedKeysValue('bonus', el.value) : false;
-					if (isBonus) {
-						const replacementBonus = bonusReplacements(isBonus, auraTokenEvaluationData, true, effect);
-						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
-					}
-					const isSet = mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack') ? getBlacklistedKeysValue('set', el.value) : false;
-					if (isSet) {
-						const replacementBonus = bonusReplacements(isSet, auraTokenEvaluationData, true, effect);
-						set = _ac5eSafeEval({ expression: replacementBonus, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
-					}
-					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
-					if (isModifier) {
-						const replacementModifier = bonusReplacements(isModifier, auraTokenEvaluationData, true, effect);
-						modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
-					}
-					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
-					if (isThreshold) {
-						const replacementThreshold = bonusReplacements(isThreshold, auraTokenEvaluationData, true, effect);
-						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: auraTokenEvaluationData /*canBeStatic: true*/ });
-					}
 					const auraOnlyOne = el.value.toLowerCase().includes('singleaura');
 					let valuesToEvaluate = el.value
 						.split(';')
@@ -409,27 +389,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
-				let bonus, modifier, set, threshold;
-				const isBonus = mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' ? getBlacklistedKeysValue('bonus', el.value) : false;
-				if (isBonus) {
-					const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
-					bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
-				}
-				const isSet = mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack') ? getBlacklistedKeysValue('set', el.value) : false;
-				if (isSet) {
-					const replacementBonus = bonusReplacements(isSet, evaluationData, false, effect);
-					set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
-				}
-				const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
-				if (isModifier) {
-					const replacementModifier = bonusReplacements(isModifier, evaluationData, false, effect);
-					modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData /*canBeStatic: true*/ });
-				}
-				const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
-				if (isThreshold) {
-					const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
-					threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
-				}
+				const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData });
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -460,27 +420,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
-					let bonus, modifier, set, threshold;
-					const isBonus = mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' ? getBlacklistedKeysValue('bonus', el.value) : false;
-					if (isBonus) {
-						const replacementBonus = bonusReplacements(isBonus, evaluationData, false, effect);
-						bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
-					}
-					const isSet = mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack') ? getBlacklistedKeysValue('set', el.value) : false;
-					if (isSet) {
-						const replacementBonus = bonusReplacements(isSet, evaluationData, false, effect);
-						set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData /*canBeStatic: true*/ });
-					}						
-					const isModifier = mode === 'modifiers' ? getBlacklistedKeysValue('modifier', el.value) : false;
-					if (isModifier) {
-						const replacementModifier = bonusReplacements(isModifier, evaluationData, false, effect);
-						modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData /*canBeStatic: true*/ });
-					}
-					const isThreshold = hook === 'attack' ? getBlacklistedKeysValue('threshold', el.value) : false;
-					if (isThreshold) {
-						const replacementThreshold = bonusReplacements(isThreshold, evaluationData, false, effect);
-						threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData /*canBeStatic: true*/ });
-					}
+					const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData });
 					let valuesToEvaluate = el.value
 						.split(';')
 						.map((v) => v.trim())
@@ -713,3 +653,27 @@ function bonusReplacements (expression, evalData, isAura, effect) {
 	return expression;
 };
 
+function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura }){
+	let bonus, set, modifier, threshold;
+	const isBonus = value.includes('bonus') && (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') ? getBlacklistedKeysValue('bonus', value) : false;
+	if (isBonus) {
+		const replacementBonus = bonusReplacements(isBonus, evaluationData, isAura, effect);
+		bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula' });
+	}
+	const isSet = value.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack')) ? getBlacklistedKeysValue('set', value) : false;
+	if (isSet) {
+		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
+		set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula' });
+	}
+	const isModifier = value.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', value) : false;
+	if (isModifier) {
+		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect);
+		modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData, mode: 'formula' });
+	}
+	const isThreshold = value.includes('threshold') && hook === 'attack' ? getBlacklistedKeysValue('threshold', value) : false;
+	if (isThreshold) {
+		const replacementThreshold = bonusReplacements(isThreshold, evaluationData, isAura, effect);
+		threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, mode: 'formula' });
+	}
+	return { bonus, set, modifier, threshold };
+}
