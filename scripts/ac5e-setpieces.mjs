@@ -327,37 +327,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 	};
 
-	const bonusReplacements = (expression, evalData, isAura, effect) => {
-		if (typeof expression !== 'string') return expression;
-		// Short-circuit: skip if formula is just plain dice + numbers + brackets (no dynamic content)
-		const isStaticFormula = /^[\d\s+\-*/().\[\]d]+$/i.test(expression) && !expression.includes('@') && !expression.includes('Actor') && !expression.includes('##');
-
-		if (isStaticFormula) return expression;
-
-		const staticMap = {
-			'@scaling': evalData.scaling ?? 0,
-			scaling: evalData.scaling ?? 0,
-			'@spellLevel': evalData.castingLevel ?? 0,
-			spellLevel: evalData.castingLevel ?? 0,
-			'@castingLevel': evalData.castingLevel ?? 0,
-			castingLevel: evalData.castingLevel ?? 0,
-			'@baseSpellLevel': evalData.baseSpellLevel ?? 0,
-			baseSpellLevel: evalData.baseSpellLevel ?? 0,
-			effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
-			stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
-		};
-
-		const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
-		expression = expression.replace(pattern, (match) => staticMap[match]);
-		if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
-		if (expression.includes('##')) expression = isAura ? expression.replaceAll('##', 'rollingActor.') : expression.replaceAll('##', 'opponentActor.');
-		if (expression.includes('effectOriginActor')) {
-			const tok = _getEffectOriginToken(effect, 'token');
-			evalData.effectOriginActor = _ac5eActorRollData(tok);
-		}
-		return expression;
-	};
-
 	const blacklist = new Set(['allies', 'bonus', 'enemies', 'includeself', 'itemlimited', 'modifier', 'once', 'radius', 'set', 'singleaura', 'threshold', 'usescount', 'wallsblock']);
 
 	const effectDeletions = [];
@@ -712,3 +681,35 @@ function isLiteralOrDiceExpression(expression) {
 
 	return diceLikePattern.test(trimmed) || !hasUnsafeLetters;
 }
+
+function bonusReplacements (expression, evalData, isAura, effect) {
+	if (typeof expression !== 'string') return expression;
+	// Short-circuit: skip if formula is just plain dice + numbers + brackets (no dynamic content)
+	const isStaticFormula = /^[\d\s+\-*/().\[\]d]+$/i.test(expression) && !expression.includes('@') && !expression.includes('Actor') && !expression.includes('##');
+	
+	if (isStaticFormula) return expression;
+	
+	const staticMap = {
+		'@scaling': evalData.scaling ?? 0,
+		scaling: evalData.scaling ?? 0,
+		'@spellLevel': evalData.castingLevel ?? 0,
+		spellLevel: evalData.castingLevel ?? 0,
+		'@castingLevel': evalData.castingLevel ?? 0,
+		castingLevel: evalData.castingLevel ?? 0,
+		'@baseSpellLevel': evalData.baseSpellLevel ?? 0,
+		baseSpellLevel: evalData.baseSpellLevel ?? 0,
+		effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
+		stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
+	};
+	
+	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
+	expression = expression.replace(pattern, (match) => staticMap[match]);
+	if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
+	if (expression.includes('##')) expression = isAura ? expression.replaceAll('##', 'rollingActor.') : expression.replaceAll('##', 'opponentActor.');
+	if (expression.includes('effectOriginActor')) {
+		const tok = _getEffectOriginToken(effect, 'token');
+		evalData.effectOriginActor = _ac5eActorRollData(tok);
+	}
+	return expression;
+};
+
