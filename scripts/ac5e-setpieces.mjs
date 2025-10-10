@@ -605,23 +605,6 @@ function getBlacklistedKeysValue(key, values) {
 	return parts ? parts[1].trim() : '';
 }
 
-function isLiteralOrDiceExpression(expression) {
-	const trimmed = expression.trim();
-
-	// Allow: numbers, dice terms, + - * / ( ), optional damage tags
-	// Block: anything with variable names, @, game, canvas, etc
-	const diceLikePattern = /^[\d+\-*/().\s\[\]d]+$/i;
-
-	// Sanitize: if it contains any letters **not** part of a [tag], it's unsafe
-	const hasUnsafeLetters = /[a-zA-Z]/.test(
-		trimmed
-			.replace(/\[\w+]/g, '') // ignore damageType brackets like [fire]
-			.replace(/d\d+/g, '') // ignore dice like d6, d12
-	);
-
-	return diceLikePattern.test(trimmed) || !hasUnsafeLetters;
-}
-
 function bonusReplacements (expression, evalData, isAura, effect) {
 	if (typeof expression !== 'string') return expression;
 	// Short-circuit: skip if formula is just plain dice + numbers + brackets (no dynamic content)
@@ -675,5 +658,51 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		const replacementThreshold = bonusReplacements(isThreshold, evaluationData, isAura, effect);
 		threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, mode: 'formula' });
 	}
+	if (threshold) threshold = Number(evalDiceExpression(threshold)); // we need Integers to differentiate from set
+	if (bonus && mode !== 'bonus') bonus = Number(evalDiceExpression(bonus)); // we need Integers in everything except for actual bonuses which are formulas and will be evaluated as needed in ac5eSafeEval
+	if (set) set = String(evalDiceExpression(set)); // we need Strings for set
 	return { bonus, set, modifier, threshold };
+}
+
+function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = false } = {}) {
+	if (typeof expr !== "string") throw new TypeError("Expression must be a string");
+	
+	const tokenRe = /([+-])?\s*(\d*d\d+|\d+)/gi;
+	let m, total = 0;
+	const logs = [];
+	
+	// sanity: ensure we only have digits, d, +, -, and whitespace
+	const invalid = expr.replace(tokenRe, "").replace(/\s+/g, "");
+	if (invalid.length)	throw new Error(`Invalid token(s) in expression: "${invalid}"`);
+	
+	while ((m = tokenRe.exec(expr)) !== null) {
+		const sign = m[1] === "-" ? -1 : 1; // default positive when missing
+		const term = m[2].toLowerCase();
+	
+		if (term.includes("d")) {
+		// dice term
+			const [countStr, sidesStr] = term.split("d");
+			const count = Math.min(Math.max(parseInt(countStr || "1", 10), 0), maxDice);
+			const sides = Math.min(Math.max(parseInt(sidesStr, 10), 1), maxSides);
+	
+			let sum = 0;
+			const rolls = [];
+			for (let i = 0; i < count; i++) {
+				const r = Math.floor(Math.random() * sides) + 1;
+				rolls.push(r);
+				sum += r;
+			}
+			total += sign * sum;
+			if (settings.debug) logs.push(`${sign < 0 ? "-" : "+"}${count}d${sides} → [${rolls.join(", ")}] = ${sign * sum}`);
+		} else {
+		// static integer
+			const value = parseInt(term, 10);
+			total += sign * value;
+			if (settings.debug) logs.push(`${sign < 0 ? "-" : "+"}${value}`);
+		}
+	}
+	
+	if (settings.debug) console.warn(`evalDiceExpression("${expr}") -> ${total}`, logs);
+	
+	return total;
 }
