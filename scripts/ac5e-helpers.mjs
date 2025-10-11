@@ -1,7 +1,8 @@
 import Constants from './ac5e-constants.mjs';
-import Settings from './ac5e-settings.mjs';
-import { _ac5eChecks } from './ac5e-setpieces.mjs';
 import { lazySandbox } from './ac5e-main.mjs';
+import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
+import { _ac5eChecks } from './ac5e-setpieces.mjs';
+import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
@@ -1179,239 +1180,16 @@ export function _getValidColor(color, fallback, user) {
  *  - Math.* and shorthand helpers (min, max, floor, etc.)
  *  - Fails safely to false if evaluation breaks
  */
-export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'formula' }) {
+export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition' }) {
 	if (!expression || typeof expression !== 'string') return undefined;
 	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
-	const debugEnabled = settings.debug || ac5e.safeEvalDebug;
+	const debugEnabled = settings?.debug || ac5e?.logEvaluationData;
 	const debugLog = debugEnabled ? console.warn : console.debug;
 
-	// --- Shared Safe Globals ---
-	const mathShortcuts = {
-		abs: Math.abs,
-		ceil: Math.ceil,
-		floor: Math.floor,
-		round: Math.round,
-		min: Math.min,
-		max: Math.max,
-		sign: Math.sign,
-		pow: Math.pow,
-		sqrt: Math.sqrt,
-		clamp: Math.clamp,
-		random: Math.random,
-		trunc: Math.trunc,
-		log: Math.log,
-		exp: Math.exp,
-		sin: Math.sin,
-		cos: Math.cos,
-		tan: Math.tan,
-	};
-
-	const safeGlobals = {
-		Math,
-		Number,
-		String,
-		Boolean,
-		Array,
-		Object,
-		Date,
-		RegExp,
-		JSON,
-		...mathShortcuts,
-	};
-
-	const safeSandbox = { ...safeGlobals, ...sandbox };
-
-	if (mode === 'condition') return evaluateCondition(expression, safeSandbox, debugLog);
-	if (mode === 'formula') return buildRollFormula(expression, safeSandbox, debugLog);
+	if (mode === 'condition') return evaluateCondition(expression, sandbox, debugLog);
+	if (mode === 'formula') return prepareRollFormula(expression, sandbox, debugLog);
 	throw new Error(`Invalid mode for _ac5eSafeEval: ${mode}`);
-}
-
-// CONDITION EVALUATION
-function evaluateCondition(expression, sandbox, debugLog) {
-	const proxySandbox = new Proxy(sandbox, {
-		get(target, prop) {
-			if (prop in target) return target[prop];
-			return undefined; // Turning unknowns to undefined
-		},
-	});
-
-	try {
-		const result = new Function('sandbox', `with (sandbox) { return (${expression}); }`)(proxySandbox);
-		if (settings.debug || ac5e.safeEvalDebug) console.log('AC5E._ac5eSafeEval [condition OK]', { expression, result });
-		return !!result;
-	} catch (err) {
-		let reason = 'unknown error';
-		if (err.name === 'ReferenceError') reason = 'missing variable';
-		else if (err.name === 'SyntaxError') reason = 'syntax error';
-		else if (err.name === 'TypeError') reason = 'type error';
-		else reason = `${err.name}: ${err.message}`;
-
-		debugLog(`AC5E._ac5eSafeEval [condition fail false]: ${reason}`, { expression });
-		return false; // always fail safe
-	}
-}
-
-// FORMULA EVALUATION (Roll-aware)
-function buildRollFormula(expression, sandbox, debugLog) {
-	expression = expression.trim();
-
-	// Handle ternary logic (supports nesting)
-	if (expression.includes('?') && expression.includes(':')) {
-		const [cond, rest] = expression.split('?');
-		const [truePart, falsePart] = splitTernaryRest(rest);
-		const condResult = evaluateCondition(cond.trim(), sandbox, debugLog);
-		const chosen = condResult ? truePart.trim() : falsePart.trim();
-		return buildRollFormula(chosen, sandbox, debugLog);
-	}
-
-	// Preserve dice multiplier syntax (X)dY
-	expression = expression.replace(/\(([^)]+)\)\s*(d\d+\b(?:\[[^\]]+\])?)/gi, (m, mult, dice) => {
-		return `(${mult.trim()})${dice}`;
-	});
-	expression = expression.replace(/\bMath\./g, ""); // we don't want Math in Foundry Roll formulas
-	
-	// Resolve @ replacements for multiple actor contexts
-	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectOriginActor'];
-	let resultExpr = expression;
-
-	for (const actorName of actorNames) {
-		const actor = sandbox[actorName];
-		if (!actor) continue;
-
-		const refRegex = new RegExp(`\\b${actorName}\\.[\\w.-]+`, 'g');
-		const matches = [...expression.matchAll(refRegex)];
-		for (const match of matches) {
-			const ref = match[0];
-			try {
-				const newExpr = ref.replace(new RegExp(`^${actorName}\\.`), '@');
-				const roll = new Roll(newExpr, actor);
-				const formula = roll.formula ?? newExpr;
-				resultExpr = resultExpr.replace(ref, formula);
-			} catch (e) {
-				debugLog(`AC5E._ac5eSafeEval [Roll parse failed for ${ref}]`, e.message);
-			}
-		}
-	}
-
-	// Resolve any simple values from sandbox (math, constants, etc.)
-	const tokenRegex = /\b[a-zA-Z_][\w.\[\]']*\b/g;
-	resultExpr = resultExpr.replace(tokenRegex, (match) => {
-		if (/^\d*d\d+/.test(match)) return match; // dice literals
-		if (match.startsWith('@')) return match; // Foundry @refs left alone; @to-do: rework bonusReplacement
-		if (actorNames.some((n) => match.startsWith(n + '.'))) return match;
-		if (match in sandbox) return match;
-
-		try {
-			const val = new Function('sandbox', `with (sandbox) { return ${match} }`)(sandbox);
-			if (typeof val === 'object' && val?.formula) return val.formula;
-			if (typeof val === 'object' && val?.value != null) return val.value;
-			if (typeof val === 'string' || typeof val === 'number') return val;
-		} catch {
-			/* ignore unresolved */
-		}
-		return match;
-	});
-
-	if (settings.debug || ac5e.safeEvalDebug) console.log('AC5E._ac5eSafeEval [formula]', { expression, resultExpr });
-
-	return resultExpr;
-}
-
-function resolveWhitelistedCalls(expr, proxySandbox) {
-    let i = 0, out = "";
-    while (i < expr.length) {
-      // parse identifier
-      if (/[A-Za-z_]/.test(expr[i])) {
-        let j = i;
-        while (j < expr.length && /[A-Za-z0-9_$]/.test(expr[j])) j++;
-        const ident = expr.slice(i, j);
-
-        // only handle whitelisted calls
-        if (lazySandbox[ident] && expr[j] === "(") {
-          // balanced (...) with nested strings/parentheses
-          let k = j, depth = 0, inStr = false, q = null, esc = false;
-          while (k < expr.length) {
-            const ch = expr[k];
-            if (inStr) {
-              if (esc) esc = false;
-              else if (ch === "\\") esc = true;
-              else if (ch === q) { inStr = false; q = null; }
-            } else {
-              if (ch === "'" || ch === '"') { inStr = true; q = ch; }
-              else if (ch === "(") depth++;
-              else if (ch === ")") { depth--; if (depth === 0) { k++; break; } }
-            }
-            k++;
-          }
-          const callPart = expr.slice(i, k);
-
-          // consume trailing property/index chains: .a['b'][0].c
-          let m = k;
-          for (;;) {
-            const rest = expr.slice(m);
-            const dot = rest.match(/^\s*\.\s*[A-Za-z_$][\w$]*/);
-            const idx = rest.match(/^\s*\[\s*(?:'(?:\\'|[^'])*'|"(?:\\"|[^"])*"|[^\]]+)\s*\]/);
-            if (dot) m += dot[0].length;
-            else if (idx) m += idx[0].length;
-            else break;
-          }
-          const fullSnippet = expr.slice(i, m);
-
-          // try to evaluate inside sandbox
-          try {
-            const val = new Function("sandbox", `with (sandbox) { return (${fullSnippet}); }`)(proxySandbox);
-            let replacement;
-            if (val && typeof val === "object" && typeof val.formula === "string") replacement = val.formula;
-            else if (val && typeof val === "object" && val.value != null) replacement = String(val.value);
-            else if (typeof val === "number" || typeof val === "string") replacement = String(val);
-
-            if (replacement != null) {
-              out += replacement;
-              i = m;
-              continue;
-            }
-          } catch (e) {
-            console.error(`AC5E._ac5eSafeEval [call resolve failed: ${fullSnippet}]`, e.message);
-          }
-          // fallthrough if not resolved
-        }
-        out += expr[i++];
-        continue;
-      }
-      out += expr[i++];
-    }
-    return out;
-  };
-
-export function simplifyFormula(formula = '', removeFlavor = false) {
-	try {
-		if (removeFlavor) {
-			formula = formula
-				?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP, '')
-				?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP_STRING, '')
-				?.trim();
-		}
-		
-		if (formula?.trim() === '') return '';
-		
-		const roll = Roll.create(formula);
-		
-		const simplifiedTerms = roll.terms.map((t) => t.isIntermediate
-				? new foundry.dice.terms.NumericTerm({
-					number: t.evaluate({ allowInteractive: false }).total,
-					options: t.options,
-				})
-				: t
-		);
-		
-		let simplifiedFormula = Roll.fromTerms(simplifiedTerms).formula;
-		
-		return simplifiedFormula;
-	} catch (e) {
-		console.error('Unable to simplify formula due to an error.', false, e);
-		return formula;
-	}
 }
 
 export function _ac5eActorRollData(token) {
