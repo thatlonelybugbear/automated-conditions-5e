@@ -1,3 +1,6 @@
+## 13.519.4.1
+* Backwards compatibility, fixing issues with remnant quoted parts in formulas.
+
 ## 13.519.4
 * Reworked `_ac5eSafeEval`
 * Introduced new parser
