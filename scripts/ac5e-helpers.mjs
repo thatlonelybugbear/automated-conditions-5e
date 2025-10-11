@@ -1,6 +1,7 @@
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
+import { lazySandbox } from './ac5e-main.mjs';
 
 const settings = new Settings();
 
@@ -1317,16 +1318,100 @@ function buildRollFormula(expression, sandbox, debugLog) {
 	return resultExpr;
 }
 
-function splitTernaryRest(rest) {
-	let depth = 0;
-	for (let i = 0; i < rest.length; i++) {
-		if (rest[i] === '?') depth++;
-		else if (rest[i] === ':') {
-			if (depth === 0) return [rest.slice(0, i), rest.slice(i + 1)];
-			depth--;
+function resolveWhitelistedCalls(expr, proxySandbox) {
+    let i = 0, out = "";
+    while (i < expr.length) {
+      // parse identifier
+      if (/[A-Za-z_]/.test(expr[i])) {
+        let j = i;
+        while (j < expr.length && /[A-Za-z0-9_$]/.test(expr[j])) j++;
+        const ident = expr.slice(i, j);
+
+        // only handle whitelisted calls
+        if (lazySandbox[ident] && expr[j] === "(") {
+          // balanced (...) with nested strings/parentheses
+          let k = j, depth = 0, inStr = false, q = null, esc = false;
+          while (k < expr.length) {
+            const ch = expr[k];
+            if (inStr) {
+              if (esc) esc = false;
+              else if (ch === "\\") esc = true;
+              else if (ch === q) { inStr = false; q = null; }
+            } else {
+              if (ch === "'" || ch === '"') { inStr = true; q = ch; }
+              else if (ch === "(") depth++;
+              else if (ch === ")") { depth--; if (depth === 0) { k++; break; } }
+            }
+            k++;
+          }
+          const callPart = expr.slice(i, k);
+
+          // consume trailing property/index chains: .a['b'][0].c
+          let m = k;
+          for (;;) {
+            const rest = expr.slice(m);
+            const dot = rest.match(/^\s*\.\s*[A-Za-z_$][\w$]*/);
+            const idx = rest.match(/^\s*\[\s*(?:'(?:\\'|[^'])*'|"(?:\\"|[^"])*"|[^\]]+)\s*\]/);
+            if (dot) m += dot[0].length;
+            else if (idx) m += idx[0].length;
+            else break;
+          }
+          const fullSnippet = expr.slice(i, m);
+
+          // try to evaluate inside sandbox
+          try {
+            const val = new Function("sandbox", `with (sandbox) { return (${fullSnippet}); }`)(proxySandbox);
+            let replacement;
+            if (val && typeof val === "object" && typeof val.formula === "string") replacement = val.formula;
+            else if (val && typeof val === "object" && val.value != null) replacement = String(val.value);
+            else if (typeof val === "number" || typeof val === "string") replacement = String(val);
+
+            if (replacement != null) {
+              out += replacement;
+              i = m;
+              continue;
+            }
+          } catch (e) {
+            console.error(`AC5E._ac5eSafeEval [call resolve failed: ${fullSnippet}]`, e.message);
+          }
+          // fallthrough if not resolved
+        }
+        out += expr[i++];
+        continue;
+      }
+      out += expr[i++];
+    }
+    return out;
+  };
+
+export function simplifyFormula(formula = '', removeFlavor = false) {
+	try {
+		if (removeFlavor) {
+			formula = formula
+				?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP, '')
+				?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP_STRING, '')
+				?.trim();
 		}
+		
+		if (formula?.trim() === '') return '';
+		
+		const roll = Roll.create(formula);
+		
+		const simplifiedTerms = roll.terms.map((t) => t.isIntermediate
+				? new foundry.dice.terms.NumericTerm({
+					number: t.evaluate({ allowInteractive: false }).total,
+					options: t.options,
+				})
+				: t
+		);
+		
+		let simplifiedFormula = Roll.fromTerms(simplifiedTerms).formula;
+		
+		return simplifiedFormula;
+	} catch (e) {
+		console.error('Unable to simplify formula due to an error.', false, e);
+		return formula;
 	}
-	return [rest, ''];
 }
 
 export function _ac5eActorRollData(token) {
@@ -1364,7 +1449,7 @@ export function _ac5eActorRollData(token) {
 }
 
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
-	const sandbox = {};
+	const sandbox = { ...lazySandbox };
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
 	sandbox.rollingActor = {};
@@ -1495,13 +1580,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isCritical = options?.d20?.isCritical;
 	sandbox.isFumble = options?.d20?.isFumble;
 
-	const {
-		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcasting, spellLevels, validProperties, weaponTypes },
-		/*statusEffects,*/
-	} = CONFIG || {};
-	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
-	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcasting, spellLevels, validProperties, weaponTypes, statusEffects } });
-	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, getItemOrActivity: ac5e.getItemOrActivity.bind(subjectToken?.actor), checkArmor: ac5e.checkArmor });
 	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		delete sandbox[''];
