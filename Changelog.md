@@ -1,3 +1,9 @@
+## 13.519.4
+* Reworked `_ac5eSafeEval`
+* Introduced new parser
+* `sandbox` lazy load
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.519.3.1
 * Hotfix
 * Added `ac5e.info.version`
