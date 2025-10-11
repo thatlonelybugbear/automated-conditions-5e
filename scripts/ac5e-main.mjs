@@ -22,7 +22,10 @@ function ac5eRegisterOnInit() {
 function ac5ei18nInit() {
 	const settings = new Settings();
 	if (settings.displayOnly5eStatuses) {
-		const basic = Object.values(CONFIG.DND5E.conditionTypes).filter(e=>!e.pseudo).map(e=>e.name.toLowerCase()).concat(['burning', 'suffocation']);
+		const basic = Object.values(CONFIG.DND5E.conditionTypes)
+			.filter((e) => !e.pseudo)
+			.map((e) => e.name.toLowerCase())
+			.concat(['burning', 'suffocation']);
 		CONFIG.statusEffects.forEach((effect) => {
 			if (!basic.includes(effect.id)) effect.hud = false;
 		});
@@ -101,7 +104,7 @@ function ac5eSetup() {
 		get() {
 			return game?.user?.targets?.first();
 		},
-		configurable: true
+		configurable: true,
 	});
 }
 
@@ -109,49 +112,50 @@ function initializeSandbox() {
 	const { DND5E } = CONFIG;
 
 	const safeConstants = foundry.utils.deepFreeze({
-		abilities: Object.fromEntries(Object.keys(DND5E.abilities).map(k => [k, false])),
-		abilityConsumptionTypes: Object.fromEntries(Object.keys(DND5E.abilityConsumptionTypes).map(k => [k, false])),
-		activityActivationTypes: Object.fromEntries(Object.keys(DND5E.activityActivationTypes).map(k => [k, false])),
-		activityConsumptionTypes: Object.fromEntries(Object.keys(DND5E.activityConsumptionTypes).map(k => [k, false])),
-		activityTypes: Object.fromEntries(Object.keys(DND5E.activityTypes).map(k => [k, false])),
-		actorSizes: Object.fromEntries(Object.keys(DND5E.actorSizes).map(k => [k, false])),
-		alignments: Object.fromEntries(Object.keys(DND5E.alignments).map(k => [k, false])),
-		ammoIds: Object.fromEntries(Object.keys(DND5E.ammoIds).map(k => [k, false])),
-		areaTargetTypes: Object.fromEntries(Object.keys(DND5E.areaTargetTypes).map(k => [k, false])),
-		armorIds: Object.fromEntries(Object.keys(DND5E.armorIds).map(k => [k, false])),
-		armorProficiencies: Object.fromEntries(Object.keys(DND5E.armorProficiencies).map(k => [k, false])),
-		armorTypes: Object.fromEntries(Object.keys(DND5E.armorTypes).map(k => [k, false])),
-		attackClassifications: Object.fromEntries(Object.keys(DND5E.attackClassifications).map(k => [k, false])),
-		attackModes: Object.fromEntries(Object.keys(DND5E.attackModes).map(k => [k, false])),
-		attackTypes: Object.fromEntries(Object.keys(DND5E.attackTypes).map(k => [k, false])),
-		conditionTypes: Object.fromEntries(Object.keys(DND5E.conditionTypes).concat('bloodied').map(k => [k, false])),
-		creatureTypes: Object.fromEntries(Object.keys(DND5E.creatureTypes).map(k => [k, false])),
-		damageTypes: Object.fromEntries(Object.keys(DND5E.damageTypes).map(k => [k, false])),
-		healingTypes: Object.fromEntries(Object.keys(DND5E.healingTypes).map(k => [k, false])),
-		itemActionTypes: Object.fromEntries(Object.keys(DND5E.itemActionTypes).map(k => [k, false])),
-		itemProperties: Object.fromEntries(Object.keys(DND5E.itemProperties).map(k => [k, false])),
-		skills: Object.fromEntries(Object.keys(DND5E.skills).map(k => [k, false])),
-		toolIds: Object.fromEntries(Object.keys(DND5E.toolIds).map(k => [k, false])),
-		toolProficiencies: Object.fromEntries(Object.keys(DND5E.toolProficiencies).map(k => [k, false])),
-		tools: Object.fromEntries(Object.keys(DND5E.tools).map(k => [k, false])),
-		spellSchools: Object.fromEntries(Object.keys(DND5E.spellSchools).map(k => [k, false])),
-		statusEffects: Object.fromEntries(Object.keys(DND5E.statusEffects).map(k => [k, false])),
-		weaponMasteries: Object.fromEntries(Object.keys(DND5E.weaponMasteries).map(k => [k, false])),
-		weaponIds: Object.fromEntries(Object.keys(DND5E.weaponIds).map(k => [k, false])),
+		abilities: Object.fromEntries(Object.keys(DND5E.abilities).map((k) => [k, false])),
+		abilityConsumptionTypes: Object.fromEntries(Object.keys(DND5E.abilityConsumptionTypes).map((k) => [k, false])),
+		activityActivationTypes: Object.fromEntries(Object.keys(DND5E.activityActivationTypes).map((k) => [k, false])),
+		activityConsumptionTypes: Object.fromEntries(Object.keys(DND5E.activityConsumptionTypes).map((k) => [k, false])),
+		activityTypes: Object.fromEntries(Object.keys(DND5E.activityTypes).map((k) => [k, false])),
+		actorSizes: Object.fromEntries(Object.keys(DND5E.actorSizes).map((k) => [k, false])),
+		alignments: Object.fromEntries(Object.keys(DND5E.alignments).map((k) => [k, false])),
+		ammoIds: Object.fromEntries(Object.keys(DND5E.ammoIds).map((k) => [k, false])),
+		areaTargetTypes: Object.fromEntries(Object.keys(DND5E.areaTargetTypes).map((k) => [k, false])),
+		armorIds: Object.fromEntries(Object.keys(DND5E.armorIds).map((k) => [k, false])),
+		armorProficiencies: Object.fromEntries(Object.keys(DND5E.armorProficiencies).map((k) => [k, false])),
+		armorTypes: Object.fromEntries(Object.keys(DND5E.armorTypes).map((k) => [k, false])),
+		attackClassifications: Object.fromEntries(Object.keys(DND5E.attackClassifications).map((k) => [k, false])),
+		attackModes: Object.fromEntries(Object.keys(DND5E.attackModes).map((k) => [k, false])),
+		attackTypes: Object.fromEntries(Object.keys(DND5E.attackTypes).map((k) => [k, false])),
+		conditionTypes: Object.fromEntries(
+			Object.keys(DND5E.conditionTypes)
+				.concat('bloodied')
+				.map((k) => [k, false])
+		),
+		creatureTypes: Object.fromEntries(Object.keys(DND5E.creatureTypes).map((k) => [k, false])),
+		damageTypes: Object.fromEntries(Object.keys(DND5E.damageTypes).map((k) => [k, false])),
+		healingTypes: Object.fromEntries(Object.keys(DND5E.healingTypes).map((k) => [k, false])),
+		itemActionTypes: Object.fromEntries(Object.keys(DND5E.itemActionTypes).map((k) => [k, false])),
+		itemProperties: Object.fromEntries(Object.keys(DND5E.itemProperties).map((k) => [k, false])),
+		skills: Object.fromEntries(Object.keys(DND5E.skills).map((k) => [k, false])),
+		toolIds: Object.fromEntries(Object.keys(DND5E.toolIds).map((k) => [k, false])),
+		toolProficiencies: Object.fromEntries(Object.keys(DND5E.toolProficiencies).map((k) => [k, false])),
+		tools: Object.fromEntries(Object.keys(DND5E.tools).map((k) => [k, false])),
+		spellSchools: Object.fromEntries(Object.keys(DND5E.spellSchools).map((k) => [k, false])),
+		statusEffects: Object.fromEntries(Object.keys(DND5E.statusEffects).map((k) => [k, false])),
+		weaponMasteries: Object.fromEntries(Object.keys(DND5E.weaponMasteries).map((k) => [k, false])),
+		weaponIds: Object.fromEntries(Object.keys(DND5E.weaponIds).map((k) => [k, false])),
 	});
 
-	const flatConstants = Object.assign(
-		{},
-		...Object.values(safeConstants).filter(v => typeof v === 'object')
-	);
+	const flatConstants = Object.assign({}, ...Object.values(safeConstants).filter((v) => typeof v === 'object'));
 	foundry.utils.deepFreeze(flatConstants);
 	const safeHelpers = Object.freeze({
-	    checkNearby,
-	    checkVisibility: _canSee,
-	    checkDistance: _getDistance,
-	    checkCreatureType: _raceOrType,
-	    getItemOrActivity: _getItemOrActivity,
-	    checkArmor: _autoArmor,
+		checkNearby,
+		checkVisibility: _canSee,
+		checkDistance: _getDistance,
+		checkCreatureType: _raceOrType,
+		getItemOrActivity: _getItemOrActivity,
+		checkArmor: _autoArmor,
 		checkRanged: _autoRanged,
 	});
 
@@ -159,9 +163,15 @@ function initializeSandbox() {
 		CONSTANTS: safeConstants,
 		_flatConstants: flatConstants,
 		...safeHelpers,
-		Math, Number, String, Boolean, Array, Object, JSON, Date
+		Math,
+		Number,
+		String,
+		Boolean,
+		Array,
+		Object,
+		JSON,
+		Date,
 	});
-		
-	console.log("AC5E Base sandbox initialized", lazySandbox);
-}
 
+	console.log('AC5E Base sandbox initialized', lazySandbox);
+}
