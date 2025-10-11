@@ -192,7 +192,7 @@
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Roll with advantage",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
 				"name": "Roll gets bonus",
@@ -204,7 +204,7 @@
 			},
 			"disadvantage": {
 				"name": "Roll with disadvantage",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
 				"name": "min and max modifiers for d20 rolls modifiers for max and any for damage rolls",
@@ -230,7 +230,7 @@
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 			"advantage": {
 				"name": "Grant advantage to opponent's d20 rolls",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
 				"name": "Grant bonus to opponent's rolls",
@@ -242,7 +242,7 @@
 			},
 			"disadvantage": {
 				"name": "Grant disadvantage to opponent's d20 rolls",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
 				"name": "Grant min and max modifiers for d20 rolls modifiers for max and any for damage rolls",
@@ -268,7 +268,7 @@
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "An aura giving advantage",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format example for a save ACTIONTYPE and: radius=15;includeSelf;allies;str;cha; would give to all allies including self in 15ft radius advantage to strength or charisma saves."
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format example for a save ACTIONTYPE and: radius=15;includeSelf;allies;str;cha; would give to all allies including self in 15ft radius advantage to strength or charisma saves."
 			},
 			"bonus": {
 				"name": "An aura giving bonuses",
@@ -280,7 +280,7 @@
 			},
 			"disadvantage": {
 				"name": "An aura giving disadvantage",
-				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
+				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			},
 			"modifier": {
 				"name": "An aura giving min and max modifiers for d20 rolls modifiers for max and any for damage rolls",
