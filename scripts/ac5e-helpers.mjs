@@ -455,8 +455,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 }
 
 function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
-	const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice with optional sign
-	const maxDiceCap = 100;
 	const additiveValues = [];
 	const staticValues = [];
 
@@ -471,29 +469,6 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 		const cleaned = String(item).trim();
 		if (/^-?\d+$/.test(cleaned)) {
 			staticValues.push(parseInt(cleaned, 10));
-			continue;
-		}
-
-		const match = cleaned.match(dicePattern);
-		if (match) {
-			const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : 0;
-			const count = Math.min(parseInt(match[2] || '1'), maxDiceCap);
-			const sides = parseInt(match[3]);
-
-			let total = 0;
-			const rolls = [];
-			for (let i = 0; i < count; i++) {
-				const roll = Math.floor(Math.random() * sides) + 1;
-				rolls.push(roll);
-				total += roll;
-			}
-
-			const signedTotal = (sign === 0 ? 1 : sign) * total;
-
-			if (sign !== 0) additiveValues.push(signedTotal);
-			else staticValues.push(total);
-
-			if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? '+' : sign < 0 ? '-' : ''}${count}d${sides}`, `Rolls: [${rolls.join(', ')}]`, `Total: ${signedTotal}`);
 			continue;
 		}
 	}
