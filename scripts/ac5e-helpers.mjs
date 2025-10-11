@@ -456,7 +456,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
-function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
+function getAlteredTargetValueOrThreshold(initialValue = 0, ac5eValues, type) {
 	const additiveValues = [];
 	const staticValues = [];
 
