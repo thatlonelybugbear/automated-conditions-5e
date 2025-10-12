@@ -187,7 +187,7 @@
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "Un'aura che modifica la CA dei token rilevanti nel raggio",
-			"description": "Usa raggio=10;bonus='1d4'; o raggio=15;imposta=15. Il primo darà un bonus alla CA e il secondo imposterà il valore fornito"
+			"description": "Usa raggio=10;bonus=1d4; o raggio=15;imposta=15. Il primo darà un bonus alla CA e il secondo imposterà il valore fornito"
 		},
 	"flags.automated-conditions-5e.ACTIONTYPE": {
 		"advantage": {
@@ -196,7 +196,7 @@
 		},
 		"bonus": {
 			"name": "Tiro con bonus",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: bonus='1d4 + 5' - rollingActor.abilities.dex.mod;"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
 		},
 		"critical": {
 			"name": "Tiro è critico (20 naturale o danno critico)",
