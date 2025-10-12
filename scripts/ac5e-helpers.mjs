@@ -372,7 +372,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			}
 			if (ac5eConfig.targetADC?.length) {
 				const targets = message?.data?.flags?.dnd5e?.targets;
-				const initialTargetADC = targets[0].ac;
+				const initialTargetADC = targets?.[0]?.ac ?? 10; // initialValue 10 for AC if no targets
 				let lowerTargetADC;
 				if (!foundry.utils.isEmpty(targets)) {
 					targets.forEach((target, index) => {
