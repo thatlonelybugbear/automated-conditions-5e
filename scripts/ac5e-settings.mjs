@@ -308,7 +308,7 @@ export default class Settings {
 	}
 }
 
-function renderColoredButtonSettings(html) {
+export function _renderColoredButtonSettings(html) {
 	const colorSettings = [
 		{ key: 'buttonColorBackground', default: '#288bcc' },
 		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
@@ -399,7 +399,7 @@ function renderColoredButtonSettings(html) {
 	}
 }
 
-function renderChatTooltipsSettings(html) {
+export function _renderChatTooltipsSettings(html) {
 	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
 	const chatTooltipSelect = html.querySelector(`select[name="${Constants.MODULE_ID}.showChatTooltips"]`);
 	const showNameTooltip = html.querySelector(`[name="${Constants.MODULE_ID}.showNameTooltips"]`);
