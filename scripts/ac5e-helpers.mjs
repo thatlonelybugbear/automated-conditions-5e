@@ -1553,3 +1553,14 @@ export function _notifyPreUse(actorName, warning, type) {
 	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
 	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
 }
+
+export function _compareArrays(a, b) {
+	const len = Math.max(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		if (a[i] !== b[i]) {
+			return { equal: false, index: i, initialValue: a[i], selectedValue: b[i] };
+		}
+	}
+	return { equal: true };
+}
+
