@@ -2,6 +2,7 @@ import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collec
 import Constants from './ac5e-constants.mjs';
 import Settings, { renderChatTooltipsSettings, renderColoredButtonSettings } from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
+import { _doDialogAttackRender, _doDialogDamageRender, _doDialogSkillOrToolRender } from './ac5e-dialogFn.mjs';
 
 const settings = new Settings();
 
