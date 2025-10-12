@@ -99,7 +99,10 @@ export function prepareRollFormula(expression, sandbox, debugLog) {
 	// 5) Inline simple identifiers from sandbox (keep dice/@/actor refs intact)
 	resultExpr = inlineSimpleIdentifiers(resultExpr, sandbox, proxySandbox, actorNames, debugLog);
 
-	// 6) Fold deterministic sub-terms using your simplify (dice & flavors preserved)
+	// 6) Strip remnant quotes around numeric literals (backwards compatibility)
+	resultExpr = coerceQuotedNumbersAndFlavors(resultExpr);
+
+	// 7) Fold deterministic sub-terms using your simplify (dice & flavors preserved)
 	const finalExpr = simplifyFormula(resultExpr, /* removeFlavor */ false);
 
 	return finalExpr;
@@ -532,4 +535,18 @@ function simplifyFormula(formula = '', removeFlavor = false) {
 		console.error('Unable to simplify formula due to an error.', false, e);
 		return formula;
 	}
+}
+
+// Unquote numeric string literals, optionally followed by one or more [flavor] tags.
+// Matches '1', "-2", "3.14e2", '2[fire]', "+5[acid][cold]", etc.
+function coerceQuotedNumbersAndFlavors(expr) {
+	if (!expr || typeof expr !== 'string') return expr;
+
+	// 1) numbers with optional flavors: '  +1.5e-2  [fire][cold]  '
+	expr = expr.replace(/(['"])\s*([+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)\s*((?:\[[^\]]*\])*)\s*\1/g, (_, __, num, flavors) => `${num}${flavors ?? ''}`);
+
+	// 2) (optional) empty quotes -> 0
+	// expr = expr.replace(/(['"])\s*\1/g, "0");
+
+	return expr;
 }
