@@ -1548,4 +1548,8 @@ export function _getTargets(message) {
 	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
 }
 
-
+export function _notifyPreUse(actorName, warning, type) {
+	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
+	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
+	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
+}
