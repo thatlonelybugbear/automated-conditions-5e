@@ -522,7 +522,7 @@ export function _dispositionCheck(t1, t2, check = 'all', mult) {
 	return result;
 }
 
-export function _findNearby({
+function findNearby({
 	token, // Token5e, TokenDocument5e, ID string, or UUID
 	disposition = 'all', // 'same', 'different', 'opposite' or false === 'all'
 	radius = 5, // Distance radius (default 5)
@@ -572,8 +572,8 @@ export function _findNearby({
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
-	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
+export function _checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
+	return findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
 }
 
 export function _autoArmor(actor) {
