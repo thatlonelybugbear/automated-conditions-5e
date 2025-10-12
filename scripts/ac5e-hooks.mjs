@@ -26,53 +26,6 @@ export function _rollFunctions(hook, ...args) {
 		return _preConfigureInitiative(actor, rollConfig, hook);
 	}
 }
-function getMessageData(config, hook) {
-	const messageId = config.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
-	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : undefined;
-
-	const messageTargets = getTargets(message);
-	const { activity: activityObj, item: itemObj, messageType, use } = message?.flags?.dnd5e || {};
-	const item = fromUuidSync(itemObj?.uuid);
-	const activity = fromUuidSync(activityObj?.uuid);
-	const options = {};
-	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
-	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
-	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
-
-	options.d20 = {};
-	if (hook === 'damage') {
-		if (_activeModule('midi-qol')) {
-			options.d20.attackRollTotal = config?.workflow?.attackTotal;
-			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
-			options.d20.hasAdvantage = config?.workflow?.advantage;
-			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
-			options.d20.isCritical = config?.midiOptions?.isCritical;
-			options.d20.isFumble = config?.midiOptions?.isFumble;
-		} else {
-			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
-			options.d20.attackRollTotal = findAttackRoll?.total;
-			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
-			options.d20.hasAdvantage = findAttackRoll?.options?.advantageMode > 0;
-			options.d20.hasDisadvantage = findAttackRoll?.options?.advantageMode < 0;
-			options.d20.isCritical = findAttackRoll?.options?.isCritical ?? config?.isCritical;
-			options.d20.isFumble = findAttackRoll?.options?.isFumble ?? config?.isFumble;
-		}
-	}
-	options.messageId = messageId;
-	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
-	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
-	const attackingToken = canvas.tokens.get(tokenId);
-	const attackingActor = attackingToken?.actor ?? item?.actor;
-	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
-	return { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options };
-}
-
-function getTargets(message) {
-	const messageTargets = message?.flags?.dnd5e?.targets;
-	if (messageTargets?.length) return messageTargets;
-	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
-}
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
 	if (activity.type === 'check') return true; //maybe check for
@@ -86,7 +39,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	options.tool = tool;
 	options.hook = hook;
 	options.activity = activity;
-	options.targets = getTargets();
+	options.targets = _getTargets();
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 	options.riderStatuses = _getActivityEffectsStatusRiders(activity);
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
@@ -159,7 +112,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 // }
 
 export function _preRollSavingThrow(config, dialog, message, hook) {
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
@@ -192,7 +145,7 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 
 export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollAbilityCheck:', { config, dialog, message });
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
 	if (options.isInitiative) return true;
@@ -230,7 +183,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, activity: messageActivity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
@@ -301,7 +254,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, item, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
