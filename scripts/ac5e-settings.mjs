@@ -1,5 +1,6 @@
 import Constants from './ac5e-constants.mjs';
 import { scopeUser } from './ac5e-main.mjs';
+import { _getValidColor } from './ac5e-helpers.mjs';
 
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
@@ -305,4 +306,116 @@ export default class Settings {
 	get displayOnly5eStatuses() {
 		return game.settings.get(Constants.MODULE_ID, Settings.REMOVE_NON5E_STATUSES);
 	}
+}
+
+function renderColoredButtonSettings(html) {
+	const colorSettings = [
+		{ key: 'buttonColorBackground', default: '#288bcc' },
+		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
+		{ key: 'buttonColorText', default: '#f8f8ff' }, //this is Ghost White
+	];
+	for (let { key, default: defaultValue } of colorSettings) {
+		const settingKey = `${Constants.MODULE_ID}.${key}`;
+		const input = html.querySelector(`[name="${settingKey}"]`);
+		if (!input) continue;
+
+		const colorPicker = document.createElement('input');
+		colorPicker.type = 'color';
+		colorPicker.classList.add('color-picker');
+
+		const updateColorPicker = () => {
+			const val = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(val, defaultValue, game.user);
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+			} else {
+				if (resolved !== val) {
+					input.value = resolved;
+					input.dispatchEvent(new Event('change'));
+				}
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+			}
+		};
+
+		colorPicker.addEventListener('input', () => {
+			input.value = colorPicker.value;
+			input.dispatchEvent(new Event('change'));
+		});
+
+		input.addEventListener('input', () => {
+			const val = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(val, defaultValue, game.user);
+
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+			} else {
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+			}
+		});
+
+		input.addEventListener('blur', () => {
+			const raw = input.value.trim().toLowerCase();
+			const resolved = _getValidColor(raw, defaultValue, game.user);
+
+			if (['false', 'none', 'null', '0'].includes(resolved)) {
+				colorPicker.style.display = 'none';
+
+				input.value = resolved; // Normalize input display here
+				game.settings.set(Constants.MODULE_ID, key, resolved);
+			} else {
+				input.value = resolved;
+				colorPicker.value = resolved;
+				colorPicker.style.display = '';
+				game.settings.set(Constants.MODULE_ID, key, resolved);
+			}
+		});
+
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') input.blur(); // triggers blur logic
+		});
+
+		input.insertAdjacentElement('afterend', colorPicker);
+		updateColorPicker();
+	}
+
+	// Visibility toggle
+	const toggle = html.querySelector(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
+	if (toggle) {
+		const updateVisibility = () => {
+			const visible = toggle.checked;
+			const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
+			for (let key of keysToToggle) {
+				const input = html.querySelector(`[name="${Constants.MODULE_ID}.${key}"]`);
+				if (input) {
+					const container = input.closest('.form-group') || input.parentElement;
+					if (container) container.style.display = visible ? 'flex' : 'none';
+				}
+			}
+		};
+		toggle.addEventListener('change', updateVisibility);
+		updateVisibility();
+	}
+}
+
+function renderChatTooltipsSettings(html) {
+	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
+	const chatTooltipSelect = html.querySelector(`select[name="${Constants.MODULE_ID}.showChatTooltips"]`);
+	const showNameTooltip = html.querySelector(`[name="${Constants.MODULE_ID}.showNameTooltips"]`);
+
+	if (!tooltipSelect || !chatTooltipSelect || !showNameTooltip) return;
+
+	function updateChatTooltipVisibility() {
+		const val = tooltipSelect.value;
+		const shouldShowChatTooltip = val === 'both' || val === 'chat';
+		const shouldShowTooltip = val !== 'none';
+		const containerChat = chatTooltipSelect.closest('.form-group') || chatTooltipSelect.parentElement;
+		if (containerChat) containerChat.style.display = shouldShowChatTooltip ? 'flex' : 'none';
+		const containerName = showNameTooltip.closest('.form-group') || showNameTooltip.parentElement;
+		if (containerName) containerName.style.display = shouldShowTooltip ? 'flex' : 'none';
+	}
+
+	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
+	updateChatTooltipVisibility();
 }
