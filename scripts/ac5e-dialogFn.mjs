@@ -3,7 +3,7 @@ import { _compareArrays } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
-const settings = new Settings()l
+const settings = new Settings();
 
 export function _doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	const selectedAmmunition = elem.querySelector('select[name="ammunition"]')?.value;
