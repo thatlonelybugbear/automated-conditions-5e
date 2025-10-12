@@ -43,7 +43,7 @@ export function _doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	dialog.render();
 }
 
-export _function doDialogDamageRender(dialog, elem, getConfigAC5E) {
+export function _doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	const rollsLength = dialog.config.rolls.length;
 	const selects = Array.fromRange(rollsLength)
 		.map((el) => {
