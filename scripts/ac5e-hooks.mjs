@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getMessageData, _getTargets, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getMessageData, _getTargets, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _notifyPreUse, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings, { renderChatTooltipsSettings, renderColoredButtonSettings } from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -49,14 +49,14 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 		const silenced = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
 		// const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Vocal')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellVocal;
 		// const somaticCheck = item.system.properties.has('somatic') && sourceActor.items.filter((i)=>i.system?.equipped && i.system.type === 'weapon' && !i.system.properties.has('foc'))?.length > 1 && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Somatic')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellSomatic;
-		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
-		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
-		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
+		if (notProficient) _notifyPreUse(sourceActor.name, useWarnings, 'Armor');
+		else if (raging) _notifyPreUse(sourceActor.name, useWarnings, 'Raging');
+		else if (silenced) _notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
 		if (useWarnings === 'Enforce' && (notProficient || raging || silenced)) return false;
 	}
 	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
 	if (incapacitated && useWarnings) {
-		notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
+		_notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
 		if (useWarnings === 'Enforce') return false;
 	}
 
@@ -479,12 +479,6 @@ export function _renderSettings(app, html, data) {
 	html = html instanceof HTMLElement ? html : html[0];
 	renderChatTooltipsSettings(html);
 	renderColoredButtonSettings(html);
-}
-
-function notifyPreUse(actorName, warning, type) {
-	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
-	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
-	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
 }
 
 export function _preConfigureInitiative(subject, rollConfig) {
