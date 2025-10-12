@@ -1299,26 +1299,30 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activityData?.type) sandbox[activityData.type] = true;
 
 	//item data
-	sandbox.item = item?.getRollData().item || {};
+	const itemData = item?.getRollData().item || {};
+	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
-	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
-	if (itemData?.school) sandbox[itemData.school] = true;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
-	const ammoProperties = sandbox.ammunition?.system?.properties;
-	if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-	sandbox.itemProperties = {};
-	itemData?.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
 	sandbox.item.hasAttack = item?.hasAttack;
 	sandbox.item.hasSave = item?.system?.hasSave;
 	sandbox.item.hasSummoning = item?.system?.hasSummoning;
 	sandbox.item.hasLimitedUses = item?.system?.hasLimitedUses;
 	sandbox.item.isHealing = item?.system?.isHealing;
 	sandbox.item.isEnchantment = item?.system?.isEnchantment;
-	sandbox.item.transferredEffects = item?.transferredEffects;
+	sandbox.item.transferredEffects = item?.transferredEffects;	
+	sandbox.itemProperties = {};
+	if (itemData) {
+		sandbox[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
+		sandbox[itemData.type.value] = true;
+		if (itemData.spell) sandbox[itemData.school] = true;
+		const ammoProperties = sandbox.ammunition?.system?.properties;
+		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
+		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
+	}
 
 	const combat = game.combat;
 	sandbox.combat = { active: combat?.active, round: combat?.round, turn: combat?.turn, current: combat?.current, turns: combat?.turns };
