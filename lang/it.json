@@ -192,7 +192,7 @@
 	"flags.automated-conditions-5e.ACTIONTYPE": {
 		"advantage": {
 			"name": "Tiro con vantaggio",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
 		},
 		"bonus": {
 			"name": "Tiro con bonus",
@@ -204,7 +204,7 @@
 		},
 		"disadvantage": {
 			"name": "Tiro con svantaggio",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
 		},
 		"modifier": {
 			"name": "modificatori min e max per i tiri d20, modificatori max e qualsiasi per i tiri di danno",
@@ -230,7 +230,7 @@
 	"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 		"advantage": {
 			"name": "Concede vantaggio ai tiri d20 dell'avversario",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
 		},
 		"bonus": {
 			"name": "Concede bonus ai tiri dell'avversario",
@@ -242,7 +242,7 @@
 		},
 		"disadvantage": {
 			"name": "Concede svantaggio ai tiri d20 dell'avversario",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
 		},
 		"modifier": {
 			"name": "Concedi modificatori minimi e massimi per i tiri d20, modificatori massimi e qualsiasi per i tiri di danno",
@@ -268,7 +268,7 @@
 	"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 		"advantage": {
 			"name": "Un’aura che concede vantaggio",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. Esempio di formato del valore di modifica per un salvataggio ACTIONTYPE: raggio=15;includeSelf;allies;str;cha; concede vantaggio ai tiri salvezza su Forza o Carisma a tutti gli alleati (incluso sé stesso) nel raggio di 15 piedi."
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Esempio di formato del valore di modifica per un salvataggio ACTIONTYPE: raggio=15;includeSelf;allies;str;cha; concede vantaggio ai tiri salvezza su Forza o Carisma a tutti gli alleati (incluso sé stesso) nel raggio di 15 piedi."
 		},
 		"bonus": {
 			"name": "Un’aura che concede bonus",
@@ -280,7 +280,7 @@
 		},
 		"disadvantage": {
 			"name": "Un’aura che concede svantaggio",
-			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
+			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		},
 		"modifier": {
 			"name": "Un'aura che fornisce modificatori minimi e massimi per i tiri d20, modificatori max e qualsiasi per i tiri di danno",
