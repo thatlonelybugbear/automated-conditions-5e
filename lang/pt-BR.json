@@ -179,15 +179,15 @@
     	},
     	"flags.automated-conditions-5e.modifyAC": {
       		"name": "Modificar CA Contra Ataques Sofridos",
-      		"description": "Use bonus='18' ou bonus='+5'. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
+      		"description": "Use set=18 ou bonus=5. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
     	},
     	"flags.automated-conditions-5e.grant.modifyAC": {
       		"name": "Conceder Modificação de CA ao Oponente do Ataque",
-      		"description": "Use bonus='18' ou bonus='+1d6'. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
+      		"description": "Use set=18 ou bonus=1d6. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
     	},
     	"flags.automated-conditions-5e.aura.modifyAC": {
       		"name": "Aura para Modificar CA de Tokens Relevanter em Raio",
-      		"description": "Use radius=10;bonus='18'; ou radius=15;bonus='-1d6'. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
+      		"description": "Use radius=10;set=18; ou radius=15;bonus=-1d6. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
     	},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
@@ -208,11 +208,11 @@
 			},
 			"modifier": {
         		"name": "Modificar Rolagem de d20 ou Dano com Máx/Min",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'."
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=(rollingActor.attributes.hp.pct < 50 ? max8 : min12)."
       			},
 			"modifyDC": {
         		"name": "Modificar CD de Ações (também funciona em Concentração e Salvaguardas Contra Morte)",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Ex: bonus=rollingActor.attributes.hp.pct < 50 ? '+5' : '12'"
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Ex: bonus=(rollingActor.attributes.hp.pct < 50 ? 5 : 12)"
       		},
 			"fail": {
 				"name": "Rolagem de d20 Falha",
@@ -246,11 +246,11 @@
 			},
 			"modifier": {
         		"name": "Conceder Modificar Rolagem de d20 ou Dano do Oponente com Máx/Min",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier='min10'."
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=min10."
       			},
 			"modifyDC": {
         		"name": "Modificar CD de Rolagem Resistida de Ação de Outros",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). eg bonus=rollingActor.attributes.hp.pct < 50 ? '-5' : '+2'"
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). eg bonus=(rollingActor.attributes.hp.pct < 50 ? -5 : 2)"
       		},
 			"fail": {
 				"name": "Conceder Falha às Rolagens de d20 do Oponente",
@@ -284,7 +284,7 @@
 			},
 			"modifier": {
         		"name": "Aura que Modifica Rolagem de d20 ou Dano com Máx/Min",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'."
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier='min10'; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10."
       			},
 			"modifyDC": {
         		"name": "Aura que Modifica CD de Ações de Tokens Afetados",
