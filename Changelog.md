@@ -1,3 +1,16 @@
+## 13.519.5.1
+* Make operator removal safer
+* Proper formula mode evaluations for aura's radius
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## 13.519.5
+* Adds dis/advantage flags for damage rolls. From now on it is suggested that you are using:
+  * `flags.automated-confitions-5e.damage.advantage` etc
+* Properly parse formulas starting with `-`
+* Remove quotes from bonuses in en.json lang file
+* Make `itemData.type.value` available as shorthand
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.519.4.1
 * Backwards compatibility, fixing issues with remnant quoted parts in formulas.
 

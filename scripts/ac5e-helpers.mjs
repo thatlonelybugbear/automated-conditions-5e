@@ -1253,7 +1253,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetId = opponentToken?.id;
 	/* end of backwards compatibility */
 
-	sandbox.activity = activity?.getRollData().activity || {};
+	const activityData = activity?.getRollData?.()?.activity || {};
+	sandbox.activity = activityData;
 	sandbox.ammunition = options.ammunition;
 	sandbox.ammunitionName = options.ammunition?.name;
 	sandbox.consumptionItemName = {};
@@ -1287,11 +1288,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.damageTypes = options.damageTypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
 	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
-	//activity data
-	const activityData = sandbox.activity;
 	sandbox.activity.damageTypes = options.damageTypes;
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
-
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
 	if (activity?.actionType) sandbox[activity.actionType] = true;
@@ -1299,7 +1297,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activityData?.type) sandbox[activityData.type] = true;
 
 	//item data
-	const itemData = item?.getRollData().item || {};
+	const itemData = item?.getRollData?.()?.item || {};
 	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
@@ -1313,9 +1311,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.hasLimitedUses = item?.system?.hasLimitedUses;
 	sandbox.item.isHealing = item?.system?.isHealing;
 	sandbox.item.isEnchantment = item?.system?.isEnchantment;
-	sandbox.item.transferredEffects = item?.transferredEffects;	
+	sandbox.item.transferredEffects = item?.transferredEffects;
 	sandbox.itemProperties = {};
-	if (itemData) {
+	if (item) {
 		sandbox[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
 		sandbox[itemData.type.value] = true;
 		if (itemData.spell) sandbox[itemData.school] = true;
