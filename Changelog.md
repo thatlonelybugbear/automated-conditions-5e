@@ -1,4 +1,4 @@
-## 13.519.4.3
+## 13.519.5
 * Adds dis/advantage flags for damage rolls. From now on it is suggested that you are using:
   * `flags.automated-confitions-5e.damage.advantage` etc
 * Properly parse formulas starting with `-`
