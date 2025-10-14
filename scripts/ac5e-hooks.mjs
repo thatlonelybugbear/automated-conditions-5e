@@ -831,8 +831,8 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply') {
 	const modifiers = getConfigAC5E.damageModifiers ?? [];
 	const suffixModifiers = modifiers.filter((m) => m !== 'adv' && m !== 'dis');
 	const suffix = suffixModifiers.join('');
-	const hasAdv = modifiers.includes('adv');
-	const hasDis = modifiers.includes('dis');
+	const hasAdv = modifiers.includes('adv') || getConfigAC5E.subject.advantage.length || getConfigAC5E.opponent.advantage.length; // adds support for flags.ac5e.damage.advantage which is recommended going forward.
+	const hasDis = modifiers.includes('dis') || getConfigAC5E.subject.disadvantage.length || getConfigAC5E.opponent.disadvantage.length;
 
 	const isCritical = getConfigAC5E.preAC5eConfig?.wasCritical ?? false;
 	const extraDiceTotal = (getConfigAC5E.extraDice ?? []).reduce((a, b) => a + b, 0) * (isCritical ? 2 : 1);

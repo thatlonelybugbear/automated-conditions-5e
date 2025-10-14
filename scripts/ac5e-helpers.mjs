@@ -1,6 +1,8 @@
 import Constants from './ac5e-constants.mjs';
-import Settings from './ac5e-settings.mjs';
+import { lazySandbox } from './ac5e-main.mjs';
+import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
+import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
@@ -360,7 +362,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			dialog.options.advantageMode = NORM_MODE;
 			dialog.options.defaultButton = 'normal';
 		}
-		if (hook === 'attack' || hook === 'damage') { // need to allow damage hooks too for results shown?
+		if (hook === 'attack' || hook === 'damage') {
+			// need to allow damage hooks too for results shown?
 			if (ac5eConfig.threshold?.length) {
 				//for attack rolls
 				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
@@ -369,7 +372,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			}
 			if (ac5eConfig.targetADC?.length) {
 				const targets = message?.data?.flags?.dnd5e?.targets;
-				const initialTargetADC = targets[0].ac;
+				const initialTargetADC = targets?.[0]?.ac ?? 10; // initialValue 10 for AC if no targets
 				let lowerTargetADC;
 				if (!foundry.utils.isEmpty(targets)) {
 					targets.forEach((target, index) => {
@@ -453,16 +456,14 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
-function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
-	const dicePattern = /^([+-]?)(\d*)d(\d+)$/i; // Dice with optional sign
-	const maxDiceCap = 100;
+function getAlteredTargetValueOrThreshold(initialValue = 0, ac5eValues, type) {
 	const additiveValues = [];
 	const staticValues = [];
 
 	for (const item of ac5eValues) {
 		if (item == null) continue;
 
-		if (typeof item === "number") {
+		if (typeof item === 'number') {
 			additiveValues.push(item);
 			continue;
 		}
@@ -472,37 +473,14 @@ function getAlteredTargetValueOrThreshold(initialValue, ac5eValues, type) {
 			staticValues.push(parseInt(cleaned, 10));
 			continue;
 		}
-		
-		const match = cleaned.match(dicePattern);
-		if (match) {
-			const sign = match[1] === "-" ? -1 : match[1] === "+" ? 1 : 0;
-			const count = Math.min(parseInt(match[2] || "1"), maxDiceCap);
-			const sides = parseInt(match[3]);
-
-			let total = 0;
-			const rolls = [];
-			for (let i = 0; i < count; i++) {
-				const roll = Math.floor(Math.random() * sides) + 1;
-				rolls.push(roll);
-				total += roll;
-			}
-
-			const signedTotal = (sign === 0 ? 1 : sign) * total;
-
-			if (sign !== 0) additiveValues.push(signedTotal);
-			else staticValues.push(total);
-
-			if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold() for ${type}:`, `Dice roll: ${sign > 0 ? "+" : sign < 0 ? "-" : ""}${count}d${sides}`, `Rolls: [${rolls.join(", ")}]`, `Total: ${signedTotal}`);
-			continue;
-		}
 	}
 	const newStaticThreshold = staticValues.length > 0 ? staticValues[staticValues.length - 1] : initialValue;
 	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
 	const finalValue = newStaticThreshold + totalModifier;
 
-	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue, });
+	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue });
 
-	return finalValue;		
+	return finalValue;
 }
 
 /**
@@ -1145,20 +1123,8 @@ export function _raceOrType(actor, dataType = 'race') {
 
 export function _generateAC5eFlags() {
 	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
-	const moduleFlags = [
-		`${moduleFlagScope}.crossbowExpert`,
-		`${moduleFlagScope}.sharpShooter`,
-		`${moduleFlagScope}.attack.criticalThreshold`,
-		`${moduleFlagScope}.grants.attack.criticalThreshold`,
-		`${moduleFlagScope}.aura.attack.criticalThreshold`,
-		`${moduleFlagScope}.damage.extraDice`,
-		`${moduleFlagScope}.grants.damage.extraDice`,
-		`${moduleFlagScope}.aura.damage.extraDice`,
-		`${moduleFlagScope}.modifyAC`,
-		`${moduleFlagScope}.grants.modifyAC`,
-		`${moduleFlagScope}.aura.modifyAC`,
-	]
-	
+	const moduleFlags = [`${moduleFlagScope}.crossbowExpert`, `${moduleFlagScope}.sharpShooter`, `${moduleFlagScope}.attack.criticalThreshold`, `${moduleFlagScope}.grants.attack.criticalThreshold`, `${moduleFlagScope}.aura.attack.criticalThreshold`, `${moduleFlagScope}.damage.extraDice`, `${moduleFlagScope}.grants.damage.extraDice`, `${moduleFlagScope}.aura.damage.extraDice`, `${moduleFlagScope}.modifyAC`, `${moduleFlagScope}.grants.modifyAC`, `${moduleFlagScope}.aura.modifyAC`];
+
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'success'];
 	const types = ['source', 'grants', 'aura'];
@@ -1205,59 +1171,25 @@ export function _getValidColor(color, fallback, user) {
 	return fallback;
 }
 
-export function _ac5eSafeEval({ expression, sandbox }) {
-	if (!expression) return undefined;
-	if (typeof expression !== 'string') {
-		throw new Error(`Roll.safeEval expected a string expression, got ${typeof expression}`);
-	}
-	if (expression.includes('game')) {
-		throw new Error(`Roll.safeEval expression cannot contain game.`);
-	}
-	if (expression.includes('canvas')) {
-		throw new Error(`Roll.safeEval expression cannot contain canvas.`);
-	}
-	let result;
+/**
+ * Safely evaluate a string expression within a controlled sandbox.
+ * Supports:
+ *  - mode="condition": returns boolean
+ *  - mode="formula": returns Foundry roll formula string
+ *  - Resolve actor contexts: rollingActor, opponentActor, targetActor, auraActor, effectOriginActor
+ *  - Math.* and shorthand helpers (min, max, floor, etc.)
+ *  - Fails safely to false if evaluation breaks
+ */
+export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition' }) {
+	if (!expression || typeof expression !== 'string') return undefined;
+	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
-	const proxySandbox = new Proxy(sandbox, {
-		get(target, prop) {
-			if (prop in target) return target[prop];
-			return false; // default fallback for missing properties. We can now use directly in conditionals: dex || str
-		},
-	});
+	const debugEnabled = settings?.debug || ac5e?.logEvaluationData;
+	const debugLog = debugEnabled ? console.warn : console.debug;
 
-	try {
-		result = new Function('sandbox', `with (sandbox) { return ${expression}}`)(proxySandbox);
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (full evaluation):', { result, expression, evaluationData: sandbox });
-		return result;
-	} catch (err) {
-		// If evaluation fails, fall back
-	}
-
-	const tokenRegex = /\b[a-zA-Z_][\w.]*\b/g;
-	const rebuilt = expression.replace(tokenRegex, (match) => {
-		try {
-			const tokenResult = new Function('sandbox', `with (sandbox) { return ${match}}`)(proxySandbox);
-			if (typeof tokenResult === 'function') return match; // keep function refs
-			return tokenResult; // includes false, 0, null
-		} catch (e) {
-			return false; // default for unresolved identifiers
-		}
-	});
-	try {
-		const protectedExpr = rebuilt.replace(/(\d+d\d+([+-]\d+)*)/gi, '"$1"'); // Protect dice terms; replace with JS parce-friendly quoted placeholders
-		result = new Function('sandbox', `with (sandbox) { return ${protectedExpr}}`)(proxySandbox);
-
-		if (typeof result === 'string') {
-			if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (partial unresolved):', { result, expression, evaluationData: sandbox });
-			return rebuilt; // could be a leftover string with dice
-		}
-
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (partial resolved):', { result, expression, evaluationData: sandbox });
-		return result;
-	} catch (err) {
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval (fallback string):', { result: rebuilt, expression, evaluationData: sandbox });
-		return rebuilt;
-	}
+	if (mode === 'condition') return evaluateCondition(expression, sandbox, debugLog);
+	if (mode === 'formula') return prepareRollFormula(expression, sandbox, debugLog);
+	throw new Error(`Invalid mode for _ac5eSafeEval: ${mode}`);
 }
 
 export function _ac5eActorRollData(token) {
@@ -1295,7 +1227,7 @@ export function _ac5eActorRollData(token) {
 }
 
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
-	const sandbox = {};
+	const sandbox = { ...lazySandbox };
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
 	sandbox.rollingActor = {};
@@ -1321,7 +1253,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetId = opponentToken?.id;
 	/* end of backwards compatibility */
 
-	sandbox.activity = activity?.getRollData().activity || {};
+	const activityData = activity?.getRollData?.()?.activity || {};
+	sandbox.activity = activityData;
 	sandbox.ammunition = options.ammunition;
 	sandbox.ammunitionName = options.ammunition?.name;
 	sandbox.consumptionItemName = {};
@@ -1355,11 +1288,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.damageTypes = options.damageTypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
 	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
-	//activity data
-	const activityData = sandbox.activity;
 	sandbox.activity.damageTypes = options.damageTypes;
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
-
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
 	if (activity?.actionType) sandbox[activity.actionType] = true;
@@ -1367,19 +1297,14 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activityData?.type) sandbox[activityData.type] = true;
 
 	//item data
-	sandbox.item = item?.getRollData().item || {};
+	const itemData = item?.getRollData?.()?.item || {};
+	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
-	const itemData = sandbox.item;
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
-	if (itemData?.school) sandbox[itemData.school] = true;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
-	const ammoProperties = sandbox.ammunition?.system?.properties;
-	if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-	sandbox.itemProperties = {};
-	itemData?.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
 	sandbox.item.hasAttack = item?.hasAttack;
 	sandbox.item.hasSave = item?.system?.hasSave;
 	sandbox.item.hasSummoning = item?.system?.hasSummoning;
@@ -1387,6 +1312,15 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.isHealing = item?.system?.isHealing;
 	sandbox.item.isEnchantment = item?.system?.isEnchantment;
 	sandbox.item.transferredEffects = item?.transferredEffects;
+	sandbox.itemProperties = {};
+	if (item) {
+		sandbox[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
+		sandbox[itemData.type.value] = true;
+		if (itemData.spell) sandbox[itemData.school] = true;
+		const ammoProperties = sandbox.ammunition?.system?.properties;
+		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
+		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
+	}
 
 	const combat = game.combat;
 	sandbox.combat = { active: combat?.active, round: combat?.round, turn: combat?.turn, current: combat?.current, turns: combat?.turns };
@@ -1426,13 +1360,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isCritical = options?.d20?.isCritical;
 	sandbox.isFumble = options?.d20?.isFumble;
 
-	const {
-		DND5E: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcasting, spellLevels, validProperties, weaponTypes },
-		/*statusEffects,*/
-	} = CONFIG || {};
-	const statusEffects = CONFIG.statusEffects.map((e) => e.id).concat('bloodied');
-	foundry.utils.mergeObject(sandbox, { CONFIG: { abilities, abilityActivationTypes, activityTypes, attackClassifications, attackModes, attackTypes, creatureTypes, damageTypes, healingTypes, itemProperties, skills, tools, spellSchools, spellcasting, spellLevels, validProperties, weaponTypes, statusEffects } });
-	foundry.utils.mergeObject(sandbox, { checkNearby: ac5e.checkNearby, checkVisibility: ac5e.checkVisibility, checkRanged: ac5e.checkRanged, checkDistance: ac5e.checkDistance, checkCreatureType: ac5e.checkCreatureType, getItemOrActivity: ac5e.getItemOrActivity.bind(subjectToken?.actor), checkArmor: ac5e.checkArmor });
 	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
 		delete sandbox[''];
