@@ -1253,7 +1253,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetId = opponentToken?.id;
 	/* end of backwards compatibility */
 
-	sandbox.activity = activity?.getRollData().activity || {};
+	sandbox.activity = activity?.getRollData?.()?.activity || {};
 	sandbox.ammunition = options.ammunition;
 	sandbox.ammunitionName = options.ammunition?.name;
 	sandbox.consumptionItemName = {};
@@ -1299,7 +1299,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activityData?.type) sandbox[activityData.type] = true;
 
 	//item data
-	const itemData = item?.getRollData().item || {};
+	const itemData = item?.getRollData?.()?.item || {};
 	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
