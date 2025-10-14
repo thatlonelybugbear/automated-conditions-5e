@@ -1,6 +1,7 @@
 ## 13.519.5.1
 * Make operator removal safer
 * Proper formula mode evaluations for aura's radius
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
 ## 13.519.5
 * Adds dis/advantage flags for damage rolls. From now on it is suggested that you are using:
