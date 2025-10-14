@@ -1,4 +1,7 @@
-## 13.519.4.1
+## 13.519.4.2
+* Properly parse formulas starting with `-`
+
+# 13.519.4.1
 * Backwards compatibility, fixing issues with remnant quoted parts in formulas.
 
 ## 13.519.4
