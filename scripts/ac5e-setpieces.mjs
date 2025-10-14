@@ -303,7 +303,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (!radius) return false;
 			radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
 			if (!radius) return false;
-			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData });
+			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula' });
 			if (!radius) return false;
 			const distanceTokenToAuraSource = !isModifyAC ? distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight') : distanceToTarget(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
 			if (distanceTokenToAuraSource <= radius) {
