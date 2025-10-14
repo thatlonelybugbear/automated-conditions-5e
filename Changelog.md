@@ -1,3 +1,7 @@
+## 13.519.5.1
+* Make operator removal safer
+* Proper formula mode evaluations for aura's radius
+
 ## 13.519.5
 * Adds dis/advantage flags for damage rolls. From now on it is suggested that you are using:
   * `flags.automated-confitions-5e.damage.advantage` etc
