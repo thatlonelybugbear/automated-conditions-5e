@@ -79,32 +79,23 @@ export function evaluateCondition(expression, sandbox, debugLog) {
  */
 export function prepareRollFormula(expression, sandbox, debugLog) {
 	const proxySandbox = createProxySandbox(sandbox, 'formula');
-
 	// 0) Normalize: strip leading assignment and trailing identifier (common macro typos)
 	let resultExpr = normalizeExpr(expression); // could be safe to remove, but being a bugbear... ¯_(ツ)_/¯
-
 	// 1) Reduce only parens that contain a *top-level* ternary; dive only into chosen branch
 	resultExpr = reduceTernaryParens(resultExpr, { evaluateCondition, sandbox: proxySandbox, debugLog });
-
 	// 2) Resolve @ actor references (mutate rollingActor.x into @x, via Roll(formula, actorData))
 	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectOriginActor'];
 	resultExpr = resolveActorAtRefs(resultExpr, sandbox, actorNames, Roll, debugLog);
-
 	// 3) Resolve whitelisted helper calls + property chains up-front
 	resultExpr = resolveWhitelistedCalls(resultExpr, proxySandbox, debugLog);
-
 	// 4) Pre-evaluate deterministic Math.* (constants & calls with pure-arith args)
 	resultExpr = foldBareMath(resultExpr);
-
 	// 5) Inline simple identifiers from sandbox (keep dice/@/actor refs intact)
 	resultExpr = inlineSimpleIdentifiers(resultExpr, sandbox, proxySandbox, actorNames, debugLog);
-
 	// 6) Strip remnant quotes around numeric literals (backwards compatibility)
 	resultExpr = coerceQuotedNumbersAndFlavors(resultExpr);
-
 	// 7) Fold deterministic sub-terms using your simplify (dice & flavors preserved)
 	const finalExpr = simplifyFormula(resultExpr, /* removeFlavor */ false);
-
 	return finalExpr;
 }
 
@@ -407,7 +398,7 @@ function resolveWhitelistedCalls(expr, proxySandbox, debugLog) {
 function foldBareMath(expr) {
 	if (!expr || typeof expr !== 'string') return expr;
 
-  expr = expr.replace(/\bMath\./g, ''); // Strip the namespace
+	expr = expr.replace(/\bMath\./g, ''); // Strip the namespace
 
 	const CONST_NAMES = Object.getOwnPropertyNames(Math).filter((k) => typeof Math[k] !== 'function'); // For PI, E, ...
 	if (CONST_NAMES.length) {
@@ -518,18 +509,20 @@ function simplifyFormula(formula = '', removeFlavor = false) {
 		}
 
 		const roll = Roll.create(formula);
-
-		const simplifiedTerms = roll.terms.map((t) =>
-			t.isIntermediate
-				? new foundry.dice.terms.NumericTerm({
-						number: t.evaluate({ allowInteractive: false }).total,
-						options: t.options,
-				  })
-				: t
-		);
-
-		let simplifiedFormula = Roll.fromTerms(simplifiedTerms).formula;
-
+		formula = roll.formula;
+		const simplifiedTerms = roll.terms.map((t, index) => {
+			if (t.isIntermediate && t.isDeterministic) {
+				const inter = new foundry.dice.terms.NumericTerm({
+					number: t.evaluate({ allowInteractive: false }).total,
+					options: t.options,
+				});
+				formula = formula.replace(t.formula, inter.number);
+			} else if (t.number === 0) {
+				const operator = roll.terms[index - 1].operator;
+				formula = formula.replace(`${operator} ${t.formula}`, '');
+			}
+		});
+		let simplifiedFormula = new Roll(formula).formula;
 		return simplifiedFormula;
 	} catch (e) {
 		console.error('Unable to simplify formula due to an error.', false, e);
@@ -545,7 +538,7 @@ function coerceQuotedNumbersAndFlavors(expr) {
 	// 1) numbers with optional flavors: '  +1.5e-2  [fire][cold]  '
 	expr = expr.replace(/(['"])\s*([+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)\s*((?:\[[^\]]*\])*)\s*\1/g, (_, __, num, flavors) => `${num}${flavors ?? ''}`);
 
-	// 2) (optional) empty quotes -> 0
+	// 2) (optional) empty quotes with 0
 	// expr = expr.replace(/(['"])\s*\1/g, "0");
 
 	return expr;
