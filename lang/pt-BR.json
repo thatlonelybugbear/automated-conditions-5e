@@ -284,7 +284,7 @@
 			},
 			"modifier": {
         		"name": "Aura que Modifica Rolagem de d20 ou Dano com Máx/Min",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier='min10'; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10."
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=min10; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10."
       			},
 			"modifyDC": {
         		"name": "Aura que Modifica CD de Ações de Tokens Afetados",
