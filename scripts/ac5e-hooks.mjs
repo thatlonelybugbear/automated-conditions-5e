@@ -657,31 +657,43 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	const ability = initAbility === '' ? 'dex' : initAbility;
 	options.ability = ability;
 	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
+	if (ac5eConfig.returnEarly) {
+		_getTooltip(ac5eConfig);
+		const ac5eConfigObject = { [Constants.MODULE_ID]: ac5eConfig };
+		foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
+		return ac5eConfig;
+	}
 	//to-do: match the flags or init mode with the tooltip blurb
 	//v5.1.x the flags.dnd5e.initiaiveAdv/Disadv are no more, and they are getting automatically replaced by the system with system.attributes.init.roll.mode
-	if (subject?.flags?.dnd5e?.initiativeAdv || subject.system.attributes.init.roll.mode > 0) ac5eConfig.subject.advantage.push(_localize('AC5E.FlagsInitiativeAdv')); //to-do: move to setPieces
-	if (subject?.flags?.dnd5e?.initiativeDisadv || subject.system.attributes.init.roll.mode < 0) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
+	if (subject?.flags?.dnd5e?.initiativeAdv) ac5eConfig.subject.advantage.push(_localize('AC5E.FlagsInitiativeAdv')); //to-do: move to setPieces
+	if (subject?.flags?.dnd5e?.initiativeDisadv) ac5eConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv')); //to-do: move to setPieces
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
 
+	if (!foundry.utils.isEmpty(ac5eConfig.subject.noAdvantage)) {
+		ac5eConfig.subject.advantage = [];
+		ac5eConfig.opponent.advantage = [];
+		ac5eConfig.subject.advantageNames = new Set();
+		ac5eConfig.opponent.advantageNames = new Set();
+	}
+	if (!foundry.utils.isEmpty(ac5eConfig.subject.noDisadvantage)) {
+		ac5eConfig.subject.disadvantage = [];
+		ac5eConfig.opponent.disadvantage = [];
+		ac5eConfig.subject.disadvantageNames = new Set();
+		ac5eConfig.opponent.disadvantageNames = new Set();
+	}
 	let advantageMode = 0;
-	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length) advantageMode += 1;
-	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length) advantageMode -= 1;
+	if (ac5eConfig.subject.advantage.length || ac5eConfig.opponent.advantage.length || ac5eConfig.subject.advantageNames.size || ac5eConfig.opponent.advantageNames.size) advantageMode += 1;
+	if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length || ac5eConfig.subject.disadvantageNames.size || ac5eConfig.opponent.disadvantageNames.size) advantageMode -= 1;
 	if (ac5eConfig.parts.length) rollConfig.parts = rollConfig.parts.concat(ac5eConfig.parts);
 	if (advantageMode > 0) {
-		rollConfig.advantageMode = 1;
-		rollConfig.options.advantageMode = 1;
-		rollConfig.advantage = true;
-		rollConfig.disadvantage = false;
+		rollConfig.options.advantage = true;
+		rollConfig.options.disadvantage = false;
 	} else if (advantageMode < 0) {
-		rollConfig.advantageMode = -1;
-		rollConfig.options.advantageMode = -1;
-		rollConfig.advantage = false;
-		rollConfig.disadvantage = true;
+		rollConfig.options.advantage = false;
+		rollConfig.options.disadvantage = true;
 	} else if (advantageMode === 0) {
-		rollConfig.advantageMode = 0;
-		rollConfig.options.advantageMode = 0;
-		rollConfig.advantage = false;
-		rollConfig.disadvantage = false;
+		rollConfig.options.advantage = true;
+		rollConfig.options.disadvantage = true;
 	}
 
 	ac5eConfig.advantageMode = advantageMode;
