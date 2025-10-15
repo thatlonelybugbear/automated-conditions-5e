@@ -14,7 +14,6 @@ export default class Settings {
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
-	static KEYPRESS_OVERRIDES = 'keypressOverrides';
 	static DEBUG = 'debugging';
 	static MIGRATION = 'lastMigratedPoint';
 	static ColorPicker_Enabled = 'buttonColorEnabled';
@@ -193,14 +192,6 @@ export default class Settings {
 				warn: 'AC5E.Targeting.Choices.Warn',
 			},
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES, {
-			name: 'AC5E.KeypressOverrideName',
-			hint: 'AC5E.KeypressOverrideHint',
-			scope: 'world',
-			config: false,
-			default: false,
-			type: Boolean,
-		});
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
 			name: 'DEBUG',
 			scope: 'world',
@@ -277,9 +268,6 @@ export default class Settings {
 	}
 	get needsTarget() {
 		return game.settings.get(Constants.MODULE_ID, Settings.TARGETING);
-	}
-	get keypressOverrides() {
-		return game.settings.get(Constants.MODULE_ID, Settings.KEYPRESS_OVERRIDES);
 	}
 	get buttonColorEnabled() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Enabled);
