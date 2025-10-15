@@ -3,7 +3,8 @@
 * Compatibility updates for System flags countmodes, suppressing and overriding roll modes.
 * Fixes for MidiQOL integration.
 * Fix for concentration handling.
-* Added `actorType.items`, as an Array of items' rollData.
+* Added `actorType.items` helper, returning an Array of the relevant actor's items rollData.
+* Added `actorType.levelCr` helper, returning the level or CR of the relevant actor.
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
   
 ## 13.519.5.1
