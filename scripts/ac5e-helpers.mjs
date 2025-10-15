@@ -352,16 +352,28 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			dialog.options.advantageMode = ADV_MODE;
 			dialog.options.defaultButton = 'advantage';
 		}
+		if (ac5eConfig.subject.noAdvantage.length || ac5eConfig.opponent.noAdvantage.length) {
+			config.advantage = false;
+		}
 		if (ac5eConfig.subject.disadvantage.length || ac5eConfig.opponent.disadvantage.length || ac5eConfig.subject.disadvantageNames.size || ac5eConfig.opponent.disadvantageNames.size) {
 			config.disadvantage = true;
 			dialog.options.advantageMode = DIS_MODE;
 			dialog.options.defaultButton = 'disadvantage';
 		}
-		if (config.advantage === config.disadvantage) {
+		if (ac5eConfig.subject.noDisadvantage.length || ac5eConfig.opponent.noDisadvantage.length) {
+			config.disadvantage = false;
+		}
+		if (config.advantage && config.disadvantage) {		
 			config.advantage = true; // both true let system handle it
 			config.disadvantage = true; // both true let system handle it
 			dialog.options.advantageMode = NORM_MODE;
 			dialog.options.defaultButton = 'normal';
+		} else if (config.advantage && !config.disadvantage) {
+			dialog.options.advantageMode = ADV_MODE;
+			dialog.options.defaultButton = 'advantage';
+		} else if (!config.advantage && config.disadvantage) {
+			dialog.options.advantageMode = DIS_MODE;
+			dialog.options.defaultButton = 'disadvantage';
 		}
 		if (hook === 'attack' || hook === 'damage') {
 			// need to allow damage hooks too for results shown?
@@ -648,10 +660,13 @@ export function _getTooltip(ac5eConfig = {}) {
 		const subjectAdvantageModes = [...(subject?.advantage ?? []), ...([...subject?.advantageNames] ?? [])];
 		const subjectDisadvantageModes = [...(subject?.disadvantage ?? []), ...([...subject?.disadvantageNames] ?? [])];
 		addTooltip(subject.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subject.critical.join(', ')}</span>`);
+		addTooltip(subject.noCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoCritical')}: ${subject.noCritical.join(', ')}</span>`);
 		addTooltip(subjectAdvantageModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subjectAdvantageModes.join(', ')}</span>`);
+		addTooltip(subject.noAdvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoAdvantage')}: ${subject.noAdvantage.join(', ')}</span>`);
 		addTooltip(subject.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${subject.fail.join(', ')}</span>`);
 		addTooltip(subject.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fumble')}: ${subject.fumble.join(', ')}</span>`);
 		addTooltip(subjectDisadvantageModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subjectDisadvantageModes.join(', ')}</span>`);
+		addTooltip(subject.noDisadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoDisadvantage')}: ${subject.noDisadvantage.join(', ')}</span>`);
 		addTooltip(subject.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subject.success.join(', ')}</span>`);
 		addTooltip(subject.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subject.bonus.join(', ')}</span>`);
 		addTooltip(subject.modifiers.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subject.modifiers.join(', ')}</span>`);
@@ -661,9 +676,12 @@ export function _getTooltip(ac5eConfig = {}) {
 		const opponentAdvantageModes = [...(opponent?.advantage ?? []), ...([...opponent?.advantageNames] ?? [])];
 		const opponentDisadvantageModes = [...(opponent?.disadvantage ?? []), ...([...opponent?.disadvantageNames] ?? [])];
 		addTooltip(opponent.critical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsCriticalAbbreviated')}: ${opponent.critical.join(', ')}</span>`);
+		addTooltip(opponent.noCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsNoCritical')}: ${opponent.noCritical.join(', ')}</span>`);
 		addTooltip(opponent.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFail')}: ${opponent.fail.join(', ')}</span>`);
 		addTooltip(opponentAdvantageModes.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${opponentAdvantageModes.join(', ')}</span>`);
+		addTooltip(opponent.noAdvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsNoAdvantage')}: ${opponent.noAdvantage.join(', ')}</span>`);
 		addTooltip(opponentDisadvantageModes.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${opponentDisadvantageModes.join(', ')}</span>`);
+		addTooltip(opponent.noDisadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsNoDisadvantage')}: ${opponent.noDisadvantage.join(', ')}</span>`);
 		addTooltip(opponent.success.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsSuccess')}: ${opponent.success.join(', ')}</span>`);
 		addTooltip(opponent.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFumble')}: ${opponent.fumble.join(', ')}</span>`);
 		addTooltip(opponent.bonus.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsBonus')}: ${opponent.bonus.join(', ')}</span>`);
@@ -707,8 +725,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		subject: {
 			advantage: [],
 			advantageNames: new Set(),
+			noAdvantage: [],
 			disadvantage: [],
 			disadvantageNames: new Set(),
+			noDisadvantage: [],
 			fail: [],
 			bonus: [],
 			critical: [],
@@ -723,8 +743,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		opponent: {
 			advantage: [],
 			advantageNames: new Set(),
+			noAdvantage: [],
 			disadvantage: [],
 			disadvantageNames: new Set(),
+			noDisadvantage: [],
 			fail: [],
 			bonus: [],
 			critical: [],
@@ -755,8 +777,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const wasCritical = config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical || ac5eConfig.preAC5eConfig.critKey;
 	ac5eConfig.preAC5eConfig.wasCritical = wasCritical;
 	if (options.skill || options.tool) ac5eConfig.title = dialog?.options?.window?.title;
-	const roller = _activeModule('midi-qol') ? 'MidiQOL' : _activeModule('ready-set-roll-5e') ? 'RSR' : 'Core';
-	if (_activeModule('midi-qol')) ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(config.midiOptions || {}); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
+	const midiRoller = _activeModule('midi-qol');
+	const rsrRoller = _activeModule('ready-set-roll-5e');
+	const roller = midiRoller ? 'MidiQOL' : rsrRoller ? 'RSR' : 'Core';
+	if (midiRoller) ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(config.midiOptions || {}); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
 	ac5eConfig.roller = roller;
 	ac5eConfig.preAC5eConfig.adv = config.advantage;
 	ac5eConfig.preAC5eConfig.dis = config.disadvantage;
@@ -792,7 +816,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	} else {
 		if (skipDialogAdvantage) {
 			if (hookType === 'damage') ac5eConfig.subject.critical.push(_localize('AC5E.CriticalKeypress'));
-			else ac5eConfig.subject.advantage.push(_localize('AC5E.DisadvantageKeypress'));
+			else ac5eConfig.subject.advantage.push(_localize('AC5E.AdvantageKeypress'));
 		} 
 		if (skipDialogDisadvantage) {
 			if (hookType === 'damage') ac5eConfig.subject.noCritical.push(_localize('AC5E.NoCriticalKeypress'));
