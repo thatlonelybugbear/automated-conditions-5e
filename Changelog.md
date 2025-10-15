@@ -1,3 +1,9 @@
+## 13.519.6
+* Compatibility updates for keypress overrides.
+* Compatibility updates for System flags countmodes, suppressing and overriding roll modes.
+* Fixes for MidiQOL integration
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+  
 ## 13.519.5.1
 * Make operator removal safer
 * Proper formula mode evaluations for aura's radius
