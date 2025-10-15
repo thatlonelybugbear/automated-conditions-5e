@@ -359,7 +359,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (ac5eConfig.subject.noDisadvantage.length || ac5eConfig.opponent.noDisadvantage.length) {
 			config.disadvantage = false;
 		}
-		if (config.advantage && config.disadvantage) {		
+		if (config.advantage && config.disadvantage) {
 			config.advantage = true; // both true let system handle it
 			config.disadvantage = true; // both true let system handle it
 			dialog.options.advantageMode = NORM_MODE;
@@ -813,7 +813,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		if (skipDialogAdvantage) {
 			if (hookType === 'damage') ac5eConfig.subject.critical.push(_localize('AC5E.CriticalKeypress'));
 			else ac5eConfig.subject.advantage.push(_localize('AC5E.AdvantageKeypress'));
-		} 
+		}
 		if (skipDialogDisadvantage) {
 			if (hookType === 'damage') ac5eConfig.subject.noCritical.push(_localize('AC5E.NoCriticalKeypress'));
 			else ac5eConfig.subject.disadvantage.push(_localize('AC5E.DisadvantageKeypress'));
@@ -824,19 +824,21 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const { adv, dis } = getSystemRollConfig({ actor, options, hookType, ac5eConfig });
 
 	if (!options.preConfigInitiative) {
-		if (!skipDialogAdvantage && !adv && (config.advantage && !midiRoller || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
+		if (!skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
-				const attribution = Array.from(config.workflow?.attackAdvAttribution)?.filter((attr) => attr.includes('ADV:')).map((attr) => attr.replace('ADV:', 'MidiQOL: '));
+				const attribution = Array.from(config.workflow?.attackAdvAttribution)
+					?.filter((attr) => attr.includes('ADV:'))
+					.map((attr) => attr.replace('ADV:', 'MidiQOL: '));
 				ac5eConfig.subject.advantage.push(...attribution);
-			}
-			else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
+			} else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 		}
-		if (!skipDialogAdvantage && !dis && (config.disadvantage && !midiRoller || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
+		if (!skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
-				const attribution = Array.from(config.workflow?.attackAdvAttribution)?.filter?.((attr) => attr.includes('DIS:')).map((attr) => attr.replace('DIS:', 'MidiQOL: '));
+				const attribution = Array.from(config.workflow?.attackAdvAttribution)
+					?.filter?.((attr) => attr.includes('DIS:'))
+					.map((attr) => attr.replace('DIS:', 'MidiQOL: '));
 				ac5eConfig.subject.disadvantage.push(...attribution);
-			}
-			else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
+			} else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 		}
 		if (!skipDialogAdvantage && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical)) ac5eConfig.subject.critical.push(`${roller} ${_localize('AC5E.Flags')}`);
 	}
