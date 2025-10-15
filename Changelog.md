@@ -1,5 +1,5 @@
 ## 13.5110.1
-* Compatibility bump for d&d5e v5.1.10 (killing my versioning 🤣)
+* Compatibility bump for d&d5e v5.1.10 (killing my versioning schema 🤣)
 * `noAdvantage`, `noCritical`, `noDisadvantage` flags, used to suppress the relevant modes.
 
 ## 13.519.6
