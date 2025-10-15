@@ -1271,10 +1271,11 @@ export function _ac5eActorRollData(token) {
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
 	actorData.equippedItems = { names: [], identifiers: [] };
-	for (const item of actor.items) {
-		if (item?.system?.equipped) {
-			actorData.equippedItems.names.push(item.name);
-			actorData.equippedItems.identifiers.push(item.identifier);
+	actorData.items = actor.items?.map((i) => ({ ...i.getRollData().item, uuid: i.uuid })) ?? [];
+	for (const i of actorData.items) {
+		if (i.equipped) {
+			actorData.equippedItems.names.push(i.name);
+			actorData.equippedItems.identifiers.push(i.identifier);
 		}
 	}
 	actorData.hasArmor = !!actorData.attributes.ac?.equippedArmor;
@@ -1387,7 +1388,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.itemProperties = {};
 	if (item) {
 		sandbox[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
-		sandbox[itemData.type.value] = true;
+		if (!!itemData.type?.value) sandbox[itemData.type.value] = true;
 		if (itemData.spell) sandbox[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
