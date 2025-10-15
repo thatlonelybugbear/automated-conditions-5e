@@ -71,8 +71,6 @@
 			"Enforce": "AC5e: Nenhum alvo selecionado. Rolagem cancelada!"
 		}
 	},
-	"AC5E.KeypressOverrideName": "Atalhos Sobrepõem Cálculos AC5e",
-	"AC5E.KeypressOverrideHint": "Os atalhos de chave para vantagem, desvantagem e crítico devem substituir quaisquer cálculos do AC5e (habilitado) ou ser adicionados aos cálculos normais do AC5e (desabilitado).",
 	"AC5E.DebuggingName": "Debug",
 	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
 	"AC5E.WarCaster": "Conjurador de Guerra",
@@ -112,14 +110,29 @@
 			"Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
 		}
 	},
-	"AC5E.ExtraDice": "Dado Extra",
+  	"AC5E.AdvantageKeypress": "Atalho Vantagem",
+  	"AC5E.CriticalKeypress": "Atalho Crítico",
+  	"AC5E.DisadvantageKeypress": "Atalho Desvantagem",
+  	"AC5E.NoCriticalKeypress": "Atalho Normal",
+  	"AC5E.OverrideAdvantage": "Substituir Atalho de Vantagem",
+  	"AC5E.OverrideCritical": "Substituir Atalho de Crítico",
+  	"AC5E.OverrideDisadvantage": "Substituir Atalho de Desvantagem",
+  	"AC5E.OverrideNoCritical": "Substituir Atalho de Normal",
+  	"AC5E.ForcedAdvantage": "Vantagem Forçada pelo Sistema",
+  	"AC5E.ForcedDisadvantage": "Desvantagem Forçada pelo Sistema",
+  	"AC5E.NoAdvantage": "Vantagem Suprimida",
+  	"AC5E.NoDisadvantage": "Desvantagem Suprimida",
+  	"AC5E.TargetGrantsNoAdvantage": "Sem Vantagem Concedida",
+  	"AC5E.TargetGrantsNoDisadvantage": "Sem Desvantagem Concedida",
 	"AC5E.Bonus": "Bônus",
+	"AC5E.ExtraDice": "Dado Extra",
 	"AC5E.Success": "Sucesso",
 	"AC5E.AbbreviationAdvantage": "vant.",
 	"AC5E.AbbreviationDisadvantage": "desv.",
 	"AC5E.AbbreviationCritical": "crít.",
 	"AC5E.Grants": "conceder",
 	"AC5E.Attacker": "Atacante",
+	"AC5E.Flags": "flags",
 	"AC5E.FlagsInitiativeAdv": "Vantagem na Iniciativa",
 	"AC5E.FlagsInitiativeDisadv": "Desvantagem na Iniciativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Vantagem Concedida",
@@ -212,7 +225,19 @@
       			},
 			"modifyDC": {
         		"name": "Modificar CD de Ações (também funciona em Concentração e Salvaguardas Contra Morte)",
-        		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Ex: bonus=(rollingActor.attributes.hp.pct < 50 ? 5 : 12)"
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Ex: bonus=(rollingActor.attributes.hp.pct < 50 ? 5 : 12)."
+      		},
+			"noAdvantage": {
+        		"name": "Modo Suprimir Vantagem",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      		},
+      		"noCritical": {
+        		"name": "Suprimir Críticos",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/damage."
+      		},
+      		"noDisadvantage": {
+        		"name": "Modo Suprimir Desvantagem",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
       		},
 			"fail": {
 				"name": "Rolagem de d20 Falha",
@@ -252,6 +277,18 @@
         		"name": "Modificar CD de Rolagem Resistida de Ação de Outros",
         		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). eg bonus=(rollingActor.attributes.hp.pct < 50 ? -5 : 2)"
       		},
+			"noAdvantage": {
+        		"name": "Modo Conceder Sem Vantagem",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      		},
+      		"noCritical": {
+        		"name": "Conceder Sem Críticos",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/damage."
+      		},
+      		"noDisadvantage": {
+        		"name": "Modo Conceder Sem Desvantagem",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+      		},
 			"fail": {
 				"name": "Conceder Falha às Rolagens de d20 do Oponente",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
@@ -289,6 +326,18 @@
 			"modifyDC": {
         		"name": "Aura que Modifica CD de Ações de Tokens Afetados",
         		"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus, radius como de costume."
+      		},
+			"noAdvantage": {
+        		"name": "Aura que Suprime Modo de Vantagem",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius como de costume."
+      		},
+      		"noCritical": {
+        		"name": "Aura que Suprime Críticos",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/damage. Use radius como de costume."
+      		},
+      		"noDisadvantage": {
+        		"name": "Aura que Suprime Modo de Desvantagem",
+        		"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
       		},
 			"fail": {
 				"name": "Aura Forçando Falha às Rolagens de d20",
