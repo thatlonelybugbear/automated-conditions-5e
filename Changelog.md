@@ -1,7 +1,8 @@
 ## 13.519.6
 * Compatibility updates for keypress overrides.
 * Compatibility updates for System flags countmodes, suppressing and overriding roll modes.
-* Fixes for MidiQOL integration
+* Fixes for MidiQOL integration.
+* Fix for concentration handling.
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
   
 ## 13.519.5.1
