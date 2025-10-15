@@ -3,6 +3,7 @@
 * Compatibility updates for System flags countmodes, suppressing and overriding roll modes.
 * Fixes for MidiQOL integration.
 * Fix for concentration handling.
+* Added `actorType.items`, as an Array of items' rollData.
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
   
 ## 13.519.5.1
