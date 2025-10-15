@@ -357,8 +357,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			dialog.options.defaultButton = 'disadvantage';
 		}
 		if (config.advantage === config.disadvantage) {
-			config.advantage = false;
-			config.disadvantage = false;
+			config.advantage = true; // both true let system handle it
+			config.disadvantage = true; // both true let system handle it
 			dialog.options.advantageMode = NORM_MODE;
 			dialog.options.defaultButton = 'normal';
 		}
