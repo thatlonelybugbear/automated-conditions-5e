@@ -849,16 +849,18 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	return ac5eConfig;
 }
 
-function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode }) {
+function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type }) {
 	const capitalizeHook = hookType.capitalize();
 	if (mode > 0) {
 		systemMode.adv++;
 		if (!actor.hasConditionEffect(`ability${capitalizeHook}Advantage`)) ac5eConfig.subject.advantageNames.add(_localize(typeLabel));
+		if (type === 'init' && !actor.hasConditionEffect('initiativeAdvantage')) ac5eConfig.subject.advantageNames.add(_localize(typeLabel));
 	}
 	if (mode < 0) {
 		systemMode.dis++;
 		//Do not add System Mode for stealth disadvantage; already added by name
 		if (!actor.hasConditionEffect(`ability${capitalizeHook}Disadvantage`) && ac5eConfig?.options?.skill !== 'ste') ac5eConfig.subject.disadvantageNames.add(_localize(typeLabel));
+		if (type === 'init' && !actor.hasConditionEffect('initiativeDisadvantage')) ac5eConfig.subject.disadvantageNames.add(_localize(typeLabel));
 	}
 	if (max) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${max})`);
 	if (min) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${min})`);
@@ -882,7 +884,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 		}
 		if (options.isInitiative) {
 			const { mode, max, min } = getConcOrDeathOrInitRollObject({ actor, type: 'init' });
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, type: 'init' });
 		}
 	}
 	if (ability && ['check', 'save'].includes(hookType)) {
