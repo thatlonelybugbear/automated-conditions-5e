@@ -260,6 +260,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const actorType = key.includes('grants') ? 'opponent' : (includeAuras && key.includes('aura')) || (!key.includes('aura') && !key.includes('grants')) ? 'subject' : undefined;
 
 		const modeMap = [
+			['noadv', 'noAdvantage'],
+			['nocrit', 'noCritical'],
+			['nodis', 'noDisadvantage'],
 			['dis', 'disadvantage'],
 			['adv', 'advantage'],
 			['thres', 'criticalThreshold'],
