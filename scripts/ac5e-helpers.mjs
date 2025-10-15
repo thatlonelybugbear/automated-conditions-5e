@@ -880,21 +880,22 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			const { mode, max, min } = getActorToolRollObject({ actor, tool });
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 		}
-		if (options.isConcentration) {
-			if (_hasItem(actor, _localize('AC5E.WarCaster'))) {
-				ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
-			}
-			const { mode, max, min } = getConcOrDeathOrInitRollObject({ actor, type: 'concentration' });
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
-		}
 		if (options.isInitiative) {
 			const { mode, max, min } = getConcOrDeathOrInitRollObject({ actor, type: 'init' });
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
 		}
 	}
 	if (ability && ['check', 'save'].includes(hookType)) {
-		const { mode, max, min } = getActorAbilityRollObject({ actor, ability, hookType });
-		collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
+		if (options.isConcentration) {
+			if (_hasItem(actor, _localize('AC5E.WarCaster'))) {
+				ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
+			}
+			const { mode, max, min } = getConcOrDeathOrInitRollObject({ actor, type: 'concentration' });
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
+		} else {
+			const { mode, max, min } = getActorAbilityRollObject({ actor, ability, hookType });
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode });
+		}
 	}
 	if (options.isDeathSave && hookType === 'save') {
 		const { mode, max, min } = getConcOrDeathOrInitRollObject({ actor, type: 'death' });
