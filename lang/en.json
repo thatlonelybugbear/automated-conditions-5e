@@ -71,8 +71,6 @@
 			"Enforce": "AC5e: No targets selected. Roll cancelled!"
 		}
 	},
-	"AC5E.KeypressOverrideName": "Keybinds override AC5e calculations",
-	"AC5E.KeypressOverrideHint": "The key binds for advantage, disadvantage, critical should override any calculations by AC5e (checked) or be added to the normal AC5e calculations (not checked).",
 	"AC5E.DebuggingName": "AC5e debug",
 	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
 	"AC5E.WarCaster": "War Caster",
@@ -112,6 +110,10 @@
 			"Hint": "Delete any string from the input to default to white"
 		}
 	},
+	"AC5E.OverrideAdvantage": "Override advantage keypress",
+	"AC5E.OverrideCritical": "Override critical keypress",
+	"AC5E.OverrideDisadvantage": "Override disadvantage keypress",
+	"AC5E.OverrideNoCritical": "Override normal keypress",
 	"AC5E.Bonus": "Bonus",
 	"AC5E.ExtraDice": "Extra dice",
 	"AC5E.Success": "Success",
