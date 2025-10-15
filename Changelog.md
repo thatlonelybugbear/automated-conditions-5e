@@ -1,3 +1,7 @@
+## 13.5110.1
+* Compatibility bump for d&d5e v5.1.10 (killing my versioning 🤣)
+* `noAdvantage`, `noCritical`, `noDisadvantage` flags, used to suppress the relevant modes.
+
 ## 13.519.6
 * Compatibility updates for keypress overrides.
 * Compatibility updates for System flags countmodes, suppressing and overriding roll modes.
