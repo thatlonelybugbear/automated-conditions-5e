@@ -343,6 +343,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	if (hook === 'damage') {
 		if (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length) {
 			ac5eConfig.isCritical = true;
+			config.isCritical = true; // does this break something? added back to properly focus on button
 			dialog.options.defaultButton = 'critical';
 		}
 	} else {
@@ -711,6 +712,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			fail: [],
 			bonus: [],
 			critical: [],
+			noCritical: [],
 			success: [],
 			fumble: [],
 			modifiers: [],
@@ -726,6 +728,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			fail: [],
 			bonus: [],
 			critical: [],
+			noCritical: [],
 			success: [],
 			fumble: [],
 			modifiers: [],
@@ -765,16 +768,22 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (returnEarly) {
 		ac5eConfig.returnEarly = true;
 		if (skipDialogAdvantage) {
-			if (hookType === 'damage') (config.isCritical = true) && (ac5eConfig.subject.critical = [_localize('AC5E.OverrideCritical')]);
-			else {
-				(config.advantage = true) && (ac5eConfig.subject.advantage = [_localize('AC5E.OverrideAdvantage')]);
+			if (hookType === 'damage') {
+				config.isCritical = true;
+				ac5eConfig.subject.critical.push(_localize('AC5E.OverrideCritical'));
+			} else {
+				config.advantage = true;
+				ac5eConfig.subject.advantage.push(_localize('AC5E.OverrideAdvantage'));
 				config.disadvantage = false;
 			}
 		}
 		if (skipDialogDisadvantage) {
-			if (hookType === 'damage') (config.isCritical = false) && (ac5eConfig.subject.noCritical = [_localize('AC5E.OverrideNoCritical')]);
-			else {
-				(config.disadvantage = true) && (ac5eConfig.subject.disadvantage = [_localize('AC5E.OverrideDisadvantage')]);
+			if (hookType === 'damage') {
+				config.isCritical = false;
+				ac5eConfig.subject.noCritical.push(_localize('AC5E.OverrideNoCritical'));
+			} else {
+				config.disadvantage = true;
+				ac5eConfig.subject.disadvantage.push(_localize('AC5E.OverrideDisadvantage'));
 				config.advantage = false;
 			}
 		}
@@ -782,17 +791,35 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		return ac5eConfig;
 	} else {
 		if (skipDialogAdvantage) {
-			if (hookType === 'damage') ac5eConfig.subject.critical = [`${roller} (keyPress)`];
-			else ac5eConfig.subject.advantage = [`${roller} (keyPress)`];
-		} else if (skipDialogDisadvantage) ac5eConfig.subject.disadvantage = [`${roller} (keyPress)`];
+			if (hookType === 'damage') ac5eConfig.subject.critical.push(_localize('AC5E.CriticalKeypress'));
+			else ac5eConfig.subject.advantage.push(_localize('AC5E.DisadvantageKeypress'));
+		} 
+		if (skipDialogDisadvantage) {
+			if (hookType === 'damage') ac5eConfig.subject.noCritical.push(_localize('AC5E.NoCriticalKeypress'));
+			else ac5eConfig.subject.disadvantage.push(_localize('AC5E.DisadvantageKeypress'));
+		}
 	}
 
 	// const actorSystemRollMode = [];
 	const { adv, dis } = getSystemRollConfig({ actor, options, hookType, ac5eConfig });
 
-	if (!options.preConfigInitiative && ((config.advantage && roller !== 'MidiQOL') || ac5eConfig.preAC5eConfig.midiOptions?.advantage) && !skipDialogAdvantage && !adv) ac5eConfig.subject.advantage.push(`${roller} (flags)`);
-	if (!options.preConfigInitiative && ((config.disadvantage && roller !== 'MidiQOL') || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage) && !skipDialogDisadvantage && !dis) ac5eConfig.subject.disadvantage.push(`${roller} (flags)`);
-	if (!options.preConfigInitiative && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical) && !skipDialogAdvantage) ac5eConfig.subject.critical.push(`${roller} (flags)`);
+	if (!options.preConfigInitiative) {
+		if (!skipDialogAdvantage && !adv && (config.advantage && !midiRoller || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
+			if (midiRoller) {
+				const attribution = Array.from(config.workflow?.attackAdvAttribution)?.filter((attr) => attr.includes('ADV:')).map((attr) => attr.replace('ADV:', 'MidiQOL: '));
+				ac5eConfig.subject.advantage.push(...attribution);
+			}
+			else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
+		}
+		if (!skipDialogAdvantage && !dis && (config.disadvantage && !midiRoller || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
+			if (midiRoller) {
+				const attribution = Array.from(config.workflow?.attackAdvAttribution)?.filter?.((attr) => attr.includes('DIS:')).map((attr) => attr.replace('DIS:', 'MidiQOL: '));
+				ac5eConfig.subject.disadvantage.push(...attribution);
+			}
+			else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
+		}
+		if (!skipDialogAdvantage && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical)) ac5eConfig.subject.critical.push(`${roller} ${_localize('AC5E.Flags')}`);
+	}
 
 	if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
 	return ac5eConfig;
