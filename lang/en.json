@@ -227,6 +227,18 @@
 				"name": "Modify the DC of your actions. Will work for concentation checks and death saves you make too",
 				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided threshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 			},
+			"noAdvantage": {
+				"name": "Suppress advantage mode",
+				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"noCritical": {
+				"name": "Suppress criticals",
+				"description": "Replace ACTIONTYPE with one of all/attack/damage"
+			},
+			"noDisadvantage": {
+				"name": "Suppress disadvantage mode",
+				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
 			"fail": {
 				"name": "d20 rolls fail",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool"
@@ -265,6 +277,18 @@
 				"name": "Modify the DC of a roll you make against an action taken by another",
 				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided. You can use roll data, dice formulas and evaluate conditions too."
 			},
+			"noAdvantage": {
+				"name": "Grant no advantage mode",
+				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"noCritical": {
+				"name": "Grant no criticals",
+				"description": "Replace ACTIONTYPE with one of all/attack/damage"
+			},
+			"noDisadvantage": {
+				"name": "Grant no disadvantage mode",
+				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
 			"fail": {
 				"name": "Grant failure to opponent's d20 rolls",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool"
@@ -302,6 +326,18 @@
 			"modifyDC": {
 				"name": "An aura that modifies the DC of actions the affected tokens take.",
 				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus/set, radius as usual"
+			},
+			"noAdvantage": {
+				"name": "An aura that suppresses advantage mode",
+				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
+			},
+			"noCritical": {
+				"name": "An aura that suppresses criticals",
+				"description": "Replace ACTIONTYPE with one of all/attack/damage. Use radius as usual"
+			},
+			"noDisadvantage": {
+				"name": "An aura that suppresses disadvantage mode",
+				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
 			},
 			"fail": {
 				"name": "An aura forcing d20 rolls to fail",
