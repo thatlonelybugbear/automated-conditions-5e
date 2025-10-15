@@ -6,6 +6,19 @@ const settings = new Settings();
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	//ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
+	if (!foundry.utils.isEmpty(ac5eConfig.subject.forcedAdvantage)) {
+		ac5eConfig.subject.advantage = ac5eConfig.subject.forcedAdvantage;
+		ac5eConfig.subject.disadvantage = [];
+		ac5eConfig.subject.advantageNames = new Set();
+		ac5eConfig.subject.disadvantageNames = new Set();
+		return ac5eConfig;
+	} else if (!foundry.utils.isEmpty(ac5eConfig.subject.forcedDisadvantage)) {
+		ac5eConfig.subject.advantage = [];
+		ac5eConfig.subject.disadvantage = ac5eConfig.subject.forcedDisadvantage;
+		ac5eConfig.subject.advantageNames = new Set();
+		ac5eConfig.subject.disadvantageNames = new Set();
+		return ac5eConfig;
+	}
 	const { options } = ac5eConfig;
 	const actorTokens = {
 		subject: subjectToken?.actor,
