@@ -517,7 +517,8 @@ function simplifyFormula(formula = '', removeFlavor = false) {
 					options: t.options,
 				});
 				formula = formula.replace(t.formula, inter.number);
-			} else if (t.number === 0 && index) { // should be > 0
+			} else if (t.number === 0 && index) {
+				// should be > 0
 				const operator = roll.terms[index - 1]?.operator; // be safe
 				if (operator) formula = formula.replace(`${operator} ${t.formula}`, '');
 			}

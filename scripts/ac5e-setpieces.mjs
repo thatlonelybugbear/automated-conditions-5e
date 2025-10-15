@@ -6,6 +6,19 @@ const settings = new Settings();
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	//ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
+	if (!foundry.utils.isEmpty(ac5eConfig.subject.forcedAdvantage)) {
+		ac5eConfig.subject.advantage = ac5eConfig.subject.forcedAdvantage;
+		ac5eConfig.subject.disadvantage = [];
+		ac5eConfig.subject.advantageNames = new Set();
+		ac5eConfig.subject.disadvantageNames = new Set();
+		return ac5eConfig;
+	} else if (!foundry.utils.isEmpty(ac5eConfig.subject.forcedDisadvantage)) {
+		ac5eConfig.subject.advantage = [];
+		ac5eConfig.subject.disadvantage = ac5eConfig.subject.forcedDisadvantage;
+		ac5eConfig.subject.advantageNames = new Set();
+		ac5eConfig.subject.disadvantageNames = new Set();
+		return ac5eConfig;
+	}
 	const { options } = ac5eConfig;
 	const actorTokens = {
 		subject: subjectToken?.actor,
@@ -339,7 +352,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
 		let auraTokenEvaluationData;
-		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token),	isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id, }, { inplace: false });
+		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id }, { inplace: false });
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }))
@@ -605,13 +618,13 @@ function getBlacklistedKeysValue(key, values) {
 	return parts ? parts[1].trim() : '';
 }
 
-function bonusReplacements (expression, evalData, isAura, effect) {
+function bonusReplacements(expression, evalData, isAura, effect) {
 	if (typeof expression !== 'string') return expression;
 	// Short-circuit: skip if formula is just plain dice + numbers + brackets (no dynamic content)
 	const isStaticFormula = /^[\d\s+\-*/().\[\]d]+$/i.test(expression) && !expression.includes('@') && !expression.includes('Actor') && !expression.includes('##');
-	
+
 	if (isStaticFormula) return expression;
-	
+
 	const staticMap = {
 		'@scaling': evalData.scaling ?? 0,
 		scaling: evalData.scaling ?? 0,
@@ -624,7 +637,7 @@ function bonusReplacements (expression, evalData, isAura, effect) {
 		effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 		stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 	};
-	
+
 	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 	expression = expression.replace(pattern, (match) => staticMap[match]);
 	if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
@@ -634,9 +647,9 @@ function bonusReplacements (expression, evalData, isAura, effect) {
 		evalData.effectOriginActor = _ac5eActorRollData(tok);
 	}
 	return expression;
-};
+}
 
-function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura }){
+function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura }) {
 	let bonus, set, modifier, threshold;
 	const isBonus = value.includes('bonus') && (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') ? getBlacklistedKeysValue('bonus', value) : false;
 	if (isBonus) {
@@ -665,26 +678,27 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 }
 
 function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = false } = {}) {
-	if (typeof expr !== "string") throw new TypeError("Expression must be a string");
-	
+	if (typeof expr !== 'string') throw new TypeError('Expression must be a string');
+
 	const tokenRe = /([+-])?\s*(\d*d\d+|\d+)/gi;
-	let m, total = 0;
+	let m,
+		total = 0;
 	const logs = [];
-	
+
 	// sanity: ensure we only have digits, d, +, -, and whitespace
-	const invalid = expr.replace(tokenRe, "").replace(/\s+/g, "");
-	if (invalid.length)	throw new Error(`Invalid token(s) in expression: "${invalid}"`);
-	
+	const invalid = expr.replace(tokenRe, '').replace(/\s+/g, '');
+	if (invalid.length) throw new Error(`Invalid token(s) in expression: "${invalid}"`);
+
 	while ((m = tokenRe.exec(expr)) !== null) {
-		const sign = m[1] === "-" ? -1 : 1; // default positive when missing
+		const sign = m[1] === '-' ? -1 : 1; // default positive when missing
 		const term = m[2].toLowerCase();
-	
-		if (term.includes("d")) {
-		// dice term
-			const [countStr, sidesStr] = term.split("d");
-			const count = Math.min(Math.max(parseInt(countStr || "1", 10), 0), maxDice);
+
+		if (term.includes('d')) {
+			// dice term
+			const [countStr, sidesStr] = term.split('d');
+			const count = Math.min(Math.max(parseInt(countStr || '1', 10), 0), maxDice);
 			const sides = Math.min(Math.max(parseInt(sidesStr, 10), 1), maxSides);
-	
+
 			let sum = 0;
 			const rolls = [];
 			for (let i = 0; i < count; i++) {
@@ -693,16 +707,16 @@ function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = fals
 				sum += r;
 			}
 			total += sign * sum;
-			if (settings.debug) logs.push(`${sign < 0 ? "-" : "+"}${count}d${sides} → [${rolls.join(", ")}] = ${sign * sum}`);
+			if (settings.debug) logs.push(`${sign < 0 ? '-' : '+'}${count}d${sides} → [${rolls.join(', ')}] = ${sign * sum}`);
 		} else {
-		// static integer
+			// static integer
 			const value = parseInt(term, 10);
 			total += sign * value;
-			if (settings.debug) logs.push(`${sign < 0 ? "-" : "+"}${value}`);
+			if (settings.debug) logs.push(`${sign < 0 ? '-' : '+'}${value}`);
 		}
 	}
-	
+
 	if (settings.debug) console.warn(`evalDiceExpression("${expr}") -> ${total}`, logs);
-	
+
 	return total;
 }
