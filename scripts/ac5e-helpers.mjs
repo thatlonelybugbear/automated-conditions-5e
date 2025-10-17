@@ -824,7 +824,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const { adv, dis } = getSystemRollConfig({ actor, options, hookType, ac5eConfig });
 
 	if (!options.preConfigInitiative) {
-		if (!skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
+		if (hookType !== 'damage' && !skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
 				const attribution = Array.from(config.workflow?.attackAdvAttribution)
 					?.filter((attr) => attr.includes('ADV:'))
@@ -832,7 +832,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 				ac5eConfig.subject.advantage.push(...attribution);
 			} else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 		}
-		if (!skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
+		if (hookType !== 'damage' && !skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
 				const attribution = Array.from(config.workflow?.attackAdvAttribution)
 					?.filter?.((attr) => attr.includes('DIS:'))

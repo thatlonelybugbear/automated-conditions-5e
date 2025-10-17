@@ -1,3 +1,7 @@
+## 13.5110.2.1
+* Guard against advantage on attack rolls, giving advantage on damage rolls by default (MidiQOL relevant).
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.5110.2
 * Rename `actorType.levelCr` to `actorType.level` foe ease of use.
 
