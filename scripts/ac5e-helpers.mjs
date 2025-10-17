@@ -531,7 +531,7 @@ export function _dispositionCheck(t1, t2, check = 'all', mult) {
 	return result;
 }
 
-export function _findNearby({
+function findNearby({
 	token, // Token5e, TokenDocument5e, ID string, or UUID
 	disposition = 'all', // 'same', 'different', 'opposite' or false === 'all'
 	radius = 5, // Distance radius (default 5)
@@ -581,8 +581,8 @@ export function _findNearby({
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
-	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
+export function _checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
+	return findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
 }
 
 export function _autoArmor(actor) {
@@ -1571,3 +1571,68 @@ export function _getItemOrActivity(itemID, activityID, actor) {
 
 	return item.system?.activities?.find((a) => a.name === activityID || a.type === activityID || a.identifier === activityID || a.id === activityID || a.uuid === activityID) || {};
 }
+
+export function _getMessageData(config, hook) {
+	const messageId = config.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
+	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
+	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : undefined;
+
+	const messageTargets = getTargets(message);
+	const { activity: activityObj, item: itemObj, messageType, use } = message?.flags?.dnd5e || {};
+	const item = fromUuidSync(itemObj?.uuid);
+	const activity = fromUuidSync(activityObj?.uuid);
+	const options = {};
+	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
+	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
+	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
+
+	options.d20 = {};
+	if (hook === 'damage') {
+		if (_activeModule('midi-qol')) {
+			options.d20.attackRollTotal = config?.workflow?.attackTotal;
+			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
+			options.d20.hasAdvantage = config?.workflow?.advantage;
+			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
+			options.d20.isCritical = config?.midiOptions?.isCritical;
+			options.d20.isFumble = config?.midiOptions?.isFumble;
+		} else {
+			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
+			options.d20.attackRollTotal = findAttackRoll?.total;
+			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
+			options.d20.hasAdvantage = findAttackRoll?.options?.advantageMode > 0;
+			options.d20.hasDisadvantage = findAttackRoll?.options?.advantageMode < 0;
+			options.d20.isCritical = findAttackRoll?.options?.isCritical ?? config?.isCritical;
+			options.d20.isFumble = findAttackRoll?.options?.isFumble ?? config?.isFumble;
+		}
+	}
+	options.messageId = messageId;
+	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
+	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
+	const attackingToken = canvas.tokens.get(tokenId);
+	const attackingActor = attackingToken?.actor ?? item?.actor;
+	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
+	return { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options };
+}
+
+export function _getTargets(message) {
+	const messageTargets = message?.flags?.dnd5e?.targets;
+	if (messageTargets?.length) return messageTargets;
+	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
+}
+
+export function _notifyPreUse(actorName, warning, type) {
+	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
+	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
+	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
+}
+
+export function _compareArrays(a, b) {
+	const len = Math.max(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		if (a[i] !== b[i]) {
+			return { equal: false, index: i, initialValue: a[i], selectedValue: b[i] };
+		}
+	}
+	return { equal: true };
+}
+

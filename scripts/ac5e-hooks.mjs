@@ -1,7 +1,8 @@
-import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getMessageData, _getTargets, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _notifyPreUse, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
-import Settings from './ac5e-settings.mjs';
+import Settings, { _renderChatTooltipsSettings, _renderColoredButtonSettings } from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
+import { _doDialogAttackRender, _doDialogDamageRender, _doDialogSkillOrToolRender } from './ac5e-dialogFn.mjs';
 
 const settings = new Settings();
 
@@ -26,53 +27,6 @@ export function _rollFunctions(hook, ...args) {
 		return _preConfigureInitiative(actor, rollConfig, hook);
 	}
 }
-function getMessageData(config, hook) {
-	const messageId = config.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
-	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : undefined;
-
-	const messageTargets = getTargets(message);
-	const { activity: activityObj, item: itemObj, messageType, use } = message?.flags?.dnd5e || {};
-	const item = fromUuidSync(itemObj?.uuid);
-	const activity = fromUuidSync(activityObj?.uuid);
-	const options = {};
-	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
-	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
-	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
-
-	options.d20 = {};
-	if (hook === 'damage') {
-		if (_activeModule('midi-qol')) {
-			options.d20.attackRollTotal = config?.workflow?.attackTotal;
-			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
-			options.d20.hasAdvantage = config?.workflow?.advantage;
-			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
-			options.d20.isCritical = config?.midiOptions?.isCritical;
-			options.d20.isFumble = config?.midiOptions?.isFumble;
-		} else {
-			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
-			options.d20.attackRollTotal = findAttackRoll?.total;
-			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
-			options.d20.hasAdvantage = findAttackRoll?.options?.advantageMode > 0;
-			options.d20.hasDisadvantage = findAttackRoll?.options?.advantageMode < 0;
-			options.d20.isCritical = findAttackRoll?.options?.isCritical ?? config?.isCritical;
-			options.d20.isFumble = findAttackRoll?.options?.isFumble ?? config?.isFumble;
-		}
-	}
-	options.messageId = messageId;
-	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
-	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
-	const attackingToken = canvas.tokens.get(tokenId);
-	const attackingActor = attackingToken?.actor ?? item?.actor;
-	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
-	return { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options };
-}
-
-function getTargets(message) {
-	const messageTargets = message?.flags?.dnd5e?.targets;
-	if (messageTargets?.length) return messageTargets;
-	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
-}
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
 	if (activity.type === 'check') return true; //maybe check for
@@ -86,7 +40,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	options.tool = tool;
 	options.hook = hook;
 	options.activity = activity;
-	options.targets = getTargets();
+	options.targets = _getTargets();
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 	options.riderStatuses = _getActivityEffectsStatusRiders(activity);
 	const useWarnings = settings.autoArmorSpellUse === 'off' ? false : settings.autoArmorSpellUse === 'warn' ? 'Warn' : 'Enforce';
@@ -96,14 +50,14 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 		const silenced = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpell;
 		// const silencedCheck = item.system.properties.has('vocal') && sourceActor.statuses.has('silenced') && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Vocal')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellVocal;
 		// const somaticCheck = item.system.properties.has('somatic') && sourceActor.items.filter((i)=>i.system?.equipped && i.system.type === 'weapon' && !i.system.properties.has('foc'))?.length > 1 && !sourceActor.appliedEffects.some((effect) => effect.name === _localize('AC5E.SubtleSpell.Somatic')) && !sourceActor.flags?.[Constants.MODULE_ID]?.subtleSpellSomatic;
-		if (notProficient) notifyPreUse(sourceActor.name, useWarnings, 'Armor');
-		else if (raging) notifyPreUse(sourceActor.name, useWarnings, 'Raging');
-		else if (silenced) notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
+		if (notProficient) _notifyPreUse(sourceActor.name, useWarnings, 'Armor');
+		else if (raging) _notifyPreUse(sourceActor.name, useWarnings, 'Raging');
+		else if (silenced) _notifyPreUse(sourceActor.name, useWarnings, 'Silenced');
 		if (useWarnings === 'Enforce' && (notProficient || raging || silenced)) return false;
 	}
 	const incapacitated = settings.autoArmorSpellUse !== 'off' && sourceActor.statuses.has('incapacitated');
 	if (incapacitated && useWarnings) {
-		notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
+		_notifyPreUse(sourceActor.name, useWarnings, 'Incapacitated');
 		if (useWarnings === 'Enforce') return false;
 	}
 
@@ -159,7 +113,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 // }
 
 export function _preRollSavingThrow(config, dialog, message, hook) {
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
@@ -192,7 +146,7 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 
 export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollAbilityCheck:', { config, dialog, message });
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, options = {}, use } = chatButtonTriggered || {};
 	options.isInitiative = config.hookNames.includes('initiativeDialog');
 	if (options.isInitiative) return true;
@@ -230,7 +184,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, activity: messageActivity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
@@ -301,7 +255,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
-	const chatButtonTriggered = getMessageData(config, hook);
+	const chatButtonTriggered = _getMessageData(config, hook);
 	const { messageId, item, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
@@ -528,124 +482,6 @@ export function _renderSettings(app, html, data) {
 	renderColoredButtonSettings(html);
 }
 
-function renderColoredButtonSettings(html) {
-	const colorSettings = [
-		{ key: 'buttonColorBackground', default: '#288bcc' },
-		{ key: 'buttonColorBorder', default: '#f8f8ff' }, //using 'white' would trigger a console warning for not conforming to the required format, until you click out of the field.
-		{ key: 'buttonColorText', default: '#f8f8ff' }, //this is Ghost White
-	];
-	for (let { key, default: defaultValue } of colorSettings) {
-		const settingKey = `${Constants.MODULE_ID}.${key}`;
-		const input = html.querySelector(`[name="${settingKey}"]`);
-		if (!input) continue;
-
-		const colorPicker = document.createElement('input');
-		colorPicker.type = 'color';
-		colorPicker.classList.add('color-picker');
-
-		const updateColorPicker = () => {
-			const val = input.value.trim().toLowerCase();
-			const resolved = _getValidColor(val, defaultValue, game.user);
-			if (['false', 'none', 'null', '0'].includes(resolved)) {
-				colorPicker.style.display = 'none';
-			} else {
-				if (resolved !== val) {
-					input.value = resolved;
-					input.dispatchEvent(new Event('change'));
-				}
-				colorPicker.value = resolved;
-				colorPicker.style.display = '';
-			}
-		};
-
-		colorPicker.addEventListener('input', () => {
-			input.value = colorPicker.value;
-			input.dispatchEvent(new Event('change'));
-		});
-
-		input.addEventListener('input', () => {
-			const val = input.value.trim().toLowerCase();
-			const resolved = _getValidColor(val, defaultValue, game.user);
-
-			if (['false', 'none', 'null', '0'].includes(resolved)) {
-				colorPicker.style.display = 'none';
-			} else {
-				colorPicker.value = resolved;
-				colorPicker.style.display = '';
-			}
-		});
-
-		input.addEventListener('blur', () => {
-			const raw = input.value.trim().toLowerCase();
-			const resolved = _getValidColor(raw, defaultValue, game.user);
-
-			if (['false', 'none', 'null', '0'].includes(resolved)) {
-				colorPicker.style.display = 'none';
-
-				input.value = resolved; // Normalize input display here
-				game.settings.set(Constants.MODULE_ID, key, resolved);
-			} else {
-				input.value = resolved;
-				colorPicker.value = resolved;
-				colorPicker.style.display = '';
-				game.settings.set(Constants.MODULE_ID, key, resolved);
-			}
-		});
-
-		input.addEventListener('keydown', (e) => {
-			if (e.key === 'Enter') input.blur(); // triggers blur logic
-		});
-
-		input.insertAdjacentElement('afterend', colorPicker);
-		updateColorPicker();
-	}
-
-	// Visibility toggle
-	const toggle = html.querySelector(`[name="${Constants.MODULE_ID}.buttonColorEnabled"]`);
-	if (toggle) {
-		const updateVisibility = () => {
-			const visible = toggle.checked;
-			const keysToToggle = ['buttonColorBackground', 'buttonColorBorder', 'buttonColorText'];
-			for (let key of keysToToggle) {
-				const input = html.querySelector(`[name="${Constants.MODULE_ID}.${key}"]`);
-				if (input) {
-					const container = input.closest('.form-group') || input.parentElement;
-					if (container) container.style.display = visible ? 'flex' : 'none';
-				}
-			}
-		};
-		toggle.addEventListener('change', updateVisibility);
-		updateVisibility();
-	}
-}
-
-function renderChatTooltipsSettings(html) {
-	const tooltipSelect = html.querySelector(`[name="${Constants.MODULE_ID}.showTooltips"]`);
-	const chatTooltipSelect = html.querySelector(`select[name="${Constants.MODULE_ID}.showChatTooltips"]`);
-	const showNameTooltip = html.querySelector(`[name="${Constants.MODULE_ID}.showNameTooltips"]`);
-
-	if (!tooltipSelect || !chatTooltipSelect || !showNameTooltip) return;
-
-	function updateChatTooltipVisibility() {
-		const val = tooltipSelect.value;
-		const shouldShowChatTooltip = val === 'both' || val === 'chat';
-		const shouldShowTooltip = val !== 'none';
-		const containerChat = chatTooltipSelect.closest('.form-group') || chatTooltipSelect.parentElement;
-		if (containerChat) containerChat.style.display = shouldShowChatTooltip ? 'flex' : 'none';
-		const containerName = showNameTooltip.closest('.form-group') || showNameTooltip.parentElement;
-		if (containerName) containerName.style.display = shouldShowTooltip ? 'flex' : 'none';
-	}
-
-	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
-	updateChatTooltipVisibility();
-}
-
-function notifyPreUse(actorName, warning, type) {
-	//warning 1: Warn, 2: Enforce ; type: Armor, Raging, Silenced, Incapacitated
-	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
-	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
-}
-
 export function _preConfigureInitiative(subject, rollConfig) {
 	const hook = 'check';
 	const subjectToken = subject.token?.object ?? subject.getActiveTokens()[0];
@@ -703,229 +539,4 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	foundry.utils.mergeObject(rollConfig.options, ac5eConfigObject);
 	if (settings.debug) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
-}
-
-function doDialogAttackRender(dialog, elem, getConfigAC5E) {
-	const selectedAmmunition = elem.querySelector('select[name="ammunition"]')?.value;
-	const selectedAttackMode = elem.querySelector('select[name="attackMode"]')?.value;
-	const selectedMastery = elem.querySelector('select[name="mastery"]')?.value;
-	const hasAmmunition = getConfigAC5E.options.ammo;
-	const hasAttackMode = getConfigAC5E.options.attackMode;
-	const hasMastery = getConfigAC5E.options.mastery;
-	const change = hasAmmunition && selectedAmmunition && hasAmmunition !== selectedAmmunition ? 'ammunition' : hasAttackMode && selectedAttackMode && hasAttackMode !== selectedAttackMode ? 'attackMode' : hasMastery && selectedMastery && hasMastery !== selectedMastery ? 'mastery' : false;
-	if (!change) {
-		if (hasAmmunition && selectedAmmunition) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsAmmunition ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		if (hasAttackMode) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsAttackMode ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		if (hasMastery) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsMastery ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		return;
-	}
-	const newConfig = dialog.config;
-	if (selectedAmmunition) newConfig.ammunition = selectedAmmunition;
-	if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
-	if (selectedMastery) newConfig.mastery = selectedMastery;
-	if (change === 'ammunition') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
-	if (change === 'attackMode') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
-	if (change === 'mastery') newConfig.rolls[0].parts = newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
-	newConfig.advantage = undefined;
-	newConfig.disadvantage = undefined;
-	newConfig.rolls[0].options.advantageMode = 0;
-	if (newConfig.midiOptions) {
-		newConfig.midiOptions.isCritical = false;
-		newConfig.midiOptions.advantage = false;
-		newConfig.midiOptions.disadvantage = false;
-	}
-	newConfig.rolls[0].options.maximum = null;
-	newConfig.rolls[0].options.minimum = null;
-	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-	const newMessage = dialog.message;
-	getConfigAC5E = _preRollAttack(newConfig, newDialog, newMessage, 'attack');
-	dialog.rebuild();
-	dialog.render();
-}
-
-function doDialogDamageRender(dialog, elem, getConfigAC5E) {
-	const rollsLength = dialog.config.rolls.length;
-	const selects = Array.fromRange(rollsLength)
-		.map((el) => {
-			const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
-			if (labelSpan) return labelSpan;
-			return dialog.config.rolls[el].options.type;
-		})
-		.filter(Boolean);
-	const formulas = Array.from(elem.querySelectorAll('.formula'))
-		.map((el) => el.textContent?.trim())
-		.filter(Boolean);
-
-	const changed = applyOrResetFormulaChanges(elem, getConfigAC5E);
-	const effectiveFormulas = getConfigAC5E.preservedInitialData?.modified ?? formulas;
-
-	for (let i = 0; i < rollsLength; i++) {
-		if (effectiveFormulas[i]) {
-			dialog.config.rolls[i].formula = effectiveFormulas[i];
-			dialog.config.rolls[i].parts = effectiveFormulas[i]
-				.split('+')
-				.map((p) => p.trim())
-				.filter(Boolean);
-		}
-	}
-
-	// Compare damage types
-	const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
-	const compared = compareArrays(damageTypesArray, selects);
-	const damageTypesChanged = !compared.equal;
-
-	// Case 1: Only modifiers/extra dice changed
-	if (!damageTypesChanged && changed) {
-		dialog.rebuild();
-		dialog.render();
-		return;
-	}
-
-	// Case 2: Nothing changed
-	if (!damageTypesChanged && !changed) {
-		dialog.config.rolls[0].options[Constants.MODULE_ID].usedParts ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		return;
-	}
-
-	// Case 3: Damage type changed
-	const newConfig = dialog.config;
-	getConfigAC5E.options.defaultDamageType = undefined;
-	getConfigAC5E.options.damageTypes = undefined;
-	getConfigAC5E.options.selectedDamageTypes = undefined;
-
-	const reEval = getConfigAC5E.reEval ?? {};
-	reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
-	reEval.initialRolls =
-		getConfigAC5E.reEval?.initialRolls ??
-		newConfig.rolls.map((roll) => ({
-			parts: roll.parts,
-			options: {
-				maximum: roll.options.maximum,
-				minimum: roll.options.minimum,
-			},
-		}));
-	reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
-
-	newConfig.rolls[compared.index].options.type = compared.selectedValue;
-	const wasCritical = getConfigAC5E.preAC5eConfig.wasCritical;
-	if (newConfig.midiOptions) newConfig.midiOptions.isCritical = wasCritical;
-
-	for (let i = 0; i < rollsLength; i++) {
-		newConfig.rolls[i].parts = reEval.initialRolls[i].parts;
-		if (compared.index === i) newConfig.rolls[i].parts = newConfig.rolls[i].parts.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.[Constants.MODULE_ID]?.usedParts?.includes(part));
-		newConfig.rolls[i].options.maximum = reEval.initialRolls[i].options.maximum;
-		newConfig.rolls[i].options.minimum = reEval.initialRolls[i].options.minimum;
-		newConfig.rolls[i].options.isCritical = wasCritical;
-	}
-
-	const newDialog = {
-		options: {
-			window: { title: dialog.message.flavor },
-			isCritical: wasCritical,
-			defaultButton: wasCritical ? 'critical' : 'normal',
-		},
-	};
-	const newMessage = dialog.message;
-
-	getConfigAC5E = _preRollDamage(newConfig, newDialog, newMessage, 'damage', reEval);
-
-	applyOrResetFormulaChanges(elem, getConfigAC5E);
-
-	dialog.rebuild();
-	dialog.render();
-}
-
-function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply') {
-	const formulas = Array.from(elem.querySelectorAll('.formula'))
-		.map((el) => el.textContent?.trim())
-		.filter(Boolean);
-
-	const modifiers = getConfigAC5E.damageModifiers ?? [];
-	const suffixModifiers = modifiers.filter((m) => m !== 'adv' && m !== 'dis');
-	const suffix = suffixModifiers.join('');
-	const hasAdv = modifiers.includes('adv') || getConfigAC5E.subject.advantage.length || getConfigAC5E.opponent.advantage.length; // adds support for flags.ac5e.damage.advantage which is recommended going forward.
-	const hasDis = modifiers.includes('dis') || getConfigAC5E.subject.disadvantage.length || getConfigAC5E.opponent.disadvantage.length;
-
-	const isCritical = getConfigAC5E.preAC5eConfig?.wasCritical ?? false;
-	const extraDiceTotal = (getConfigAC5E.extraDice ?? []).reduce((a, b) => a + b, 0) * (isCritical ? 2 : 1);
-
-	if (!getConfigAC5E.preservedInitialData) {
-		getConfigAC5E.preservedInitialData = {
-			formulas: [...formulas],
-			modified: [...formulas],
-			activeModifiers: '',
-			activeExtraDice: 0,
-			activeAdvDis: '',
-		};
-	}
-
-	const { formulas: originals, activeModifiers, activeExtraDice, activeAdvDis } = getConfigAC5E.preservedInitialData;
-
-	const diceRegex = /(\d+)d(\d+)([a-z0-9]*)?/gi;
-	const suffixChanged = activeModifiers !== suffix;
-	const diceChanged = activeExtraDice !== extraDiceTotal;
-	const advDis = hasAdv ? 'adv' : hasDis ? 'dis' : '';
-	const advDisChanged = advDis !== activeAdvDis;
-
-	if (mode === 'apply' && !suffixChanged && !diceChanged && !advDisChanged) return false; // no changes
-
-	if (mode === 'reset' || (!suffixModifiers.length && extraDiceTotal === 0 && !advDis)) {
-		getConfigAC5E.preservedInitialData.modified = [...originals];
-		getConfigAC5E.preservedInitialData.activeModifiers = '';
-		getConfigAC5E.preservedInitialData.activeExtraDice = 0;
-		getConfigAC5E.preservedInitialData.activeAdvDis = '';
-		return true;
-	}
-
-	getConfigAC5E.preservedInitialData.modified = originals.map((formula) => {
-		return formula.replace(diceRegex, (match, count, sides, existing = '') => {
-			const newCount = parseInt(count, 10) + extraDiceTotal;
-			if (newCount <= 0) return `0d${sides}${existing}`;
-
-			// Dice base with suffix (applied inside the roll)
-			const diceTerm = `${newCount}d${sides}${suffix}`;
-
-			let term;
-			if (advDis === 'adv') term = `{${diceTerm},${diceTerm}}kh`;
-			else if (advDis === 'dis') term = `{${diceTerm},${diceTerm}}kl`;
-			else term = diceTerm;
-
-			// Preserve any existing [tag]
-			return `${term}${existing}`;
-		});
-	});
-
-	getConfigAC5E.preservedInitialData.activeModifiers = suffix;
-	getConfigAC5E.preservedInitialData.activeExtraDice = extraDiceTotal;
-	getConfigAC5E.preservedInitialData.activeAdvDis = advDis;
-	return true;
-}
-
-function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility) {
-	const newConfig = dialog.config;
-	newConfig.ability = selectedAbility;
-	newConfig.advantage = undefined;
-	newConfig.disadvantage = undefined;
-	newConfig.rolls[0].options.advantageMode = 0;
-	newConfig.rolls[0].parts = [];
-	newConfig.rolls[0].options.maximum = null;
-	newConfig.rolls[0].options.minimum = null;
-
-	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-	const newMessage = dialog.message;
-	const reEval = getConfigAC5E.reEval ?? {};
-
-	getConfigAC5E = _preRollAbilityCheck(newConfig, newDialog, newMessage, 'check', reEval);
-	dialog.rebuild();
-	dialog.render();
-}
-
-function compareArrays(a, b) {
-	const len = Math.max(a.length, b.length);
-	for (let i = 0; i < len; i++) {
-		if (a[i] !== b[i]) {
-			return { equal: false, index: i, initialValue: a[i], selectedValue: b[i] };
-		}
-	}
-	return { equal: true };
 }
