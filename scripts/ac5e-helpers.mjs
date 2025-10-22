@@ -1390,7 +1390,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (item) {
 		sandbox[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
 		if (!!itemData.type?.value) sandbox[itemData.type.value] = true;
-		if (itemData.spell) sandbox[itemData.school] = true;
+		if (itemData.school) sandbox[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
 		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
