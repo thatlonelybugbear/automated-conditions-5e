@@ -225,7 +225,7 @@
 			},
 			"modifyDC": {
 				"name": "Modify the DC of your actions. Will work for concentation checks and death saves you make too",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided threshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided. You can use roll data, dice formulas and evaluate conditions too."
 			},
 			"noAdvantage": {
 				"name": "Suppress advantage mode",
