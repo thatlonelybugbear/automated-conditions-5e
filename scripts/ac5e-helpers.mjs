@@ -1277,7 +1277,7 @@ export function _ac5eActorRollData(token) {
 			actorData.equippedItems.identifiers.push(i.identifier);
 		}
 	}
-	actorData.level = actorData.details.level || actorData.details.cr;
+	actorData.level = actorData.details?.level || actorData.details?.cr;
 	actorData.levelCr = actorData.level;
 	actorData.hasArmor = !!actorData.attributes.ac?.equippedArmor;
 	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
