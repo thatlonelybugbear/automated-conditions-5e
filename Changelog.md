@@ -1,3 +1,8 @@
+## 13.5110.3
+* Make sure that `itemData.school` can be called directly on conditions
+* Fix for `actorData.details.level` throwing when Encounter actors are on the scene
+* English translation fixes
+
 ## 13.5110.2.1
 * Guard against advantage on attack rolls, giving advantage on damage rolls by default (MidiQOL relevant).
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
