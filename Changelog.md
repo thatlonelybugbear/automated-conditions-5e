@@ -1,3 +1,6 @@
+## 13.5110.4
+* Fix for damage type tags getting consumed after evaluation of parenthetical terms.
+
 ## 13.5110.3
 * Make sure that `itemData.school` can be called directly on conditions
 * Fix for `actorData.details.level` throwing when Encounter actors are on the scene
