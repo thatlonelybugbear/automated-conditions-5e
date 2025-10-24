@@ -1,3 +1,6 @@
+## 13.5110.4.1
+* Fix for throw when Encounter actors are on scene
+
 ## 13.5110.4
 * Fix for damage type tags getting consumed after evaluation of parenthetical terms.
 
