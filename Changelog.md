@@ -1,3 +1,6 @@
+## 13.5110.4.3
+* Correct extraDice multiplication for critical damage
+
 ## 13.5110.4.2
 * Added directly in sandbox `activity.attack.type.value` and `activity.attack.type.classification`.
   * You can now use directly `melee`, `ranged` and `spell`, `unarmed`, `weapon` 
