@@ -337,7 +337,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	config.rolls[0] ??= {};
 	const roll0 = config.rolls[0];
 	roll0.options ??= {};
-	dialog.options.defaultButton = 'normal';
 	const hook = ac5eConfig.hookType;
 	const ac5eForcedRollTarget = 999;
 	if (hook === 'damage') {
@@ -459,6 +458,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (maximum) roll0.options.maximum = maximum;
 		if (minimum) roll0.options.minimum = minimum;
 	}
+	if (!dialog.options?.defaultButton)	dialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
 	_getTooltip(ac5eConfig);
