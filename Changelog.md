@@ -1,5 +1,6 @@
 ## 13.5110.4.3
 * Correct extraDice multiplication for critical damage
+* Makes sure that normal defaultButton isn't forced
 
 ## 13.5110.4.2
 * Added directly in sandbox `activity.attack.type.value` and `activity.attack.type.classification`.
