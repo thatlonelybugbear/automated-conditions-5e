@@ -1,3 +1,8 @@
+## 13.5110.4.2
+* Added directly in sandbox `activity.attack.type.value` and `activity.attack.type.classification`.
+  * You can now use directly `melee`, `ranged` and `spell`, `unarmed`, `weapon` 
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.5110.4.1
 * Fix for throw when Encounter actors are on scene
 
