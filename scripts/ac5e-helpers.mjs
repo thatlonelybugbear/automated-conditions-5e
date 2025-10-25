@@ -1367,6 +1367,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
 	if (activity?.actionType) sandbox[activity.actionType] = true;
+	if (activity?.attack?.type) {
+		sandbox[activity.attack.type.value] = true;
+		sandbox[activity.attack.type.classification] = true;
+	}
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 	if (activityData?.type) sandbox[activityData.type] = true;
 
