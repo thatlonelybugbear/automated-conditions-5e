@@ -71,8 +71,6 @@
 			"Enforce": "AC5E: Nessun bersaglio selezionato. Tiro annullato!"
 		}
 	},	
-	"AC5E.KeypressOverrideName": "Le combinazioni di tasti sovrascrivono i calcoli AC5e",
-	"AC5E.KeypressOverrideHint": "Combinazioni di Tasti per vantaggio, svantaggio e critico dovrebbero sovrascrivere qualsiasi calcolo di AC5e (selezionato) o essere aggiunti ai normali calcoli di AC5e (non selezionato).",
 	"AC5E.DebuggingName": "Debug AC5E",
 	"AC5E.DebuggingHint": "Solo alcuni log utili per il debug durante lo sviluppo. Probabilmente non ha molto senso che gli utenti lo usino :)",
 	"AC5E.WarCaster": "Mago da Battaglia",
@@ -112,6 +110,20 @@
 			"Hint": "Elimina qualsiasi stringa dall'input per renderla predefinita in bianco"
 		}
 	},
+	"AC5E.AdvantageKeypress": "Tasto Vantaggio",
+	"AC5E.CriticalKeypress": "Tasto Critico",
+	"AC5E.DisadvantageKeypress": "Tasto Svantaggio",
+	"AC5E.NoCriticalKeypress": "Tasto Normale",
+	"AC5E.OverrideAdvantage": "Sovrascrivi Tasto Vantaggio",
+	"AC5E.OverrideCritical": "Sovrascrivi Tasto Critico",
+	"AC5E.OverrideDisadvantage": "Sovrascrivi Tasto Svantaggio",
+	"AC5E.OverrideNoCritical": "Sovrascrivi Tasto Normale",
+	"AC5E.ForcedAdvantage": "Vantaggio forzato del sistema",
+	"AC5E.ForcedDisadvantage": "Svantaggio forzato del sistema",
+	"AC5E.NoAdvantage": "Vantaggio Soppresso",
+	"AC5E.NoDisadvantage": "Svantaggio Soppresso",
+	"AC5E.TargetGrantsNoAdvantage": "Vantaggio non concesso",
+	"AC5E.TargetGrantsNoDisadvantage": "Svantaggio non concesso",
 	"AC5E.Bonus": "Bonus",
 	"AC5E.ExtraDice": "Dadi Extra",
 	"AC5E.Success": "Successo",
@@ -120,6 +132,7 @@
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "fornisce",
 	"AC5E.Attacker": "Attaccante",
+	"AC5E.Flags": "flags",
 	"AC5E.FlagsInitiativeAdv": "Vantaggio di Sistema su Iniziativa",
 	"AC5E.FlagsInitiativeDisadv": "Svantaggio di Sistema su Iniziativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Fornito vant",
@@ -212,7 +225,19 @@
 		},
 		"modifyDC": {
 				"name": "Modifica la CD delle tue azioni. Funzionerà anche per i controlli di concentrazione e i tiri salvezza sulla morte che effettui.",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 a DC o set=15 per impostarlo sul valore fornito, threshold=-5 per ridurlo di 5 o set=15 per impostare il valore su 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 a DC o set=15 per impostarlo sul valore fornito. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
+		},
+		"noAdvantage": {
+				"name": "Sopprimi modalità vantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+		},
+		"noCritical": {
+				"name": "Sopprimi Critici",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/danno"
+		},
+		"noDisadvantage": {
+				"name": "Sopprimi modalità svantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
 		},
 		"fail": {
 			"name": "Tiri d20 falliscono",
@@ -252,6 +277,18 @@
 			"name": "Modifica la CD di un tiro che effettui contro un'azione intrapresa da un altro",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 alla DC o set=15 per impostarla al valore fornito. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
 		},
+		"noAdvantage": {
+				"name": "Non concedere modalità di vantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+		},
+		"noCritical": {
+				"name": "Non concedere critici",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/danno"
+		},
+		"noDisadvantage": {
+				"name": "Non concedere modalità di svantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+		},
 		"fail": {
 			"name": "Concede fallimento ai tiri d20 dell'avversario",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento"
@@ -289,6 +326,18 @@
 		"modifyDC": {
 			"name": "Un'aura che modifica la CD delle azioni intraprese dai token interessati.",
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus/set, raggio come al solito"
+		},
+		"noAdvantage": {
+				"name": "Un'aura che sopprime modalità vantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Utilizza raggio come al solito"
+		},
+		"noCritical": {
+				"name": "Un'aura che sopprime critici",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/danno. Utilizza raggio come al solito"
+		},
+		"noDisadvantage": {
+				"name": "Un'aura che sopprime modalità svantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Utilizza raggio come al solito"
 		},
 		"fail": {
 			"name": "Un’aura che forza il fallimento dei tiri d20",
