@@ -1,3 +1,7 @@
+## 13.5110.5
+* Fix for `Array.from(undefined)` throw
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.5110.4.3
 * Correct extraDice multiplication for critical damage
 * Makes sure that normal defaultButton isn't forced
