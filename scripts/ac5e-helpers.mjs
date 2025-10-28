@@ -826,7 +826,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (!options.preConfigInitiative) {
 		if (hookType !== 'damage' && !skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
-				const attribution = Array.from(config.workflow?.attackAdvAttribution)
+				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter((attr) => attr.includes('ADV:'))
 					.map((attr) => attr.replace('ADV:', 'MidiQOL: '));
 				ac5eConfig.subject.advantage.push(...attribution);
@@ -834,7 +834,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		}
 		if (hookType !== 'damage' && !skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
-				const attribution = Array.from(config.workflow?.attackAdvAttribution)
+				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter?.((attr) => attr.includes('DIS:'))
 					.map((attr) => attr.replace('DIS:', 'MidiQOL: '));
 				ac5eConfig.subject.disadvantage.push(...attribution);
