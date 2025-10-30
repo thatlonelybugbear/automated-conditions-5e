@@ -180,6 +180,7 @@ function initializeSandbox() {
 }
 
 function registerQueries() {
+	CONFIG.queries[Constants.MODULE_ID] = {};
 	CONFIG.queries[Constants.GM_DOCUMENT_UPDATES] = _gmDocumentUpdates;
 	CONFIG.queries[Constants.GM_EFFECT_DELETIONS] = _gmEffectDeletions;
 }
