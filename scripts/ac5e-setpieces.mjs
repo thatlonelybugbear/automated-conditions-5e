@@ -608,11 +608,21 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 			}
 		} else {
 			if (hasCount.toLowerCase().includes('origin')) {
-				itemActivityfromUuid = fromUuidSync(effect.origin);
-				if (itemActivityfromUuid instanceof Actor) {
+				if (!effect.origin) {
 					//to-do: Allow for consuming actor attributes etc directly and not only via activities, like consuming hp; probably not be needed, but could be done.
 					ui.notifications.error(`You are using 'origin' in effect ${effect.name}, but you have created it directly on the actor and does not have an associated item or activity; Returning false in ac5e.handleUses;`);
 					return false;
+				} else {
+					const parsed = foundry.utils.parseUuid(effect.origin);
+					if (parsed.type === 'ActiveEffect') {
+						// most of the time that will be an appliedEffect and the origin should be correct and not pointing to game.actors.
+						itemActivityfromUuid = fromUuidSync(itemActivityfromUuid).parent;
+					} else if (parsed.type === 'Item') {
+						const i = fromUuidSync(effect.origin);
+						const actorLinked = i.parent?.protoTypeToken?.actorLink;
+						if (actorLinked) itemActivityfromUuid = i;
+						else itemActivityfromUuid = fromUuidSync(effect.parent.uuid);
+					}
 				}
 			}
 			if (itemActivityfromUuid) {
