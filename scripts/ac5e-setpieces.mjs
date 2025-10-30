@@ -583,7 +583,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 
 					if (!isTransfer) {
 						if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes }, documentType: 'ActiveEffect' });
-						else effectUpdatesGM.push({ name: effect.name, updates: { uuid: effect.uuid, changes }, documentType: 'ActiveEffect' });
+						else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes } });
 					} else {
 						const hasInitialUsesFlag = effect.getFlag('automated-conditions-5e', 'initialUses')?.[effect.id]?.initialUses;
 						if (newUses === 0) {
