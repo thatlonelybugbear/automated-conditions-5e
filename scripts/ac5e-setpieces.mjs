@@ -513,7 +513,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
 	subject.updateEmbeddedDocuments('ActiveEffect', validFlagsEffectUpdates);
 	_doQueries({ effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
-	
+
 	return ac5eConfig;
 
 	//special functions\\
@@ -540,8 +540,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 }
 
 function handleUses({ actorType, change, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM }) {
-	// if (actorType !== 'subject') return true;
-	const isGM = game.user.isGM;
 	const isOwner = effect.isOwner;
 	const values = change.value.split(';');
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
@@ -549,14 +547,14 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 	if (!hasCount && !isOnce) {
 		return true;
 	}
-	const isTransfer = effect.transfer; // && actorType === 'subject';
+	const isTransfer = effect.transfer;
 	if (isOnce && !isTransfer) {
 		if (isOwner) effectDeletions.push(effect.id);
 		else effectDeletionsGM.push(effect.uuid);
 	} else if (isOnce && isTransfer) {
 		if (isOwner) effect.update({ disabled: true });
 		else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
-	} else if (hasCount && actorType === 'subject') {
+	} else if (hasCount) {
 		const isNumber = parseInt(hasCount, 10);
 		const commaSeparated = hasCount.split(',');
 		let itemActivityfromUuid = !!fromUuidSync(commaSeparated[0]) && fromUuidSync(commaSeparated[0]);
@@ -590,20 +588,17 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 							if (!hasInitialUsesFlag) {
 								if (isOwner) effect.update({ disabled: true });
 								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
-							}
-							else {
+							} else {
 								changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${hasInitialUsesFlag}`);
 								if (isOwner) {
 									effect.update({ changes, disabled: true });
-								}
-								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, disabled: true } }); 
+								} else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, disabled: true } });
 							}
 						} else {
 							if (!hasInitialUsesFlag) {
 								if (isOwner) effect.update({ changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } });
 								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } });
-							}
-							else {
+							} else {
 								if (isOwner) effect.update({ changes });
 								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes } });
 							}
@@ -631,11 +626,41 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 				if (item?.isOwner) {
 					if (item) item.update({ 'system.uses.spent': spent });
 					else if (activity) activity.update({ 'uses.spent': spent });
-				}
-				else {
+				} else {
 					if (item) itemUpdatesGM.push({ uuid: item.uuid, updates: { 'system.uses.spent': spent } });
 					else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } });
 				}
+			} else if (commaSeparated[0].trim().startsWith('Item.')) {
+				const actor = effect.target;
+				if (actor instanceof Actor) {
+					const str = commaSeparated[0].trim();
+					const match = str.match(/^Item\.([^.,\s]+)(?:\.Activity\.([^,\s]+))?/);
+					if (match) {
+						const itemID = match[1];
+						const activityID = match[2] ?? null;
+
+						const document = _getItemOrActivity(itemID, activityID, actor);
+						if (!document) return false;
+						let item, activity;
+						if (document instanceof Item) item = document;
+						else {
+							activity = document;
+							item = activity.item;
+						}
+						const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
+						if (!currentUses) return false;
+						const newUses = isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses;
+						if (newUses < 0) return false;
+						const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
+						if (item?.isOwner) {
+							if (item) item.update({ 'system.uses.spent': spent });
+							else if (activity) activity.update({ 'uses.spent': spent });
+						} else {
+							if (item) itemUpdatesGM.push({ uuid: item.uuid, updates: { 'system.uses.spent': spent } });
+							else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } });
+						}
+					} else return false;
+				} else return false;
 			}
 		}
 	}
