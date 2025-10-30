@@ -1,53 +1,68 @@
 import { ac5eQueue } from './ac5e-main.mjs';
+import Constants from './ac5e-constants.mjs';
 
-export function gmEffectDeletions({ effectDeletionsGM = [] } = {}) {
-	return ac5eQueue.add(() => deletions(effectDeletionsGM));
+export async function doQueries({ effectDeletionsGM = [], effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
+	const activeGM = game.users.activeGM;
+	if (!activeGM) return false;
+	try {
+		if (effectDeletionsGM.length) {
+			await activeGM.query(Constants.GM_EFFECT_DELETIONS, { effectDeletionsGM });
+		}
+		if (effectUpdatesGM.length || itemUpdatesGM.length || activityUpdatesGM.length) {
+			await activeGM.query(Constants.GM_DOCUMENT_UPDATES, { effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
+		}
+		return true;
+	} catch (err) {
+		console.error('doQueries failed:', err);
+		return false;
+	}
+}
+
+export function _gmEffectDeletions({ effectDeletionsGM = [] } = {}) {
+	const uuids = Array.from(new Set(effectDeletionsGM || []));
+	if (!uuids.length) return;
+	ac5eQueue.add(() => deletions(uuids));
 }
 
 async function deletions(uuids = []) {
 	const retrieved = uuids.map((uuid) => ({ uuid, doc: fromUuidSync(uuid) }));
 
-	const results = await Promise.all(
+	await Promise.all(
 		retrieved.map(async ({ uuid, doc }) => {
-			if (!doc) {
-				return { uuid, status: 'error', error: 'Document not found' };
-			}
+			if (!doc) return;
 			try {
 				await doc.delete();
-				return { uuid, status: 'ok' };
 			} catch (err) {
-				console.error(`Failed to delete ${uuid}:`, err);
-				return { uuid, status: 'error', error: err?.message ?? String(err) };
+				console.error(`${Constants.EFFECT_DELETIONS} failed to delete ${uuid}:`, err);
 			}
 		})
 	);
-
-	return results;
 }
 
-export function gmDocumentUpdates({ effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
-	return ac5eQueue.add(() => documentUpdates(effectUpdatesGM, itemUpdatesGM, activityUpdatesGM));
+export function _gmDocumentUpdates({ effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
+	const merged = [...(effectUpdatesGM || []), ...(itemUpdatesGM || []), ...(activityUpdatesGM || [])];
+	const byUuid = new Map();
+	for (const entry of merged) {
+		if (!entry || !entry.uuid) continue;
+		byUuid.set(entry.uuid, entry);
+	}
+	const entries = Array.from(byUuid.values());
+	if (!entries.length) return;
+	return ac5eQueue.add(() => documentUpdates(entries));
 }
 
-async function documentUpdates(effectUpdates = [], itemUpdates = [], activityUpdates = []) {
-	const arr = [...(effectUpdates || []), ...(itemUpdates || []), ...(activityUpdates || [])];
-
-	const mapped = arr.map(({ uuid, updates }) => ({ uuid, doc: fromUuidSync(uuid), updates }));
-
-	const results = await Promise.all(
+async function documentUpdates(entries) {
+	const mapped = entries.map(({ uuid, updates }) => ({ uuid, doc: fromUuidSync(uuid), updates }));
+	await Promise.all(
 		mapped.map(async ({ uuid, doc, updates }) => {
 			if (!doc) {
 				return { uuid, status: 'error', error: 'Document not found' };
 			}
 			try {
-				const result = await doc.update(updates);
-				return { uuid, status: 'ok', result };
+				await doc.update(updates);
 			} catch (err) {
-				console.error(`Failed to update ${uuid}:`, err);
-				return { uuid, status: 'error', error: err?.message ?? String(err) };
+				console.error(`${Constants.DOCUMENT_UPDATES} failed to update ${uuid}:`, err);
 			}
 		})
 	);
-
-	return results;
 }
