@@ -291,7 +291,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ change, actorType, hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
+	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
@@ -305,12 +305,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const modifyHooks = isModifyAC || isModifyDC;
 		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks;
 		if (!hasHook) return false;
-		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
+		const shouldProceedUses = handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM });
 		if (!shouldProceedUses) return false;
-		if (change.value.toLowerCase().includes('itemlimited')) {
-			if (evaluationData && evaluationData.item?.uuid === effect.origin) return true;
-			else return false;
-		}
+		if (change.value.toLowerCase().includes('itemlimited') && !(evaluationData && evaluationData.item?.uuid === effect.origin)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
@@ -323,35 +320,34 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula' });
 			if (!radius) return false;
 			const distanceTokenToAuraSource = !isModifyAC ? distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight') : distanceToTarget(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
-			if (distanceTokenToAuraSource <= radius) {
-				auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
-				return true;
-			} else return false;
+			if (distanceTokenToAuraSource <= radius) auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
+			else return false;
 		} else if (change.key.includes('grants')) {
 			//isGrants
 			if (actorType === 'aura') return false;
 			else if (actorType === 'subject' && !(isModifyAC || isModifyDC)) return false;
 			else if (actorType === 'opponent' && isModifyDC) return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
-			return true;
 		} else {
 			//isSelf
 			if (actorType === 'aura') return false;
 			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC)) return false;
 			else if (actorType === 'subject' && isModifyAC) return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
-			return true;
 		}
+		return true;
 	};
 
 	const blacklist = new Set(['allies', 'bonus', 'enemies', 'includeself', 'itemlimited', 'modifier', 'once', 'radius', 'set', 'singleaura', 'threshold', 'usescount', 'wallsblock']);
 
-	const effectDeletions = [];
-	const effectUpdates = [];
-	const effectDeletionsGM = [];
-	const effectUpdatesGM = [];
-	const itemUpdatesGM = [];
+	const activityUpdates = [];
 	const activityUpdatesGM = [];
+	const effectDeletions = [];
+	const effectDeletionsGM = [];
+	const effectUpdates = [];
+	const effectUpdatesGM = [];
+	const itemUpdates = [];
+	const itemUpdatesGM = [];
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
 		if (!token.actor) return false;
@@ -363,7 +359,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id }, { inplace: false });
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, auraTokenEvaluationData }))
+				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
@@ -406,7 +402,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
-			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, evaluationData }))
+			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
@@ -437,7 +433,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (opponent) {
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, evaluationData }))
+				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
@@ -467,13 +463,36 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		);
 	}
 	if (foundry.utils.isEmpty(validFlags)) return ac5eConfig;
-	const validFlagsEffectUpdates = [];
+
+	const validActivityUpdates = [];
+	const validActivityUpdatesGM = [];
+	const validEffectDeletions = [];
+	const validEffectDeletionsGM = [];
+	const validEffectUpdates = [];
+	const validEffectUpdatesGM = [];
+	const validItemUpdates = [];
+	const validItemUpdatesGM = [];
+
 	for (const el in validFlags) {
 		let { actorType, evaluation, mode, name, bonus, modifier, set, threshold, isAura } = validFlags[el];
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
+			const hasActivityUpdate = activityUpdates.find((u) => u.name === name);
+			const hasActivityUpdateGM = activityUpdatesGM.find((u) => u.name === name);
+			const hasEffectDeletion = effectDeletions.find((u) => u.name === name);
+			const hasEffectDeletionGM = effectDeletionsGM.find((u) => u.name === name);
 			const hasEffectUpdate = effectUpdates.find((u) => u.name === name);
-			if (hasEffectUpdate) validFlagsEffectUpdates.push(hasEffectUpdate.updates);
+			const hasEffectUpdateGM = effectUpdatesGM.find((u) => u.name === name);
+			const hasItemUpdate = itemUpdates.find((u) => u.name === name);
+			const hasItemUpdateGM = itemUpdatesGM.find((u) => u.name === name);
+			if (hasActivityUpdate) validActivityUpdates.push(hasActivityUpdate.context);
+			if (hasActivityUpdateGM) validActivityUpdatesGM.push(hasActivityUpdateGM.context);
+			if (hasEffectDeletion) validEffectDeletions.push(hasEffectDeletion.id);
+			if (hasEffectDeletionGM) validEffectDeletionsGM.push(hasEffectDeletionGM.id);
+			if (hasEffectUpdate) validEffectUpdates.push(hasEffectUpdate.updates);
+			if (hasEffectUpdateGM) validEffectUpdatesGM.push(hasEffectUpdateGM.context);
+			if (hasItemUpdate) validItemUpdates.push(hasItemUpdate.updates);
+			if (hasItemUpdateGM) validItemUpdatesGM.push(hasItemUpdateGM.context);
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
 			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') {
@@ -510,9 +529,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			}
 		}
 	}
-	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
-	subject.updateEmbeddedDocuments('ActiveEffect', validFlagsEffectUpdates);
-	_doQueries({ effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
+	subject.deleteEmbeddedDocuments('ActiveEffect', validEffectDeletions);
+	subject.updateEmbeddedDocuments('ActiveEffect', validEffectUpdates);
+	subject.updateEmbeddedDocuments('Item', validItemUpdates);
+	for (const validActivityUpdate of validActivityUpdates) {
+		const act = fromUuidSync(validActivityUpdate.uuid);
+		act.update(validActivityUpdate.context.updates);
+	}
+	_doQueries({ validEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM, validActivityUpdatesGM });
 
 	return ac5eConfig;
 
@@ -539,7 +563,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 }
 
-function handleUses({ actorType, change, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM }) {
+function handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM }) {
 	const isOwner = effect.isOwner;
 	const values = change.value.split(';');
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
@@ -570,8 +594,8 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 			if (newUses < 0) return false; //if you need to consume more uses than available (can only happen if moreUses exists)
 
 			if (newUses === 0 && !isTransfer) {
-				if (isOwner) effectDeletions.push(effect.id);
-				else effectDeletionsGM.push(effect.uuid);
+				if (isOwner) effectDeletions.push({ name: effect.name, id: effect.id });
+				else effectDeletionsGM.push({ name: effect.name, uuid: effect.uuid });
 			} else {
 				let changes = foundry.utils.duplicate(effect.changes);
 				const index = changes.findIndex((c) => c.key === change.key);
@@ -580,27 +604,26 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 					changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${newUses}`);
 
 					if (!isTransfer) {
-						if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes }, documentType: 'ActiveEffect' });
-						else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes } });
+						if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes } });
+						else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
 					} else {
 						const hasInitialUsesFlag = effect.getFlag('automated-conditions-5e', 'initialUses')?.[effect.id]?.initialUses;
 						if (newUses === 0) {
 							if (!hasInitialUsesFlag) {
-								if (isOwner) effect.update({ disabled: true });
-								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
+								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, disabled: true } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 							} else {
 								changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${hasInitialUsesFlag}`);
-								if (isOwner) {
-									effect.update({ changes, disabled: true });
-								} else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, disabled: true } });
+								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes, disabled: true } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
 							}
 						} else {
 							if (!hasInitialUsesFlag) {
-								if (isOwner) effect.update({ changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } });
-								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } });
+								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } } });
 							} else {
-								if (isOwner) effect.update({ changes });
-								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes } });
+								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
 							}
 						}
 					}
@@ -629,17 +652,9 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 				const item = itemActivityfromUuid instanceof Item && itemActivityfromUuid;
 				const activity = !item && itemActivityfromUuid.type !== 'undefined' && itemActivityfromUuid;
 				const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
-				if (!currentUses) return false;
-				const newUses = isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses;
-				if (newUses < 0) return false;
-				const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
-				if (item?.isOwner) {
-					if (item) item.update({ 'system.uses.spent': spent });
-					else if (activity) activity.update({ 'uses.spent': spent });
-				} else {
-					if (item) itemUpdatesGM.push({ uuid: item.uuid, updates: { 'system.uses.spent': spent } });
-					else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } });
-				}
+				const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
+				if (!currentUses && !currentQuantity) return false;
+				else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 			} else if (commaSeparated[0].trim().startsWith('Item.')) {
 				const actor = effect.target;
 				if (actor instanceof Actor) {
@@ -658,21 +673,34 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 							item = activity.item;
 						}
 						const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
-						if (!currentUses) return false;
-						const newUses = isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses;
-						if (newUses < 0) return false;
-						const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
-						if (item?.isOwner) {
-							if (item) item.update({ 'system.uses.spent': spent });
-							else if (activity) activity.update({ 'uses.spent': spent });
-						} else {
-							if (item) itemUpdatesGM.push({ uuid: item.uuid, updates: { 'system.uses.spent': spent } });
-							else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } });
-						}
+						const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
+						if (!currentUses && !currentQuantity) return false;
+						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
 				} else return false;
 			}
 		}
+	}
+	return true;
+}
+
+function updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM }) {
+	const newUses = currentUses ? (isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses) : -1;
+	const newQuantity = currentQuantity ? (isNaN(consumeMoreUses) ? currentQuantity - 1 : currentQuantity - consumeMoreUses) : -1;
+	if (newUses < 0 && newQuantity < 0) return false;
+	if (newUses !== -1) {
+		const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
+		if (item?.isOwner) {
+			if (item) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.uses.spent': spent } });
+			else if (activity) activityUpdates.push({ name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+		} else {
+			if (item) itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
+			else if (activity) activityUpdatesGM.push({ name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+		}
+	} else if (newQuantity !== -1) {
+		const quantity = item.system?.quantity - newQuantity;
+		if (item.isOwner) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.quantity': quantity } });
+		else itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': quantity } } });
 	}
 	return true;
 }
