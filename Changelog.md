@@ -1,6 +1,8 @@
 ## 13.5110.5
 * Fix for `Array.from(undefined)` throw
 * Introducing queries for updating `usesCount` of non-owned documents.
+* Added logic for using `usesCount=Item.id.Activity.id` for items owned by the actor affected by the effect.
+  * The `id` can be id, identifier or name, for example: `usesCount=Item.Longsword.Activity.attack, 2` to consume 2 uses of the activity with the identifier `attack` on an Item named Longsword.
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.5110.4.3
