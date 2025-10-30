@@ -653,7 +653,7 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 				const activity = !item && itemActivityfromUuid.type !== 'undefined' && itemActivityfromUuid;
 				const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
 				const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
-				if (!currentUses && !currentQuantity) return false;
+				if (currentUse === false && currentQuantity === false) return false;
 				else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 			} else if (commaSeparated[0].trim().startsWith('Item.')) {
 				const actor = effect.target;
@@ -674,7 +674,7 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						}
 						const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
 						const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
-						if (!currentUses && !currentQuantity) return false;
+						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
 				} else return false;
@@ -685,8 +685,8 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 }
 
 function updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM }) {
-	const newUses = currentUses ? (isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses) : -1;
-	const newQuantity = currentQuantity ? (isNaN(consumeMoreUses) ? currentQuantity - 1 : currentQuantity - consumeMoreUses) : -1;
+	const newUses = currentUses !== false ? (isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses) : -1;
+	const newQuantity = currentQuantity !== false ? (isNaN(consumeMoreUses) ? currentQuantity - 1 : currentQuantity - consumeMoreUses) : -1;
 	if (newUses < 0 && newQuantity < 0) return false;
 	if (newUses !== -1) {
 		const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
