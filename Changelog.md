@@ -1,3 +1,6 @@
+## 13.5110.5.1
+* Fix for `noCritical` flags not working
+
 ## 13.5110.5
 * Fix for `Array.from(undefined)` throw
 * Introducing queries for updating `usesCount` of non-owned documents.
