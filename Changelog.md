@@ -1,5 +1,7 @@
 ## 13.5110.5.2
 * Fix for unlinked tokens `usesCount = origin` consuming from the sidebar actor
+* Fix for `usesCount` not properly identifying if a flag was supposed to alter a roll or not
+* If `usesCount` points to an Item that has a `quantity` and **no** `uses`, the quantity will be consumed
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
 ## 13.5110.5.1
