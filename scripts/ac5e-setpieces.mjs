@@ -290,7 +290,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ change, actorType, hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData, evaluationData }) => {
+	const effectChangesTest = ({ change, actorType, hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
@@ -304,7 +304,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const modifyHooks = isModifyAC || isModifyDC;
 		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks;
 		if (!hasHook) return false;
-		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates });
+		const shouldProceedUses = handleUses({ actorType, change, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
 		if (!shouldProceedUses) return false;
 		if (change.value.toLowerCase().includes('itemlimited')) {
 			if (evaluationData && evaluationData.item?.uuid === effect.origin) return true;
@@ -347,6 +347,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const effectDeletions = [];
 	const effectUpdates = [];
+	const effectDeletionsGM = [];
+	const effectUpdatesGM = [];
+	const itemUpdatesGM = [];
+	const activityUpdatesGM = [];
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
 		if (!token.actor) return false;
@@ -358,7 +362,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id }, { inplace: false });
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, auraTokenEvaluationData }))
+				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, auraTokenEvaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
@@ -401,7 +405,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
-			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, effectDeletions, effectUpdates, evaluationData }))
+			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, evaluationData }))
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
@@ -432,7 +436,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (opponent) {
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, effectDeletions, effectUpdates, evaluationData }))
+				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM, evaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
@@ -507,6 +511,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
 	subject.updateEmbeddedDocuments('ActiveEffect', validFlagsEffectUpdates);
+	doQueries({ effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
+	
 	return ac5eConfig;
 
 	//special functions\\
@@ -532,8 +538,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 }
 
-function handleUses({ actorType, change, effect, effectDeletions, effectUpdates }) {
-	if (actorType !== 'subject') return true;
+function handleUses({ actorType, change, effect, effectDeletions, effectUpdates, effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM }) {
+	// if (actorType !== 'subject') return true;
+	const isGM = game.user.isGM;
+	const isOwner = effect.isOwner;
 	const values = change.value.split(';');
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
 	const isOnce = values.find((use) => use.includes('once'));
@@ -542,9 +550,11 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 	}
 	const isTransfer = effect.transfer; // && actorType === 'subject';
 	if (isOnce && !isTransfer) {
-		effectDeletions.push(effect.id);
+		if (isOwner) effectDeletions.push(effect.id);
+		else effectDeletionsGM.push(effect.uuid);
 	} else if (isOnce && isTransfer) {
-		effect.update({ disabled: true });
+		if (isOwner) effect.update({ disabled: true });
+		else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
 	} else if (hasCount && actorType === 'subject') {
 		const isNumber = parseInt(hasCount, 10);
 		const commaSeparated = hasCount.split(',');
@@ -561,7 +571,8 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 			if (newUses < 0) return false; //if you need to consume more uses than available (can only happen if moreUses exists)
 
 			if (newUses === 0 && !isTransfer) {
-				effectDeletions.push(effect.id);
+				if (isOwner) effectDeletions.push(effect.id);
+				else effectDeletionsGM.push(effect.uuid);
 			} else {
 				let changes = foundry.utils.duplicate(effect.changes);
 				const index = changes.findIndex((c) => c.key === change.key);
@@ -570,18 +581,31 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 					changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${newUses}`);
 
 					if (!isTransfer) {
-						effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes }, documentType: 'ActiveEffect' });
+						if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes }, documentType: 'ActiveEffect' });
+						else effectUpdatesGM.push({ name: effect.name, updates: { uuid: effect.uuid, changes }, documentType: 'ActiveEffect' });
 					} else {
 						const hasInitialUsesFlag = effect.getFlag('automated-conditions-5e', 'initialUses')?.[effect.id]?.initialUses;
 						if (newUses === 0) {
-							if (!hasInitialUsesFlag) effect.update({ disabled: true });
+							if (!hasInitialUsesFlag) {
+								if (isOwner) effect.update({ disabled: true });
+								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
+							}
 							else {
 								changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${hasInitialUsesFlag}`);
-								effect.update({ changes, disabled: true });
+								if (isOwner) {
+									effect.update({ changes, disabled: true });
+								}
+								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, disabled: true } }); 
 							}
 						} else {
-							if (!hasInitialUsesFlag) effect.update({ changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } });
-							else effect.update({ changes });
+							if (!hasInitialUsesFlag) {
+								if (isOwner) effect.update({ changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } });
+								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } });
+							}
+							else {
+								if (isOwner) effect.update({ changes });
+								else effectUpdatesGM.push({ uuid: effect.uuid, updates: { changes } });
+							}
 						}
 					}
 				}
@@ -603,8 +627,14 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates 
 				const newUses = isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses;
 				if (newUses < 0) return false;
 				const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
-				if (item) item.update({ 'system.uses.spent': spent });
-				else if (activity) activity.update({ 'uses.spent': spent });
+				if (item?.isOwner) {
+					if (item) item.update({ 'system.uses.spent': spent });
+					else if (activity) activity.update({ 'uses.spent': spent });
+				}
+				else {
+					if (item) itemUpdatesGM.push({ uuid: item.uuid, updates: { 'system.uses.spent': spent } });
+					else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } }):
+				}
 			}
 		}
 	}
