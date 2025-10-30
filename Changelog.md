@@ -1,5 +1,6 @@
 ## 13.5110.5
 * Fix for `Array.from(undefined)` throw
+* Introducing queries for updating `usesCount` of non-owned documents.
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.5110.4.3
