@@ -633,8 +633,8 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 			} else if (commaSeparated[0].trim().startsWith('Item.')) {
 				const actor = effect.target;
 				if (actor instanceof Actor) {
-					const str = commaSeparated[0].trim();
-					const match = str.match(/^Item\.([^.,\s]+)(?:\.Activity\.([^,\s]+))?/);
+					const str = commaSeparated[0].trim().replace(/[\s,]+$/, '');
+					const match = str.match(/^Item\.([^,]+(?:,\s*[^,]+)*)(?:\.Activity\.([^,\s]+))?/);
 					if (match) {
 						const itemID = match[1];
 						const activityID = match[2] ?? null;
