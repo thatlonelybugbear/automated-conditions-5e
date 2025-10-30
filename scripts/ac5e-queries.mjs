@@ -33,7 +33,7 @@ async function deletions(uuids = []) {
 			try {
 				await doc.delete();
 			} catch (err) {
-				console.error(`${Constants.EFFECT_DELETIONS} failed to delete ${uuid}:`, err);
+				console.error(`${Constants.GM_EFFECT_DELETIONS} failed to delete ${uuid}:`, err);
 			}
 		})
 	);
@@ -61,7 +61,7 @@ async function documentUpdates(entries) {
 			try {
 				await doc.update(updates);
 			} catch (err) {
-				console.error(`${Constants.DOCUMENT_UPDATES} failed to update ${uuid}:`, err);
+				console.error(`${Constants.GM_DOCUMENT_UPDATES} failed to update ${uuid}:`, err);
 			}
 		})
 	);
