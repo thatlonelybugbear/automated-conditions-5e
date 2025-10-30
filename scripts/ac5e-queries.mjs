@@ -1,15 +1,15 @@
 import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
 
-export async function _doQueries({ effectDeletionsGM = [], effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
+export async function _doQueries({ validActivityUpdatesGM = [], validEffectDeletionsGM = [], validEffectUpdatesGM = [], validItemUpdatesGM = [] } = {}) {
 	const activeGM = game.users.activeGM;
 	if (!activeGM) return false;
 	try {
 		if (effectDeletionsGM.length) {
-			await activeGM.query(Constants.GM_EFFECT_DELETIONS, { effectDeletionsGM });
+			await activeGM.query(Constants.GM_EFFECT_DELETIONS, { validEffectDeletionsGM });
 		}
-		if (effectUpdatesGM.length || itemUpdatesGM.length || activityUpdatesGM.length) {
-			await activeGM.query(Constants.GM_DOCUMENT_UPDATES, { effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
+		if (validEffectUpdatesGM.length || validItemUpdatesGM.length || validActivityUpdatesGM.length) {
+			await activeGM.query(Constants.GM_DOCUMENT_UPDATES, { validEffectUpdatesGM, validItemUpdatesGM, validActivityUpdatesGM });
 		}
 		return true;
 	} catch (err) {
@@ -18,8 +18,8 @@ export async function _doQueries({ effectDeletionsGM = [], effectUpdatesGM = [],
 	}
 }
 
-export function _gmEffectDeletions({ effectDeletionsGM = [] } = {}) {
-	const uuids = Array.from(new Set(effectDeletionsGM || []));
+export function _gmEffectDeletions({ validEffectDeletionsGM = [] } = {}) {
+	const uuids = Array.from(new Set(validEffectDeletionsGM || []));
 	if (!uuids.length) return;
 	ac5eQueue.add(() => deletions(uuids));
 }
@@ -39,8 +39,8 @@ async function deletions(uuids = []) {
 	);
 }
 
-export function _gmDocumentUpdates({ effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
-	const merged = [...(effectUpdatesGM || []), ...(itemUpdatesGM || []), ...(activityUpdatesGM || [])];
+export function _gmDocumentUpdates({ validEffectUpdatesGM = [], validItemUpdatesGM = [], validActivityUpdatesGM = [] } = {}) {
+	const merged = [...(validEffectUpdatesGM || []), ...(validItemUpdatesGM || []), ...(validActivityUpdatesGM || [])];
 	const byUuid = new Map();
 	for (const entry of merged) {
 		if (!entry || !entry.uuid) continue;
