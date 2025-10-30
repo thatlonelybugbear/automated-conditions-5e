@@ -1127,7 +1127,7 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 	}
 
 	if (!actor) return undefined;
-	const token = actor.getActiveTokens()[0];
+	const token = actor.token?.object || actor.getActiveTokens()[0];
 	if (!token) return undefined;
 
 	switch (type) {
