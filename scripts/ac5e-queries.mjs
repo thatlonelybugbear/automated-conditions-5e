@@ -5,7 +5,7 @@ export async function _doQueries({ validActivityUpdatesGM = [], validEffectDelet
 	const activeGM = game.users.activeGM;
 	if (!activeGM) return false;
 	try {
-		if (effectDeletionsGM.length) {
+		if (validEffectDeletionsGM.length) {
 			await activeGM.query(Constants.GM_EFFECT_DELETIONS, { validEffectDeletionsGM });
 		}
 		if (validEffectUpdatesGM.length || validItemUpdatesGM.length || validActivityUpdatesGM.length) {
