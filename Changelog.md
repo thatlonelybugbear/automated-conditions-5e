@@ -1,3 +1,6 @@
+## 13.5110.5.2
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.5110.5.1
 * Fix for `noCritical` flags not working
 
