@@ -1,4 +1,5 @@
 import { _ac5eActorRollData, _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
+import { _doQueries } from './ac5e-queries.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -511,7 +512,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	subject.deleteEmbeddedDocuments('ActiveEffect', effectDeletions);
 	subject.updateEmbeddedDocuments('ActiveEffect', validFlagsEffectUpdates);
-	doQueries({ effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
+	_doQueries({ effectDeletionsGM, effectUpdatesGM, itemUpdatesGM, activityUpdatesGM });
 	
 	return ac5eConfig;
 
@@ -633,7 +634,7 @@ function handleUses({ actorType, change, effect, effectDeletions, effectUpdates,
 				}
 				else {
 					if (item) itemUpdatesGM.push({ uuid: item.uuid, updates: { 'system.uses.spent': spent } });
-					else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } }):
+					else if (activity) activityUpdatesGM.push({ uuid: activity.uuid, updates: { 'uses.spent': spent } });
 				}
 			}
 		}
