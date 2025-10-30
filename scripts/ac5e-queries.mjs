@@ -1,7 +1,7 @@
 import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
 
-export async function doQueries({ effectDeletionsGM = [], effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
+export async function _doQueries({ effectDeletionsGM = [], effectUpdatesGM = [], itemUpdatesGM = [], activityUpdatesGM = [] } = {}) {
 	const activeGM = game.users.activeGM;
 	if (!activeGM) return false;
 	try {
