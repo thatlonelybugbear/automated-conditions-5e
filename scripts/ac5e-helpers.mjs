@@ -448,6 +448,12 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			}
 		}
 	}
+	if (ac5eConfig.subject.noCritical.length || ac5eConfig.opponent.noCritical.length) {
+		if (hook === 'attack') roll0.options.criticalSuccess = 21;
+		if (hook === 'damage') dialog.options.defaultButton = 'normal';
+		ac5eConfig.isCritical = false;
+		config.isCritical = false;
+	}
 	if (ac5eConfig.parts.length) {
 		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
 		else if (config.parts) config.parts.push(ac5eConfig.parts);
