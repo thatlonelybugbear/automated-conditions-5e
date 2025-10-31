@@ -1,5 +1,6 @@
 import { _ac5eActorRollData, _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _getItemOrActivity, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
 import { _doQueries } from './ac5e-queries.mjs';
+import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -293,7 +294,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
+	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
@@ -307,7 +308,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const modifyHooks = isModifyAC || isModifyDC;
 		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks;
 		if (!hasHook) return false;
-		const shouldProceedUses = handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM });
+		const shouldProceedUses = handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM });
 		if (!shouldProceedUses) return false;
 		if (change.value.toLowerCase().includes('itemlimited') && !(evaluationData && evaluationData.item?.uuid === effect.origin)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
@@ -344,6 +345,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const activityUpdates = [];
 	const activityUpdatesGM = [];
+	const actorUpdates = [];
+	const actorUpdatesGM = [];
 	const effectDeletions = [];
 	const effectDeletionsGM = [];
 	const effectUpdates = [];
@@ -361,7 +364,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id }, { inplace: false });
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData }))
+				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
@@ -404,7 +407,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	subject?.appliedEffects.filter((effect) =>
 		effect.changes
-			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
+			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
@@ -435,7 +438,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (opponent) {
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
+				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
@@ -468,6 +471,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const validActivityUpdates = [];
 	const validActivityUpdatesGM = [];
+	const validActorUpdates = {};
+	const validActorUpdatesGM = [];
 	const validEffectDeletions = [];
 	const validEffectDeletionsGM = [];
 	const validEffectUpdates = [];
@@ -481,6 +486,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (evaluation) {
 			const hasActivityUpdate = activityUpdates.find((u) => u.name === name);
 			const hasActivityUpdateGM = activityUpdatesGM.find((u) => u.name === name);
+			const hasActorUpdate = actorUpdates.find((u) => u.name === name);
+			const hasActorUpdateGM = actorUpdatesGM.find((u) => u.name === name);
 			const hasEffectDeletion = effectDeletions.find((u) => u.name === name);
 			const hasEffectDeletionGM = effectDeletionsGM.find((u) => u.name === name);
 			const hasEffectUpdate = effectUpdates.find((u) => u.name === name);
@@ -489,6 +496,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			const hasItemUpdateGM = itemUpdatesGM.find((u) => u.name === name);
 			if (hasActivityUpdate) validActivityUpdates.push(hasActivityUpdate.context);
 			if (hasActivityUpdateGM) validActivityUpdatesGM.push(hasActivityUpdateGM.context);
+			if (hasActorUpdate) foundry.utils.mergeObject(validActorUpdates, { updates: hasActorUpdate.updates, options: hasActorUpdate.options || {} });
+			if (hasActorUpdateGM) validActorUpdatesGM.push(hasActorUpdateGM.context);
 			if (hasEffectDeletion) validEffectDeletions.push(hasEffectDeletion.id);
 			if (hasEffectDeletionGM) validEffectDeletionsGM.push(hasEffectDeletionGM.id);
 			if (hasEffectUpdate) validEffectUpdates.push(hasEffectUpdate.updates);
@@ -531,14 +540,22 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			}
 		}
 	}
-	subject.deleteEmbeddedDocuments('ActiveEffect', validEffectDeletions);
-	subject.updateEmbeddedDocuments('ActiveEffect', validEffectUpdates);
-	subject.updateEmbeddedDocuments('Item', validItemUpdates);
-	for (const validActivityUpdate of validActivityUpdates) {
-		const act = fromUuidSync(validActivityUpdate.uuid);
-		act.update(validActivityUpdate.context.updates);
-	}
-	_doQueries({ validEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM, validActivityUpdatesGM });
+	ac5eQueue
+		.add(async () => {
+			await subject.deleteEmbeddedDocuments('ActiveEffect', validEffectDeletions);
+			await subject.updateEmbeddedDocuments('ActiveEffect', validEffectUpdates);
+			await subject.updateEmbeddedDocuments('Item', validItemUpdates);
+			await subject.update(validActorUpdates.updates, validActorUpdates.options);
+
+			await Promise.allSettled(
+				validActivityUpdates.map((v) => {
+					const act = fromUuidSync(v.uuid);
+					return act ? act.update(v.context.updates) : Promise.resolve(null);
+				})
+			);
+		})
+		.catch((err) => console.error('Queued job failed', err));
+	_doQueries({ validActivityUpdatesGM, validActorUpdatesGM, validEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM });
 
 	return ac5eConfig;
 
@@ -565,7 +582,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 }
 
-function handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM }) {
+function handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM }) {
 	const isOwner = effect.isOwner;
 	const values = change.value.split(';');
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
@@ -584,14 +601,14 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 		const isNumber = parseInt(hasCount, 10);
 		const commaSeparated = hasCount.split(',');
 		let itemActivityfromUuid = !!fromUuidSync(commaSeparated[0]) && fromUuidSync(commaSeparated[0]);
-		const consumeMoreUses = parseInt(commaSeparated[1], 10); //consume more than one; usage: usesCount=5,2 meaning consume 2 uses per activation
+		const consume = parseInt(commaSeparated[1], 10) || 1; //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
 
 		if (!isNaN(isNumber)) {
 			if (isNumber === 0) {
 				return false;
 			}
 
-			const newUses = isNaN(consumeMoreUses) ? isNumber - 1 : isNumber - consumeMoreUses;
+			const newUses = isNumber - consume;
 
 			if (newUses < 0) return false; //if you need to consume more uses than available (can only happen if moreUses exists)
 
@@ -656,10 +673,11 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 				const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
 				const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
 				if (currentUse === false && currentQuantity === false) return false;
-				else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
-			} else if (commaSeparated[0].trim().startsWith('Item.')) {
+				else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
+			} else {
 				const actor = effect.target;
-				if (actor instanceof Actor) {
+				if (!(actor instanceof Actor) || !actor.system?.isCreature) return false;
+				if (commaSeparated[0].trim().startsWith('Item.')) {
 					const str = commaSeparated[0].trim().replace(/[\s,]+$/, '');
 					const match = str.match(/^Item\.([^,]+(?:,\s*[^,]+)*)(?:\.Activity\.([^,\s]+))?/);
 					if (match) {
@@ -677,18 +695,88 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
 						const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
 						if (currentUses === false && currentQuantity === false) return false;
-						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
+						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} else return false;
+				} else if (['hp', 'hptemp', 'hptempmax', 'hdlarge', 'hdsmall', 'exhaustion', 'inspiration', 'deathsuccess', 'deathfail', 'currency', 'spell', 'resources', 'movement'].includes(commaSeparated[0].toLowerCase())) {
+					const attr = commaSeparated[0].toLowerCase();
+					if (attr.includes('deathfail')) {
+						const f = actor.system.attributes.death.failure;
+						const nF = f + consume;
+						if (nF < 0 || nF > 3) return false;
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.death.failure': nF } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.death.failure': nF } } });
+					}
+					if (attr.includes('deathsuccess')) {
+						const s = actor.system.attributes.death.success;
+						const nS = s + consume;
+						if (nS < 0 || nS > 3) return false;
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.death.success': nS } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.death.success': nS } } });
+					}
+					if (attr.includes('hptempmax')) {
+						const { tempMax, max, value } = actor.system.attributes.hp;
+						const newTempMax = tempMax - consume;
+						if (max - newTempMax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						const noConcentration = newTempMax >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+					}
+					if (attr.includes('hptemp')) {
+						const { temp } = actor.system.attributes.hp;
+						const newTemp = temp - consume;
+						if (newTemp <= 0) return false;
+						const noConcentration = newTemp >= temp || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+					}
+					if (attr.includes('hp')) {
+						const { value, effectiveMax } = actor.system.attributes.hp;
+						const newValue = value - consume;
+						if (newValue <= 0 || newValue > effectiveMax) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						const noConcentration = newValue >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcetration } } } });
+					}
+					// if (attr.includes('hdlarge')) {}
+					// if (attr.includes('hdsmall')) {}
+					// if (attr.includes('currency')) {}
+					if (attr.includes('exhaustion')) {
+						const e = actor.system.attributes.exhaustion;
+						const nE = e - consume;
+						const maxE = CONFIG.statusEffects.find((s) => s.id === 'exhaustion')?.levels || Infinity;
+						if (nE < 0 || nE > maxE) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.exhaustion': nE } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': nE } } });
+					}
+					if (attr.includes('inspiration')) {
+						const i = actor.system.attributes.inspiration ? 1 : 0;
+						const nI = i - consume;
+						if (nI < 0 || nI > 1) return false; //@to-do: double check logic
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.inspiration': !!nE } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!nE } } });
+					}
+					// if (attr.includes('resources')) {}
+					if (attr.includes('spell')) {
+						//const level = _extractNumber(attr, { trailing: true });
+						const { max, value } = actor.system.spells[attr] || {};
+						if (!value) return false;
+						const newValue = value - consume;
+						if (newValue < 0 || newValue > max) return false;
+						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { [`system.spells.${attr}.value`]: newValue } });
+						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.spells.${attr}.value`]: newValue } } });
+					}
+					// if (attr.includes('movement')) {}
+				}
 			}
+			return false;
 		}
 	}
 	return true;
 }
 
-function updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consumeMoreUses, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM }) {
-	const newUses = currentUses !== false ? (isNaN(consumeMoreUses) ? currentUses - 1 : currentUses - consumeMoreUses) : -1;
-	const newQuantity = currentQuantity !== false ? (isNaN(consumeMoreUses) ? currentQuantity - 1 : currentQuantity - consumeMoreUses) : -1;
+function updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM }) {
+	const newUses = currentUses !== false ? currentUses - consume : -1;
+	const newQuantity = currentQuantity !== false ? currentQuantity - consume : -1;
 	if (newUses < 0 && newQuantity < 0) return false;
 	if (newUses !== -1) {
 		const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
