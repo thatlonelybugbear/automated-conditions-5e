@@ -1589,6 +1589,6 @@ export function _getTokenFromActor(actor, notify) {
 	const tokenId = ChatMessage.getSpeaker({ actor })?.token;
 	if (tokenId) token = canvas.tokens.get(tokenId);
 	else token = null;
-	if (notify) ui.notifications.warn(_localize('AC5E.TokenlessActorWarning'));
+	if (!token && notify) ui.notifications.warn(_localize('AC5E.TokenlessActorWarning'));
 	return token;
 }
