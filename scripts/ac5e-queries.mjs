@@ -1,15 +1,15 @@
 import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
 
-export async function _doQueries({ validActivityUpdatesGM = [], validEffectDeletionsGM = [], validEffectUpdatesGM = [], validItemUpdatesGM = [] } = {}) {
+export async function _doQueries({ validActivityUpdatesGM = [], validActorUpdatesGM = [], validEffectDeletionsGM = [], validEffectUpdatesGM = [], validItemUpdatesGM = [] } = {}) {
 	const activeGM = game.users.activeGM;
 	if (!activeGM) return false;
 	try {
 		if (validEffectDeletionsGM.length) {
 			await activeGM.query(Constants.GM_EFFECT_DELETIONS, { validEffectDeletionsGM });
 		}
-		if (validEffectUpdatesGM.length || validItemUpdatesGM.length || validActivityUpdatesGM.length) {
-			await activeGM.query(Constants.GM_DOCUMENT_UPDATES, { validEffectUpdatesGM, validItemUpdatesGM, validActivityUpdatesGM });
+		if (validActivityUpdatesGM.length || validActorUpdatesGM.length || validEffectUpdatesGM.length || validItemUpdatesGM.length) {
+			await activeGM.query(Constants.GM_DOCUMENT_UPDATES, { validActivityUpdatesGM, validActorUpdatesGM, validEffectUpdatesGM, validItemUpdatesGM });
 		}
 		return true;
 	} catch (err) {
@@ -39,8 +39,8 @@ async function deletions(uuids = []) {
 	);
 }
 
-export function _gmDocumentUpdates({ validEffectUpdatesGM = [], validItemUpdatesGM = [], validActivityUpdatesGM = [] } = {}) {
-	const merged = [...(validEffectUpdatesGM || []), ...(validItemUpdatesGM || []), ...(validActivityUpdatesGM || [])];
+export function _gmDocumentUpdates({ validActivityUpdatesGM, validActorUpdatesGM, validEffectUpdatesGM, validItemUpdatesGM }) {
+	const merged = [...(validActivityUpdatesGM || []), ...(validActorUpdatesGM || []), ...(validEffectUpdatesGM || []), ...(validItemUpdatesGM || [])];
 	const byUuid = new Map();
 	for (const entry of merged) {
 		if (!entry || !entry.uuid) continue;
@@ -52,14 +52,15 @@ export function _gmDocumentUpdates({ validEffectUpdatesGM = [], validItemUpdates
 }
 
 async function documentUpdates(entries) {
-	const mapped = entries.map(({ uuid, updates }) => ({ uuid, doc: fromUuidSync(uuid), updates }));
+	const mapped = entries.map(({ uuid, updates, options }) => ({ uuid, doc: fromUuidSync(uuid), updates, options }));
 	await Promise.all(
-		mapped.map(async ({ uuid, doc, updates }) => {
+		mapped.map(async ({ uuid, doc, updates, options }) => {
 			if (!doc) {
 				return { uuid, status: 'error', error: 'Document not found' };
 			}
 			try {
-				await doc.update(updates);
+				if (options) await doc.update(updates, options);
+				else await doc.update(updates);
 			} catch (err) {
 				console.error(`${Constants.GM_DOCUMENT_UPDATES} failed to update ${uuid}:`, err);
 			}
