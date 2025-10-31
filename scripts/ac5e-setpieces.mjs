@@ -55,6 +55,8 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type } = {}) {
 	const { ability, activity, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
 
+	const distanceUnit = canvas.grid.distance;
+
 	const subject = subjectToken?.actor;
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
@@ -126,7 +128,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: ['str', 'dex'].includes(ability) ? 'fail' : '' },
 			attack: { opponent: 'advantage' },
-			damage: { opponent: activity?.hasDamage && distance <= 5 ? 'critical' : '' },
+			damage: { opponent: activity?.hasDamage && distance <= distanceUnit ? 'critical' : '' },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -142,7 +144,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		prone: mkStatus('prone', _i18nConditions('Prone'), {
 			attack: {
 				subject: 'disadvantage',
-				opponent: distance <= 5 ? 'advantage' : 'disadvantage',
+				opponent: distance <= distanceUnit ? 'advantage' : 'disadvantage',
 			},
 		}),
 
@@ -162,7 +164,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: 'advantage' },
-			damage: { opponent: activity?.hasDamage && distance <= 5 ? 'critical' : '' },
+			damage: { opponent: activity?.hasDamage && distance <= distanceUnit ? 'critical' : '' },
 			save: { subject: ['dex', 'str'].includes(ability) ? 'fail' : '' },
 		}),
 	};
