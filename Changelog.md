@@ -1,3 +1,9 @@
+## 13.5110.6
+* Fix for various distance checks to respect unit choices. Based on `distanceUnit = canvas.grid.distance`
+  * `nearbyFoes` now check against 1 distanceUnit.
+  * `paralyzed`, `prone` and `unconscious` now check against 1 distanceUnit.
+  * `Spell Sniper 2024` now adds a bonus of 12 distanceUnits if the cantrip range >= 2 * distanceUnits.
+  
 ## 13.5110.5.2
 * Fix for unlinked tokens `usesCount = origin` consuming from the sidebar actor
 * Fix for `usesCount` not properly identifying if a flag was supposed to alter a roll or not
