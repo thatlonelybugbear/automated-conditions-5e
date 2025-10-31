@@ -337,7 +337,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	config.rolls[0] ??= {};
 	const roll0 = config.rolls[0];
 	roll0.options ??= {};
-	dialog.options.defaultButton = 'normal';
 	const hook = ac5eConfig.hookType;
 	const ac5eForcedRollTarget = 999;
 	if (hook === 'damage') {
@@ -449,6 +448,12 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 			}
 		}
 	}
+	if (ac5eConfig.subject.noCritical.length || ac5eConfig.opponent.noCritical.length) {
+		if (hook === 'attack') roll0.options.criticalSuccess = 21;
+		if (hook === 'damage') dialog.options.defaultButton = 'normal';
+		ac5eConfig.isCritical = false;
+		config.isCritical = false;
+	}
 	if (ac5eConfig.parts.length) {
 		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
 		else if (config.parts) config.parts.push(ac5eConfig.parts);
@@ -459,6 +464,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (maximum) roll0.options.maximum = maximum;
 		if (minimum) roll0.options.minimum = minimum;
 	}
+	if (!dialog.options?.defaultButton)	dialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
 	_getTooltip(ac5eConfig);
@@ -601,6 +607,7 @@ export function _autoEncumbrance(actor, abilityId) {
 }
 
 export function _autoRanged(activity, token, target) {
+	const distanceUnit = canvas.grid.distance;
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
 	const isAttack = activity.type === 'attack';
@@ -612,7 +619,8 @@ export function _autoRanged(activity, token, target) {
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
-		if (modernRules && short >= 10) short += 60;
+		// if (modernRules && short >= 10) short += 60;
+		if (modernRules && short >= 2 * distanceUnit) short += (12 * distanceUnit);
 		else short *= 2;
 	}
 	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
@@ -624,7 +632,7 @@ export function _autoRanged(activity, token, target) {
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
-		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
+		_findNearby({ token, disposition: 'opposite', radius: distanceUnit, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert &&
 		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
 
@@ -826,7 +834,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (!options.preConfigInitiative) {
 		if (hookType !== 'damage' && !skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
-				const attribution = Array.from(config.workflow?.attackAdvAttribution)
+				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter((attr) => attr.includes('ADV:'))
 					.map((attr) => attr.replace('ADV:', 'MidiQOL: '));
 				ac5eConfig.subject.advantage.push(...attribution);
@@ -834,7 +842,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		}
 		if (hookType !== 'damage' && !skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || config?.workflow?.attackAdvAttribution?.size)) {
 			if (midiRoller) {
-				const attribution = Array.from(config.workflow?.attackAdvAttribution)
+				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter?.((attr) => attr.includes('DIS:'))
 					.map((attr) => attr.replace('DIS:', 'MidiQOL: '));
 				ac5eConfig.subject.disadvantage.push(...attribution);
@@ -1121,7 +1129,7 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 	}
 
 	if (!actor) return undefined;
-	const token = actor.getActiveTokens()[0];
+	const token = actor.token?.object || actor.getActiveTokens()[0];
 	if (!token) return undefined;
 
 	switch (type) {
@@ -1277,11 +1285,11 @@ export function _ac5eActorRollData(token) {
 			actorData.equippedItems.identifiers.push(i.identifier);
 		}
 	}
-	actorData.level = actorData.details.level || actorData.details.cr;
+	actorData.level = actorData.details?.level || actorData.details?.cr;
 	actorData.levelCr = actorData.level;
-	actorData.hasArmor = !!actorData.attributes.ac?.equippedArmor;
+	actorData.hasArmor = !!actorData.attributes?.ac?.equippedArmor;
 	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
-	actorData.hasShield = !!actorData.attributes.ac?.equippedShield;
+	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
 	actorData.type = actor.type;
 	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
 	actorData.creatureType = Object.values(_raceOrType(actor, 'all'));
@@ -1367,6 +1375,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
 	if (activity?.actionType) sandbox[activity.actionType] = true;
+	if (activity?.attack?.type) {
+		sandbox[activity.attack.type.value] = true;
+		sandbox[activity.attack.type.classification] = true;
+	}
 	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
 	if (activityData?.type) sandbox[activityData.type] = true;
 

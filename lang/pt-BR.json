@@ -121,9 +121,11 @@
 	"AC5E.ForcedAdvantage": "Vantagem Forçada pelo Sistema",
 	"AC5E.ForcedDisadvantage": "Desvantagem Forçada pelo Sistema",
 	"AC5E.NoAdvantage": "Vantagem Suprimida",
+	"AC5E.NoCritical": "Críticos Suprimido",
 	"AC5E.NoDisadvantage": "Desvantagem Suprimida",
-	"AC5E.TargetGrantsNoAdvantage": "Sem Vantagem Concedida",
-	"AC5E.TargetGrantsNoDisadvantage": "Sem Desvantagem Concedida",
+	"AC5E.TargetGrantsNoAdvantage": "Sem Vantagem Concedido",
+	"AC5E.TargetGrantsNoCritical": "Sem Críticos Concedido",
+	"AC5E.TargetGrantsNoDisadvantage": "Sem Desvantagem Concedido",
 	"AC5E.Bonus": "Bônus",
 	"AC5E.ExtraDice": "Dado Extra",
 	"AC5E.Success": "Sucesso",
@@ -164,19 +166,19 @@
 		},
 		"flags.automated-condition-5e.spellSniper": {
 			"name": "Atirador de Magia",
-			"description": "Para as regras de 2024, não há desvantagem em conjurar magias à distância a até 5 pés de um inimigo e se a magia tiver um alcance de ao menos 10 pés, adiciona mais 60 pés."
+			"description": "Para as regras de 2024, não há Desvantagem em conjurar magias à distância a até 5 pés de um inimigo e se a magia tiver um alcance de ao menos 10 pés, adiciona mais 60 pés."
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
 			"name": "Alterar Margem de Crítico de Ataques",
-			"description": "Use set=18 ou threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+			"description": "Use threshold=-5 para reduzir em 5 ou set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
 		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
 			"name": "Conceder Alteração de Margem de Crítico de Ataques do Oponente",
-			"description": "Use set=18 ou threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+			"description": "Use threshold=-5 para reduzir em 5 ou set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Aura para Alterar Margem de Crítico de Ataques em Raio",
-			"description": "Use radius=10;set=18; ou radius=15;threshold=-1d6. O primeiro será definido como 18 se for menor e o último será adicionado ao atual. Use negativo para reduzir."
+			"description": "Use radius=15;threshold=-5 para reduzir em 5 ou radius=20; set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
 		"flags.automated-conditions-5e.damage.extraDice": {
 			"name": "Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
@@ -184,32 +186,32 @@
 		},
 		"flags.automated-conditions-5e.grants.damage.extraDice": {
 			"name": "Cenceder Aumento/Diminuição do Número de Dados Rolados para Cada Denominação",
-			"description": "Use bonus=-1 para diminuir o número de dados rolados em 1"
+			"description": "Use bonus=-1 para diminuir o número de dados rolados em 1."
 		},
 		"flags.automated-conditions-5e.aura.damage.extraDice": {
 			"name": "Aura para Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
-			"description": "Use bonus=2; radius=10 para aumentar o número de dados rolados para cada denominação em um raio de 10 unidades de distância."
+			"description": "Use bonus=2;radius=10 para aumentar o número de dados rolados para cada denominação em um raio de 10 unidades de distância."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modificar CA Contra Ataques Sofridos",
-			"description": "Use set=18 ou bonus=5. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
+			"description": "Use bonus=5 para adicionar 5 à CA ou set=15 para definir a CA para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
 		"flags.automated-conditions-5e.grant.modifyAC": {
 			"name": "Conceder Modificação de CA ao Oponente do Ataque",
-			"description": "Use set=18 ou bonus=1d6. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
+			"description": "Use bonus=-5 para diminuir 5 da CA ou set=15 para definir a CA para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "Aura para Modificar CA de Tokens Relevanter em Raio",
-			"description": "Use radius=10;set=18; ou radius=15;bonus=-1d6. O primeiro definirá o CA para 18 e o último será adicionado ao atual. Use negativo para reduzir."
+			"description": "Use radius=10;bonus=1d4; ou radius=15;set=15;. O primeiro dará um bônus para a CA e o último definirá o CA para o valor configurado."
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rolar com Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"bonus": {
 				"name": "Rolagem Ganha Bônus",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: bonus=1d4 + 5 - @abilities.dex.mod."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: bonus=1d4 + 5 - rollingActor.abilities.dex.mod."
 			},
 			"critical": {
 				"name": "Rolagem é Crítico (20 nat. ou dano crít.)",
@@ -225,7 +227,7 @@
 			},
 			"modifyDC": {
 				"name": "Modificar CD de Ações (também funciona em Concentração e Salvaguardas Contra Morte)",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Ex: bonus=(rollingActor.attributes.hp.pct < 50 ? 5 : 12)."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus=5 para adicionar 5 à CD ou set=15 para definir a CD para o valor configurado. Você também pode usar roll data, fórmulas de dados e validação de condições."
 			},
 			"noAdvantage": {
 				"name": "Modo Suprimir Vantagem",
@@ -259,7 +261,7 @@
 			},
 			"bonus": {
 				"name": "Conceder Bônus às Rolagens de d20 do Oponente",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com 'bonus=' seguido com um separador ';'. Ex: bonus=1d4 + 5 - @abilities.dex.mod."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com bonus= seguido com um separador ;. Ex: bonus=1d4 + 5 - opponentActor.abilities.dex.mod."
 			},
 			"critical": {
 				"name": "Conceder Crítico (20 nat. ou dano crít.) às Rolagens do Oponente",
@@ -275,18 +277,18 @@
 			},
 			"modifyDC": {
 				"name": "Modificar CD de Rolagem Resistida de Ação de Outros",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). eg bonus=(rollingActor.attributes.hp.pct < 50 ? -5 : 2)"
+				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus=5 para adicionar 5 à CD ou set=15 para definir a CD para o valor configurado. Você também pode usar roll data, fórmulas de dados e validação de condições"
 			},
 			"noAdvantage": {
-				"name": "Modo Conceder Sem Vantagem",
+				"name": "Conceder Modo Sem Vantagem",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"noCritical": {
-				"name": "Conceder Sem Críticos",
+				"name": "Conceder Modo Sem Críticos",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/damage."
 			},
 			"noDisadvantage": {
-				"name": "Modo Conceder Sem Desvantagem",
+				"name": "Conceder Modo Sem Desvantagem",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"fail": {
@@ -305,19 +307,19 @@
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "Aura que Dá Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: alcance;um ally/enemy/all;condições, Ex: para uma ACTIONTYPE salvaguarda e: radius=15;includeSelf;allies;str;cha. Daria a todos os aliados, incluindo você mesmo, em um raio de 15 pés, vantagem em testes de força e/ou carisma."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o exemplo do valor do ACTIONTYPE para save e o valor do efeito para: radius=15;includeSelf;allies;str;cha; daria a todos os aliados em um raio de 15 pés (incluindo você mesmo), Vantagem em Salvaguardas de Força e Carisma."
 			},
 			"bonus": {
 				"name": "Aura que Dá Bônus",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: alcance;ally enemy ou all;bônus;condições, Ex: para ACTIONTYPE iniciativa e valores de efeitos de: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised. TODOS a até 20 pés terão suas rolagens reduzidas pelo mod. de CAR do ator origem se estiverem Surpresos."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o exemplo do valor do ACTIONTYPE para initiative e o valor do efeito para: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised TODOS dentro o alcance de 20 pés terão suas rolagens de iniciativa reduzidas em uma quantidade igual ao modificador de Carisma do ator de origem, caso estejam Surpresos."
 			},
 			"critical": {
 				"name": "Aura Forçando Críticos (20 nat. ou dano)",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"disadvantage": {
 				"name": "Aura que Dá Desvantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"modifier": {
 				"name": "Aura que Modifica Rolagem de d20 ou Dano com Máx/Min",
@@ -325,7 +327,7 @@
 			},
 			"modifyDC": {
 				"name": "Aura que Modifica CD de Ações de Tokens Afetados",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus, radius como de costume."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus/set, radius como de costume."
 			},
 			"noAdvantage": {
 				"name": "Aura que Suprime Modo de Vantagem",
@@ -341,15 +343,15 @@
 			},
 			"fail": {
 				"name": "Aura Forçando Falha às Rolagens de d20",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"fumble": {
 				"name": "Aura Forçando Falha Crítica às Rolagens de d20",
-				"description": "Uma aura em torno do ator que tem efeito sobre. Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"success": {
 				"name": "Aura Forçando Sucesso",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Alterar formato do valor: radius=Número;allies ou enemies ou omita para TODOS;condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			}
 		}
 	}

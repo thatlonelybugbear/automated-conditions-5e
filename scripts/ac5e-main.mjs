@@ -1,8 +1,9 @@
 import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
 import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _getItemOrActivity, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import { _gmDocumentUpdates, _gmEffectDeletions } from './ac5e-queries.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
-export let scopeUser, lazySandbox;
+export let scopeUser, lazySandbox, ac5eQueue;
 let daeFlags;
 
 Hooks.once('init', ac5eRegisterOnInit);
@@ -11,6 +12,7 @@ Hooks.once('ready', ac5eReady);
 
 /* SETUP FUNCTIONS */
 function ac5eRegisterOnInit() {
+	registerQueries();
 	daeFlags = _generateAC5eFlags();
 	Hooks.on('dae.setFieldData', (fieldData) => {
 		fieldData['AC5E'] = daeFlags;
@@ -33,6 +35,7 @@ function ac5ei18nInit() {
 }
 
 function ac5eReady() {
+	ac5eQueue = new foundry.utils.Semaphore();
 	if (_activeModule('midi-qol')) {
 		Hooks.once('midi-qol.midiReady', ac5eSetup); //added midi-qol ready hook, so that ac5e registers hooks after MidiQOL.
 	} else {
@@ -174,4 +177,10 @@ function initializeSandbox() {
 	});
 
 	console.log('AC5E Base sandbox initialized', lazySandbox);
+}
+
+function registerQueries() {
+	CONFIG.queries[Constants.MODULE_ID] = {};
+	CONFIG.queries[Constants.GM_DOCUMENT_UPDATES] = _gmDocumentUpdates;
+	CONFIG.queries[Constants.GM_EFFECT_DELETIONS] = _gmEffectDeletions;
 }

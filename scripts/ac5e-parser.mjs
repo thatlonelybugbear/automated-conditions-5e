@@ -365,12 +365,43 @@ function resolveWhitelistedCalls(expr, proxySandbox, debugLog) {
 				let m = k;
 				for (;;) {
 					const rest = expr.slice(m);
+
+					// dot-property (unchanged)
 					const dot = rest.match(/^\s*\.\s*[A-Za-z_$][\w$]*/);
+					if (dot) {
+						m += dot[0].length;
+						continue;
+					}
+
+					/* 
+					bracket-index: allow quoted strings, numbers, expressions, but
+					treat a single unquoted identifier (e.g. [fire]) as a *flavor tag*
+					and stop here so the tag stays in the formula.
+					*/
 					const idx = rest.match(/^\s*\[\s*(?:'(?:\\'|[^'])*'|"(?:\\"|[^"])*"|[^\]]+)\s*\]/);
-					if (dot) m += dot[0].length;
-					else if (idx) m += idx[0].length;
-					else break;
+					if (idx) {
+						// extract inner content (without brackets and surrounding whitespace)
+						const inner = idx[0].replace(/^\s*\[\s*/, '').replace(/\s*\]\s*$/, '');
+
+						/*
+						Is this an unquoted plain-word token like "fire" or "acid-cold"? If yes,
+						treat it as a flavor tag and DO NOT include it in the snippet.
+						Accept letters, digits, underscore and hyphen; must start with a letter/underscore. 
+						*/
+						const plainWord = inner.match(/^[A-Za-z_][\w-]*$/);
+						if (plainWord) {
+							// stop scanning: keep this [tag] out of the evaluated snippet
+							break;
+						}
+
+						// Otherwise treat as a real indexer/expression and include it
+						m += idx[0].length;
+						continue;
+					}
+
+					break;
 				}
+				
 				const snippet = expr.slice(i, m);
 
 				try {
@@ -479,7 +510,7 @@ function foldBareMath(expr) {
 
 /* INLINING */
 function inlineSimpleIdentifiers(expr, sandbox, proxySandbox, actorNames, debugLog) {
-	const tokenRegex = /\b[a-zA-Z_][\w.\[\]']*\b/g;
+	const tokenRegex = /\b[a-zA-Z_][\w.']*\b/g;
 	return expr.replace(tokenRegex, (match) => {
 		if (/^\d*d\d+$/i.test(match)) return match; // dice literal like 3d8
 		if (match.startsWith('@')) return match; // Foundry @ref
@@ -516,7 +547,19 @@ function simplifyFormula(formula = '', removeFlavor = false) {
 					number: t.evaluate({ allowInteractive: false }).total,
 					options: t.options,
 				});
-				formula = formula.replace(t.formula, inter.number);
+				/*
+				Preserve trailing flavor tags like "[fire]/[cold]" that may follow the term text.
+				Split original term into baseTerm and trailingTags.
+				*/
+				const m = String(t.formula).match(/^([\s\S]*?)(\s*(\[[^\]]*\]\s*)*)$/);
+				const baseTerm = (m && m[1]) || t.formula;
+				const trailingTags = (m && m[2]) || '';
+
+				/* 
+				Replace the original term (base+tags) with numeric + tags.
+				Use replace on the original exact t.formula to avoid accidental partial matches.
+				*/
+				formula = formula.replace(t.formula, String(inter.number) + trailingTags);
 			} else if (t.number === 0 && index) {
 				// should be > 0
 				const operator = roll.terms[index - 1]?.operator; // be safe

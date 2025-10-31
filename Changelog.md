@@ -1,3 +1,45 @@
+## 13.5110.6
+* Fix for various distance checks to respect unit choices. Based on `distanceUnit = canvas.grid.distance`
+  * `nearbyFoes` now check against 1 distanceUnit.
+  * `paralyzed`, `prone` and `unconscious` now check against 1 distanceUnit.
+  * `Spell Sniper 2024` now adds a bonus of 12 distanceUnits if the cantrip range >= 2 * distanceUnits.
+  
+## 13.5110.5.2
+* Fix for unlinked tokens `usesCount = origin` consuming from the sidebar actor
+* Fix for `usesCount` not properly identifying if a flag was supposed to alter a roll or not
+* If `usesCount` points to an Item that has a `quantity` and **no** `uses`, the quantity will be consumed
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## 13.5110.5.1
+* Fix for `noCritical` flags not working
+
+## 13.5110.5
+* Fix for `Array.from(undefined)` throw
+* Introducing queries for updating `usesCount` of non-owned documents.
+* Added logic for using `usesCount=Item.id.Activity.id` for items owned by the actor affected by the effect.
+  * The `id` can be id, identifier or name, for example: `usesCount=Item.Longsword.Activity.attack, 2` to consume 2 uses of the activity with the identifier `attack` on an Item named Longsword.
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
+## 13.5110.4.3
+* Correct extraDice multiplication for critical damage
+* Makes sure that normal defaultButton isn't forced
+
+## 13.5110.4.2
+* Added directly in sandbox `activity.attack.type.value` and `activity.attack.type.classification`.
+  * You can now use directly `melee`, `ranged` and `spell`, `unarmed`, `weapon` 
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
+## 13.5110.4.1
+* Fix for throw when Encounter actors are on scene
+
+## 13.5110.4
+* Fix for damage type tags getting consumed after evaluation of parenthetical terms.
+
+## 13.5110.3
+* Make sure that `itemData.school` can be called directly on conditions
+* Fix for `actorData.details.level` throwing when Encounter actors are on the scene
+* English translation fixes
+
 ## 13.5110.2.1
 * Guard against advantage on attack rolls, giving advantage on damage rolls by default (MidiQOL relevant).
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
