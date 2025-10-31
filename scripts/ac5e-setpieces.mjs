@@ -697,7 +697,7 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} else if (['hp', 'hptemp', 'hptempmax', 'hdlarge', 'hdsmall', 'exhaustion', 'inspiration', 'deathsuccess', 'deathfail', 'currency', 'spell', 'resources', 'movement'].includes(commaSeparated[0].toLowerCase())) {
+				} else if (['hp', 'hptemp', 'hpmax', 'hdlarge', 'hdsmall', 'exhaustion', 'inspiration', 'deathsuccess', 'deathfail', 'currency', 'spell', 'resources', 'movement'].includes(commaSeparated[0].toLowerCase())) {
 					const attr = commaSeparated[0].toLowerCase();
 					if (attr.includes('deathfail')) {
 						const f = actor.system.attributes.death.failure;
@@ -713,7 +713,7 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.death.success': nS } });
 						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.death.success': nS } } });
 					}
-					if (attr.includes('hptempmax')) {
+					if (attr.includes('hpmax')) {
 						const { tempMax, max, value } = actor.system.attributes.hp;
 						const newTempMax = tempMax - consume;
 						if (max - newTempMax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
