@@ -607,6 +607,7 @@ export function _autoEncumbrance(actor, abilityId) {
 }
 
 export function _autoRanged(activity, token, target) {
+	const distanceUnit = canvas.grid.distance;
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
 	const isAttack = activity.type === 'attack';
@@ -618,7 +619,8 @@ export function _autoRanged(activity, token, target) {
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
-		if (modernRules && short >= 10) short += 60;
+		// if (modernRules && short >= 10) short += 60;
+		if (modernRules && short >= 2 * distanceUnit) short += (12 * distanceUnit);
 		else short *= 2;
 	}
 	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
@@ -630,7 +632,7 @@ export function _autoRanged(activity, token, target) {
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
 		settings.autoRangedCombined === 'nearby' &&
-		_findNearby({ token, disposition: 'opposite', radius: 5, lengthTest: 1 }) && //hostile vs friendly disposition only
+		_findNearby({ token, disposition: 'opposite', radius: distanceUnit, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert &&
 		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
 
