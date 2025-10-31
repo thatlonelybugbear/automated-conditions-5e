@@ -1,4 +1,4 @@
-import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
+import { _activeModule, _calcAdvantageMode, _collectActivityDamageTypes, _collectRollDamageTypes, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getTokenFromActor, _getValidColor, _hasAppliedEffects, _hasItem, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoRanged, _getTooltip, _getConfig, _setAC5eProperties, _systemCheck, _hasValidTargets } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -108,7 +108,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	}
 
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
-	const sourceToken = sourceActor.token?.object ?? sourceActor.getActiveTokens()[0];
+	const sourceToken = _getTokenFromActor(sourceActor, true);
 
 	//to-do: rework this to properly check for fail flags and fail use status effects
 	// if (targets.size) {
@@ -178,8 +178,8 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 	const messageType = message?.flags?.dnd5e?.messageType;
 	const chatMessage = message?.document;
 
-	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
-	const subjectToken = canvas.tokens.get(subjectTokenId);
+	const subjectToken = _getTokenFromActor(subject, true);
+	const subjectTokenId = subjectToken?.id;
 	if (attackingToken) options.distance = _getDistance(attackingToken, subjectToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, attackingToken?.id, options);
 	if (ac5eConfig.returnEarly) {
@@ -207,8 +207,8 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	options.targets = messageTargets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
-	const subjectTokenId = speaker?.token ?? subject?.token?.id ?? subject?.getActiveTokens()[0]?.id;
-	const subjectToken = canvas.tokens.get(subjectTokenId);
+	const subjectToken = _getTokenFromActor(subject, true);
+	const subjectTokenId = subjectToken?.id;
 	let opponentToken;
 	//to-do: not ready for this yet. The following line would make it so checks would be perfomred based on target's data/effects
 	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
@@ -246,7 +246,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
 	const targets = game.user?.targets;
-	const sourceToken = canvas.tokens.get(sourceTokenID); //Token5e
+	const sourceToken = _getTokenFromActor(sourceActor, true);
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
@@ -256,7 +256,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options, reEval);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceToken?.id, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
@@ -312,8 +312,8 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 	options.targets = messageTargets;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
 
-	const sourceTokenID = speaker.token;
-	const sourceToken = canvas.tokens.get(sourceTokenID);
+	const sourceToken = _getTokenFromActor(sourceActor, true);
+	const sourceTokenId = sourceToken?.id;
 	const targets = game.user?.targets;
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
@@ -325,7 +325,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenID, singleTargetToken?.id, options, reEval);
+	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenId, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
