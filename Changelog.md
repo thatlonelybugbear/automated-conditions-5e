@@ -3,6 +3,7 @@
   * `nearbyFoes` now check against 1 distanceUnit.
   * `paralyzed`, `prone` and `unconscious` now check against 1 distanceUnit.
   * `Spell Sniper 2024` now adds a bonus of 12 distanceUnits if the cantrip range >= 2 * distanceUnits.
+* Post a warning if you roll from a sidebar actor without a relevant token on the scene.
   
 ## 13.5110.5.2
 * Fix for unlinked tokens `usesCount = origin` consuming from the sidebar actor
