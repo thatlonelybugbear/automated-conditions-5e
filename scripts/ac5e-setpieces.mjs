@@ -502,8 +502,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (hasEffectDeletionGM) validEffectDeletionsGM.push(hasEffectDeletionGM.id);
 			if (hasEffectUpdate) validEffectUpdates.push(hasEffectUpdate.updates);
 			if (hasEffectUpdateGM) validEffectUpdatesGM.push(hasEffectUpdateGM.context);
-			if (hasItemUpdate) validItemUpdates.push(hasItemUpdate.updates);
-			if (hasItemUpdateGM) validItemUpdatesGM.push(hasItemUpdateGM.context);
+			if (hasItemUpdate) {
+				const u = Array.isArray(hasItemUpdate.updates) ? hasItemUpdate.updates : [hasItemUpdate.updates];
+				validItemUpdates.push(...u);
+			}
+			if (hasItemUpdateGM) {
+				const c = Array.isArray(hasItemUpdateGM.context) ? hasItemUpdateGM.context : [hasItemUpdateGM.context];
+				validItemUpdatesGM.push(...c);
+			}
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
 			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') {
@@ -743,57 +749,93 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 					} else if (attr.includes('hd')) {
 						const { max, value, classes } = actor.system.attributes.hd;
 						if (value - consume < 0 || value - consume > max) return false;
+
 						const hdClasses = Array.from(classes)
 							.sort((a, b) => Number(a.system.hd.denomination.split('d')[1]) - Number(b.system.hd.denomination.split('d')[1]))
-							.map((item) => ({ uuid: item.uuid, _id: item.id, hd: item.system.hd }));
+							.map((item) => ({ uuid: item.uuid, id: item.id, hd: item.system.hd }));
+
 						const consumeLargest = attr.includes('large');
 						const consumeSmallest = attr.includes('small');
+
 						const type = consumeSmallest ? 'smallest' : consumeLargest ? 'largest' : consume > 0 ? 'smallest' : 'largest';
-						let remainingConsume = consume;
+						let remaining = consume; // positive = consume, negative = give back
+						const context = [];
+						const updates = [];
+
+						const pushUpdate = (uuid, id, newSpent) => {
+							if (isOwner) updates.push({ _id: id, 'system.hd.spent': newSpent });
+							else context.push({ uuid, updates: { 'system.hd.spent': newSpent } });
+						};
+
 						if (type === 'smallest') {
-							for (let i = 0; i < hdClasses.length; i++) {
-								const {
-									uuid,
-									_id,
-									hd: { max, value, spent, denomination },
-								} = hdClasses[i];
-								let newSpent;
-								if (consume > 0 && consume > value) {
-									newSpent = max;
-									remainingConsume = value - consume;
-								} else if (consume < 0 && Math.abs(consume) > spent) {
-									newSpent = 0;
-									remainingConsume = consume + spent;
-								} else {
-									newSpent = spent - consume;
-									remainingConsume = 0;
+							if (remaining > 0) {
+								// consume from available value
+								let toConsume = remaining;
+								for (let i = 0; i < hdClasses.length && toConsume > 0; i++) {
+									const {
+										uuid,
+										id,
+										hd: { max, value: val, spent },
+									} = hdClasses[i];
+									if (!val) continue;
+									const take = Math.min(toConsume, val);
+									const newSpent = spent + take;
+									pushUpdate(uuid, id, newSpent);
+									toConsume -= take;
 								}
-								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id, 'system.hd.spent': newSpent } });
-								else itemUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.hd.spent': newSpent } } });
-								if (!remainingConsume) break;
+								remaining = toConsume;
+							} else if (remaining < 0) {
+								// give back (restore spent)
+								let toRestore = Math.abs(remaining);
+								for (let i = 0; i < hdClasses.length && toRestore > 0; i++) {
+									const {
+										uuid,
+										id,
+										hd: { spent },
+									} = hdClasses[i];
+									if (!spent) continue;
+									const give = Math.min(toRestore, spent);
+									const newSpent = spent - give;
+									pushUpdate(uuid, id, newSpent);
+									toRestore -= give;
+								}
+								remaining = -toRestore; // remaining negative if still need to restore
 							}
 						} else if (type === 'largest') {
-							for (let i = hdClasses.length; i > 0; i--) {
-								const {
-									uuid,
-									hd: { max, value, spent, denomination },
-								} = hdClasses[i];
-								let newSpent;
-								if (consume > 0 && consume > value) {
-									newSpent = max;
-									remainingConsume = value - consume;
-								} else if (consume < 0 && Math.abs(consume) > spent) {
-									newSpent = 0;
-									remainingConsume = consume + spent;
-								} else {
-									newSpent = spent - consume;
-									remainingConsume = 0;
+							if (remaining > 0) {
+								let toConsume = remaining;
+								for (let i = hdClasses.length - 1; i >= 0 && toConsume > 0; i--) {
+									const {
+										uuid,
+										id,
+										hd: { max, value: val, spent },
+									} = hdClasses[i];
+									if (!val) continue;
+									const take = Math.min(toConsume, val);
+									const newSpent = spent + take;
+									pushUpdate(uuid, id, newSpent);
+									toConsume -= take;
 								}
-								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id, 'system.hd.spent': newSpent } });
-								else itemUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.hd.spent': newSpent } } });
-								if (!remainingConsume) break;
+								remaining = toConsume;
+							} else if (remaining < 0) {
+								let toRestore = Math.abs(remaining);
+								for (let i = hdClasses.length - 1; i >= 0 && toRestore > 0; i--) {
+									const {
+										uuid,
+										id,
+										hd: { spent },
+									} = hdClasses[i];
+									if (!spent) continue;
+									const give = Math.min(toRestore, spent);
+									const newSpent = spent - give;
+									pushUpdate(uuid, id, newSpent);
+									toRestore -= give;
+								}
+								remaining = -toRestore;
 							}
 						} else return false;
+						if (isOwner) itemUpdates.push({ name: effect.name, updates });
+						else itemUpdatesGM.push({ name: effect.name, context });
 					} else {
 						const availableResources = CONFIG.DND5E.consumableResources;
 						const type = availableResources.find((r) => r.includes(attr));
