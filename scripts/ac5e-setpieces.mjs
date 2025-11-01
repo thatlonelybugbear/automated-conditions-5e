@@ -697,78 +697,122 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} else if (['hp', 'hptemp', 'hpmax', 'hdlarge', 'hdsmall', 'exhaustion', 'inspiration', 'deathsuccess', 'deathfail', 'currency', 'spell', 'resources', 'movement'].includes(commaSeparated[0].toLowerCase())) {
+				} /*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/ else {
 					const attr = commaSeparated[0].toLowerCase();
-					if (attr.includes('deathfail')) {
-						const f = actor.system.attributes.death.failure;
-						const nF = f + consume;
-						if (nF < 0 || nF > 3) return false;
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.death.failure': nF } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.death.failure': nF } } });
-					}
-					if (attr.includes('deathsuccess')) {
-						const s = actor.system.attributes.death.success;
-						const nS = s + consume;
-						if (nS < 0 || nS > 3) return false;
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.death.success': nS } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.death.success': nS } } });
-					}
-					if (attr.includes('hpmax')) {
+					if (attr.includes('death')) {
+						const type = attr.includes('fail') ? 'system.attributes.death.failure' : 'system.attributes.success.failure';
+						const value = foundry.utils.getProperty(actor, type);
+						const newValue = value + consume;
+						if (newValue < 0 || newValue > 3) return false;
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { [`${type}`]: newValue } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${type}`]: newValue } } });
+					} else if (attr.includes('hpmax')) {
 						const { tempMax, max, value } = actor.system.attributes.hp;
 						const newTempMax = tempMax - consume;
 						if (max - newTempMax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 						const noConcentration = newTempMax >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
-					}
-					if (attr.includes('hptemp')) {
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+					} else if (attr.includes('hptemp')) {
 						const { temp } = actor.system.attributes.hp;
 						const newTemp = temp - consume;
 						if (newTemp <= 0) return false;
 						const noConcentration = newTemp >= temp || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
-					}
-					if (attr.includes('hp')) {
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+					} else if (attr.includes('hp')) {
 						const { value, effectiveMax } = actor.system.attributes.hp;
 						const newValue = value - consume;
 						if (newValue <= 0 || newValue > effectiveMax) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 						const noConcentration = newValue >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcetration } } } });
-					}
-					// if (attr.includes('hdlarge')) {}
-					// if (attr.includes('hdsmall')) {}
-					// if (attr.includes('currency')) {}
-					if (attr.includes('exhaustion')) {
-						const e = actor.system.attributes.exhaustion;
-						const nE = e - consume;
-						const maxE = CONFIG.statusEffects.find((s) => s.id === 'exhaustion')?.levels || Infinity;
-						if (nE < 0 || nE > maxE) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.exhaustion': nE } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': nE } } });
-					}
-					if (attr.includes('inspiration')) {
-						const i = actor.system.attributes.inspiration ? 1 : 0;
-						const nI = i - consume;
-						if (nI < 0 || nI > 1) return false; //@to-do: double check logic
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { 'system.attributes.inspiration': !!nE } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!nE } } });
-					}
-					// if (attr.includes('resources')) {}
-					if (attr.includes('spell')) {
-						//const level = _extractNumber(attr, { trailing: true });
-						const { max, value } = actor.system.spells[attr] || {};
-						if (!value) return false;
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcetration } } } });
+					} else if (attr.includes('exhaustion')) {
+						const value = actor.system.attributes.exhaustion;
 						const newValue = value - consume;
-						if (newValue < 0 || newValue > max) return false;
-						if (isOwner) return actorUpdates.push({ name: effect.name, updates: { [`system.spells.${attr}.value`]: newValue } });
-						else return actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.spells.${attr}.value`]: newValue } } });
+						const max = CONFIG.statusEffects.find((s) => s.id === 'exhaustion')?.levels || Infinity;
+						if (newValue < 0 || newValue > max) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.exhaustion': newValue } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': newValue } } });
+					} else if (attr.includes('inspiration')) {
+						const value = actor.system.attributes.inspiration ? 1 : 0;
+						const newValue = value - consume;
+						if (newValue < 0 || newValue > 1) return false; //@to-do: double check logic
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.inspiration': !!newValue } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
+					} else if (attr.includes('hd')) {
+						const { max, value, classes } = actor.system.attributes.hd;
+						if (value - consume < 0 || value - consume > max) return false;
+						const hdClasses = Array.from(classes)
+							.sort((a, b) => Number(a.system.hd.denomination.split('d')[1]) - Number(b.system.hd.denomination.split('d')[1]))
+							.map((item) => ({ uuid: item.uuid, id: item.id, hd: item.system.hd }));
+						const consumeLargest = attr.includes('large');
+						const consumeSmallest = attr.includes('small');
+						const type = consumeSmallest ? 'smallest' : consumeLargest ? 'largest' : consume > 0 ? 'smallest' : 'largest';
+						let remaniningConsume = consume;
+						if (type === 'smallest') {
+							for (let i = 0; i < hdClasses.length; i++) {
+								const {
+									uuid,
+									hd: { max, value, spent, denomination },
+								} = hdClasses[i];
+								let newSpent;
+								if (consume > 0 && consume > value) {
+									newSpent = max;
+									remainingConsume = value - consume;
+								} else if (consume < 0 && Math.abs(consume) > spent) {
+									newSpent = 0;
+									remainingConsume = consume + spent;
+								} else {
+									newSpent = spent - consume;
+									remainingConsume = 0;
+								}
+								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.hd.spent': newSpent } });
+								else itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.hd.spent': newSpent } } });
+								if (!remainingConsume) break;
+							}
+						} else if (type === 'largest') {
+							for (let i = hdClasses.length; i > 0; i--) {
+								const {
+									uuid,
+									hd: { max, value, spent, denomination },
+								} = hdClasses[i];
+								let newSpent;
+								if (consume > 0 && consume > value) {
+									newSpent = max;
+									remainingConsume = value - consume;
+								} else if (consume < 0 && Math.abs(consume) > spent) {
+									newSpent = 0;
+									remainingConsume = consume + spent;
+								} else {
+									newSpent = spent - consume;
+									remainingConsume = 0;
+								}
+								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.hd.spent': newSpent } });
+								else itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.hd.spent': newSpent } } });
+								if (!remainingConsume) break;
+							}
+						} else return false;
+					} else {
+						const availableResources = CONFIG.DND5E.consumableResources;
+						const type = availableResources.find((r) => r.includes(attr));
+						if (!type) return false;
+						const resource = foundry.utils.getProperty(actor.system, type);
+						let newValue;
+						if (!resource) return false;
+						else if (resource instanceof Object) {
+							const { max, value } = resource;
+							newValue = value - consume;
+							if (newValue < 0 || newValue > max) return false;
+						} else if (typeof resource === 'number') {
+							newValue = value - consume;
+							if (newValue < 0) return false;
+						}
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { [`system.${type}`]: newValue } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.${type}`]: newValue } } });
 					}
-					// if (attr.includes('movement')) {}
 				}
 			}
-			return false;
 		}
 	}
 	return true;
