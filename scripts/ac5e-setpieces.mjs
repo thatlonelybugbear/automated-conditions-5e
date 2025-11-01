@@ -672,7 +672,7 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 				const activity = !item && itemActivityfromUuid.type !== 'undefined' && itemActivityfromUuid;
 				const currentUses = item ? item.system.uses.value : activity ? activity.uses.value : false;
 				const currentQuantity = item && !item.system.uses.max ? item.system.quantity : false;
-				if (currentUse === false && currentQuantity === false) return false;
+				if (currentUses === false && currentQuantity === false) return false;
 				else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 			} else {
 				const actor = effect.target;
