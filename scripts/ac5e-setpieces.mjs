@@ -745,15 +745,16 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						if (value - consume < 0 || value - consume > max) return false;
 						const hdClasses = Array.from(classes)
 							.sort((a, b) => Number(a.system.hd.denomination.split('d')[1]) - Number(b.system.hd.denomination.split('d')[1]))
-							.map((item) => ({ uuid: item.uuid, id: item.id, hd: item.system.hd }));
+							.map((item) => ({ uuid: item.uuid, _id: item.id, hd: item.system.hd }));
 						const consumeLargest = attr.includes('large');
 						const consumeSmallest = attr.includes('small');
 						const type = consumeSmallest ? 'smallest' : consumeLargest ? 'largest' : consume > 0 ? 'smallest' : 'largest';
-						let remaniningConsume = consume;
+						let remainingConsume = consume;
 						if (type === 'smallest') {
 							for (let i = 0; i < hdClasses.length; i++) {
 								const {
 									uuid,
+									_id,
 									hd: { max, value, spent, denomination },
 								} = hdClasses[i];
 								let newSpent;
@@ -767,8 +768,8 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 									newSpent = spent - consume;
 									remainingConsume = 0;
 								}
-								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.hd.spent': newSpent } });
-								else itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.hd.spent': newSpent } } });
+								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id, 'system.hd.spent': newSpent } });
+								else itemUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.hd.spent': newSpent } } });
 								if (!remainingConsume) break;
 							}
 						} else if (type === 'largest') {
@@ -788,8 +789,8 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 									newSpent = spent - consume;
 									remainingConsume = 0;
 								}
-								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.hd.spent': newSpent } });
-								else itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.hd.spent': newSpent } } });
+								if (isOwner) itemUpdates.push({ name: effect.name, updates: { _id, 'system.hd.spent': newSpent } });
+								else itemUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.hd.spent': newSpent } } });
 								if (!remainingConsume) break;
 							}
 						} else return false;
