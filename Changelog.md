@@ -1,4 +1,15 @@
 ## 13.5110.6
+* Expanded `usesCount` to consume Actor *resources*. Anything found in `CONFIG.DND5E.consumableResources` is fair game, but be cautious. Available `usesCount`:
+  * HP related: `hp`, `hptemp` and `hpmax` (will target temporary max hp)
+  * HD related: `hdLargest`, `hdSmallest`, `hd` (for hd when consuming, will move from largest to smallest and vice versa for recovering)
+  * Abilities: `str`, `dex`, `con`, `int`, `wis`, `cha`. For example `usesCount=str, 2` will reduce the actor's Strength value by 2 forever! **Use with extra care!**
+  * Other Attributes:
+   * `exhaustion`, `inspiration`
+   * movement: `walk`, `fly` etc **(be wary of those)**
+   * senses: `blindsight`, `darkvision`, `tremorsense`, `truesight` **(be wary of those)**
+  * Currency: `gp`, `sp` etc 
+  * Resources: `primary`, `secondary`, `tertiary`, `legact`, `legres`
+  * Spell slots: `spell1`, `spell5`, etc or `pact`
 * Fix for various distance checks to respect unit choices. Based on `distanceUnit = canvas.grid.distance`
   * `nearbyFoes` now check against 1 distanceUnit.
   * `paralyzed`, `prone` and `unconscious` now check against 1 distanceUnit.
