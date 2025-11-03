@@ -1,4 +1,4 @@
-## 13.5110.6
+## 13.5110.6.1
 * Expanded `usesCount` to consume Actor *resources*. Anything found in `CONFIG.DND5E.consumableResources` is fair game, but be cautious. Available `usesCount`:
   * HP related: `hp`, `hptemp` and `hpmax` (will target temporary max hp)
    * Added `noconc` keyword for those hp updates to **not** trigger concentration checks (use by adding in the effect value `noconc` or `noconcentration` or `noconcentrationcheck` which are not case sensitive).
