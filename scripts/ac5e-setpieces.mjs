@@ -713,12 +713,12 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						if (isOwner) actorUpdates.push({ name: effect.name, updates: { [`${type}`]: newValue } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${type}`]: newValue } } });
 					} else if (attr.includes('hpmax')) {
-						const { tempMax, max, value } = actor.system.attributes.hp;
-						const newTempMax = tempMax - consume;
-						if (max - newTempMax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
-						const noConcentration = newTempMax >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempMax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						const { tempmax, max, value } = actor.system.attributes.hp;
+						const newTempmax = tempmax - consume;
+						if (max - newTempmax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						const noConcentration = max + newTempmax >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hptemp')) {
 						const { temp } = actor.system.attributes.hp;
 						const newTemp = temp - consume;
