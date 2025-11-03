@@ -341,7 +341,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return true;
 	};
 
-	const blacklist = new Set(['allies', 'bonus', 'enemies', 'includeself', 'itemlimited', 'modifier', 'once', 'radius', 'set', 'singleaura', 'threshold', 'usescount', 'wallsblock']);
+	const blacklist = new Set(['allies', 'bonus', 'enemies', 'includeself', 'itemlimited', 'modifier', 'noconcentration', 'once', 'radius', 'set', 'singleaura', 'threshold', 'usescount', 'wallsblock']);
 
 	const activityUpdates = [];
 	const activityUpdatesGM = [];
