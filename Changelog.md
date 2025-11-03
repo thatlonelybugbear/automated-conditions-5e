@@ -1,20 +1,24 @@
 ## 13.5110.6.1
-* Expanded `usesCount` to consume Actor *resources*. Anything found in `CONFIG.DND5E.consumableResources` is fair game, but be cautious. Available `usesCount`:
-  * HP related: `hp`, `hptemp` and `hpmax` (will target temporary max hp)
+ * HP related: `hp`, `hptemp` and `hpmax` (will target temporary max hp)
     * Added `noconc` keyword for those hp updates to **not** trigger concentration checks (use by adding in the effect value `noconc` or `noconcentration` or `noconcentrationcheck` which are not case sensitive).
   * HD related: `hdLargest`, `hdSmallest`, `hd` (for hd when consuming, will move from largest to smallest and vice versa for recovering)
   * Abilities: `str`, `dex`, `con`, `int`, `wis`, `cha`. For example `usesCount=str, 2` will reduce the actor's Strength value by 2 forever! **Use with extra care!**
   * Other Attributes:
-   * `exhaustion`, `inspiration`, `deathfailure`, `deathsuccess`
-   * movement: `walk`, `fly` etc **(be wary of those)**
-   * senses: `blindsight`, `darkvision`, `tremorsense`, `truesight` **(be wary of those)**
+    * `exhaustion`, `inspiration`, `deathfailure`, `deathsuccess`
+    * movement: `walk`, `fly` etc **(be wary of those)**
+    * senses: `blindsight`, `darkvision`, `tremorsense`, `truesight` **(be wary of those)**
   * Currency: `gp`, `sp` etc 
   * Resources: `primary`, `secondary`, `tertiary`, `legact`, `legres`
   * Spell slots: `spell1`, `spell5`, etc or `pact`
-* Fix for various distance checks to respect unit choices. Based on `distanceUnit = canvas.grid.distance`
-  * `nearbyFoes` now check against 1 distanceUnit.
-  * `paralyzed`, `prone` and `unconscious` now check against 1 distanceUnit.
-  * `Spell Sniper 2024` now adds a bonus of 12 distanceUnits if the cantrip range >= 2 * distanceUnits.
+  * Examples: 
+    * `usesCount=deathfailure,3` will *add* 3 death save fails until removed!
+    *  `usesCount=hdlargest, 2` will give back 2 used HD (largest available  for each of the two)
+    * `usesCount=hpmax, -5` will increase the actor's max hp by 5, adding 5 temp max hp until removed.
+    * `usesCount=hp, 5;noconc;` will decrease the current hp by 5 and won't trigger a conc save!
+* Fix distance checks to respect unit choices. Based on `distanceUnit = canvas.grid.distance`
+  * `nearbyFoes` checks against 1 distanceUnit.
+  * `paralyzed`, `prone` and `unconscious` check against 1 distanceUnit.
+  * `Spell Sniper 2024` adds a bonus of 12 distanceUnits if the cantrip range >= 2 * distanceUnits.
 * Post a warning if you roll from a sidebar actor without a relevant token on the scene.
   
 ## 13.5110.5.2
