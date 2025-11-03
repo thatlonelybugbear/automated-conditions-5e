@@ -716,21 +716,21 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						const { tempmax, max, value } = actor.system.attributes.hp;
 						const newTempmax = tempmax - consume;
 						if (max - newTempmax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
-						const noConcentration = max + newTempmax >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+						const noConcentration = !(max + newTempmax >= value || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
 						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hptemp')) {
 						const { temp } = actor.system.attributes.hp;
 						const newTemp = temp - consume;
 						if (newTemp <= 0) return false;
-						const noConcentration = newTemp >= temp || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
+						const noConcentration = !(newTemp >= temp || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
 						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hp')) {
 						const { value, effectiveMax } = actor.system.attributes.hp;
 						const newValue = value - consume;
 						if (newValue <= 0 || newValue > effectiveMax) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
-						const noConcentration = newValue >= value || change.value.toLowerCase().includes('noconc'); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+						const noConcentration = !(newValue >= value || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
 						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcetration } } } });
 					} else if (attr.includes('exhaustion')) {
