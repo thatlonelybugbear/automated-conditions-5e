@@ -1,4 +1,4 @@
-## 13.5110.6
+## 13.5110.3
 * Expanded `usesCount` to consume Actor *resources*. Anything found in `CONFIG.DND5E.consumableResources` is fair game, but be cautious. Available `usesCount`:
   * HP related: `hp`, `hptemp` and `hpmax` (will target temporary max hp)
   * HD related: `hdLargest`, `hdSmallest`, `hd` (for hd when consuming, will move from largest to smallest and vice versa for recovering)
