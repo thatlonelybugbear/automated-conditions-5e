@@ -5,7 +5,7 @@
   * HD related: `hdLargest`, `hdSmallest`, `hd` (for hd when consuming, will move from largest to smallest and vice versa for recovering)
   * Abilities: `str`, `dex`, `con`, `int`, `wis`, `cha`. For example `usesCount=str, 2` will reduce the actor's Strength value by 2 forever! **Use with extra care!**
   * Other Attributes:
-   * `exhaustion`, `inspiration`
+   * `exhaustion`, `inspiration`, `deathfailure`, `deathsuccess`
    * movement: `walk`, `fly` etc **(be wary of those)**
    * senses: `blindsight`, `darkvision`, `tremorsense`, `truesight` **(be wary of those)**
   * Currency: `gp`, `sp` etc 
