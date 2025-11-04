@@ -569,8 +569,8 @@ function simplifyFormula(formula = '', removeFlavor = false) {
 		let simplifiedFormula = new Roll(formula).formula;
 		return simplifiedFormula;
 	} catch (e) {
-		console.error('Unable to simplify formula due to an error.', false, e);
-		return formula;
+		console.error('Unable to simplify formula due to an error.', false, e); //@to-do: add more info like effectUuid and changeKey to guide the user to find the trigger.
+		return '0[AC5E: formulaError check console]';//formula;
 	}
 }
 
