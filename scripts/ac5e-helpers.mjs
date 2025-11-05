@@ -1292,7 +1292,7 @@ export function _ac5eActorRollData(token) {
 	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
 	actorData.type = actor.type;
 	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
-	actorData.creatureType = Object.values(_raceOrType(actor, 'all'));
+	actorData.creatureType = Array.from(new Set(Object.values(_raceOrType(actor, 'all')).filter(Boolean)));
 	actorData.token = token;
 	actorData.tokenSize = token.document.width * token.document.height;
 	actorData.tokenElevation = token.document.elevation;
