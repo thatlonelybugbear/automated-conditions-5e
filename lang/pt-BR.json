@@ -73,6 +73,7 @@
 	},
 	"AC5E.DebuggingName": "Debug",
 	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
+	"AC5E.TokenlessActorWarning": "Aviso do AC5e: O ator para que você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos",
 	"AC5E.WarCaster": "Conjurador de Guerra",
 	"AC5E.ModifyAC": "CA Modificada",
 	"AC5E.ModifyDC": "CD Modificada",
