@@ -296,7 +296,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
 		const evalData = auraTokenEvaluationData ?? evaluationData ?? {};
-		const debug: { effectUuid: effect.uuid, changeKey: change.key };
+		const debug = { effectUuid: effect.uuid, changeKey: change.key };
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
