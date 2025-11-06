@@ -464,7 +464,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 		if (maximum) roll0.options.maximum = maximum;
 		if (minimum) roll0.options.minimum = minimum;
 	}
-	if (!dialog.options?.defaultButton)	dialog.options.defaultButton = 'normal';
+	if (!dialog.options?.defaultButton) dialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = dialog.options.advantageMode;
 	ac5eConfig.defaultButton = dialog.options.defaultButton;
 	_getTooltip(ac5eConfig);
@@ -620,7 +620,7 @@ export function _autoRanged(activity, token, target) {
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
 		// if (modernRules && short >= 10) short += 60;
-		if (modernRules && short >= 2 * distanceUnit) short += (12 * distanceUnit);
+		if (modernRules && short >= 2 * distanceUnit) short += 12 * distanceUnit;
 		else short *= 2;
 	}
 	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
@@ -1265,7 +1265,7 @@ export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', de
 
 	const debugLog = settings?.debug || ac5e?.debugEvaluations ? console.warn : console.debug;
 	debug.log = debugLog;
-	
+
 	if (mode === 'condition') return evaluateCondition(expression, sandbox, debug);
 	if (mode === 'formula') return prepareRollFormula(expression, sandbox, debug);
 	throw new Error(`Invalid mode for _ac5eSafeEval: ${mode}`);
