@@ -384,7 +384,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-					
+
 					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData, debug });
 					if (!evaluation) return;
 
@@ -426,7 +426,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					.join(';');
 				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-				
+
 				validFlags[effect.id] = {
 					name: effect.name,
 					actorType,
