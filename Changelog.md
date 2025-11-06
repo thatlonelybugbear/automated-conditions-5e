@@ -1,6 +1,7 @@
 ## 13.5110.6.2
 * Cleanup `actorData.creatureType` Array from empty or double elements.
 * `itemLimited` should be now available for non transfer active effects too.
+* Better error handling, parser returning `0` for failing to evaluate formulas, `ac5e.debugEvaluations` per client Boolean setting for quick checks. When a formula fails due to malformed entries, the effect uuid and change key will be posted as a client error notification and in console.
 * Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
 ## 13.5110.6.1
