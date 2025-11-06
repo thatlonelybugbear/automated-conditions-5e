@@ -295,6 +295,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
 	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
+		const evalData = auraTokenEvaluationData ?? evaluationData ?? {};
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
@@ -310,7 +311,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!hasHook) return false;
 		const shouldProceedUses = handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM });
 		if (!shouldProceedUses) return false;
-		if (change.value.toLowerCase().includes('itemlimited') && !(evaluationData && evaluationData.item?.uuid === effect.origin)) return false;
+		if (change.value.toLowerCase().includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
