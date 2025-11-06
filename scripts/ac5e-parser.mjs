@@ -40,12 +40,12 @@ function createProxySandbox(sandbox, mode = 'formula') {
 /* -------------------------------------------------------------------- */
 /* CONDITION EVALUATION                                                 */
 /* -------------------------------------------------------------------- */
-export function evaluateCondition(expression, sandbox, debugLog) {
+export function evaluateCondition(expression, sandbox, debug) {
 	const proxySandbox = createProxySandbox(sandbox, 'condition');
 
 	try {
 		const result = new Function('sandbox', `with (sandbox) { return (${expression}); }`)(proxySandbox);
-		if (settings.debug || ac5e.logEvaluationData) console.log('AC5E._ac5eSafeEval [condition OK]', { expression, result });
+		debug.log?.('AC5E._ac5eSafeEval [condition OK]', { expression, result });
 		return !!result;
 	} catch (err) {
 		let reason = 'unknown error';
@@ -54,7 +54,7 @@ export function evaluateCondition(expression, sandbox, debugLog) {
 		else if (err.name === 'TypeError') reason = 'type error';
 		else reason = `${err.name}: ${err.message}`;
 
-		debugLog(`AC5E._ac5eSafeEval [condition fail → false]: ${reason}`, { expression });
+		debug.log?.(`AC5E._ac5eSafeEval [condition fail to false]: ${reason}`, { expression, effect: debug.effectUuid, change: debug.changeKey });
 		return false; // always fail safe
 	}
 }
@@ -74,28 +74,28 @@ export function evaluateCondition(expression, sandbox, debugLog) {
  *
  * @param {string} expression Raw user/formula string
  * @param {object} sandbox Your evaluation sandbox (actors, helpers, constants, etc.)
- * @param {object} debugLog?: (...args)=>void
+ * @param {object} debug?: (...args)=>void
  * @returns {string}
  */
-export function prepareRollFormula(expression, sandbox, debugLog) {
+export function prepareRollFormula(expression, sandbox, debug) {
 	const proxySandbox = createProxySandbox(sandbox, 'formula');
 	// 0) Normalize: strip leading assignment and trailing identifier (common macro typos)
 	let resultExpr = normalizeExpr(expression); // could be safe to remove, but being a bugbear... ¯_(ツ)_/¯
 	// 1) Reduce only parens that contain a *top-level* ternary; dive only into chosen branch
-	resultExpr = reduceTernaryParens(resultExpr, { evaluateCondition, sandbox: proxySandbox, debugLog });
+	resultExpr = reduceTernaryParens(resultExpr, { evaluateCondition, sandbox: proxySandbox, debug });
 	// 2) Resolve @ actor references (mutate rollingActor.x into @x, via Roll(formula, actorData))
 	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectOriginActor'];
-	resultExpr = resolveActorAtRefs(resultExpr, sandbox, actorNames, Roll, debugLog);
+	resultExpr = resolveActorAtRefs(resultExpr, sandbox, actorNames, Roll, debug);
 	// 3) Resolve whitelisted helper calls + property chains up-front
-	resultExpr = resolveWhitelistedCalls(resultExpr, proxySandbox, debugLog);
+	resultExpr = resolveWhitelistedCalls(resultExpr, proxySandbox, debug);
 	// 4) Pre-evaluate deterministic Math.* (constants & calls with pure-arith args)
 	resultExpr = foldBareMath(resultExpr);
 	// 5) Inline simple identifiers from sandbox (keep dice/@/actor refs intact)
-	resultExpr = inlineSimpleIdentifiers(resultExpr, sandbox, proxySandbox, actorNames, debugLog);
+	resultExpr = inlineSimpleIdentifiers(resultExpr, sandbox, proxySandbox, actorNames, debug);
 	// 6) Strip remnant quotes around numeric literals (backwards compatibility)
 	resultExpr = coerceQuotedNumbersAndFlavors(resultExpr);
 	// 7) Fold deterministic sub-terms using your simplify (dice & flavors preserved)
-	const finalExpr = simplifyFormula(resultExpr, /* removeFlavor */ false);
+	const finalExpr = simplifyFormula(resultExpr, /* removeFlavor */ false, debug);
 	return finalExpr;
 }
 
@@ -110,7 +110,7 @@ function normalizeExpr(expr) {
 }
 
 /* TERNARY REDUCER */
-function reduceTernaryParens(expr, { evaluateCondition, sandbox, debugLog } = {}) {
+function reduceTernaryParens(expr, { evaluateCondition, sandbox, debug } = {}) {
 	if (!(expr.includes('?') && expr.includes(':'))) return expr;
 
 	let i = 0;
@@ -122,7 +122,7 @@ function reduceTernaryParens(expr, { evaluateCondition, sandbox, debugLog } = {}
 
 		const close = findMatchingParen(expr, i);
 		if (close < 0) {
-			debugLog("Unbalanced '(' at " + i);
+			debug.log?.("AC5E reduceTernaryParens: Unbalanced '(' at " + i, { effect: debug.effectUuid, change: debug.changeKey });
 			return expr;
 		}
 
@@ -152,13 +152,13 @@ function reduceTernaryParens(expr, { evaluateCondition, sandbox, debugLog } = {}
 
 		let condResult = false;
 		try {
-			condResult = !!evaluateCondition(cond, sandbox, debugLog);
+			condResult = !!evaluateCondition(cond, sandbox, debug);
 		} catch (e) {
-			debugLog(`Condition eval failed: ${cond}`, e?.message);
+			debug.log?.(`AC5E reduceTernaryParens: Condition eval failed: ${cond}`, { effect: debug.effectUuid, change: debug.changeKey }, e?.message);
 		}
 
 		const chosen = condResult ? trueRaw : falseRaw;
-		const reducedChosen = reduceTernaryParens(chosen, { evaluateCondition, sandbox, debugLog });
+		const reducedChosen = reduceTernaryParens(chosen, { evaluateCondition, sandbox, debug });
 
 		expr = expr.slice(0, i) + reducedChosen + expr.slice(close + 1);
 		i += String(reducedChosen).length;
@@ -297,7 +297,7 @@ function findMatchingColon(str, qIndex) {
 }
 
 /* @ ACTOR REFERENCES */
-function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debugLog) {
+function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 	let out = expr;
 	for (const actorName of actorNames) {
 		const actor = sandbox[actorName];
@@ -311,7 +311,7 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debugLog) {
 				const formula = roll.formula ?? atExpr;
 				out = out.replace(ref, formula);
 			} catch (e) {
-				debugLog(`@ref parse failed for ${ref}`, e.message);
+				debug.log?.(`AC5E resolveActorAtRefs @ref parse failed for ${ref}`, { effect: debug.effectUuid, change: debug.changeKey }, e.message);
 			}
 		}
 	}
@@ -319,7 +319,7 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debugLog) {
 }
 
 /* WHITELISTED CALLS (in lazySandbox) */
-function resolveWhitelistedCalls(expr, proxySandbox, debugLog) {
+function resolveWhitelistedCalls(expr, proxySandbox, debug) {
 	let i = 0,
 		out = '';
 	while (i < expr.length) {
@@ -416,7 +416,7 @@ function resolveWhitelistedCalls(expr, proxySandbox, debugLog) {
 						continue;
 					}
 				} catch (e) {
-					debugLog(`whitelisted call failed: ${snippet}`, e.message);
+					debug.log?.(`AC5E whitelisted call failed: ${snippet}`, { effect: debug.effectUuid, change: debug.changeKey }, e.message);
 				}
 			}
 		}
@@ -509,7 +509,7 @@ function foldBareMath(expr) {
 }
 
 /* INLINING */
-function inlineSimpleIdentifiers(expr, sandbox, proxySandbox, actorNames, debugLog) {
+function inlineSimpleIdentifiers(expr, sandbox, proxySandbox, actorNames, debug) {
 	const tokenRegex = /\b[a-zA-Z_][\w.']*\b/g;
 	return expr.replace(tokenRegex, (match) => {
 		if (/^\d*d\d+$/i.test(match)) return match; // dice literal like 3d8
@@ -529,7 +529,7 @@ function inlineSimpleIdentifiers(expr, sandbox, proxySandbox, actorNames, debugL
 }
 
 // Function from @kgar's Tidy 5e Sheet. Thanks :)
-function simplifyFormula(formula = '', removeFlavor = false) {
+function simplifyFormula(formula = '', removeFlavor = false, debug) {
 	try {
 		if (removeFlavor) {
 			formula = formula?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP, '')?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP_STRING, '')?.trim();
@@ -569,8 +569,9 @@ function simplifyFormula(formula = '', removeFlavor = false) {
 		let simplifiedFormula = new Roll(formula).formula;
 		return simplifiedFormula;
 	} catch (e) {
-		console.error('Unable to simplify formula due to an error.', false, e); //@to-do: add more info like effectUuid and changeKey to guide the user to find the trigger.
-		return '0[AC5E: formulaError check console]';//formula;
+		ui.notification.error(`AC5E: Unable to simplify formula due to an error, returning 0. In effect with UUID: ${debug.effectUuid} for change entry: ${debug.changeKey}. Check your console or let your DM know.`);
+		console.error('AC5E: Unable to simplify formula due to an error, returning 0.', { effect: debug.effectUuid, change: debug.changeKey }, e);
+		return 0;
 	}
 }
 
