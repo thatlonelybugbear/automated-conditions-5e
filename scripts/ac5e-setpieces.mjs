@@ -296,6 +296,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
 		const evalData = auraTokenEvaluationData ?? evaluationData ?? {};
+		const debug: { effectUuid: effect.uuid, changeKey: change.key };
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
@@ -309,7 +310,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const modifyHooks = isModifyAC || isModifyDC;
 		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks;
 		if (!hasHook) return false;
-		const shouldProceedUses = handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM });
+		const shouldProceedUses = handleUses({ actorType, change, effect, evalData, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, debug });
 		if (!shouldProceedUses) return false;
 		if (change.value.toLowerCase().includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
@@ -321,7 +322,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (!radius) return false;
 			radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
 			if (!radius) return false;
-			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula', debug: { effectUuid: effect.uuid, changeKey: change.key } });
+			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula', debug });
 			if (!radius) return false;
 			const distanceTokenToAuraSource = !isModifyAC ? distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight') : distanceToTarget(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
 			if (distanceTokenToAuraSource <= radius) auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
@@ -593,7 +594,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 }
 
-function handleUses({ actorType, change, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM }) {
+function handleUses({ actorType, change, effect, evalData, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, debug }) {
 	const isOwner = effect.isOwner;
 	const values = change.value.split(';').filter(Boolean);
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
@@ -612,7 +613,13 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 		const isNumber = parseInt(hasCount, 10);
 		const commaSeparated = hasCount.split(',');
 		let itemActivityfromUuid = !!fromUuidSync(commaSeparated[0]) && fromUuidSync(commaSeparated[0]);
-		const consume = parseInt(commaSeparated[1], 10) || 1; //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
+		let consume = 1; //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
+		const consumptionValue = commaSeparated[1];
+		if (consumptionValue) {
+			const evaluated = Roll.safeEval(_ac5eSafeEval({ expression: consumptionValue.trim(), sandbox: evalData, mode: 'formula', debug }));
+			if (!isNaN) consume = evaluated;
+		}
+		
 
 		if (!isNaN(isNumber)) {
 			if (isNumber === 0) {
