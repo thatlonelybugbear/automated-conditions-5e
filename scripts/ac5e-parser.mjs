@@ -401,7 +401,7 @@ function resolveWhitelistedCalls(expr, proxySandbox, debug) {
 
 					break;
 				}
-				
+
 				const snippet = expr.slice(i, m);
 
 				try {
