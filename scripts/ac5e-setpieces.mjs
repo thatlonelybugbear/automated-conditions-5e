@@ -672,7 +672,7 @@ function handleUses({ actorType, change, effect, activityUpdates, activityUpdate
 						itemActivityfromUuid = fromUuidSync(itemActivityfromUuid).parent;
 					} else if (parsed.type === 'Item') {
 						const i = fromUuidSync(effect.origin);
-						const actorLinked = i.parent?.protoTypeToken?.actorLink;
+						const actorLinked = i?.parent?.protoTypeToken?.actorLink; //when can "i" be undefined? Origin can be null
 						if (actorLinked) itemActivityfromUuid = i;
 						else itemActivityfromUuid = fromUuidSync(effect.parent.uuid);
 					}
