@@ -459,7 +459,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-					const debug = { effectUuid: effect.uuid, changeKey: el.key };
 					validFlags[effect.id] = {
 						name: effect.name,
 						actorType,
