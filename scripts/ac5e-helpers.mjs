@@ -1259,15 +1259,15 @@ export function _getValidColor(color, fallback, user) {
  *  - Math.* and shorthand helpers (min, max, floor, etc.)
  *  - Fails safely to false if evaluation breaks
  */
-export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition' }) {
+export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', debugData }) {
 	if (!expression || typeof expression !== 'string') return undefined;
 	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
-	const debugEnabled = settings?.debug || ac5e?.logEvaluationData;
+	const debugEnabled = settings?.debug || ac5e?.debugEvaluations;
 	const debugLog = debugEnabled ? console.warn : console.debug;
 
-	if (mode === 'condition') return evaluateCondition(expression, sandbox, debugLog);
-	if (mode === 'formula') return prepareRollFormula(expression, sandbox, debugLog);
+	if (mode === 'condition') return evaluateCondition(expression, sandbox, debugLog, debugData);
+	if (mode === 'formula') return prepareRollFormula(expression, sandbox, debugLog, debugData);
 	throw new Error(`Invalid mode for _ac5eSafeEval: ${mode}`);
 }
 
