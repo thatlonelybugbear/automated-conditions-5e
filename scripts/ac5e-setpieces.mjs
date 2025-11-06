@@ -321,7 +321,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (!radius) return false;
 			radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
 			if (!radius) return false;
-			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula' });
+			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula', debug: { effectUuid: effect.uuid, changeKey: change.key } });
 			if (!radius) return false;
 			const distanceTokenToAuraSource = !isModifyAC ? distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight') : distanceToTarget(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
 			if (distanceTokenToAuraSource <= radius) auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
@@ -369,7 +369,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
-					const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData: auraTokenEvaluationData, isAura: true });
+					const debug = { effectUuid: effect.uuid, changeKey: el.key };
+					const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData: auraTokenEvaluationData, isAura: true, debug });
 					const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
 					const auraOnlyOne = el.value.toLowerCase().includes('singleaura');
 					let valuesToEvaluate = el.value
@@ -383,8 +384,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-
-					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData });
+					
+					const evaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData, debug });
 					if (!evaluation) return;
 
 					if (auraOnlyOne) {
@@ -412,7 +413,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
-				const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData });
+				const debug = { effectUuid: effect.uuid, changeKey: el.key };
+				const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData, debug });
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -424,6 +426,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					.join(';');
 				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
+				
 				validFlags[effect.id] = {
 					name: effect.name,
 					actorType,
@@ -432,7 +435,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					modifier,
 					set,
 					threshold,
-					evaluation: getMode({ value: valuesToEvaluate }),
+					evaluation: getMode({ value: valuesToEvaluate, debug }),
 				};
 			})
 	);
@@ -443,7 +446,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
-					const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData });
+					const debug = { effectUuid: effect.uuid, changeKey: el.key };
+					const { bonus, modifier, set, threshold } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData, debug });
 					let valuesToEvaluate = el.value
 						.split(';')
 						.map((v) => v.trim())
@@ -455,6 +459,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						.join(';');
 					if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 					if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
+					const debug = { effectUuid: effect.uuid, changeKey: el.key };
 					validFlags[effect.id] = {
 						name: effect.name,
 						actorType,
@@ -463,7 +468,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						modifier,
 						set,
 						threshold,
-						evaluation: getMode({ value: valuesToEvaluate }),
+						evaluation: getMode({ value: valuesToEvaluate, debug }),
 					};
 				})
 		);
@@ -567,7 +572,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	return ac5eConfig;
 
 	//special functions\\
-	function getMode({ value, auraTokenEvaluationData }) {
+	function getMode({ value, auraTokenEvaluationData, debug }) {
 		if (['1', 'true'].includes(value)) return true;
 		if (['0', 'false'].includes(value)) return false;
 		const clauses = value
@@ -583,7 +588,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				mult = '!';
 			}
 			const sandbox = auraTokenEvaluationData ? auraTokenEvaluationData : evaluationData;
-			const result = _ac5eSafeEval({ expression: clause, sandbox, mode: 'condition' });
+			const result = _ac5eSafeEval({ expression: clause, sandbox, mode: 'condition', debug });
 			return mult ? !result : result;
 		});
 	}
@@ -924,27 +929,27 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 	return expression;
 }
 
-function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura }) {
+function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura, debug }) {
 	let bonus, set, modifier, threshold;
 	const isBonus = value.includes('bonus') && (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') ? getBlacklistedKeysValue('bonus', value) : false;
 	if (isBonus) {
 		const replacementBonus = bonusReplacements(isBonus, evaluationData, isAura, effect);
-		bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula' });
+		bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isSet = value.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack')) ? getBlacklistedKeysValue('set', value) : false;
 	if (isSet) {
 		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
-		set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula' });
+		set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isModifier = value.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', value) : false;
 	if (isModifier) {
 		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect);
-		modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData, mode: 'formula' });
+		modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isThreshold = value.includes('threshold') && hook === 'attack' ? getBlacklistedKeysValue('threshold', value) : false;
 	if (isThreshold) {
 		const replacementThreshold = bonusReplacements(isThreshold, evaluationData, isAura, effect);
-		threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, mode: 'formula' });
+		threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	if (threshold) threshold = Number(evalDiceExpression(threshold)); // we need Integers to differentiate from set
 	if (bonus && mode !== 'bonus') bonus = Number(evalDiceExpression(bonus)); // we need Integers in everything except for actual bonuses which are formulas and will be evaluated as needed in ac5eSafeEval
