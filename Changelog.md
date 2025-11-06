@@ -1,3 +1,8 @@
+## 13.5110.6.2
+* Cleanup `actorData.creatureType` Array from empty or double elements.
+* `itemLimited` should be now available for non transfer active effects too.
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.5110.6.1
  * HP related: `hp`, `hptemp` and `hpmax` (will target temporary max hp)
     * Added `noconc` keyword for those hp updates to **not** trigger concentration checks (use by adding in the effect value `noconc` or `noconcentration` or `noconcentrationcheck` which are not case sensitive).
