@@ -1,3 +1,6 @@
+## 13.5110.6.3
+* Fix item effects' origins when added on actors from sidebar or compendiums.
+
 ## 13.5110.6.2
 * Cleanup `actorData.creatureType` Array from empty or double elements.
 * `itemLimited` should be now available for non transfer active effects too.
