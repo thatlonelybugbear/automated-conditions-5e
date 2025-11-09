@@ -78,12 +78,11 @@ function getTargets(message) {
 }
 
 export function _preCreateItem(item, updates) {
-	const actorUuid = item.actor?.uuid;
-	const itemId = updates._id;
-	if (!actorUuid || !itemId) return;
+	const itemUuid = item.uuid;
+	if (!itemUuid) return;
 	const effects = foundry.utils.duplicate(item._source.effects);
 	if (!effects.length) return;
-	for (const e of effects) e.origin = actorUuid + '.Item.' + itemId;
+	for (const e of effects) if (e.origin && e.origin !== itemUuid) e.origin = itemUuid;
 	item.updateSource({ effects });
 }
 
