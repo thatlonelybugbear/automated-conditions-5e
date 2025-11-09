@@ -24,6 +24,9 @@ export function _rollFunctions(hook, ...args) {
 	} else if (hook === 'init') {
 		const [actor, rollConfig] = args;
 		return _preConfigureInitiative(actor, rollConfig, hook);
+	} else if (hook === 'preCreateItem') {
+		const [item, updates] = args;
+		return _preCreateItem(item, updates, hook);
 	}
 }
 function getMessageData(config, hook) {
@@ -72,6 +75,16 @@ function getTargets(message) {
 	const messageTargets = message?.flags?.dnd5e?.targets;
 	if (messageTargets?.length) return messageTargets;
 	return [...game.user.targets].map((target) => ({ ac: target.actor?.system?.attributes?.ac?.value ?? null, uuid: target.actor?.uuid, tokenUuid: target.document.uuid, name: target.name, img: target.document.texture.src }));
+}
+
+export function _preCreateItem(item, updates) {
+	const actorUuid = item.actor?.uuid;
+	const itemId = updates._id;
+	if (!actorUuid || !itemId) return;
+	const effects = foundry.utils.duplicate(item._source.effects);
+	if (!effects.length) return;
+	for (const e of effects) e.origin = actorUuid + '.Item.' + itemId;
+	item.updateSource({ effects });
 }
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
