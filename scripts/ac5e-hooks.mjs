@@ -78,6 +78,7 @@ function getTargets(message) {
 }
 
 export function _preCreateItem(item, updates) {
+	if (_activeModule('dnd5e-scriptlets') && game.settings.get('dnd5e-scriptlets', 'UpdateCreatedOrigins')) return;
 	const itemUuid = item.uuid;
 	if (!itemUuid) return;
 	const effects = foundry.utils.duplicate(item._source.effects);
