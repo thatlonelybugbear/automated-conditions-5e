@@ -57,6 +57,9 @@ function ac5eSetup() {
 		{ id: 'dnd5e.preRollSavingThrow', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
 	];
+	const foundryHooks = [
+		{ id: 'preCreateItem', type: 'preCreateItem' },
+	]
 	const renderHooks = [
 		//renders
 		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
@@ -64,7 +67,7 @@ function ac5eSetup() {
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
 	];
-	for (const hook of actionHooks.concat(renderHooks)) {
+	for (const hook of actionHooks.concat(renderHooks).concat(foundryHooks)) {
 		const hookId = Hooks.on(hook.id, (...args) => {
 			if (renderHooks.some((h) => h.id === hook.id)) {
 				const [render, element] = args;
@@ -77,6 +80,9 @@ function ac5eSetup() {
 				} else if (hook.id === 'dnd5e.preConfigureInitiative') {
 					const [actor, rollConfig] = args;
 					if (settings.debug) console.warn(hook.id, { actor, rollConfig });
+				} else if (hook.id === 'preCreateItem') {
+					const [item, updates] = args;
+					if (settings.debug) console.warn(hook.id, { item, updates });
 				} else {
 					const [config, dialog, message] = args;
 					if (settings.debug) console.warn(hook.id, { config, dialog, message });
