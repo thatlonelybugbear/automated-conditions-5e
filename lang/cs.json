@@ -8,7 +8,7 @@
 	"AC5E.ShowToolTipsChoicesBoth": "Nad dialogy hodů a zprávami v chatu",
 	"AC5E.ShowToolTipsChoicesDialog": "Pouze nad dialogy hodů",
 	"AC5E.ShowToolTipsChoicesChat": "Pouze nad zprávami v chatu",
-	"AC5E.ShowToolTipsChoicesNone": "Nezobrazovat nad ničím",
+	"AC5E.ShowToolTipsChoicesNone": "Nezobrazovat",
 	"AC5E.ShowModuleNameInTooltipsName": "Zobrazovat název AC5e v popiscích?",
 	"AC5E.ShowTooltipChatVisibility.Name": "Zobrazení popisek v chatu pro",
 	"AC5E.ShowTooltipChatVisibility.Hint": "'Všechny' = všechny hody postav, 'Nikoho' = žádné hody, 'Vlastněné' = hody vlastněných postav, 'Hráče' = hody hráčských postav",
@@ -18,9 +18,7 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Hráče",
 	"AC5E.ExpandedConditionsName": "Používat rozšířené stavy AC5e?",
 	"AC5E.ExpandedConditionsHint": "Po zaškrtnutí se AC5e pokusí automatizovat některé další stavy, například Uhýbání či Skrývání se.",
-	"AC5E.AutoArmorName": "Kontrolovat výcvik a Nenápadnost se zbrojemi?",
-	"AC5E.AutoArmorHint": "Po zaškrtnutí bude AC5e automaticky kontrolovat výcvik s nasazenou zbrojí pro hody na vlastnosti, dovednosti a záchrany (na Sílu a Obratnost). Též kontroluje vybavení kvůli možné Nevýhodě na Nenápadnost.",
-	"AC5E.ActivityUse": {
+	"AC5E.ActivityUse":{
 		"Name": "Kontroly použití položek",
 		"Hint": "Když je snaha o použití pravidly nedovolené položky, AC5e může 'Nedělat nic', pouze 'Varovat' (oznámení), nebo 'Zakázat' (zrušení hodu + oznámení). Kontrolované stavy jsou: zneschopnění pro dané akce, zuřivost, ztišení a sesílání kouzel ve zbroji bez výcviku.",
 		"Choices": {
@@ -52,10 +50,10 @@
 	"AC5E.AutoRangedAttacksChoicesOff": "Vypnout",
 	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Pouze kontroly dostřelu",
 	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Dostřel + blízcí nepřátelé",
-	"AC5E.AutoExhaustionName": "Automatizovat vyčerpání 2014 pomocí AC5e?",
+	"AC5E.AutoExhaustionName": "Automatizovat vyčerpání 2014 s AC5e?",
 	"AC5E.AutoExhaustionHint": "Pokud je zaškrtnuto a jsou používána pravidla DnD5e2014, AC5e automaticky zpracuje standardní pravidla vyčerpání 5e.",
-	"AC5E.AutoEncumbranceName": "Používat volitelné zatížení pomocí AC5e?",
-	"AC5E.AutoEncumbranceHint": "Po zaškrtnutí bude AC5e automaticky provádět volitelná pravidla zatížení 5e. PJ musí též vybrat v nastavení systému Dnd5e možnost ´Volitelné´ (zatížený & těžce zatížený), jinak to nebude mít žádný efekt.",
+	"AC5E.AutoEncumbranceName": "Používat volitelné zatížení s AC5e?",
+	"AC5E.AutoEncumbranceHint": "Po zaškrtnutí bude AC5e automaticky aplikovat volitelná pravidla zatížení 5e. PJ musí též vybrat v nastavení systému Dnd5e možnost 'Volitelné zatížení (zatížení & těžké zatížení)', jinak to nebude mít žádný efekt.",
 	"AC5E.Targeting": {
 		"Name": "Možnosti cílení útoků",
 		"Hint": "Jak má AC5e reagovat, když není vybrán žádný cíl útoku, nebo naopak více cílů.",
@@ -73,13 +71,14 @@
 			"Enforce": "AC5e: Nebyl vybrán žádný cíl. Hod zrušen!"
 		}
 	},
-	"AC5E.KeypressOverrideName": "Přepisovat výpočty AC5 klávesovými zkratkami?",
-	"AC5E.KeypressOverrideHint": "Klávesové zkratky pro Výhodu, Nevýhodu a kritický zásah by měly přepsat jakékoli výpočty AC5e (při zaškrtnutí), nebo se přidat k normálním výpočtům AC5e (pokud není zaškrtnuto).",
 	"AC5E.DebuggingName": "Ladění AC5e",
 	"AC5E.DebuggingHint": "Pár užitečných logů pro ladění při vývoji. Pro běžné uživatele to pravděpodobně není potřebné :)",
+	"AC5E.TokenlessActorWarning": "AC5E: Aktér, u kterého házíš kostkou, nemá token na scéně. Výsledky mohou být zkreslené.",
 	"AC5E.WarCaster": "Válečný sesilatel",
+	"AC5E.ModifyAC": "Modifikované OČ",
+	"AC5E.ModifyDC": "Modifikovaný SO",
 	"AC5E.Fail": "Selhání",
-	"AC5E.Alert": "Hlídač",
+	"AC5E.Alert": "Ostražitost",
 	"AC5E.FailLowerCase": "selhání",
 	"AC5E.Fumble": "Kritické selhání",
 	"AC5E.Rage": "Zuřivost",
@@ -112,60 +111,104 @@
 			"Hint": "Smaže jakýkoli text vstupu na výchozí bílou barvu."
 		}
 	},
+	"AC5E.AdvantageKeypress": "Výhoda stiskem klávesy",
+	"AC5E.CriticalKeypress": "Krit stiskem klávesy",
+	"AC5E.DisadvantageKeypress": "Nevýhoda stiskem klávesy",
+	"AC5E.NoCriticalKeypress": "Normální stiskem klávesy",
+	"AC5E.OverrideAdvantage": "Přepsání Výhody stiskem klávesy",
+	"AC5E.OverrideCritical": "Přepsání kritu stiskem klávesy",
+	"AC5E.OverrideDisadvantage": "Přepsání Nevýhody stiskem klávesy",
+	"AC5E.OverrideNoCritical": "Přepsání normálního stiskem klávesy",
+	"AC5E.ForcedAdvantage": "Výhoda vynucená systémem",
+	"AC5E.ForcedDisadvantage": "Nevýhoda vynucená systémem",
+	"AC5E.NoAdvantage": "Potlačení Výhody",
+	"AC5E.NoCritical": "Potlačení kritů",
+	"AC5E.NoDisadvantage": "Potlačení Nevýhody",
+	"AC5E.TargetGrantsNoAdvantage": "Zajištění neuplatnění Výhody",
+	"AC5E.TargetGrantsNoCritical": "Zajištění žádných kritů",
+	"AC5E.TargetGrantsNoDisadvantage": "Zajištění neuplatnění Nevýhody",
 	"AC5E.Bonus": "Bonus",
+	"AC5E.ExtraDice": "Extra kostky",
 	"AC5E.Success": "Úspěch",
 	"AC5E.AbbreviationAdvantage": "Výhoda",
 	"AC5E.AbbreviationDisadvantage": "Nevýhoda",
 	"AC5E.AbbreviationCritical": "krit",
 	"AC5E.Grants": "zajišťuje",
 	"AC5E.Attacker": "Útočník",
-	"AC5E.FlagsInitiativeDisadv": "Nevýhoda na iniciativu",
-	"AC5E.TargetGrantsAdvantageAbbreviated": "Cíl zajišťuje Výhodu",
-	"AC5E.TargetGrantsDisadvantageAbbreviated": "Cíl zajišťuje Nevýhodu",
-	"AC5E.TargetGrantsCriticalAbbreviated": "Cíl zajišťuje krit",
-	"AC5E.TargetGrantsFail": "Cíl zajišťuje selhání",
-	"AC5E.TargetGrantsFumble": "Cíl zajišťuje kritické selhání",
-	"AC5E.TargetGrantsSuccess": "Cíl zajišťuje úspěch",
-	"AC5E.TargetGrantsBonus": "Cíl zajišťuje bonus",
-	"AC5E.TargetGrantsModifier": "Cíl zajišťuje opravu",
+	"AC5E.Flags": "příznaky",
+	"AC5E.FlagsInitiativeAdv": "Výhoda na iniciativu systémem",
+	"AC5E.FlagsInitiativeDisadv": "Nevýhoda na iniciativu systémem",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Zajištění Výhody",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Zajištění Nevýhody",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Zajištění kritu",
+	"AC5E.TargetGrantsFail": "Zajištění selhání",
+	"AC5E.TargetGrantsFumble": "Zajištění kritického selhání",
+	"AC5E.TargetGrantsSuccess": "Zajištění úspěchu",
+	"AC5E.TargetGrantsBonus": "Zajištění bonusu",
+	"AC5E.TargetGrantsModifier": "Zajištění opravy",
+	"AC5E.TargetGrantsExtraDice": "Zajištění extra kostek",
 	"AC5E.NoChanges": "Beze změn",
 	"AC5E.SystemMode": "Režim systému",
 	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Používat hrozby prostředí (2024)?",
-		"SettingsHint": "Automatizuje podle pravidel DnD5e2024 stavy hořící a dusící se.",
-		"BurningHazard": "Hrozba hoření",
-		"SuffocatingHazard": "Hrozba dušení"
+		"SettingsHint": "Dle pravidel DnD5e 2024 automatizuje stavy hořící a dusící se.",
+		"BurningHazard": "Hoření",
+		"SuffocatingHazard": "Dušení"
 	},
 	"dae.fieldData.fieldCategories.AC5E": "AC5E",
 	"dae.AC5E.fieldData": {
 		"flags.automated-condition-5e.crossbowExpert": {
 			"name": "Kušiník",
-			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na útok kuší"
+			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu při útoku kuší"
 		},
 		"flags.automated-condition-5e.sharpShooter": {
 			"name": "Ostrostřelec",
-			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na útok lukem"
+			"description": "Když je nepřítel do 5 stop od tebe, nemáš Nevýhodu při útoku lukem"
 		},
 		"flags.automated-condition-5e.spellSniper": {
 			"name": "Vrhač kouzel",
-			"description": "Podle pravidel DnD2024, když je nepřítel do 5 stop od tebe, nemáš Nevýhodu na útok kouzlem na dálku a pokud má kouzlo dosah alespoň 10 stop, přidává dalších 60 stop"
+			"description": "Dle pravidel DnD5e 2024, když je nepřítel do 5 stop od tebe, nemáš Nevýhodu při útoku kouzlem na dálku a pokud má kouzlo dosah alespoň 10 stop, přidává dalších 60 stop"
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
-			"name": "Změní práh kritického zásahu útoků",
-			"description": "Použij threshold=18, nebo threshold=-1d6. První nastaví hodnotu na 18, pokud je nižší, a druhá přičte k aktuální; pro snížení použij záporné číslo"
+			"name": "Změna prahu kritického zásahu útoků",
+			"description": "Použij threshold=-5 ke snížení prahu o 5, set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
 		},
 		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
-			"name": "Zajistí upravený práh kritického zásahu útokům protivníka",
-			"description": "Použij threshold=18, nebo threshold=-1d6. První nastaví hodnotu na 18, pokud je nižší, a druhá přičte k aktuální; pro snížení použij záporné číslo"
+			"name": "Zajištění upraveného prahu kritického zásahu útoků protivníka",
+			"description": "Použij threshold=-5 ke snížení prahu o 5, set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Aura měnící práh kritického zásahu útoků v dosahu",
-			"description": "Použij radius=10;threshold=18; nebo radius=15;threshold=-1d6. První nastaví hodnotu na 18, pokud je nižší, a druhá přičte k aktuální; pro snížení použij záporné číslo"
+			"description": "Použij radius=10;threshold=-5 ke snížení o 5, nebo radius=20;set=15 nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
+		},
+		"flags.automated-conditions-5e.damage.extraDice": {
+			"name": "Zvýšení či snížení počtu kostek házených pro každou hodnotu",
+			"description": "Aby se zvýšil počet hodů kostkami o 4, použij bonus=4."
+		},
+		"flags.automated-conditions-5e.grants.damage.extraDice": {
+			"name": "Zajištění zvýšení či snížení počtu kostek házených pro každou hodnotu",
+			"description": "Aby se snížil počet hodů kostkami o 1, použij bonus=-1."
+		},
+		"flags.automated-conditions-5e.aura.damage.extraDice": {
+			"name": "Aura zvyšující či snížující počet kostek házených pro každou hodnotu",
+			"description": "Aby se zvýšil počet hodů kostkami o 2 všem do 10 stop, použij bonus=2; radius=10."
+		},
+		"flags.automated-conditions-5e.modifyAC": {
+			"name": "Úprava OČ aktéra přicházejícím útokům",
+			"description": "Použij bonus=5 k přidání bonusu 5 k OČ, nebo set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
+		},
+		"flags.automated-conditions-5e.grant.modifyAC": {
+			"name": "Zajištění úpravy OČ oponentovi útoku",
+			"description": "Použij bonus=-5 k odečtení 5 od OČ, nebo set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
+		},
+		"flags.automated-conditions-5e.aura.modifyAC": {
+			"name": "Aura upravující OČ relevantních tokenů ve svém dosahu",
+			"description": "Použij radius=10;bonus=1d4;, nebo radius=15;set=15. To první poskytne bonus k OČ a druhé nastaví uvedenou hodnotu"
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Hod s Výhodou",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
 				"name": "Hod s bonusem",
@@ -177,91 +220,139 @@
 			},
 			"disadvantage": {
 				"name": "Hod s Nevýhodou",
-				"description": "Nahraď ACTIONTYPE jedním z následujících: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "Opravy hodů k20 maxima a minima",
-				"description": "Nahraď ACTIONTYPE jedním z následujících: attack/check/concentration/death/initiative/save/skill/tool. Např. modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+				"name": "Opravy minim a maxim ověření k20 a opravy libovolných a maxim hodů na zásah.",
+				"description": "Nahraď ACTIONTYPE jedním z: attack/check/concentration/damage/death/initiative/save/skill/tool. Např. modifier=(rollingActor.attributes.hp.pct < 50 ? max8 : min12)"
+			},
+			"modifyDC": {
+				"name": "Úprava SO tvých akcí. Funguje to i při ověření soustředění a záchran před smrtí",
+				"description": "Nahraď ACTIONTYPE jedním z: save/conc/death (check/skill/tool jsou takéž podporovány, ale obvykle nemívají SO). Použij bonus=5 pro přidání 5 k SO, nebo set=15 pro nastavení hodnoty. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
+			},
+			"noAdvantage": {
+				"name": "Potlačení Výhody",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"noCritical": {
+				"name": "Potlačení kritů",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/damage"
+			},
+			"noDisadvantage": {
+				"name": "Potlačení Nevýhody",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"fail": {
-				"name": "Selhání v hodu k20",
+				"name": "Selhání hodu k20",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool"
 			},
 			"fumble": {
-				"name": "Kritické selhání v hodu k20 (přirozená jednička)",
+				"name": "Kritické selhání hodu k20 (přirozená jednička)",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"success": {
-				"name": "Ověření k20 je úspěšné",
+				"name": "Úspěšný hod k20",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/save/skill/tool"
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 			"advantage": {
-				"name": "Zajistí Výhodu ověření k20 protivníka",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"name": "Zajištění Výhody hodů k20 protivníka",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
-				"name": "Zajistí bonus ověření protivníka",
+				"name": "Zajištění bonusu k hodům protivníka",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Začni výrazem bonus= následovaným oddělovačem ;, např. bonus=1d4 + 5 - @abilities.dex.mod;"
 			},
 			"critical": {
-				"name": "Zajistí kritický zásah (přirozená dvacítka, nebo zranění) ověření protivníka",
+				"name": "Zajištění kritického zásahu (přirozená dvacítka, nebo zranění) hodů protivníka",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"disadvantage": {
-				"name": "Zajistí Nevýhodu ověření k20 protivníka",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"name": "Zajištění Nevýhody hodů k20 protivníka",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "Zajistí opravy maxima a minima hodů na k20 protivníka",
-				"description": "Nahraď ACTIONTYPE jedním z následujících: attack/check/concentration/death/initiative/save/skill/tool. např. modifier='min10'"
+				"name": "Zajištění opravy minim a maxim hodů k20 a opravy libovolných a maxim hodů na zásah",
+				"description": "Nahraď ACTIONTYPE jedním z: attack/check/concentration/damage/death/initiative/save/skill/tool. např. modifier=min10"
+			},
+			"modifyDC": {
+				"name": "Úprava SO hodů házeným proti akcím ostatních",
+				"description": "Nahraď ACTIONTYPE jedním z: save/conc/death (check/skill/tool jsou taktéž podporovány, ale obvykle nemívají SO). Použij bonus=5 pro přidání 5 k SO, nebo set=15 pro nastavení na zadanou hodnotu. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
+			},
+			"noAdvantage": {
+				"name": "Zajištění režimu bez Výhody",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"noCritical": {
+				"name": "Zajištění režimu bez kritů",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/damage"
+			},
+			"noDisadvantage": {
+				"name": "Zajištění režimu bez Nevýhody",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"fail": {
-				"name": "Zajistí selhání ověření k20 protivníka",
+				"name": "Zajištění selhání hodů k20 protivníka",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool"
 			},
 			"fumble": {
-				"name": "Zajistí kritické selhání (přirozená jednička) ověření k20 protivníka",
+				"name": "Zajištění kritického selhání (přirozená jednička) hodů k20 protivníka",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"success": {
-				"name": "Ověření k20 proti tobě, nebo tebou způsobené, jsou úspěšné",
+				"name": "Zajištění úspěchu hodů k20 proti tobě, nebo tebou vyvolaných",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool"
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "Aura poskytující Výhodu",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: range;one of ally/enemy/all;conditions, např.: pro save ACTIONTYPE a: radius=15;includeSelf;allies;str;cha; poskytne všem spojencům včetně sebe ve vzdálenosti 15 stop Výhodu k záchranám Silou a Charismatem"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: range;jedno z ally/enemy/all;conditions, např.: pro save ACTIONTYPE a: radius=15;includeSelf;allies;str;cha; poskytne všem spojencům včetně sebe ve vzdálenosti 15 stop Výhodu k záchranám Silou a Charismatem"
 			},
 			"bonus": {
 				"name": "Aura poskytující bonusy",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: range;ally enemy or all;bonus;conditions, např. pro initiative ACTIONTYPE a hodnotu efektu: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised VŠICHNI v dosahu 20 stop budou mít své hody snížené o opravu Charismatu původce, pokud jsou překvapeni"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: range;ally, enemy, nebo all;bonus;conditions, např. pro initiative ACTIONTYPE a hodnotu efektu: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised VŠICHNI v dosahu 20 stop budou mít své hody snížené o opravu Charismatu původce, pokud jsou překvapeni"
 			},
 			"critical": {
 				"name": "Aura vynucující kritický zásah (přirozená dvacítka, nebo zranění)",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;allies, enemies, nebo omit pro VŠECHNY;další podmínky"
 			},
 			"disadvantage": {
 				"name": "Aura poskytující Nevýhodu",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;allies, enemies, nebo omit pro VŠECHNY;další podmínky"
 			},
 			"modifier": {
-				"name": "Aura poskytující opravy minima a maxima hodů na k20",
-				"description": "Nahraď ACTIONTYPE jedním z následujících: attack/check/concentration/death/initiative/save/skill/tool. např. modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
+				"name": "Aura poskytující opravy minim a maxim hodů k20 a libovolných a maxim hodů na zásah",
+				"description": "Nahraď ACTIONTYPE jedním z: attack/check/concentration/damage/death/initiative/save/skill/tool. např. modifier=min10; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10"
+			},
+			"modifyDC": {
+				"name": "Aura upravující SO akcí prováděných ovlivněnými tokeny.",
+				"description": "Nahraď ACTIONTYPE jedním z: save/conc/death (check/skill/tool jsou taktéž podporovány, ale obvykle nemívají SO). Použij bonus, set, či radius jako obvykle"
+			},
+			"noAdvantage": {
+				"name": "Aura potlačující režim Výhody",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Použij radius jako obvykle"
+			},
+			"noCritical": {
+				"name": "Aura potlačující krity",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/damage. Použij radius jako obvykle"
+			},
+			"noDisadvantage": {
+				"name": "Aura potlačující režim Nevýhody",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Použij radius jako obvykle"
 			},
 			"fail": {
-				"name": "Aura vynucující selhání ověření k20",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
+				"name": "Aura vynucující selhání hodů k20",
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool. Změň formát hodnoty: radius=Číslo;allies, enemies, nebo omit pro VŠECHNY;další podmínky"
 			},
 			"fumble": {
-				"name": "Aura vynucující kritické selhání ověření k20",
-				"description": "Aura kolem postavy, která má efekt aktivní. Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
+				"name": "Aura vynucující kritické selhání hodů k20",
+				"description": "Aura aktéra s aktivním efektem. Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/initiative/save/skill/tool. Změň formát hodnoty: radius=Číslo;allies, enemies, nebo omit pro VŠECHNY;další podmínky"
 			},
 			"success": {
 				"name": "Aura vynucující úspěch",
-				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;spojenci nebo nepřátelé nebo vynech pro VŠECHNY;další podmínky"
+				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;allies, enemies, nebo omit pro VŠECHNY;další podmínky"
 			}
 		}
 	}
