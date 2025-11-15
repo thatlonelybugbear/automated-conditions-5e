@@ -50,16 +50,16 @@ function getMessageData(config, hook) {
 			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
 			options.d20.hasAdvantage = config?.workflow?.advantage;
 			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
-			options.d20.isCritical = config?.midiOptions?.isCritical;
-			options.d20.isFumble = config?.midiOptions?.isFumble;
+			options.d20.isCritical = config?.midiOptions?.isCritical ?? config?.workflow?.isCritical;
+			options.d20.isFumble = config?.midiOptions?.isFumble ?? config?.workflow?.isFumble;
 		} else {
-			const findAttackRoll = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type === 'attack').at(-1)?.rolls[0];
-			options.d20.attackRollTotal = findAttackRoll?.total;
-			options.d20.attackRollD20 = findAttackRoll?.d20?.total;
-			options.d20.hasAdvantage = findAttackRoll?.options?.advantageMode > 0;
-			options.d20.hasDisadvantage = findAttackRoll?.options?.advantageMode < 0;
-			options.d20.isCritical = findAttackRoll?.options?.isCritical ?? config?.isCritical;
-			options.d20.isFumble = findAttackRoll?.options?.isFumble ?? config?.isFumble;
+			const findRoll0 = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === messageId && m.flags?.dnd5e?.roll?.type !== 'damage').at(-1)?.rolls[0];
+			options.d20.attackRollTotal = findRoll0?.total;
+			options.d20.attackRollD20 = findRoll0?.d20?.total;
+			options.d20.hasAdvantage = findRoll0?.options?.advantageMode > 0;
+			options.d20.hasDisadvantage = findRoll0?.options?.advantageMode < 0;
+			options.d20.isCritical = findRoll0?.isCritical ?? findRoll0?.options?.isCritical ?? config?.isCritical;
+			options.d20.isFumble = findRoll0?.isFumble ?? findRoll0?.options?.isFumble ?? config?.isFumble;
 		}
 	}
 	options.messageId = messageId;
