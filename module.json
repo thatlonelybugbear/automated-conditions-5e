@@ -2,7 +2,7 @@
     "id": "automated-conditions-5e",
     "title": "Automated Conditions 5e",
     "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
-    "version": "13.511.7",
+    "version": "13.5110.7",
     "authors": [
         {
             "name": "thatlonelybugbear",
