@@ -24,7 +24,6 @@ function ac5eRegisterOnInit() {
 
 function ac5ei18nInit() {
 	const settings = new Settings();
-	_migrate();
 	if (settings.displayOnly5eStatuses) {
 		const basic = Object.values(CONFIG.DND5E.conditionTypes)
 			.filter((e) => !e.pseudo)
@@ -44,6 +43,7 @@ function ac5eReady() {
 		ac5eSetup();
 	}
 	if (_activeModule('dae')) DAE.addAutoFields(daeFlags);
+	_migrate();
 }
 
 function ac5eSetup() {
