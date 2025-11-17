@@ -11,7 +11,7 @@ const settings = new Settings();
  * Gets the minimum distance between two tokens,
  * evaluating perimeter grid spaces they occupy and checking for walls blocking.
  */
-export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, checkCollision = false, includeHeight = true) {
+export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
 	let totalDistance = Infinity;
 
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
@@ -25,20 +25,21 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	}
 	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
 
+	const { grid } = canvas || {};
+	if (foundry.utils.isEmpty(grid)) return totalDistance;
+	const { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance, units, isGridless, isHexagonal, isSquare } = grid;
+
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
-		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units: canvas.scene.grid.units });
-		if (includeUnits) return result + (includeUnits ? canvas.scene.grid.units : '');
+		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units });
+		if (includeUnits) return result + (includeUnits ? units : '');
 		if (result === -1) return totalDistance;
 		return result;
 	}
 
-	const { grid } = canvas || {};
-	if (!grid) return totalDistance;
-	const { grid: { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance } = {} } = canvas || {};
 	let diagonals, spaces;
 
-	if (grid.isHexagonal) {
+	if (isHexagonal) {
 		const tokenAHexes = getHexesOnPerimeter(tokenA);
 		if (settings.debug) tokenAHexes.forEach((e) => canvas.ping(e));
 		const tokenBHexes = getHexesOnPerimeter(tokenB);
@@ -55,11 +56,19 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					})
 				)
 					continue;
-				const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-				if (distance2D < totalDistance) {
-					totalDistance = distance2D;
-					diagonals = pathDiagonals;
-					spaces = pathSpaces;
+				const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+				if (isAdjacent) {
+					totalDistance = gridDistance;
+					diagonals = 0;
+					spaces = 1;
+					break;
+				} else {
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						totalDistance = distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+					}
 				}
 			}
 		}
@@ -69,7 +78,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 			totalDistance = 0;
 			diagonals = 0;
 			spaces = 0;
-		} else if (grid.isGridless) {
+		} else if (isGridless) {
 			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA);
 			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
 			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
@@ -87,14 +96,14 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
-						const leeway = settings.autoRangedCombined !== 'off' ? gridDistance * 1.25 : false; //@to-do: offer a setting to turn on and set to user choice.
+						const leeway = settings.autoRangedCombined !== 'off' ? gridDistance * 2 : false; //@to-do: offer a setting to turn on and set to user choice.
 						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
 						diagonals = pathDiagonals;
 						spaces = pathSpaces;
 					}
 				}
 			}
-		} else if (grid.isSquare) {
+		} else if (isSquare) {
 			//const tokensIntersection = tokenA.bounds.intersection(tokenB.bounds);
 			const tokenASquares = getSquaresOnPerimeter(tokenA);
 			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
@@ -111,11 +120,19 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						})
 					)
 						continue;
-					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-					if (distance2D < totalDistance) {
-						totalDistance = distance2D;
-						diagonals = pathDiagonals;
-						spaces = pathSpaces;
+					const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+					if (isAdjacent) {
+						totalDistance = gridDistance;
+						diagonals = 0;
+						spaces = 1;
+						break;
+					} else {
+						const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+						if (distance2D < totalDistance) {
+							totalDistance = distance2D;
+							diagonals = pathDiagonals;
+							spaces = pathSpaces;
+						}
 					}
 				}
 			}
@@ -123,8 +140,8 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	}
 
 	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid);
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units: canvas.scene.grid.units });
-	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + grid.units;
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units });
+	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + units;
 	return ((totalDistance * 100) | 0) / 100;
 }
 
