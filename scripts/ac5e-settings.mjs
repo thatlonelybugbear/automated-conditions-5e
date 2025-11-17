@@ -11,6 +11,7 @@ export default class Settings {
 	static AUTOMATE_RANGED_ATTACKS_MENU = 'autoRangedAttacksMenu';
 	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
 	static AUTOMATE_RANGED_ATTACKS_NEARBYFOE = 'autoRangedNearbyFoe';
+	static AUTOMATE_RANGE_CHECKS = 'autoRangeChecks';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
@@ -134,6 +135,24 @@ export default class Settings {
 				warn: 'AC5E.ActivityUse.Choices.Warn',
 			},
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGE_CHECKS, {
+			name: 'AC5E.AutoRangeChecks.Name',
+			hint: 'AC5E.AutoRangeChecks.Hint',
+			type: new foundry.data.fields.SetField(
+				new foundry.data.fields.StringField({
+					choices: () => ({
+						meleeReach: { label: 'AC5E.AutoRangeChecks.MeleeReach' },
+						meleeDiagonals: { label: 'AC5E.AutoRangeChecks.MeleeDiagonals' } ,
+						rangedLong: { label: 'AC5E.AutoRangeChecks.RangedLong' },
+						rangedMax: { label: 'AC5E.AutoRangeChecks.RangeMax' },
+						rangedNearbyFoes: { label: 'AC5E.AutoRangeChecks.RangeNearbyFoes' },
+					})
+				})
+			),
+			scope: 'world',
+			config: true,
+			default: [],
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU, {
 			name: 'AC5E.AutoRangedAttacksName',
 			hint: 'AC5E.AutoRangedAttacksHint',
@@ -248,6 +267,9 @@ export default class Settings {
 	}
 	get autoArmorSpellUse() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_SPELL_USE);
+	}
+	get autoRangeChecks() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGE_CHECKS);
 	}
 	get autoRanged() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS);
