@@ -3,7 +3,7 @@ import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
 
-export async function migrate() {
+export async function _migrate() {
 	const lastMigrationPoint = '13.5110.6.3';
 	if (settings.migrated === lastMigrationPoint) {
 		console.warn(`${Constants.MODULE_ID} no migration needed`);
