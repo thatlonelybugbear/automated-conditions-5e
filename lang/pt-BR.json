@@ -45,11 +45,15 @@
 			}
 		}
 	},
-	"AC5E.AutoRangedAttacksName": "Automação de Ataques à Distância",
-	"AC5E.AutoRangedAttacksHint": "Se marcado, AC5e irá processar automaticamente a distância para desvantagem/falha baseado na distância do alvo e o os valores de alcance do item usado para o ataque.",
-	"AC5E.AutoRangedAttacksChoicesOff": "Desativado",
-	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Apenas Verificação de Alcance",
-	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Alcance + Inimigos Próximos",
+  	"AC5E.AutoRangeChecks": {
+    	"Name": "Automação de Verificação de Distância",
+    	"Hint": "Alcance Diagonal Corpo a Corpo: Todos os quadrados adjacentes contam como estando ao alcance, independentemente das regras diagonais. Fora de Alcance Corpo a Corpo: Ataques além do alcance da arma falham. Inimigos Próximos à Distância: Tokens hostis adjacentes ao atacante impõem desvantagem em ataques à distância. Desvantagem Alcance Longo à Distância: Ataques além do alcance curto, mas dentro do alcance longo, sofrem desvantagem. Fora de Alcance à Distância: Ataques além do alcance longo falham.",
+    	"MeleeDiagonals": "Alcance Diagonal Corpo a Corpo",
+    	"MeleeOutOfRange": "Fora de Alcance Corpo a Corpo",
+    	"RangedNearbyFoes": "Inimigos Próximos à Distância",
+    	"RangedLongDisadvantage": "Desvantagem Alcance Longo à Distância",
+    	"RangedOutOfRange": "Fora de Alcance à Distância"
+  	},
 	"AC5E.AutoExhaustionName": "Automação de Exaustão",
 	"AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
 	"AC5E.AutoEncumbranceName": "Variante Sobrecarga",
