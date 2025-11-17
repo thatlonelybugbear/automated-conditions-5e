@@ -1,3 +1,6 @@
+## 13.5110.7.3
+* Migration errors quick fix
+
 ## 13.5110.7.2
 * Fix for `flags.automated-conditions-5e.grants.attack.criticalThreshold` typo in DAE hints
 
