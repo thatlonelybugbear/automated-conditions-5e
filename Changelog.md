@@ -1,3 +1,6 @@
+## 13.5110.7.5
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
 ## 13.5110.7.4
 * Migration errors quick fix
 
