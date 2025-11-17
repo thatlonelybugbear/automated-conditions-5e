@@ -1,3 +1,7 @@
+## 13.5110.7
+* Compatibility bump Foundry v13.351
+* Allow `isCritical` and `isFumble` for all d20 rolls
+
 ## 13.5110.6.3
 * Fix item effects' origins when added on actors from sidebar or compendiums.
 
