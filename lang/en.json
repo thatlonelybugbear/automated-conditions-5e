@@ -45,11 +45,15 @@
 			}
 		}
 	},
-	"AC5E.AutoRangedAttacksName": "Ranged attacks automation:",
-	"AC5E.AutoRangedAttacksHint": "'Off': AC5e will not process any distance checks; 'Ranged checks only': AC5e will automatically process distance disadvantage/fail based on target distance and range values of item used to attack; 'Range + Nearby foes': Hostiles adjacent to attacker will impose disadvantage on ranged attacks.",
-	"AC5E.AutoRangedAttacksChoicesOff": "Off",
-	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Range checks only",
-	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Range + Nearby foes",
+	"AC5E.AutoRangeChecks": {
+		"Name": "Automate range checks",
+		"Hint": "Melee diagonal reach: All adjacent squares count as within reach no matter the diagonal rules. Melee out of range: Attacks further than weapon reach fail. Ranged nearby foes: Hostiles adjacent to attacker impose disadvantage on ranged attacks. Ranged long disadvantage: Attacks beyond short range but within long range have disadvantage. Ranged out of range: Attacks beyond long range fail.",
+		"MeleeDiagonals": "Melee diagonal reach",
+		"MeleeOutOfRange": "Melee out of range",
+		"RangedNearbyFoes": "Ranged nearby foes",
+		"RangedLongDisadvantage": "Ranged long disadvantage",
+		"RangedOutOfRange": "Ranged out of range"
+	},
 	"AC5E.AutoExhaustionName": "Exhaustion automation.",
 	"AC5E.AutoExhaustionHint": "When enabled, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
 	"AC5E.AutoEncumbranceName": "Variant encumbrance.",
