@@ -170,7 +170,7 @@
 			"name": "Modificare la soglia critica degli attacchi",
 			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
-		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
 			"name": "Garantisci soglia critica alterata per gli attacchi dell'avversario",
 			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
