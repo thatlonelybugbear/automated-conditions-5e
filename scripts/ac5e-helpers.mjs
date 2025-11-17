@@ -13,6 +13,7 @@ const settings = new Settings();
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
 	let totalDistance = Infinity;
+	const meleeDiagonals = settings.meleeDiagonals;
 
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (typeof tokenA === 'string') {
@@ -57,7 +58,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 				)
 					continue;
 				const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
-				if (isAdjacent) {
+				if (isAdjacent && meleeDiagonals) {
 					totalDistance = gridDistance;
 					diagonals = 0;
 					spaces = 1;
@@ -96,7 +97,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
-						const leeway = settings.autoRangedCombined !== 'off' ? gridDistance * 2 : false; //@to-do: offer a setting to turn on and set to user choice.
+						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false; //@to-do: offer a setting to turn on and set to user choice.
 						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
 						diagonals = pathDiagonals;
 						spaces = pathSpaces;
@@ -121,7 +122,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					)
 						continue;
 					const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
-					if (isAdjacent) {
+					if (isAdjacent && meleeDiagonals) {
 						totalDistance = gridDistance;
 						diagonals = 0;
 						spaces = 1;
@@ -640,7 +641,7 @@ export function _autoRanged(activity, token, target, options) {
 		if (modernRules && short >= 2 * distanceUnit) short += 12 * distanceUnit;
 		else short *= 2;
 	}
-	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
+	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) return { inRange: distance <= reach };
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
@@ -648,12 +649,18 @@ export function _autoRanged(activity, token, target, options) {
 	const nearbyFoe =
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
-		settings.autoRangedCombined === 'nearby' &&
+		settings.autoRangeChecks.has('rangedNearbyFoes') &&
 		_findNearby({ token, disposition: 'opposite', radius: distanceUnit, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert &&
 		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
-
-	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
+	let isShort, isLong, isOoR;
+	const midiChecks = midiCheckRange && midiCheckRange !== 'none'; //give priority to midi checks as it will already by included in the workflow by midi.
+	if (midiChecks || (!settings.autoRangeChecks.has('rangedOoR') && !settings.autoRangeChecks.has('rangedLongDisadvantage')) || (!short && !long) || distance <= short) isShort = true; //expect short and long being null for some items, and handle these cases as in short range.
+	if (!isShort) {
+		if (settings.autoRangeChecks.has('rangedLongDisadvantage')) isLong = distance <= long;
+		if (!isLong && !settings.autoRangeChecks.has('rangedOoR')) isLong = true;
+	}
+	const inRange = isShort ? 'short' : isLong ? 'long' : false;
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
