@@ -1,3 +1,6 @@
+## 13.5110.7.1
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.5110.7
 * Compatibility bump Foundry v13.351
 * Allow `isCritical` and `isFumble` for all d20 rolls
