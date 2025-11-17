@@ -15,7 +15,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	let totalDistance = Infinity;
 	const meleeDiagonals = settings.meleeDiagonals;
 
-	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	const tokenInstance = foundry.canvas.placeables.Token;
 	if (typeof tokenA === 'string') {
 		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
 		else tokenA = canvas.tokens.get(tokenA);
@@ -152,12 +152,10 @@ function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid
 	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
 	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
 	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
-	const versionTest = (grid.isGridless && 'nogrid') || (grid.isHexagonal && game.version < 13 && 'v12hex');
-	if (versionTest === 'nogrid') {
+	if (grid.isGridless) {
 		const verticalDistance = dz * grid.distance;
 		totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance;
-	} else if (versionTest === 'v12hex') totalDistance += dz * grid.distance;
-	else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
+	} else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
 	return totalDistance;
 }
 
