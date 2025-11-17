@@ -13,7 +13,7 @@ const settings = new Settings();
  */
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
 	let totalDistance = Infinity;
-	const meleeDiagonals = settings.meleeDiagonals;
+	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
 
 	const tokenInstance = foundry.canvas.placeables.Token;
 	if (typeof tokenA === 'string') {
@@ -148,9 +148,9 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid) {
 	tokenA.z0 = (tokenA.document.elevation / grid.distance) | 0;
-	tokenA.z1 = tokenA.z0 + Math.min(tokenA.document.width | 0, tokenA.document.height | 0);
+	tokenA.z1 = tokenA.z0 + Math.max(1, Math.min(tokenA.document.width | 0, tokenA.document.height | 0));
 	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
-	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
+	tokenB.z1 = tokenB.z0 + Math.max(1, Math.min(tokenB.document.width | 0, tokenB.document.height | 0));
 	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
 	if (grid.isGridless) {
 		const verticalDistance = dz * grid.distance;
