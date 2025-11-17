@@ -177,7 +177,7 @@
 			"name": "Alter the criticalThreshold of the attacks",
 			"description": "Use threshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
-		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
 			"name": "Grant altered criticalThreshold to opponent's attacks",
 			"description": "Use threshold=-5 to reduce by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
