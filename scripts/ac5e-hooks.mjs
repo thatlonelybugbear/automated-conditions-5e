@@ -275,7 +275,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 
 	let nearbyFoe, inRange, range;
 	if (settings.autoRangedCombined !== 'off' && singleTargetToken) {
-		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken));
+		({ nearbyFoe, inRange, range } = _autoRanged(activity, sourceToken, singleTargetToken, options));
 		//Nearby Foe
 		if (nearbyFoe) {
 			ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
