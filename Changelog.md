@@ -10,6 +10,7 @@
    * `Ranged nearby foes`: Hostiles adjacent to attacker impose disadvantage on ranged attacks.
 * Migration for new `autoRangeChecks`
 * AC5e checks will now always override MidiQOL (if enabled) distance calculations
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
 
 ## 13.5110.6.3
 * Fix item effects' origins when added on actors from sidebar or compendiums.
