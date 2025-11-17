@@ -9,8 +9,7 @@ export default class Settings {
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
 	static AUTOMATE_RANGED_ATTACKS_MENU = 'autoRangedAttacksMenu';
-	static AUTOMATE_RANGED_ATTACKS = 'autoRangedAttacks';
-	static AUTOMATE_RANGED_ATTACKS_NEARBYFOE = 'autoRangedNearbyFoe';
+	static AUTOMATE_RANGE_CHECKS = 'autoRangeChecks';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
@@ -134,11 +133,29 @@ export default class Settings {
 				warn: 'AC5E.ActivityUse.Choices.Warn',
 			},
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGE_CHECKS, {
+			name: 'AC5E.AutoRangeChecks.Name',
+			hint: 'AC5E.AutoRangeChecks.Hint',
+			type: new foundry.data.fields.SetField(
+				new foundry.data.fields.StringField({
+					choices: () => ({
+						meleeDiagonals: { label: 'AC5E.AutoRangeChecks.MeleeDiagonals' },
+						meleeOoR: { label: 'AC5E.AutoRangeChecks.MeleeOutOfRange' },						
+						rangedLongDisadvantage: { label: 'AC5E.AutoRangeChecks.RangedLongDisadvantage' },
+						rangedOoR: { label: 'AC5E.AutoRangeChecks.RangedOutOfRange' },
+						rangedNearbyFoes: { label: 'AC5E.AutoRangeChecks.RangedNearbyFoes' },
+					})
+				})
+			),
+			scope: 'world',
+			config: true,
+			default: [],
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU, {
 			name: 'AC5E.AutoRangedAttacksName',
 			hint: 'AC5E.AutoRangedAttacksHint',
 			scope: 'world',
-			config: true,
+			config: false,
 			default: 'off',
 			type: String,
 			choices: {
@@ -146,22 +163,6 @@ export default class Settings {
 				ranged: 'AC5E.AutoRangedAttacksChoicesRangeOnly',
 				nearby: 'AC5E.AutoRangedAttacksChoicesNearbyFoes',
 			},
-		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS, {
-			name: 'AC5E.AutoRangedAttacksName',
-			hint: 'AC5E.AutoRangedAttacksHint',
-			scope: 'world',
-			config: false,
-			default: false,
-			type: Boolean,
-		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_NEARBYFOE, {
-			name: 'AC5E.AutoRangedNearbyFoeName',
-			hint: 'AC5E.AutoRangedNearbyFoeHint',
-			scope: 'world',
-			config: false,
-			default: false,
-			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXHAUSTION, {
 			name: 'AC5E.AutoExhaustionName',
@@ -249,12 +250,8 @@ export default class Settings {
 	get autoArmorSpellUse() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ARMOR_PROF_SPELL_USE);
 	}
-	get autoRanged() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS);
-	}
-	get autoRangedNearbyFoe() {
-		if (this.autoRanged) return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_NEARBYFOE);
-		else return false;
+	get autoRangeChecks() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGE_CHECKS);
 	}
 	get autoRangedCombined() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_RANGED_ATTACKS_MENU);

@@ -11,10 +11,11 @@ const settings = new Settings();
  * Gets the minimum distance between two tokens,
  * evaluating perimeter grid spaces they occupy and checking for walls blocking.
  */
-export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = false, checkCollision = false, includeHeight = true) {
+export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
 	let totalDistance = Infinity;
+	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
 
-	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	const tokenInstance = foundry.canvas.placeables.Token;
 	if (typeof tokenA === 'string') {
 		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
 		else tokenA = canvas.tokens.get(tokenA);
@@ -25,20 +26,21 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	}
 	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
 
+	const { grid } = canvas || {};
+	if (foundry.utils.isEmpty(grid)) return totalDistance;
+	const { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance, units, isGridless, isHexagonal, isSquare } = grid;
+
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
-		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units: canvas.scene.grid.units });
-		if (includeUnits) return result + (includeUnits ? canvas.scene.grid.units : '');
+		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units });
+		if (includeUnits) return result + (includeUnits ? units : '');
 		if (result === -1) return totalDistance;
 		return result;
 	}
 
-	const { grid } = canvas || {};
-	if (!grid) return totalDistance;
-	const { grid: { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance } = {} } = canvas || {};
 	let diagonals, spaces;
 
-	if (grid.isHexagonal) {
+	if (isHexagonal) {
 		const tokenAHexes = getHexesOnPerimeter(tokenA);
 		if (settings.debug) tokenAHexes.forEach((e) => canvas.ping(e));
 		const tokenBHexes = getHexesOnPerimeter(tokenB);
@@ -55,11 +57,19 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					})
 				)
 					continue;
-				const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-				if (distance2D < totalDistance) {
-					totalDistance = distance2D;
-					diagonals = pathDiagonals;
-					spaces = pathSpaces;
+				const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+				if (isAdjacent && meleeDiagonals) {
+					totalDistance = gridDistance;
+					diagonals = 0;
+					spaces = 1;
+					break;
+				} else {
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						totalDistance = distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+					}
 				}
 			}
 		}
@@ -69,7 +79,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 			totalDistance = 0;
 			diagonals = 0;
 			spaces = 0;
-		} else if (grid.isGridless) {
+		} else if (isGridless) {
 			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA);
 			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
 			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
@@ -87,14 +97,14 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
-						const leeway = settings.autoRangedCombined !== 'off' ? gridDistance * 1.25 : false; //@to-do: offer a setting to turn on and set to user choice.
+						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false; //@to-do: offer a setting to turn on and set to user choice.
 						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
 						diagonals = pathDiagonals;
 						spaces = pathSpaces;
 					}
 				}
 			}
-		} else if (grid.isSquare) {
+		} else if (isSquare) {
 			//const tokensIntersection = tokenA.bounds.intersection(tokenB.bounds);
 			const tokenASquares = getSquaresOnPerimeter(tokenA);
 			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
@@ -111,11 +121,19 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						})
 					)
 						continue;
-					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-					if (distance2D < totalDistance) {
-						totalDistance = distance2D;
-						diagonals = pathDiagonals;
-						spaces = pathSpaces;
+					const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+					if (isAdjacent && meleeDiagonals) {
+						totalDistance = gridDistance;
+						diagonals = 0;
+						spaces = 1;
+						break;
+					} else {
+						const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+						if (distance2D < totalDistance) {
+							totalDistance = distance2D;
+							diagonals = pathDiagonals;
+							spaces = pathSpaces;
+						}
 					}
 				}
 			}
@@ -123,23 +141,21 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	}
 
 	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid);
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units: canvas.scene.grid.units });
-	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + grid.units;
+	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units });
+	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + units;
 	return ((totalDistance * 100) | 0) / 100;
 }
 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid) {
 	tokenA.z0 = (tokenA.document.elevation / grid.distance) | 0;
-	tokenA.z1 = tokenA.z0 + Math.min(tokenA.document.width | 0, tokenA.document.height | 0);
+	tokenA.z1 = tokenA.z0 + Math.max(1, Math.min(tokenA.document.width | 0, tokenA.document.height | 0));
 	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
-	tokenB.z1 = tokenB.z0 + Math.min(tokenB.document.width | 0, tokenB.document.height | 0);
+	tokenB.z1 = tokenB.z0 + Math.max(1, Math.min(tokenB.document.width | 0, tokenB.document.height | 0));
 	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
-	const versionTest = (grid.isGridless && 'nogrid') || (grid.isHexagonal && game.version < 13 && 'v12hex');
-	if (versionTest === 'nogrid') {
+	if (grid.isGridless) {
 		const verticalDistance = dz * grid.distance;
 		totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance;
-	} else if (versionTest === 'v12hex') totalDistance += dz * grid.distance;
-	else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
+	} else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
 	return totalDistance;
 }
 
@@ -606,7 +622,7 @@ export function _autoEncumbrance(actor, abilityId) {
 	return ['con', 'dex', 'str'].includes(abilityId) && _hasStatuses(actor, 'heavilyEncumbered').length;
 }
 
-export function _autoRanged(activity, token, target) {
+export function _autoRanged(activity, token, target, options) {
 	const distanceUnit = canvas.grid.distance;
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
@@ -615,7 +631,7 @@ export function _autoRanged(activity, token, target) {
 	const { actionType, item, range } = activity || {};
 	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
-	const distance = target ? _getDistance(token, target) : undefined;
+	const distance = options?.distance ?? (target ? _getDistance(token, target) : undefined);
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
@@ -623,7 +639,7 @@ export function _autoRanged(activity, token, target) {
 		if (modernRules && short >= 2 * distanceUnit) short += 12 * distanceUnit;
 		else short *= 2;
 	}
-	if (reach && ['mwak', 'msak'].includes(actionType) && !item.system.properties.has('thr')) return { inRange: distance <= reach };
+	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) return { inRange: distance <= reach };
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
@@ -631,12 +647,18 @@ export function _autoRanged(activity, token, target) {
 	const nearbyFoe =
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
-		settings.autoRangedCombined === 'nearby' &&
+		settings.autoRangeChecks.has('rangedNearbyFoes') &&
 		_findNearby({ token, disposition: 'opposite', radius: distanceUnit, lengthTest: 1 }) && //hostile vs friendly disposition only
 		!crossbowExpert &&
 		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
-
-	const inRange = (midiCheckRange && midiCheckRange !== 'none') || (!short && !long) || distance <= short ? 'short' : distance <= long ? 'long' : false; //expect short and long being null for some items, and handle these cases as in short range.
+	let isShort, isLong, isOoR;
+	const midiChecks = midiCheckRange && midiCheckRange !== 'none'; //give priority to midi checks as it will already by included in the workflow by midi.
+	if (midiChecks || (!settings.autoRangeChecks.has('rangedOoR') && !settings.autoRangeChecks.has('rangedLongDisadvantage')) || (!short && !long) || distance <= short) isShort = true; //expect short and long being null for some items, and handle these cases as in short range.
+	if (!isShort) {
+		if (settings.autoRangeChecks.has('rangedLongDisadvantage')) isLong = distance <= long;
+		if (!isLong && !settings.autoRangeChecks.has('rangedOoR')) isLong = true;
+	}
+	const inRange = isShort ? 'short' : isLong ? 'long' : false;
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
@@ -858,10 +880,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type, modeCounts }) {
 	const capitalizeHook = hookType.capitalize();
 	if (mode > 0) {
-		if (modeCounts.override > 0) {
+		if (modeCounts?.override > 0) {
 			ac5eConfig.subject.forcedAdvantage = [_localize('AC5E.ForcedAdvantage')];
 			systemMode.override = modeCounts.override;
-		} else if (modeCounts.disadvantages.suppressed) {
+		} else if (modeCounts?.disadvantages.suppressed) {
 			ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
 			systemMode.suppressed = 'noDis';
 		} else {
@@ -871,10 +893,10 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 		}
 	}
 	if (mode < 0) {
-		if (modeCounts.override < 0) {
+		if (modeCounts?.override < 0) {
 			ac5eConfig.subject.forcedDisadvantage = [_localize('AC5E.ForcedDisadvantage')];
 			systemMode.override = modeCounts.override;
-		} else if (modeCounts.advantages.suppressed) {
+		} else if (modeCounts?.advantages.suppressed) {
 			ac5eConfig.subject.noAdvantage = [_localize('AC5E.NoAdvantage')];
 			systemMode.suppressed = 'noAdv';
 		} else {

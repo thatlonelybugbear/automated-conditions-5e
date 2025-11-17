@@ -1,5 +1,6 @@
-import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
 import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _getItemOrActivity, _raceOrType, _canSee } from './ac5e-helpers.mjs';
+import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
+import { _migrate } from './ac5e-migrations.mjs';
 import { _gmDocumentUpdates, _gmEffectDeletions } from './ac5e-queries.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -42,6 +43,7 @@ function ac5eReady() {
 		ac5eSetup();
 	}
 	if (_activeModule('dae')) DAE.addAutoFields(daeFlags);
+	_migrate();
 }
 
 function ac5eSetup() {

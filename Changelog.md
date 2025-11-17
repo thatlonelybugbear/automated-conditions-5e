@@ -1,3 +1,18 @@
+## 13.5110.7
+* Compatibility bump Foundry v13.351
+* Allow `isCritical` and `isFumble` for all d20 rolls
+* Fix for `modeCounts` being undefined for some rolls
+* Move `autoRangeChecks` into a multi select type setting. Split checks to discreet settings:
+   * `Melee diagonal reach`: All adjacent squares count as within reach no matter the diagonal rules.
+   * `Melee out of range`: Melee attacks further than weapon reach fail.
+   * `Ranged long disadvantage`: Ranged attacks beyond short range but within long range have disadvantage.
+   * `Ranged out of range`: Ranged attacks beyond long range fail.
+   * `Ranged nearby foes`: Hostiles adjacent to attacker impose disadvantage on ranged attacks.
+* Migration for new `autoRangeChecks`
+* AC5e checks will now always override MidiQOL (if enabled) distance calculations
+* Fix for tiny targets distance calculations
+* Updated Czech translation by [Lethrendis](https://github.com/Lethrendis/) 🤗
+
 ## 13.5110.6.3
 * Fix item effects' origins when added on actors from sidebar or compendiums.
 
