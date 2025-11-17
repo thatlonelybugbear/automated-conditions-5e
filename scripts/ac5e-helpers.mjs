@@ -606,7 +606,7 @@ export function _autoEncumbrance(actor, abilityId) {
 	return ['con', 'dex', 'str'].includes(abilityId) && _hasStatuses(actor, 'heavilyEncumbered').length;
 }
 
-export function _autoRanged(activity, token, target) {
+export function _autoRanged(activity, token, target, options) {
 	const distanceUnit = canvas.grid.distance;
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
@@ -615,7 +615,7 @@ export function _autoRanged(activity, token, target) {
 	const { actionType, item, range } = activity || {};
 	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
-	const distance = target ? _getDistance(token, target) : undefined;
+	const distance = options?.distance ?? (target ? _getDistance(token, target) : undefined);
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
 	if (spellSniper && isSpell && isAttack && !!short) {
