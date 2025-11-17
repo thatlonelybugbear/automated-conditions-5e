@@ -858,10 +858,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type, modeCounts }) {
 	const capitalizeHook = hookType.capitalize();
 	if (mode > 0) {
-		if (modeCounts.override > 0) {
+		if (modeCounts?.override > 0) {
 			ac5eConfig.subject.forcedAdvantage = [_localize('AC5E.ForcedAdvantage')];
 			systemMode.override = modeCounts.override;
-		} else if (modeCounts.disadvantages.suppressed) {
+		} else if (modeCounts?.disadvantages.suppressed) {
 			ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
 			systemMode.suppressed = 'noDis';
 		} else {
@@ -871,10 +871,10 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 		}
 	}
 	if (mode < 0) {
-		if (modeCounts.override < 0) {
+		if (modeCounts?.override < 0) {
 			ac5eConfig.subject.forcedDisadvantage = [_localize('AC5E.ForcedDisadvantage')];
 			systemMode.override = modeCounts.override;
-		} else if (modeCounts.advantages.suppressed) {
+		} else if (modeCounts?.advantages.suppressed) {
 			ac5eConfig.subject.noAdvantage = [_localize('AC5E.NoAdvantage')];
 			systemMode.suppressed = 'noAdv';
 		} else {
