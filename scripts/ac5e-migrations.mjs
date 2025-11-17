@@ -1,5 +1,9 @@
+import Constants from './ac5e-constants.mjs';
+import Settings from './ac5e-settings.mjs';
+
+const settings = new Settings();
+
 export async function _migrate() {
-	console.log(settings.migrated)
 	const migration = '13.5110.6.3';
 	const lastMigratedPoint = settings.migrated;
 	if (lastMigratedPoint === migration) {
