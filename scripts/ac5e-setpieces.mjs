@@ -270,6 +270,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['dis', 'disadvantage'],
 			['adv', 'advantage'],
 			['thres', 'criticalThreshold'],
+			['fumblethres', 'fumbleThreshold'],
 			['crit', 'critical'],
 			['modifyac', 'targetADC'], //we cleared the conflict with "mod" mode by going first
 			['modifydc', 'targetADC'],
@@ -548,6 +549,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					ac5eConfig.threshold.push(threshold);
 				}
 				if (set) ac5eConfig.threshold.push(`${set}`);
+			}
+			if (mode === 'fumbleThreshold') {
+				if (threshold) {
+					if (typeof threshold === 'string' && !(threshold.includes('+') || threshold.includes('-'))) threshold = `+${threshold}`;
+					ac5eConfig.fumbleThreshold.push(threshold);
+				}
+				if (set) ac5eConfig.fumbleThreshold.push(`${set}`);
 			}
 		}
 	}
@@ -935,7 +943,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		const replacementBonus = bonusReplacements(isBonus, evaluationData, isAura, effect);
 		bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
-	const isSet = value.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (mode === 'criticalThreshold' && hook === 'attack')) ? getBlacklistedKeysValue('set', value) : false;
+	const isSet = value.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ? getBlacklistedKeysValue('set', value) : false;
 	if (isSet) {
 		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
 		set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
