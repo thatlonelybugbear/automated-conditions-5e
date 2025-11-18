@@ -45,14 +45,18 @@
 			}
 		}
 	},
-	"AC5E.AutoRangedAttacksName": "Automazione Attacchi a distanza AC5e:",
-	"AC5E.AutoRangedAttacksHint": "'Disattivato': AC5E non elaborerà alcun controllo a distanza; 'Solo controlli a distanza': AC5E elaborerà automaticamente lo svantaggio/fallimento della distanza in base alla distanza target e ai valori dell'intervallo dell'elemento utilizzato per attaccare; 'Distanza + Nemici Vicini': gli ostili adiacenti all'attaccante imporranno svantaggi agli attacchi a distanza.",
-	"AC5E.AutoRangedAttacksChoicesOff": "Disattivato",
-	"AC5E.AutoRangedAttacksChoicesRangeOnly": "Solo controlli a distanza",
-	"AC5E.AutoRangedAttacksChoicesNearbyFoes": "Distanza + Nemici Vicini",
-	"AC5E.AutoExhaustionName": "Automazione Indebolimento AC5e.",
+	"AC5E.AutoRangeChecks": {
+		"Name": "Automatizza controlli portata",
+		"Hint": "Portata diagonale in mischia: tutti i quadrati adiacenti contano come entro la portata, indipendentemente dalle regole diagonali. Mischia fuori portata: gli attacchi oltre la portata dell'arma falliscono. Nemici vicini a distanza: i nemici adiacenti all'attaccante impongono svantaggio agli attacchi a distanza. Svantaggio a lunga distanza: gli attacchi oltre la breve gittata ma entro la lunga gittata subiscono svantaggio. Fuori portata a distanza: gli attacchi oltre la lunga gittata falliscono.",
+		"MeleeDiagonals": "Portata diagonale in mischia",
+		"MeleeOutOfRange": "Mischia fuori portata",
+		"RangedNearbyFoes": "Nemici a distanza ravvicinata",
+		"RangedLongDisadvantage": "Svantaggio lunga distanza",
+		"RangedOutOfRange": "Fuori portata"
+	},
+	"AC5E.AutoExhaustionName": "Automazione Indebolimento",
 	"AC5E.AutoExhaustionHint": "Se abilitato e stai usando le regole DND5E legacy, AC5E elaborerà automaticamente le normali regole delle condizioni di esaurimento 5E.",
-	"AC5E.AutoEncumbranceName": "Variante Ingombro AC5e.",
+	"AC5E.AutoEncumbranceName": "Variante Ingombro",
 	"AC5E.AutoEncumbranceHint": "Se abilitato, AC5e elaborerà automaticamente le regole di ingombro della variante 5e. Il GM deve anche selezionare nelle impostazioni del sistema Dnd5e, l'opzione Variante (ingombrato e pesantemente ingombrato), altrimenti ciò non avrà alcun effetto.",
 	"AC5E.Targeting": {
 		"Name": "Opzioni di targeting per gli attacchi",
@@ -73,6 +77,7 @@
 	},	
 	"AC5E.DebuggingName": "Debug AC5E",
 	"AC5E.DebuggingHint": "Solo alcuni log utili per il debug durante lo sviluppo. Probabilmente non ha molto senso che gli utenti lo usino :)",
+	"AC5E.TokenlessActorWarning": "Avviso AC5E: il personaggio per cui stai tirando non ha un token sulla scena. I risultati possono essere distorti.",
 	"AC5E.WarCaster": "Mago da Battaglia",
 	"AC5E.ModifyAC": "CA Modificata",
 	"AC5E.ModifyDC": "CD Modificata",
@@ -121,8 +126,10 @@
 	"AC5E.ForcedAdvantage": "Vantaggio forzato del sistema",
 	"AC5E.ForcedDisadvantage": "Svantaggio forzato del sistema",
 	"AC5E.NoAdvantage": "Vantaggio Soppresso",
+	"AC5E.NoCritical": "Critici Soppressi",
 	"AC5E.NoDisadvantage": "Svantaggio Soppresso",
 	"AC5E.TargetGrantsNoAdvantage": "Vantaggio non concesso",
+	"AC5E.TargetGrantsNoCritical": "Critici non concessi",
 	"AC5E.TargetGrantsNoDisadvantage": "Svantaggio non concesso",
 	"AC5E.Bonus": "Bonus",
 	"AC5E.ExtraDice": "Dadi Extra",
@@ -170,7 +177,7 @@
 			"name": "Modificare la soglia critica degli attacchi",
 			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
-		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
 			"name": "Garantisci soglia critica alterata per gli attacchi dell'avversario",
 			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
@@ -352,5 +359,5 @@
 			"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 		}
 	  }
-     }
+   }
 }

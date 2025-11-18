@@ -1,3 +1,15 @@
+## 13.5110.7.5
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
+
+## 13.5110.7.4
+* Migration errors quick fix
+
+## 13.5110.7.2
+* Fix for `flags.automated-conditions-5e.grants.attack.criticalThreshold` typo in DAE hints
+
+## 13.5110.7.1
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 13.5110.7
 * Compatibility bump Foundry v13.351
 * Allow `isCritical` and `isFumble` for all d20 rolls

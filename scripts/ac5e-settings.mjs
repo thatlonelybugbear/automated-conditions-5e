@@ -204,8 +204,8 @@ export default class Settings {
 			name: 'Migration',
 			scope: 'world',
 			config: false,
-			default: false,
-			type: Boolean,
+			default: '',
+			type: String,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY, {
 			name: 'Heavy property',

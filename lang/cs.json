@@ -173,7 +173,7 @@
 			"name": "Změna prahu kritického zásahu útoků",
 			"description": "Použij threshold=-5 ke snížení prahu o 5, set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
 		},
-		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
 			"name": "Zajištění upraveného prahu kritického zásahu útoků protivníka",
 			"description": "Použij threshold=-5 ke snížení prahu o 5, set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
 		},

@@ -177,7 +177,7 @@
 			"name": "Alterar Margem de Crítico de Ataques",
 			"description": "Use threshold=-5 para reduzir em 5 ou set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
-		"flags.automated-conditions-5e.grant.attack.criticalThreshold": {
+		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
 			"name": "Conceder Alteração de Margem de Crítico de Ataques do Oponente",
 			"description": "Use threshold=-5 para reduzir em 5 ou set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
