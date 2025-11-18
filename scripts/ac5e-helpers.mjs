@@ -394,6 +394,12 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 				roll0.options.criticalSuccess = finalThreshold;
 				ac5eConfig.alteredCritThreshold = finalThreshold;
 			}
+			if (ac5eConfig.fumbleThreshold?.length) {
+				//for attack rolls
+				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalFailure, ac5eConfig.fumbleThreshold, 'fumbleThreshold');
+				roll0.options.criticalFailure = finalThreshold;
+				ac5eConfig.alteredFumbleThreshold = finalThreshold;
+			}
 			if (ac5eConfig.targetADC?.length) {
 				const targets = message?.data?.flags?.dnd5e?.targets;
 				const initialTargetADC = targets?.[0]?.ac ?? 10; // initialValue 10 for AC if no targets
@@ -671,7 +677,7 @@ export function _systemCheck(testVersion) {
 }
 
 export function _getTooltip(ac5eConfig = {}) {
-	const { hookType, subject, opponent, alteredCritThreshold, alteredTargetADC, initialTargetADC, tooltipObj } = ac5eConfig;
+	const { hookType, subject, opponent, alteredCritThreshold, alteredFumbleThreshold, alteredTargetADC, initialTargetADC, tooltipObj } = ac5eConfig;
 	let tooltip;
 	if (tooltipObj?.[hookType]) return tooltipObj[hookType];
 	else tooltip = '<div class="ac5e-tooltip-content">';
@@ -720,6 +726,11 @@ export function _getTooltip(ac5eConfig = {}) {
 		const translationString = game.i18n.translations.DND5E.Critical + ' ' + game.i18n.translations.DND5E.Threshold + ' ' + alteredCritThreshold;
 		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
+	if (subject?.fumbleThreshold.length || opponent?.fumbleThreshold.length) {
+		const combinedArray = [...(subject?.fumbleThreshold ?? []), ...(opponent?.fumbleThreshold ?? [])];
+		const translationString = game.i18n.translations.AC5E.Fumble + ' ' + game.i18n.translations.DND5E.Threshold + ' ' + alteredFumbleThreshold;
+		addTooltip(true, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
+	}
 	if (subject?.targetADC.length || opponent?.targetADC.length) {
 		const combinedArray = [...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])];
 		let translationString = _localize(hookType === 'attack' ? 'AC5E.ModifyAC' : 'AC5E.ModifyDC');
@@ -763,6 +774,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			fumble: [],
 			modifiers: [],
 			criticalThreshold: [],
+			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
 		},
@@ -781,6 +793,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			fumble: [],
 			modifiers: [],
 			criticalThreshold: [],
+			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
 		},
@@ -789,6 +802,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		targetADC: [],
 		extraDice: [],
 		threshold: [],
+		fumbleThreshold: [],
 		damageModifiers: [],
 		modifiers: {},
 		preAC5eConfig: {
@@ -1225,7 +1239,7 @@ export function _raceOrType(actor, dataType = 'race') {
 
 export function _generateAC5eFlags() {
 	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
-	const moduleFlags = [`${moduleFlagScope}.crossbowExpert`, `${moduleFlagScope}.sharpShooter`, `${moduleFlagScope}.attack.criticalThreshold`, `${moduleFlagScope}.grants.attack.criticalThreshold`, `${moduleFlagScope}.aura.attack.criticalThreshold`, `${moduleFlagScope}.damage.extraDice`, `${moduleFlagScope}.grants.damage.extraDice`, `${moduleFlagScope}.aura.damage.extraDice`, `${moduleFlagScope}.modifyAC`, `${moduleFlagScope}.grants.modifyAC`, `${moduleFlagScope}.aura.modifyAC`];
+	const moduleFlags = [`${moduleFlagScope}.crossbowExpert`, `${moduleFlagScope}.sharpShooter`, `${moduleFlagScope}.attack.criticalThreshold`, `${moduleFlagScope}.grants.attack.criticalThreshold`, `${moduleFlagScope}.aura.attack.criticalThreshold`, `${moduleFlagScope}.attack.fumbleThreshold`, `${moduleFlagScope}.grants.attack.fumbleThreshold`, `${moduleFlagScope}.aura.attack.fumbleThreshold`, `${moduleFlagScope}.damage.extraDice`, `${moduleFlagScope}.grants.damage.extraDice`, `${moduleFlagScope}.aura.damage.extraDice`, `${moduleFlagScope}.modifyAC`, `${moduleFlagScope}.grants.modifyAC`, `${moduleFlagScope}.aura.modifyAC`];
 	// const actionTypes = ["ACTIONTYPE"];//["attack", "damage", "check", "concentration", "death", "initiative", "save", "skill", "tool"];
 	const modes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'noAdvantage', 'noCritical', 'noDisadvantage', 'success'];
 	const types = ['source', 'grants', 'aura'];
