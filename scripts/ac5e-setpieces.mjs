@@ -507,20 +507,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			const hasItemUpdateGM = updateArrays.itemUpdatesGM.find((u) => u.name === name);
 			if (hasActivityUpdate) validActivityUpdates.push(hasActivityUpdate.context);
 			if (hasActivityUpdateGM) validActivityUpdatesGM.push(hasActivityUpdateGM.context);
-			if (hasActorUpdate) validActorUpdates.push(hasActorUpdate);
+			if (hasActorUpdate) validActorUpdates.push(hasActorUpdate.context);
 			if (hasActorUpdateGM) validActorUpdatesGM.push(hasActorUpdateGM.context);
-			if (hasEffectDeletion) validEffectDeletions.push(hasEffectDeletion.id);
-			if (hasEffectDeletionGM) validEffectDeletionsGM.push(hasEffectDeletionGM.id);
-			if (hasEffectUpdate) validEffectUpdates.push(hasEffectUpdate.updates);
+			if (hasEffectDeletion) validEffectDeletions.push(hasEffectDeletion.uuid);
+			if (hasEffectDeletionGM) validEffectDeletionsGM.push(hasEffectDeletionGM.uuid);
+			if (hasEffectUpdate) validEffectUpdates.push(hasEffectUpdate.context);
 			if (hasEffectUpdateGM) validEffectUpdatesGM.push(hasEffectUpdateGM.context);
-			if (hasItemUpdate) {
-				const u = Array.isArray(hasItemUpdate.updates) ? hasItemUpdate.updates : [hasItemUpdate.updates];
-				validItemUpdates.push(...u);
-			}
-			if (hasItemUpdateGM) {
-				const c = Array.isArray(hasItemUpdateGM.context) ? hasItemUpdateGM.context : [hasItemUpdateGM.context];
-				validItemUpdatesGM.push(...c);
-			}
+			if (hasItemUpdate) validItemUpdates.push(hasItemUpdate.context);
+			if (hasItemUpdateGM) validItemUpdatesGM.push(hasItemUpdateGM.context);
 			if (!isAura) ac5eConfig[actorType][mode].push(name); //there can be active effects named the same so validFlags.name would disregard any other that the first
 			else ac5eConfig[actorType][mode].push(el); //the auras have already the token name in the el passed, so is not an issue
 			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') {
@@ -571,27 +565,26 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 				allPromises.push(
 					...validEffectDeletions.map((v) => {
-						const doc = fromUuidSync(v.context.uuid);
+						const doc = fromUuidSync(v.uuid);
 						return doc ? doc.delete() : Promise.resolve(null);
 					})
 				);
 				allPromises.push(
 					...validEffectUpdates.map((v) => {
-						const doc = fromUuidSync(v.context.uuid);
-						return doc ? doc.update(v.context.updates) : Promise.resolve(null);
+						const doc = fromUuidSync(v.uuid);
+						return doc ? doc.update(v.updates) : Promise.resolve(null);
 					})
 				);
 				allPromises.push(
 					...validItemUpdates.map((v) => {
-						const doc = fromUuidSync(v.context.uuid);
-						return doc ? doc.update(v.context.updates) : Promise.resolve(null);
+						const doc = fromUuidSync(v.uuid);
+						return doc ? doc.update(v.updates) : Promise.resolve(null);
 					})
 				);
 				allPromises.push(
 					...validActorUpdates.map((v) => {
-						console.log(v);
-						const doc = fromUuidSync(v.context.uuid);
-						return doc ? doc.update(v.context.updates, v.context.options) : Promise.resolve(null);
+						const doc = fromUuidSync(v.uuid);
+						return doc ? doc.update(v.updates, v.options) : Promise.resolve(null);
 					})
 				);
 				allPromises.push(
@@ -655,11 +648,11 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 	}
 	const isTransfer = effect.transfer;
 	if (isOnce && !isTransfer) {
-		if (isOwner) effectDeletions.push(effect.id);
+		if (isOwner) effectDeletions.push(effect.uuid);
 		else effectDeletionsGM.push(effect.uuid);
 	} else if (isOnce && isTransfer) {
-		if (isOwner) effect.update({ disabled: true });
-		else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
+		if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
+		else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 	} else if (hasCount) {
 		const [consumptionTarget, ...consumptionValues] = hasCount.split(',').map((v) => v.trim()); // this can split Math.max(1,5) expressions.
 		const consumptionValue = consumptionValues.join(',');
@@ -775,8 +768,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} else {
-					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
+				} else { /*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
 					if (consumptionTarget.startsWith('flag')) {
 						const value = foundry.utils.getProperty(actor, consumptionTarget);
 						const newValue = value - consume;
