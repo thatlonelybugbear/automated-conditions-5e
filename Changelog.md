@@ -3,6 +3,7 @@
   * `flags.automated-conditions-5e.attack.fumbleThreshold`
   * `flags.automated-conditions-5e.grants.attack.fumbleThreshold`
   * `flags.automated-conditions-5e.aura.attack.fumbleThreshold`
+* Added `effectActor` which will always point to the actor which has the effect applied.
 
 ## 13.5110.7.5
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗

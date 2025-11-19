@@ -363,8 +363,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		// }
 		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
-		let auraTokenEvaluationData;
-		auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id }, { inplace: false });
+		const auraTokenEvaluationData = foundry.utils.mergeObject(evaluationData, { auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id }, { inplace: false });
+		auraTokenEvaluationData.effectActor = auraTokenEvaluationData.auraActor;
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData }))
@@ -406,10 +406,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				})
 		);
 	});
-	if (evaluationData.auraActor) {
-		delete evaluationData.distanceTokenToAuraSource; //might be added in the data and we want it gone if not needed
-	}
-	subject?.appliedEffects.filter((effect) =>
+	if (evaluationData.auraActor) delete evaluationData.distanceTokenToAuraSource; //might be added in the data and we want it gone if not needed
+	if (evaluationData.effectActor) delete evaluationData.effectActor;
+	subject?.appliedEffects.filter((effect) => {
+		evaluationData.effectActor = evaluationData.rollingActor;
 		effect.changes
 			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
 			.forEach((el) => {
@@ -440,8 +440,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					evaluation: getMode({ value: valuesToEvaluate, debug }),
 				};
 			})
-	);
+	});
+	if (evaluationData.effectActor) delete evaluationData.effectActor;
 	if (opponent) {
+		evaluationData.effectActor = evaluationData.opponentActor;
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
