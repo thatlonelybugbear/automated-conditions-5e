@@ -1,3 +1,6 @@
+## 13.5110.8.2
+* Quick fix for `criticalThreshold` fumbled checks...
+
 ## 13.5110.8.1
 * Added `nonEffectActor` which will be returning the data of the actor that isn't the `effectActor`. Should make the decision about which type of actor to use each time (`rollingActor` or `opponentActor`) easier 🤞. The actor that has the ac5e flag applied via the active effect, versus the one that doesn't!
 
