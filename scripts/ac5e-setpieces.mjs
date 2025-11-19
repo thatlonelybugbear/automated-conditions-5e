@@ -412,6 +412,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	if (evaluationData.effectActor) delete evaluationData.effectActor;
 	subject?.appliedEffects.filter((effect) => {
 		evaluationData.effectActor = evaluationData.rollingActor;
+		evaluationData.nonEffectActor = evaluationData.opponentActor;
 		effect.changes
 			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, updateArrays, evaluationData }))
 			.forEach((el) => {
@@ -444,8 +445,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			});
 	});
 	if (evaluationData.effectActor) delete evaluationData.effectActor;
+	if (evaluationData.nonEffectActor) delete evaluationData.nonEffectActor;
 	if (opponent) {
 		evaluationData.effectActor = evaluationData.opponentActor;
+		evaluationData.nonEffectActor = evaluationData.rollingActor;
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
 				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, updateArrays, evaluationData }))
