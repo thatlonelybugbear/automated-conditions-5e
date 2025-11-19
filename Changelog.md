@@ -1,3 +1,9 @@
+## 13.5110.8
+* Added `fumbleThreshold` flags for attacks
+  * `flags.automated-conditions-5e.attack.fumbleThreshold`
+  * `flags.automated-conditions-5e.grants.attack.fumbleThreshold`
+  * `flags.automated-conditions-5e.aura.attack.fumbleThreshold`
+
 ## 13.5110.7.5
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 

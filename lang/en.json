@@ -185,6 +185,18 @@
 			"name": "An aura altering the criticalThreshold of the attacks in radius",
 			"description": "Use radius=15;threshold=-5 to reduce by 5 or radius=20;set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
 		},
+		"flags.automated-conditions-5e.attack.fumbleThreshold": {
+			"name": "Alter the fumbleThreshold of the attacks",
+			"description": "Use threshold=5 to increase by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+		},
+		"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
+			"name": "Grant altered fumbleThreshold to opponent's attacks",
+			"description": "Use threshold=5 to increase by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+		},
+		"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
+			"name": "An aura altering the fumbleThreshold of the attacks in radius",
+			"description": "Use radius=15;threshold=5 to increase by 5 or radius=20;set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+		},
 		"flags.automated-conditions-5e.damage.extraDice": {
 			"name": "Increase or decrease the number of dice rolled for each denomination",
 			"description": "Use bonus=4 to increase the number of dice rolled by 4."
