@@ -295,7 +295,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!alliesOrEnemies) return true;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
-	const effectChangesTest = ({ change, actorType, hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData, evaluationData }) => {
+	const effectChangesTest = ({ change, actorType, hook, effect, updateArrays, auraTokenEvaluationData, evaluationData }) => {
 		const evalData = auraTokenEvaluationData ?? evaluationData ?? {};
 		const debug = { effectUuid: effect.uuid, changeKey: change.key };
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
@@ -311,7 +311,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const modifyHooks = isModifyAC || isModifyDC;
 		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks;
 		if (!hasHook) return false;
-		const shouldProceedUses = handleUses({ actorType, change, effect, evalData, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, debug });
+		const shouldProceedUses = handleUses({ actorType, change, effect, evalData, updateArrays, debug });
 		if (!shouldProceedUses) return false;
 		if (change.value.toLowerCase().includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
@@ -346,16 +346,18 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const blacklist = new Set(['allies', 'bonus', 'enemies', 'includeself', 'itemlimited', 'modifier', 'noconc', 'noconcentration', 'noconcentrationcheck', 'once', 'radius', 'set', 'singleaura', 'threshold', 'usescount', 'wallsblock']);
 
-	const activityUpdates = [];
-	const activityUpdatesGM = [];
-	const actorUpdates = [];
-	const actorUpdatesGM = [];
-	const effectDeletions = [];
-	const effectDeletionsGM = [];
-	const effectUpdates = [];
-	const effectUpdatesGM = [];
-	const itemUpdates = [];
-	const itemUpdatesGM = [];
+	const updateArrays = {
+		activityUpdates: [],
+		activityUpdatesGM: [],
+		actorUpdates: [],
+		actorUpdatesGM: [],
+		effectDeletions: [],
+		effectDeletionsGM: [],
+		effectUpdates: [],
+		effectUpdatesGM: [],
+		itemUpdates: [],
+		itemUpdatesGM: [],
+	};
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
 		if (!token.actor) return false;
@@ -367,7 +369,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		auraTokenEvaluationData.effectActor = auraTokenEvaluationData.auraActor;
 		token.actor.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, auraTokenEvaluationData }))
+				.filter((change) => effectChangesTest({ change, actorType: 'aura', hook, effect, updateArrays, auraTokenEvaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, true);
 					if (!actorType || !mode) return;
@@ -411,7 +413,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	subject?.appliedEffects.filter((effect) => {
 		evaluationData.effectActor = evaluationData.rollingActor;
 		effect.changes
-			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
+			.filter((change) => effectChangesTest({ token: subjectToken, change, actorType: 'subject', hook, effect, updateArrays, evaluationData }))
 			.forEach((el) => {
 				const { actorType, mode } = getActorAndModeType(el, false);
 				if (!actorType || !mode) return;
@@ -439,14 +441,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					threshold,
 					evaluation: getMode({ value: valuesToEvaluate, debug }),
 				};
-			})
+			});
 	});
 	if (evaluationData.effectActor) delete evaluationData.effectActor;
 	if (opponent) {
 		evaluationData.effectActor = evaluationData.opponentActor;
 		opponent.appliedEffects.filter((effect) =>
 			effect.changes
-				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, evaluationData }))
+				.filter((change) => effectChangesTest({ token: opponentToken, change, actorType: 'opponent', hook, effect, updateArrays, evaluationData }))
 				.forEach((el) => {
 					const { actorType, mode } = getActorAndModeType(el, false);
 					if (!actorType || !mode) return;
@@ -480,7 +482,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const validActivityUpdates = [];
 	const validActivityUpdatesGM = [];
-	const validActorUpdates = {};
+	const validActorUpdates = [];
 	const validActorUpdatesGM = [];
 	const validEffectDeletions = [];
 	const validEffectDeletionsGM = [];
@@ -493,19 +495,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let { actorType, evaluation, mode, name, bonus, modifier, set, threshold, isAura } = validFlags[el];
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
-			const hasActivityUpdate = activityUpdates.find((u) => u.name === name);
-			const hasActivityUpdateGM = activityUpdatesGM.find((u) => u.name === name);
-			const hasActorUpdate = actorUpdates.find((u) => u.name === name);
-			const hasActorUpdateGM = actorUpdatesGM.find((u) => u.name === name);
-			const hasEffectDeletion = effectDeletions.find((u) => u.name === name);
-			const hasEffectDeletionGM = effectDeletionsGM.find((u) => u.name === name);
-			const hasEffectUpdate = effectUpdates.find((u) => u.name === name);
-			const hasEffectUpdateGM = effectUpdatesGM.find((u) => u.name === name);
-			const hasItemUpdate = itemUpdates.find((u) => u.name === name);
-			const hasItemUpdateGM = itemUpdatesGM.find((u) => u.name === name);
+			const hasActivityUpdate = updateArrays.activityUpdates.find((u) => u.name === name);
+			const hasActivityUpdateGM = updateArrays.activityUpdatesGM.find((u) => u.name === name);
+			const hasActorUpdate = updateArrays.actorUpdates.find((u) => u.name === name);
+			const hasActorUpdateGM = updateArrays.actorUpdatesGM.find((u) => u.name === name);
+			const hasEffectDeletion = updateArrays.effectDeletions.find((u) => u.name === name);
+			const hasEffectDeletionGM = updateArrays.effectDeletionsGM.find((u) => u.name === name);
+			const hasEffectUpdate = updateArrays.effectUpdates.find((u) => u.name === name);
+			const hasEffectUpdateGM = updateArrays.effectUpdatesGM.find((u) => u.name === name);
+			const hasItemUpdate = updateArrays.itemUpdates.find((u) => u.name === name);
+			const hasItemUpdateGM = updateArrays.itemUpdatesGM.find((u) => u.name === name);
 			if (hasActivityUpdate) validActivityUpdates.push(hasActivityUpdate.context);
 			if (hasActivityUpdateGM) validActivityUpdatesGM.push(hasActivityUpdateGM.context);
-			if (hasActorUpdate) foundry.utils.mergeObject(validActorUpdates, { updates: hasActorUpdate.updates, options: hasActorUpdate.options || {} });
+			if (hasActorUpdate) validActorUpdates.push(hasActorUpdate);
 			if (hasActorUpdateGM) validActorUpdatesGM.push(hasActorUpdateGM.context);
 			if (hasEffectDeletion) validEffectDeletions.push(hasEffectDeletion.id);
 			if (hasEffectDeletionGM) validEffectDeletionsGM.push(hasEffectDeletionGM.id);
@@ -564,19 +566,57 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	ac5eQueue
 		.add(async () => {
-			await subject.deleteEmbeddedDocuments('ActiveEffect', validEffectDeletions);
-			await subject.updateEmbeddedDocuments('ActiveEffect', validEffectUpdates);
-			await subject.updateEmbeddedDocuments('Item', validItemUpdates);
-			await subject.update(validActorUpdates.updates, validActorUpdates.options);
+			try {
+				const allPromises = [];
 
-			await Promise.allSettled(
-				validActivityUpdates.map((v) => {
-					const act = fromUuidSync(v.uuid);
-					return act ? act.update(v.context.updates) : Promise.resolve(null);
-				})
-			);
+				allPromises.push(
+					...validEffectDeletions.map((v) => {
+						const doc = fromUuidSync(v.context.uuid);
+						return doc ? doc.delete() : Promise.resolve(null);
+					})
+				);
+				allPromises.push(
+					...validEffectUpdates.map((v) => {
+						const doc = fromUuidSync(v.context.uuid);
+						return doc ? doc.update(v.context.updates) : Promise.resolve(null);
+					})
+				);
+				allPromises.push(
+					...validItemUpdates.map((v) => {
+						const doc = fromUuidSync(v.context.uuid);
+						return doc ? doc.update(v.context.updates) : Promise.resolve(null);
+					})
+				);
+				allPromises.push(
+					...validActorUpdates.map((v) => {
+						console.log(v);
+						const doc = fromUuidSync(v.context.uuid);
+						return doc ? doc.update(v.context.updates, v.context.options) : Promise.resolve(null);
+					})
+				);
+				allPromises.push(
+					...validActivityUpdates.map((v) => {
+						const act = fromUuidSync(v.context.uuid);
+						return act ? act.update(v.context.updates) : Promise.resolve(null);
+					})
+				);
+				const settled = await Promise.allSettled(allPromises);
+
+				const errors = settled
+					.map((r, i) => ({ r, i }))
+					.filter((x) => x.r.status === 'rejected')
+					.map((x) => ({ index: x.i, reason: x.r.reason }));
+
+				if (errors.length) {
+					console.error('Some queued updates failed:', errors);
+				}
+			} catch (err) {
+				console.error('Queued job error:', err);
+				throw err; // rethrow so the queue's catch handler sees it
+			}
 		})
 		.catch((err) => console.error('Queued job failed', err));
+
 	_doQueries({ validActivityUpdatesGM, validActorUpdatesGM, validEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM });
 
 	return ac5eConfig;
@@ -604,7 +644,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 }
 
-function handleUses({ actorType, change, effect, evalData, activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM, debug }) {
+function handleUses({ actorType, change, effect, evalData, updateArrays, debug }) {
+	const { activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM } = updateArrays;
 	const isOwner = effect.isOwner;
 	const values = change.value.split(';').filter(Boolean);
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
@@ -620,16 +661,24 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 		if (isOwner) effect.update({ disabled: true });
 		else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
 	} else if (hasCount) {
-		const isNumber = parseInt(hasCount, 10);
-		const commaSeparated = hasCount.split(',');
-		let itemActivityfromUuid = !!fromUuidSync(commaSeparated[0]) && fromUuidSync(commaSeparated[0]);
+		const [consumptionTarget, consumptionValue] = hasCount.split(',').map((v) => v.trim());
+		const hasOrigin = consumptionTarget.includes('origin');
+		let isNumber;
+		if (!hasOrigin) isNumber = evalDiceExpression(hasCount);
 		let consume = 1; //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
-		const consumptionValue = commaSeparated[1];
 		if (consumptionValue) {
-			const evaluated = Roll.safeEval(_ac5eSafeEval({ expression: consumptionValue.trim(), sandbox: evalData, mode: 'formula', debug }));
-			if (!isNaN) consume = evaluated;
+			let evaluated = evalDiceExpression(consumptionValue);
+			if (!isNaN(evaluated)) consume = evaluated;
+			else {
+				evaluated = _ac5eSafeEval({ expression: consumptionValue, sandbox: evalData, mode: 'formula', debug });
+				if (!isNaN(evaluated)) consume = evaluated;
+				else {
+					evaluated = evalDiceExpression(evaluated);
+					if (!isNaN(evaluated)) consume = evaluated;
+					else consume = 1;
+				}
+			}
 		}
-		
 
 		if (!isNaN(isNumber)) {
 			if (isNumber === 0) {
@@ -641,7 +690,7 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 			if (newUses < 0) return false; //if you need to consume more uses than available (can only happen if moreUses exists)
 
 			if (newUses === 0 && !isTransfer) {
-				if (isOwner) effectDeletions.push({ name: effect.name, id: effect.id });
+				if (isOwner) effectDeletions.push({ name: effect.name, uuid: effect.uuid });
 				else effectDeletionsGM.push({ name: effect.name, uuid: effect.uuid });
 			} else {
 				let changes = foundry.utils.duplicate(effect.changes);
@@ -651,25 +700,25 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 					changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${newUses}`);
 
 					if (!isTransfer) {
-						if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes } });
+						if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
 						else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
 					} else {
 						const hasInitialUsesFlag = effect.getFlag('automated-conditions-5e', 'initialUses')?.[effect.id]?.initialUses;
 						if (newUses === 0) {
 							if (!hasInitialUsesFlag) {
-								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, disabled: true } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 							} else {
 								changes[index].value = changes[index].value.replace(/\busesCount\s*[:=]\s*\d+/i, `usesCount=${hasInitialUsesFlag}`);
-								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes, disabled: true } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
 								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
 							}
 						} else {
 							if (!hasInitialUsesFlag) {
-								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } } });
 								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } } });
 							} else {
-								if (isOwner) effectUpdates.push({ name: effect.name, updates: { _id: effect.id, changes } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
 								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
 							}
 						}
@@ -677,9 +726,9 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 				}
 			}
 		} else {
-			if (hasCount.toLowerCase().includes('origin')) {
+			let itemActivityfromUuid = !!fromUuidSync(consumptionTarget) && fromUuidSync(consumptionTarget);
+			if (hasOrigin) {
 				if (!effect.origin) {
-					//to-do: Allow for consuming actor attributes etc directly and not only via activities, like consuming hp; probably not be needed, but could be done.
 					ui.notifications.error(`You are using 'origin' in effect ${effect.name}, but you have created it directly on the actor and does not have an associated item or activity; Returning false in ac5e.handleUses;`);
 					return false;
 				} else {
@@ -705,8 +754,8 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 			} else {
 				const actor = effect.target;
 				if (!(actor instanceof Actor) || !actor.system?.isCreature) return false;
-				if (commaSeparated[0].trim().startsWith('Item.')) {
-					const str = commaSeparated[0].trim().replace(/[\s,]+$/, '');
+				if (consumptionTarget.startsWith('Item.')) {
+					const str = consumptionTarget.replace(/[\s,]+$/, '');
 					const match = str.match(/^Item\.([^,]+(?:,\s*[^,]+)*)(?:\.Activity\.([^,\s]+))?/);
 					if (match) {
 						const itemID = match[1];
@@ -725,48 +774,56 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} /*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/ else {
-					const attr = commaSeparated[0].toLowerCase();
+				} else { /*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
+					if (consumptionTarget.startsWith('flag')) {
+						const value = foundry.utils.getProperty(actor, consumptionTarget);
+						const newValue = value - consume;
+						if (newValue < 0) return false;
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${consumptionTarget}`]: newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${consumptionTarget}`]: newValue } } });
+						return true;
+					}
+					const attr = consumptionTarget.toLowerCase();
 					if (attr.includes('death')) {
 						const type = attr.includes('fail') ? 'system.attributes.death.failure' : 'system.attributes.success.failure';
 						const value = foundry.utils.getProperty(actor, type);
 						const newValue = value + consume;
 						if (newValue < 0 || newValue > 3) return false;
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { [`${type}`]: newValue } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${type}`]: newValue } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${type}`]: newValue } } });
 					} else if (attr.includes('hpmax')) {
 						const { tempmax, max, value } = actor.system.attributes.hp;
 						const newTempmax = tempmax - consume;
 						if (max - newTempmax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 						const noConcentration = !(max + newTempmax >= value || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hptemp')) {
 						const { temp } = actor.system.attributes.hp;
 						const newTemp = temp - consume;
 						if (newTemp <= 0) return false;
 						const noConcentration = !(newTemp >= temp || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hp')) {
 						const { value, effectiveMax } = actor.system.attributes.hp;
 						const newValue = value - consume;
 						if (newValue <= 0 || newValue > effectiveMax) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 						const noConcentration = !(newValue >= value || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcetration } } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('exhaustion')) {
 						const value = actor.system.attributes.exhaustion;
 						const newValue = value - consume;
 						const max = CONFIG.statusEffects.find((s) => s.id === 'exhaustion')?.levels || Infinity;
 						if (newValue < 0 || newValue > max) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.exhaustion': newValue } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': newValue } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': newValue } } });
 					} else if (attr.includes('inspiration')) {
 						const value = actor.system.attributes.inspiration ? 1 : 0;
 						const newValue = value - consume;
 						if (newValue < 0 || newValue > 1) return false; //@to-do: double check logic
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { 'system.attributes.inspiration': !!newValue } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
 					} else if (attr.includes('hd')) {
 						const { max, value, classes } = actor.system.attributes.hd;
@@ -781,12 +838,12 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 
 						const type = consumeSmallest ? 'smallest' : consumeLargest ? 'largest' : consume > 0 ? 'smallest' : 'largest';
 						let remaining = consume; // positive = consume, negative = give back
-						const context = [];
-						const updates = [];
+						const ownedUpdates = [];
+						const gmUpdates = [];
 
 						const pushUpdate = (uuid, id, newSpent) => {
-							if (isOwner) updates.push({ _id: id, 'system.hd.spent': newSpent });
-							else context.push({ uuid, updates: { 'system.hd.spent': newSpent } });
+							if (isOwner) ownedUpdates.push({ uuid, updates: { 'system.hd.spent': newSpent } });
+							else gmUpdates.push({ uuid, updates: { 'system.hd.spent': newSpent } });
 						};
 
 						if (type === 'smallest') {
@@ -856,8 +913,8 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 								remaining = -toRestore;
 							}
 						} else return false;
-						if (isOwner) itemUpdates.push({ name: effect.name, updates });
-						else itemUpdatesGM.push({ name: effect.name, context });
+						if (isOwner) itemUpdates.push({ name: effect.name, context: ownedUpdates });
+						else itemUpdatesGM.push({ name: effect.name, context: gmUpdates });
 					} else {
 						const availableResources = CONFIG.DND5E.consumableResources;
 						const type = availableResources.find((r) => r.includes(attr));
@@ -873,7 +930,7 @@ function handleUses({ actorType, change, effect, evalData, activityUpdates, acti
 							newValue = value - consume;
 							if (newValue < 0) return false;
 						}
-						if (isOwner) actorUpdates.push({ name: effect.name, updates: { [`system.${type}`]: newValue } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.${type}`]: newValue } } });
 						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.${type}`]: newValue } } });
 					}
 				}
@@ -890,7 +947,7 @@ function updateUsesCount({ effect, item, activity, currentUses, currentQuantity,
 	if (newUses !== -1) {
 		const spent = (item?.system?.uses?.max ?? activity?.uses?.max) - newUses;
 		if (item?.isOwner) {
-			if (item) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.uses.spent': spent } });
+			if (item) itemUpdates.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
 			else if (activity) activityUpdates.push({ name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
 		} else {
 			if (item) itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
@@ -898,7 +955,7 @@ function updateUsesCount({ effect, item, activity, currentUses, currentQuantity,
 		}
 	} else if (newQuantity !== -1) {
 		const quantity = item.system?.quantity - newQuantity;
-		if (item.isOwner) itemUpdates.push({ name: effect.name, updates: { _id: item.id, 'system.quantity': quantity } });
+		if (item.isOwner) itemUpdates.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': quantity } } });
 		else itemUpdatesGM.push({ name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': quantity } } });
 	}
 	return true;
@@ -974,8 +1031,10 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 }
 
 function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = false } = {}) {
-	if (typeof expr !== 'string') throw new TypeError('Expression must be a string');
-
+	if (typeof expr !== 'string') {
+		console.error(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Expression must be a string`);
+		return NaN;
+	}
 	const tokenRe = /([+-])?\s*(\d*d\d+|\d+)/gi;
 	let m,
 		total = 0;
@@ -983,7 +1042,10 @@ function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = fals
 
 	// sanity: ensure we only have digits, d, +, -, and whitespace
 	const invalid = expr.replace(tokenRe, '').replace(/\s+/g, '');
-	if (invalid.length) throw new Error(`Invalid token(s) in expression: "${invalid}"`);
+	if (invalid.length) {
+		console.error(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Invalid token(s) in expression: "${invalid}"`);
+		return NaN;
+	}
 
 	while ((m = tokenRe.exec(expr)) !== null) {
 		const sign = m[1] === '-' ? -1 : 1; // default positive when missing
