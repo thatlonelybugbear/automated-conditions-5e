@@ -4,6 +4,8 @@
   * `flags.automated-conditions-5e.grants.attack.fumbleThreshold`
   * `flags.automated-conditions-5e.aura.attack.fumbleThreshold`
 * Added `effectActor` which will always point to the actor which has the effect applied.
+* For `usesCount=consumptionTarget, comsumptionValue`, if provided, the `consumptionValue` can be fully evaluated.
+  * Example, `usesCount=Item.amulet-of-soulcatching, -max(1, opponentActor.details.cr, opponentActor.details.level); opponentActor.statuses.dead;` will increase the uses of the Amulet by the maximum of the opponent's CR, level or 1, if the opponent has the Dead condition.
 
 ## 13.5110.7.5
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
