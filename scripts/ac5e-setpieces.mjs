@@ -661,7 +661,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 		if (isOwner) effect.update({ disabled: true });
 		else effectUpdatesGM.push({ uuid: effect.uuid, updates: { disabled: true } });
 	} else if (hasCount) {
-		const [consumptionTarget, consumptionValue] = hasCount.split(',').map((v) => v.trim());
+		const [consumptionTarget, ...consumptionValues] = hasCount.split(',').map((v) => v.trim()); // this can split Math.max(1,5) expressions.
+		const consumptionValue = consumptionValues.join(',');
 		const hasOrigin = consumptionTarget.includes('origin');
 		let isNumber;
 		if (!hasOrigin) isNumber = evalDiceExpression(hasCount);
@@ -774,7 +775,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} else { /*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
+				} else {
+					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
 					if (consumptionTarget.startsWith('flag')) {
 						const value = foundry.utils.getProperty(actor, consumptionTarget);
 						const newValue = value - consume;
@@ -1032,7 +1034,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 
 function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = false } = {}) {
 	if (typeof expr !== 'string') {
-		console.error(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Expression must be a string`);
+		if (ac5e.debugEvaluations) console.warn(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Expression must be a string. Returning NaN`);
 		return NaN;
 	}
 	const tokenRe = /([+-])?\s*(\d*d\d+|\d+)/gi;
@@ -1043,7 +1045,7 @@ function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = fals
 	// sanity: ensure we only have digits, d, +, -, and whitespace
 	const invalid = expr.replace(tokenRe, '').replace(/\s+/g, '');
 	if (invalid.length) {
-		console.error(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Invalid token(s) in expression: "${invalid}"`);
+		if (ac5e.debugEvaluations) console.warn(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Invalid token(s) in expression: "${invalid}". Returning NaN`);
 		return NaN;
 	}
 
