@@ -269,7 +269,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['nodis', 'noDisadvantage'],
 			['dis', 'disadvantage'],
 			['adv', 'advantage'],
-			['thres', 'criticalThreshold'],
+			['criticalthres', 'criticalThreshold'],
 			['fumblethres', 'fumbleThreshold'],
 			['crit', 'critical'],
 			['modifyac', 'targetADC'], //we cleared the conflict with "mod" mode by going first
