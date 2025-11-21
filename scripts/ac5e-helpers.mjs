@@ -59,7 +59,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					})
 				)
 					continue;
-				const adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+				adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
 				if (adjacent2D && meleeDiagonals) {
 					totalDistance = gridDistance;
 					diagonals = 0;
@@ -125,7 +125,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						})
 					)
 						continue;
-					const adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+					adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
 					if (adjacent2D && meleeDiagonals) {
 						totalDistance = gridDistance;
 						diagonals = 0;
