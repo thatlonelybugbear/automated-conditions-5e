@@ -1,3 +1,6 @@
+## 13.5110.8.5
+* Quick fix for effect deletions
+
 ## 13.5110.8.4
 * Properly break when `testAdjacency` returns true
 
