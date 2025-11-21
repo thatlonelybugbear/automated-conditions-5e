@@ -153,6 +153,7 @@ function testAdjacency(coords1, coords2) {
 	const { i: i2, j: j2, k: k2 } = canvas.grid.getOffset(coords2);
 	const di = Math.abs(i1 - i2);
 	const dj = Math.abs(j1 - j2);
+	// @to-do: use 3D foundry functions instead of heightdifference dz
 	const dk = k1 !== undefined ? Math.abs(k1 - k2) : 0;
 	return Math.max(di, dj, dk) === 1;
 }
