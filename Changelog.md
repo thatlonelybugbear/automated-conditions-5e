@@ -1,3 +1,6 @@
+## 13.5110.8.6
+* Another fix for adjacency
+
 ## 13.5110.8.5
 * Quick fix for effect deletions
 
