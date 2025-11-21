@@ -1,3 +1,6 @@
+## 13.5110.8.4
+* Properly break when `testAdjacency` returns true
+
 ## 13.5110.8.3
 * Replaced `canvas.grid.testAdjacency` calls with a custom testAdjacency function which doesn't consider diagonal rules.
 
