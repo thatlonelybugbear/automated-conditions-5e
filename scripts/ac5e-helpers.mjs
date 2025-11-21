@@ -47,6 +47,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		const tokenBHexes = getHexesOnPerimeter(tokenB);
 		if (settings.debug) tokenBHexes.forEach((e) => canvas.ping(e));
 
+		outer:
 		for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
 				if (
@@ -63,7 +64,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					totalDistance = gridDistance;
 					diagonals = 0;
 					spaces = 1;
-					break;
+					break outer;
 				} else {
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
@@ -111,6 +112,8 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
 			const tokenBSquares = getSquaresOnPerimeter(tokenB);
 			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+
+			outer:
 			for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
 					if (
@@ -127,7 +130,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						totalDistance = gridDistance;
 						diagonals = 0;
 						spaces = 1;
-						break;
+						break outer;
 					} else {
 						const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 						if (distance2D < totalDistance) {
