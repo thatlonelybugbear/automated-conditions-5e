@@ -1,3 +1,6 @@
+## 13.5110.8.3
+* Replaced `canvas.grid.testAdjacency` calls with a custom testAdjacency function which doesn't consider diagonal rules.
+
 ## 13.5110.8.2
 * Quick fix for `criticalThreshold` fumbled checks...
 
