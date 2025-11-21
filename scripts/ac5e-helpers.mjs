@@ -57,7 +57,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 					})
 				)
 					continue;
-				const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+				const isAdjacent = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
 				if (isAdjacent && meleeDiagonals) {
 					totalDistance = gridDistance;
 					diagonals = 0;
@@ -121,7 +121,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 						})
 					)
 						continue;
-					const isAdjacent = canvas.grid.testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+					const isAdjacent = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
 					if (isAdjacent && meleeDiagonals) {
 						totalDistance = gridDistance;
 						diagonals = 0;
@@ -144,6 +144,16 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units });
 	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + units;
 	return ((totalDistance * 100) | 0) / 100;
+}
+
+// reworked canvas.grid.testAdjacency to not care about diagonals
+function testAdjacency(coords1, coords2) {
+	const {i: i1, j: j1, k: k1} = canvas.grid.getOffset(coords1);
+	const {i: i2, j: j2, k: k2} = canvas.grid.getOffset(coords2);
+	const di = Math.abs(i1 - i2);
+	const dj = Math.abs(j1 - j2);
+	const dk = k1 !== undefined ? Math.abs(k1 - k2) : 0;
+	return Math.max(di, dj, dk) === 1;
 }
 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid) {
