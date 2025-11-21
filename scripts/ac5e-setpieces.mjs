@@ -567,8 +567,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const allPromises = [];
 
 				allPromises.push(
-					...validEffectDeletions.map((v) => {
-						const doc = fromUuidSync(v.uuid);
+					...validEffectDeletions.map((uuid) => {
+						const doc = fromUuidSync(uuid);
 						return doc ? doc.delete() : Promise.resolve(null);
 					})
 				);
@@ -651,8 +651,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 	}
 	const isTransfer = effect.transfer;
 	if (isOnce && !isTransfer) {
-		if (isOwner) effectDeletions.push(effect.uuid);
-		else effectDeletionsGM.push(effect.uuid);
+		if (isOwner) effectDeletions.push({ name: effect.name, uuid: effect.uuid });
+		else effectDeletionsGM.push({ name: effect.name, uuid: effect.uuid });
 	} else if (isOnce && isTransfer) {
 		if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 		else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
