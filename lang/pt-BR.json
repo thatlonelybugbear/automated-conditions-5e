@@ -185,6 +185,18 @@
 			"name": "Aura para Alterar Margem de Crítico de Ataques em Raio",
 			"description": "Use radius=15;threshold=-5 para reduzir em 5 ou radius=20; set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
+		"flags.automated-conditions-5e.attack.fumbleThreshold": {
+      		"name": "Alterar o fumbleThreshold dos Ataques",
+      		"description": "Use threshold=5 to increase by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+    	},
+    	"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
+      		"name": "Conceder Alteração do fumbleThreshold aos Ataques do Oponente",
+      		"description": "Use threshold=5 to increase by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+    	},
+    	"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
+      		"name": "Aura para Alterar o fumbleThreshold dos Ataques em Raio",
+      		"description": "Use radius=15;threshold=5 to increase by 5 or radius=20;set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
+    	},
 		"flags.automated-conditions-5e.damage.extraDice": {
 			"name": "Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
 			"description": "Use bonus=4 para aumentar o número de dados rolados em 4."
