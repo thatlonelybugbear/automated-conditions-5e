@@ -1,3 +1,6 @@
+## 13.5110.8.7
+* If an `aura` flag doesn't include a `radius` keyword, it will apply to the whole scene no matter the distance from the source.
+
 ## 13.5110.8.6
 * Another fix for adjacency
 
