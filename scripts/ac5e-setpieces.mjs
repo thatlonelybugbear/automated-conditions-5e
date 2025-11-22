@@ -320,7 +320,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (auraTokenEvaluationData.auraTokenId === (isModifyAC ? opponentToken.id : subjectToken.id)) return change.value.toLowerCase().includes('includeself');
 			if (!friendOrFoe(auraToken, isModifyAC ? opponentToken : subjectToken, change.value)) return false;
 			let radius = getBlacklistedKeysValue('radius', change.value);
-			if (!radius) return false;
+			if (!radius) return true; //if no radius set, always apply to the whole map
 			radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
 			if (!radius) return false;
 			if (radius) radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula', debug });
