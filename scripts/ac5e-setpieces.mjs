@@ -771,7 +771,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 						if (currentUses === false && currentQuantity === false) return false;
 						else return updateUsesCount({ effect, item, activity, currentUses, currentQuantity, consume, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM });
 					} else return false;
-				} else { /*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
+				} else {
+					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
 					if (consumptionTarget.startsWith('flag')) {
 						const value = foundry.utils.getProperty(actor, consumptionTarget);
 						const newValue = value - consume;
@@ -1027,51 +1028,120 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	return { bonus, set, modifier, threshold };
 }
 
-function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = false } = {}) {
-	if (typeof expr !== 'string') {
-		if (ac5e.debugEvaluations) console.warn(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Expression must be a string. Returning NaN`);
-		return NaN;
-	}
-	const tokenRe = /([+-])?\s*(\d*d\d+|\d+)/gi;
-	let m,
-		total = 0;
-	const logs = [];
+function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e.debugEvaluations } = {}) {
+	// expanded logic for unary minus: `((1d4) - 1)` returns from formulas like -1d4
+	if (typeof expr !== 'string') return NaN;
 
-	// sanity: ensure we only have digits, d, +, -, and whitespace
-	const invalid = expr.replace(tokenRe, '').replace(/\s+/g, '');
-	if (invalid.length) {
-		if (ac5e.debugEvaluations) console.warn(`${Constants.MODULE_NAME_SHORT}.evalDiceExpressions: Invalid token(s) in expression: "${invalid}". Returning NaN`);
+	const allowed = /^[0-9dc+\-*\s()]+$/i; // added 1dc for coin flips
+	if (!allowed.test(expr)) {
+		if (debug) console.warn(`${Constants.MODULE_ID} - evalDiceExpression: Invalid characters in expression: "${expr}"`);
 		return NaN;
 	}
 
-	while ((m = tokenRe.exec(expr)) !== null) {
-		const sign = m[1] === '-' ? -1 : 1; // default positive when missing
-		const term = m[2].toLowerCase();
+	const diceRe = /(\d*)d(\d+|c)/gi; // added 1dc for coin flips
+	const diceLogs = [];
 
-		if (term.includes('d')) {
-			// dice term
-			const [countStr, sidesStr] = term.split('d');
-			const count = Math.min(Math.max(parseInt(countStr || '1', 10), 0), maxDice);
-			const sides = Math.min(Math.max(parseInt(sidesStr, 10), 1), maxSides);
+	const replaced = expr.replace(diceRe, (match, cStr, sStr) => {
+		const count = Math.min(Math.max(parseInt(cStr || '1'), 0), maxDice);
+		const isCoin = sStr.toLowerCase() === 'c';
+		const sides = Math.min(Math.max(parseInt(sStr), 1), maxSides);
 
-			let sum = 0;
-			const rolls = [];
-			for (let i = 0; i < count; i++) {
-				const r = Math.floor(Math.random() * sides) + 1;
+		let sum = 0;
+		const rolls = [];
+		for (let i = 0; i < count; i++) {
+			let r;
+			if (isCoin) {
+				r = Math.random() < 0.5 ? 1 : 0;
+				rolls.push(r ? 'H' : 'T');
+			} else {
+				r = Math.floor(Math.random() * sides) + 1;
 				rolls.push(r);
-				sum += r;
 			}
-			total += sign * sum;
-			if (settings.debug) logs.push(`${sign < 0 ? '-' : '+'}${count}d${sides} → [${rolls.join(', ')}] = ${sign * sum}`);
-		} else {
-			// static integer
-			const value = parseInt(term, 10);
-			total += sign * value;
-			if (settings.debug) logs.push(`${sign < 0 ? '-' : '+'}${value}`);
+			sum += r;
 		}
+
+		if (debug) diceLogs.push(`${Constants.MODULE_ID} - evalDiceExpression: ${match} → [${rolls.join(', ')}] = ${sum}`);
+		return String(sum);
+	});
+
+	function evaluateMath(input) {
+		// Tokenize
+		const tokens = [];
+		const re = /\s*([0-9]+|\S)\s*/g;
+		let m;
+		let lastWasOp = true;
+
+		while ((m = re.exec(input)) !== null) {
+			const t = m[1];
+
+			if (/^[0-9]+$/.test(t)) {
+				tokens.push({ type: 'num', value: Number(t) });
+				lastWasOp = false;
+			} else if ('+-*()'.includes(t)) {
+				if (t === '-' && lastWasOp) {
+					tokens.push({ type: 'op', value: 'u-' }); // unary minus
+				} else {
+					tokens.push({ type: 'op', value: t });
+					lastWasOp = t !== ')';
+				}
+				if (t === '(') lastWasOp = true;
+			} else {
+				return NaN;
+			}
+		}
+
+		const prec = { 'u-': 3, '*': 2, '+': 1, '-': 1 };
+		const assoc = { 'u-': 'right', '*': 'left', '+': 'left', '-': 'left' };
+
+		const out = [];
+		const ops = [];
+
+		for (const tk of tokens) {
+			if (tk.type === 'num') out.push(tk);
+			else if (tk.value === '(') ops.push(tk);
+			else if (tk.value === ')') {
+				while (ops.length && ops[ops.length - 1].value !== '(') out.push(ops.pop());
+				ops.pop(); // remove '('
+			} else {
+				const o1 = tk.value;
+				while (ops.length) {
+					const o2 = ops[ops.length - 1].value;
+					if (o2 === '(') break;
+					if (prec[o2] > prec[o1] || (prec[o2] === prec[o1] && assoc[o1] === 'left')) out.push(ops.pop());
+					else break;
+				}
+				ops.push(tk);
+			}
+		}
+
+		while (ops.length) out.push(ops.pop());
+
+		// Evaluate RPN
+		const stack = [];
+		for (const tk of out) {
+			if (tk.type === 'num') stack.push(tk.value);
+			else {
+				if (tk.value === 'u-') {
+					stack.push(-stack.pop());
+					continue;
+				}
+				const b = stack.pop();
+				const a = stack.pop();
+				if (tk.value === '+') stack.push(a + b);
+				else if (tk.value === '-') stack.push(a - b);
+				else if (tk.value === '*') stack.push(a * b);
+			}
+		}
+
+		return stack.length === 1 ? stack[0] : NaN;
 	}
 
-	if (settings.debug) console.warn(`evalDiceExpression("${expr}") -> ${total}`, logs);
+	const result = evaluateMath(replaced);
 
-	return total;
+	if (debug) {
+		console.warn(`${Constants.MODULE_ID} - evalDiceExpression("${expr}") = ${result}`);
+		console.warn(`${Constants.MODULE_ID} - evalDiceExpression Dice:`, diceLogs);
+	}
+
+	return result;
 }
