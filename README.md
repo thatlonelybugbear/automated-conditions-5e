@@ -23,11 +23,14 @@ If you like what I do, consider supporting this lonely bugbear 🐾
 
 Every shiny gold coin helps keep the ideas flowing and the goblins at bay.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/thatlonelybugbear)
 
+<a href="https://www.patreon.com/thatlonelybugbear"><img src="https://img.shields.io/badge/-Patreon-%23f96854?style=for-the-badge&logo=patreon"/></a>
+<a href="https://ko-fi.com/thatlonelybugbear"><img src="https://img.shields.io/badge/Ko–fi-00ADEF?style=for-the-badge&logo=kofi&logoColor=white"/></a>
+<br/>
+<br/>
 You can also join the Bugbear’s Den to hang out, get help, or check what I might be working on!
 
-👉 [Discord Invite Link](<https://discord.gg/KYb74fcsBt>)
+<a href="https://discord.gg/KYb74fcsBt"><img src="https://img.shields.io/discord/1226846921474310194?style=for-the-badge&logo=discord&label=Discord&labelColor=%231c1e1f&color=%235865f2&link=https%3A%2F%2Fdiscord.gg%KYb74fcsBt"/></a>
 <hr>
 
 ## Dnd5e Conditions supported
