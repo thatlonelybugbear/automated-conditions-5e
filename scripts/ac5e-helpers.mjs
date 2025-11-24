@@ -1082,7 +1082,7 @@ export function _canSee(source, target, status) {
 	}));
 	const config = { tests, object: target };
 
-	const tokenDetectionModes = source.detectionModes;
+	const tokenDetectionModes = normalizeDetectionModes(source.detectionModes);
 	let validModes = new Set();
 
 	const sourceBlinded = source.actor?.statuses.has('blinded');
@@ -1111,6 +1111,18 @@ export function _canSee(source, target, status) {
 	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { source: source?.id, target: target?.id, result: matchedModes, visionInitialized: !hasSight, sourceId: source.sourceId });
 	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source only if the source doesn't have sight enabled in the first place!
 	return Array.from(matchedModes).length > 0;
+}
+
+function normalizeDetectionModes(modes) {
+	if (!modes) return [];
+
+	if (!Array.isArray(modes)) {
+		return Object.entries(modes).map(([id, data]) => ({
+			id,
+			...data
+		}));
+	}
+	return modes;
 }
 
 function _initializeVision(token) {
