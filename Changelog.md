@@ -1,3 +1,6 @@
+## 13.520.1
+* System 5.2.0 compatibility bump
+
 ## 13.5110.8.8
 * Better handle unary minus and coin flips.
 
