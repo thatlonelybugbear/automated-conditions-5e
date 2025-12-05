@@ -29,11 +29,16 @@ function createProxySandbox(sandbox, mode = 'formula') {
 	return new Proxy(sandbox, {
 		get(target, prop) {
 			if (BLOCKED.has(prop)) return undefined;
-			if (prop in target) return target[prop];
 			if (target._flatConstants && prop in target._flatConstants) return target._flatConstants[prop];
+			if (prop in target) return target[prop];
 			if (prop === 'Math') return Math; // allow Math.*
 			if (prop in Math) return Math[prop]; // allow bare max, PI, etc., esp. in conditions
 			return mode === 'condition' ? false : undefined;
+		},
+		has(target, prop) {
+			if (BLOCKED.has(prop)) return false;
+			if (target._flatConstants && prop in target._flatConstants) return true;
+			return prop in target || prop in Math;
 		},
 	});
 }
