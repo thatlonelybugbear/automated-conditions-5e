@@ -178,12 +178,24 @@
 			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
 		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
-			"name": "Garantisci soglia critica alterata per gli attacchi dell'avversario",
+			"name": "Permetti soglia critica alterata per gli attacchi dell'avversario",
 			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Un'aura che altera la soglia critica degli attacchi nel raggio",
 			"description": "Utilizzare radius=15;threshold=-5 per ridurre di 5 oppure radius=20;set=15 per impostare il valore su 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
+		},
+		"flags.automated-conditions-5e.attack.fumbleThreshold": {
+			"name": "Modifica soglia di fumble degli attacchi",
+			"description": Utilizzare threshold=5 per aumentare di 5 oppure set=15 per impostare il valore su 15. È possibile utilizzare anche dati del tiro, formule di dadi e valutare condizioni."
+		},
+		"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
+			"name": "Permetti soglia di fumble alterata per gli attacchi dell'avversario",
+			"description": "Utilizzare threshold=5 per aumentare di 5 oppure set=15 per impostare il valore su 15. È possibile utilizzare anche dati del tiro, formule di dadi e valutare condizioni."
+		},
+		"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
+			"name": "Un'aura che altera la soglia di fumble degli attacchi nel raggio",
+			"description": "Utilizzare radius=15;threshold=5 per aumentare di 5 oppure radius=20;set=15 per impostare il valore su 15. È possibile utilizzare anche dati del tiro, formule di dadi e valutare condizioni."
 		},
 		"flags.automated-conditions-5e.damage.extraDice": {
 			"name": "Aumentare o diminuire il numero di dadi lanciati per ogni denominazione",
