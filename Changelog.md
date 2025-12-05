@@ -1,3 +1,7 @@
+## 13.5220.1
+* System 5.2.2 compatibility bump
+* Fix condition evaluation where logical expressions (||, &&) fail due to missing keyword variables
+
 ## 13.5200.1
 * System 5.2.0 compatibility bump
 
