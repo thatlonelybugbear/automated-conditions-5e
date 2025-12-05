@@ -1373,7 +1373,10 @@ export function _ac5eActorRollData(token) {
 }
 
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
-	const sandbox = { ...lazySandbox };
+	const sandbox = {
+		...lazySandbox,
+		_flatConstants: { ...lazySandbox._flatConstants }  // shallow copy is enough for boolean flags
+	};
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
 	sandbox.rollingActor = {};
@@ -1429,22 +1432,22 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
 	sandbox.actionType = activity ? { [activity.actionType]: true } : {};
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
-	if (options.attackMode) sandbox[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
+	if (options.attackMode) sandbox._flatConstants[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
 	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
 	sandbox.damageTypes = options.damageTypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
-	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
+	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox._flatConstants, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
 	sandbox.activity.damageTypes = options.damageTypes;
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
-	if (activity?.actionType) sandbox[activity.actionType] = true;
+	if (activity?.actionType) sandbox._flatConstants[activity.actionType] = true;
 	if (activity?.attack?.type) {
-		sandbox[activity.attack.type.value] = true;
-		sandbox[activity.attack.type.classification] = true;
+		sandbox._flatConstants[activity.attack.type.value] = true;
+		sandbox._flatConstants[activity.attack.type.classification] = true;
 	}
-	if (!!activityData.activation?.type) sandbox[activityData.activation.type] = true;
-	if (activityData?.type) sandbox[activityData.type] = true;
+	if (!!activityData.activation?.type) sandbox._flatConstants[activityData.activation.type] = true;
+	if (activityData?.type) sandbox._flatConstants[activityData.type] = true;
 
 	//item data
 	const itemData = item?.getRollData?.()?.item || {};
@@ -1464,12 +1467,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.transferredEffects = item?.transferredEffects;
 	sandbox.itemProperties = {};
 	if (item) {
-		sandbox[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
-		if (!!itemData.type?.value) sandbox[itemData.type.value] = true;
-		if (itemData.school) sandbox[itemData.school] = true;
+		sandbox._flatConstants[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
+		if (!!itemData.type?.value) sandbox._flatConstants[itemData.type.value] = true;
+		if (itemData.school) sandbox._flatConstants[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox[p] = true));
+		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox._flatConstants[p] = true));
 	}
 
 	const combat = game.combat;
@@ -1485,9 +1488,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.ability = options.ability ? { [options.ability]: true } : {};
 	sandbox.skill = options.skill ? { [options.skill]: true } : {};
 	sandbox.tool = options.tool ? { [options.tool]: true } : {};
-	if (options?.ability) sandbox[options.ability] = true;
-	if (options?.skill) sandbox[options.skill] = true;
-	if (options?.tool) sandbox[options.tool] = true;
+	if (options?.ability) sandbox._flatConstants[options.ability] = true;
+	if (options?.skill) sandbox._flatConstants[options.skill] = true;
+	if (options?.tool) sandbox._flatConstants[options.tool] = true;
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 	sandbox.isConcentration = options?.isConcentration;
 	sandbox.isDeathSave = options?.isDeathSave;
