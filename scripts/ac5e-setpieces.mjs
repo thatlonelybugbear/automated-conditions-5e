@@ -523,6 +523,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice') {
 				const configMode = mode === 'bonus' ? 'parts' : mode === 'targetADC' ? 'targetADC' : 'extraDice';
 				if (bonus) {
+					if (bonus === 'info') continue;
 					if (bonus.constructor?.metadata) bonus = String(bonus); // special case for rollingActor.scale.rogue['sneak-attack'] for example; returns the .formula
 					if (typeof bonus === 'string' && !(bonus.includes('+') || bonus.includes('-'))) bonus = `+${bonus}`;
 					ac5eConfig[configMode].push(bonus);
