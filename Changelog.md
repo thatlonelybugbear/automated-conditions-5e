@@ -1,5 +1,6 @@
 ## 13.5220.2
 * Fix for not trimmed `once`, not working :)
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.5220.1
 * System 5.2.2 compatibility bump
