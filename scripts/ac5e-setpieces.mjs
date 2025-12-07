@@ -643,7 +643,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 function handleUses({ actorType, change, effect, evalData, updateArrays, debug }) {
 	const { activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM } = updateArrays;
 	const isOwner = effect.isOwner;
-	const values = change.value.split(';').filter(Boolean);
+	const values = change.value.split(';').filter(Boolean).map((v) => v.trim());
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
 	const isOnce = values.some((use) => use === 'once');
 	if (!hasCount && !isOnce) {
