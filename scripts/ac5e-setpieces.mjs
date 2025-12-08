@@ -780,7 +780,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 					const consumptionActor = consumptionTarget.startsWith('opponentActor') || consumptionTarget.startsWith('targetActor') ? evalData.opponentActor : consumptionTarget.startsWith('auraActor') ? evalData.auraActor : consumptionTarget.startsWith('rollingActor') ? evalData.rollingActor : actor.getRollData(); //  actor is the effectActor
 					const uuid = consumptionActor.uuid ?? actor.uuid;
 					if (consumptionTarget.includes('flag')) {
-						let value = attr.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
+						let value = consumptionTarget.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
 						if (!Number(value)) value = 0;
 						const newValue = value - consume;
 						if (newValue < 0) return false;
