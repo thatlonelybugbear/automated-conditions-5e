@@ -1,6 +1,6 @@
 ## 13.5220.2.1
 * Allow `bonus=info` to pass through so AE names appear in tooltips without requiring additional changes.
- * An AE named `Secret bonu`s with a change value of `flags.automated-conditions-5e.save.bonus | bonus=info; once` will now show `Bonus: Secret bonu`s in the tooltip without applying any actual bonus once before deleted.
+ * An AE named `Secret bonus` with a change value of `flags.automated-conditions-5e.save.bonus | bonus=info; once` will now show `Bonus: Secret bonu`s in the tooltip without applying any actual bonus once before deleted.
 
 ## 13.5220.2
 * Fix for not trimmed `once`, not working :)
