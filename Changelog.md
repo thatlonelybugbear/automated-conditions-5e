@@ -1,3 +1,7 @@
+## 13.5220.3
+* Expand `usesCount` to consume from other actors too
+  * `usesCount=opponentActor.exhaustion, -1` will add one exhaustion level on the opponent of the relevant roll.
+ 
 ## 13.5220.2.2
 * Fix for attackMode changes during the Attack Roll configuration dialog not properly resetting the target's AC
 
