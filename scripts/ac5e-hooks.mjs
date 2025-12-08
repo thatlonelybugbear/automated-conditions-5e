@@ -751,6 +751,7 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	newConfig.rolls[0].options.minimum = null;
 	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
+	if (getConfigAC5E.options.targets) foundry.utils.setProperty(newMessage, 'data.flags.dnd5e.targets', getConfigAC5E.options.targets);
 	getConfigAC5E = _preRollAttack(newConfig, newDialog, newMessage, 'attack');
 	dialog.rebuild();
 	dialog.render();
