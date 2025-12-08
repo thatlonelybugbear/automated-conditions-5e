@@ -1,4 +1,4 @@
-## 13.5220.3
+## 13.5220.4
 * Expand `usesCount` to consume from other actors too
   * `usesCount=opponentActor.exhaustion, -1` will add one exhaustion level on the opponent of the relevant roll.
  
