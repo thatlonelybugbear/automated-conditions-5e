@@ -778,7 +778,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 				} else {
 					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
 					const consumptionActor = consumptionTarget.startsWith('opponentActor') || consumptionTarget.startsWith('targetActor') ? evalData.opponentActor : consumptionTarget.startsWith('auraActor') ? evalData.auraActor : consumptionTarget.startsWith('rollingActor') ? evalData.rollingActor : actor.getRollData(); //  actor is the effectActor
-					const uuid = consumptionActor.uuid;
+					const uuid = consumptionActor.uuid ?? actor.uuid;
 					if (consumptionTarget.includes('flag')) {
 						let value = attr.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
 						if (!Number(value)) value = 0;
