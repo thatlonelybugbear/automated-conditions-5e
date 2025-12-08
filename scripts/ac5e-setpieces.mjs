@@ -644,7 +644,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 function handleUses({ actorType, change, effect, evalData, updateArrays, debug }) {
 	const { activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM } = updateArrays;
 	const isOwner = effect.isOwner;
-	const values = change.value.split(';').filter(Boolean).map((v) => v.trim());
+	const values = change.value
+		.split(';')
+		.filter(Boolean)
+		.map((v) => v.trim());
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
 	const isOnce = values.some((use) => use === 'once');
 	if (!hasCount && !isOnce) {
@@ -774,58 +777,61 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 					} else return false;
 				} else {
 					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
-					if (consumptionTarget.startsWith('flag')) {
-						const value = foundry.utils.getProperty(actor, consumptionTarget);
+					const consumptionActor = attr.startsWith('opponentActor') || attr.startsWith('targetActor') ? evalData.opponentActor : attr.startsWith('auraActor') ? evalData.auraActor : attr.startsWith('rollingActor') ? evalData.rollingActor : actor.getRollData(); //  actor is the effectActor
+					const uuid = consumptionActor.uuid;
+					if (consumptionTarget.includes('flag')) {
+						let value = attr.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
+						if (!Number(value)) value = 0;
 						const newValue = value - consume;
 						if (newValue < 0) return false;
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${consumptionTarget}`]: newValue } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${consumptionTarget}`]: newValue } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`${consumptionTarget}`]: newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`${consumptionTarget}`]: newValue } } });
 						return true;
 					}
 					const attr = consumptionTarget.toLowerCase();
 					if (attr.includes('death')) {
-						const type = attr.includes('fail') ? 'system.attributes.death.failure' : 'system.attributes.success.failure';
+						const type = attr.includes('fail') ? 'attributes.death.failure' : 'attributes.success.failure';
 						const value = foundry.utils.getProperty(actor, type);
 						const newValue = value + consume;
 						if (newValue < 0 || newValue > 3) return false;
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${type}`]: newValue } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`${type}`]: newValue } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
 					} else if (attr.includes('hpmax')) {
-						const { tempmax, max, value } = actor.system.attributes.hp;
+						const { tempmax, max, value } = consumptionActor.attributes.hp;
 						const newTempmax = tempmax - consume;
-						if (max - newTempmax <= 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						if (max - newTempmax < 0) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 						const noConcentration = !(max + newTempmax >= value || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hptemp')) {
-						const { temp } = actor.system.attributes.hp;
+						const { temp } = consumptionActor.attributes.hp;
 						const newTemp = temp - consume;
-						if (newTemp <= 0) return false;
+						if (newTemp < 0) return false;
 						const noConcentration = !(newTemp >= temp || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('hp')) {
-						const { value, effectiveMax } = actor.system.attributes.hp;
+						const { value, effectiveMax } = consumptionActor.attributes.hp;
 						const newValue = value - consume;
-						if (newValue <= 0 || newValue > effectiveMax) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
+						if (newValue < 0 || newValue > effectiveMax) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 						const noConcentration = !(newValue >= value || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 					} else if (attr.includes('exhaustion')) {
-						const value = actor.system.attributes.exhaustion;
+						const value = consumptionActor.attributes.exhaustion;
 						const newValue = value - consume;
 						const max = CONFIG.statusEffects.find((s) => s.id === 'exhaustion')?.levels || Infinity;
 						if (newValue < 0 || newValue > max) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': newValue } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.exhaustion': newValue } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.exhaustion': newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.exhaustion': newValue } } });
 					} else if (attr.includes('inspiration')) {
-						const value = actor.system.attributes.inspiration ? 1 : 0;
+						const value = consumptionActor.attributes.inspiration ? 1 : 0;
 						const newValue = value - consume;
 						if (newValue < 0 || newValue > 1) return false; //@to-do: double check logic
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
 					} else if (attr.includes('hd')) {
-						const { max, value, classes } = actor.system.attributes.hd;
+						const { max, value, classes } = consumptionActor.attributes.hd;
 						if (value - consume < 0 || value - consume > max) return false;
 
 						const hdClasses = Array.from(classes)
@@ -918,7 +924,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 						const availableResources = CONFIG.DND5E.consumableResources;
 						const type = availableResources.find((r) => r.includes(attr));
 						if (!type) return false;
-						const resource = foundry.utils.getProperty(actor.system, type);
+						const resource = foundry.utils.getProperty(consumptionActor, type);
 						let newValue;
 						if (!resource) return false;
 						else if (resource instanceof Object) {
@@ -929,8 +935,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 							newValue = value - consume;
 							if (newValue < 0) return false;
 						}
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.${type}`]: newValue } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid: actor.uuid, updates: { [`system.${type}`]: newValue } } });
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
 					}
 				}
 			}
