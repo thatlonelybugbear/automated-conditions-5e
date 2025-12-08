@@ -777,7 +777,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug }
 					} else return false;
 				} else {
 					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
-					const consumptionActor = attr.startsWith('opponentActor') || attr.startsWith('targetActor') ? evalData.opponentActor : attr.startsWith('auraActor') ? evalData.auraActor : attr.startsWith('rollingActor') ? evalData.rollingActor : actor.getRollData(); //  actor is the effectActor
+					const consumptionActor = consumptionTarget.startsWith('opponentActor') || consumptionTarget.startsWith('targetActor') ? evalData.opponentActor : consumptionTarget.startsWith('auraActor') ? evalData.auraActor : consumptionTarget.startsWith('rollingActor') ? evalData.rollingActor : actor.getRollData(); //  actor is the effectActor
 					const uuid = consumptionActor.uuid;
 					if (consumptionTarget.includes('flag')) {
 						let value = attr.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
