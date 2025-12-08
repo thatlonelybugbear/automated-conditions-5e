@@ -1,5 +1,5 @@
 ## 13.5220.2.2
-* Fix for attackMode changes during the Attack roll configuration dialog not properly reseting targets AC.
+* Fix for attackMode changes during the Attack Roll configuration dialog not properly resetting the target's AC
 
 ## 13.5220.2.1
 * Allow `bonus=info` to pass through so AE names appear in tooltips without requiring additional changes.
