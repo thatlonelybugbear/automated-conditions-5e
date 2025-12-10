@@ -1,5 +1,5 @@
 import { _autoRanged, _autoArmor, _activeModule, _createEvaluationSandbox, checkNearby, _generateAC5eFlags, _getDistance, _getItemOrActivity, _raceOrType, _canSee } from './ac5e-helpers.mjs';
-import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
+import { _renderHijack, _renderSettings, _rollFunctions, _overtimeEffects } from './ac5e-hooks.mjs';
 import { _migrate } from './ac5e-migrations.mjs';
 import { _gmDocumentUpdates, _gmEffectDeletions } from './ac5e-queries.mjs';
 import Constants from './ac5e-constants.mjs';
@@ -96,7 +96,7 @@ function ac5eSetup() {
 	}
 	const renderSettingsConfigID = Hooks.on('renderSettingsConfig', _renderSettings);
 	hooksRegistered['renderSettingsConfig'] = renderSettingsConfigID;
-	const combatUpdateHookID = Hooks.on('updateCombat', _overtimeHazards);
+	const combatUpdateHookID = Hooks.on('updateCombat', _overtimeEffects);
 	hooksRegistered['updateCombat'] = combatUpdateHookID;
 
 	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
