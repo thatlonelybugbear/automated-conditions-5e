@@ -1,5 +1,5 @@
 ## 13.5220.5
-* Fix for destructuring errors when you triggering ability rolls via macros
+* Fix for destructuring errors when triggering ability rolls via macros
 
 ## 13.5220.4
 * Expand `usesCount` to consume from other actors too
