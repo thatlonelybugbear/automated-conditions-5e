@@ -710,6 +710,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subject.critical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subject.critical.join(', ')}</span>`);
 		addTooltip(subject.noCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoCritical')}: ${subject.noCritical.join(', ')}</span>`);
 		addTooltip(subjectAdvantageModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subjectAdvantageModes.join(', ')}</span>`);
+		addTooltip(subject.midiAdvantage.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Advantage')}: ${subject.midiAdvantage.join(', ')}</span>`);
+		addTooltip(subject.midiDisadvantage.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Disadvantage')}: ${subject.midiDisadvantage.join(', ')}</span>`);
 		addTooltip(subject.noAdvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoAdvantage')}: ${subject.noAdvantage.join(', ')}</span>`);
 		addTooltip(subject.fail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${subject.fail.join(', ')}</span>`);
 		addTooltip(subject.fumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fumble')}: ${subject.fumble.join(', ')}</span>`);
@@ -778,9 +780,11 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		subject: {
 			advantage: [],
 			advantageNames: new Set(),
+			midiAdvantage: [],
 			noAdvantage: [],
 			disadvantage: [],
 			disadvantageNames: new Set(),
+			midiDisadvantage: [],
 			noDisadvantage: [],
 			fail: [],
 			bonus: [],
@@ -888,7 +892,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			if (midiRoller) {
 				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter((attr) => attr.includes('ADV:'))
-					.map((attr) => attr.replace('ADV:', 'MidiQOL: '));
+					.map((attr) => {
+						if (attr.includes('.')) return attr.slice(attr.indexOf(' ') + 1).trim(); //@to-do: doublecheck if midi always uses a whitespace btw the type of Advantage and the effect name
+						else return attr.replace('ADV:', '').trim();
+					});
 				ac5eConfig.subject.advantage.push(...attribution);
 			} else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 		}
@@ -896,7 +903,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			if (midiRoller) {
 				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter?.((attr) => attr.includes('DIS:'))
-					.map((attr) => attr.replace('DIS:', 'MidiQOL: '));
+					.map((attr) => {
+						if (attr.includes('.')) return attr.slice(attr.indexOf(' ') + 1).trim(); //@to-do: doublecheck if midi always uses a whitespace btw the type of Advantage and the effect name
+						else return attr.replace('DIS:', '').trim();
+					});
 				ac5eConfig.subject.disadvantage.push(...attribution);
 			} else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 		}
