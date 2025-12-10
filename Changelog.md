@@ -1,5 +1,6 @@
 ## 13.5220.5
 * Fix for destructuring errors when triggering ability rolls via macros
+* Enhance current MidiQOL attacks attribution, creating a different category in the AC5e tooltips
 
 ## 13.5220.4
 * Expand `usesCount` to consume from other actors too
