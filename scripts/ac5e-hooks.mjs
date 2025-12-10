@@ -462,7 +462,7 @@ export function _renderHijack(hook, render, elem) {
 	}
 }
 
-export async function _overtimeHazards(combat, update, options, user) {
+export async function _overtimeEffects(combat, update, options, user) {
 	if (!settings.autoHazards /*|| !game.user.isGM*/ || game.users.find((u) => u.isGM && u.active)?.id !== user) return true;
 
 	const hasPHB = game.modules.get('dnd-players-handbook')?.active;
