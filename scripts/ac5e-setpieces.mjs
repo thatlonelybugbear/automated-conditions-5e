@@ -176,7 +176,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 		});
 		tables.grappled = mkStatus('grappled', _i18nConditions('Grappled'), {
 			attack: {
-				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && (!e.origin || _getEffectOriginToken(e, 'token') !== opponentToken)) ? 'disadvantage' : '',
+				subject: subject?.appliedEffects.some((e) => e.statuses.has('grappled') && e.origin && _getEffectOriginToken(e, 'token') !== opponentToken) ? 'disadvantage' : '',
 			},
 		});
 	}
