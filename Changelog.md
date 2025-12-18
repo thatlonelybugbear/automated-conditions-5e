@@ -1,6 +1,6 @@
 ## 13.5230.1
 * System 5.2.3 compatibility bump
-* Grappled condition for 2024 rules will be only testing for disadvantage if the grappled active effect has a proper origin. If it is toggled from the actor's effects tab or token assign status HUD, the disadvantage is up to the user to adjudicate.
+* Grappled condition for 2024 rules will only be testing for disadvantage if the grappled active effect has a proper origin. If it is toggled from the actor's effects tab or token assign status HUD, the disadvantage is up to the user to adjudicate.
 
 ## 13.5220.5
 * Fix for destructuring errors when triggering ability rolls via macros
