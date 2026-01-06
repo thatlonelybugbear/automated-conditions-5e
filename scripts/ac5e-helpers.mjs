@@ -581,8 +581,10 @@ export function _findNearby({
 	radius = 5, // Distance radius (default 5)
 	lengthTest = false, // Number or false; if number, returns boolean test
 	includeToken = false, // Include source token in results
-	includeIncapacitated = false, // Include dead/incapacitated tokens
+	includeIncapacitated = false, // Include dead/incapacitated tokens, use 'only' to count ONLY incapacitated tokens
+	partyMember = false, // Count only party members
 }) {
+	if (partyMembers) partyMember = partyMembers;
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (token instanceof TokenDocument) {
@@ -614,7 +616,12 @@ export function _findNearby({
 
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
 		if (!includeToken && target === token) return false;
+		if (partyMember && game.actors.party) {
+			const { members: { ids } } = game.actors.party.system;
+			if (!ids.has(target.actor?.id)) return false;
+		}
 		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
+		if (includeIncapacitated === 'only' && !_hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
 		if (!_dispositionCheck(token, target, disposition, mult)) return false;
 
 		const distance = _getDistance(token, target);
