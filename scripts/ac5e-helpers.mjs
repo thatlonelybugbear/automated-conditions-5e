@@ -581,8 +581,8 @@ export function _findNearby({
 	radius = 5, // Distance radius (default 5)
 	lengthTest = false, // Number or false; if number, returns boolean test
 	includeToken = false, // Include source token in results
-	includeIncapacitated = false, // Include dead/incapacitated tokens, use 'only' to count ONLY incapacitated tokens
-	partyMember = false, // Count only party members
+	includeIncapacitated = false, // Include dead/incapacitated tokens, use 'only' to return ONLY incapacitated tokens
+	partyMember = false, // Return only party members
 }) {
 	if (partyMembers) partyMember = partyMembers;
 	if (!canvas || !canvas.tokens?.placeables) return false;
@@ -632,8 +632,8 @@ export function _findNearby({
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { includeToken = false, includeIncapacitated = false, count = false } = {}) {
-	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count });
+export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, partyMember = false } = {}) {
+	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count, partyMember });
 }
 
 export function _autoArmor(actor) {
