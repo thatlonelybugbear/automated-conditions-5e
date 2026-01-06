@@ -1,3 +1,10 @@
+## 13.5240.1
+* Verified for D&D5e v5.2.4
+* Added filters in `checkNearby()` for:
+  * `partyMember` Boolean (default false) to return only `game.actors.party` members
+  * `incluceIncapacitated`, `false`, `true` or `'only'` (default false). 
+    * `'only'` will return only incapacitated tokens
+
 ## 13.5230.1
 * System 5.2.3 compatibility bump
 * Grappled condition for 2024 rules will only be testing for disadvantage if the grappled active effect has a proper origin. If it is toggled from the actor's effects tab or token assign status HUD, the disadvantage is up to the user to adjudicate.
