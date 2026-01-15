@@ -121,7 +121,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	}
 
 	// to-do: check how can we add logic for testing all these based on selected types of activities and settings.needsTarget, to allow for evaluation of conditions and flags from
-	const sourceToken = _getTokenFromActor(sourceActor, true);
+	const sourceToken = _getTokenFromActor(sourceActor);
 
 	//to-do: rework this to properly check for fail flags and fail use status effects
 	// if (targets.size) {
@@ -191,7 +191,7 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 	const messageType = message?.flags?.dnd5e?.messageType;
 	const chatMessage = message?.document;
 
-	const subjectToken = _getTokenFromActor(subject, true);
+	const subjectToken = _getTokenFromActor(subject);
 	const subjectTokenId = subjectToken?.id;
 	if (attackingToken) options.distance = _getDistance(attackingToken, subjectToken);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, attackingToken?.id, options);
@@ -220,7 +220,7 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	options.targets = messageTargets;
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
-	const subjectToken = _getTokenFromActor(subject, true);
+	const subjectToken = _getTokenFromActor(subject);
 	const subjectTokenId = subjectToken?.id;
 	let opponentToken;
 	//to-do: not ready for this yet. The following line would make it so checks would be perfomred based on target's data/effects
@@ -259,7 +259,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
 	const targets = game.user?.targets;
-	const sourceToken = _getTokenFromActor(sourceActor, true);
+	const sourceToken = _getTokenFromActor(sourceActor);
 	let singleTargetToken = targets?.first();
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
@@ -325,7 +325,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 	options.targets = messageTargets;
 	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
 
-	const sourceToken = _getTokenFromActor(sourceActor, true);
+	const sourceToken = _getTokenFromActor(sourceActor);
 	const sourceTokenId = sourceToken?.id;
 	const targets = game.user?.targets;
 	let singleTargetToken = targets?.first();
