@@ -20,9 +20,9 @@
 	"AC5E.ExpandedConditionsHint": "When enabled, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.ActivityUse": {
 		"Name": "Item Use Checks",
-		"Hint": "When the use of an item is not permitted, AC5e will 'Do nothing', just 'Warn' (notification) or 'Enforce' (roll cancellation + notification). The checked conditions are: incapacitated for relevant actions, and raging, silenced and not-proficient with armor when casting spells",
+		"Hint": "Allow, Enforce (cancel + notify), or Warn (allow + notify). Checks: actions while incapacitated; spellcasting while raging, silenced, or armor non-proficient",
 		"Choices": {
-			"Off": "Do nothing",
+			"Off": "Allow",
 			"Enforce": "Enforce",
 			"Warn": "Warn"
 		},
@@ -54,9 +54,9 @@
 		"RangedLongDisadvantage": "Ranged long disadvantage",
 		"RangedOutOfRange": "Ranged out of range"
 	},
-	"AC5E.AutoExhaustionName": "Exhaustion automation.",
+	"AC5E.AutoExhaustionName": "Exhaustion automation",
 	"AC5E.AutoExhaustionHint": "When enabled, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
-	"AC5E.AutoEncumbranceName": "Variant encumbrance.",
+	"AC5E.AutoEncumbranceName": "Variant encumbrance",
 	"AC5E.AutoEncumbranceHint": "When enabled, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
 	"AC5E.Targeting": {
 		"Name": "Targeting options for attacks",
@@ -77,7 +77,11 @@
 	},
 	"AC5E.DebuggingName": "AC5e debug",
 	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
-	"AC5E.TokenlessActorWarning": "AC5E warning: The actor you are rolling for, doesn't have a token on the scene. The results can be skewed",
+	"AC5E.TokenlessActorWarning": {
+		"Hint": "The module doesn't affect currently rolls from actors without a token on the scene!",
+		"Name": "Show tokenless actor warning",
+		"Text": "AC5E warning: The actor you are rolling for, doesn't have a token on the scene. The results can be skewed"
+	},
 	"AC5E.WarCaster": "War Caster",
 	"AC5E.ModifyAC": "Modified AC",
 	"AC5E.ModifyDC": "Modified DC",
