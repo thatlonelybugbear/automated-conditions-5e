@@ -1359,13 +1359,13 @@ export function _ac5eActorRollData(token) {
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
 	actorData.equippedItems = { names: [], identifiers: [] };
-	actorData.items = actor.items?.map((i) => ({ ...i.getRollData().item, uuid: i.uuid })) ?? [];
-	for (const i of actorData.items) {
-		if (i.equipped) {
+	actorData.items = actor.items?.map((i) => {
+		if (i.system?.equipped) {
 			actorData.equippedItems.names.push(i.name);
 			actorData.equippedItems.identifiers.push(i.identifier);
 		}
-	}
+		return { name: i.name, uuid: i.uuid, id: i.id, identifier: i.identifier, type: i.type, uses: i.system?.uses || {}, equipped: i.system?.equipped };
+	});
 	actorData.level = actorData.details?.level || actorData.details?.cr;
 	actorData.levelCr = actorData.level;
 	actorData.hasArmor = !!actorData.attributes?.ac?.equippedArmor;
