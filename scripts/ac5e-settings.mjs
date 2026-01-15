@@ -13,6 +13,7 @@ export default class Settings {
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
 	static AUTOMATE_ENCUMBRANCE = 'autoEncumbrance';
 	static TARGETING = 'targeting';
+	static TOKENLESSACTOR_WARN = 'tokenlessActorWarning';
 	static DEBUG = 'debugging';
 	static MIGRATION = 'lastMigratedPoint';
 	static ColorPicker_Enabled = 'buttonColorEnabled';
@@ -193,6 +194,14 @@ export default class Settings {
 				warn: 'AC5E.Targeting.Choices.Warn',
 			},
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.TOKENLESSACTOR_WARN, {
+			name: 'AC5E.TokenLessActorWarning.Name',
+			hint: 'AC5E.TokenLessActorWarning.Hint',
+			scope: 'world',
+			config: true,
+			default: true,
+			type: Boolean,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
 			name: 'DEBUG',
 			scope: 'world',
@@ -265,6 +274,9 @@ export default class Settings {
 	}
 	get needsTarget() {
 		return game.settings.get(Constants.MODULE_ID, Settings.TARGETING);
+	}
+	get tokenlessActorWarn() {
+		return game.settings.get(Constants.MODULE_ID, Settings.TOKENLESSACTOR_WARN);
 	}
 	get buttonColorEnabled() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Enabled);
