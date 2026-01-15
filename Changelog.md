@@ -2,7 +2,7 @@
 * Verified for D&D5e v5.2.4
 * Added filters in `checkNearby()` for:
   * `partyMember` Boolean (default false) to return only `game.actors.party` members
-  * `incluceIncapacitated`, `false`, `true` or `'only'` (default false)
+  * `includeIncapacitated`, `false`, `true` or `'only'` (default false)
     * `'only'` will return only incapacitated tokens
 * Added a Boolean world setting to show a warning when rolling from a token-less actor (rolling from sidebar actors is not yet fully supported).
 
