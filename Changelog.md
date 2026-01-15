@@ -1,3 +1,9 @@
+## 13.5240.1.1
+* Full items' roll data are no longer collected during `_ac5eActorRollData()` calls. A limited subset is now available instead.
+  * `actorType.items`: `[{ name, id, identifier, uuid, uses, equipped }]`
+  * `actorType.equippedItems.names`: Array of equipped item names
+  * `actorType.equippedItems.identifiers`: Array of equipped item identifiers
+
 ## 13.5240.1
 * Verified for D&D5e v5.2.4
 * Added filters in `checkNearby()` for:
