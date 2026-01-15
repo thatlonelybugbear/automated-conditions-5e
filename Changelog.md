@@ -4,7 +4,7 @@
   * `partyMember` Boolean (default false) to return only `game.actors.party` members
   * `incluceIncapacitated`, `false`, `true` or `'only'` (default false)
     * `'only'` will return only incapacitated tokens
-* Added a Boolean world setting to show a warning when rolling from a token-less actor (rolling from sidebar actors are not yet fully supported)
+* Added a Boolean world setting to show a warning when rolling from a token-less actor (rolling from sidebar actors is not yet fully supported).
 
 ## 13.5230.1
 * System 5.2.3 compatibility bump
