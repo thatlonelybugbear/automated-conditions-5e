@@ -3,6 +3,7 @@
   * `actorType.items`: `[{ name, id, identifier, uuid, uses, equipped }]`
   * `actorType.equippedItems.names`: Array of equipped item names
   * `actorType.equippedItems.identifiers`: Array of equipped item identifiers
+* Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
 ## 13.5240.1
 * Verified for D&D5e v5.2.4
