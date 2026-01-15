@@ -195,8 +195,8 @@ export default class Settings {
 			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.TOKENLESSACTOR_WARN, {
-			name: 'AC5E.TokenLessActorWarning.Name',
-			hint: 'AC5E.TokenLessActorWarning.Hint',
+			name: 'AC5E.TokenlessActorWarning.Name',
+			hint: 'AC5E.TokenlessActorWarning.Hint',
 			scope: 'world',
 			config: true,
 			default: true,
