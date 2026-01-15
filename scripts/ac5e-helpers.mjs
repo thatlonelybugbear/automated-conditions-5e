@@ -1668,11 +1668,11 @@ export function _getItemOrActivity(itemID, activityID, actor) {
 	return item.system?.activities?.find((a) => a.name === activityID || a.type === activityID || a.identifier === activityID || a.id === activityID || a.uuid === activityID) || {};
 }
 
-export function _getTokenFromActor(actor, notify) {
+export function _getTokenFromActor(actor) {
 	let token;
 	const tokenId = ChatMessage.getSpeaker({ actor })?.token;
 	if (tokenId) token = canvas.tokens.get(tokenId);
 	else token = null;
-	if (!token && notify) ui.notifications.warn(_localize('AC5E.TokenlessActorWarning'));
+	if (!token && settings.tokenlessActorWarn) ui.notifications.warn(_localize('AC5E.TokenlessActorWarning.Text'));
 	return token;
 }
