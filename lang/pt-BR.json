@@ -20,9 +20,9 @@
 	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
 	"AC5E.ActivityUse": {
 		"Name": "Testes para Usos de Itens",
-		"Hint": "Quando o uso de um item não for permitido, AC5e irá 'Fazer nada', apenas 'Avisar' (notificação) ou irá 'Forçar' (cancelar rolagem + notificação).",
+		"Hint": "Permitir, Forçar (cancelar + notificar) ou Avisar (permitir + notificar). Testes: ações enquanto Incapacitado; conjuração enquanto em Fúria, Silenciado ou com Armadura sem proficiência.",
 		"Choices": {
-			"Off": "Fazer nada",
+			"Off": "Permitir",
 			"Enforce": "Forçar",
 			"Warn": "Avisar"
 		},
@@ -77,7 +77,11 @@
 	},
 	"AC5E.DebuggingName": "Debug",
 	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
-	"AC5E.TokenlessActorWarning": "Aviso do AC5e: O ator para que você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos",
+	"AC5E.TokenlessActorWarning": {
+		"Hint": "O módulo não afeta rolagens atuais de atores sem um token na cena!",
+		"Name": "Exibir aviso de ator sem token",
+		"Text": "Aviso do AC5e: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
+	},
 	"AC5E.WarCaster": "Conjurador de Guerra",
 	"AC5E.ModifyAC": "CA Modificada",
 	"AC5E.ModifyDC": "CD Modificada",
