@@ -1,3 +1,6 @@
+## 13.5240.2
+* Ensure enchantment effects origins are not overwritten.
+
 ## 13.5240.1.1
 * Full items' roll data are no longer collected during `_ac5eActorRollData()` calls. A limited subset is now available instead.
   * `actorType.items`: `[{ name, id, identifier, uuid, uses, equipped }]`
