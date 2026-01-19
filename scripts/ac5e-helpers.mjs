@@ -584,7 +584,6 @@ export function _findNearby({
 	includeIncapacitated = false, // Include dead/incapacitated tokens, use 'only' to return ONLY incapacitated tokens
 	partyMember = false, // Return only party members
 }) {
-	if (partyMembers) partyMember = partyMembers;
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
 	if (token instanceof TokenDocument) {
