@@ -83,7 +83,7 @@ export function _preCreateItem(item, updates) {
 	if (!itemUuid) return;
 	const effects = foundry.utils.duplicate(item._source.effects);
 	if (!effects.length) return;
-	for (const e of effects) if (e.origin && e.origin !== itemUuid) e.origin = itemUuid;
+	for (const e of effects) if (e.origin && e.origin !== itemUuid && e.type !== 'enchantment') e.origin = itemUuid; //make sure that we dont overwrite echantment effects origins; might be from compendium template items
 	item.updateSource({ effects });
 }
 
