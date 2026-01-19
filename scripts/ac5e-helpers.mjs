@@ -847,7 +847,11 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const midiRoller = _activeModule('midi-qol');
 	const rsrRoller = _activeModule('ready-set-roll-5e');
 	const roller = midiRoller ? 'MidiQOL' : rsrRoller ? 'RSR' : 'Core';
-	if (midiRoller) ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(config.midiOptions || {}); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
+	if (midiRoller) {
+		const midiOptions = config.midiOptions ?? {};
+		const { workflow, ...safeMidiOptions } = midiOptions; // strips workflow before any cloning; Issue https://github.com/thatlonelybugbear/automated-conditions-5e/issues/696
+		ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(safeMidiOptions); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
+	} 
 	ac5eConfig.roller = roller;
 	ac5eConfig.preAC5eConfig.adv = config.advantage;
 	ac5eConfig.preAC5eConfig.dis = config.disadvantage;
