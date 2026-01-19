@@ -1,5 +1,6 @@
 ## 13.5240.2
-* Ensure enchantment effects origins are not overwritten.
+* Ensure enchantment effects origins are not overwritten
+* Sanitize `midiOptions` before cloning to avoid circular refs when MidiQOL is active.
 
 ## 13.5240.1.1
 * Full items' roll data are no longer collected during `_ac5eActorRollData()` calls. A limited subset is now available instead.
