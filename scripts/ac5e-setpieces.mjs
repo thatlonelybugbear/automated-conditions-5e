@@ -1,4 +1,4 @@
-import { _ac5eActorRollData, _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActionType, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _getItemOrActivity, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
+import { _ac5eActorRollData, _ac5eSafeEval, _activeModule, _canSee, _calcAdvantageMode, _createEvaluationSandbox, _dispositionCheck, _getActivityEffectsStatusRiders, _getDistance, _getEffectOriginToken, _getItemOrActivity, _hasAppliedEffects, _hasStatuses, _localize, _i18nConditions, _autoArmor, _autoEncumbrance, _autoRanged, _raceOrType, _staticID } from './ac5e-helpers.mjs';
 import { _doQueries } from './ac5e-queries.mjs';
 import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
@@ -54,7 +54,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 }
 
 function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type } = {}) {
-	const { ability, activity, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
+	const { ability, activity, attackMode, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
 
 	const distanceUnit = canvas.grid.distance;
 
@@ -208,7 +208,7 @@ function testStatusEffectsTables({ ac5eConfig, subjectToken, opponentToken, exha
 
 		tables.underwaterCombat = mkStatus('underwater', _localize('AC5E.UnderwaterCombat'), {
 			attack: {
-				subject: (_getActionType(activity) === 'mwak' && !subject?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (_getActionType(activity) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : _getActionType(activity) === 'rwak' && distance > activity?.range.value ? 'fail' : '',
+				subject: (activity?.getActionType(attackMode) === 'mwak' && !subject?.system.attributes.movement.swim && !['dagger', 'javelin', 'shortsword', 'spear', 'trident'].includes(item?.system.type.baseItem)) || (activity?.getActionType(attackMode) === 'rwak' && !['lightcrossbow', 'handcrossbow', 'heavycrossbow', 'net'].includes(item?.system.type.baseItem) && !item?.system.properties.has('thr') && distance <= activity?.range.value) ? 'disadvantage' : activity?.getActionType(attackMode) === 'rwak' && distance > activity?.range.value ? 'fail' : '',
 			},
 		});
 	}
