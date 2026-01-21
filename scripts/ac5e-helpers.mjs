@@ -1450,7 +1450,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.spellcastingAbility = activity?.spellcastingAbility;
 	sandbox.messageFlags = activity?.messageFlags;
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
-	sandbox.actionType = activity ? { [activity.getActionType(options.attackMode)]: true } : {};
+	const actionType = activity?.getActionType(options.attackMode);
+	sandbox.actionType = actionType ? { [actionType]: true } : {};
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
 	if (options.attackMode) sandbox._flatConstants[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
 	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
@@ -1461,7 +1462,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
-	if (activity?.actionType) sandbox._flatConstants[sandbox.actionType] = true;
+	if (actionType) {
+		sandbox._flatConstants[actionType] = true;
+		sandbox.activity.actionType = actionType;
+	}
 	if (activity?.attack?.type) {
 		sandbox._flatConstants[activity.attack.type.value] = true;
 		sandbox._flatConstants[activity.attack.type.classification] = true;
