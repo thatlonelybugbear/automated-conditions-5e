@@ -1,5 +1,6 @@
 ## 13.5250.2
 * Fix for damage enrichers throwing
+* Fix for Heavy automation and actionTypes
 
 ## 13.5250.1
 * Verified for D&D5e v5.2.5
