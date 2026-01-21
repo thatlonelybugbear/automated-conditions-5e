@@ -369,6 +369,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	config.rolls[0] ??= {};
 	const roll0 = config.rolls[0];
 	roll0.options ??= {};
+	dialog.options ??= {};
 	const hook = ac5eConfig.hookType;
 	const ac5eForcedRollTarget = 999;
 	if (hook === 'damage') {
