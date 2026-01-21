@@ -1,3 +1,6 @@
+## 13.5250.2
+* Fix for damage enrichers throwing
+
 ## 13.5250.1
 * Verified for D&D5e v5.2.5
 * Refactored actionType assignment in sandbox
