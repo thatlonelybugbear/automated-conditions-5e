@@ -1,3 +1,8 @@
+## 13.5250.1
+* Verified for D&D5e v5.2.5
+* Refactored actionType assignment in sandbox
+* Fixed some typos.
+
 ## 13.5240.2
 * Ensure enchantment effects origins are not overwritten
 * Sanitize `midiOptions` before cloning to avoid circular refs when MidiQOL is active.
