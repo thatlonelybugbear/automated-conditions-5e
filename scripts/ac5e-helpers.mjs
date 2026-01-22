@@ -495,7 +495,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message) {
 	}
 	if (ac5eConfig.parts.length) {
 		if (roll0) typeof roll0.parts !== 'undefined' ? (roll0.parts = roll0.parts.concat(ac5eConfig.parts)) : (roll0.parts = [...ac5eConfig.parts]);
-		else if (config.parts) config.parts.push(ac5eConfig.parts);
+		else if (config.parts) config.parts.push(...ac5eConfig.parts);
 	}
 	//Interim solution until system supports this
 	if (!foundry.utils.isEmpty(ac5eConfig.modifiers)) {
