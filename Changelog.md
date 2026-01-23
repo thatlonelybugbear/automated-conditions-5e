@@ -1,6 +1,7 @@
 ## 13.5250.2
 * Fix for damage enrichers throwing
 * Fix for Heavy automation and actionTypes
+* Fix for attack activities not applying their effects if MidiQOL is active and Save workflow data to chat messages setting is enabled.
 
 ## 13.5250.1
 * Verified for D&D5e v5.2.5
