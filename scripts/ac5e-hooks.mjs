@@ -239,12 +239,12 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 
 export function _preRollAttack(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.error('AC5e _preRollAttack', hook, { config, dialog, message });
-	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: activity, rolls, ammunition, attackMode, mastery } = config || {};
+	const { subject: { actor: sourceActor, /*type: actionType,*/ range: itemRange, ability } = {}, subject: configActivity, rolls, ammunition, attackMode, mastery } = config || {};
 	const {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, activity: messageActivity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, activity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;
@@ -310,14 +310,14 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 
 export function _preRollDamage(config, dialog, message, hook, reEval) {
 	if (settings.debug) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
-	const { subject: activity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition, mastery } = config || {};
+	const { subject: configActivity, subject: { actor: sourceActor, ability } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const {
 		//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets for now, unless we don't care for multiple tokens of a linked actor.
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, item, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, item, activity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {}, } = chatButtonTriggered || {};
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	options.attackMode = attackMode;
