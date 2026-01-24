@@ -19,7 +19,45 @@ function ac5eRegisterOnInit() {
 		fieldData['AC5E'] = daeFlags;
 	});
 	scopeUser = game.version > 13 ? 'user' : 'client';
+	patchApplyDamage();
 	return new Settings().registerSettings();
+}
+
+function patchApplyDamage() {
+	const proto = CONFIG.Actor?.documentClass?.prototype;
+
+	function getMessageIdFromUI() {
+		return globalThis.event?.currentTarget?.closest?.('[data-message-id]')?.dataset?.messageId ?? globalThis.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId ?? document.activeElement?.closest?.('[data-message-id]')?.dataset?.messageId ?? null;
+	}
+
+	function wrapper(wrapped, damages, options = {}, ...rest) {
+		if (!options?.messageId) {
+			const mid = getMessageIdFromUI();
+			if (mid) options = { ...options, messageId: mid };
+		}
+		return wrapped(damages, options, ...rest);
+	}
+
+	if (globalThis.libWrapper) {
+		try {
+			libWrapper.register(Constants.MODULE_ID, 'CONFIG.Actor.documentClass.prototype.applyDamage', wrapper, 'WRAPPER');
+			console.log(`${Constants.MODULE_NAME} | Wrapped Actor.applyDamage via libWrapper`);
+			return;
+		} catch (err) {
+			console.warn(`${Constants.MODULE_NAME} | libWrapper failed, falling back to monkeypatch`, err);
+		}
+	}
+	// Fallback monkeypatch
+	const original = proto.applyDamage;
+	proto.applyDamage = function (damages, options = {}, ...rest) {
+		if (!options?.messageId) {
+			const mid = getMessageIdFromUI();
+			if (mid) options = { ...options, messageId: mid };
+		}
+		return original.call(this, damages, options, ...rest);
+	};
+	proto.applyDamage.__ac5e_original__ = original;
+	return console.log(`${Constants.MODULE_NAME} | Monkeypatched Actor.applyDamage (no libWrapper)`);
 }
 
 function ac5ei18nInit() {
