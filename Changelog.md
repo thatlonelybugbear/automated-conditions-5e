@@ -1,6 +1,7 @@
 ## 13.5250.3
 * Patched `CONFIG.Actor.documentClass.prototype.applyDamage` to include the `messageId` when it's triggered by a Chat message
   * `dnd5e.preApplyDamage` and `dnd5e.applyDamage` Hooks should now include `options.messageId` making it easier to retrieve relevant data.
+* Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.5250.2
 * Fix for damage enrichers throwing
