@@ -579,14 +579,15 @@ export function _dispositionCheck(t1, t2, check = 'all', mult) {
 export function _findNearby({
 	token, // Token5e, TokenDocument5e, ID string, or UUID
 	disposition = 'all', // 'same', 'different', 'opposite' or false === 'all'
-	radius = 5, // Distance radius (default 5)
-	lengthTest = false, // Number or false; if number, returns boolean test
+	radius = 5, // Distance radius (default 5), 0 for full map
+	lengthTest = false, // Number, true or false; if number, returns boolean test against that, if true returns Number of found tokens.
+	hasStatuses = [], // Array of status effect IDs to filter by
 	includeToken = false, // Include source token in results
 	includeIncapacitated = false, // Include dead/incapacitated tokens, use 'only' to return ONLY incapacitated tokens
 	partyMember = false, // Return only party members
 }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
-	const tokenInstance = game.version > 13 ? foundry.canvas.placeables.Token : Token;
+	const tokenInstance = foundry.canvas.placeables.Token;
 	if (token instanceof TokenDocument) {
 		token = token.object;
 	} else if (!(token instanceof tokenInstance)) {
@@ -623,17 +624,19 @@ export function _findNearby({
 		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
 		if (includeIncapacitated === 'only' && !_hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
 		if (!_dispositionCheck(token, target, disposition, mult)) return false;
-
+		if (hasStatuses.length && !_hasStatuses(target.actor, hasStatuses, true)) return false;
+		if (radius === 0) return true; // full map
 		const distance = _getDistance(token, target);
 		return distance <= radius;
 	});
 	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, nearbyTokens);
-	if (lengthTest) return nearbyTokens.length >= lengthTest;
+	if (lengthTest === true) return nearbyTokens.length;
+	else if (typeof lengthTest === 'number') return nearbyTokens.length >= lengthTest;
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, partyMember = false } = {}) {
-	return _findNearby({ token, disposition, radius, includeToken, includeIncapacitated, lengthTest: count, partyMember });
+export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, hasStatuses = [], partyMember = false } = {}) {
+	return _findNearby({ token, disposition, radius, hasStatuses,includeToken, includeIncapacitated, lengthTest: count, partyMember });
 }
 
 export function _autoArmor(actor) {
