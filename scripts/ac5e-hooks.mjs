@@ -244,7 +244,8 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		data: { speaker: { token: sourceTokenID } = {} },
 	} = message || {};
 	const chatButtonTriggered = getMessageData(config, hook);
-	const { messageId, activity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const { messageId, activity: messageActivity, attackingActor, attackingToken, messageTargets, /*config: message?.config,*/ use, options = {} } = chatButtonTriggered || {};
+	const activity = messageActivity || configActivity;
 	options.ability = ability;
 	options.activity = activity;
 	options.hook = hook;

@@ -786,7 +786,7 @@ export function _getTooltip(ac5eConfig = {}) {
 
 export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
 	// foundry.utils.mergeObject(options, { spellLevel: dialog?.data?.flags?.use?.spellLevel, attackMode: config?.attackMode });
-	if (settings.debug) console.warn('AC5E._getConfig:', { config });
+	if (settings.debug || ac5e.debug_getConfig) console.warn('AC5E._getConfig:', { config });
 	const existingAC5e = config?.[Constants.MODULE_ID]; //to-do: any need for that one?
 	// if (!foundry.utils.isEmpty(existingAC5e) && !reEval) foundry.utils.mergeObject(options, existingAC5e.options);
 	if (settings.debug) console.error('AC5E._getConfig', { mergedOptions: options });
@@ -945,7 +945,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		if (!skipDialogAdvantage && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical)) ac5eConfig.subject.critical.push(`${roller} ${_localize('AC5E.Flags')}`);
 	}
 
-	if (settings.debug) console.warn('AC5E_getConfig', { ac5eConfig });
+	if (settings.debug || ac5e.debug_getConfig) console.warn('AC5E_getConfig', { ac5eConfig });
 	return ac5eConfig;
 }
 
