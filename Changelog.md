@@ -1,6 +1,13 @@
 ## 13.5250.3
 * Patched `CONFIG.Actor.documentClass.prototype.applyDamage` to include the `messageId` when it's triggered by a Chat message
   * `dnd5e.preApplyDamage` and `dnd5e.applyDamage` Hooks should now include `options.messageId` making it easier to retrieve relevant data.
+* Added more options in the `checkNearby(tokenRef, dispositionRef, radius, parameters)` parameters Object.
+  * `count` can now be:
+    * `true`: returns the Number of valid tokens
+    * `Number`: the function returns the Boolean result of the check `validTokens.length >= count`
+  * `hasStatuses`: an Array of statuses that the valid tokens need to have to be included.
+  * change for `radius` logic. If the user inputs `0`, the whole map will be checked.
+  * for example: `checkNearby(tokenId, 'all', 0, {count: true, hasStatuses: ['silenced', 'deafened']})` will return the Number of tokens that are silenced and/or deafened
 * Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.5250.2
