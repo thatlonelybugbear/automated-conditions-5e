@@ -1,3 +1,6 @@
+## 13.5250.3.1
+* Closes [#714](<https://github.com/thatlonelybugbear/automated-conditions-5e/issues/714>) - Fix for `activity` being undefined
+
 ## 13.5250.3
 * Patched `CONFIG.Actor.documentClass.prototype.applyDamage` to include the `messageId` when it's triggered by a Chat message
   * `dnd5e.preApplyDamage` and `dnd5e.applyDamage` Hooks should now include `options.messageId` making it easier to retrieve relevant data.
