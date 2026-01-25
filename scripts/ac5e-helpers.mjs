@@ -47,8 +47,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		const tokenBHexes = getHexesOnPerimeter(tokenB);
 		if (settings.debug) tokenBHexes.forEach((e) => canvas.ping(e));
 
-		outer:
-		for (const pointA of tokenAHexes) {
+		outer: for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
 				if (
 					checkCollision &&
@@ -113,8 +112,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 			const tokenBSquares = getSquaresOnPerimeter(tokenB);
 			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
 
-			outer:
-			for (const pointA of tokenASquares) {
+			outer: for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
 					if (
 						checkCollision &&
@@ -166,7 +164,10 @@ function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid
 	tokenA.z1 = tokenA.z0 + Math.max(1, Math.min(tokenA.document.width | 0, tokenA.document.height | 0));
 	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
 	tokenB.z1 = tokenB.z0 + Math.max(1, Math.min(tokenB.document.width | 0, tokenB.document.height | 0));
-	const dz = tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1 : tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1 : 0;
+	const dz =
+		tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1
+		: tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1
+		: 0;
 	if (Math.abs(dz) <= 1 && adjacent2D) return totalDistance;
 	if (grid.isGridless) {
 		const verticalDistance = dz * grid.distance;
@@ -618,7 +619,9 @@ export function _findNearby({
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
 		if (!includeToken && target === token) return false;
 		if (partyMember && game.actors.party) {
-			const { members: { ids } } = game.actors.party.system;
+			const {
+				members: { ids },
+			} = game.actors.party.system;
 			if (!ids.has(target.actor?.id)) return false;
 		}
 		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
@@ -636,7 +639,7 @@ export function _findNearby({
 }
 
 export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, hasStatuses = [], partyMember = false } = {}) {
-	return _findNearby({ token, disposition, radius, hasStatuses,includeToken, includeIncapacitated, lengthTest: count, partyMember });
+	return _findNearby({ token, disposition, radius, hasStatuses, includeToken, includeIncapacitated, lengthTest: count, partyMember });
 }
 
 export function _autoArmor(actor) {
@@ -644,8 +647,15 @@ export function _autoArmor(actor) {
 	const hasArmor = actor.armor;
 	const hasShield = actor.shield;
 	return {
-		hasStealthDisadvantage: hasArmor?.system.properties.has('stealthDisadvantage') ? 'Armor' : hasShield?.system.properties.has('stealthDisadvantage') ? 'EquipmentShield' : actor.itemTypes.equipment.some((item) => item.system.equipped && item.system.properties.has('stealthDisadvantage')) ? 'AC5E.Equipment' : false,
-		notProficient: !!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier ? 'Armor' : !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier ? 'EquipmentShield' : false,
+		hasStealthDisadvantage:
+			hasArmor?.system.properties.has('stealthDisadvantage') ? 'Armor'
+			: hasShield?.system.properties.has('stealthDisadvantage') ? 'EquipmentShield'
+			: actor.itemTypes.equipment.some((item) => item.system.equipped && item.system.properties.has('stealthDisadvantage')) ? 'AC5E.Equipment'
+			: false,
+		notProficient:
+			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier ? 'Armor'
+			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier ? 'EquipmentShield'
+			: false,
 	};
 }
 
@@ -690,7 +700,10 @@ export function _autoRanged(activity, token, target, options) {
 		if (settings.autoRangeChecks.has('rangedLongDisadvantage')) isLong = distance <= long;
 		if (!isLong && !settings.autoRangeChecks.has('rangedOoR')) isLong = true;
 	}
-	const inRange = isShort ? 'short' : isLong ? 'long' : false;
+	const inRange =
+		isShort ? 'short'
+		: isLong ? 'long'
+		: false;
 	return { inRange: !!inRange, range: inRange, distance, nearbyFoe };
 }
 
@@ -849,12 +862,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (options.skill || options.tool) ac5eConfig.title = dialog?.options?.window?.title;
 	const midiRoller = _activeModule('midi-qol');
 	const rsrRoller = _activeModule('ready-set-roll-5e');
-	const roller = midiRoller ? 'MidiQOL' : rsrRoller ? 'RSR' : 'Core';
+	const roller =
+		midiRoller ? 'MidiQOL'
+		: rsrRoller ? 'RSR'
+		: 'Core';
 	if (midiRoller) {
 		const midiOptions = config.midiOptions ?? {};
 		const { workflow, ...safeMidiOptions } = midiOptions; // strips workflow before any cloning; Issue https://github.com/thatlonelybugbear/automated-conditions-5e/issues/696
 		ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(safeMidiOptions); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
-	} 
+	}
 	ac5eConfig.roller = roller;
 	ac5eConfig.preAC5eConfig.adv = config.advantage;
 	ac5eConfig.preAC5eConfig.dis = config.disadvantage;
@@ -907,7 +923,8 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter((attr) => attr.includes('ADV:'))
 					.map((attr) => {
-						if (attr.includes('.')) return attr.slice(attr.indexOf(' ') + 1).trim(); //@to-do: doublecheck if midi always uses a whitespace btw the type of Advantage and the effect name
+						if (attr.includes('.'))
+							return attr.slice(attr.indexOf(' ') + 1).trim(); //@to-do: doublecheck if midi always uses a whitespace btw the type of Advantage and the effect name
 						else return attr.replace('ADV:', '').trim();
 					});
 				ac5eConfig.subject.advantage.push(...attribution);
@@ -918,7 +935,8 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 				const attribution = Array.from(config.workflow?.attackAdvAttribution || {})
 					?.filter?.((attr) => attr.includes('DIS:'))
 					.map((attr) => {
-						if (attr.includes('.')) return attr.slice(attr.indexOf(' ') + 1).trim(); //@to-do: doublecheck if midi always uses a whitespace btw the type of Advantage and the effect name
+						if (attr.includes('.'))
+							return attr.slice(attr.indexOf(' ') + 1).trim(); //@to-do: doublecheck if midi always uses a whitespace btw the type of Advantage and the effect name
 						else return attr.replace('DIS:', '').trim();
 					});
 				ac5eConfig.subject.disadvantage.push(...attribution);
@@ -1086,19 +1104,19 @@ export function _canSee(source, target, status) {
 	const t = Math.min(target.w, target.h) / 4;
 	const targetPoint = target.center;
 	const offsets =
-		t > 0
-			? [
-					[0, 0],
-					[-t, -t],
-					[-t, t],
-					[t, t],
-					[t, -t],
-					[-t, 0],
-					[t, 0],
-					[0, -t],
-					[0, t],
-			  ]
-			: [[0, 0]];
+		t > 0 ?
+			[
+				[0, 0],
+				[-t, -t],
+				[-t, t],
+				[t, t],
+				[t, -t],
+				[-t, 0],
+				[t, 0],
+				[0, -t],
+				[0, t],
+			]
+		:	[[0, 0]];
 	const tests = offsets.map((o) => ({
 		point: new PIXI.Point(targetPoint.x + o[0], targetPoint.y + o[1]),
 		elevation: target?.document.elevation ?? 0,
@@ -1143,7 +1161,7 @@ function normalizeDetectionModes(modes) {
 	if (!Array.isArray(modes)) {
 		return Object.entries(modes).map(([id, data]) => ({
 			id,
-			...data
+			...data,
 		}));
 	}
 	return modes;
@@ -1399,7 +1417,7 @@ export function _ac5eActorRollData(token) {
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const sandbox = {
 		...lazySandbox,
-		_flatConstants: { ...lazySandbox._flatConstants }  // shallow copy is enough for boolean flags
+		_flatConstants: { ...lazySandbox._flatConstants }, // shallow copy is enough for boolean flags
 	};
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
