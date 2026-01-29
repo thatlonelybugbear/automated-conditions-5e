@@ -43,8 +43,7 @@ function getMessageData(config, hook) {
 	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
 	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
 
-	const originatingMessage = message?.flags?.dnd5e?.originatingMessage || message.id;
-	console.log('originatingMessage', originatingMessage, message?.flags?.dnd5e);
+	// const originatingMessage = message?.flags?.dnd5e?.originatingMessage || message.id;
 
 	options.d20 = {};
 	if (hook === 'damage') {
