@@ -1,3 +1,6 @@
+## 13.5250.3.2
+* Allow usage of self targeted activities if no targets are selected.
+
 ## 13.5250.3.1
 * Closes [#714](<https://github.com/thatlonelybugbear/automated-conditions-5e/issues/714>) - Fix for `activity` being undefined
 

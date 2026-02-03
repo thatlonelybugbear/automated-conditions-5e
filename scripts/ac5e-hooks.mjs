@@ -34,10 +34,10 @@ function getMessageData(config, hook) {
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
 	const message = messageId ? game.messages.get(messageId) : messageUuid ? fromUuidSync(messageUuid) : undefined;
 
-	const messageTargets = getTargets(message);
 	const { activity: activityObj, item: itemObj, messageType, use } = message?.flags?.dnd5e || {};
 	const item = fromUuidSync(itemObj?.uuid);
 	const activity = fromUuidSync(activityObj?.uuid);
+	const isTargetSelf = activity?.target?.affects?.type === 'self';
 	const options = {};
 	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
 	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
@@ -66,6 +66,9 @@ function getMessageData(config, hook) {
 	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
+	const messageTargets = isTargetSelf
+		? [{ ac: attackingToken.actor?.system?.attributes?.ac?.value ?? null, uuid: attackingToken.actor?.uuid, tokenUuid: attackingToken.document.uuid, name: target.name, img: attackingToken.document.texture.src }]
+		: getTargets(message);
 	const attackingActor = attackingToken?.actor ?? item?.actor;
 	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
 	return { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options };
@@ -147,8 +150,9 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	// 	}
 	// }
 	//to-do: should we do something for !targets.size and midi?
+	const isTargetSelf = activity.target?.affects?.type === 'self';
 	let targets = game.user?.targets;
-	let singleTargetToken = targets?.first();
+	let singleTargetToken = isTargetSelf ? sourceToken : targets?.first();
 	const needsTarget = settings.needsTarget;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
