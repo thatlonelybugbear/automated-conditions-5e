@@ -69,7 +69,7 @@ function getMessageData(config, hook) {
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
 	const messageTargets = isTargetSelf
-		? [{ ac: attackingToken.actor?.system?.attributes?.ac?.value ?? null, uuid: attackingToken.actor?.uuid, tokenUuid: attackingToken.document.uuid, name: target.name, img: attackingToken.document.texture.src }]
+		? [{ ac: attackingToken?.actor?.system?.attributes?.ac?.value ?? null, uuid: attackingToken?.actor?.uuid, tokenUuid: attackingToken?.document.uuid, name: target.name, img: attackingToken?.document.texture.src }]
 		: getTargets(message);
 	const attackingActor = attackingToken?.actor ?? item?.actor;
 	if (settings.debug) console.warn('AC5E.getMessageData', { messageId: message?.id, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig: message?.config, use, options });
