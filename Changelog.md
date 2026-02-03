@@ -1,4 +1,4 @@
-## 13.5250.3.3
+## 13.5250.4
 * Allow usage of self targeted activities if no targets are selected.
 
 ## 13.5250.3.2
