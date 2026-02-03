@@ -172,7 +172,7 @@ function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid
 	if (grid.isGridless) {
 		const verticalDistance = dz * grid.distance;
 		totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance;
-	} else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) : totalDistance;
+	} else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, grid) : totalDistance;
 	return totalDistance;
 }
 
@@ -269,7 +269,7 @@ function getSquaresOnPerimeter(t) {
 	return Object.values(perimeterCenterPoints);
 }
 
-function calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) {
+function calculateDiagonalsZ(diagonals, dz, spaces, grid) {
 	const XY = { diagonals, illegal: spaces, moves: 0 };
 	const Z = { illegal: dz, diagonals: Math.min(XY.illegal, dz), diagonalsXYZ: 0, diagonalsXZ_YZ: 0, moves: 0 };
 	Z.diagonalsXYZ = Math.min(XY.diagonals, Z.diagonals);
@@ -277,7 +277,7 @@ function calculateDiagonalsZ(diagonals, dz, spaces, totalDistance, grid) {
 	XY.moves = spaces - (XY.diagonals + Z.diagonalsXZ_YZ);
 	Z.moves = dz - Z.diagonals;
 	const overallDiagonals = Math.max(XY.diagonals, Z.diagonals);
-
+	let totalDistance = 0;
 	switch (grid.diagonals) {
 		case CONST.GRID_DIAGONALS.EQUIDISTANT:
 			totalDistance = XY.moves + Z.moves + overallDiagonals;

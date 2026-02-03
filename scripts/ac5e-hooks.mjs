@@ -43,6 +43,8 @@ function getMessageData(config, hook) {
 	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
 	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
 
+	// const originatingMessage = message?.flags?.dnd5e?.originatingMessage || message.id;
+
 	options.d20 = {};
 	if (hook === 'damage') {
 		if (_activeModule('midi-qol')) {
@@ -62,7 +64,7 @@ function getMessageData(config, hook) {
 			options.d20.isFumble = findRoll0?.isFumble ?? findRoll0?.options?.isFumble ?? config?.isFumble;
 		}
 	}
-	options.messageId = messageId;
+	options.messageId = messageId; //@to-do: check if this is always correct, or should we get message.id for when midi-qol is active and for registry data retrieval
 	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
@@ -86,7 +88,7 @@ export function _preCreateItem(item, updates) {
 	if (!itemUuid) return;
 	const effects = foundry.utils.duplicate(item._source.effects);
 	if (!effects.length) return;
-	for (const e of effects) if (e.origin && e.origin !== itemUuid && e.type !== 'enchantment') e.origin = itemUuid; //make sure that we dont overwrite echantment effects origins; might be from compendium template items
+	for (const e of effects) if (e.origin && e.origin !== itemUuid && e.type !== 'enchantment') e.origin = itemUuid; //make sure that we dont overwrite enchantment effects origins; might be from compendium template items
 	item.updateSource({ effects });
 }
 
