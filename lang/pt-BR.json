@@ -79,7 +79,7 @@
 	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
 	"AC5E.TokenlessActorWarning": {
 		"Hint": "O módulo não afeta rolagens atuais de atores sem um token na cena!",
-		"Name": "Exibir aviso de ator sem token",
+		"Name": "Exibir Aviso de Ator sem Token",
 		"Text": "Aviso do AC5e: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
 	},
 	"AC5E.WarCaster": "Conjurador de Guerra",
