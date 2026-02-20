@@ -1,3 +1,0 @@
-﻿snapshots/20260218-132953/meta.txt
-snapshots/20260218-132953/working.diff
-wiki/Status-Effects-Overrides-API.md

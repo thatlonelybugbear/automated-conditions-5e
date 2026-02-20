@@ -1,5 +1,0 @@
-﻿timestamp=20260218-132953
-branch=optin-fixes-1
-head=7ae2b07079aa552af3554713842a8d97a9295921
-head_short=7ae2b07
-snapshot_branch=snapshot/20260218-132953-pre-context-keywords
