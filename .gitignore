@@ -15,6 +15,7 @@ Thumbs.db
 # Local workspace helpers
 worktrees/
 wiki-remote/
+snapshots/
 
 # Local release artifacts
 module.zip
