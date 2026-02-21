@@ -3,7 +3,7 @@
 		"Name": "Automate D&D5E Statuses",
 		"Hint": "When enabled, AC5E will automate dis/advantage and roll mode modifiers based on system statuses."
 	},
-	"AC5E.ShowTooltipsName": "Show AC5e tooltips:",
+	"AC5E.ShowTooltipsName": "Show AC5e tooltips",
 	"AC5E.ShowTooltipsHint": "When a relevant option is selected, AC5e will show a helpful tooltip when hovering over the suggested Roll button or a generated message or both, summing up the reasons for that suggestion.",
 	"AC5E.ShowToolTipsChoicesBoth": "Roll dialogs and chat messages",
 	"AC5E.ShowToolTipsChoicesDialog": "Only on roll dialogs",

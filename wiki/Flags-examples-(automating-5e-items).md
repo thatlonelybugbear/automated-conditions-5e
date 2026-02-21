@@ -178,7 +178,7 @@ value: radius=60; enemies; ['fire', 'radiant'].some(d=>damageTypes[d])
 value: radius=60; enemies; fire; radiant;
 ```
 
-## New Syntax Examples
+## New Syntax Examples (v13.5250.5)
 ### Optional attack bonus with cadence and custom text
 ```
 key: flags.automated-conditions-5e.attack.bonus

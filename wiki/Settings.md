@@ -1,4 +1,4 @@
-Applies to version: `13.5250.6`
+Applies to version: `13.5250.5`
 ## Expanded Conditions (default off)
 - `Dodging`: Attacker disadvantage if target not incapacitated, restrained and can see attacker. Also advantage on dex saves.
 - `Hiding`: Advantage on attacks rolls.
@@ -68,6 +68,7 @@ await game.settings.set("automated-conditions-5e", "displayOnly5eStatuses", true
 await game.settings.set("automated-conditions-5e", "displayOnly5eStatuses", false);
 ```
 
+<<<<<<< HEAD
 ### Development mode diagnostics (internal toggle)
 Setting key: `devModeEnabled`
 
@@ -78,3 +79,5 @@ await game.settings.set("automated-conditions-5e", "devModeEnabled", false);
 
 When enabled, AC5e emits extra READY diagnostics (including local build-state markers) intended for debugging.
 
+=======
+>>>>>>> ade0f4667d5ddf84b4a9f3c7a18605c9f7c369e3
