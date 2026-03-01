@@ -126,6 +126,10 @@ function _getMessageDnd5eFlags(message) {
 	return _getMessageFlagScope(message, 'dnd5e');
 }
 
+function _getMessageTargetsFromFlags(messageLike) {
+	return _getMessageDnd5eFlags(messageLike)?.targets ?? [];
+}
+
 function _firstDnd5eFlagValue(messages, key) {
 	for (const msg of messages) {
 		const flags = _getMessageDnd5eFlags(msg);
@@ -411,7 +415,7 @@ function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, messageLi
 	refreshAttackAutoRangeState(ac5eConfig, config);
 
 	const messageLike = messageLikeOverride ?? getMessageForConfigTargets(config) ?? dialog?.message ?? config;
-	const messageTargets = messageLike?.data?.flags?.dnd5e?.targets ?? messageLike?.flags?.dnd5e?.targets ?? [];
+	const messageTargets = _getMessageTargetsFromFlags(messageLike);
 	const finalTargets = resolveTargets(messageLike, messageTargets, { hook: 'attack', activity: ac5eConfig.options?.activity });
 	if (!finalTargets.length) return;
 
@@ -700,7 +704,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 	const targetMessage = getMessageForConfigTargets(config) ?? config;
 	let resolvedTargets = [];
 	if (shouldSyncAttackTargets) {
-		const messageTargets = targetMessage?.data?.flags?.dnd5e?.targets ?? targetMessage?.flags?.dnd5e?.targets ?? [];
+		const messageTargets = _getMessageTargetsFromFlags(targetMessage);
 		resolvedTargets = resolveTargets(targetMessage, messageTargets, { hook: activeHook, activity: ac5eConfig.options?.activity });
 		syncTargetsToConfigAndMessage(config, ac5eConfig, resolvedTargets, targetMessage);
 	}
@@ -946,7 +950,8 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 		}
 	}
 	refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message);
-	const currentTargets = message?.data?.flags?.dnd5e?.targets ?? ac5eConfig?.options?.targets ?? dnd5e.utils.getTargetDescriptors();
+	const flaggedTargets = _getMessageTargetsFromFlags(message);
+	const currentTargets = flaggedTargets.length ? flaggedTargets : ac5eConfig?.options?.targets ?? dnd5e.utils.getTargetDescriptors();
 	if (ac5eConfig?.hookType === 'attack' && Array.isArray(currentTargets)) {
 		const finiteAcs = currentTargets.map((target) => Number(target?.ac)).filter((value) => Number.isFinite(value));
 		const nextTarget = finiteAcs.length ? Math.min(...finiteAcs) : undefined;
@@ -999,7 +1004,7 @@ export async function _postUseActivity(activity, usageConfig, results, hook) {
 	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
 	if (!message || !ac5eConfig) return true;
 
-	const dnd5eUseFlag = message?.flags?.dnd5e;
+	const dnd5eUseFlag = _getMessageDnd5eFlags(message);
 	if (dnd5eUseFlag) {
 		ac5eConfig.options ??= {};
 		if (dnd5eUseFlag.use?.spellLevel !== undefined) ac5eConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;
@@ -1013,7 +1018,7 @@ export async function _postUseActivity(activity, usageConfig, results, hook) {
 	const safeUseConfig = _getSafeUseConfig(ac5eConfig);
 	_setUseConfigInflightCache({
 		messageId: message.id,
-		originatingMessageId: message?.flags?.dnd5e?.originatingMessage,
+		originatingMessageId: dnd5eUseFlag?.originatingMessage,
 		useConfig: safeUseConfig,
 	});
 	await message.setFlag(Constants.MODULE_ID, 'use', safeUseConfig);
@@ -1042,11 +1047,6 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
-	const speaker = message?.speaker;
-	const rollTypeObj = message?.flags?.dnd5e?.roll;
-
-	const messageType = message?.flags?.dnd5e?.messageType;
-	const chatMessage = message?.document;
 
 	const subjectToken = getSubjectTokenForHook(hook, messageForTargets, subject);
 	const subjectTokenId = subjectToken?.id;
