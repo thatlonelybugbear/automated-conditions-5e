@@ -109,21 +109,46 @@ function _resolveActivityFromItem(item, activityRef) {
 	return activities.get?.(activityId) ?? activities.find?.((entry) => entry?.id === activityId || entry?.identifier === activityId || entry?.name === activityId) ?? null;
 }
 
+function _firstDefined(...values) {
+	for (const value of values) {
+		if (value !== undefined && value !== null) return value;
+	}
+	return undefined;
+}
+
+function _firstDnd5eFlagValue(messages, key) {
+	for (const msg of messages) {
+		const flags = msg?.flags?.dnd5e ?? msg?.data?.flags?.dnd5e;
+		const value = flags?.[key];
+		if (value !== undefined && value !== null) return value;
+	}
+	return undefined;
+}
+
 function _resolveActivityItemUse({ config, message, originatingMessage, usageMessage, registryMessages, useConfig } = {}) {
 	const candidates = [message, usageMessage, originatingMessage, ...(Array.isArray(registryMessages) ? registryMessages : [])].filter(Boolean);
 	const sourceMessage =
 		candidates.find((msg) => {
-			const flags = msg?.flags?.dnd5e;
-			return Boolean(flags?.activity?.uuid || flags?.item?.uuid || flags?.use);
-		}) ?? message;
-	const dnd5eFlags = sourceMessage?.flags?.dnd5e || {};
+			const flags = msg?.flags?.dnd5e ?? msg?.data?.flags?.dnd5e;
+			return flags?.activity !== undefined || flags?.item !== undefined || flags?.use !== undefined;
+		}) ?? message ?? usageMessage ?? originatingMessage;
 	const configOptions = config?.options ?? {};
-	const originatingUseOptions = config?.originatingUseConfig?.options ?? configOptions?.originatingUseConfig?.options ?? {};
-	const fallbackOptions = { ...(useConfig?.options ?? {}), ...originatingUseOptions };
-	const fallbackUse = useConfig?.use ?? config?.originatingUseConfig?.use ?? configOptions?.originatingUseConfig?.use;
-	const itemRef = dnd5eFlags?.item ?? configOptions?.item ?? fallbackOptions?.item;
-	const activityRef = dnd5eFlags?.activity ?? configOptions?.activity ?? fallbackOptions?.activity;
-	const use = dnd5eFlags?.use ?? configOptions?.use ?? fallbackUse ?? usageMessage?.flags?.dnd5e?.use ?? originatingMessage?.flags?.dnd5e?.use;
+	const originatingUseConfig = config?.originatingUseConfig ?? configOptions?.originatingUseConfig ?? {};
+	const originatingUseOptions = originatingUseConfig?.options ?? {};
+	const useConfigOptions = useConfig?.options ?? {};
+	const flagItemRef = _firstDnd5eFlagValue(candidates, 'item');
+	const flagActivityRef = _firstDnd5eFlagValue(candidates, 'activity');
+	const flagUse = _firstDnd5eFlagValue(candidates, 'use');
+	const use = _firstDefined(flagUse, configOptions?.use, config?.use, originatingUseConfig?.use, useConfig?.use);
+	const itemRef = _firstDefined(flagItemRef, configOptions?.item, config?.item, originatingUseOptions?.item, useConfigOptions?.item, use?.item);
+	const activityRef = _firstDefined(
+		flagActivityRef,
+		configOptions?.activity,
+		config?.activity,
+		originatingUseOptions?.activity,
+		useConfigOptions?.activity,
+		use?.activity,
+	);
 	let item = _resolveDocumentFromRef(itemRef);
 	let activity = _resolveDocumentFromRef(activityRef);
 	if (!activity && item) activity = _resolveActivityFromItem(item, activityRef);
@@ -200,7 +225,7 @@ function getMessageData(config, hook) {
 		originatingMessageId,
 	});
 	const { item, activity, use, sourceMessage } = _resolveActivityItemUse({ config, message: resolvedMessage, originatingMessage, usageMessage, registryMessages, useConfig });
-	const primaryMessage = resolvedMessage ?? sourceMessage;
+	const primaryMessage = sourceMessage ?? resolvedMessage;
 	const options = _buildMessageOptions({
 		config,
 		hook,
