@@ -118,8 +118,8 @@ function _firstDefined(...values) {
 
 function _getMessageFlagScope(message, scope) {
 	if (!message || !scope) return undefined;
-	if (message?.flags?.[scope] !== undefined) return message.flags[scope];
-	return message?.data?.flags?.[scope];
+	if (message?.data?.flags?.[scope] !== undefined) return message.data.flags[scope];
+	return message?.flags?.[scope];
 }
 
 function _getMessageDnd5eFlags(message) {

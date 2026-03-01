@@ -352,19 +352,34 @@ export function _setUseConfigInflightCache({ messageId, originatingMessageId, us
 	}
 }
 
+function _getMessageFlagScope(message, scope) {
+	if (!message || !scope) return undefined;
+	if (message?.data?.flags?.[scope] !== undefined) return message.data.flags[scope];
+	return message?.flags?.[scope];
+}
+
+function _getMessageDnd5eFlags(message) {
+	return _getMessageFlagScope(message, 'dnd5e');
+}
+
+function _getMessageAc5eFlags(message) {
+	return _getMessageFlagScope(message, Constants.MODULE_ID);
+}
+
 export function _resolveUseMessageContext({ message = null, messageId = null, originatingMessageId = null } = {}) {
 	const triggerMessage = message ?? (messageId ? game.messages.get(messageId) : undefined);
+	const triggerDnd5eFlags = _getMessageDnd5eFlags(triggerMessage);
 	const resolvedOriginatingMessageId =
-		originatingMessageId ?? triggerMessage?.flags?.dnd5e?.originatingMessage ?? triggerMessage?.data?.flags?.dnd5e?.originatingMessage ?? triggerMessage?.id;
+		originatingMessageId ?? triggerDnd5eFlags?.originatingMessage ?? triggerMessage?.id;
 	const registryMessages = resolvedOriginatingMessageId ? dnd5e?.registry?.messages?.get(resolvedOriginatingMessageId) : undefined;
 	const originatingMessage =
 		resolvedOriginatingMessageId ?
 			(game.messages.get(resolvedOriginatingMessageId) ?? registryMessages?.find((msg) => msg?.id === resolvedOriginatingMessageId) ?? registryMessages?.[0])
 		:	triggerMessage;
-	const usageMessage = registryMessages?.find((msg) => msg?.flags?.dnd5e?.messageType === 'usage');
+	const usageMessage = registryMessages?.find((msg) => _getMessageDnd5eFlags(msg)?.messageType === 'usage');
 	const resolvedMessage = triggerMessage ?? usageMessage ?? originatingMessage;
 	const resolvedMessageId = resolvedMessage?.id ?? messageId;
-	const useConfig = originatingMessage?.flags?.[Constants.MODULE_ID]?.use ?? usageMessage?.flags?.[Constants.MODULE_ID]?.use ?? null;
+	const useConfig = _getMessageAc5eFlags(usageMessage)?.use ?? _getMessageAc5eFlags(originatingMessage)?.use ?? null;
 	return {
 		message: resolvedMessage,
 		triggerMessage,
@@ -2513,7 +2528,7 @@ export function _getUseConfig({ options, config } = {}) {
 		}
 	}
 	if (useConfig) {
-		const dnd5eUseFlag = usageMessage?.flags?.dnd5e ?? originatingMessage?.flags?.dnd5e;
+		const dnd5eUseFlag = _getMessageDnd5eFlags(usageMessage) ?? _getMessageDnd5eFlags(originatingMessage);
 		useConfig = foundry.utils.duplicate(useConfig);
 		if (useConfig?.options?.originatingUseConfig !== undefined) delete useConfig.options.originatingUseConfig;
 		if (dnd5eUseFlag) {
