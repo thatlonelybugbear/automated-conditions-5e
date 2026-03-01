@@ -116,9 +116,19 @@ function _firstDefined(...values) {
 	return undefined;
 }
 
+function _getMessageFlagScope(message, scope) {
+	if (!message || !scope) return undefined;
+	if (message?.flags?.[scope] !== undefined) return message.flags[scope];
+	return message?.data?.flags?.[scope];
+}
+
+function _getMessageDnd5eFlags(message) {
+	return _getMessageFlagScope(message, 'dnd5e');
+}
+
 function _firstDnd5eFlagValue(messages, key) {
 	for (const msg of messages) {
-		const flags = msg?.flags?.dnd5e ?? msg?.data?.flags?.dnd5e;
+		const flags = _getMessageDnd5eFlags(msg);
 		const value = flags?.[key];
 		if (value !== undefined && value !== null) return value;
 	}
@@ -129,7 +139,7 @@ function _resolveActivityItemUse({ config, message, originatingMessage, usageMes
 	const candidates = [message, usageMessage, originatingMessage, ...(Array.isArray(registryMessages) ? registryMessages : [])].filter(Boolean);
 	const sourceMessage =
 		candidates.find((msg) => {
-			const flags = msg?.flags?.dnd5e ?? msg?.data?.flags?.dnd5e;
+			const flags = _getMessageDnd5eFlags(msg);
 			return flags?.activity !== undefined || flags?.item !== undefined || flags?.use !== undefined;
 		}) ?? message ?? usageMessage ?? originatingMessage;
 	const configOptions = config?.options ?? {};
@@ -160,7 +170,7 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 	const options = {};
 	//@to-do: retrieve the data from "messages.flags.dnd5e.use.consumed"
 	//current workaround for destroy on empty removing the activity used from the message data, thus not being able to collect riderStatuses.
-	if (!activity && message) foundry.utils.mergeObject(options, message?.flags?.[Constants.MODULE_ID]); //destroy on empty removes activity/item from message.
+	if (!activity && message) foundry.utils.mergeObject(options, _getMessageFlagScope(message, Constants.MODULE_ID) ?? {}); //destroy on empty removes activity/item from message.
 
 	options.d20 = {};
 	if (hook === 'damage') {
@@ -172,7 +182,12 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 			options.d20.isCritical = config?.midiOptions?.isCritical ?? config?.workflow?.isCritical;
 			options.d20.isFumble = config?.midiOptions?.isFumble ?? config?.workflow?.isFumble;
 		} else {
-			const findRoll0 = game.messages.filter((m) => m.flags?.dnd5e?.originatingMessage === resolvedMessageId && m.flags?.dnd5e?.roll?.type !== 'damage').at(-1)?.rolls[0];
+			const findRoll0 = game.messages
+				.filter((m) => {
+					const flags = _getMessageDnd5eFlags(m);
+					return flags?.originatingMessage === resolvedMessageId && flags?.roll?.type !== 'damage';
+				})
+				.at(-1)?.rolls?.[0];
 			options.d20.attackRollTotal = findRoll0?.total;
 			options.d20.attackRollD20 = findRoll0?.d20?.total;
 			options.d20.hasAdvantage = findRoll0?.options?.advantageMode > 0;
@@ -212,7 +227,7 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 function _resolveAttackerContext(message, item) {
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
-	const messageTargets = message?.data?.flags?.dnd5e?.targets ?? message?.flags?.dnd5e?.targets;
+	const messageTargets = _getMessageDnd5eFlags(message)?.targets;
 	const attackingActor = attackingToken?.actor ?? item?.actor;
 	return { attackingActor, attackingToken, messageTargets, speaker: { sceneId, actorId, tokenId, tokenName } };
 }
@@ -276,7 +291,7 @@ function getMessageData(config, hook) {
 
 function getTargets(message, { hook, activity } = {}) {
 	const subjectTokenId = message?.speaker?.token;
-	const messageTargets = message?.data?.flags?.dnd5e?.targets ?? message?.flags?.dnd5e?.targets;
+	const messageTargets = _getMessageDnd5eFlags(message)?.targets;
 	if (messageTargets?.length) {
 		return messageTargets;
 	}
