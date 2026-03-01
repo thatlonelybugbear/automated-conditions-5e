@@ -2973,6 +2973,7 @@ function updateUsesCount({
 }) {
 	const hasUses = currentUses !== false;
 	const hasQuantity = currentQuantity !== false;
+	const isDocumentOwner = item ? item.isOwner : activity ? activity.isOwner : false;
 	const newUses = hasUses ? currentUses - consume : null;
 	const newQuantity = hasQuantity ? currentQuantity - consume : null;
 	if (hasUses && newUses < 0) return false;
@@ -2981,7 +2982,7 @@ function updateUsesCount({
 		const max = _asFiniteNumber(usesMax);
 		const boundedUses = max !== null ? Math.min(newUses, max) : newUses;
 		const spent = max !== null ? Math.max(0, max - boundedUses) : 0;
-		if (item?.isOwner) {
+		if (isDocumentOwner) {
 			if (item) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
 			else if (activity) activityUpdates.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
 		} else {
@@ -2989,7 +2990,8 @@ function updateUsesCount({
 			else if (activity) activityUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
 		}
 	} else if (newQuantity !== null) {
-		if (item.isOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
+		if (!item) return false;
+		if (isDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
 		else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
 	}
 	return true;
