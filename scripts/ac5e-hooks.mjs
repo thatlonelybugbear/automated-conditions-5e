@@ -109,7 +109,7 @@ function _resolveActivityFromItem(item, activityRef) {
 	return activities.get?.(activityId) ?? activities.find?.((entry) => entry?.id === activityId || entry?.identifier === activityId || entry?.name === activityId) ?? null;
 }
 
-function _resolveActivityItemUse({ message, originatingMessage, usageMessage, registryMessages, useConfig } = {}) {
+function _resolveActivityItemUse({ config, message, originatingMessage, usageMessage, registryMessages, useConfig } = {}) {
 	const candidates = [message, usageMessage, originatingMessage, ...(Array.isArray(registryMessages) ? registryMessages : [])].filter(Boolean);
 	const sourceMessage =
 		candidates.find((msg) => {
@@ -117,10 +117,13 @@ function _resolveActivityItemUse({ message, originatingMessage, usageMessage, re
 			return Boolean(flags?.activity?.uuid || flags?.item?.uuid || flags?.use);
 		}) ?? message;
 	const dnd5eFlags = sourceMessage?.flags?.dnd5e || {};
-	const fallbackOptions = useConfig?.options ?? {};
-	const itemRef = dnd5eFlags?.item ?? fallbackOptions?.item;
-	const activityRef = dnd5eFlags?.activity ?? fallbackOptions?.activity;
-	const use = dnd5eFlags?.use ?? usageMessage?.flags?.dnd5e?.use ?? originatingMessage?.flags?.dnd5e?.use;
+	const configOptions = config?.options ?? {};
+	const originatingUseOptions = config?.originatingUseConfig?.options ?? configOptions?.originatingUseConfig?.options ?? {};
+	const fallbackOptions = { ...(useConfig?.options ?? {}), ...originatingUseOptions };
+	const fallbackUse = useConfig?.use ?? config?.originatingUseConfig?.use ?? configOptions?.originatingUseConfig?.use;
+	const itemRef = dnd5eFlags?.item ?? configOptions?.item ?? fallbackOptions?.item;
+	const activityRef = dnd5eFlags?.activity ?? configOptions?.activity ?? fallbackOptions?.activity;
+	const use = dnd5eFlags?.use ?? configOptions?.use ?? fallbackUse ?? usageMessage?.flags?.dnd5e?.use ?? originatingMessage?.flags?.dnd5e?.use;
 	let item = _resolveDocumentFromRef(itemRef);
 	let activity = _resolveDocumentFromRef(activityRef);
 	if (!activity && item) activity = _resolveActivityFromItem(item, activityRef);
@@ -196,7 +199,7 @@ function getMessageData(config, hook) {
 		triggerMessageId,
 		originatingMessageId,
 	});
-	const { item, activity, use, sourceMessage } = _resolveActivityItemUse({ message: resolvedMessage, originatingMessage, usageMessage, registryMessages, useConfig });
+	const { item, activity, use, sourceMessage } = _resolveActivityItemUse({ config, message: resolvedMessage, originatingMessage, usageMessage, registryMessages, useConfig });
 	const primaryMessage = resolvedMessage ?? sourceMessage;
 	const options = _buildMessageOptions({
 		config,
