@@ -392,7 +392,7 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 	}
 }
 
-function _getMessageDnd5eFlags(message) {
+export function _getMessageDnd5eFlags(message) {
 	return _getMessageFlagScope(message, 'dnd5e');
 }
 

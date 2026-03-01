@@ -27,6 +27,7 @@ import {
 	_systemCheck,
 	_hasValidTargets,
 	_getSafeUseConfig,
+	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
 	_mergeUseOptions,
 	_resolveUseMessageContext,
@@ -116,10 +117,6 @@ function _firstDefined(...values) {
 		if (value !== undefined && value !== null) return value;
 	}
 	return undefined;
-}
-
-function _getMessageDnd5eFlags(message) {
-	return _getMessageFlagScope(message, 'dnd5e');
 }
 
 function _getMessageTargetsFromFlags(messageLike) {
