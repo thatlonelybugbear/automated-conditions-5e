@@ -2085,7 +2085,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						id: entry.id,
 						value: modifier,
 						optin: !!entry.optin,
-						addTo: foundry.utils.duplicate(entry.addTo),
+						addTo: entry.addTo ? foundry.utils.duplicate(entry.addTo) : undefined,
 						requiredDamageTypes: foundry.utils.duplicate(entry.requiredDamageTypes ?? []),
 					});
 				}
