@@ -219,7 +219,7 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 		}
 	}
 	if (originatingUseConfig) options.originatingUseConfig = originatingUseConfig;
-	options.messageId = resolvedMessageId ?? triggerMessageId;
+	options.messageId = resolvedMessageId ?? triggerMessageId ?? message?.id;
 	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
 	return options;
 }
@@ -232,7 +232,7 @@ function _resolveAttackerContext(message, item) {
 	return { attackingActor, attackingToken, messageTargets, speaker: { sceneId, actorId, tokenId, tokenName } };
 }
 
-function getMessageData(config, hook) {
+function _resolveMessageDataContext(config, hook) {
 	const { messageId: triggerMessageId, message } = _resolveMessageFromConfig(config);
 	const originatingMessageId = config?.options?.originatingMessageId ?? config?.originatingMessageId;
 	const { message: resolvedMessage, registryMessages, originatingMessage, usageMessage, resolvedMessageId, useConfig } = _resolveOriginatingMessageContext(message, {
@@ -240,7 +240,7 @@ function getMessageData(config, hook) {
 		originatingMessageId,
 	});
 	const { item, activity, use, sourceMessage } = _resolveActivityItemUse({ config, message: resolvedMessage, originatingMessage, usageMessage, registryMessages, useConfig });
-	const primaryMessage = sourceMessage ?? resolvedMessage;
+	const primaryMessage = sourceMessage ?? resolvedMessage ?? message;
 	const options = _buildMessageOptions({
 		config,
 		hook,
@@ -254,26 +254,6 @@ function getMessageData(config, hook) {
 		use,
 	});
 	const { attackingActor, attackingToken, messageTargets } = _resolveAttackerContext(primaryMessage, item);
-	if (_hookDebugEnabled('getMessageDataHook'))
-		console.warn('AC5E.getMessageData', {
-			messageId: primaryMessage?.id,
-			activity,
-			item,
-			attackingActor,
-			attackingToken,
-			messageTargets,
-			config,
-			messageConfig: primaryMessage?.config,
-			use,
-			options,
-		});
-	if (ac5e?.debugOriginatingUseConfig || _hookDebugEnabled('originatingUseConfig'))
-		console.warn('AC5E originatingUseConfig', {
-			hook,
-			messageId: primaryMessage?.id,
-			originatingMessageId: options.originatingMessageId,
-			originatingUseConfig: options.originatingUseConfig,
-		});
 	return {
 		messageId: primaryMessage?.id,
 		message: primaryMessage,
@@ -287,6 +267,36 @@ function getMessageData(config, hook) {
 		use,
 		options,
 	};
+}
+
+function _debugMessageData(hook, context) {
+	const { message, activity, item, attackingActor, attackingToken, messageTargets, config, messageConfig, use, options } = context;
+	if (_hookDebugEnabled('getMessageDataHook'))
+		console.warn('AC5E.getMessageData', {
+			messageId: message?.id,
+			activity,
+			item,
+			attackingActor,
+			attackingToken,
+			messageTargets,
+			config,
+			messageConfig,
+			use,
+			options,
+		});
+	if (ac5e?.debugOriginatingUseConfig || _hookDebugEnabled('originatingUseConfig'))
+		console.warn('AC5E originatingUseConfig', {
+			hook,
+			messageId: message?.id,
+			originatingMessageId: options.originatingMessageId,
+			originatingUseConfig: options.originatingUseConfig,
+		});
+}
+
+function getMessageData(config, hook) {
+	const context = _resolveMessageDataContext(config, hook);
+	_debugMessageData(hook, context);
+	return context;
 }
 
 function getTargets(message, { hook, activity } = {}) {
