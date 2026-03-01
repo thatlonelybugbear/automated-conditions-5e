@@ -2472,7 +2472,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					const ownerActor = _resolveUsesCountOwnerActor(itemActivityfromUuid);
 					_registerOriginUsesPermissionOverride({ updateArrays, id, baseId, ownerActor, evalData });
 				}
-				const { currentUses, currentQuantity, usesMax } = _getUsesState({ item, activity });
+				const { currentUses, currentQuantity, usesMax, usesSource } = _getUsesState({ item, activity });
 				if (currentUses === false && currentQuantity === false) return false;
 				const updated = updateUsesCount({
 					effect,
@@ -2481,6 +2481,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					currentUses,
 					currentQuantity,
 					usesMax,
+					usesSource,
 					consume,
 					id,
 					baseId,
@@ -2495,38 +2496,37 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				if (!(actor instanceof Actor)) return false;
 				if (consumptionTarget.startsWith('Item.')) {
 					const str = consumptionTarget.replace(/[\s,]+$/, '');
-					const match = str.match(/^Item\.([^,]+(?:,\s*[^,]+)*)(?:\.Activity\.([^,\s]+))?/);
-					if (match) {
-						const itemID = match[1];
-						const activityID = match[2] ?? null;
-
-						const document = _getItemOrActivity(itemID, activityID, actor);
-						if (!document) return false;
-						let item, activity;
-						if (document instanceof Item) item = document;
-						else {
-							activity = document;
-							item = activity.item;
-						}
-						const { currentUses, currentQuantity, usesMax } = _getUsesState({ item, activity });
-						if (currentUses === false && currentQuantity === false) return false;
-						const updated = updateUsesCount({
-							effect,
-							item,
-							activity,
-							currentUses,
-							currentQuantity,
-							usesMax,
-							consume,
-							id,
-							baseId,
-							activityUpdates,
-							activityUpdatesGM,
-							itemUpdates,
-							itemUpdatesGM,
-						});
-						if (!updated) return false;
-					} else return false;
+					const activitySeparatorIndex = str.indexOf('.Activity.');
+					const itemID = (activitySeparatorIndex >= 0 ? str.slice(5, activitySeparatorIndex) : str.slice(5)).trim();
+					const activityID = activitySeparatorIndex >= 0 ? str.slice(activitySeparatorIndex + 10).trim() || null : null;
+					if (!itemID) return false;
+					const document = _getItemOrActivity(itemID, activityID, actor);
+					if (!document) return false;
+					let item, activity;
+					if (document instanceof Item) item = document;
+					else {
+						activity = document;
+						item = activity.item;
+					}
+					const { currentUses, currentQuantity, usesMax, usesSource } = _getUsesState({ item, activity });
+					if (currentUses === false && currentQuantity === false) return false;
+					const updated = updateUsesCount({
+						effect,
+						item,
+						activity,
+						currentUses,
+						currentQuantity,
+						usesMax,
+						usesSource,
+						consume,
+						id,
+						baseId,
+						activityUpdates,
+						activityUpdatesGM,
+						itemUpdates,
+						itemUpdatesGM,
+					});
+					if (!updated) return false;
 				} else {
 					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
 					const consumptionActor =
@@ -2892,31 +2892,34 @@ function _asFiniteNumber(value) {
 
 function _getUsesState({ item, activity }) {
 	const itemUsesMax = item ? _asFiniteNumber(item?.system?.uses?.max) : null;
-	const activityUsesMax = !item && activity ? _asFiniteNumber(activity?.uses?.max) : null;
+	const activityUsesMax = activity ? _asFiniteNumber(activity?.uses?.max) : null;
 	const hasItemUses = Boolean(item) && itemUsesMax !== null && itemUsesMax > 0;
-	const hasActivityUses = Boolean(activity) && !item && activityUsesMax !== null && activityUsesMax > 0;
+	const hasActivityUses = Boolean(activity) && activityUsesMax !== null && activityUsesMax > 0;
 	let currentUses = false;
-	if (hasItemUses) {
-		const value = _asFiniteNumber(item?.system?.uses?.value);
-		if (value !== null) currentUses = value;
-		else {
-			const spent = _asFiniteNumber(item?.system?.uses?.spent) ?? 0;
-			currentUses = Math.max(0, itemUsesMax - spent);
-		}
-	} else if (hasActivityUses) {
+	let usesSource = null;
+	if (hasActivityUses) {
 		const value = _asFiniteNumber(activity?.uses?.value);
 		if (value !== null) currentUses = value;
 		else {
 			const spent = _asFiniteNumber(activity?.uses?.spent) ?? 0;
 			currentUses = Math.max(0, activityUsesMax - spent);
 		}
+		usesSource = 'activity';
+	} else if (hasItemUses) {
+		const value = _asFiniteNumber(item?.system?.uses?.value);
+		if (value !== null) currentUses = value;
+		else {
+			const spent = _asFiniteNumber(item?.system?.uses?.spent) ?? 0;
+			currentUses = Math.max(0, itemUsesMax - spent);
+		}
+		usesSource = 'item';
 	}
 	let currentQuantity = false;
-	if (item && !hasItemUses) {
+	if (item && !hasActivityUses && !hasItemUses) {
 		const quantity = _asFiniteNumber(item?.system?.quantity);
 		if (quantity !== null) currentQuantity = quantity;
 	}
-	return { currentUses, currentQuantity, usesMax: hasItemUses ? itemUsesMax : hasActivityUses ? activityUsesMax : null };
+	return { currentUses, currentQuantity, usesMax: hasActivityUses ? activityUsesMax : hasItemUses ? itemUsesMax : null, usesSource };
 }
 
 function _replaceUsesCountLiteral(changeValue, nextUses) {
@@ -2963,6 +2966,7 @@ function updateUsesCount({
 	currentUses,
 	currentQuantity,
 	usesMax,
+	usesSource,
 	consume,
 	id,
 	baseId,
@@ -2973,7 +2977,8 @@ function updateUsesCount({
 }) {
 	const hasUses = currentUses !== false;
 	const hasQuantity = currentQuantity !== false;
-	const isDocumentOwner = item ? item.isOwner : activity ? activity.isOwner : false;
+	const usesDocumentOwner = usesSource === 'activity' ? Boolean(activity?.isOwner) : usesSource === 'item' ? Boolean(item?.isOwner) : false;
+	const quantityDocumentOwner = Boolean(item?.isOwner);
 	const newUses = hasUses ? currentUses - consume : null;
 	const newQuantity = hasQuantity ? currentQuantity - consume : null;
 	if (hasUses && newUses < 0) return false;
@@ -2982,16 +2987,18 @@ function updateUsesCount({
 		const max = _asFiniteNumber(usesMax);
 		const boundedUses = max !== null ? Math.min(newUses, max) : newUses;
 		const spent = max !== null ? Math.max(0, max - boundedUses) : 0;
-		if (isDocumentOwner) {
-			if (item) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
-			else if (activity) activityUpdates.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+		if (usesSource === 'activity' && activity) {
+			if (usesDocumentOwner) activityUpdates.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+			else activityUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+		} else if (usesSource === 'item' && item) {
+			if (usesDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
+			else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
 		} else {
-			if (item) itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
-			else if (activity) activityUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+			return false;
 		}
 	} else if (newQuantity !== null) {
 		if (!item) return false;
-		if (isDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
+		if (quantityDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
 		else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
 	}
 	return true;
