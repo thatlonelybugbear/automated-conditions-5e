@@ -31,6 +31,10 @@
 * Refactored `_hasItem` helper to support identifier, name, id, or uuid matching for more flexible item references in conditions and usage rules.
 * Exposed `ac5e.hasItem(...)` on the module API and in evaluation sandbox helpers.
 * Added targeted debug gates for AC5E hook tracing and `_setAC5eProperties` without requiring full global debug logging.
+* Message/use resolution hardening:
+  * `getMessageData` and use-config resolution now prefer prehook `message.data.flags` when present, with fallback to `message.flags`.
+  * Message flag reads for DND5E/AC5E scopes are now centralized for consistent originating/usage resolution.
+* Added internal regression checklist covering message/use precedence and `usesCount` edge cases.
 * Dev note (internal): revisit `usesCount`/pending updates robustness before release:
   * Normalize activity update payload shape in immediate/local apply path (`context` nesting mismatch).
   * Stop matching queued updates by display `name`; use stable ids (`entry.id`/`baseId`) to avoid cross-matches.
