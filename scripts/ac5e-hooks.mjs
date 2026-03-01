@@ -310,6 +310,26 @@ function _getHookMessageData(config, hook, fallbackMessage) {
 	return { ...context, options, messageForTargets: resolvedMessage };
 }
 
+function _prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource = 'activity' } = {}) {
+	if (!options || typeof options !== 'object') return;
+	options.hook = hook;
+	options.activity = activity;
+	options.targets = resolveTargets(messageForTargets, messageTargets, { hook, activity });
+	if (damageSource === 'roll') _collectRollDamageTypes(rolls, options); // adds options.defaultDamageType/options.damageTypes
+	else _collectActivityDamageTypes(activity, options); // adds options.defaultDamageType/options.damageTypes
+}
+
+function _logResolvedTargets(label, subjectToken, opponentToken, options) {
+	if (!ac5e?.debugTargets) return;
+	console.warn(`AC5E targets ${label}`, {
+		subjectTokenId: subjectToken?.id,
+		opponentTokenId: opponentToken?.id,
+		distance: options?.distance,
+		targetCount: options?.targets?.length ?? 0,
+		targetTokenUuids: (options?.targets ?? []).map((target) => target?.tokenUuid).filter(Boolean),
+	});
+}
+
 function getTargets(message, { hook, activity } = {}) {
 	const subjectTokenId = message?.speaker?.token;
 	const messageTargets = _getMessageDnd5eFlags(message)?.targets;
@@ -1040,16 +1060,13 @@ export async function _postUseActivity(activity, usageConfig, results, hook) {
 // }
 
 export function _preRollSavingThrow(config, dialog, message, hook) {
-	const { messageForTargets, activity, attackingToken, messageTargets, options } = _getHookMessageData(config, hook, message);
+	const { messageForTargets, activity, messageTargets, options } = _getHookMessageData(config, hook, message);
 	options.isDeathSave = config.hookNames.includes('deathSave');
 	options.isConcentration = config.isConcentration;
-	options.hook = hook;
-	options.activity = activity;
+	_prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' });
 	if (_hookDebugEnabled('preRollSavingThrowHook')) console.error('ac5e _preRollSavingThrow:', hook, options, { config, dialog, message });
 	const { subject, ability, rolls } = config || {};
 	options.ability = ability;
-	options.targets = resolveTargets(messageForTargets, messageTargets, { hook, activity });
-	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 
 	const { options: dialogOptions, configure /*applicationClass: {name: className}*/ } = dialog || {};
 
@@ -1058,15 +1075,7 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 	let opponentToken = getOpponentTokenForSave(options, activity, subjectToken);
 	if (opponentToken === subjectToken) opponentToken = undefined;
 	if (opponentToken && subjectToken) options.distance = _getDistance(opponentToken, subjectToken);
-	if (ac5e?.debugTargets)
-		console.warn('AC5E targets save', {
-			subjectTokenId: subjectToken?.id,
-			attackingTokenId: attackingToken?.id,
-			opponentTokenId: opponentToken?.id,
-			distance: options.distance,
-			targetCount: options.targets?.length ?? 0,
-			targetTokenUuids: (options.targets ?? []).map((target) => target?.tokenUuid).filter(Boolean),
-		});
+	_logResolvedTargets('save', subjectToken, opponentToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 	if (ac5eConfig.returnEarly) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -1089,10 +1098,7 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	options.skill = skill;
 	options.tool = tool;
 	options.ability = ability;
-	options.hook = hook;
-	options.activity = activity;
-	options.targets = resolveTargets(messageForTargets, messageTargets, { hook, activity });
-	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
+	_prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' });
 
 	const subjectToken = getSubjectTokenForHook(hook, messageForTargets, subject);
 	const subjectTokenId = subjectToken?.id;
@@ -1122,17 +1128,14 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = _getHookMessageData(config, hook, message);
 	const activity = messageActivity || configActivity;
 	options.ability = ability;
-	options.activity = activity;
-	options.hook = hook;
 	options.ammo = ammunition;
 	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
 	const actionType = activity?.getActionType(attackMode);
 	options.actionType = actionType;
 	options.mastery = mastery;
-	options.targets = resolveTargets(messageForTargets, messageTargets, { hook, activity });
+	_prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' });
 	const item = activity?.item;
-	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTypes
 
 	//these targets get the uuid of either the linked Actor or the TokenDocument if unlinked. Better use user targets
 	//const targets = [...game.user.targets];
@@ -1147,14 +1150,7 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	if (ac5e?.debugTargets)
-		console.warn('AC5E targets attack', {
-			subjectTokenId: sourceToken?.id,
-			opponentTokenId: singleTargetToken?.id,
-			distance: options.distance,
-			targetCount: options.targets?.length ?? 0,
-			targetTokenUuids: (options.targets ?? []).map((target) => target?.tokenUuid).filter(Boolean),
-		});
+	_logResolvedTargets('attack', sourceToken, singleTargetToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceToken?.id, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
@@ -1215,10 +1211,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	options.attackMode = attackMode;
 	options.mastery = mastery;
-	options.activity = activity;
-	options.hook = hook;
-	options.targets = resolveTargets(messageForTargets, messageTargets, { hook, activity });
-	_collectRollDamageTypes(rolls, options); //adds options.defaultDamageType, options.damageTypes
+	_prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource: 'roll' });
 
 	const sourceToken = getSubjectTokenForHook(hook, messageForTargets, sourceActor);
 	const sourceTokenId = sourceToken?.id;
@@ -1233,14 +1226,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		else singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
-	if (ac5e?.debugTargets)
-		console.warn('AC5E targets damage', {
-			subjectTokenId: sourceToken?.id,
-			opponentTokenId: singleTargetToken?.id,
-			distance: options.distance,
-			targetCount: options.targets?.length ?? 0,
-			targetTokenUuids: (options.targets ?? []).map((target) => target?.tokenUuid).filter(Boolean),
-		});
+	_logResolvedTargets('damage', sourceToken, singleTargetToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenId, singleTargetToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
