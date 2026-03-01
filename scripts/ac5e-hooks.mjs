@@ -991,12 +991,7 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 			const configRoll0Options = getExistingRollOptions(config, 0);
 			if (configRoll0Options) configRoll0Options.target = nextTarget;
 		}
-
-		try {
-			foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', foundry.utils.duplicate(currentTargets));
-		} catch (_err) {
-			// ignore immutable message-like payloads
-		}
+		syncResolvedTargetsToMessage(message, foundry.utils.duplicate(currentTargets));
 	}
 	if (!ac5eConfig?.pendingUses?.length) return true;
 	if (ac5eConfig.pendingUsesApplied) return true;
@@ -1771,7 +1766,7 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	newConfig.rolls[0].options.minimum = null;
 	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
-	if (getConfigAC5E.options.targets) foundry.utils.setProperty(newMessage, 'data.flags.dnd5e.targets', getConfigAC5E.options.targets);
+	if (getConfigAC5E.options.targets) syncResolvedTargetsToMessage(newMessage, getConfigAC5E.options.targets);
 	getConfigAC5E = _preRollAttack(newConfig, newDialog, newMessage, 'attack');
 	dialog.rebuild();
 	dialog.render();
