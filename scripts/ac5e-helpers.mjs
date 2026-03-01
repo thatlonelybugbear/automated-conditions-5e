@@ -356,10 +356,40 @@ export function _setUseConfigInflightCache({ messageId, originatingMessageId, us
 	}
 }
 
-function _getMessageFlagScope(message, scope) {
+export function _getMessageFlagScope(message, scope) {
 	if (!message || !scope) return undefined;
 	if (message?.data?.flags?.[scope] !== undefined) return message.data.flags[scope];
 	return message?.flags?.[scope];
+}
+
+export function _setMessageFlagScope(messageLike, scope, patch, { merge = true } = {}) {
+	if (!messageLike || !scope) return;
+	const currentScope = _getMessageFlagScope(messageLike, scope);
+	let nextScope;
+	if (merge && currentScope && typeof currentScope === 'object' && patch && typeof patch === 'object') {
+		nextScope = foundry.utils.mergeObject(foundry.utils.duplicate(currentScope), patch, { inplace: false });
+	} else if (patch && typeof patch === 'object') {
+		nextScope = foundry.utils.duplicate(patch);
+	} else {
+		nextScope = patch;
+	}
+	try {
+		foundry.utils.setProperty(messageLike, `data.flags.${scope}`, nextScope);
+	} catch (_err) {
+		// ignore immutable message-like payloads
+	}
+	try {
+		foundry.utils.setProperty(messageLike, `flags.${scope}`, patch && typeof patch === 'object' ? foundry.utils.duplicate(nextScope) : nextScope);
+	} catch (_err) {
+		// ignore immutable message-like payloads
+	}
+	if (messageLike?.updateSource instanceof Function) {
+		try {
+			messageLike.updateSource({ [`flags.${scope}`]: nextScope });
+		} catch (_err) {
+			// ignore immutable message source payloads
+		}
+	}
 }
 
 function _getMessageDnd5eFlags(message) {
@@ -2680,7 +2710,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 		const safeUseConfig = _getSafeUseConfig(ac5eConfig);
 		const ac5eConfigDialog = { [Constants.MODULE_ID]: safeUseConfig };
 		if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
-		foundry.utils.setProperty(message.data.flags, Constants.MODULE_ID, safeUseConfig.options ?? {});
+		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig.options ?? {}, { merge: false });
 		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post helpers._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
 		return;
 	}
@@ -2707,18 +2737,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 
 	if (config?.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigDialog);
 	else if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
-	if (message && typeof message === 'object') {
-		const runtimeFlags = foundry.utils.duplicate(message?.flags ?? {});
-		const dataFlags = foundry.utils.duplicate(message?.data?.flags ?? {});
-		const mergedFlags = foundry.utils.mergeObject(runtimeFlags, dataFlags, { inplace: false });
-		const nextFlags = foundry.utils.mergeObject(mergedFlags, ac5eConfigMessage, { inplace: false });
-		foundry.utils.setProperty(message, 'data.flags', nextFlags);
-		try {
-			foundry.utils.setProperty(message, 'flags', foundry.utils.duplicate(nextFlags));
-		} catch (_err) {
-			// ignore immutable message-like payloads
-		}
-	}
+	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, ac5eConfigMessage[Constants.MODULE_ID], { merge: true });
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 

@@ -27,8 +27,10 @@ import {
 	_systemCheck,
 	_hasValidTargets,
 	_getSafeUseConfig,
+	_getMessageFlagScope,
 	_mergeUseOptions,
 	_resolveUseMessageContext,
+	_setMessageFlagScope,
 	_setUseConfigInflightCache,
 } from './ac5e-helpers.mjs';
 import Constants from './ac5e-constants.mjs';
@@ -116,44 +118,8 @@ function _firstDefined(...values) {
 	return undefined;
 }
 
-function _getMessageFlagScope(message, scope) {
-	if (!message || !scope) return undefined;
-	if (message?.data?.flags?.[scope] !== undefined) return message.data.flags[scope];
-	return message?.flags?.[scope];
-}
-
 function _getMessageDnd5eFlags(message) {
 	return _getMessageFlagScope(message, 'dnd5e');
-}
-
-function _setMessageFlagScope(messageLike, scope, patch, { merge = true } = {}) {
-	if (!messageLike || !scope) return;
-	const currentScope = _getMessageFlagScope(messageLike, scope);
-	let nextScope;
-	if (merge && currentScope && typeof currentScope === 'object' && patch && typeof patch === 'object') {
-		nextScope = foundry.utils.mergeObject(foundry.utils.duplicate(currentScope), patch, { inplace: false });
-	} else if (patch && typeof patch === 'object') {
-		nextScope = foundry.utils.duplicate(patch);
-	} else {
-		nextScope = patch;
-	}
-	try {
-		foundry.utils.setProperty(messageLike, `data.flags.${scope}`, nextScope);
-	} catch (_err) {
-		// ignore immutable message-like payloads
-	}
-	try {
-		foundry.utils.setProperty(messageLike, `flags.${scope}`, patch && typeof patch === 'object' ? foundry.utils.duplicate(nextScope) : nextScope);
-	} catch (_err) {
-		// ignore immutable message-like payloads
-	}
-	if (messageLike?.updateSource instanceof Function) {
-		try {
-			messageLike.updateSource({ [`flags.${scope}`]: nextScope });
-		} catch (_err) {
-			// ignore if message source is immutable in this flow
-		}
-	}
 }
 
 function _getMessageTargetsFromFlags(messageLike) {
