@@ -22,7 +22,8 @@ Goal: verify prehook data (`message.data.flags`) is preferred, with safe fallbac
 Useful debug:
 - `ac5e.debug.getMessageDataHook = true`
 - `ac5e.debug.originatingUseConfig = true`
-- `ac5e.debugGetConfigLayers = true`
+- `ac5e.debug.getConfigLayers = true`
+- `ac5e.debug.checksReuse = true`
 
 ## usesCount matrix
 

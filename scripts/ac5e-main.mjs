@@ -932,6 +932,8 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].debug = {
 		evaluations: false,
 		optins: false,
+		getConfigLayers: false,
+		checksReuse: false,
 		getMessageDataHook: false,
 		originatingUseConfig: false,
 		preRollAttackHook: false,
@@ -946,6 +948,24 @@ function ac5eSetup() {
 		preConfigureInitiativeHook: false,
 		setAC5eProperties: false,
 	};
+	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], 'debugGetConfigLayers', {
+		get() {
+			return Boolean(globalThis[Constants.MODULE_NAME_SHORT]?.debug?.getConfigLayers);
+		},
+		set(value) {
+			globalThis[Constants.MODULE_NAME_SHORT].debug.getConfigLayers = Boolean(value);
+		},
+		configurable: true,
+	});
+	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], 'debugChecksReuse', {
+		get() {
+			return Boolean(globalThis[Constants.MODULE_NAME_SHORT]?.debug?.checksReuse);
+		},
+		set(value) {
+			globalThis[Constants.MODULE_NAME_SHORT].debug.checksReuse = Boolean(value);
+		},
+		configurable: true,
+	});
 	globalThis[Constants.MODULE_NAME_SHORT].flagRegistry = {
 		rebuild: _buildFlagRegistry,
 		reindexActor: _reindexFlagRegistryActor,

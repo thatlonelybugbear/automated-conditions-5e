@@ -355,7 +355,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	if (canReuseChecks && cacheKey && checksCache[cacheKey]) {
 		recordChecksReuseStat('hit');
 		applyChecksSnapshot(ac5eConfig, checksCache[cacheKey]);
-		if (ac5e?.debugGetConfigLayers || ac5e?.debugChecksReuse) {
+		if (ac5e?.debug?.getConfigLayers || ac5e?.debug?.checksReuse) {
 			console.warn('AC5E checks: reusing cached evaluation', {
 				cacheKey,
 				hookType: ac5eConfig?.hookType,
@@ -368,7 +368,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	if (canReuseChecks) recordChecksReuseStat('miss');
 	else recordChecksReuseStat('skip');
-	if (ac5e?.debugChecksReuse) {
+	if (ac5e?.debug?.checksReuse) {
 		console.warn('AC5E checks: evaluating fresh', {
 			cacheKey,
 			hookType: ac5eConfig?.hookType,

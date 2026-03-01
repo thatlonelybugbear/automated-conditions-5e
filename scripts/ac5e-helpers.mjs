@@ -32,6 +32,10 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'fumbleThreshold',
 ]);
 
+function _debugFlagEnabled(flag, legacyRootFlag = null) {
+	return Boolean(ac5e?.debug?.[flag] ?? (legacyRootFlag ? ac5e?.[legacyRootFlag] : false));
+}
+
 function _createFlagRegistryState() {
 	return {
 		version: 1,
@@ -2343,7 +2347,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		_mergeUseOptions(options, useConfig.options);
 		options.originatingUseConfig = foundry.utils.duplicate(useConfig);
 		if (options.originatingUseConfig?.options?.originatingUseConfig !== undefined) delete options.originatingUseConfig.options.originatingUseConfig;
-		if (ac5e?.debugGetConfigLayers) console.warn('AC5E getConfig use options', { hookType, merged: useConfig.options });
+		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig use options', { hookType, merged: useConfig.options });
 	}
 	const { ac5eConfig, actor, midiRoller, roller } = _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval);
 	const hookContext = _getHookConfig({ hookType, useConfig, config, dialog, tokenId, targetId, options, reEval });
@@ -2366,7 +2370,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		ac5eConfig.reEval.changed = changed;
 		ac5eConfig.reEval.canReuseUseBaseline = !requiresFlagReEvaluation;
 		ac5eConfig.reEval.requiresFlagReEvaluation = requiresFlagReEvaluation;
-		if (ac5e?.debugGetConfigLayers)
+		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers'))
 			console.warn('AC5E getConfig use snapshot', {
 				hookType,
 				changedKeys,
@@ -2375,7 +2379,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 				requiresFlagReEvaluation,
 				useConfigMatches: ac5eConfig.reEval.useConfigMatches,
 			});
-		if (ac5e?.debugChecksReuse)
+		if (_debugFlagEnabled('checksReuse', 'debugChecksReuse'))
 			console.warn('AC5E getConfig reEval decision', {
 				hookType,
 				policy: hookContext?.reEval?.policyName,
@@ -2391,14 +2395,14 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		ac5eConfig.reEval ??= {};
 		ac5eConfig.reEval.currentOptions = currentOptions;
 		ac5eConfig.reEval.optionKeys = hookContext.reEval.options;
-		if (ac5e?.debugGetConfigLayers) console.warn('AC5E getConfig reEval options', { hookType, currentOptions });
+		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig reEval options', { hookType, currentOptions });
 		if (!foundry.utils.isEmpty(currentOptions)) {
 			foundry.utils.mergeObject(options, currentOptions, { inplace: true });
 			foundry.utils.mergeObject(ac5eConfig.options, currentOptions, { inplace: true });
-			if (ac5e?.debugGetConfigLayers) console.warn('AC5E getConfig reEval applied', { hookType, currentOptions });
+			if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig reEval applied', { hookType, currentOptions });
 		}
 	}
-	if (ac5e?.debugGetConfigLayers) {
+	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) {
 		console.warn('AC5E getConfig layers', {
 			hookType,
 			useConfig,
@@ -2541,7 +2545,7 @@ export function _getUseConfig({ options, config } = {}) {
 			if (dnd5eUseFlag.item) useConfig.options.item ??= foundry.utils.duplicate(dnd5eUseFlag.item);
 		}
 	}
-	if (ac5e?.debugGetConfigLayers) console.warn('AC5E getUseConfig', { useConfig, debugMeta });
+	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getUseConfig', { useConfig, debugMeta });
 	return useConfig;
 }
 
@@ -2559,13 +2563,13 @@ export function _getHookConfig({ hookType, useConfig }) {
 			}
 		:	null;
 	const reEval = _getReEvalPolicy({ hookType, phase: 'hook' });
-	if (ac5e?.debugGetConfigLayers) console.warn('AC5E getHookConfig', { hookType, useConfig, base, reEval });
+	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getHookConfig', { hookType, useConfig, base, reEval });
 	return { hookType, useConfig, base, reEval };
 }
 
 export function _getDialogConfig({ hookType, useConfig, hookContext }) {
 	const reEval = _getReEvalPolicy({ hookType, phase: 'dialog' });
-	if (ac5e?.debugGetConfigLayers) console.warn('AC5E getDialogConfig', { hookType, useConfig, hookContext, reEval });
+	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getDialogConfig', { hookType, useConfig, hookContext, reEval });
 	return { hookType, useConfig, hookContext, reEval };
 }
 
