@@ -1074,7 +1074,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		return collections;
 	};
 	const getMessageAttackTargets = () => {
-		const messageTargets = Array.isArray(message?.data?.flags?.dnd5e?.targets) ? message.data.flags.dnd5e.targets : null;
+		const dnd5eFlags = _getMessageDnd5eFlags(message);
+		const messageTargets = Array.isArray(dnd5eFlags?.targets) ? dnd5eFlags.targets : null;
 		return messageTargets ?? [];
 	};
 	ac5eConfig.preAC5eConfig ??= {};

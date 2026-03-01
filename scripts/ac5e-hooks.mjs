@@ -126,6 +126,36 @@ function _getMessageDnd5eFlags(message) {
 	return _getMessageFlagScope(message, 'dnd5e');
 }
 
+function _setMessageFlagScope(messageLike, scope, patch, { merge = true } = {}) {
+	if (!messageLike || !scope) return;
+	const currentScope = _getMessageFlagScope(messageLike, scope);
+	let nextScope;
+	if (merge && currentScope && typeof currentScope === 'object' && patch && typeof patch === 'object') {
+		nextScope = foundry.utils.mergeObject(foundry.utils.duplicate(currentScope), patch, { inplace: false });
+	} else if (patch && typeof patch === 'object') {
+		nextScope = foundry.utils.duplicate(patch);
+	} else {
+		nextScope = patch;
+	}
+	try {
+		foundry.utils.setProperty(messageLike, `data.flags.${scope}`, nextScope);
+	} catch (_err) {
+		// ignore immutable message-like payloads
+	}
+	try {
+		foundry.utils.setProperty(messageLike, `flags.${scope}`, patch && typeof patch === 'object' ? foundry.utils.duplicate(nextScope) : nextScope);
+	} catch (_err) {
+		// ignore immutable message-like payloads
+	}
+	if (messageLike?.updateSource instanceof Function) {
+		try {
+			messageLike.updateSource({ [`flags.${scope}`]: nextScope });
+		} catch (_err) {
+			// ignore if message source is immutable in this flow
+		}
+	}
+}
+
 function _getMessageTargetsFromFlags(messageLike) {
 	return _getMessageDnd5eFlags(messageLike)?.targets ?? [];
 }
@@ -407,16 +437,7 @@ function resolveTargets(message, messageTargets, { hook, activity } = {}) {
 
 function syncResolvedTargetsToMessage(messageLike, targets) {
 	if (!messageLike || !Array.isArray(targets)) return;
-	try {
-		foundry.utils.setProperty(messageLike, 'data.flags.dnd5e.targets', targets);
-	} catch (_err) {
-		// ignore immutable message-like payloads
-	}
-	try {
-		foundry.utils.setProperty(messageLike, 'flags.dnd5e.targets', targets);
-	} catch (_err) {
-		// ignore immutable message-like payloads
-	}
+	_setMessageFlagScope(messageLike, 'dnd5e', { targets }, { merge: true });
 }
 
 function syncTargetsToConfigAndMessage(config, ac5eConfig, targets, messageLike) {
@@ -427,13 +448,6 @@ function syncTargetsToConfigAndMessage(config, ac5eConfig, targets, messageLike)
 	}
 	const targetMessage = messageLike ?? getMessageForConfigTargets(config) ?? config;
 	syncResolvedTargetsToMessage(targetMessage, targets);
-	if (targetMessage?.updateSource instanceof Function) {
-		try {
-			targetMessage.updateSource({ 'flags.dnd5e.targets': targets });
-		} catch (_err) {
-			// ignore if message source is immutable in this flow
-		}
-	}
 }
 
 function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, messageLikeOverride) {
@@ -1357,15 +1371,8 @@ export function _renderHijack(hook, render, elem) {
 		if (!['both', 'dialog'].includes(settings.showTooltips)) return true;
 		tooltip = _getTooltip(getConfigAC5E);
 		if (tooltip === '') return true;
-		if (render?.message?.data?.flags) {
-			foundry.utils.mergeObject(render.message.data.flags, {
-				[Constants.MODULE_ID]: { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType },
-			});
-		} else if (render?.message) {
-			foundry.utils.setProperty(render.message, 'data.flags', {
-				[Constants.MODULE_ID]: { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType },
-			});
-		}
+		if (render?.message)
+			_setMessageFlagScope(render.message, Constants.MODULE_ID, { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType }, { merge: true });
 		const ac5eForButton = render?.config?.options?.[Constants.MODULE_ID] ?? render?.config?.[Constants.MODULE_ID] ?? render?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? getConfigAC5E;
 		let defaultButton = ac5eForButton?.defaultButton ?? 'normal';
 		const hasRequestedButton = !!elem.querySelector(`button[data-action="${defaultButton}"]`);
