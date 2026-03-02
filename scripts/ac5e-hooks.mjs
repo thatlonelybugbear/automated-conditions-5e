@@ -1397,11 +1397,13 @@ export function _renderHijack(hook, render, elem) {
 			}
 			if (!getConfigAC5E.length) getConfigAC5E = [getConfigAC5E];
 			for (const ac5eElement of getConfigAC5E) {
+				const hT = ac5eElement?.hookType;
+				if (!hT) continue;
+				// When MidiQOL is active, prefer Midi's native tooltip pipeline for roll modes.
+				if (['attack', 'check', 'save'].includes(hT)) continue;
 				tooltip = (messageFlags?.hookType === ac5eElement?.hookType && messageFlags?.tooltipObj?.[messageFlags.hookType]) || _getTooltip(ac5eElement);
 				if (tooltip === '') continue;
 				let thisTargetElement;
-				const hT = ac5eElement?.hookType;
-				if (!hT) continue;
 				if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
 				else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
 				else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');

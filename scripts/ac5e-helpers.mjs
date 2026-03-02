@@ -2038,7 +2038,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	if (ac5eConfig?.hookType !== 'attack') return;
 	const tracker = config?.workflow?.attackRollModifierTracker;
 	if (!tracker?.addAttribution || !tracker?.attribution) return;
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT'];
+	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
 	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
 	const displaySourcePrefix = 'AC5E ';
 	const toLabel = (entry) => {
@@ -2172,12 +2172,36 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 			tracker.addAttribution(type, displayLabel, displayLabel);
 		}
 	};
+	const addCustomAttributionEntries = (prefixLabel, labels = []) => {
+		const prefix = String(prefixLabel ?? '').trim();
+		if (!prefix || !labels.length) return;
+		for (const [index, label] of labels.entries()) {
+			const cleaned = String(label ?? '').trim();
+			if (!cleaned) continue;
+			const displayLabel = `${prefix}: ${cleaned}`;
+			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
+			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
+			tracker.addAttribution('AC5E', source, displayLabel);
+		}
+	};
 	addEntries('ADV', advantageLabels);
 	addEntries('DIS', disadvantageLabels);
 	addEntries('NOADV', noAdvantageLabels);
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('CRIT', criticalLabels);
 	addEntries('NOCRIT', noCriticalLabels);
+	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
+	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
+	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
+	const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
+	const opponentModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.modifiers ?? [])));
+	const opponentExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.extraDice ?? [])));
+	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
+	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
+	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
+	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
+	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
+	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
 }
 
 function _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, type) {
@@ -2230,7 +2254,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return;
 	const tracker = _resolveMidiAbilityRollModifierTracker(ac5eConfig, config, dialog);
 	if (!tracker) return;
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS'];
+	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS', 'AC5E'];
 	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
 	const displaySourcePrefix = 'AC5E ';
 	const toLabel = (entry) => {
@@ -2364,12 +2388,36 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 			tracker.addAttribution(type, displayLabel, displayLabel);
 		}
 	};
+	const addCustomAttributionEntries = (prefixLabel, labels = []) => {
+		const prefix = String(prefixLabel ?? '').trim();
+		if (!prefix || !labels.length) return;
+		for (const [index, label] of labels.entries()) {
+			const cleaned = String(label ?? '').trim();
+			if (!cleaned) continue;
+			const displayLabel = `${prefix}: ${cleaned}`;
+			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
+			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
+			tracker.addAttribution('AC5E', source, displayLabel);
+		}
+	};
 	addEntries('ADV', advantageLabels);
 	addEntries('DIS', disadvantageLabels);
 	addEntries('NOADV', noAdvantageLabels);
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('FAIL', failLabels);
 	addEntries('SUCCESS', successLabels);
+	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
+	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
+	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
+	const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
+	const opponentModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.modifiers ?? [])));
+	const opponentExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.extraDice ?? [])));
+	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
+	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
+	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
+	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
+	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
+	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
 }
 
 export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
