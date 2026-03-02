@@ -1,8 +1,7 @@
 ## 13.5250.7
 * Expanded MidiQOL compatibility and attribution handling for attack/check/save rolls:
   * AC5E now ingests Midi tracker attributions for advantage/disadvantage/fail/success and dedupes overlapping reasons.
-  * Added normalization for machine-like Midi flag keys to improve tooltip labels.
-  * Added a post-roll mitigation that normalizes `advantageMode` to `Normal` when both adv/dis reasons exist but only a single d20 is actually rolled.
+  * Known limitation: when MidiQOL is active, AC5E-specific `bonus`/`extraDice` reasons are not yet fully rendered through Midi's native tooltip attribution pipeline in every flow; AC5E fallback tooltip content is still used for those cases.
 * Reworked damage formula mutation flow so selected opt-in bonus parts are transformed together with base formulas.
   * Unified transform pass now applies to both base and selected opt-in damage terms (`extraDice`, dice upgrade/downgrade, adv/dis dice handling, and formula operators).
   * Added support for formula operators (`*`/`/`) with `addTo` targeting (`all`, base, or selected damage types).
@@ -11,6 +10,7 @@
 * Opt-in dialog hardening:
   * Non-opt-in entries are no longer rendered as forced/disabled opt-in checkboxes.
   * `forceOptin` entries are treated as active selections consistently in damage adjustment paths.
+* Fixed damage modifier ordering so `min`/`max` suffixes attach to dice terms before `/` or `*` modifiers, avoiding merged tokens like `/2min10` that break roll parsing.
 * Expanded `range` flag support to override ranged automation gates per effect (including `grants` and `aura` sources).
   * Added support for:
     * `nearbyFoeDisadvantage` / `noNearbyFoeDisadvantage`
@@ -34,22 +34,6 @@
 * Message/use resolution hardening:
   * `getMessageData` and use-config resolution now prefer prehook `message.data.flags` when present, with fallback to `message.flags`.
   * Message flag reads for DND5E/AC5E scopes are now centralized for consistent originating/usage resolution.
-* Added internal regression checklist covering message/use precedence and `usesCount` edge cases.
-* Dev note (internal): revisit `usesCount`/pending updates robustness before release:
-  * Normalize activity update payload shape in immediate/local apply path (`context` nesting mismatch).
-  * Stop matching queued updates by display `name`; use stable ids (`entry.id`/`baseId`) to avoid cross-matches.
-  * Fix numeric consumable-resource branch using undefined `value` variable (should use resolved resource value).
-  * Validate death-save success update path (`attributes.success.failure` looks incorrect).
-  * Clamp restore paths so `uses.spent` cannot go negative (for negative `consume`/restore cases).
-  * Ensure quantity-only items never route through uses update logic when uses are absent.
-  * Consider replacing regex-only `usesCount` literal rewrite with parsed token update for expression-based counters.
-* Dev note (planned): post-roll macro execution support:
-  * Add a post-roll macro runner that receives resolved roll outcomes and full `ac5eConfig` context.
-  * Scope: attack/check/save/damage post hooks, with guardrails for rerender dedupe and safe GM/owner execution paths.
-  * Baseline payload target: roll mode/outcome fields (including nat checks), source/target actor+token refs, message/use ids, and `ac5eConfig`.
-  * Example target use case: Nine Lives Stealer-style property automation.
-    * On attack nat 20 against a target below 100 HP, force DC 15 CON save (Constructs/Undead auto-succeed).
-    * On failed save, slay target and consume 1 charge; disable property when charges reach 0.
 
 ## 13.5250.6
 * Compatibility note: AC5E opt-ins require roll configuration dialogs; if another module enforces `dialog.configure = false`, opt-in controls cannot be presented.

@@ -934,6 +934,7 @@ function ac5eSetup() {
 		optins: false,
 		getConfigLayers: false,
 		checksReuse: false,
+		midiTooltipSync: false,
 		getMessageDataHook: false,
 		originatingUseConfig: false,
 		preRollAttackHook: false,

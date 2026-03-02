@@ -216,6 +216,7 @@ function _syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls) {
 	if (!['attack', 'check', 'save'].includes(ac5eConfig?.hookType)) return;
 	const tracker = _resolveMidiRollModifierTracker(ac5eConfig, config, dialog);
 	if (!tracker) return;
+	const debugMidiTooltipSync = _hookDebugEnabled('midiTooltipSync');
 	const mode = rolls?.[0]?.options?.advantageMode;
 	if (mode === undefined || mode === null) return;
 
@@ -237,6 +238,15 @@ function _syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls) {
 		const hasModeNonAc5e = _hasNonAc5eAttributionForType(tracker, modeType);
 		const label = configButtonsLabel || 'Roll Dialog';
 		if (hasOppositeAc5e && !hasModeAc5e && !hasModeNonAc5e) _setMidiAttributionSource(tracker, modeType, 'config-buttons', label);
+	}
+	if (debugMidiTooltipSync) {
+		console.warn('AC5E midiTooltipSync attribution', {
+			hookType: ac5eConfig?.hookType,
+			mode,
+			hasAc5eAdv,
+			hasAc5eDis,
+			trackerAttribution: foundry.utils.duplicate(tracker?.attribution ?? {}),
+		});
 	}
 
 	if (mode === advModes.ADVANTAGE) {
@@ -2303,6 +2313,13 @@ function isFormulaOperatorDamageModifier(value) {
 	return typeof value === 'string' && /^[*/]/.test(value.trim());
 }
 
+function isDiceTermSuffixDamageModifier(value) {
+	if (typeof value !== 'string') return false;
+	const trimmed = value.trim();
+	// Dice-term suffixes should attach directly to NdS terms before formula-level ops.
+	return /^(?:min|max)\s*-?\d+$/i.test(trimmed);
+}
+
 function normalizeFormulaOperatorDamageModifier(value) {
 	if (typeof value !== 'string') return '';
 	const trimmed = value.trim();
@@ -2321,6 +2338,8 @@ function parseFormulaOperatorToken(token) {
 	const operator = match[1];
 	const operand = match[2]?.trim();
 	if (!operand) return null;
+	// Guard against malformed merges like "/2min10" which are not valid formula operands.
+	if (/^\d+(?:\.\d+)?(?:min|max)\d+/i.test(operand.replace(/\s+/g, ''))) return null;
 	return { operator, operand };
 }
 
@@ -3041,17 +3060,9 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	const modifierValues = damageModifierEntries.map((entry) => entry.value).filter((value) => typeof value === 'string');
 	const suffixModifiers = damageModifierEntries
 		.filter((entry) => entry.value !== 'adv' && entry.value !== 'dis')
-		.filter((entry) => {
-			if (!isFormulaOperatorDamageModifier(entry.value)) return true;
-			const addTo = resolveDamageModifierAddTo(entry);
-			return addTo.mode === 'base';
-		})
+		.filter((entry) => isDiceTermSuffixDamageModifier(entry.value))
 		.map((entry) => entry.value);
-	const formulaOperatorEntries = damageModifierEntries.filter((entry) => {
-		if (!isFormulaOperatorDamageModifier(entry.value)) return false;
-		const addTo = resolveDamageModifierAddTo(entry);
-		return addTo.mode !== 'base';
-	});
+	const formulaOperatorEntries = damageModifierEntries.filter((entry) => isFormulaOperatorDamageModifier(entry.value));
 	const suffix = suffixModifiers.join('');
 	const allTypes = new Set(damageTypesByIndex.filter(Boolean).map((type) => String(type).toLowerCase()));
 	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
