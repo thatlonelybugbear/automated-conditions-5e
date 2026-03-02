@@ -123,6 +123,143 @@ function _firstDefined(...values) {
 	return undefined;
 }
 
+function _toMidiRollModifierTracker(value) {
+	if (!value || typeof value !== 'object') return undefined;
+	const tracker = value?.tracker ?? value;
+	if (!tracker || typeof tracker !== 'object') return undefined;
+	if (typeof tracker?.advantage?.setOverride !== 'function') return undefined;
+	if (typeof tracker?.disadvantage?.setOverride !== 'function') return undefined;
+	if (!tracker?.attribution || typeof tracker.attribution !== 'object') return undefined;
+	return tracker;
+}
+
+function _resolveMidiRollModifierTracker(ac5eConfig, config, dialog) {
+	const hookType = ac5eConfig?.hookType;
+	if (hookType === 'attack') return _toMidiRollModifierTracker(config?.workflow?.attackRollModifierTracker);
+	if (!['check', 'save'].includes(hookType)) return undefined;
+
+	const maps = [config?.midiOptions?.advantageByChoice, config?.options?.advantageByChoice, dialog?.options?.advantageByChoice].filter(
+		(candidate) => candidate && typeof candidate === 'object',
+	);
+	const choiceKeys = [config?.skill, config?.tool, config?.ability, ac5eConfig?.options?.skill, ac5eConfig?.options?.tool, ac5eConfig?.options?.ability]
+		.map((value) => (typeof value === 'string' ? value.trim() : ''))
+		.filter(Boolean);
+
+	for (const map of maps) {
+		for (const key of choiceKeys) {
+			const tracker = _toMidiRollModifierTracker(map?.[key]);
+			if (tracker) return tracker;
+		}
+	}
+	for (const map of maps) {
+		const entries = Object.values(map ?? {});
+		if (entries.length !== 1) continue;
+		const tracker = _toMidiRollModifierTracker(entries[0]);
+		if (tracker) return tracker;
+	}
+
+	return _toMidiRollModifierTracker(config?.midiOptions?.modifierTracker) ?? _toMidiRollModifierTracker(config?.midiOptions?.tracker);
+}
+
+function _removeMidiAttributionSource(tracker, type, source) {
+	if (!tracker || !type || !source) return;
+	const typed = tracker?.attribution?.[type];
+	if (typed && typeof typed === 'object' && Object.prototype.hasOwnProperty.call(typed, source)) {
+		delete typed[source];
+		if (!Object.keys(typed).length) delete tracker.attribution[type];
+	}
+	const legacyKey = `${type}:${source}`;
+	if (tracker?.legacyAttribution instanceof Set) tracker.legacyAttribution.delete(legacyKey);
+	if (tracker?.advReminderAttribution instanceof Set) tracker.advReminderAttribution.delete(legacyKey);
+}
+
+function _getMidiAttributionSourceLabel(tracker, source, preferredTypes = ['ADV', 'DIS']) {
+	if (!tracker || !source) return '';
+	for (const type of preferredTypes) {
+		const typed = tracker?.attribution?.[type];
+		if (!typed || typeof typed !== 'object') continue;
+		const value = typed[source];
+		if (value === undefined || value === null) continue;
+		const label = String(value).trim();
+		if (label) return label;
+	}
+	return '';
+}
+
+function _setMidiAttributionSource(tracker, type, source, label) {
+	if (!tracker || !type || !source) return;
+	const nextLabel = String(label ?? '').trim();
+	if (!nextLabel) return;
+	if (typeof tracker?.addAttribution === 'function') {
+		tracker.addAttribution(type, source, nextLabel);
+		return;
+	}
+	tracker.attribution ??= {};
+	if (!tracker.attribution[type] || typeof tracker.attribution[type] !== 'object') tracker.attribution[type] = {};
+	if (!tracker.attribution[type][source]) tracker.attribution[type][source] = nextLabel;
+}
+
+function _hasAc5eAttributionForType(tracker, type) {
+	const typed = tracker?.attribution?.[type];
+	if (!typed || typeof typed !== 'object') return false;
+	return Object.keys(typed).some((source) => typeof source === 'string' && (source.startsWith(`${Constants.MODULE_ID}:`) || /^ac5e(?:\b|[:\s-])/i.test(source)));
+}
+
+function _hasNonAc5eAttributionForType(tracker, type) {
+	const typed = tracker?.attribution?.[type];
+	if (!typed || typeof typed !== 'object') return false;
+	return Object.keys(typed).some((source) => typeof source === 'string' && !source.startsWith(`${Constants.MODULE_ID}:`) && !/^ac5e(?:\b|[:\s-])/i.test(source));
+}
+
+function _syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls) {
+	if (!_activeModule('midi-qol')) return;
+	if (!['attack', 'check', 'save'].includes(ac5eConfig?.hookType)) return;
+	const tracker = _resolveMidiRollModifierTracker(ac5eConfig, config, dialog);
+	if (!tracker) return;
+	const mode = rolls?.[0]?.options?.advantageMode;
+	if (mode === undefined || mode === null) return;
+
+	const hasAc5eAdv = _hasAc5eAttributionForType(tracker, 'ADV');
+	const hasAc5eDis = _hasAc5eAttributionForType(tracker, 'DIS');
+	if (!hasAc5eAdv && !hasAc5eDis) return;
+	const configButtonsLabel = _getMidiAttributionSourceLabel(tracker, 'config-buttons');
+
+	if (hasAc5eAdv) _removeMidiAttributionSource(tracker, 'ADV', 'config-buttons');
+	if (hasAc5eDis) _removeMidiAttributionSource(tracker, 'DIS', 'config-buttons');
+
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	if (!advModes) return;
+	const modeType = mode === advModes.ADVANTAGE ? 'ADV' : mode === advModes.DISADVANTAGE ? 'DIS' : '';
+	if (modeType) {
+		const oppositeType = modeType === 'ADV' ? 'DIS' : 'ADV';
+		const hasOppositeAc5e = _hasAc5eAttributionForType(tracker, oppositeType);
+		const hasModeAc5e = _hasAc5eAttributionForType(tracker, modeType);
+		const hasModeNonAc5e = _hasNonAc5eAttributionForType(tracker, modeType);
+		const label = configButtonsLabel || 'Roll Dialog';
+		if (hasOppositeAc5e && !hasModeAc5e && !hasModeNonAc5e) _setMidiAttributionSource(tracker, modeType, 'config-buttons', label);
+	}
+
+	if (mode === advModes.ADVANTAGE) {
+		tracker.advantage.setOverride();
+		tracker.disadvantage.clearOverride();
+		return;
+	}
+	if (mode === advModes.DISADVANTAGE) {
+		tracker.disadvantage.setOverride();
+		tracker.advantage.clearOverride();
+		return;
+	}
+	if (mode === advModes.NORMAL) {
+		// Keep tracker mode aligned with a resolved normal roll (e.g. both adv+dis present).
+		tracker.advantage.setOverride();
+		tracker.disadvantage.setOverride();
+		return;
+	}
+
+	tracker.advantage.clearOverride();
+	tracker.disadvantage.clearOverride();
+}
+
 function _getMessageTargetsFromFlags(messageLike) {
 	return _getMessageDnd5eFlags(messageLike)?.targets ?? [];
 }
@@ -964,6 +1101,7 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 			}
 		}
 	}
+	_syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls);
 	refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message);
 	const flaggedTargets = _getMessageTargetsFromFlags(message);
 	const currentTargets = flaggedTargets.length ? flaggedTargets : (ac5eConfig?.options?.targets ?? dnd5e.utils.getTargetDescriptors());

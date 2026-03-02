@@ -2038,6 +2038,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	if (ac5eConfig?.hookType !== 'attack') return;
 	const tracker = config?.workflow?.attackRollModifierTracker;
 	if (!tracker?.addAttribution || !tracker?.attribution) return;
+	const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
 	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
 	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
 	const displaySourcePrefix = 'AC5E ';
@@ -2190,6 +2191,26 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('CRIT', criticalLabels);
 	addEntries('NOCRIT', noCriticalLabels);
+	const hasAc5eAttribution = (type) => {
+		const typed = tracker?.attribution?.[type];
+		if (!typed || typeof typed !== 'object') return false;
+		return Object.keys(typed).some((source) => typeof source === 'string' && (source.startsWith(legacySourcePrefix) || /^ac5e(?:\b|[:\s-])/i.test(source)));
+	};
+	const hasNonAc5eAttribution = (type) => {
+		const typed = tracker?.attribution?.[type];
+		if (!typed || typeof typed !== 'object') return false;
+		return Object.keys(typed).some((source) => typeof source === 'string' && !source.startsWith(legacySourcePrefix) && !/^ac5e(?:\b|[:\s-])/i.test(source));
+	};
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
+	const selectedType = selectedMode === advModes?.ADVANTAGE ? 'ADV' : selectedMode === advModes?.DISADVANTAGE ? 'DIS' : '';
+	if (selectedType) {
+		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
+		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
+		const hasOppositeAc5e = hasAc5eAttribution(oppositeType);
+		const hasSelectedNonAc5e = hasNonAc5eAttribution(selectedType);
+		if (hasOppositeAc5e && !hasSelectedAc5e && !hasSelectedNonAc5e) tracker.addAttribution(selectedType, 'config-buttons', configButtonsFallbackLabel);
+	}
 	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
 	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
@@ -2254,6 +2275,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return;
 	const tracker = _resolveMidiAbilityRollModifierTracker(ac5eConfig, config, dialog);
 	if (!tracker) return;
+	const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
 	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS', 'AC5E'];
 	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
 	const displaySourcePrefix = 'AC5E ';
@@ -2406,6 +2428,26 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('FAIL', failLabels);
 	addEntries('SUCCESS', successLabels);
+	const hasAc5eAttribution = (type) => {
+		const typed = tracker?.attribution?.[type];
+		if (!typed || typeof typed !== 'object') return false;
+		return Object.keys(typed).some((source) => typeof source === 'string' && (source.startsWith(legacySourcePrefix) || /^ac5e(?:\b|[:\s-])/i.test(source)));
+	};
+	const hasNonAc5eAttribution = (type) => {
+		const typed = tracker?.attribution?.[type];
+		if (!typed || typeof typed !== 'object') return false;
+		return Object.keys(typed).some((source) => typeof source === 'string' && !source.startsWith(legacySourcePrefix) && !/^ac5e(?:\b|[:\s-])/i.test(source));
+	};
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
+	const selectedType = selectedMode === advModes?.ADVANTAGE ? 'ADV' : selectedMode === advModes?.DISADVANTAGE ? 'DIS' : '';
+	if (selectedType) {
+		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
+		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
+		const hasOppositeAc5e = hasAc5eAttribution(oppositeType);
+		const hasSelectedNonAc5e = hasNonAc5eAttribution(selectedType);
+		if (hasOppositeAc5e && !hasSelectedAc5e && !hasSelectedNonAc5e) tracker.addAttribution(selectedType, 'config-buttons', configButtonsFallbackLabel);
+	}
 	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
 	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
