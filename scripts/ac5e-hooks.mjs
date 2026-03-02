@@ -74,15 +74,19 @@ export function _rollFunctions(hook, ...args) {
 		return _preCreateItem(item, updates, hook);
 	}
 }
-function _resolveMessageFromConfig(config) {
+function _getMessageConfigOriginatingMessageId(messageConfig) {
+	return messageConfig?.data?.['flags.dnd5e.originatingMessage'] ?? messageConfig?.data?.flags?.dnd5e?.originatingMessage;
+}
+
+function _resolveMessageFromConfig(config, messageConfig, hook) {
+	const originatingMessageId = _getMessageConfigOriginatingMessageId(messageConfig);
 	const eventMessageId = config?.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageId = eventMessageId ?? config?.options?.messageId ?? config?.messageId;
+	const messageId = originatingMessageId ?? eventMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
-	const message =
-		messageId ? game.messages.get(messageId)
-		: messageUuid ? fromUuidSync(messageUuid)
-		: config?.message;
-	return { messageId, message };
+	const registryHookMessage = messageId ? dnd5e?.registry?.messages?.get(messageId, hook)?.pop?.() : undefined;
+	const registryAnyMessage = !registryHookMessage && messageId ? dnd5e?.registry?.messages?.get(messageId)?.[0] : undefined;
+	const message = registryHookMessage ?? registryAnyMessage ?? (messageId ? game.messages.get(messageId) : undefined) ?? (messageUuid ? fromUuidSync(messageUuid) : undefined) ?? messageConfig;
+	return { messageId, message, originatingMessageId };
 }
 
 function _resolveOriginatingMessageContext(message, { triggerMessageId, originatingMessageId } = {}) {
@@ -138,7 +142,10 @@ function _resolveActivityItemUse({ config, message, originatingMessage, usageMes
 		candidates.find((msg) => {
 			const flags = _getMessageDnd5eFlags(msg);
 			return flags?.activity !== undefined || flags?.item !== undefined || flags?.use !== undefined;
-		}) ?? message ?? usageMessage ?? originatingMessage;
+		}) ??
+		message ??
+		usageMessage ??
+		originatingMessage;
 	const configOptions = config?.options ?? {};
 	const originatingUseConfig = config?.originatingUseConfig ?? configOptions?.originatingUseConfig ?? {};
 	const originatingUseOptions = originatingUseConfig?.options ?? {};
@@ -148,14 +155,7 @@ function _resolveActivityItemUse({ config, message, originatingMessage, usageMes
 	const flagUse = _firstDnd5eFlagValue(candidates, 'use');
 	const use = _firstDefined(flagUse, configOptions?.use, config?.use, originatingUseConfig?.use, useConfig?.use);
 	const itemRef = _firstDefined(flagItemRef, configOptions?.item, config?.item, originatingUseOptions?.item, useConfigOptions?.item, use?.item);
-	const activityRef = _firstDefined(
-		flagActivityRef,
-		configOptions?.activity,
-		config?.activity,
-		originatingUseOptions?.activity,
-		useConfigOptions?.activity,
-		use?.activity,
-	);
+	const activityRef = _firstDefined(flagActivityRef, configOptions?.activity, config?.activity, originatingUseOptions?.activity, useConfigOptions?.activity, use?.activity);
 	let item = _resolveDocumentFromRef(itemRef);
 	let activity = _resolveDocumentFromRef(activityRef);
 	if (!activity && item) activity = _resolveActivityFromItem(item, activityRef);
@@ -229,10 +229,16 @@ function _resolveAttackerContext(message, item) {
 	return { attackingActor, attackingToken, messageTargets, speaker: { sceneId, actorId, tokenId, tokenName } };
 }
 
-function _resolveMessageDataContext(config, hook) {
-	const { messageId: triggerMessageId, message } = _resolveMessageFromConfig(config);
-	const originatingMessageId = config?.options?.originatingMessageId ?? config?.originatingMessageId;
-	const { message: resolvedMessage, registryMessages, originatingMessage, usageMessage, resolvedMessageId, useConfig } = _resolveOriginatingMessageContext(message, {
+function _resolveMessageDataContext(config, hook, messageConfig) {
+	const { messageId: triggerMessageId, message, originatingMessageId } = _resolveMessageFromConfig(config, messageConfig, hook);
+	const {
+		message: resolvedMessage,
+		registryMessages,
+		originatingMessage,
+		usageMessage,
+		resolvedMessageId,
+		useConfig,
+	} = _resolveOriginatingMessageContext(message, {
 		triggerMessageId,
 		originatingMessageId,
 	});
@@ -260,7 +266,7 @@ function _resolveMessageDataContext(config, hook) {
 		attackingToken,
 		messageTargets,
 		config,
-		messageConfig: primaryMessage?.config,
+		messageConfig: messageConfig ?? primaryMessage?.config,
 		use,
 		options,
 	};
@@ -290,14 +296,14 @@ function _debugMessageData(hook, context) {
 		});
 }
 
-function getMessageData(config, hook) {
-	const context = _resolveMessageDataContext(config, hook);
+function getMessageData(config, hook, messageConfig) {
+	const context = _resolveMessageDataContext(config, hook, messageConfig);
 	_debugMessageData(hook, context);
 	return context;
 }
 
 function _getHookMessageData(config, hook, fallbackMessage) {
-	const context = getMessageData(config, hook) ?? {};
+	const context = getMessageData(config, hook, fallbackMessage) ?? {};
 	const options = context.options ?? {};
 	const resolvedMessage = context.message ?? fallbackMessage;
 	return { ...context, options, messageForTargets: resolvedMessage };
@@ -308,7 +314,8 @@ function _prepareHookTargetsAndDamage({ options, hook, activity, messageForTarge
 	options.hook = hook;
 	options.activity = activity;
 	options.targets = resolveTargets(messageForTargets, messageTargets, { hook, activity });
-	if (damageSource === 'roll') _collectRollDamageTypes(rolls, options); // adds options.defaultDamageType/options.damageTypes
+	if (damageSource === 'roll')
+		_collectRollDamageTypes(rolls, options); // adds options.defaultDamageType/options.damageTypes
 	else _collectActivityDamageTypes(activity, options); // adds options.defaultDamageType/options.damageTypes
 }
 
@@ -459,9 +466,10 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 
 function getMessageForConfigTargets(config) {
 	const options = config?.options ?? {};
-	const messageId = options?.messageId ?? config?.messageId;
-	const directMessage = messageId ? game.messages.get(messageId) : undefined;
-	const context = _resolveUseMessageContext({ message: directMessage, messageId, originatingMessageId: options?.originatingMessageId });
+	const originatingMessageId = options?.originatingMessageId;
+	const messageId = originatingMessageId ?? options?.messageId;
+	const directMessage = messageId ? (game.messages.get(messageId) ?? dnd5e?.registry?.messages?.get(messageId)?.[0]) : undefined;
+	const context = _resolveUseMessageContext({ message: directMessage, messageId, originatingMessageId });
 	return context?.originatingMessage ?? context?.message ?? directMessage;
 }
 
@@ -915,8 +923,11 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 			const countCollection = (value) =>
 				typeof value?.size === 'number' ? value.size
 				: Array.isArray(value) ? value.length
-				: typeof value === 'string' ? (value.trim() ? 1 : 0)
-				: 0;
+				: typeof value === 'string' ?
+					value.trim() ?
+						1
+					:	0
+				:	0;
 			const subject = ac5eConfig?.subject ?? {};
 			const opponent = ac5eConfig?.opponent ?? {};
 			const hasAdvReasons =
@@ -955,7 +966,7 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 	}
 	refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message);
 	const flaggedTargets = _getMessageTargetsFromFlags(message);
-	const currentTargets = flaggedTargets.length ? flaggedTargets : ac5eConfig?.options?.targets ?? dnd5e.utils.getTargetDescriptors();
+	const currentTargets = flaggedTargets.length ? flaggedTargets : (ac5eConfig?.options?.targets ?? dnd5e.utils.getTargetDescriptors());
 	if (ac5eConfig?.hookType === 'attack' && Array.isArray(currentTargets)) {
 		const finiteAcs = currentTargets.map((target) => Number(target?.ac)).filter((value) => Number.isFinite(value));
 		const nextTarget = finiteAcs.length ? Math.min(...finiteAcs) : undefined;
@@ -1127,7 +1138,12 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
-	let nearbyFoe, inRange, range, longDisadvantage = false, outOfRangeFail = false, outOfRangeFailSourceLabel;
+	let nearbyFoe,
+		inRange,
+		range,
+		longDisadvantage = false,
+		outOfRangeFail = false,
+		outOfRangeFailSourceLabel;
 	if (singleTargetToken) {
 		ac5eConfig.subject.rangeNotes = [];
 		({ nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = _autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig }));
@@ -1334,8 +1350,7 @@ export function _renderHijack(hook, render, elem) {
 		if (!['both', 'dialog'].includes(settings.showTooltips)) return true;
 		tooltip = _getTooltip(getConfigAC5E);
 		if (tooltip === '') return true;
-		if (render?.message)
-			_setMessageFlagScope(render.message, Constants.MODULE_ID, { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType }, { merge: true });
+		if (render?.message) _setMessageFlagScope(render.message, Constants.MODULE_ID, { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType }, { merge: true });
 		const ac5eForButton = render?.config?.options?.[Constants.MODULE_ID] ?? render?.config?.[Constants.MODULE_ID] ?? render?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? getConfigAC5E;
 		let defaultButton = ac5eForButton?.defaultButton ?? 'normal';
 		const hasRequestedButton = !!elem.querySelector(`button[data-action="${defaultButton}"]`);
@@ -2266,7 +2281,10 @@ function normalizeDamageModifierEntries(ac5eConfig) {
 				};
 			}
 			if (!entry || typeof entry !== 'object') return null;
-			const value = typeof entry.value === 'string' ? entry.value : typeof entry.modifier === 'string' ? entry.modifier : undefined;
+			const value =
+				typeof entry.value === 'string' ? entry.value
+				: typeof entry.modifier === 'string' ? entry.modifier
+				: undefined;
 			if (!value) return null;
 			return {
 				id: entry.id,
@@ -2454,8 +2472,8 @@ function localizeWithFallback(key, fallback) {
 }
 
 function renderOptionalBonusesRoll(dialog, elem, ac5eConfig) {
-	const entries = [...getAllOptinEntriesForHook(ac5eConfig, ac5eConfig.hookType), ...getRollNonBonusOptinEntries(ac5eConfig, ac5eConfig.hookType)].filter(
-		(entry) => Boolean(entry?.optin || entry?.forceOptin),
+	const entries = [...getAllOptinEntriesForHook(ac5eConfig, ac5eConfig.hookType), ...getRollNonBonusOptinEntries(ac5eConfig, ac5eConfig.hookType)].filter((entry) =>
+		Boolean(entry?.optin || entry?.forceOptin),
 	);
 	renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries);
 }
@@ -2650,8 +2668,7 @@ function getRollingActorIdForOptins(ac5eConfig) {
 function shouldAskPermissionForOptinEntry(entry, ac5eConfig, rollingActorId) {
 	if (!(entry?.optin || entry?.forceOptin)) return false;
 	const sourceActorId = typeof entry?.sourceActorId === 'string' && entry.sourceActorId ? entry.sourceActorId : null;
-	const permissionSourceActorId =
-		typeof entry?.permissionSourceActorId === 'string' && entry.permissionSourceActorId ? entry.permissionSourceActorId : null;
+	const permissionSourceActorId = typeof entry?.permissionSourceActorId === 'string' && entry.permissionSourceActorId ? entry.permissionSourceActorId : null;
 	const key = String(entry?.changeKey ?? '').toLowerCase();
 	const hookType = String(ac5eConfig?.hookType ?? '').toLowerCase();
 	const isModifyAC = key.includes('.modifyac');
@@ -2992,19 +3009,12 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		activeFormulaOperators,
 		activeOptinBonusParts,
 		activeAdvDis,
-	} =
-		getConfigAC5E.preservedInitialData;
+	} = getConfigAC5E.preservedInitialData;
 	const activeExtraDiceArray = Array.isArray(activeExtraDice) ? activeExtraDice : originals.map(() => activeExtraDice ?? 0);
 	const activeExtraDiceMultiplierArray = Array.isArray(activeExtraDiceMultipliers) ? activeExtraDiceMultipliers : originals.map(() => activeExtraDiceMultipliers ?? 1);
 	const activeDiceStepsArray = Array.isArray(activeDiceSteps) ? activeDiceSteps : originals.map(() => activeDiceSteps ?? 0);
-	const activeFormulaOperatorsArray =
-		Array.isArray(activeFormulaOperators) ?
-			activeFormulaOperators.map((ops) => (Array.isArray(ops) ? [...ops] : []))
-		:	originals.map(() => []);
-	const activeOptinBonusPartsArray =
-		Array.isArray(activeOptinBonusParts) ?
-			activeOptinBonusParts.map((parts) => (Array.isArray(parts) ? [...parts] : []))
-		:	originals.map(() => []);
+	const activeFormulaOperatorsArray = Array.isArray(activeFormulaOperators) ? activeFormulaOperators.map((ops) => (Array.isArray(ops) ? [...ops] : [])) : originals.map(() => []);
+	const activeOptinBonusPartsArray = Array.isArray(activeOptinBonusParts) ? activeOptinBonusParts.map((parts) => (Array.isArray(parts) ? [...parts] : [])) : originals.map(() => []);
 	const formulaReplacementData = getDamageFormulaReplacementData(getConfigAC5E);
 
 	const diceRegex = /(\d+)d(\d+)([a-z0-9]*)?/gi;
@@ -3020,8 +3030,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		: '';
 	const advDisChanged = advDis !== activeAdvDis;
 
-	if (mode === 'apply' && !suffixChanged && !additiveChanged && !multiplierChanged && !diceStepChanged && !formulaOperatorChanged && !optinBonusChanged && !advDisChanged)
-		return false; // no changes
+	if (mode === 'apply' && !suffixChanged && !additiveChanged && !multiplierChanged && !diceStepChanged && !formulaOperatorChanged && !optinBonusChanged && !advDisChanged) return false; // no changes
 
 	if (
 		mode === 'reset' ||
@@ -3048,10 +3057,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		const optinBonusParts = optinBonusPartsByRoll[index] ?? [];
 		let formulaWithOptins = formula;
 		if (optinBonusParts.length) {
-			formulaWithOptins =
-				typeof formulaWithOptins === 'string' && formulaWithOptins.trim().length ?
-					`${formulaWithOptins} + ${optinBonusParts.join(' + ')}`
-				:	optinBonusParts.join(' + ');
+			formulaWithOptins = typeof formulaWithOptins === 'string' && formulaWithOptins.trim().length ? `${formulaWithOptins} + ${optinBonusParts.join(' + ')}` : optinBonusParts.join(' + ');
 		}
 		const resolvedFormula = resolveDamageFormulaDataReferences(formulaWithOptins, formulaReplacementData);
 		const extraDiceAdditive = extraDiceAdjustments[index]?.additive ?? 0;

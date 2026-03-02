@@ -43,6 +43,13 @@
   * Clamp restore paths so `uses.spent` cannot go negative (for negative `consume`/restore cases).
   * Ensure quantity-only items never route through uses update logic when uses are absent.
   * Consider replacing regex-only `usesCount` literal rewrite with parsed token update for expression-based counters.
+* Dev note (planned): post-roll macro execution support:
+  * Add a post-roll macro runner that receives resolved roll outcomes and full `ac5eConfig` context.
+  * Scope: attack/check/save/damage post hooks, with guardrails for rerender dedupe and safe GM/owner execution paths.
+  * Baseline payload target: roll mode/outcome fields (including nat checks), source/target actor+token refs, message/use ids, and `ac5eConfig`.
+  * Example target use case: Nine Lives Stealer-style property automation.
+    * On attack nat 20 against a target below 100 HP, force DC 15 CON save (Constructs/Undead auto-succeed).
+    * On failed save, slay target and consume 1 charge; disable property when charges reach 0.
 
 ## 13.5250.6
 * Compatibility note: AC5E opt-ins require roll configuration dialogs; if another module enforces `dialog.configure = false`, opt-in controls cannot be presented.

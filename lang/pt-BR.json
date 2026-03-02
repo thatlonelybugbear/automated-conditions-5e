@@ -45,15 +45,15 @@
 			}
 		}
 	},
-  	"AC5E.AutoRangeChecks": {
-    	"Name": "Automação de Verificação de Distância",
-    	"Hint": "Alcance Diagonal Corpo a Corpo: Todos os quadrados adjacentes contam como estando ao alcance, independentemente das regras diagonais. Fora de Alcance Corpo a Corpo: Ataques além do alcance da arma falham. Inimigos Próximos à Distância: Tokens hostis adjacentes ao atacante impõem desvantagem em ataques à distância. Desvantagem Alcance Longo à Distância: Ataques além do alcance curto, mas dentro do alcance longo, sofrem desvantagem. Fora de Alcance à Distância: Ataques além do alcance longo falham.",
-    	"MeleeDiagonals": "Alcance Diagonal Corpo a Corpo",
-    	"MeleeOutOfRange": "Fora de Alcance Corpo a Corpo",
-    	"RangedNearbyFoes": "Inimigos Próximos à Distância",
-    	"RangedLongDisadvantage": "Desvantagem Alcance Longo à Distância",
-    	"RangedOutOfRange": "Fora de Alcance à Distância"
-  	},
+	"AC5E.AutoRangeChecks": {
+		"Name": "Automação de Verificação de Distância",
+		"Hint": "Alcance Diagonal Corpo a Corpo: Todos os quadrados adjacentes contam como estando ao alcance, independentemente das regras diagonais. Fora de Alcance Corpo a Corpo: Ataques além do alcance da arma falham. Inimigos Próximos à Distância: Tokens hostis adjacentes ao atacante impõem desvantagem em ataques à distância. Desvantagem Alcance Longo à Distância: Ataques além do alcance curto, mas dentro do alcance longo, sofrem desvantagem. Fora de Alcance à Distância: Ataques além do alcance longo falham.",
+		"MeleeDiagonals": "Alcance Diagonal Corpo a Corpo",
+		"MeleeOutOfRange": "Fora de Alcance Corpo a Corpo",
+		"RangedNearbyFoes": "Inimigos Próximos à Distância",
+		"RangedLongDisadvantage": "Desvantagem Alcance Longo à Distância",
+		"RangedOutOfRange": "Fora de Alcance à Distância"
+	},
 	"AC5E.AutoExhaustionName": "Automação de Exaustão",
 	"AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
 	"AC5E.AutoEncumbranceName": "Variante Sobrecarga",
@@ -81,6 +81,9 @@
 		"Hint": "O módulo não afeta rolagens atuais de atores sem um token na cena!",
 		"Name": "Exibir Aviso de Ator sem Token",
 		"Text": "Aviso do AC5e: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
+	},
+	"AC5E.Statuses": {
+		"UnderwaterCombat": "Combate Submerso"
 	},
 	"AC5E.WarCaster": "Conjurador de Guerra",
 	"AC5E.ModifyAC": "CA Modificada",
@@ -233,17 +236,17 @@
 			"description": "Use radius=15;threshold=-5 para reduzir em 5 ou radius=20; set=15 para definir a margem para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
 		},
 		"flags.automated-conditions-5e.attack.fumbleThreshold": {
-      		"name": "Alterar o fumbleThreshold dos Ataques",
-      		"description": "Use threshold=5 para aumentar em 5 ou set=15 para definir o valor para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
-    	},
-    	"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
-      		"name": "Conceder Alteração do fumbleThreshold aos Ataques do Oponente",
-      		"description": "Use threshold=5 para aumentar em 5 ou set=15 para definir o valor para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
-    	},
-    	"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
-      		"name": "Aura para Alterar o fumbleThreshold dos Ataques em Raio",
-      		"description": "Use radius=15;threshold=5 para aumentar em 5 or radius=20;set=15 para definir o valor para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
-    	},
+			"name": "Alterar o fumbleThreshold dos Ataques",
+			"description": "Use threshold=5 para aumentar em 5 ou set=15 para definir o valor para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
+		},
+		"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
+			"name": "Conceder Alteração do fumbleThreshold aos Ataques do Oponente",
+			"description": "Use threshold=5 para aumentar em 5 ou set=15 para definir o valor para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
+		},
+		"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
+			"name": "Aura para Alterar o fumbleThreshold dos Ataques em Raio",
+			"description": "Use radius=15;threshold=5 para aumentar em 5 or radius=20;set=15 para definir o valor para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."
+		},
 		"flags.automated-conditions-5e.damage.extraDice": {
 			"name": "Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
 			"description": "Use bonus=4 para aumentar o número de dados rolados em 4."

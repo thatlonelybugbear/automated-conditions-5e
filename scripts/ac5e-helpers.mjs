@@ -378,11 +378,6 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 	} catch (_err) {
 		// ignore immutable message-like payloads
 	}
-	try {
-		foundry.utils.setProperty(messageLike, `flags.${scope}`, patch && typeof patch === 'object' ? foundry.utils.duplicate(nextScope) : nextScope);
-	} catch (_err) {
-		// ignore immutable message-like payloads
-	}
 	if (messageLike?.updateSource instanceof Function) {
 		try {
 			messageLike.updateSource({ [`flags.${scope}`]: nextScope });
@@ -403,8 +398,7 @@ function _getMessageAc5eFlags(message) {
 export function _resolveUseMessageContext({ message = null, messageId = null, originatingMessageId = null } = {}) {
 	const triggerMessage = message ?? (messageId ? game.messages.get(messageId) : undefined);
 	const triggerDnd5eFlags = _getMessageDnd5eFlags(triggerMessage);
-	const resolvedOriginatingMessageId =
-		originatingMessageId ?? triggerDnd5eFlags?.originatingMessage ?? triggerMessage?.id;
+	const resolvedOriginatingMessageId = originatingMessageId ?? triggerDnd5eFlags?.originatingMessage ?? triggerMessage?.id;
 	const registryMessages = resolvedOriginatingMessageId ? dnd5e?.registry?.messages?.get(resolvedOriginatingMessageId) : undefined;
 	const originatingMessage =
 		resolvedOriginatingMessageId ?
@@ -1733,18 +1727,24 @@ export function _autoRanged(activity, token, target, options) {
 	};
 }
 /*
-* Checks if an actor has an item by its identifier, name (case-insensitive), id, or uuid.
-* @param {Actor} actor - The actor to check for the item.
-* @param {string} itemIdentifier - The identifier, name, id, or uuid of the item to check for.
-* @returns {boolean} - True if the actor has the item, false otherwise.
-*/
+ * Checks if an actor has an item by its identifier, name (case-insensitive), id, or uuid.
+ * @param {Actor} actor - The actor to check for the item.
+ * @param {string} itemIdentifier - The identifier, name, id, or uuid of the item to check for.
+ * @returns {boolean} - True if the actor has the item, false otherwise.
+ */
 export function _hasItem(actor, itemIdentifier) {
 	if (!itemIdentifier) return false;
-	return actor?.items?.some((item) =>
-		item?.identifier === itemIdentifier ||
-		String(item?.name ?? '').toLowerCase().includes(String(_localize(itemIdentifier).toLowerCase())) ||
-		item?.id === itemIdentifier ||
-		item?.uuid === itemIdentifier) ?? false;
+	return (
+		actor?.items?.some(
+			(item) =>
+				item?.identifier === itemIdentifier ||
+				String(item?.name ?? '')
+					.toLowerCase()
+					.includes(String(_localize(itemIdentifier).toLowerCase())) ||
+				item?.id === itemIdentifier ||
+				item?.uuid === itemIdentifier,
+		) ?? false
+	);
 }
 
 export function _systemCheck(testVersion) {
@@ -1780,7 +1780,11 @@ export function _getTooltip(ac5eConfig = {}) {
 				return `${String(label)}${getChanceTooltipSuffix(entry?.chance)}`;
 			})
 			.filter(Boolean);
-	const normalizeTooltipLabel = (value) => String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+	const normalizeTooltipLabel = (value) =>
+		String(value ?? '')
+			.trim()
+			.replace(/\s+/g, ' ')
+			.toLowerCase();
 	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
 		if (condition) {
@@ -2060,7 +2064,12 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		return [];
 	};
 	const dedupeLabels = (entries = []) => [...new Set(entries.map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-	const normalizeLabel = (value) => String(value ?? '').trim().replace(/\s+/g, ' ').replace(/^ac5e[:\s-]*/i, '').toLowerCase();
+	const normalizeLabel = (value) =>
+		String(value ?? '')
+			.trim()
+			.replace(/\s+/g, ' ')
+			.replace(/^ac5e[:\s-]*/i, '')
+			.toLowerCase();
 	const withDisplayPrefix = (label) => {
 		const cleaned = String(label ?? '').trim();
 		if (!cleaned) return '';
@@ -2197,17 +2206,8 @@ function _resolveMidiAbilityRollModifierTracker(ac5eConfig, config, dialog, { re
 		if (!tracker.attribution || typeof tracker.attribution !== 'object') return undefined;
 		return tracker;
 	};
-	const maps = [config?.midiOptions?.advantageByChoice, config?.options?.advantageByChoice, dialog?.options?.advantageByChoice].filter(
-		(candidate) => candidate && typeof candidate === 'object',
-	);
-	const choiceKeys = [
-		config?.skill,
-		config?.tool,
-		config?.ability,
-		ac5eConfig?.options?.skill,
-		ac5eConfig?.options?.tool,
-		ac5eConfig?.options?.ability,
-	]
+	const maps = [config?.midiOptions?.advantageByChoice, config?.options?.advantageByChoice, dialog?.options?.advantageByChoice].filter((candidate) => candidate && typeof candidate === 'object');
+	const choiceKeys = [config?.skill, config?.tool, config?.ability, ac5eConfig?.options?.skill, ac5eConfig?.options?.tool, ac5eConfig?.options?.ability]
 		.map((value) => (typeof value === 'string' ? value.trim() : ''))
 		.filter(Boolean);
 	for (const map of maps) {
@@ -2256,7 +2256,12 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 		return [];
 	};
 	const dedupeLabels = (entries = []) => [...new Set(entries.map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-	const normalizeLabel = (value) => String(value ?? '').trim().replace(/\s+/g, ' ').replace(/^ac5e[:\s-]*/i, '').toLowerCase();
+	const normalizeLabel = (value) =>
+		String(value ?? '')
+			.trim()
+			.replace(/\s+/g, ' ')
+			.replace(/^ac5e[:\s-]*/i, '')
+			.toLowerCase();
 	const withDisplayPrefix = (label) => {
 		const cleaned = String(label ?? '').trim();
 		if (!cleaned) return '';
@@ -2490,14 +2495,19 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const midiAbilityAdvAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'ADV') : [];
 	const midiAbilityDisAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'DIS') : [];
 	const midiAbilityFailAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'FAIL') : [];
-	const midiAbilitySuccessAttribution =
-		midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'SUCCESS') : [];
+	const midiAbilitySuccessAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'SUCCESS') : [];
 	const hasMidiAttackAdvAttribution = midiAttackAdvAttribution.length > 0;
 	const hasMidiAttackDisAttribution = midiAttackDisAttribution.length > 0;
 	const hasMidiAbilityAdvAttribution = midiAbilityAdvAttribution.length > 0;
 	const hasMidiAbilityDisAttribution = midiAbilityDisAttribution.length > 0;
-	const hasMidiAdvAttribution = hookType === 'attack' ? hasMidiAttackAdvAttribution : ['check', 'save'].includes(hookType) ? hasMidiAbilityAdvAttribution : false;
-	const hasMidiDisAttribution = hookType === 'attack' ? hasMidiAttackDisAttribution : ['check', 'save'].includes(hookType) ? hasMidiAbilityDisAttribution : false;
+	const hasMidiAdvAttribution =
+		hookType === 'attack' ? hasMidiAttackAdvAttribution
+		: ['check', 'save'].includes(hookType) ? hasMidiAbilityAdvAttribution
+		: false;
+	const hasMidiDisAttribution =
+		hookType === 'attack' ? hasMidiAttackDisAttribution
+		: ['check', 'save'].includes(hookType) ? hasMidiAbilityDisAttribution
+		: false;
 	const midiAdvAttribution = [...new Set((hookType === 'attack' ? midiAttackAdvAttribution : midiAbilityAdvAttribution).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 	const midiDisAttribution = [...new Set((hookType === 'attack' ? midiAttackDisAttribution : midiAbilityDisAttribution).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 	ac5eConfig.subject.midiAdvantage = midiAdvAttribution;
@@ -2506,23 +2516,13 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	ac5eConfig.subject.midiSuccess = midiAbilitySuccessAttribution;
 
 	if (!options.preConfigInitiative) {
-		if (
-			hookType !== 'damage' &&
-			!skipDialogAdvantage &&
-			!adv &&
-			((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)
-		) {
+		if (hookType !== 'damage' && !skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)) {
 			if (midiRoller) {
 				if (midiAdvAttribution.length) ac5eConfig.subject.advantage.push(...midiAdvAttribution);
 				else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 			} else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
 		}
-		if (
-			hookType !== 'damage' &&
-			!skipDialogAdvantage &&
-			!dis &&
-			((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)
-		) {
+		if (hookType !== 'damage' && !skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)) {
 			if (midiRoller) {
 				if (midiDisAttribution.length) ac5eConfig.subject.disadvantage.push(...midiDisAttribution);
 				else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
@@ -2538,20 +2538,21 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 export function _getUseConfig({ options, config } = {}) {
 	let useConfig = options?.originatingUseConfig ?? config?.options?.originatingUseConfig ?? null;
 	let debugMeta = { source: useConfig ? 'options' : 'unknown' };
-	const messageId = options?.originatingMessageId ?? options?.messageId ?? config?.options?.messageId ?? config?.messageId;
-	const context = _resolveUseMessageContext({ messageId, originatingMessageId: options?.originatingMessageId });
-	const { triggerMessage, originatingMessageId, originatingMessage, usageMessage, registryMessages } = context;
+	const originatingMessageId = options?.originatingMessageId;
+	const messageId = originatingMessageId ?? options?.messageId;
+	const context = _resolveUseMessageContext({ messageId, originatingMessageId });
+	const { triggerMessage, originatingMessageId: resolvedOriginatingMessageId, originatingMessage, usageMessage, registryMessages } = context;
 	if (!useConfig) {
 		useConfig = context.useConfig;
 		debugMeta = {
 			source: useConfig ? 'message' : 'none',
 			messageId,
-			originatingMessageId,
+			originatingMessageId: resolvedOriginatingMessageId,
 			hasMessage: !!triggerMessage,
 			registryCount: _collectionCount(registryMessages),
 		};
 		if (!useConfig) {
-			const cacheEntry = _getUseConfigInflightCacheEntry([originatingMessageId, messageId]);
+			const cacheEntry = _getUseConfigInflightCacheEntry([resolvedOriginatingMessageId, messageId]);
 			if (cacheEntry?.useConfig) {
 				useConfig = foundry.utils.duplicate(cacheEntry.useConfig);
 				debugMeta = {
@@ -2711,7 +2712,8 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 		const ac5eConfigDialog = { [Constants.MODULE_ID]: safeUseConfig };
 		if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
 		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig.options ?? {}, { merge: false });
-		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post helpers._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
+		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug)
+			console.warn('AC5e post helpers._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
 		return;
 	}
 	ac5eConfig.subject.advantageNames = [...ac5eConfig.subject.advantageNames];
