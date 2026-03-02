@@ -1,8 +1,0 @@
-﻿Restore guide:
-1) Ensure branch and commit: git switch optin-fixes-1 && git reset --hard 7ae2b07079aa552af3554713842a8d97a9295921
-2) Apply staged patch (optional): git apply --index staged.diff
-3) Apply working patch: git apply working.diff
-4) Copy files from untracked/ back to repo root (if any)
-
-Snapshot branch for quick return to HEAD baseline:
-- snapshot/20260218-132953-pre-context-keywords

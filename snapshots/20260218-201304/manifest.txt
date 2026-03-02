@@ -1,5 +1,0 @@
-timestamp=20260218-201304
-zip=D:\Programming\Githubs\thatlonelybugbear\GitHub repositories\automated-conditions-5e\snapshots\ac5e-snapshot-20260218-201304.zip
-bundle=D:\Programming\Githubs\thatlonelybugbear\GitHub repositories\automated-conditions-5e\snapshots\20260218-201304\ac5e-20260218-201304.bundle
-head=7ae2b07079aa552af3554713842a8d97a9295921
-branch=optin-fixes-1
