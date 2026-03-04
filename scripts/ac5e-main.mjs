@@ -948,6 +948,7 @@ function ac5eSetup() {
 		renderHijackHook: false,
 		preConfigureInitiativeHook: false,
 		setAC5eProperties: false,
+		usesCount: false,
 	};
 	Object.defineProperty(globalThis[Constants.MODULE_NAME_SHORT], 'debugGetConfigLayers', {
 		get() {

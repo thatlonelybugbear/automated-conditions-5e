@@ -92,6 +92,15 @@ function _logDeleteTrace(stage, payload = {}) {
 	if (ac5e.debugQueries || settings.debug) console.warn('AC5E delete trace', { stage, ...payload });
 }
 
+function _usesCountDebugEnabled() {
+	return Boolean(settings.debug || ac5e?.debug?.usesCount);
+}
+
+function _logUsesCount(stage, payload = {}) {
+	if (!_usesCountDebugEnabled()) return;
+	console.warn('AC5E usesCount', { stage, ...payload });
+}
+
 async function _safeDeleteByUuid(uuid, { source = 'local' } = {}) {
 	const doc = _safeFromUuidSync(uuid);
 	const traceTag = _createDeleteTraceTag(source, uuid);
@@ -2385,15 +2394,28 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				}
 			}
 		}
+		_logUsesCount('parsed', {
+			effect: effect?.name,
+			hook,
+			actorType,
+			id,
+			target: consumptionTarget,
+			consume,
+			raw: hasCount,
+		});
 
 		if (!isNaN(isNumber)) {
 			if (isNumber === 0) {
+				_logUsesCount('blocked', { effect: effect?.name, id, reason: 'counter-is-zero', target: consumptionTarget });
 				return false;
 			}
 
 			const newUses = isNumber - consume;
 
-			if (newUses < 0) return false; //if you need to consume more uses than available (can only happen if moreUses exists)
+			if (newUses < 0) {
+				_logUsesCount('blocked', { effect: effect?.name, id, reason: 'counter-below-zero', target: consumptionTarget, current: isNumber, consume, next: newUses });
+				return false; //if you need to consume more uses than available (can only happen if moreUses exists)
+			}
 
 			if (newUses === 0 && !isTransfer) {
 				if (isOwner) effectDeletions.push({ name: effect.name, uuid: effect.uuid });
@@ -2463,6 +2485,16 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			if (itemActivityfromUuid) {
 				const item = itemActivityfromUuid instanceof Item && itemActivityfromUuid;
 				const activity = !item && itemActivityfromUuid.type !== 'undefined' && itemActivityfromUuid;
+				_logUsesCount('resolve-document', {
+					effect: effect?.name,
+					id,
+					target: consumptionTarget,
+					documentType:
+						activity ? 'activity'
+						: item ? 'item'
+						: 'unknown',
+					documentUuid: activity?.uuid ?? item?.uuid ?? null,
+				});
 				if (hasOrigin) {
 					const ownerActor = _resolveUsesCountOwnerActor(itemActivityfromUuid);
 					_registerOriginUsesPermissionOverride({ updateArrays, id, baseId, ownerActor, evalData });
@@ -2530,6 +2562,12 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
 						: actor.getRollData(); //  actor is the effectActor
 					const uuid = consumptionActor?.uuid ?? actor.uuid;
+					_logUsesCount('resolve-actor-attr', {
+						effect: effect?.name,
+						id,
+						target: consumptionTarget,
+						actorUuid: uuid,
+					});
 					if (lowerConsumptionTarget.includes('flag')) {
 						let value = lowerConsumptionTarget.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
 						if (!Number(value)) value = 0;
@@ -2970,23 +3008,44 @@ function updateUsesCount({ effect, item, activity, currentUses, currentQuantity,
 	const quantityDocumentOwner = Boolean(item?.isOwner);
 	const newUses = hasUses ? currentUses - consume : null;
 	const newQuantity = hasQuantity ? currentQuantity - consume : null;
-	if (hasUses && newUses < 0) return false;
-	if (hasQuantity && newQuantity < 0) return false;
+	_logUsesCount('evaluate-update', {
+		effect: effect?.name,
+		id,
+		usesSource,
+		targetUuid: activity?.uuid ?? item?.uuid ?? null,
+		currentUses: hasUses ? currentUses : null,
+		currentQuantity: hasQuantity ? currentQuantity : null,
+		consume,
+		newUses,
+		newQuantity,
+	});
+	if (hasUses && newUses < 0) {
+		_logUsesCount('blocked', { effect: effect?.name, id, reason: 'uses-below-zero', usesSource, currentUses, consume, newUses });
+		return false;
+	}
+	if (hasQuantity && newQuantity < 0) {
+		_logUsesCount('blocked', { effect: effect?.name, id, reason: 'quantity-below-zero', currentQuantity, consume, newQuantity });
+		return false;
+	}
 	if (newUses !== null) {
 		const max = _asFiniteNumber(usesMax);
 		const boundedUses = max !== null ? Math.min(newUses, max) : newUses;
 		const spent = max !== null ? Math.max(0, max - boundedUses) : 0;
 		if (usesSource === 'activity' && activity) {
+			_logUsesCount('queue-update', { effect: effect?.name, id, usesSource: 'activity', targetUuid: activity.uuid, spent, max, boundedUses, owner: usesDocumentOwner });
 			if (usesDocumentOwner) activityUpdates.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
 			else activityUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
 		} else if (usesSource === 'item' && item) {
+			_logUsesCount('queue-update', { effect: effect?.name, id, usesSource: 'item', targetUuid: item.uuid, spent, max, boundedUses, owner: usesDocumentOwner });
 			if (usesDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
 			else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
 		} else {
+			_logUsesCount('blocked', { effect: effect?.name, id, reason: 'missing-uses-document', usesSource });
 			return false;
 		}
 	} else if (newQuantity !== null) {
 		if (!item) return false;
+		_logUsesCount('queue-update', { effect: effect?.name, id, usesSource: 'quantity', targetUuid: item.uuid, newQuantity, owner: quantityDocumentOwner });
 		if (quantityDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
 		else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.quantity': newQuantity } } });
 	}
