@@ -1078,7 +1078,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'bonus',
 		'cadence',
 		'chance',
-		'criticalstatic',
 		'description',
 		'enemies',
 		'fail',
@@ -1294,10 +1293,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!usesRaw) return undefined;
 		const { target } = _parseUsesCountSpec(usesRaw);
 		return _normalizeUsesCountTarget(target)?.toLowerCase() || undefined;
-	};
-	const hasCriticalStaticKeyword = (value) => {
-		if (!value) return false;
-		return /(?:^|;)\s*criticalstatic\s*(?:;|$)/i.test(String(value));
 	};
 	const isHpUsesTarget = (target) => {
 		if (!target) return false;
@@ -1605,12 +1600,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const requiredDamageTypes = getRequiredDamageTypes(el.value);
 				const addTo = getAddTo(el.value);
 				const usesCountTarget = getUsesCountTarget(el.value);
-				const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
 				const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-				const autoDescription =
-					!description && (optin || usesOverride?.forceDescription) ?
-						buildAutoDescription({ mode, hook, bonus, modifier, set, threshold })
-					:	undefined;
+				const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -1667,7 +1658,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					optin,
 					forceOptin,
 					cadence,
-					criticalStatic,
 					requiredDamageTypes,
 					addTo,
 					usesCountTarget,
@@ -1711,12 +1701,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			const requiredDamageTypes = getRequiredDamageTypes(el.value);
 			const addTo = getAddTo(el.value);
 			const usesCountTarget = getUsesCountTarget(el.value);
-			const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
 			const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-			const autoDescription =
-				!description && (optin || usesOverride?.forceDescription) ?
-					buildAutoDescription({ mode, hook, bonus, modifier, set, threshold })
-				:	undefined;
+			const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 			let valuesToEvaluate = el.value
 				.split(';')
 				.map((v) => v.trim())
@@ -1750,7 +1736,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				optin,
 				forceOptin,
 				cadence,
-				criticalStatic,
 				requiredDamageTypes,
 				addTo,
 				usesCountTarget,
@@ -1790,12 +1775,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const requiredDamageTypes = getRequiredDamageTypes(el.value);
 				const addTo = getAddTo(el.value);
 				const usesCountTarget = getUsesCountTarget(el.value);
-				const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
 				const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-				const autoDescription =
-					!description && (optin || usesOverride?.forceDescription) ?
-						buildAutoDescription({ mode, hook, bonus, modifier, set, threshold })
-					:	undefined;
+				const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -1828,7 +1809,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					optin,
 					forceOptin,
 					cadence,
-					criticalStatic,
 					requiredDamageTypes,
 					addTo,
 					usesCountTarget,
@@ -1919,7 +1899,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (rule?.itemLimited) fragments.push('itemLimited');
 		if (rule?.description) fragments.push(`description=${rule.description}`);
 		if (rule?.optin) fragments.push('optin');
-		if (rule?.criticalStatic) fragments.push('criticalStatic');
 		if (rule?.cadence) fragments.push(rule.cadence);
 		if (typeof rule?.condition === 'string' && rule.condition.trim()) fragments.push(rule.condition.trim());
 
@@ -1976,7 +1955,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const requiredDamageTypes = getRequiredDamageTypes(ruleValue);
 		const addTo = getAddTo(ruleValue);
 		const usesCountTarget = getUsesCountTarget(ruleValue);
-		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(ruleValue);
 		const description = getDescription(ruleValue);
 		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 		let valuesToEvaluate = ruleValue
@@ -2011,7 +1989,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			optin,
 			forceOptin: false,
 			cadence,
-			criticalStatic,
 			requiredDamageTypes,
 			addTo,
 			usesCountTarget,

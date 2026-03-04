@@ -1049,33 +1049,6 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 	return true;
 }
 
-function _ensureRoll0Options(config, roll0) {
-	if (!config) return roll0?.options ?? null;
-	if (!Array.isArray(config.rolls)) config.rolls = [];
-	if (!config.rolls[0] || typeof config.rolls[0] !== 'object') config.rolls[0] = { options: {} };
-	const rollEntry = config.rolls[0];
-	if (!rollEntry.options || typeof rollEntry.options !== 'object') rollEntry.options = {};
-	if (roll0 && roll0 !== rollEntry) roll0.options = rollEntry.options;
-	return rollEntry.options;
-}
-
-function _writeFastForwardMode(ac5eConfig, config, roll0) {
-	if (!ac5eConfig || !config) return;
-	const rollOptions = _ensureRoll0Options(config, roll0);
-	if (!rollOptions) return;
-	const resolvedAdvantage = config.advantage;
-	const resolvedDisadvantage = config.disadvantage;
-	const applyResolvedMode = (target) => {
-		if (!target || typeof target !== 'object') return;
-		if (ac5eConfig.defaultButton !== undefined) target.defaultButton = ac5eConfig.defaultButton;
-		if (ac5eConfig.advantageMode !== undefined) target.advantageMode = ac5eConfig.advantageMode;
-		if (resolvedAdvantage !== undefined) target.advantage = !!resolvedAdvantage;
-		if (resolvedDisadvantage !== undefined) target.disadvantage = !!resolvedDisadvantage;
-	};
-	applyResolvedMode(rollOptions);
-	applyResolvedMode(config);
-}
-
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties = false } = {}) {
 	const { ADVANTAGE: ADV_MODE, DISADVANTAGE: DIS_MODE, NORMAL: NORM_MODE } = CONFIG.Dice.D20Roll.ADV_MODE;
 	const isForcedSentinelAC = (value) => Number.isFinite(Number(value)) && Math.abs(Number(value)) === 999;
@@ -1463,7 +1436,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = localDialog.options.advantageMode;
 	ac5eConfig.defaultButton = localDialog.options.defaultButton;
-	if (!dialog?.configure) _writeFastForwardMode(ac5eConfig, config, roll0);
 	if (hook === 'attack') _syncMidiAttackRollModifierTracker(ac5eConfig, config);
 	else if (hook === 'check' || hook === 'save') _syncMidiAbilityRollModifierTracker(ac5eConfig, config, localDialog);
 	_getTooltip(ac5eConfig);
@@ -2425,8 +2397,6 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
 	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
-	const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
-	const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
 	const addEntries = (type, labels = []) => {
 		dropConfigButtonsAttribution(type, labels);
 		const keypressLabels = keypressLabelsByType[type];
@@ -2484,32 +2454,12 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
 	const opponentModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.modifiers ?? [])));
 	const opponentExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.extraDice ?? [])));
-	const getNumericTarget = (value) => {
-		const numeric = Number(value);
-		return Number.isFinite(numeric) ? numeric : undefined;
-	};
-	const baseTargetADC =
-		getNumericTarget(ac5eConfig?.initialTargetADC) ??
-		getNumericTarget(config?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.options?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.target) ??
-		10;
-	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
-	const targetValuePool = targetValues.length ? targetValues : (Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC : []);
-	const alteredTargetADC =
-		getNumericTarget(ac5eConfig?.alteredTargetADC) ??
-		(targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
-	const modifyDCPrefix =
-		targetADCLabels.length ?
-			`${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}`
-		:	'';
 	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
 	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
-	addCustomAttributionEntries(modifyDCPrefix, targetADCLabels);
 }
 
 export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
@@ -2877,9 +2827,8 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 		},
 	};
 
-	const rollOptionsTarget = _ensureRoll0Options(config);
-	const mergeTarget = rollOptionsTarget ?? config;
-	if (mergeTarget) foundry.utils.mergeObject(mergeTarget, ac5eConfigDialog);
+	if (config?.rolls?.[0]?.options) foundry.utils.mergeObject(config.rolls[0].options, ac5eConfigDialog);
+	else if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
 	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, ac5eConfigMessage[Constants.MODULE_ID], { merge: true });
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }

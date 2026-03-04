@@ -217,7 +217,7 @@ function _syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls) {
 	const tracker = _resolveMidiRollModifierTracker(ac5eConfig, config, dialog);
 	if (!tracker) return;
 	const debugMidiTooltipSync = _hookDebugEnabled('midiTooltipSync');
-	const mode = ac5eConfig?.advantageMode ?? rolls?.[0]?.options?.advantageMode ?? 0;
+	const mode = rolls?.[0]?.options?.advantageMode;
 	if (mode === undefined || mode === null) return;
 
 	const hasAc5eAdv = _hasAc5eAttributionForType(tracker, 'ADV');
@@ -600,14 +600,12 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 	if (useTargetAcs) {
 		const byTargets = collectFinite((ac5eConfig?.options?.targets ?? []).map((target) => target?.ac));
 		if (byTargets.length) return Math.min(...byTargets);
-		const byPreTargets = collectFinite(Object.values(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey ?? {}).map((entry) => entry?.ac));
-		if (byPreTargets.length) return Math.min(...byPreTargets);
 	}
 
-	const direct =
-		useTargetAcs ?
-			collectFinite([ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, config?.target])
-		:	collectFinite([config?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target]);
+	const byPreTargets = collectFinite(Object.values(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey ?? {}).map((entry) => entry?.ac));
+	if (byPreTargets.length) return Math.min(...byPreTargets);
+
+	const direct = collectFinite([ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, config?.target]);
 	if (direct.length) return direct[0];
 
 	return 10;
@@ -881,7 +879,6 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 		const optins = getOptinsFromForm(formData);
 		setOptinSelections(ac5eConfig, optins);
 		applyOptinCriticalToDamageConfig(ac5eConfig, config, formData);
-		syncCriticalStaticBonusDamageRollOptions(ac5eConfig, config?.rolls);
 		if (config?.rolls?.length) {
 			for (const roll of config.rolls) {
 				if (!roll?.options) continue;
@@ -905,9 +902,9 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				optins,
 			});
 		const targetADCEntries = getTargetADCEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
-		const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(ac5eConfig.optinBaseTargetADC);
-		if (hasTargetADCOptins && (ac5eConfig.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(ac5eConfig.optinBaseTargetADCValue))) {
-			ac5eConfig.optinBaseTargetADCValue = getBaseTargetADCValue(config, ac5eConfig);
+		const derivedBaseTargetADC = getBaseTargetADCValue(config, ac5eConfig);
+		if (ac5eConfig.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(ac5eConfig.optinBaseTargetADCValue)) {
+			ac5eConfig.optinBaseTargetADCValue = derivedBaseTargetADC;
 		}
 		if (targetADCEntries.length) {
 			const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
@@ -927,7 +924,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				ac5eConfig.initialTargetADC = baseTarget;
 				ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
 			}
-		} else if (Array.isArray(ac5eConfig.optinBaseTargetADC)) {
+		} else if (ac5eConfig.optinBaseTargetADC) {
 			ac5eConfig.targetADC = [...ac5eConfig.optinBaseTargetADC];
 			ac5eConfig.alteredTargetADC = undefined;
 			ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
@@ -935,7 +932,6 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 		config.advantage = undefined;
 		config.disadvantage = undefined;
 		_calcAdvantageMode(ac5eConfig, config, undefined, undefined, { skipSetProperties: true });
-		const isAttackHook = ac5eConfig.hookType === 'attack';
 		if (ac5eConfig.alteredTargetADC !== undefined) {
 			const nextTarget = ac5eConfig.alteredTargetADC;
 			config.target = nextTarget;
@@ -947,7 +943,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				}
 			}
 			if (Object.isExtensible(options)) options.target = nextTarget;
-			if (isAttackHook) {
+			if (ac5eConfig.hookType === 'attack') {
 				if (Array.isArray(ac5eConfig.options?.targets)) {
 					for (const target of ac5eConfig.options.targets) {
 						if (target && typeof target === 'object') target.ac = nextTarget;
@@ -955,7 +951,6 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				}
 			}
 			if (formData?.object && typeof formData.object === 'object') {
-				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: buildRollConfig formData', { hook: ac5eConfig.hookType, nextTarget, formDataObject: formData.object });
 				if ('target' in formData.object) formData.object.target = nextTarget;
 				if ('target.value' in formData.object) formData.object['target.value'] = nextTarget;
 				if ('rolls.0.target' in formData.object) formData.object['rolls.0.target'] = nextTarget;
@@ -964,7 +959,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				if ('rolls.0.options.target.value' in formData.object) formData.object['rolls.0.options.target.value'] = nextTarget;
 			}
 			syncTargetADCToDialog(app, nextTarget);
-		} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
+		} else if (ac5eConfig.optinBaseTargetADCValue !== undefined) {
 			const baseTarget = getBaseTargetADCValue(config, ac5eConfig);
 			ac5eConfig.optinBaseTargetADCValue = baseTarget;
 			config.target = baseTarget;
@@ -976,7 +971,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				}
 			}
 			if (Object.isExtensible(options)) options.target = baseTarget;
-			if (isAttackHook) {
+			if (ac5eConfig.hookType === 'attack') {
 				if (Array.isArray(ac5eConfig.options?.targets)) {
 					for (const target of ac5eConfig.options.targets) {
 						if (target && typeof target === 'object') target.ac = baseTarget;
@@ -1391,23 +1386,10 @@ export function _renderHijack(hook, render, elem) {
 	let targetElement, tooltip;
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
 		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
-		const abilitySelect = render?.form?.querySelector?.('select[name="ability"]');
-		if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E.hookType) && abilitySelect && !abilitySelect.dataset.ac5eAbilityReevalBound) {
-			abilitySelect.dataset.ac5eAbilityReevalBound = 'true';
-			abilitySelect.addEventListener('change', (event) => {
-				const nextAbility = event?.currentTarget?.value;
-				if (!nextAbility || nextAbility === (getConfigAC5E?.options?.ability ?? render?.config?.ability)) return;
-				doDialogAbilityRender(render, getConfigAC5E, nextAbility);
-			});
-		}
-		const selectedAbility = abilitySelect?.value;
-		const shouldReevaluateDialogAbility =
-			hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E.hookType) && selectedAbility && selectedAbility !== (options?.ability ?? render?.config?.ability);
-		if (shouldReevaluateDialogAbility) {
-			doDialogAbilityRender(render, getConfigAC5E, selectedAbility);
-			return true;
-		}
-		if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
+		if (options?.skill || options?.tool) {
+			const selectedAbility = render?.form?.querySelector?.('select[name="ability"]')?.value;
+			if (selectedAbility && selectedAbility !== options?.ability) doDialogSkillOrToolRender(render, elem, getConfigAC5E, selectedAbility);
+		} else if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
 		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
 		if (hook === 'd20Dialog' && ['attack', 'save', 'check'].includes(getConfigAC5E.hookType) && !getConfigAC5E.options?.isInitiative) {
 			renderOptionalBonusesRoll(render, elem, getConfigAC5E);
@@ -1415,15 +1397,11 @@ export function _renderHijack(hook, render, elem) {
 			setOptinSelections(getConfigAC5E, optinSelections);
 			if (render?.config) {
 				_restoreD20ConfigFromFrozenBaseline(getConfigAC5E, render.config);
+				getConfigAC5E.optinBaseTargetADCValue ??= render.config.target ?? render.config.rolls?.[0]?.options?.target ?? 10;
 				render.config.advantage = undefined;
 				render.config.disadvantage = undefined;
 				_calcAdvantageMode(getConfigAC5E, render.config, undefined, undefined, { skipSetProperties: true });
 				const targetADCEntries = getTargetADCEntriesForHook(getConfigAC5E, getConfigAC5E.hookType).filter((entry) => entry.optin);
-				const isAttackHook = getConfigAC5E.hookType === 'attack';
-				const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(getConfigAC5E.optinBaseTargetADC);
-				if (hasTargetADCOptins && (getConfigAC5E.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(getConfigAC5E.optinBaseTargetADCValue))) {
-					getConfigAC5E.optinBaseTargetADCValue = getBaseTargetADCValue(render.config, getConfigAC5E);
-				}
 				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: render entries', { hook: getConfigAC5E.hookType, targetADCEntries, optinSelected: getConfigAC5E.optinSelected });
 				if (targetADCEntries.length) {
 					const selectedIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
@@ -1447,7 +1425,7 @@ export function _renderHijack(hook, render, elem) {
 									roll0Target.options.target = alteredTarget;
 								}
 							}
-							if (isAttackHook && getConfigAC5E.options?.targets?.length) {
+							if (getConfigAC5E.options?.targets?.length) {
 								for (const target of getConfigAC5E.options.targets) {
 									if (ac5e?.debugTargets)
 										console.warn('AC5E targets render', {
@@ -1463,7 +1441,7 @@ export function _renderHijack(hook, render, elem) {
 							getConfigAC5E.initialTargetADC = baseTarget;
 						}
 					}
-				} else if (Array.isArray(getConfigAC5E.optinBaseTargetADC) && getConfigAC5E.optinBaseTargetADCValue !== undefined) {
+				} else if (getConfigAC5E.optinBaseTargetADCValue !== undefined) {
 					const baseTarget = getConfigAC5E.optinBaseTargetADCValue;
 					render.config.target = baseTarget;
 					const roll0Target = getExistingRoll(render.config, 0);
@@ -1473,7 +1451,7 @@ export function _renderHijack(hook, render, elem) {
 							roll0Target.options.target = baseTarget;
 						}
 					}
-					if (isAttackHook && getConfigAC5E.options?.targets?.length) {
+					if (getConfigAC5E.options?.targets?.length) {
 						for (const target of getConfigAC5E.options.targets) {
 							if (target && typeof target === 'object') target.ac = baseTarget;
 						}
@@ -1936,7 +1914,6 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		_restoreDamageConfigFromFrozenBaseline(getConfigAC5E, dialog.config);
 		const frozenDamageBaseline = getConfigAC5E?.preAC5eConfig?.frozenDamageBaseline ?? getConfigAC5E?.frozenDamageBaseline;
 		ensureDamagePreservedInitialData(getConfigAC5E, frozenDamageBaseline);
-		captureBaseCriticalBonusDamage(getConfigAC5E, dialog?.config?.rolls);
 		renderOptionalBonusesDamage(dialog, elem, getConfigAC5E);
 		setOptinSelections(getConfigAC5E, readOptinSelections(elem, getConfigAC5E));
 		applyOptinCriticalToDamageConfig(getConfigAC5E, dialog.config);
@@ -1955,8 +1932,9 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		const damageTypesByIndex = getDamageTypesByIndex(dialog, elem);
 		const selects = Array.fromRange(rollsLength)
 			.map((el) => {
-				const selected = damageTypesByIndex?.[el] ?? elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ?? dialog.config.rolls?.[el]?.options?.type;
-				return selected ? String(selected).toLowerCase() : undefined;
+				const labelSpan = elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value;
+				if (labelSpan) return labelSpan;
+				return dialog.config.rolls[el].options.type;
 			})
 			.filter(Boolean);
 		const domFormulas = Array.from(elem.querySelectorAll('.formula'))
@@ -1984,29 +1962,20 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					preserved.formulas = preserved.formulas.concat(newFormulas);
 					preserved.modified = preserved.modified.concat(newFormulas);
 					const newAdditives = newFormulas.map(() => 0);
-					const newCriticalStaticAdditives = newFormulas.map(() => 0);
 					const newMultipliers = newFormulas.map(() => 1);
 					const newSteps = newFormulas.map(() => 0);
 					const newFormulaOperators = newFormulas.map(() => []);
 					const newOptinBonusParts = newFormulas.map(() => []);
-					const newCriticalBonusDamage = newFormulas.map(() => '');
-					const newBaseCriticalBonusDamage = newFormulas.map(() => null);
 					const activeAdditives = Array.isArray(preserved.activeExtraDice) ? preserved.activeExtraDice : [];
-					const activeCriticalStaticAdditives = Array.isArray(preserved.activeCriticalStaticExtraDice) ? preserved.activeCriticalStaticExtraDice : [];
 					const activeMultipliers = Array.isArray(preserved.activeExtraDiceMultipliers) ? preserved.activeExtraDiceMultipliers : [];
 					const activeSteps = Array.isArray(preserved.activeDiceSteps) ? preserved.activeDiceSteps : [];
 					const activeFormulaOperators = Array.isArray(preserved.activeFormulaOperators) ? preserved.activeFormulaOperators : [];
 					const activeOptinBonusParts = Array.isArray(preserved.activeOptinBonusParts) ? preserved.activeOptinBonusParts : [];
-					const activeCriticalBonusDamage = Array.isArray(preserved.activeCriticalBonusDamageByRoll) ? preserved.activeCriticalBonusDamageByRoll : [];
-					const baseCriticalBonusDamage = Array.isArray(preserved.baseCriticalBonusDamageByRoll) ? preserved.baseCriticalBonusDamageByRoll : [];
 					preserved.activeExtraDice = activeAdditives.concat(newAdditives);
-					preserved.activeCriticalStaticExtraDice = activeCriticalStaticAdditives.concat(newCriticalStaticAdditives);
 					preserved.activeExtraDiceMultipliers = activeMultipliers.concat(newMultipliers);
 					preserved.activeDiceSteps = activeSteps.concat(newSteps);
 					preserved.activeFormulaOperators = activeFormulaOperators.concat(newFormulaOperators);
 					preserved.activeOptinBonusParts = activeOptinBonusParts.concat(newOptinBonusParts);
-					preserved.activeCriticalBonusDamageByRoll = activeCriticalBonusDamage.concat(newCriticalBonusDamage);
-					preserved.baseCriticalBonusDamageByRoll = baseCriticalBonusDamage.concat(newBaseCriticalBonusDamage);
 				} else if (currentFormulas.length < preservedLength) {
 					if (ac5e?.debug.optins) {
 					}
@@ -2014,9 +1983,6 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					preserved.modified = preserved.modified.slice(0, currentFormulas.length);
 					if (Array.isArray(preserved.activeExtraDice)) {
 						preserved.activeExtraDice = preserved.activeExtraDice.slice(0, currentFormulas.length);
-					}
-					if (Array.isArray(preserved.activeCriticalStaticExtraDice)) {
-						preserved.activeCriticalStaticExtraDice = preserved.activeCriticalStaticExtraDice.slice(0, currentFormulas.length);
 					}
 					if (Array.isArray(preserved.activeExtraDiceMultipliers)) {
 						preserved.activeExtraDiceMultipliers = preserved.activeExtraDiceMultipliers.slice(0, currentFormulas.length);
@@ -2030,12 +1996,6 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					if (Array.isArray(preserved.activeOptinBonusParts)) {
 						preserved.activeOptinBonusParts = preserved.activeOptinBonusParts.slice(0, currentFormulas.length);
 					}
-					if (Array.isArray(preserved.activeCriticalBonusDamageByRoll)) {
-						preserved.activeCriticalBonusDamageByRoll = preserved.activeCriticalBonusDamageByRoll.slice(0, currentFormulas.length);
-					}
-					if (Array.isArray(preserved.baseCriticalBonusDamageByRoll)) {
-						preserved.baseCriticalBonusDamageByRoll = preserved.baseCriticalBonusDamageByRoll.slice(0, currentFormulas.length);
-					}
 				}
 			} else if (currentFormulas.length) {
 				getConfigAC5E.preservedInitialData = {
@@ -2043,17 +2003,13 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					modified: [...currentFormulas],
 					activeModifiers: '',
 					activeExtraDice: currentFormulas.map(() => 0),
-					activeCriticalStaticExtraDice: currentFormulas.map(() => 0),
 					activeExtraDiceMultipliers: currentFormulas.map(() => 1),
 					activeDiceSteps: currentFormulas.map(() => 0),
 					activeFormulaOperators: currentFormulas.map(() => []),
 					activeOptinBonusParts: currentFormulas.map(() => []),
-					activeCriticalBonusDamageByRoll: currentFormulas.map(() => ''),
-					baseCriticalBonusDamageByRoll: currentFormulas.map(() => null),
 					activeAdvDis: '',
 				};
 			}
-			syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
 			if (!dialog._ac5eDamageRollCountRefreshQueued) {
 				dialog._ac5eDamageRollCountRefreshQueued = true;
 				Promise.resolve().then(() => {
@@ -2077,7 +2033,6 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					.filter(Boolean);
 			}
 		}
-		syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
 		// Compare damage types
 		const damageTypesArray = getConfigAC5E.options.selectedDamageTypes;
 		const compared = compareArrays(damageTypesArray, selects);
@@ -2176,7 +2131,6 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		if (Number.isInteger(compared?.index) && compared?.selectedValue) nextDamageTypesByIndex[compared.index] = compared.selectedValue;
 
 		applyOrResetFormulaChanges(elem, getConfigAC5E, 'apply', baseFormulas, nextDamageTypesByIndex);
-		syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
 
 		dialog.rebuild();
 		dialog.render();
@@ -2209,13 +2163,10 @@ function ensureDamagePreservedInitialData(ac5eConfig, baseline) {
 		modified: [...baselineFormulas],
 		activeModifiers: '',
 		activeExtraDice: baselineFormulas.map(() => 0),
-		activeCriticalStaticExtraDice: baselineFormulas.map(() => 0),
 		activeExtraDiceMultipliers: baselineFormulas.map(() => 1),
 		activeDiceSteps: baselineFormulas.map(() => 0),
 		activeFormulaOperators: baselineFormulas.map(() => []),
 		activeOptinBonusParts: baselineFormulas.map(() => []),
-		activeCriticalBonusDamageByRoll: baselineFormulas.map(() => ''),
-		baseCriticalBonusDamageByRoll: baselineFormulas.map(() => null),
 		activeAdvDis: '',
 	};
 	ac5eConfig._preservedInitialDataProfileKey = profileKey;
@@ -2335,16 +2286,6 @@ function shouldApplyExtraDiceToRoll(entry, rollIndex, rollType) {
 	if (addTo.mode === 'base') return rollIndex === 0;
 	if (!rollType) return false;
 	return addTo.types.some((t) => t === String(rollType).toLowerCase());
-}
-
-function isCriticalStaticExtraDiceEntry(entry) {
-	return Boolean(entry?.criticalStatic);
-}
-
-function isRollCriticalForExtraDice(ac5eConfig, rollIndex) {
-	const byRoll = Array.isArray(ac5eConfig?.damageRollCriticalByIndex) ? ac5eConfig.damageRollCriticalByIndex : [];
-	if (typeof byRoll?.[rollIndex] === 'boolean') return byRoll[rollIndex];
-	return Boolean(ac5eConfig?.isCritical ?? ac5eConfig?.preAC5eConfig?.wasCritical ?? false);
 }
 
 function resolveDamageModifierAddTo(entry) {
@@ -3038,31 +2979,24 @@ function refreshAttackAutoRangeState(ac5eConfig, config) {
 	if (ac5eConfig?.tooltipObj?.attack) delete ac5eConfig.tooltipObj.attack;
 }
 
-function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollIndex, rollType, isCriticalRoll) {
+function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollIndex, rollType) {
 	const entries = getDamageEntriesByMode(ac5eConfig, selectedTypes, 'extraDice').filter(
 		(entry) => Boolean(entry?.optin || entry?.forceOptin) && shouldApplyExtraDiceToRoll(entry, rollIndex, rollType),
 	);
-	if (!entries.length) return { additive: 0, multiplier: 1, criticalStaticAdditive: 0 };
+	if (!entries.length) return { additive: 0, multiplier: 1 };
 	const selectedIds = new Set(Object.keys(optins ?? {}).filter((key) => optins[key]));
 	let additive = 0;
 	let multiplier = 1;
-	let criticalStaticAdditive = 0;
 	for (const entry of entries) {
 		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
-		const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
-		if (criticalStatic && !isCriticalRoll) continue;
 		const values = Array.isArray(entry.values) ? entry.values : [];
 		for (const value of values) {
 			const parsed = _parseExtraDiceValue(value);
-			if (criticalStatic) {
-				criticalStaticAdditive += parsed.additive;
-				continue;
-			}
 			additive += parsed.additive;
 			multiplier *= parsed.multiplier;
 		}
 	}
-	return { additive, multiplier, criticalStaticAdditive };
+	return { additive, multiplier };
 }
 
 function _parseExtraDiceValue(value) {
@@ -3081,44 +3015,6 @@ function _parseExtraDiceValue(value) {
 	const parsedAdditive = Number(raw.replace('+', '').trim());
 	if (Number.isNaN(parsedAdditive)) return { additive: 0, multiplier: 1 };
 	return { additive: parsedAdditive, multiplier: 1 };
-}
-
-function normalizeCriticalBonusDamageFormula(value) {
-	return typeof value === 'string' && value.trim().length ? value.trim() : '';
-}
-
-function captureBaseCriticalBonusDamage(ac5eConfig, rolls) {
-	const preserved = ac5eConfig?.preservedInitialData;
-	if (!preserved || !Array.isArray(rolls)) return;
-	const baseByRoll = Array.isArray(preserved.baseCriticalBonusDamageByRoll) ? [...preserved.baseCriticalBonusDamageByRoll] : [];
-	for (let index = 0; index < rolls.length; index++) {
-		if (typeof baseByRoll[index] === 'string') continue;
-		baseByRoll[index] = normalizeCriticalBonusDamageFormula(rolls[index]?.options?.critical?.bonusDamage);
-	}
-	if (baseByRoll.length > rolls.length) baseByRoll.length = rolls.length;
-	preserved.baseCriticalBonusDamageByRoll = baseByRoll;
-}
-
-function syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rolls) {
-	if (!ac5eConfig?.preservedInitialData || !Array.isArray(rolls)) return;
-	captureBaseCriticalBonusDamage(ac5eConfig, rolls);
-	const preserved = ac5eConfig.preservedInitialData;
-	const baseByRoll = Array.isArray(preserved.baseCriticalBonusDamageByRoll) ? preserved.baseCriticalBonusDamageByRoll : [];
-	const activeByRoll = Array.isArray(preserved.activeCriticalBonusDamageByRoll) ? preserved.activeCriticalBonusDamageByRoll : [];
-	for (let index = 0; index < rolls.length; index++) {
-		const roll = rolls[index];
-		if (!roll || typeof roll !== 'object') continue;
-		roll.options ??= {};
-		const baseBonus = normalizeCriticalBonusDamageFormula(baseByRoll[index]);
-		const ac5eBonus = normalizeCriticalBonusDamageFormula(activeByRoll[index]);
-		const combined = [baseBonus, ac5eBonus].filter(Boolean).join(' + ');
-		if (combined) {
-			roll.options.critical ??= {};
-			roll.options.critical.bonusDamage = combined;
-		} else if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
-			delete roll.options.critical.bonusDamage;
-		}
-	}
 }
 
 function _getDamageDiceStepFromEntry(entry, value) {
@@ -3197,32 +3093,23 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	// const extraDiceTotal = (getConfigAC5E.extraDice ?? []).reduce((a, b) => a + b, 0) * (isCritical ? 2 : 1);
 	const extraDiceAdjustments = formulas.map((_, index) => {
 		const rollType = damageTypesByIndex?.[index] ? String(damageTypesByIndex[index]).toLowerCase() : undefined;
-		const isCriticalRoll = isRollCriticalForExtraDice(getConfigAC5E, index);
 		const entries = getDamageEntriesByMode(getConfigAC5E, allTypes, 'extraDice');
 		let baseAdditive = 0;
 		let baseMultiplier = 1;
-		let baseCriticalStaticAdditive = 0;
 		for (const entry of entries) {
 			if (entry.optin) continue;
 			if (!shouldApplyExtraDiceToRoll(entry, index, rollType)) continue;
-			const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
-			if (criticalStatic && !isCriticalRoll) continue;
 			const values = Array.isArray(entry.values) ? entry.values : [];
 			for (const value of values) {
 				const parsed = _parseExtraDiceValue(value);
-				if (criticalStatic) {
-					baseCriticalStaticAdditive += parsed.additive;
-					continue;
-				}
 				baseAdditive += parsed.additive;
 				baseMultiplier *= parsed.multiplier;
 			}
 		}
-		const optinAdjustments = getOptinExtraDiceAdjustments(getConfigAC5E, allTypes, getConfigAC5E.optinSelected, index, rollType, isCriticalRoll);
+		const optinAdjustments = getOptinExtraDiceAdjustments(getConfigAC5E, allTypes, getConfigAC5E.optinSelected, index, rollType);
 		return {
 			additive: baseAdditive + optinAdjustments.additive,
 			multiplier: baseMultiplier * optinAdjustments.multiplier,
-			criticalStaticAdditive: baseCriticalStaticAdditive + optinAdjustments.criticalStaticAdditive,
 		};
 	});
 	const diceStepTotals = formulas.map((_, index) => {
@@ -3256,13 +3143,10 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			modified: [...formulas],
 			activeModifiers: '',
 			activeExtraDice: formulas.map(() => 0),
-			activeCriticalStaticExtraDice: formulas.map(() => 0),
 			activeExtraDiceMultipliers: formulas.map(() => 1),
 			activeDiceSteps: formulas.map(() => 0),
 			activeFormulaOperators: formulas.map(() => []),
 			activeOptinBonusParts: formulas.map(() => []),
-			activeCriticalBonusDamageByRoll: formulas.map(() => ''),
-			baseCriticalBonusDamageByRoll: formulas.map(() => null),
 			activeAdvDis: '',
 		};
 	}
@@ -3271,7 +3155,6 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		formulas: originals,
 		activeModifiers,
 		activeExtraDice,
-		activeCriticalStaticExtraDice,
 		activeExtraDiceMultipliers,
 		activeDiceSteps,
 		activeFormulaOperators,
@@ -3279,8 +3162,6 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		activeAdvDis,
 	} = getConfigAC5E.preservedInitialData;
 	const activeExtraDiceArray = Array.isArray(activeExtraDice) ? activeExtraDice : originals.map(() => activeExtraDice ?? 0);
-	const activeCriticalStaticExtraDiceArray =
-		Array.isArray(activeCriticalStaticExtraDice) ? activeCriticalStaticExtraDice : originals.map(() => activeCriticalStaticExtraDice ?? 0);
 	const activeExtraDiceMultiplierArray = Array.isArray(activeExtraDiceMultipliers) ? activeExtraDiceMultipliers : originals.map(() => activeExtraDiceMultipliers ?? 1);
 	const activeDiceStepsArray = Array.isArray(activeDiceSteps) ? activeDiceSteps : originals.map(() => activeDiceSteps ?? 0);
 	const activeFormulaOperatorsArray = Array.isArray(activeFormulaOperators) ? activeFormulaOperators.map((ops) => (Array.isArray(ops) ? [...ops] : [])) : originals.map(() => []);
@@ -3290,7 +3171,6 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	const diceRegex = /(\d+)d(\d+)([a-z0-9]*)?/gi;
 	const suffixChanged = activeModifiers !== suffix;
 	const additiveChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceArray[index] !== adj.additive);
-	const criticalStaticChanged = extraDiceAdjustments.some((adj, index) => activeCriticalStaticExtraDiceArray[index] !== (adj.criticalStaticAdditive ?? 0));
 	const multiplierChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceMultiplierArray[index] !== adj.multiplier);
 	const diceStepChanged = diceStepTotals.some((total, index) => activeDiceStepsArray[index] !== total);
 	const formulaOperatorChanged = !areStringMatrixEqual(activeFormulaOperatorsArray, formulaOperatorTokensByRoll);
@@ -3301,14 +3181,12 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		: '';
 	const advDisChanged = advDis !== activeAdvDis;
 
-	if (mode === 'apply' && !suffixChanged && !additiveChanged && !criticalStaticChanged && !multiplierChanged && !diceStepChanged && !formulaOperatorChanged && !optinBonusChanged && !advDisChanged) {
-		return false; // no changes
-	}
+	if (mode === 'apply' && !suffixChanged && !additiveChanged && !multiplierChanged && !diceStepChanged && !formulaOperatorChanged && !optinBonusChanged && !advDisChanged) return false; // no changes
 
 	if (
 		mode === 'reset' ||
 		(!suffixModifiers.length &&
-			extraDiceAdjustments.every((adj) => adj.additive === 0 && (adj.criticalStaticAdditive ?? 0) === 0 && adj.multiplier === 1) &&
+			extraDiceAdjustments.every((adj) => adj.additive === 0 && adj.multiplier === 1) &&
 			diceStepTotals.every((total) => total === 0) &&
 			formulaOperatorTokensByRoll.every((tokens) => !tokens.length) &&
 			optinBonusPartsByRoll.every((parts) => !parts.length) &&
@@ -3317,18 +3195,15 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		getConfigAC5E.preservedInitialData.modified = [...originals];
 		getConfigAC5E.preservedInitialData.activeModifiers = '';
 		getConfigAC5E.preservedInitialData.activeExtraDice = originals.map(() => 0);
-		getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDice = originals.map(() => 0);
 		getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = originals.map(() => 1);
 		getConfigAC5E.preservedInitialData.activeDiceSteps = originals.map(() => 0);
 		getConfigAC5E.preservedInitialData.activeFormulaOperators = originals.map(() => []);
 		getConfigAC5E.preservedInitialData.activeOptinBonusParts = originals.map(() => []);
-		getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll = originals.map(() => '');
 		getConfigAC5E.preservedInitialData.activeAdvDis = '';
 		return true;
 	}
 
 	const diceProgression = _getDamageDiceStepProgression();
-	const criticalBonusDamageByRoll = originals.map(() => '');
 	getConfigAC5E.preservedInitialData.modified = originals.map((formula, index) => {
 		const optinBonusParts = optinBonusPartsByRoll[index] ?? [];
 		let formulaWithOptins = formula;
@@ -3337,10 +3212,8 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		}
 		const resolvedFormula = resolveDamageFormulaDataReferences(formulaWithOptins, formulaReplacementData);
 		const extraDiceAdditive = extraDiceAdjustments[index]?.additive ?? 0;
-		const extraDiceCriticalStaticAdditive = extraDiceAdjustments[index]?.criticalStaticAdditive ?? 0;
 		const extraDiceMultiplier = extraDiceAdjustments[index]?.multiplier ?? 1;
 		const diceStepTotal = diceStepTotals[index] ?? 0;
-		const criticalStaticParts = [];
 		let nextFormula = resolvedFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const baseCount = parseInt(count, 10);
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
@@ -3355,15 +3228,6 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			else if (advDis === 'dis') term = `{${diceTerm},${diceTerm}}kl`;
 			else term = diceTerm;
 
-			if (extraDiceCriticalStaticAdditive > 0) {
-				const criticalDiceTerm = `${extraDiceCriticalStaticAdditive}d${shiftedSides}${suffix}`;
-				let criticalTerm;
-				if (advDis === 'adv') criticalTerm = `{${criticalDiceTerm},${criticalDiceTerm}}kh`;
-				else if (advDis === 'dis') criticalTerm = `{${criticalDiceTerm},${criticalDiceTerm}}kl`;
-				else criticalTerm = criticalDiceTerm;
-				criticalStaticParts.push(`${criticalTerm}${existing}`);
-			}
-
 			// Preserve any existing [tag]
 			return `${term}${existing}`;
 		});
@@ -3371,27 +3235,20 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		for (const op of formulaOperators) {
 			nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 		}
-		let criticalBonusDamage = criticalStaticParts.join(' + ');
-		for (const op of formulaOperators) {
-			criticalBonusDamage = applyFormulaOperatorToAllTerms(criticalBonusDamage, op);
-		}
-		criticalBonusDamageByRoll[index] = criticalBonusDamage;
 		return nextFormula;
 	});
 
 	getConfigAC5E.preservedInitialData.activeModifiers = suffix;
 	getConfigAC5E.preservedInitialData.activeExtraDice = extraDiceAdjustments.map((adj) => adj.additive);
-	getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDice = extraDiceAdjustments.map((adj) => adj.criticalStaticAdditive ?? 0);
 	getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = extraDiceAdjustments.map((adj) => adj.multiplier);
 	getConfigAC5E.preservedInitialData.activeDiceSteps = [...diceStepTotals];
 	getConfigAC5E.preservedInitialData.activeFormulaOperators = formulaOperatorTokensByRoll.map((tokens) => [...tokens]);
 	getConfigAC5E.preservedInitialData.activeOptinBonusParts = optinBonusPartsByRoll.map((parts) => [...parts]);
-	getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll = criticalBonusDamageByRoll;
 	getConfigAC5E.preservedInitialData.activeAdvDis = advDis;
 	return true;
 }
 
-function doDialogAbilityRender(dialog, getConfigAC5E, selectedAbility) {
+function doDialogSkillOrToolRender(dialog, elem, getConfigAC5E, selectedAbility) {
 	if (!selectedAbility) return;
 	const newConfig = dialog.config;
 	newConfig.ability = selectedAbility;
@@ -3407,9 +3264,8 @@ function doDialogAbilityRender(dialog, getConfigAC5E, selectedAbility) {
 	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
 	const reEval = getConfigAC5E.reEval ?? {};
-	const activeHook = getConfigAC5E.hookType === 'save' ? 'save' : 'check';
-	if (activeHook === 'save') _preRollSavingThrow(newConfig, newDialog, newMessage, activeHook);
-	else _preRollAbilityCheck(newConfig, newDialog, newMessage, activeHook, reEval);
+
+	getConfigAC5E = _preRollAbilityCheck(newConfig, newDialog, newMessage, 'check', reEval);
 	dialog.rebuild();
 	dialog.render();
 }
