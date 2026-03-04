@@ -1,3 +1,17 @@
+## 13.5250.8
+* Improved save/check dialog re-evaluation when ability selection changes (including MidiQOL ability dropdown flows).
+  * AC5E now re-runs flag evaluation when `ability` changes in the d20 roll config dialog for `save` and `check` hooks.
+  * Fixes cases where `save.modifyDC` and other ability-scoped flags stayed on the initially preselected ability (for example DEX) after switching to another ability (for example WIS).
+* Skill and tool checks now follow the same ability-change re-evaluation path, keeping modifier/advantage/DC behavior consistent after changing the selected ability.
+* Fast-forward d20 rolls now keep resolved AC5E advantage state in sync with roll options/config, improving MidiQOL mode parity when no dialog is shown.
+* MidiQOL save/check attribution now includes AC5E `modifyDC` reasons in the Midi tooltip attribution list.
+* Hardened target/DC updates so attack-style target AC mutation is only applied for attack hooks and not save/check flows.
+* Added `criticalStatic` support for `damage.extraDice` entries.
+  * `criticalStatic` entries are only applied when the roll is critical.
+  * Their added dice count is treated as static extra dice and is not multiplied by extra-dice multipliers.
+  * Works with source/grants/aura entries and existing `addTo` targeting.
+  * Example: `flags.automated-conditions-5e.damage.extraDice | bonus=3;criticalStatic`
+
 ## 13.5250.7
 * Expanded MidiQOL compatibility and attribution handling for attack/check/save rolls:
   * AC5E now ingests Midi tracker attributions for advantage/disadvantage/fail/success and dedupes overlapping reasons.
@@ -29,7 +43,6 @@
   * Added handling for `hp.max`-style consumption paths reaching `<= 0`.
 * Fixed item quantity update path to write resolved `newQuantity` directly to `system.quantity`.
 * Refactored `_hasItem` helper to support identifier, name, id, or uuid matching for more flexible item references in conditions and usage rules.
-* Exposed `ac5e.hasItem(...)` on the module API and in evaluation sandbox helpers.
 * Added targeted debug gates for AC5E hook tracing and `_setAC5eProperties` without requiring full global debug logging.
 * Message/use resolution hardening:
   * `getMessageData` and use-config resolution now prefer prehook `message.data.flags` when present, with fallback to `message.flags`.
