@@ -122,7 +122,7 @@ async function deletions(uuids = []) {
 				_logDeleteTrace('delete-error', { uuid, source, traceTag, message: err?.message, err });
 				console.error(`${Constants.GM_EFFECT_DELETIONS} failed to delete ${uuid}:`, err);
 			}
-		})
+		}),
 	);
 }
 
@@ -189,6 +189,6 @@ async function documentUpdates(entries) {
 			} catch (err) {
 				console.error(`${Constants.GM_DOCUMENT_UPDATES} failed to update ${uuid}:`, err);
 			}
-		})
+		}),
 	);
 }

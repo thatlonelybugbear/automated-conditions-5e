@@ -2231,7 +2231,10 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	};
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
-	const selectedType = selectedMode === advModes?.ADVANTAGE ? 'ADV' : selectedMode === advModes?.DISADVANTAGE ? 'DIS' : '';
+	const selectedType =
+		selectedMode === advModes?.ADVANTAGE ? 'ADV'
+		: selectedMode === advModes?.DISADVANTAGE ? 'DIS'
+		: '';
 	if (selectedType) {
 		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
 		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
@@ -2470,7 +2473,10 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	};
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
-	const selectedType = selectedMode === advModes?.ADVANTAGE ? 'ADV' : selectedMode === advModes?.DISADVANTAGE ? 'DIS' : '';
+	const selectedType =
+		selectedMode === advModes?.ADVANTAGE ? 'ADV'
+		: selectedMode === advModes?.DISADVANTAGE ? 'DIS'
+		: '';
 	if (selectedType) {
 		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
 		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
@@ -2489,20 +2495,14 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 		return Number.isFinite(numeric) ? numeric : undefined;
 	};
 	const baseTargetADC =
-		getNumericTarget(ac5eConfig?.initialTargetADC) ??
-		getNumericTarget(config?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.options?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.target) ??
-		10;
+		getNumericTarget(ac5eConfig?.initialTargetADC) ?? getNumericTarget(config?.target) ?? getNumericTarget(config?.rolls?.[0]?.options?.target) ?? getNumericTarget(config?.rolls?.[0]?.target) ?? 10;
 	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
-	const targetValuePool = targetValues.length ? targetValues : (Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC : []);
-	const alteredTargetADC =
-		getNumericTarget(ac5eConfig?.alteredTargetADC) ??
-		(targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
-	const modifyDCPrefix =
-		targetADCLabels.length ?
-			`${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}`
-		:	'';
+	const targetValuePool =
+		targetValues.length ? targetValues
+		: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
+		: [];
+	const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
+	const modifyDCPrefix = targetADCLabels.length ? `${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
 	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
 	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);

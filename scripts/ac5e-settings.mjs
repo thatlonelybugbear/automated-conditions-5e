@@ -144,12 +144,12 @@ export default class Settings {
 				new foundry.data.fields.StringField({
 					choices: () => ({
 						meleeDiagonals: { label: 'AC5E.AutoRangeChecks.MeleeDiagonals' },
-						meleeOoR: { label: 'AC5E.AutoRangeChecks.MeleeOutOfRange' },						
+						meleeOoR: { label: 'AC5E.AutoRangeChecks.MeleeOutOfRange' },
 						rangedLongDisadvantage: { label: 'AC5E.AutoRangeChecks.RangedLongDisadvantage' },
 						rangedOoR: { label: 'AC5E.AutoRangeChecks.RangedOutOfRange' },
 						rangedNearbyFoes: { label: 'AC5E.AutoRangeChecks.RangedNearbyFoes' },
-					})
-				})
+					}),
+				}),
 			),
 			scope: 'world',
 			config: true,

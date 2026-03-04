@@ -1,5 +1,5 @@
 {
-	"AC5E.ShowTooltipsName": "Afficher les info-bulles de l'AC5e :",
+	"AC5E.ShowTooltipsName": "Afficher les info-bulles de l'AC5e:",
 	"AC5E.ShowTooltipsHint": "Lorsqu'une option est sélectionnée, AC5e affichera une info-bulle lorsque vous survolerez le bouton 'Jet', un message ou les deux qui résument les raisons de cette suggestion.",
 	"AC5E.ShowToolTipsChoicesBoth": "Messages sur le bouton 'jet' et dans le tchat",
 	"AC5E.ShowToolTipsChoicesDialog": "Uniquement sur le bouton 'jet'",

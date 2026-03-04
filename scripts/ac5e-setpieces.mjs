@@ -1041,9 +1041,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		];
 
 		// Range keys can contain substrings like "bonus" or "fail"; force range mode first.
-		const mode = key.includes('.range.')
-			? 'range'
-			: modeMap.find(([m]) => key.includes(m))?.[1];
+		const mode = key.includes('.range.') ? 'range' : modeMap.find(([m]) => key.includes(m))?.[1];
 		return { actorType, mode, isAll };
 	};
 
@@ -1436,7 +1434,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const hasStandaloneRangeKeyword = (value, keyword) => new RegExp(`(?:^|;)\\s*${keyword}\\s*(?:;|$)`, 'i').test(String(value ?? ''));
 	const parseRangeData = ({ key, value, evaluationData, effect, isAura, debug }) => {
 		const lowerKey = String(key ?? '').toLowerCase();
-		const explicitMatch = lowerKey.match(/\.range\.(short|long|reach|bonus|longdisadvantage|nolongdisadvantage|nearbyfoes|nonearbyfoes|nearbyfoedisadvantage|nonearbyfoedisadvantage|fail|outofrangefail|nofail|nooutofrangefail)$/i);
+		const explicitMatch = lowerKey.match(
+			/\.range\.(short|long|reach|bonus|longdisadvantage|nolongdisadvantage|nearbyfoes|nonearbyfoes|nearbyfoedisadvantage|nonearbyfoedisadvantage|fail|outofrangefail|nofail|nooutofrangefail)$/i,
+		);
 		const explicitValue =
 			String(value ?? '')
 				.split(';')
@@ -1452,24 +1452,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const longRaw = explicitKey === 'long' ? explicitValue : getRangeKeyedValue(value, 'long');
 		const reachRaw = explicitKey === 'reach' ? explicitValue : getRangeKeyedValue(value, 'reach');
 		const bonusRaw = explicitKey === 'bonus' ? explicitValue : getRangeKeyedValue(value, 'bonus');
-		const longDisRaw =
-			explicitKey === 'longdisadvantage' ? explicitValue
-			: getRangeKeyedValue(value, 'longDisadvantage');
-		const noLongRaw =
-			explicitKey === 'nolongdisadvantage' ? explicitValue
-			: getRangeKeyedValue(value, 'noLongDisadvantage');
-		const nearbyDisRaw =
-			explicitKey === 'nearbyfoedisadvantage' || explicitKey === 'nearbyfoes' ? explicitValue
-			: getRangeKeyedValue(value, 'nearbyFoeDisadvantage', 'nearbyFoes');
-		const noNearbyDisRaw =
-			explicitKey === 'nonearbyfoedisadvantage' || explicitKey === 'nonearbyfoes' ? explicitValue
-			: getRangeKeyedValue(value, 'noNearbyFoeDisadvantage', 'noNearbyFoes');
-		const failRaw =
-			explicitKey === 'fail' || explicitKey === 'outofrangefail' ? explicitValue
-			: getRangeKeyedValue(value, 'fail', 'outOfRangeFail');
-		const noFailRaw =
-			explicitKey === 'nofail' || explicitKey === 'nooutofrangefail' ? explicitValue
-			: getRangeKeyedValue(value, 'noFail', 'noOutOfRangeFail');
+		const longDisRaw = explicitKey === 'longdisadvantage' ? explicitValue : getRangeKeyedValue(value, 'longDisadvantage');
+		const noLongRaw = explicitKey === 'nolongdisadvantage' ? explicitValue : getRangeKeyedValue(value, 'noLongDisadvantage');
+		const nearbyDisRaw = explicitKey === 'nearbyfoedisadvantage' || explicitKey === 'nearbyfoes' ? explicitValue : getRangeKeyedValue(value, 'nearbyFoeDisadvantage', 'nearbyFoes');
+		const noNearbyDisRaw = explicitKey === 'nonearbyfoedisadvantage' || explicitKey === 'nonearbyfoes' ? explicitValue : getRangeKeyedValue(value, 'noNearbyFoeDisadvantage', 'noNearbyFoes');
+		const failRaw = explicitKey === 'fail' || explicitKey === 'outofrangefail' ? explicitValue : getRangeKeyedValue(value, 'fail', 'outOfRangeFail');
+		const noFailRaw = explicitKey === 'nofail' || explicitKey === 'nooutofrangefail' ? explicitValue : getRangeKeyedValue(value, 'noFail', 'noOutOfRangeFail');
 		if (shortRaw) rangeData.short = parseRangeComponent({ expression: shortRaw, evaluationData, effect, isAura, debug });
 		if (longRaw) rangeData.long = parseRangeComponent({ expression: longRaw, evaluationData, effect, isAura, debug });
 		if (reachRaw) rangeData.reach = parseRangeComponent({ expression: reachRaw, evaluationData, effect, isAura, debug });
@@ -1487,8 +1475,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let noNearbyFoeDisadvantage = parseRangeToggle({ expression: noNearbyDisRaw, evaluationData, effect, isAura, debug });
 		if (nearbyFoeDisadvantage === undefined && (explicitKey === 'nearbyfoedisadvantage' || explicitKey === 'nearbyfoes')) nearbyFoeDisadvantage = true;
 		if (noNearbyFoeDisadvantage === undefined && (explicitKey === 'nonearbyfoedisadvantage' || explicitKey === 'nonearbyfoes')) noNearbyFoeDisadvantage = true;
-		if (noNearbyFoeDisadvantage === undefined && (hasStandaloneRangeKeyword(value, 'nonearbyfoedisadvantage') || hasStandaloneRangeKeyword(value, 'nonearbyfoes')))
-			noNearbyFoeDisadvantage = true;
+		if (noNearbyFoeDisadvantage === undefined && (hasStandaloneRangeKeyword(value, 'nonearbyfoedisadvantage') || hasStandaloneRangeKeyword(value, 'nonearbyfoes'))) noNearbyFoeDisadvantage = true;
 		if (nearbyFoeDisadvantage === undefined && typeof noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !noNearbyFoeDisadvantage;
 		if (typeof nearbyFoeDisadvantage === 'boolean') rangeData.nearbyFoeDisadvantage = nearbyFoeDisadvantage;
 		if (typeof nearbyFoeDisadvantage === 'boolean') rangeData.nearbyFoes = nearbyFoeDisadvantage;
@@ -1607,10 +1594,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const usesCountTarget = getUsesCountTarget(el.value);
 				const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
 				const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-				const autoDescription =
-					!description && (optin || usesOverride?.forceDescription) ?
-						buildAutoDescription({ mode, hook, bonus, modifier, set, threshold })
-					:	undefined;
+				const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -1713,10 +1697,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			const usesCountTarget = getUsesCountTarget(el.value);
 			const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
 			const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-			const autoDescription =
-				!description && (optin || usesOverride?.forceDescription) ?
-					buildAutoDescription({ mode, hook, bonus, modifier, set, threshold })
-				:	undefined;
+			const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 			let valuesToEvaluate = el.value
 				.split(';')
 				.map((v) => v.trim())
@@ -1792,10 +1773,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const usesCountTarget = getUsesCountTarget(el.value);
 				const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
 				const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-				const autoDescription =
-					!description && (optin || usesOverride?.forceDescription) ?
-						buildAutoDescription({ mode, hook, bonus, modifier, set, threshold })
-					:	undefined;
+				const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
 				let valuesToEvaluate = el.value
 					.split(';')
 					.map((v) => v.trim())
@@ -2111,8 +2089,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						addTo: entry.addTo ? foundry.utils.duplicate(entry.addTo) : undefined,
 						requiredDamageTypes: foundry.utils.duplicate(entry.requiredDamageTypes ?? []),
 					});
-				}
-				else if (!optin) {
+				} else if (!optin) {
 					let mod;
 					if (modifier.includes('max')) {
 						mod = Number(modifier.replace('max', ''));
@@ -2371,11 +2348,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
 		const consumptionValue = parsedCount.consume;
 		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
-		const hasOrigin =
-			lowerConsumptionTarget === 'origin' ||
-			lowerConsumptionTarget.startsWith('origin.') ||
-			lowerConsumptionTarget.endsWith('.origin') ||
-			lowerConsumptionTarget.includes('.origin.');
+		const hasOrigin = lowerConsumptionTarget === 'origin' || lowerConsumptionTarget.startsWith('origin.') || lowerConsumptionTarget.endsWith('.origin') || lowerConsumptionTarget.includes('.origin.');
 		let isNumber;
 		if (!hasOrigin) {
 			const directTargetNumber = Number(consumptionTarget);
@@ -2427,8 +2400,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				else effectDeletionsGM.push({ name: effect.name, uuid: effect.uuid });
 			} else {
 				let changes = foundry.utils.duplicate(effect.changes);
-				const index =
-					changeIndex >= 0 && changeIndex < changes.length && changes[changeIndex]?.key === change.key ? changeIndex : changes.findIndex((c) => c.key === change.key);
+				const index = changeIndex >= 0 && changeIndex < changes.length && changes[changeIndex]?.key === change.key ? changeIndex : changes.findIndex((c) => c.key === change.key);
 
 				if (index >= 0) {
 					changes[index].value = _replaceUsesCountLiteral(changes[index].value, newUses);
@@ -2643,9 +2615,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const abilityMatch = attr.match(/(?:^|\.)(?:system\.)?abilities\.([a-z0-9]+)\.value$/);
 							const abilityId = abilityMatch?.[1];
 							if (!abilityId) return false;
-							const valueRaw =
-								foundry.utils.getProperty(consumptionActor, `abilities.${abilityId}.value`) ??
-								foundry.utils.getProperty(consumptionActor, `system.abilities.${abilityId}.value`);
+							const valueRaw = foundry.utils.getProperty(consumptionActor, `abilities.${abilityId}.value`) ?? foundry.utils.getProperty(consumptionActor, `system.abilities.${abilityId}.value`);
 							const value = Number(valueRaw);
 							if (!Number.isFinite(value)) return false;
 							const newValue = value - consume;
@@ -2942,7 +2912,15 @@ function _getUsesState({ item, activity }) {
 		const quantity = _asFiniteNumber(item?.system?.quantity);
 		if (quantity !== null) currentQuantity = quantity;
 	}
-	return { currentUses, currentQuantity, usesMax: hasActivityUses ? activityUsesMax : hasItemUses ? itemUsesMax : null, usesSource };
+	return {
+		currentUses,
+		currentQuantity,
+		usesMax:
+			hasActivityUses ? activityUsesMax
+			: hasItemUses ? itemUsesMax
+			: null,
+		usesSource,
+	};
 }
 
 function _replaceUsesCountLiteral(changeValue, nextUses) {
@@ -2982,25 +2960,13 @@ function _registerOriginUsesPermissionOverride({ updateArrays, id, baseId, owner
 	});
 }
 
-function updateUsesCount({
-	effect,
-	item,
-	activity,
-	currentUses,
-	currentQuantity,
-	usesMax,
-	usesSource,
-	consume,
-	id,
-	baseId,
-	activityUpdates,
-	activityUpdatesGM,
-	itemUpdates,
-	itemUpdatesGM,
-}) {
+function updateUsesCount({ effect, item, activity, currentUses, currentQuantity, usesMax, usesSource, consume, id, baseId, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM }) {
 	const hasUses = currentUses !== false;
 	const hasQuantity = currentQuantity !== false;
-	const usesDocumentOwner = usesSource === 'activity' ? Boolean(activity?.isOwner) : usesSource === 'item' ? Boolean(item?.isOwner) : false;
+	const usesDocumentOwner =
+		usesSource === 'activity' ? Boolean(activity?.isOwner)
+		: usesSource === 'item' ? Boolean(item?.isOwner)
+		: false;
 	const quantityDocumentOwner = Boolean(item?.isOwner);
 	const newUses = hasUses ? currentUses - consume : null;
 	const newQuantity = hasQuantity ? currentQuantity - consume : null;
