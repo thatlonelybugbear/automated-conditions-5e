@@ -1,3 +1,9 @@
+## Unreleased
+
+- Consolidated MidiQOL `modifyDC` attribution display for ability/save rolls into a single tooltip line.
+  - `set` and additive `bonus` logic is unchanged (`set` baseline, then additive bonuses).
+  - Multiple AC5E `modifyDC` sources now render as one combined reason list instead of repeated `Modified DC X (Y)` lines.
+
 ## 13.5250.8.2
 
 - Reworked MidiQOL attribution sync for save/check flows so AC5E advantage and `modifyDC` reasons are carried more reliably into Midi tooltip attribution.

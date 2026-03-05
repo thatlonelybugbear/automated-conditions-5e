@@ -2575,10 +2575,19 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 			_setMidiTrackerAttribution(tracker, type, displayLabel, displayLabel);
 		}
 	};
-	const addCustomAttributionEntries = (prefixLabel, labels = []) => {
+	const addCustomAttributionEntries = (prefixLabel, labels = [], options = {}) => {
 		const prefix = String(prefixLabel ?? '').trim();
-		if (!prefix || !labels.length) return;
-		for (const [index, label] of labels.entries()) {
+		const cleanedLabels = labels.map((label) => String(label ?? '').trim()).filter(Boolean);
+		if (!prefix || !cleanedLabels.length) return;
+		const { combineLabelList = false } = options ?? {};
+		if (combineLabelList) {
+			const displayLabel = `${prefix}: ${cleanedLabels.join(', ')}`;
+			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
+			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:0`;
+			_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
+			return;
+		}
+		for (const [index, label] of cleanedLabels.entries()) {
 			const cleaned = String(label ?? '').trim();
 			if (!cleaned) continue;
 			const displayLabel = `${prefix}: ${cleaned}`;
@@ -2645,7 +2654,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
-	addCustomAttributionEntries(modifyDCPrefix, targetADCDisplayLabels);
+	addCustomAttributionEntries(modifyDCPrefix, targetADCDisplayLabels, { combineLabelList: true });
 		_logMidiTrackerSnapshot('ability.post', {
 			hookType: ac5eConfig?.hookType,
 			tracker,
