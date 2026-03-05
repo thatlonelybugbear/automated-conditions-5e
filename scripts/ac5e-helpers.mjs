@@ -2061,11 +2061,55 @@ function _normalizeMidiAttributionLabel(value, source) {
 	return rawValue;
 }
 
+function _setMidiTrackerAttribution(tracker, type, source, label) {
+	if (!tracker || !type || !source) return;
+	const nextLabel = String(label ?? '').trim();
+	if (!nextLabel) return;
+	if (typeof tracker?.addAttribution === 'function') {
+		tracker.addAttribution(type, source, nextLabel);
+		return;
+	}
+	tracker.attribution ??= {};
+	if (!tracker.attribution[type] || typeof tracker.attribution[type] !== 'object') tracker.attribution[type] = {};
+	if (!tracker.attribution[type][source]) tracker.attribution[type][source] = nextLabel;
+}
+
+const MIDI_TRACKER_DEBUG_MARKER = 'ac5e-midi-tracker-sync-2026-03-05-r1';
+
+function _shouldLogMidiTrackerSync() {
+	return Boolean(settings.debug || _debugFlagEnabled('midiTooltipSync') || _debugFlagEnabled('midiTrackerSync'));
+}
+
+function _logMidiTrackerBuildMarkerOnce(context = '') {
+	if (!_shouldLogMidiTrackerSync()) return;
+	if (globalThis.__ac5eMidiTrackerBuildMarkerLogged) return;
+	globalThis.__ac5eMidiTrackerBuildMarkerLogged = true;
+	console.warn('AC5E midiTrackerSync build marker', { marker: MIDI_TRACKER_DEBUG_MARKER, context });
+}
+
+function _logMidiTrackerSnapshot(phase, { hookType, tracker, ac5eConfig, extra = {} } = {}) {
+	if (!_shouldLogMidiTrackerSync()) return;
+	console.warn('AC5E midiTrackerSync snapshot', {
+		marker: MIDI_TRACKER_DEBUG_MARKER,
+		phase,
+		hookType,
+		defaultButton: ac5eConfig?.defaultButton,
+		advantageMode: ac5eConfig?.advantageMode,
+		trackerHasAddAttribution: typeof tracker?.addAttribution === 'function',
+		trackerAttribution: foundry.utils.duplicate(tracker?.attribution ?? {}),
+		...extra,
+	});
+}
+
 function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	if (!_activeModule('midi-qol')) return;
 	if (ac5eConfig?.hookType !== 'attack') return;
 	const tracker = config?.workflow?.attackRollModifierTracker;
-	if (!tracker?.addAttribution || !tracker?.attribution) return;
+	if (!tracker || typeof tracker !== 'object') return;
+	tracker.attribution ??= {};
+	if (typeof tracker.attribution !== 'object') return;
+	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAttackRollModifierTracker');
+	_logMidiTrackerSnapshot('attack.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig });
 	const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
 	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
 	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
@@ -2198,7 +2242,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 			if (hasEquivalentMidiAttribution(type, label)) continue;
 			const displayLabel = withDisplayPrefix(label);
 			if (!displayLabel) continue;
-			tracker.addAttribution(type, displayLabel, displayLabel);
+			_setMidiTrackerAttribution(tracker, type, displayLabel, displayLabel);
 		}
 	};
 	const addCustomAttributionEntries = (prefixLabel, labels = []) => {
@@ -2210,7 +2254,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 			const displayLabel = `${prefix}: ${cleaned}`;
 			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
 			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
-			tracker.addAttribution('AC5E', source, displayLabel);
+			_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
 		}
 	};
 	addEntries('ADV', advantageLabels);
@@ -2237,10 +2281,11 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		: '';
 	if (selectedType) {
 		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
-		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
 		const hasOppositeAc5e = hasAc5eAttribution(oppositeType);
 		const hasSelectedNonAc5e = hasNonAc5eAttribution(selectedType);
-		if (hasOppositeAc5e && !hasSelectedAc5e && !hasSelectedNonAc5e) tracker.addAttribution(selectedType, 'config-buttons', configButtonsFallbackLabel);
+		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
+		const shouldAddConfigButtons = (hasOppositeAc5e || !hasSelectedAc5e) && !hasSelectedNonAc5e;
+		if (shouldAddConfigButtons) _setMidiTrackerAttribution(tracker, selectedType, 'config-buttons', configButtonsFallbackLabel);
 	}
 	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
@@ -2254,62 +2299,149 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
+	_logMidiTrackerSnapshot('attack.post', {
+		hookType: ac5eConfig?.hookType,
+		tracker,
+		ac5eConfig,
+		extra: {
+			advantageLabels,
+			disadvantageLabels,
+			noAdvantageLabels,
+			noDisadvantageLabels,
+		},
+	});
 }
 
 function _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, type) {
 	if (!type) return [];
-	const tracker = _resolveMidiAbilityRollModifierTracker(ac5eConfig, config, dialog, { requireWritable: false });
-	const typeEntries = tracker?.attribution?.[type];
-	if (!typeEntries || typeof typeEntries !== 'object') return [];
 	const entries = [];
-	for (const [source, value] of Object.entries(typeEntries)) {
-		if (typeof source === 'string') {
-			const normalized = source.trim();
-			if (normalized.startsWith(`${Constants.MODULE_ID}:`) || /^ac5e(?:\b|[:\s-])/i.test(normalized)) continue;
+	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
+	for (const tracker of trackers) {
+		const typeEntries = tracker?.attribution?.[type];
+		if (!typeEntries || typeof typeEntries !== 'object') continue;
+		for (const [source, value] of Object.entries(typeEntries)) {
+			if (typeof source === 'string') {
+				const normalized = source.trim();
+				if (normalized.startsWith(`${Constants.MODULE_ID}:`) || /^ac5e(?:\b|[:\s-])/i.test(normalized)) continue;
+			}
+			const label = _normalizeMidiAttributionLabel(value, source);
+			if (label) entries.push(label);
 		}
-		const label = _normalizeMidiAttributionLabel(value, source);
-		if (label) entries.push(label);
 	}
 	return [...new Set(entries)];
 }
 
-function _resolveMidiAbilityRollModifierTracker(ac5eConfig, config, dialog, { requireWritable = true } = {}) {
+function _resolveMidiAbilityWorkflow(config) {
+	const directWorkflow = config?.midiOptions?.workflow;
+	if (directWorkflow && typeof directWorkflow === 'object') return directWorkflow;
+	const workflowId = config?.midiOptions?.workflowId;
+	if (!workflowId) return undefined;
+	return globalThis?.MidiQOL?.Workflow?.getWorkflow?.(workflowId);
+}
+
+function _matchingMidiAbilityWorkflowSaveDetails(ac5eConfig, config) {
+	const workflow = _resolveMidiAbilityWorkflow(config);
+	const targetSaveDetails = workflow?.targetSaveDetails;
+	if (!targetSaveDetails || typeof targetSaveDetails !== 'object') return [];
+	const token = canvas?.tokens?.get?.(ac5eConfig?.tokenId);
+	const actorUuid = token?.actor?.uuid;
+	const tokenDocUuid = token?.document?.uuid;
+	const rollActorUuid = config?.rolls?.[0]?.options?.actorUuid ?? config?.rolls?.[0]?.data?.actorUuid;
+	const candidateActorUuids = new Set([actorUuid, rollActorUuid].filter((value) => typeof value === 'string' && value.trim()));
+	const candidateTokenDocUuids = new Set([tokenDocUuid].filter((value) => typeof value === 'string' && value.trim()));
+	const entries = Object.entries(targetSaveDetails ?? {}).filter(([, saveDetails]) => saveDetails && typeof saveDetails === 'object');
+	const hasActorCandidates = candidateActorUuids.size > 0;
+	const hasTokenCandidates = candidateTokenDocUuids.size > 0;
+	if (!hasActorCandidates && !hasTokenCandidates) return entries.length === 1 ? entries : [];
+	const matches = entries.filter(([workflowTokenDocUuid, saveDetails]) => {
+		const entryActorUuid = saveDetails?.actorUuid;
+		const actorMatch = hasActorCandidates && typeof entryActorUuid === 'string' ? candidateActorUuids.has(entryActorUuid) : false;
+		const tokenMatch = hasTokenCandidates ? candidateTokenDocUuids.has(workflowTokenDocUuid) : false;
+		return actorMatch || tokenMatch;
+	});
+	if (matches.length) return matches;
+	if (entries.length === 1) return entries;
+	return [];
+}
+
+function _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable = true, includeAllChoices = false } = {}) {
 	const toTracker = (value) => {
 		if (!value || typeof value !== 'object') return undefined;
 		const tracker = value?.tracker ?? value;
 		if (!tracker || typeof tracker !== 'object') return undefined;
 		if (requireWritable && typeof tracker.addAttribution !== 'function') return undefined;
-		if (!tracker.attribution || typeof tracker.attribution !== 'object') return undefined;
 		return tracker;
 	};
+	const collected = [];
+	const seen = new Set();
+	const collect = (value) => {
+		const tracker = toTracker(value);
+		if (!tracker || seen.has(tracker)) return;
+		seen.add(tracker);
+		collected.push(tracker);
+	};
 	const maps = [config?.midiOptions?.advantageByChoice, config?.options?.advantageByChoice, dialog?.options?.advantageByChoice].filter((candidate) => candidate && typeof candidate === 'object');
-	const choiceKeys = [config?.skill, config?.tool, config?.ability, ac5eConfig?.options?.skill, ac5eConfig?.options?.tool, ac5eConfig?.options?.ability]
+	const choiceKeys = [
+		config?.skill,
+		config?.tool,
+		config?.ability,
+		config?.rolls?.[0]?.options?.midiChosenId,
+		config?.rolls?.[0]?.options?.ability,
+		config?.rolls?.[0]?.options?.skill,
+		config?.rolls?.[0]?.options?.tool,
+		ac5eConfig?.options?.skill,
+		ac5eConfig?.options?.tool,
+		ac5eConfig?.options?.ability,
+	]
 		.map((value) => (typeof value === 'string' ? value.trim() : ''))
 		.filter(Boolean);
 	for (const map of maps) {
 		for (const key of choiceKeys) {
-			const tracker = toTracker(map?.[key]);
-			if (tracker) return tracker;
+			collect(map?.[key]);
 		}
+	}
+	if (includeAllChoices) {
+		for (const map of maps) {
+			for (const value of Object.values(map ?? {})) collect(value);
+		}
+	}
+	const chosenId = config?.rolls?.[0]?.options?.midiChosenId;
+	const workflowSaveDetailsMatches = _matchingMidiAbilityWorkflowSaveDetails(ac5eConfig, config);
+	for (const [, saveDetails] of workflowSaveDetailsMatches) {
+		collect(saveDetails?.modifierTracker);
+		const choiceMap = saveDetails?.advantageByChoice;
+		if (!choiceMap || typeof choiceMap !== 'object') continue;
+		if (typeof chosenId === 'string' && chosenId.trim()) collect(choiceMap[chosenId.trim()]);
+		if (includeAllChoices) {
+			for (const value of Object.values(choiceMap ?? {})) collect(value);
+		}
+		const choiceEntries = Object.values(choiceMap ?? {});
+		if (choiceEntries.length === 1) collect(choiceEntries[0]);
 	}
 	for (const map of maps) {
 		const entries = Object.values(map ?? {});
 		if (entries.length !== 1) continue;
-		const tracker = toTracker(entries[0]);
-		if (tracker) return tracker;
+		collect(entries[0]);
 	}
-	return toTracker(config?.midiOptions?.modifierTracker) ?? toTracker(config?.midiOptions?.tracker);
+	collect(config?.midiOptions?.modifierTracker);
+	collect(config?.midiOptions?.tracker);
+	return collected;
 }
 
 function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	if (!_activeModule('midi-qol')) return;
 	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return;
-	const tracker = _resolveMidiAbilityRollModifierTracker(ac5eConfig, config, dialog);
-	if (!tracker) return;
-	const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS', 'AC5E'];
-	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
-	const displaySourcePrefix = 'AC5E ';
+	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
+	if (!trackers.length) return;
+	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAbilityRollModifierTracker');
+	for (const [trackerIndex, tracker] of trackers.entries()) {
+		tracker.attribution ??= {};
+		if (typeof tracker.attribution !== 'object') continue;
+		_logMidiTrackerSnapshot('ability.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig, extra: { trackerIndex, trackerCount: trackers.length } });
+		const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
+		const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS', 'AC5E'];
+		const legacySourcePrefix = `${Constants.MODULE_ID}:`;
+		const displaySourcePrefix = 'AC5E ';
 	const toLabel = (entry) => {
 		if (entry === undefined || entry === null) return '';
 		if (typeof entry === 'string' || typeof entry === 'number') return String(entry).trim();
@@ -2440,7 +2572,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 			if (hasEquivalentMidiAttribution(type, label)) continue;
 			const displayLabel = withDisplayPrefix(label);
 			if (!displayLabel) continue;
-			tracker.addAttribution(type, displayLabel, displayLabel);
+			_setMidiTrackerAttribution(tracker, type, displayLabel, displayLabel);
 		}
 	};
 	const addCustomAttributionEntries = (prefixLabel, labels = []) => {
@@ -2452,7 +2584,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 			const displayLabel = `${prefix}: ${cleaned}`;
 			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
 			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
-			tracker.addAttribution('AC5E', source, displayLabel);
+			_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
 		}
 	};
 	addEntries('ADV', advantageLabels);
@@ -2479,10 +2611,11 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 		: '';
 	if (selectedType) {
 		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
-		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
 		const hasOppositeAc5e = hasAc5eAttribution(oppositeType);
 		const hasSelectedNonAc5e = hasNonAc5eAttribution(selectedType);
-		if (hasOppositeAc5e && !hasSelectedAc5e && !hasSelectedNonAc5e) tracker.addAttribution(selectedType, 'config-buttons', configButtonsFallbackLabel);
+		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
+		const shouldAddConfigButtons = (hasOppositeAc5e || !hasSelectedAc5e) && !hasSelectedNonAc5e;
+		if (shouldAddConfigButtons) _setMidiTrackerAttribution(tracker, selectedType, 'config-buttons', configButtonsFallbackLabel);
 	}
 	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
@@ -2502,14 +2635,33 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 		: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
 		: [];
 	const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
-	const modifyDCPrefix = targetADCLabels.length ? `${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
+	const targetADCDisplayLabels =
+		targetADCLabels.length ? targetADCLabels
+		: dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
+	const modifyDCPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
 	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
 	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
-	addCustomAttributionEntries(modifyDCPrefix, targetADCLabels);
+	addCustomAttributionEntries(modifyDCPrefix, targetADCDisplayLabels);
+		_logMidiTrackerSnapshot('ability.post', {
+			hookType: ac5eConfig?.hookType,
+			tracker,
+			ac5eConfig,
+			extra: {
+				trackerIndex,
+				trackerCount: trackers.length,
+				advantageLabels,
+				disadvantageLabels,
+				failLabels,
+				successLabels,
+				modifyDCPrefix,
+				targetADCDisplayLabels,
+			},
+		});
+	}
 }
 
 export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
@@ -3203,10 +3355,16 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		midiRoller ? 'MidiQOL'
 		: rsrRoller ? 'RSR'
 		: 'Core';
+	ac5eConfig.preAC5eConfig.hasWorkflowOptions = false;
+	ac5eConfig.preAC5eConfig.forceChatTooltip = false;
 	if (midiRoller) {
 		const midiOptions = config.midiOptions ?? {};
 		const { workflow, ...safeMidiOptions } = midiOptions; // strips workflow before any cloning; Issue https://github.com/thatlonelybugbear/automated-conditions-5e/issues/696
 		ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(safeMidiOptions); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
+		const hasWorkflowOptions = !foundry.utils.isEmpty(config?.workflowOptions ?? {});
+		const needsAbilityTooltipFallback = ['check', 'save'].includes(ac5eConfig?.hookType) && !hasWorkflowOptions && foundry.utils.isEmpty(safeMidiOptions);
+		ac5eConfig.preAC5eConfig.hasWorkflowOptions = hasWorkflowOptions;
+		ac5eConfig.preAC5eConfig.forceChatTooltip = needsAbilityTooltipFallback;
 	}
 	ac5eConfig.roller = roller;
 	ac5eConfig.preAC5eConfig.adv = config.advantage;

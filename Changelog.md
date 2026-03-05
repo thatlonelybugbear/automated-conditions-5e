@@ -1,3 +1,8 @@
+## 13.5250.8.2
+
+- Reworked MidiQOL attribution sync for save/check flows so AC5E advantage and `modifyDC` reasons are carried more reliably into Midi tooltip attribution.
+- Added a fallback to keep AC5E chat tooltips for ability rolls when Midi workflow metadata is missing, so reasons are still visible in non-standard roll paths (including initiative-adjacent branches).
+
 ## 13.5250.8.1
 
 - Fixed status condition handling to use roll-data statuses directly, without rewriting `actorData.statuses`.
