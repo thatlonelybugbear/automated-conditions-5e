@@ -3653,8 +3653,6 @@ export function _ac5eActorRollData(token) {
 	actorData.hasArmor = !!actorData.attributes?.ac?.equippedArmor;
 	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
 	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
-	actorData.statuses = Array.from(actor?.statuses ?? []);
-	actorData.statusesMap = Object.fromEntries(actorData.statuses.map((status) => [status, true]));
 	actorData.type = actor.type;
 	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
 	actorData.creatureType = Array.from(new Set(Object.values(_raceOrType(actor, 'all')).filter(Boolean)));
@@ -3677,7 +3675,7 @@ export function _ac5eActorRollData(token) {
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const sandbox = {
 		...lazySandbox,
-		_flatConstants: { ...lazySandbox._flatConstants }, // shallow copy is enough for boolean flags
+		_evalConstants: { ...lazySandbox._evalConstants }, // shallow copy is enough for boolean flags
 	};
 	const { ability, activity, distance, skill, tool } = options;
 	const item = activity?.item;
@@ -3735,25 +3733,25 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const actionType = activity?.getActionType?.(options.attackMode);
 	sandbox.actionType = actionType ? { [actionType]: true } : {};
 	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
-	if (options.attackMode) sandbox._flatConstants[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
+	if (options.attackMode) sandbox._evalConstants[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
 	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
 	sandbox.damageTypes = options.damageTypes;
 	sandbox.defaultDamageType = options.defaultDamageType;
-	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox._flatConstants, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
+	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox._evalConstants, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
 	sandbox.activity.damageTypes = options.damageTypes;
 	sandbox.activity.defaultDamageType = options.defaultDamageType;
 	sandbox.activity.attackMode = options.attackMode;
 	sandbox.activity.mastery = options.mastery;
 	if (actionType) {
-		sandbox._flatConstants[actionType] = true;
+		sandbox._evalConstants[actionType] = true;
 		sandbox.activity.actionType = actionType;
 	}
 	if (activity?.attack?.type) {
-		sandbox._flatConstants[activity.attack.type.value] = true;
-		sandbox._flatConstants[activity.attack.type.classification] = true;
+		sandbox._evalConstants[activity.attack.type.value] = true;
+		sandbox._evalConstants[activity.attack.type.classification] = true;
 	}
-	if (!!activityData.activation?.type) sandbox._flatConstants[activityData.activation.type] = true;
-	if (activityData?.type) sandbox._flatConstants[activityData.type] = true;
+	if (!!activityData.activation?.type) sandbox._evalConstants[activityData.activation.type] = true;
+	if (activityData?.type) sandbox._evalConstants[activityData.type] = true;
 
 	//item data
 	const itemData = item?.getRollData?.()?.item || {};
@@ -3773,12 +3771,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.transferredEffects = item?.transferredEffects;
 	sandbox.itemProperties = {};
 	if (item) {
-		sandbox._flatConstants[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
-		if (!!itemData.type?.value) sandbox._flatConstants[itemData.type.value] = true;
-		if (itemData.school) sandbox._flatConstants[itemData.school] = true;
+		sandbox._evalConstants[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
+		if (!!itemData.type?.value) sandbox._evalConstants[itemData.type.value] = true;
+		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox._flatConstants[p] = true));
+		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox._evalConstants[p] = true));
 	}
 
 	const combat = game.combat;
@@ -3794,9 +3792,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.ability = options.ability ? { [options.ability]: true } : {};
 	sandbox.skill = options.skill ? { [options.skill]: true } : {};
 	sandbox.tool = options.tool ? { [options.tool]: true } : {};
-	if (options?.ability) sandbox._flatConstants[options.ability] = true;
-	if (options?.skill) sandbox._flatConstants[options.skill] = true;
-	if (options?.tool) sandbox._flatConstants[options.tool] = true;
+	if (options?.ability) sandbox._evalConstants[options.ability] = true;
+	if (options?.skill) sandbox._evalConstants[options.skill] = true;
+	if (options?.tool) sandbox._evalConstants[options.tool] = true;
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 	sandbox.isConcentration = options?.isConcentration;
 	sandbox.isDeathSave = options?.isDeathSave;
@@ -3820,7 +3818,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isFumble = options?.d20?.isFumble;
 	globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(sandbox);
 	globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(sandbox);
-	sandbox._baseConstants = { ...sandbox._flatConstants };
 
 	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined; //guard against sandbox.undefined = true being present
@@ -4016,3 +4013,4 @@ export function _isUuidLike(value) {
 		return false;
 	}
 }
+

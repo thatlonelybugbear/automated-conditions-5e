@@ -479,7 +479,7 @@ function listUsageRules() {
 
 function _applyUsageRuleKeywordsToSandbox(sandbox = {}) {
 	if (!sandbox || typeof sandbox !== 'object') return sandbox;
-	sandbox._flatConstants ??= {};
+	sandbox._evalConstants ??= {};
 	const currentHook = String(sandbox?.hook ?? '*')
 		.trim()
 		.toLowerCase();
@@ -508,7 +508,7 @@ function _applyUsageRuleKeywordsToSandbox(sandbox = {}) {
 			console.warn(`AC5E usage rule keyword "${key}" failed`, err);
 		}
 		sandbox[key] = Boolean(result);
-		sandbox._flatConstants[key] = Boolean(result);
+		sandbox._evalConstants[key] = Boolean(result);
 	}
 	return sandbox;
 }
@@ -699,7 +699,7 @@ function listContextKeywords({ source = 'all' } = {}) {
 
 function _applyContextKeywordsToSandbox(sandbox = {}) {
 	if (!sandbox || typeof sandbox !== 'object') return sandbox;
-	sandbox._flatConstants ??= {};
+	sandbox._evalConstants ??= {};
 	const entries = _listContextKeywordEntriesMerged();
 	for (const entry of entries) {
 		let result = false;
@@ -711,7 +711,7 @@ function _applyContextKeywordsToSandbox(sandbox = {}) {
 		}
 		const normalized = Boolean(result);
 		sandbox[entry.key] = normalized;
-		sandbox._flatConstants[entry.key] = normalized;
+		sandbox._evalConstants[entry.key] = normalized;
 	}
 	return sandbox;
 }
@@ -1095,7 +1095,7 @@ function initializeSandbox() {
 
 	lazySandbox = foundry.utils.deepFreeze({
 		CONSTANTS: safeConstants,
-		_flatConstants: flatConstants,
+		_evalConstants: flatConstants,
 		...safeHelpers,
 		Math,
 		Number,
@@ -1377,7 +1377,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 			.filter(Boolean),
 	);
 	const sandboxFlatConstantSet = new Set(
-		Object.keys(lazySandbox?._flatConstants ?? {})
+		Object.keys(lazySandbox?._evalConstants ?? {})
 			.map((entry) => String(entry).trim().toLowerCase())
 			.filter(Boolean),
 	);
@@ -1860,3 +1860,4 @@ export async function importTroubleshooterSnapshot(file = null) {
 	console.log('AC5E troubleshooter import:', parsed);
 	return parsed;
 }
+

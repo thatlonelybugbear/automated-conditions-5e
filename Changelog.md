@@ -1,3 +1,9 @@
+## 13.5250.9
+
+- Fixed status condition handling to use roll-data statuses directly, without rewriting `actorData.statuses`.
+- Status checks like `prone` now resolve from active status keys consistently during condition evaluation.
+- Internal sandbox evaluation flow was cleaned up for more predictable clause evaluation and easier long-term maintenance.
+
 ## 13.5250.8
 
 - Improved save/check dialog re-evaluation when ability selection changes (including MidiQOL ability dropdown flows).

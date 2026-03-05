@@ -29,7 +29,7 @@ function createProxySandbox(sandbox, mode = 'formula') {
 	return new Proxy(sandbox, {
 		get(target, prop) {
 			if (BLOCKED.has(prop)) return undefined;
-			if (target._flatConstants && prop in target._flatConstants) return target._flatConstants[prop];
+			if (target._evalConstants && prop in target._evalConstants) return target._evalConstants[prop];
 			if (prop in target) return target[prop];
 			if (prop === 'Math') return Math; // allow Math.*
 			if (prop in Math) return Math[prop]; // allow bare max, PI, etc., esp. in conditions
@@ -37,7 +37,7 @@ function createProxySandbox(sandbox, mode = 'formula') {
 		},
 		has(target, prop) {
 			if (BLOCKED.has(prop)) return false;
-			if (target._flatConstants && prop in target._flatConstants) return true;
+			if (target._evalConstants && prop in target._evalConstants) return true;
 			return prop in target || prop in Math;
 		},
 	});
@@ -595,3 +595,4 @@ function coerceQuotedNumbersAndFlavors(expr) {
 
 	return expr;
 }
+

@@ -1166,7 +1166,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				.filter(Boolean),
 		);
 		const sandboxFlatConstantSet = new Set(
-			Object.keys(sandbox?._flatConstants ?? {})
+			Object.keys(sandbox?._evalConstants ?? {})
 				.map((entry) => String(entry).trim().toLowerCase())
 				.filter(Boolean),
 		);
@@ -1616,7 +1616,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 
-				const baseEvaluation = getMode({ value: valuesToEvaluate, auraTokenEvaluationData, debug });
+				const baseEvaluation = getMode({ value: valuesToEvaluate, sandbox: auraTokenEvaluationData, debug });
 				const evaluation = baseEvaluation && (!chance?.enabled || chance.triggered);
 				if (!evaluation) return;
 
@@ -1736,7 +1736,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				set,
 				threshold,
 				chance,
-				evaluation: getMode({ value: valuesToEvaluate, debug }) && (!chance?.enabled || chance.triggered),
+				evaluation: getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug }) && (!chance?.enabled || chance.triggered),
 				optin,
 				forceOptin,
 				cadence,
@@ -1811,7 +1811,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					set,
 					threshold,
 					chance,
-					evaluation: getMode({ value: valuesToEvaluate, debug }) && (!chance?.enabled || chance.triggered),
+					evaluation: getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug }) && (!chance?.enabled || chance.triggered),
 					optin,
 					forceOptin,
 					cadence,
@@ -1976,7 +1976,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			})
 			.join(';');
 		if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
-		const evaluation = getMode({ value: valuesToEvaluate, debug: { usageRuleKey: rule.key } }) && (!chance?.enabled || chance.triggered);
+		const evaluation = getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug: { usageRuleKey: rule.key } }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: rulePrimaryName, customName: resolvedCustomName, usesOverride: null });
 		const entry = {
 			id: ruleId,
@@ -2182,14 +2182,20 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	return ac5eConfig;
 
 	//special functions\\
-	function getMode({ value, auraTokenEvaluationData, debug }) {
-		if (['1', 'true'].includes(value)) return true;
-		if (['0', 'false'].includes(value)) return false;
-		const clauses = value
+	function getMode({ value, sandbox, debug }) {
+		const rawValue = typeof value === 'string' ? value : String(value ?? '');
+		const normalizedLiteral = rawValue.trim().toLowerCase();
+		if (['1', 'true'].includes(normalizedLiteral)) return true;
+		if (['0', 'false'].includes(normalizedLiteral)) return false;
+		const clauses = rawValue
 			.split(';')
 			.map((v) => v.trim())
 			.filter(Boolean);
 		if (settings.debug) console.log('AC5E._getMode:', { clauses });
+		const statuses = sandbox?.effectActor?.statuses;
+		const statusConstants = Object.fromEntries(Object.keys(statuses ?? {}).map((status) => [status, true]));
+		const baseConstants = sandbox?._evalConstants ?? {};
+		const mergedConstants = { ...baseConstants, ...statusConstants };
 
 		return clauses.some((clause) => {
 			let mult = null;
@@ -2197,11 +2203,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				clause = clause.slice(1).trim();
 				mult = '!';
 			}
-			const sandbox = auraTokenEvaluationData ? auraTokenEvaluationData : evaluationData;
-			if (sandbox?._baseConstants) sandbox._flatConstants = { ...sandbox._baseConstants };
-			const statusMap = sandbox?.effectActor?.statusesMap;
-			if (statusMap) foundry.utils.mergeObject(sandbox._flatConstants, statusMap);
-			const result = _ac5eSafeEval({ expression: clause, sandbox, mode: 'condition', debug });
+			const clauseSandbox = { ...sandbox, _evalConstants: { ...mergedConstants } };
+			const result = _ac5eSafeEval({ expression: clause, sandbox: clauseSandbox, mode: 'condition', debug });
 			return mult ? !result : result;
 		});
 	}
@@ -3297,3 +3300,4 @@ function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e
 
 	return result;
 }
+
