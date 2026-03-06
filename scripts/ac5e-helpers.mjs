@@ -1754,25 +1754,186 @@ export function _autoRanged(activity, token, target, options) {
 		outOfRangeFailSourceMode,
 	};
 }
+const _itemMatcherCache = new Map();
+
+function _escapeRegExp(value) {
+	const str = String(value ?? '');
+	return typeof RegExp.escape === 'function' ? RegExp.escape(str) : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function _normalizeItemIdentifierInput(itemIdentifier) {
+	if (itemIdentifier == null) return [];
+	const values = Array.isArray(itemIdentifier) ? itemIdentifier : [itemIdentifier];
+	return values
+		.map((value) => {
+			if (typeof value === 'string') return value.trim();
+			if (typeof value === 'object') {
+				return String(value.identifier ?? value.system?.identifier ?? value.name ?? value.id ?? value.uuid ?? '').trim();
+			}
+			return String(value).trim();
+		})
+		.filter(Boolean);
+}
+
+function _getLocalizedItemQuery(query) {
+	const localized = _localize(query);
+	if (localized && localized !== query) return String(localized);
+	if (game?.i18n?.has?.(query)) return String(game.i18n.localize(query));
+	return String(query);
+}
+
+function _buildItemMatcher(queryRaw) {
+	const query = String(queryRaw ?? '').trim();
+	if (!query) return null;
+
+	const SearchFilter = foundry?.applications?.ux?.SearchFilter;
+	const localizedQuery = _getLocalizedItemQuery(query);
+
+	if (!SearchFilter?.cleanQuery || !SearchFilter?.testQuery) {
+		return {
+			queryLower: localizedQuery.toLowerCase(),
+			querySlug: localizedQuery.slugify(),
+		};
+	}
+
+	const cacheKey = `${game?.i18n?.lang ?? 'en'}:${localizedQuery}`;
+	const cached = _itemMatcherCache.get(cacheKey);
+	if (cached) return cached;
+
+	const cleanedQuery = SearchFilter.cleanQuery(localizedQuery);
+	if (!cleanedQuery) return null;
+
+	const cleanedSlug = cleanedQuery.slugify();
+	const matcher = {
+		SearchFilter,
+		rgx: new RegExp(_escapeRegExp(cleanedQuery), 'i'),
+		rgxSlug: cleanedSlug ? new RegExp(_escapeRegExp(cleanedSlug), 'i') : null,
+		queryLower: cleanedQuery.toLowerCase(),
+		querySlug: cleanedSlug,
+	};
+	_itemMatcherCache.set(cacheKey, matcher);
+	return matcher;
+}
+
+function _itemMatchesIdentifier(item, identifier, matcher) {
+	if (!item || !identifier) return false;
+	const id = String(item.id ?? '');
+	const uuid = String(item.uuid ?? '');
+	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
+
+	if (id === identifier || uuid === identifier || directIdentifier === identifier) return true;
+
+	const name = String(item.name ?? '');
+	const slug = name.slugify();
+	const haystack = `${name} ${directIdentifier} ${slug}`.trim();
+
+	if (matcher?.SearchFilter?.testQuery) {
+		return matcher.SearchFilter.testQuery(matcher.rgx, haystack) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, haystack));
+	}
+
+	const normalizedHaystack = haystack.toLowerCase();
+	return normalizedHaystack.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && normalizedHaystack.includes(matcher.querySlug));
+}
+
+function _resolveActorForItemLookup(source) {
+	if (!source) return null;
+
+	// Actor-like
+	if (source instanceof foundry.abstract.Document && source.documentName === 'Actor') return source;
+	if (source?.document instanceof foundry.abstract.Document && source.document.documentName === 'Actor') return source.document;
+
+	// Token-like
+	if (source?.actor?.items) return source.actor;
+
+	// Structured reference object
+	if (typeof source === 'object') {
+		const reference = source.tokenId ?? source.tokenUuid ?? source.actorId ?? source.actorUuid ?? source.uuid ?? null;
+		if (typeof reference === 'string' && reference.trim()) return _resolveActorForItemLookup(reference.trim());
+	}
+
+	if (typeof source !== 'string') return null;
+	const reference = source.trim();
+	if (!reference) return null;
+
+	// tokenId => canvas.scene.tokens.get(tokenId)?.actor
+	const actorFromTokenId = canvas?.scene?.tokens?.get?.(reference)?.actor ?? canvas?.tokens?.get?.(reference)?.actor ?? null;
+	if (actorFromTokenId?.items) return actorFromTokenId;
+
+	// tokenUuid => fromUuidSync(tokenUuid)?.actor
+	const tokenUuidLike = reference.startsWith('Token.') || reference.includes('.Token.');
+	if (tokenUuidLike) {
+		const tokenDocument = _safeFromUuidSync(reference);
+		const actorFromTokenUuid = tokenDocument?.actor ?? null;
+		if (actorFromTokenUuid?.items) return actorFromTokenUuid;
+	}
+
+	// actorId => game.actors.get(actorId)
+	const actorFromId = game?.actors?.get?.(reference) ?? null;
+	if (actorFromId?.items) return actorFromId;
+
+	// actorUuid => fromUuidSync(actorUuid)
+	const actorUuidLike = reference.startsWith('Actor.') || reference.includes('.Actor.');
+	if (actorUuidLike || _isUuidLike(reference)) {
+		const actorDocument = _safeFromUuidSync(reference);
+		const actorFromUuid = actorDocument?.actor ?? actorDocument ?? null;
+		if (actorFromUuid?.items) return actorFromUuid;
+	}
+
+	return null;
+}
+
 /*
- * Checks if an actor has an item by its identifier, name (case-insensitive), id, or uuid.
- * @param {Actor} actor - The actor to check for the item.
- * @param {string} itemIdentifier - The identifier, name, id, or uuid of the item to check for.
- * @returns {boolean} - True if the actor has the item, false otherwise.
+ * Gets actor items filtered by identifier/name/id/uuid matching.
+ * source supports Actor, Token, tokenId, tokenUuid, actorId, actorUuid, or {tokenId|tokenUuid|actorId|actorUuid}.
+ * @param {Actor|Token|string|object} source - Source that resolves to an actor.
+ * @param {string|string[]|object} [itemIdentifier] - Identifier/name/id/uuid query. If omitted, returns all actor items.
+ * @param {object} [options]
+ * @param {string} [options.type] - Optional item.type filter.
+ * @returns {Array} - Matching item documents.
  */
-export function _hasItem(actor, itemIdentifier) {
-	if (!itemIdentifier) return false;
-	return (
-		actor?.items?.some(
-			(item) =>
-				item?.identifier === itemIdentifier ||
-				String(item?.name ?? '')
-					.toLowerCase()
-					.includes(String(_localize(itemIdentifier).toLowerCase())) ||
-				item?.id === itemIdentifier ||
-				item?.uuid === itemIdentifier,
-		) ?? false
-	);
+export function _getItems(source, itemIdentifier, options = {}) {
+	const actor = _resolveActorForItemLookup(source);
+	if (!actor?.items) return [];
+
+	const actorItems = Array.from(actor.items ?? []);
+	if (!actorItems.length) return [];
+
+	const itemType = typeof options?.type === 'string' ? options.type.trim() : '';
+	const scopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
+	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
+	if (!identifiers.length) return scopedItems;
+
+	const matchers = new Map(identifiers.map((identifier) => [identifier, _buildItemMatcher(identifier)]));
+	const seen = new Set();
+	const matches = [];
+
+	for (const item of scopedItems) {
+		for (const identifier of identifiers) {
+			const matcher = matchers.get(identifier);
+			if (!_itemMatchesIdentifier(item, identifier, matcher)) continue;
+			const itemKey = String(item?.uuid ?? item?.id ?? item?.name ?? '');
+			if (!seen.has(itemKey)) {
+				seen.add(itemKey);
+				matches.push(item);
+			}
+			break;
+		}
+	}
+
+	return matches;
+}
+
+/*
+ * Checks whether at least one item matches.
+ * @param {Actor|Token|string|object} source
+ * @param {string|string[]|object} itemIdentifier
+ * @param {object} [options]
+ * @returns {boolean}
+ */
+export function _hasItem(source, itemIdentifier, options = {}) {
+	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
+	if (!identifiers.length) return false;
+	return _getItems(source, identifiers, options).length > 0;
 }
 
 export function _systemCheck(testVersion) {

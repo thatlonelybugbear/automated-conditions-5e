@@ -8,6 +8,7 @@ import {
 	checkNearby,
 	_generateAC5eFlags,
 	_getDistance,
+	_getItems,
 	_getItemOrActivity,
 	_inspectFlagRegistry,
 	_raceOrType,
@@ -925,6 +926,7 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
 	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
+	globalThis[Constants.MODULE_NAME_SHORT].getItems = _getItems;
 	globalThis[Constants.MODULE_NAME_SHORT].getItemOrActivity = _getItemOrActivity;
 	globalThis[Constants.MODULE_NAME_SHORT].hasItem = _hasItem;
 	globalThis[Constants.MODULE_NAME_SHORT].logEvaluationData = false;
@@ -1088,6 +1090,7 @@ function initializeSandbox() {
 		checkDistance: _getDistance,
 		checkCreatureType: _raceOrType,
 		getItemOrActivity: _getItemOrActivity,
+		getItems: _getItems,
 		checkArmor: _autoArmor,
 		checkRanged: _autoRanged,
 		hasItem: _hasItem,
