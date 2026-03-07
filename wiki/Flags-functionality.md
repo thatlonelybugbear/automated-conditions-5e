@@ -94,6 +94,9 @@ Replace `MODE` with one of the following:
 - `extraDice` - Adds or multiplies dice count on damage terms.
    - Use `bonus=Number` to add dice count, for example `bonus=2` on `1d8` -> `3d8`.
    - Use `bonus=x2` or `bonus=^2` to multiply dice count, for example `2d12` -> `4d12`.
+   - Add `criticalStatic` to make the extra dice crit-only.
+   - `criticalStatic; bonus=1` adds one extra matching die term only on crit.
+   - `criticalStatic; bonus=x2` adds one extra base copy of the matched dice term on crit, so it scales correctly for both `1dX` and `2dX` formulas.
 - `diceUpgrade` - Upgrades damage dice step (`d6` -> `d8`) by the provided steps.
 - `diceDowngrade` - Downgrades damage dice step (`d8` -> `d6`) by the provided steps.
 - `range` - Adjusts ranged profile values and ranged-penalty behavior.
@@ -115,11 +118,13 @@ Replace `MODE` with one of the following:
    - Include `bonus=XXX` in the effect value, following the same logic as a normal bonus to be added or subtracted from the default roll's DC.
    - Or include `set=XXX` in the effect value to **set** the DC to the specified value (number or dice roll).
 - `criticalThreshold` - Alters the threshold for critical on d20 attack rolls.
-   - `threshold=(opponentActor.creatureType.includes('dragon') ? -2 : -1)` which, when the opponent is a Dragon, will reduce the critical threshold by `2`, otherwise it is reduced by 1. If you increase the critical threshold to more than 20, you won't be able to crit :wink:
-   - You can also use dice rolls, `threshold=1d4` will add the result to the critical threhold
-   - Or include `set=XXX` in the effect value to **set** the critical threshold to the specified value (number or dice roll).
+    - `threshold=(opponentActor.creatureType.includes('dragon') ? -2 : -1)` which, when the opponent is a Dragon, will reduce the critical threshold by `2`, otherwise it is reduced by 1. If you increase the critical threshold to more than 20, you won't be able to crit :wink:
+    - You can also use dice rolls, `threshold=1d4` will add the result to the critical threhold
+    - Or include `set=XXX` in the effect value to **set** the critical threshold to the specified value (number or dice roll).
+    - `set=` also accepts numeric expressions with dice and math helpers such as `min(...)`, `max(...)`, `round(...)`, `floor(...)`, `ceil(...)`, and `abs(...)`.
+      - Example: `set=min(4, 1d8)`
 - `fumbleThreshold` - Alters the threshold for fumble on d20 attack rolls.
-   - Same logic like the `criticalThreshold` flag above.
+    - Same logic like the `criticalThreshold` flag above.
 
 
 > 💡 For `criticalThreshold`, `fumbleThreshold`, `modifyAC` and `modifyDC` flags, you can use `set=` instead of the normal `threshold` or `bonus`, to **set** the value provided, instead of adding or subtracting from the actor values.
@@ -156,6 +161,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | | `ActorAttr` can be `hp`, `hpmax`, `hptemp`, `hd`, `hdlargest`, `hdsmallest`, `abilityXYZ` (like `str`), `senseXYZ` (like `darkvision`), `currency` (like `gp`), `spellXYZ` (like `pact` or `spell3`), `movementXYZ` (like `walk`), `exhaustion`, `inspiration`, `resources` (like `primary`, `legact` etc), or any of the actor's `flags` . |
 | | For any hp `ActorAttr` which would lead to hp loss (temp or current), using `noconc` (or `noconcentration`, `noconcentrationcheck`) will disable concentration checks on that loss. |
 |                        | The `Number` is optional. If omitted 1 use or relevant value will be consumed by default! |
+| `partialConsume`       | For bounded `usesCount` targets, consume only the remaining available amount instead of failing when the full requested amount would exceed the cap |
 | `optin`                | Shows the flag as an optional checkbox in the relevant roll dialog |
 | `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `critical`) |
 | `addTo=fire,cold`      | Targets only matching damage types |
@@ -170,6 +176,8 @@ If multiple same-action-type entries are present on the same effect, AC5e disamb
 > When using `once` or `usesCount` and the uses are depleted, the effect will either be disabled or deleted, based on it being a transfer effect or not.
 
 > When using comma separated Number in usesCount, the item or activity will need to have at least that Number of available uses for the effect to apply
+
+> With `partialConsume`, bounded counters such as death saves, item/activity uses, and local effect counters can still apply by consuming only the remaining available amount.
 
 > 💡 When using comma separated Number in usesCount, a negative value will recover uses!
 

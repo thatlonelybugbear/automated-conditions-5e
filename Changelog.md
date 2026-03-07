@@ -1,4 +1,24 @@
-## Unreleased
+## 13.5250.9
+
+- Expanded attack `criticalThreshold` / `fumbleThreshold` formula handling to accept numeric expressions with dice and math helpers such as `min(...)` and `max(...)`.
+  - This allows threshold flags like `set=min(4, 1d8)` to resolve to a rolled numeric threshold instead of falling back to the unchanged default threshold.
+
+- Expanded `damage.extraDice` `criticalStatic` handling to support multiplier literals such as `bonus=x2`.
+  - This allows crit-only extra dice to scale from the matched base dice term, so the same flag works correctly for damage formulas like `1d8` and `2d6`.
+  - Example: `flags.automated-conditions-5e.damage.extraDice | criticalStatic; bonus=x2`
+
+- Fixed attack/save/check opt-in toggles in d20 roll dialogs so switching an AC5E opt-in advantage/disadvantage effect off returns the dialog to the correct normal state again.
+  - The dialog now rebuilds from its frozen baseline before AC5E reapplies current opt-in state.
+  - Fixes cases where the previous advantage/disadvantage mode could remain visible after the opt-in was unchecked.
+
+- Added `partialConsume` support for `usesCount`.
+  - This allows capped counters such as death saves or item/activity uses to consume only the remaining available amount instead of failing when the full requested amount would exceed the cap.
+  - Example: `usesCount=death.fail,(isCritical ? 2 : 1);partialConsume`
+
+- Fixed object-form `ac5e.usageRules.register({...})` handling so standalone booleans such as `partialConsume` and `criticalStatic` are serialized back into runtime evaluation correctly.
+  - This keeps structured registrations aligned with equivalent raw `value: "..."` rule strings.
+
+- Added `ac5e.usageRules.showKeys()` to expose the supported object-form registration keys and their intended usage.
 
 - Consolidated MidiQOL `modifyDC` attribution display for ability/save rolls into a single tooltip line.
   - `set` and additive `bonus` logic is unchanged (`set` baseline, then additive bonuses).

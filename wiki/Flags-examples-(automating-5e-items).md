@@ -200,11 +200,25 @@ key: flags.automated-conditions-5e.damage.extraDice
 value: bonus=^2; addTo=fire;
 ```
 
+### Crit-only extra dice multiplier that scales with the base dice term
+```
+key: flags.automated-conditions-5e.damage.extraDice
+
+value: criticalStatic; bonus=x2;
+```
+
 ### Localized critical on damage
 ```
 key: flags.automated-conditions-5e.damage.critical
 
 value: optin; addTo=fire; name=Critical Fire;
+```
+
+### Finishing blow death-fail pressure with partial capped consume
+```
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=info; usesCount=death.fail,(isCritical ? 2 : 1); partialConsume; name=Finishing Blow; opponentActor.attributes.hp.value === 0 && opponentActor.statuses.unconscious;
 ```
 
 ### Chance-gated use fail

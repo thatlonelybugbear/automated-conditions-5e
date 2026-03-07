@@ -140,12 +140,20 @@ ac5e.usageRules.register({
 });
 ```
 
+Quick helpers:
+
+```js
+ac5e.usageRules.list();
+ac5e.usageRules.showKeys();
+```
+
 Persistence notes:
 - Runtime registration is client-local.
 - `persistent: true` stores world-level rules through a GM-authorized setting update.
 - `evaluate` functions are runtime-only and are not persisted; use `condition` strings for persistent rules.
 - `scope: "effect"` (default) is keyword-only (for effect-driven flags).
 - `scope: "universal"` also injects a global pseudo-rule entry.
+- Standalone booleans such as `optin`, `criticalStatic`, and `partialConsume` are supported in object-form `register({...})` definitions as well as raw `value: "..."` strings.
 - Compatibility note: AC5E opt-ins depend on roll configuration dialogs. If another module forces `dialog.configure = false`, opt-in selection UI will not appear.
 
 See full developer API details in `wiki/Usage-Rules-API.md`.

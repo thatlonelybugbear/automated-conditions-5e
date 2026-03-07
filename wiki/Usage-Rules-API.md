@@ -1,6 +1,6 @@
 # Usage Rules API
 
-Applies to version: `13.5250.6`
+Applies to version: `13.5250.9`
 
 AC5e exposes usage-rule helpers under:
 
@@ -14,6 +14,7 @@ ac5e.usageRules
 - `remove(key)` -> `boolean`
 - `clear()` -> `void` (runtime entries only)
 - `list()` -> `Array`
+- `showKeys()` -> `Object`
 - `canPersist()` -> `boolean`
 - `reloadPersistent()` -> `Array`
 
@@ -39,11 +40,37 @@ Supported definition fields include:
 - `key`, `hook`, `target`, `mode`
 - `value`/`bonus`, `set`, `modifier`, `threshold`
 - `chance`, `addTo`, `usesCount`
+- `criticalStatic`, `partialConsume`
 - `condition` (string expression), `evaluate` (runtime function)
 - `cadence`, `optin`, `name`, `description`
 - `effectName`, `effectUuid`, `sourceUuid` (label/source hints)
 - `persistent` (boolean)
 - `scope` (`"effect"` default, or `"universal"`)
+
+## `showKeys()`
+
+Use `showKeys()` to inspect the supported object-form registration keys directly in Foundry:
+
+```js
+ac5e.usageRules.showKeys()
+```
+
+This returns a plain object with short descriptions for fields such as:
+
+- `key`
+- `persistent`
+- `scope`
+- `hook`
+- `target`
+- `mode`
+- `optin`
+- `criticalStatic`
+- `partialConsume`
+- `usesCount`
+- `bonus`
+- `set`
+
+Treat it as an authoring reference helper, not a strict machine-stable schema contract.
 
 ## Scope behavior
 
@@ -60,6 +87,33 @@ Supported definition fields include:
 
 - AC5E opt-in selection depends on roll configuration dialogs.
 - If another module forces `dialog.configure = false`, AC5E opt-in controls cannot be displayed.
+
+## Standalone boolean keywords in object-form registration
+
+Structured registrations support standalone booleans directly, not only inside a raw `value` string.
+
+Example:
+
+```js
+ac5e.usageRules.register({
+  key: "finishingBlowInfo",
+  persistent: true,
+  scope: "universal",
+  hook: "damage",
+  target: "opponent",
+  mode: "bonus",
+  name: "Finishing Blow",
+  condition: "opponentActor.attributes.hp.value === 0 && opponentActor.statuses.unconscious",
+  bonus: "info",
+  usesCount: "death.fail,(isCritical ? 2 : 1)",
+  partialConsume: true,
+});
+```
+
+Notes:
+
+- `partialConsume: true` lets bounded counters consume only the remaining available amount instead of failing when the requested value would exceed the cap.
+- `criticalStatic: true` is intended for `extraDice` rules and marks the entry as crit-only static extra dice logic.
 
 ## Key uniqueness
 
