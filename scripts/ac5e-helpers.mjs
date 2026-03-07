@@ -448,8 +448,8 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	if (_activeModule('midi-qol') && !overrideMidi) {
 		const result = MidiQOL.computeDistance(tokenA, tokenB);
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units });
-		if (includeUnits) return result + (includeUnits ? units : '');
 		if (result === -1) return totalDistance;
+		if (includeUnits) return result + units;
 		return result;
 	}
 
@@ -463,15 +463,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 
 		outer: for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
-				if (
-					checkCollision &&
-					CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
-						source: tokenB.document,
-						mode: 'any',
-						type: checkCollision,
-					})
-				)
-					continue;
+				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
 				adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
 				if (adjacent2D && meleeDiagonals) {
 					totalDistance = gridDistance;
@@ -500,16 +492,8 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
 			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
 			for (const pointA of tokenASquares) {
-				for (const pointB of tokenBSquares) {
-					if (
-						checkCollision &&
-						CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
-							source: tokenB.document,
-							mode: 'any',
-							type: checkCollision,
-						})
-					)
-						continue;
+			for (const pointB of tokenBSquares) {
+					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
 						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false; //@to-do: offer a setting to turn on and set to user choice.
@@ -528,15 +512,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 
 			outer: for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
-					if (
-						checkCollision &&
-						CONFIG.Canvas.polygonBackends[checkCollision].testCollision(pointB, pointA, {
-							source: tokenB.document,
-							mode: 'any',
-							type: checkCollision,
-						})
-					)
-						continue;
+					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
 					adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
 					if (adjacent2D && meleeDiagonals) {
 						totalDistance = gridDistance;
@@ -562,6 +538,17 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 	return ((totalDistance * 100) | 0) / 100;
 }
 
+function _testDistanceCollision(pointA, pointB, source, checkCollision) {
+	if (!checkCollision) return false;
+	const backend = CONFIG.Canvas?.polygonBackends?.[checkCollision];
+	if (!backend?.testCollision) return false;
+	return backend.testCollision(pointB, pointA, {
+		source,
+		mode: 'any',
+		type: checkCollision,
+	});
+}
+
 // reworked canvas.grid.testAdjacency to not care about diagonals
 function testAdjacency(coords1, coords2) {
 	const { i: i1, j: j1, k: k1 } = canvas.grid.getOffset(coords1);
@@ -574,13 +561,13 @@ function testAdjacency(coords1, coords2) {
 }
 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D) {
-	tokenA.z0 = (tokenA.document.elevation / grid.distance) | 0;
-	tokenA.z1 = tokenA.z0 + Math.max(1, Math.min(tokenA.document.width | 0, tokenA.document.height | 0));
-	tokenB.z0 = (tokenB.document.elevation / grid.distance) | 0;
-	tokenB.z1 = tokenB.z0 + Math.max(1, Math.min(tokenB.document.width | 0, tokenB.document.height | 0));
+	const tokenAz0 = (tokenA.document.elevation / grid.distance) | 0;
+	const tokenAz1 = tokenAz0 + Math.max(1, Math.min(tokenA.document.width | 0, tokenA.document.height | 0));
+	const tokenBz0 = (tokenB.document.elevation / grid.distance) | 0;
+	const tokenBz1 = tokenBz0 + Math.max(1, Math.min(tokenB.document.width | 0, tokenB.document.height | 0));
 	const dz =
-		tokenB.z0 >= tokenA.z1 ? tokenB.z0 - tokenA.z1 + 1
-		: tokenA.z0 >= tokenB.z1 ? tokenA.z0 - tokenB.z1 + 1
+		tokenBz0 >= tokenAz1 ? tokenBz0 - tokenAz1 + 1
+		: tokenAz0 >= tokenBz1 ? tokenAz0 - tokenBz1 + 1
 		: 0;
 	if (Math.abs(dz) <= 1 && adjacent2D) return totalDistance;
 	if (grid.isGridless) {
