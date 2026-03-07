@@ -883,6 +883,11 @@ export function _restoreD20ConfigFromFrozenBaseline(ac5eConfig, config) {
 	if (hasRoll0 && (!roll0.options || typeof roll0.options !== 'object')) roll0.options = {};
 	const baselineParts = Array.isArray(baseline?.parts) ? foundry.utils.duplicate(baseline.parts) : [];
 	if (hasRoll0) roll0.parts = baselineParts;
+	if (hasRoll0) {
+		if (typeof baseline?.formula === 'string') roll0.formula = baseline.formula;
+		else if (baselineParts.length) roll0.formula = baselineParts.join(' + ');
+		else if ('formula' in roll0) delete roll0.formula;
+	}
 	if (Array.isArray(config.parts) || baselineParts.length) config.parts = foundry.utils.duplicate(baselineParts);
 	const buttons = baseline?.buttons ?? {};
 	config.advantage = !!buttons.advantage;
@@ -1230,6 +1235,9 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		} else if (!config.advantage && config.disadvantage) {
 			localDialog.options.advantageMode = DIS_MODE;
 			localDialog.options.defaultButton = 'disadvantage';
+		} else {
+			localDialog.options.advantageMode = NORM_MODE;
+			localDialog.options.defaultButton = 'normal';
 		}
 		if (hook === 'attack' || hook === 'damage') {
 			ac5eConfig.initialTargetADCs = {};

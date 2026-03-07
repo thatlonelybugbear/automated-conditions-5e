@@ -1111,6 +1111,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'oncepercombat',
 		'optin',
 		'outofrangefail',
+		'partialconsume',
 		'radius',
 		'reach',
 		'set',
@@ -1560,6 +1561,150 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const baseId = `${effect.uuid ?? effect.id}:${changeIndex}:${hookType}`;
 		return overrides[entryId] ?? overrides[baseId] ?? null;
 	};
+	const getValuesToEvaluate = ({ value, mode, bonus, effect }) => {
+		let valuesToEvaluate = value
+			.split(';')
+			.map((v) => v.trim())
+			.filter((v) => {
+				if (!v) return false;
+				const [key] = v.split(/[:=]/).map((s) => s.trim());
+				return !blacklist.has(key.toLowerCase());
+			})
+			.join(';');
+		if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
+		if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
+		return valuesToEvaluate;
+	};
+	const buildValidFlagEntry = ({
+		change,
+		changeIndex,
+		effect,
+		hook,
+		sandbox,
+		isAura = false,
+		auraToken = null,
+		sourceActor = null,
+		sourceNameFallback = '',
+	}) => {
+		const { actorType, mode } = getActorAndModeType(change, isAura);
+		if (!actorType || !mode) return null;
+		const debug = { effectUuid: effect.uuid, changeKey: change.key };
+		const entryId = isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
+		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
+		const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({
+			value: change.value,
+			mode,
+			hook,
+			effect,
+			evaluationData: sandbox,
+			isAura,
+			debug,
+			chanceCache: chanceRollCache,
+			chanceKey: entryId,
+		});
+		const forceOptin = Boolean(usesOverride?.forceOptin);
+		const optin = change.value.toLowerCase().includes('optin') || forceOptin;
+		const cadence = _extractCadenceFromValue(change.value);
+		const customName = getCustomName(change.value);
+		const requiredDamageTypes = getRequiredDamageTypes(change.value);
+		const addTo = getAddTo(change.value);
+		const usesCountTarget = getUsesCountTarget(change.value);
+		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(change.value);
+		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
+		const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
+		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
+		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
+		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
+		const entry = {
+			id: entryId,
+			name: effect.name,
+			label,
+			customName,
+			description,
+			autoDescription,
+			actorType,
+			target: actorType,
+			hook,
+			mode,
+			bonus,
+			modifier,
+			set,
+			threshold,
+			chance,
+			evaluation,
+			optin,
+			forceOptin,
+			cadence,
+			criticalStatic,
+			requiredDamageTypes,
+			addTo,
+			usesCountTarget,
+			usesCountHp: isHpUsesTarget(usesCountTarget),
+			changeIndex,
+			effectUuid: effect.uuid,
+			changeKey: change.key,
+			sourceActorId: sourceActor?.id ?? null,
+			sourceActorName: sourceActor?.name ?? sourceNameFallback,
+			permissionSourceActorId: typeof usesOverride?.permissionSourceActorId === 'string' ? usesOverride.permissionSourceActorId : null,
+			permissionSourceActorName: typeof usesOverride?.permissionSourceActorName === 'string' ? usesOverride.permissionSourceActorName : '',
+		};
+		if (isAura) {
+			entry.isAura = true;
+			entry.auraUuid = effect.uuid;
+			entry.auraTokenUuid = auraToken?.document?.uuid;
+			entry.distance = _getDistance(auraToken, subjectToken);
+		}
+		if (mode === 'range') entry.range = parseRangeData({ key: change.key, value: change.value, evaluationData: sandbox, effect, isAura, debug });
+		return entry;
+	};
+	const processEffectChange = ({
+		change,
+		changeIndex,
+		effect,
+		hook,
+		sandbox,
+		actorType,
+		token = null,
+		isAura = false,
+		auraToken = null,
+		sourceActor = null,
+		sourceNameFallback = '',
+	}) => {
+		if (!effectChangesTest({ token, change, actorType, hook, effect, updateArrays, evaluationData: isAura ? undefined : sandbox, auraTokenEvaluationData: isAura ? sandbox : undefined, changeIndex, auraTokenUuid: auraToken?.document?.uuid })) return;
+		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox, isAura, auraToken, sourceActor, sourceNameFallback });
+		if (!entry?.evaluation) return;
+		if (isAura && change.value.toLowerCase().includes('singleaura')) {
+			const wallsBlock = change.value.toLowerCase().includes('wallsblock') && 'sight';
+			const sameAuras = validFlags.filter((existing) => existing.isAura && existing.name === effect.name);
+			if (sameAuras.length) {
+				let shouldAdd = true;
+				for (const aura of sameAuras) {
+					const auraBonus = aura.bonus;
+					const replaceAura =
+						(!isNaN(auraBonus) && !isNaN(entry.bonus) && auraBonus < entry.bonus) ||
+						((!isNaN(auraBonus) || !isNaN(entry.bonus)) && aura.distance > _getDistance(auraToken, subjectToken, false, true, wallsBlock));
+					if (replaceAura) {
+						const idx = validFlags.indexOf(aura);
+						if (idx >= 0) validFlags.splice(idx, 1);
+					} else {
+						shouldAdd = false;
+						break;
+					}
+				}
+				if (!shouldAdd) return;
+			}
+		}
+		const sameType = validFlags.filter((existing) => existing.effectUuid === effect.uuid && existing.hook === hook);
+		applyIndexLabels(entry, sameType);
+		pushUniqueValidFlag(entry);
+	};
+	const processAppliedEffects = ({ effects, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
+		effects?.forEach((effect) => {
+			effect.changes.forEach((change, changeIndex) => {
+				processEffectChange({ change, changeIndex, effect, hook, sandbox, actorType, token, isAura, auraToken, sourceActor, sourceNameFallback });
+			});
+		});
+	};
 	// const placeablesWithRelevantAuras = {};
 	canvas.tokens.placeables.filter((token) => {
 		if (!token.actor) return false;
@@ -1573,267 +1718,42 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			{ inplace: false },
 		);
 		auraTokenEvaluationData.effectActor = auraTokenEvaluationData.auraActor;
-		token.actor.appliedEffects.filter((effect) =>
-			effect.changes.forEach((el, changeIndex) => {
-				if (!effectChangesTest({ change: el, actorType: 'aura', hook, effect, updateArrays, auraTokenEvaluationData, changeIndex, auraTokenUuid: token?.document?.uuid })) return;
-				const { actorType, mode } = getActorAndModeType(el, true);
-				if (!actorType || !mode) return;
-				const debug = { effectUuid: effect.uuid, changeKey: el.key };
-				const entryId = `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${token.document.uuid}`;
-				const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
-				const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({
-					value: el.value,
-					mode,
-					hook,
-					effect,
-					evaluationData: auraTokenEvaluationData,
-					isAura: true,
-					debug,
-					chanceCache: chanceRollCache,
-					chanceKey: entryId,
-				});
-				const wallsBlock = el.value.toLowerCase().includes('wallsblock') && 'sight';
-				const auraOnlyOne = el.value.toLowerCase().includes('singleaura');
-				const forceOptin = Boolean(usesOverride?.forceOptin);
-				const optin = el.value.toLowerCase().includes('optin') || forceOptin;
-				const cadence = _extractCadenceFromValue(el.value);
-				const customName = getCustomName(el.value);
-				const requiredDamageTypes = getRequiredDamageTypes(el.value);
-				const addTo = getAddTo(el.value);
-				const usesCountTarget = getUsesCountTarget(el.value);
-				const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
-				const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-				const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
-				let valuesToEvaluate = el.value
-					.split(';')
-					.map((v) => v.trim())
-					.filter((v) => {
-						if (!v) return false;
-						const [key] = v.split(/[:=]/).map((s) => s.trim());
-						return !blacklist.has(key.toLowerCase());
-					})
-					.join(';');
-				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
-				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-
-				const baseEvaluation = getMode({ value: valuesToEvaluate, sandbox: auraTokenEvaluationData, debug });
-				const evaluation = baseEvaluation && (!chance?.enabled || chance.triggered);
-				if (!evaluation) return;
-
-				if (auraOnlyOne) {
-					const sameAuras = validFlags.filter((entry) => entry.isAura && entry.name === effect.name);
-					if (sameAuras.length) {
-						let shouldAdd = true;
-						for (const aura of sameAuras) {
-							const auraBonus = aura.bonus;
-							const replaceAura =
-								(!isNaN(auraBonus) && !isNaN(bonus) && auraBonus < bonus) || ((!isNaN(auraBonus) || !isNaN(bonus)) && aura.distance > _getDistance(token, subjectToken, false, true, wallsBlock));
-							if (replaceAura) {
-								const idx = validFlags.indexOf(aura);
-								if (idx >= 0) validFlags.splice(idx, 1);
-							} else {
-								shouldAdd = false;
-								break;
-							}
-						}
-						if (!shouldAdd) return true;
-					}
-				}
-				const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: token.name });
-				const entry = {
-					id: entryId,
-					name: effect.name,
-					label,
-					customName,
-					description,
-					autoDescription,
-					actorType,
-					target: actorType,
-					hook,
-					mode,
-					bonus,
-					modifier,
-					set,
-					threshold,
-					chance,
-					evaluation,
-					optin,
-					forceOptin,
-					cadence,
-					criticalStatic,
-					requiredDamageTypes,
-					addTo,
-					usesCountTarget,
-					usesCountHp: isHpUsesTarget(usesCountTarget),
-					isAura: true,
-					auraUuid: effect.uuid,
-					auraTokenUuid: token.document.uuid,
-					distance: _getDistance(token, subjectToken),
-					changeIndex,
-					effectUuid: effect.uuid,
-					changeKey: el.key,
-					sourceActorId: token?.actor?.id ?? null,
-					sourceActorName: token?.actor?.name ?? token?.name ?? '',
-					permissionSourceActorId: typeof usesOverride?.permissionSourceActorId === 'string' ? usesOverride.permissionSourceActorId : null,
-					permissionSourceActorName: typeof usesOverride?.permissionSourceActorName === 'string' ? usesOverride.permissionSourceActorName : '',
-				};
-				if (mode === 'range') entry.range = parseRangeData({ key: el.key, value: el.value, evaluationData: auraTokenEvaluationData, effect, isAura: true, debug });
-				const sameType = validFlags.filter((e) => e.effectUuid === effect.uuid && e.hook === hook);
-				applyIndexLabels(entry, sameType);
-				pushUniqueValidFlag(entry);
-			}),
-		);
+		processAppliedEffects({
+			effects: token.actor.appliedEffects,
+			hook,
+			sandbox: auraTokenEvaluationData,
+			actorType: 'aura',
+			isAura: true,
+			auraToken: token,
+			sourceActor: token.actor,
+			sourceNameFallback: token?.name ?? '',
+		});
 	});
 	if (evaluationData.auraActor) delete evaluationData.distanceTokenToAuraSource; //might be added in the data and we want it gone if not needed
 	if (evaluationData.effectActor) delete evaluationData.effectActor;
-	subject?.appliedEffects.filter((effect) => {
-		evaluationData.effectActor = evaluationData.rollingActor;
-		evaluationData.nonEffectActor = evaluationData.opponentActor;
-		effect.changes.forEach((el, changeIndex) => {
-			if (!effectChangesTest({ token: subjectToken, change: el, actorType: 'subject', hook, effect, updateArrays, evaluationData, changeIndex })) return;
-			const { actorType, mode } = getActorAndModeType(el, false);
-			if (!actorType || !mode) return;
-			const debug = { effectUuid: effect.uuid, changeKey: el.key };
-			const entryId = `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
-			const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
-			const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData, debug, chanceCache: chanceRollCache, chanceKey: entryId });
-			const forceOptin = Boolean(usesOverride?.forceOptin);
-			const optin = el.value.toLowerCase().includes('optin') || forceOptin;
-			const cadence = _extractCadenceFromValue(el.value);
-			const customName = getCustomName(el.value);
-			const requiredDamageTypes = getRequiredDamageTypes(el.value);
-			const addTo = getAddTo(el.value);
-			const usesCountTarget = getUsesCountTarget(el.value);
-			const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
-			const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-			const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
-			let valuesToEvaluate = el.value
-				.split(';')
-				.map((v) => v.trim())
-				.filter((v) => {
-					if (!v) return false;
-					const [key] = v.split(/[:=]/).map((s) => s.trim());
-					return !blacklist.has(key.toLowerCase());
-				})
-				.join(';');
-			if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
-			if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-
-			const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride });
-			const entry = {
-				id: entryId,
-				name: effect.name,
-				label,
-				customName,
-				description,
-				autoDescription,
-				actorType,
-				target: actorType,
-				hook,
-				mode,
-				bonus,
-				modifier,
-				set,
-				threshold,
-				chance,
-				evaluation: getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug }) && (!chance?.enabled || chance.triggered),
-				optin,
-				forceOptin,
-				cadence,
-				criticalStatic,
-				requiredDamageTypes,
-				addTo,
-				usesCountTarget,
-				usesCountHp: isHpUsesTarget(usesCountTarget),
-				changeIndex,
-				effectUuid: effect.uuid,
-				changeKey: el.key,
-				sourceActorId: subject?.id ?? null,
-				sourceActorName: subject?.name ?? '',
-				permissionSourceActorId: typeof usesOverride?.permissionSourceActorId === 'string' ? usesOverride.permissionSourceActorId : null,
-				permissionSourceActorName: typeof usesOverride?.permissionSourceActorName === 'string' ? usesOverride.permissionSourceActorName : '',
-			};
-			if (mode === 'range') entry.range = parseRangeData({ key: el.key, value: el.value, evaluationData, effect, isAura: false, debug });
-			const sameType = validFlags.filter((e) => e.effectUuid === effect.uuid && e.hook === hook);
-			applyIndexLabels(entry, sameType);
-			pushUniqueValidFlag(entry);
-		});
+	evaluationData.effectActor = evaluationData.rollingActor;
+	evaluationData.nonEffectActor = evaluationData.opponentActor;
+	processAppliedEffects({
+		effects: subject?.appliedEffects,
+		hook,
+		sandbox: evaluationData,
+		actorType: 'subject',
+		token: subjectToken,
+		sourceActor: subject,
 	});
 	if (evaluationData.effectActor) delete evaluationData.effectActor;
 	if (evaluationData.nonEffectActor) delete evaluationData.nonEffectActor;
 	if (opponent) {
 		evaluationData.effectActor = evaluationData.opponentActor;
 		evaluationData.nonEffectActor = evaluationData.rollingActor;
-		opponent.appliedEffects.filter((effect) =>
-			effect.changes.forEach((el, changeIndex) => {
-				if (!effectChangesTest({ token: opponentToken, change: el, actorType: 'opponent', hook, effect, updateArrays, evaluationData, changeIndex })) return;
-				const { actorType, mode } = getActorAndModeType(el, false);
-				if (!actorType || !mode) return;
-				const debug = { effectUuid: effect.uuid, changeKey: el.key };
-				const entryId = `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
-				const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
-				const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({ value: el.value, mode, hook, effect, evaluationData, debug, chanceCache: chanceRollCache, chanceKey: entryId });
-				const forceOptin = Boolean(usesOverride?.forceOptin);
-				const optin = el.value.toLowerCase().includes('optin') || forceOptin;
-				const cadence = _extractCadenceFromValue(el.value);
-				const customName = getCustomName(el.value);
-				const requiredDamageTypes = getRequiredDamageTypes(el.value);
-				const addTo = getAddTo(el.value);
-				const usesCountTarget = getUsesCountTarget(el.value);
-				const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(el.value);
-				const description = resolveDescription(getDescription(el.value), usesOverride?.description);
-				const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
-				let valuesToEvaluate = el.value
-					.split(';')
-					.map((v) => v.trim())
-					.filter((v) => {
-						if (!v) return false;
-						const [key] = v.split(/[:=]/).map((s) => s.trim());
-						return !blacklist.has(key.toLowerCase());
-					})
-					.join(';');
-				if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
-				if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
-				const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride });
-				const entry = {
-					id: entryId,
-					name: effect.name,
-					label,
-					customName,
-					description,
-					autoDescription,
-					actorType,
-					target: actorType,
-					hook,
-					mode,
-					bonus,
-					modifier,
-					set,
-					threshold,
-					chance,
-					evaluation: getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug }) && (!chance?.enabled || chance.triggered),
-					optin,
-					forceOptin,
-					cadence,
-					criticalStatic,
-					requiredDamageTypes,
-					addTo,
-					usesCountTarget,
-					usesCountHp: isHpUsesTarget(usesCountTarget),
-					changeIndex,
-					effectUuid: effect.uuid,
-					changeKey: el.key,
-					sourceActorId: opponent?.id ?? null,
-					sourceActorName: opponent?.name ?? '',
-					permissionSourceActorId: typeof usesOverride?.permissionSourceActorId === 'string' ? usesOverride.permissionSourceActorId : null,
-					permissionSourceActorName: typeof usesOverride?.permissionSourceActorName === 'string' ? usesOverride.permissionSourceActorName : '',
-				};
-				if (mode === 'range') entry.range = parseRangeData({ key: el.key, value: el.value, evaluationData, effect, isAura: false, debug });
-				const sameType = validFlags.filter((e) => e.effectUuid === effect.uuid && e.hook === hook);
-				applyIndexLabels(entry, sameType);
-				pushUniqueValidFlag(entry);
-			}),
-		);
+		processAppliedEffects({
+			effects: opponent.appliedEffects,
+			hook,
+			sandbox: evaluationData,
+			actorType: 'opponent',
+			token: opponentToken,
+			sourceActor: opponent,
+		});
 	}
 
 	for (const rule of usageRules) {
@@ -1907,6 +1827,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (rule?.description) fragments.push(`description=${rule.description}`);
 		if (rule?.optin) fragments.push('optin');
 		if (rule?.criticalStatic) fragments.push('criticalStatic');
+		if (rule?.partialConsume) fragments.push('partialConsume');
 		if (rule?.cadence) fragments.push(rule.cadence);
 		if (typeof rule?.condition === 'string' && rule.condition.trim()) fragments.push(rule.condition.trim());
 
@@ -2341,6 +2262,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 	const hasCadence = Boolean(cadence);
 	const isOnce = keywordValues.some((use) => use === 'once');
 	let isOptin = keywordValues.some((use) => use === 'optin');
+	const partialConsume = keywordValues.some((use) => use === 'partialconsume');
 	if (!hasCount && !isOnce && !hasCadence) {
 		return true;
 	}
@@ -2404,6 +2326,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			id,
 			target: consumptionTarget,
 			consume,
+			partialConsume,
 			raw: hasCount,
 		});
 
@@ -2413,10 +2336,20 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				return false;
 			}
 
-			const newUses = isNumber - consume;
+			const appliedConsume = partialConsume && consume > 0 ? Math.min(consume, isNumber) : consume;
+			const newUses = isNumber - appliedConsume;
 
 			if (newUses < 0) {
-				_logUsesCount('blocked', { effect: effect?.name, id, reason: 'counter-below-zero', target: consumptionTarget, current: isNumber, consume, next: newUses });
+				_logUsesCount('blocked', {
+					effect: effect?.name,
+					id,
+					reason: 'counter-below-zero',
+					target: consumptionTarget,
+					current: isNumber,
+					consume,
+					appliedConsume,
+					next: newUses,
+				});
 				return false; //if you need to consume more uses than available (can only happen if moreUses exists)
 			}
 
@@ -2513,6 +2446,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					usesMax,
 					usesSource,
 					consume,
+					partialConsume,
 					id,
 					baseId,
 					activityUpdates,
@@ -2549,6 +2483,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						usesMax,
 						usesSource,
 						consume,
+						partialConsume,
 						id,
 						baseId,
 						activityUpdates,
@@ -2600,7 +2535,13 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const valueRaw = foundry.utils.getProperty(actor, `system.${type}`) ?? foundry.utils.getProperty(actor, type);
 							const value = Number(valueRaw);
 							if (!Number.isFinite(value)) return false;
-							const newValue = value + numericConsume;
+							let appliedConsume = numericConsume;
+							if (partialConsume && numericConsume > 0) {
+								const remaining = Math.max(0, 3 - value);
+								if (remaining <= 0) return false;
+								appliedConsume = Math.min(numericConsume, remaining);
+							}
+							const newValue = value + appliedConsume;
 							if (newValue < 0 || newValue > 3) return false;
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
@@ -3001,7 +2942,23 @@ function _registerOriginUsesPermissionOverride({ updateArrays, id, baseId, owner
 	});
 }
 
-function updateUsesCount({ effect, item, activity, currentUses, currentQuantity, usesMax, usesSource, consume, id, baseId, activityUpdates, activityUpdatesGM, itemUpdates, itemUpdatesGM }) {
+function updateUsesCount({
+	effect,
+	item,
+	activity,
+	currentUses,
+	currentQuantity,
+	usesMax,
+	usesSource,
+	consume,
+	partialConsume = false,
+	id,
+	baseId,
+	activityUpdates,
+	activityUpdatesGM,
+	itemUpdates,
+	itemUpdatesGM,
+}) {
 	const hasUses = currentUses !== false;
 	const hasQuantity = currentQuantity !== false;
 	const usesDocumentOwner =
@@ -3009,8 +2966,10 @@ function updateUsesCount({ effect, item, activity, currentUses, currentQuantity,
 		: usesSource === 'item' ? Boolean(item?.isOwner)
 		: false;
 	const quantityDocumentOwner = Boolean(item?.isOwner);
-	const newUses = hasUses ? currentUses - consume : null;
-	const newQuantity = hasQuantity ? currentQuantity - consume : null;
+	const appliedUsesConsume = hasUses && partialConsume && consume > 0 ? Math.min(consume, currentUses) : consume;
+	const appliedQuantityConsume = hasQuantity && partialConsume && consume > 0 ? Math.min(consume, currentQuantity) : consume;
+	const newUses = hasUses ? currentUses - appliedUsesConsume : null;
+	const newQuantity = hasQuantity ? currentQuantity - appliedQuantityConsume : null;
 	_logUsesCount('evaluate-update', {
 		effect: effect?.name,
 		id,
@@ -3019,6 +2978,9 @@ function updateUsesCount({ effect, item, activity, currentUses, currentQuantity,
 		currentUses: hasUses ? currentUses : null,
 		currentQuantity: hasQuantity ? currentQuantity : null,
 		consume,
+		partialConsume,
+		appliedUsesConsume: hasUses ? appliedUsesConsume : null,
+		appliedQuantityConsume: hasQuantity ? appliedQuantityConsume : null,
 		newUses,
 		newQuantity,
 	});
@@ -3152,7 +3114,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	if (isChance !== false && isChance !== '') {
 		const replacementChance = bonusReplacements(isChance, evaluationData, isAura, effect);
 		let evaluatedChance = _ac5eSafeEval({ expression: replacementChance, sandbox: evaluationData, mode: 'formula', debug });
-		if (!Number.isFinite(Number(evaluatedChance))) evaluatedChance = evalDiceExpression(evaluatedChance);
+		if (!Number.isFinite(Number(evaluatedChance))) evaluatedChance = evalNumericFormulaExpression(evaluatedChance, { debug });
 		const thresholdChance = Number(evaluatedChance);
 		if (Number.isFinite(thresholdChance)) {
 			const cachedChance = chanceKey && chanceCache && typeof chanceCache === 'object' ? chanceCache[chanceKey] : undefined;
@@ -3170,14 +3132,17 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 			}
 		}
 	}
-	if (threshold) threshold = Number(evalDiceExpression(threshold)); // we need Integers to differentiate from set
+	if (threshold !== undefined && threshold !== '') threshold = Number(evalNumericFormulaExpression(threshold, { debug })); // we need Integers to differentiate from set
 	if (bonus && mode !== 'bonus') {
 		// Preserve extraDice multiplier literals (x2/^2) so they can be parsed downstream.
 		const isExtraDiceMultiplierLiteral = mode === 'extraDice' && typeof bonus === 'string' && /^\+?\s*(?:x|\^)\s*-?\d+\s*$/i.test(bonus.trim());
 		if (isExtraDiceMultiplierLiteral) bonus = bonus.trim();
 		else bonus = Number(evalDiceExpression(bonus)); // non-bonus modes should resolve to numeric values
 	}
-	if (set) set = String(evalDiceExpression(set)); // we need Strings for set
+	if (set !== undefined && set !== '') {
+		if (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack') set = String(evalNumericFormulaExpression(set, { debug }));
+		else set = String(evalDiceExpression(set)); // we need Strings for set
+	}
 	if (ac5e?.debugTargetADC && mode === 'targetADC') console.warn('AC5E targetADC: preEvaluate', { hook, value, bonus, set, threshold, effect: effect?.name });
 	return { bonus, set, modifier, threshold, chance };
 }
@@ -3299,5 +3264,43 @@ function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e
 	}
 
 	return result;
+}
+
+function evalNumericFormulaExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e.debug.evaluations } = {}) {
+	if (typeof expr === 'number') return expr;
+	if (typeof expr !== 'string') return NaN;
+
+	const trimmed = expr.trim();
+	if (!trimmed.length) return NaN;
+
+	const arithmeticResult = evalDiceExpression(trimmed, { maxDice, maxSides, debug: false });
+	if (Number.isFinite(arithmeticResult)) return arithmeticResult;
+
+	const strippedFunctions = trimmed.replace(/\b(?:min|max|round|floor|ceil|abs)\b/gi, '');
+	const allowed = /^[0-9dc+\-*/%\s(),.]+$/i;
+	if (!allowed.test(strippedFunctions)) return NaN;
+
+	const diceRe = /(\d*)d(\d+|c)/gi;
+	const replaced = trimmed.replace(diceRe, (match, cStr, sStr) => {
+		const count = Math.min(Math.max(parseInt(cStr || '1', 10), 0), maxDice);
+		const isCoin = sStr.toLowerCase() === 'c';
+		const sides = isCoin ? 2 : Math.min(Math.max(parseInt(sStr, 10), 1), maxSides);
+
+		let sum = 0;
+		for (let i = 0; i < count; i++) {
+			sum += isCoin ? (Math.random() < 0.5 ? 1 : 0) : Math.floor(Math.random() * sides) + 1;
+		}
+		return String(sum);
+	});
+
+	try {
+		// Limit evaluation to arithmetic and a small Math helper subset after dice have been resolved.
+		// eslint-disable-next-line no-new-func
+		const evaluator = new Function('Math', `"use strict"; const { min, max, round, floor, ceil, abs } = Math; return (${replaced});`);
+		const result = evaluator(Math);
+		return Number.isFinite(Number(result)) ? Number(result) : NaN;
+	} catch {
+		return NaN;
+	}
 }
 

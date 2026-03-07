@@ -277,6 +277,8 @@ function _parseUsageRuleDefinition(definition = {}) {
 	const evaluate = typeof definition.evaluate === 'function' ? definition.evaluate : undefined;
 	const priority = Number.isFinite(Number(definition.priority)) ? Number(definition.priority) : 0;
 	const optin = Boolean(definition.optin);
+	const criticalStatic = Boolean(definition.criticalStatic);
+	const partialConsume = Boolean(definition.partialConsume);
 	const chance = definition.chance;
 	const addTo = definition.addTo;
 	const usesCount = definition.usesCount;
@@ -301,6 +303,8 @@ function _parseUsageRuleDefinition(definition = {}) {
 		evaluate,
 		priority,
 		optin,
+		criticalStatic,
+		partialConsume,
 		cadence,
 		chance,
 		addTo,
@@ -339,6 +343,8 @@ function _buildUsageRulesState() {
 			condition: entry.condition,
 			priority: entry.priority,
 			optin: entry.optin,
+			criticalStatic: entry.criticalStatic,
+			partialConsume: entry.partialConsume,
 			cadence: entry.cadence,
 			chance: entry.chance,
 			addTo: entry.addTo,
@@ -458,6 +464,8 @@ function listUsageRules() {
 			evaluate: entry.evaluate,
 			priority: entry.priority,
 			optin: entry.optin,
+			criticalStatic: entry.criticalStatic,
+			partialConsume: entry.partialConsume,
 			cadence: entry.cadence,
 			chance: entry.chance,
 			addTo: entry.addTo,
@@ -476,6 +484,44 @@ function listUsageRules() {
 			updatedAt: entry.updatedAt,
 		}))
 		.sort((a, b) => b.priority - a.priority || a.key.localeCompare(b.key));
+}
+
+function showUsageRuleKeys() {
+	return {
+		key: 'String identifier used to uniquely register, update, remove, and reference the usage rule. Must be a valid JS-style identifier.',
+		persistent: 'Boolean: persists the rule in module settings so it survives reloads and reconnects. Rules using evaluate() cannot be persisted.',
+		scope: 'String: application scope. Supported values: "effect" and "universal".',
+		hook: 'String: evaluation hook. Supported values include "*", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
+		target: 'String: which side the rule applies to. Supported values: "subject", "opponent", and "aura". Alias: actorType.',
+		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
+		name: 'String: user-facing label shown in tooltips, dialogs, and attribution.',
+		description: 'String: optional explanatory text carried with the rule.',
+		condition: 'String: AC5E-safe expression evaluated against the per-roll sandbox. Alias: expression.',
+		evaluate: 'Function: runtime-only predicate callback that receives the sandbox and rule context. Not persisted.',
+		priority: 'Number: ordering hint when multiple rules of the same type are collected.',
+		optin: 'Boolean: exposes the rule as an optional opt-in entry in supported roll dialogs.',
+		criticalStatic: 'Boolean: for extraDice rules, marks the bonus as crit-only static extra dice logic.',
+		partialConsume: 'Boolean: for usesCount rules, allows bounded counters to consume only the remaining available amount instead of failing when the full requested amount is not available.',
+		cadence: 'String: once-per cadence. Supported values: "oncePerTurn", "oncePerRound", and "oncePerCombat".',
+		chance: 'String|Number: optional chance gate evaluated before applying the rule.',
+		addTo: 'String|String[]: optional addTo target list for compatible modes.',
+		usesCount: 'String: uses/counter consumption instruction, for example "death.fail,(isCritical ? 2 : 1)".',
+		itemLimited: 'Boolean: restricts matching to item-originated contexts where applicable.',
+		bonus: 'String|Number: bonus payload for bonus or extraDice-style rules. Alias: value.',
+		set: 'String|Number: set payload used by modes that replace a resolved value.',
+		modifier: 'String|Number: modifier payload used by modifier-style modes.',
+		threshold: 'String|Number: threshold payload used by threshold-style modes.',
+		effectName: 'String: optional source/effect label override.',
+		effectUuid: 'String: optional ActiveEffect UUID for attribution and persistence context.',
+		sourceUuid: 'String: optional source document UUID for attribution and persistence context.',
+		documentScope: 'String: optional document scoping hint used by persistent rule tooling.',
+		value: 'String|Number: alias for bonus in object-form registration.',
+		type: 'String: alias for hook.',
+		id: 'String: alias for key.',
+		actorType: 'String: alias for target.',
+		expression: 'String: alias for condition.',
+		application: 'String: alias for scope.',
+	};
 }
 
 function _applyUsageRuleKeywordsToSandbox(sandbox = {}) {
@@ -1026,6 +1072,7 @@ function ac5eSetup() {
 		remove: removeUsageRule,
 		clear: clearUsageRules,
 		list: listUsageRules,
+		showKeys: showUsageRuleKeys,
 		canPersist: _canPersistUsageRules,
 		reloadPersistent: _reloadPersistentUsageRules,
 		applyToSandbox: _applyUsageRuleKeywordsToSandbox,
@@ -1355,6 +1402,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 		'oncepercombat',
 		'optin',
 		'outofrangefail',
+		'partialconsume',
 		'radius',
 		'reach',
 		'set',

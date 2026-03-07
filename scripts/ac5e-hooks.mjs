@@ -2082,6 +2082,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					preserved.modified = preserved.modified.concat(newFormulas);
 					const newAdditives = newFormulas.map(() => 0);
 					const newCriticalStaticAdditives = newFormulas.map(() => 0);
+					const newCriticalStaticMultipliers = newFormulas.map(() => 1);
 					const newMultipliers = newFormulas.map(() => 1);
 					const newSteps = newFormulas.map(() => 0);
 					const newFormulaOperators = newFormulas.map(() => []);
@@ -2090,6 +2091,8 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					const newBaseCriticalBonusDamage = newFormulas.map(() => null);
 					const activeAdditives = Array.isArray(preserved.activeExtraDice) ? preserved.activeExtraDice : [];
 					const activeCriticalStaticAdditives = Array.isArray(preserved.activeCriticalStaticExtraDice) ? preserved.activeCriticalStaticExtraDice : [];
+					const activeCriticalStaticMultipliers =
+						Array.isArray(preserved.activeCriticalStaticExtraDiceMultipliers) ? preserved.activeCriticalStaticExtraDiceMultipliers : [];
 					const activeMultipliers = Array.isArray(preserved.activeExtraDiceMultipliers) ? preserved.activeExtraDiceMultipliers : [];
 					const activeSteps = Array.isArray(preserved.activeDiceSteps) ? preserved.activeDiceSteps : [];
 					const activeFormulaOperators = Array.isArray(preserved.activeFormulaOperators) ? preserved.activeFormulaOperators : [];
@@ -2098,6 +2101,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					const baseCriticalBonusDamage = Array.isArray(preserved.baseCriticalBonusDamageByRoll) ? preserved.baseCriticalBonusDamageByRoll : [];
 					preserved.activeExtraDice = activeAdditives.concat(newAdditives);
 					preserved.activeCriticalStaticExtraDice = activeCriticalStaticAdditives.concat(newCriticalStaticAdditives);
+					preserved.activeCriticalStaticExtraDiceMultipliers = activeCriticalStaticMultipliers.concat(newCriticalStaticMultipliers);
 					preserved.activeExtraDiceMultipliers = activeMultipliers.concat(newMultipliers);
 					preserved.activeDiceSteps = activeSteps.concat(newSteps);
 					preserved.activeFormulaOperators = activeFormulaOperators.concat(newFormulaOperators);
@@ -2114,6 +2118,9 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					}
 					if (Array.isArray(preserved.activeCriticalStaticExtraDice)) {
 						preserved.activeCriticalStaticExtraDice = preserved.activeCriticalStaticExtraDice.slice(0, currentFormulas.length);
+					}
+					if (Array.isArray(preserved.activeCriticalStaticExtraDiceMultipliers)) {
+						preserved.activeCriticalStaticExtraDiceMultipliers = preserved.activeCriticalStaticExtraDiceMultipliers.slice(0, currentFormulas.length);
 					}
 					if (Array.isArray(preserved.activeExtraDiceMultipliers)) {
 						preserved.activeExtraDiceMultipliers = preserved.activeExtraDiceMultipliers.slice(0, currentFormulas.length);
@@ -2141,6 +2148,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 					activeModifiers: '',
 					activeExtraDice: currentFormulas.map(() => 0),
 					activeCriticalStaticExtraDice: currentFormulas.map(() => 0),
+					activeCriticalStaticExtraDiceMultipliers: currentFormulas.map(() => 1),
 					activeExtraDiceMultipliers: currentFormulas.map(() => 1),
 					activeDiceSteps: currentFormulas.map(() => 0),
 					activeFormulaOperators: currentFormulas.map(() => []),
@@ -2307,6 +2315,7 @@ function ensureDamagePreservedInitialData(ac5eConfig, baseline) {
 		activeModifiers: '',
 		activeExtraDice: baselineFormulas.map(() => 0),
 		activeCriticalStaticExtraDice: baselineFormulas.map(() => 0),
+		activeCriticalStaticExtraDiceMultipliers: baselineFormulas.map(() => 1),
 		activeExtraDiceMultipliers: baselineFormulas.map(() => 1),
 		activeDiceSteps: baselineFormulas.map(() => 0),
 		activeFormulaOperators: baselineFormulas.map(() => []),
@@ -2883,8 +2892,16 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 			const nextSelections = readOptinSelections(activeElem, activeConfig);
 			setOptinSelections(activeConfig, nextSelections);
 			if (['attack', 'save', 'check'].includes(activeConfig.hookType)) {
+				const preRestoreParts = _getD20ActivePartsSnapshot(activeDialog?.config);
+				_restoreD20ConfigFromFrozenBaseline(activeConfig, activeDialog?.config);
+				const preservedExternalParts = _collectPreservedExternalD20Parts(activeConfig, preRestoreParts);
+				if (activeDialog?.config) {
+					activeDialog.config.advantage = undefined;
+					activeDialog.config.disadvantage = undefined;
+				}
 				if (activeConfig.hookType === 'attack') refreshAttackAutoRangeState(activeConfig, activeDialog?.config);
 				_calcAdvantageMode(activeConfig, activeDialog.config, undefined, undefined, { skipSetProperties: true });
+				_appendPartsToD20Config(activeDialog?.config, preservedExternalParts);
 				const roll0 = activeDialog.config?.rolls?.[0];
 				if (roll0?.options) {
 					roll0.options[Constants.MODULE_ID] ??= {};
@@ -2905,6 +2922,7 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 				activeDialog.config[Constants.MODULE_ID].advantageMode = activeConfig.advantageMode ?? 0;
 				activeDialog.config[Constants.MODULE_ID].optinSelected = activeConfig.optinSelected ?? {};
 			}
+			if (['attack', 'save', 'check'].includes(activeConfig?.hookType)) activeDialog.rebuild();
 			activeDialog.render();
 		}
 	});
@@ -3139,11 +3157,12 @@ function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollInd
 	const entries = getDamageEntriesByMode(ac5eConfig, selectedTypes, 'extraDice').filter(
 		(entry) => Boolean(entry?.optin || entry?.forceOptin) && shouldApplyExtraDiceToRoll(entry, rollIndex, rollType),
 	);
-	if (!entries.length) return { additive: 0, multiplier: 1, criticalStaticAdditive: 0 };
+	if (!entries.length) return { additive: 0, multiplier: 1, criticalStaticAdditive: 0, criticalStaticMultiplier: 1 };
 	const selectedIds = new Set(Object.keys(optins ?? {}).filter((key) => optins[key]));
 	let additive = 0;
 	let multiplier = 1;
 	let criticalStaticAdditive = 0;
+	let criticalStaticMultiplier = 1;
 	for (const entry of entries) {
 		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
 		const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
@@ -3153,13 +3172,14 @@ function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollInd
 			const parsed = _parseExtraDiceValue(value);
 			if (criticalStatic) {
 				criticalStaticAdditive += parsed.additive;
+				criticalStaticMultiplier *= parsed.multiplier;
 				continue;
 			}
 			additive += parsed.additive;
 			multiplier *= parsed.multiplier;
 		}
 	}
-	return { additive, multiplier, criticalStaticAdditive };
+	return { additive, multiplier, criticalStaticAdditive, criticalStaticMultiplier };
 }
 
 function _parseExtraDiceValue(value) {
@@ -3299,6 +3319,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		let baseAdditive = 0;
 		let baseMultiplier = 1;
 		let baseCriticalStaticAdditive = 0;
+		let baseCriticalStaticMultiplier = 1;
 		for (const entry of entries) {
 			if (entry.optin) continue;
 			if (!shouldApplyExtraDiceToRoll(entry, index, rollType)) continue;
@@ -3309,6 +3330,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 				const parsed = _parseExtraDiceValue(value);
 				if (criticalStatic) {
 					baseCriticalStaticAdditive += parsed.additive;
+					baseCriticalStaticMultiplier *= parsed.multiplier;
 					continue;
 				}
 				baseAdditive += parsed.additive;
@@ -3320,6 +3342,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			additive: baseAdditive + optinAdjustments.additive,
 			multiplier: baseMultiplier * optinAdjustments.multiplier,
 			criticalStaticAdditive: baseCriticalStaticAdditive + optinAdjustments.criticalStaticAdditive,
+			criticalStaticMultiplier: baseCriticalStaticMultiplier * optinAdjustments.criticalStaticMultiplier,
 		};
 	});
 	const diceStepTotals = formulas.map((_, index) => {
@@ -3354,6 +3377,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			activeModifiers: '',
 			activeExtraDice: formulas.map(() => 0),
 			activeCriticalStaticExtraDice: formulas.map(() => 0),
+			activeCriticalStaticExtraDiceMultipliers: formulas.map(() => 1),
 			activeExtraDiceMultipliers: formulas.map(() => 1),
 			activeDiceSteps: formulas.map(() => 0),
 			activeFormulaOperators: formulas.map(() => []),
@@ -3369,6 +3393,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		activeModifiers,
 		activeExtraDice,
 		activeCriticalStaticExtraDice,
+		activeCriticalStaticExtraDiceMultipliers,
 		activeExtraDiceMultipliers,
 		activeDiceSteps,
 		activeFormulaOperators,
@@ -3378,6 +3403,10 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	const activeExtraDiceArray = Array.isArray(activeExtraDice) ? activeExtraDice : originals.map(() => activeExtraDice ?? 0);
 	const activeCriticalStaticExtraDiceArray =
 		Array.isArray(activeCriticalStaticExtraDice) ? activeCriticalStaticExtraDice : originals.map(() => activeCriticalStaticExtraDice ?? 0);
+	const activeCriticalStaticExtraDiceMultiplierArray =
+		Array.isArray(activeCriticalStaticExtraDiceMultipliers) ?
+			activeCriticalStaticExtraDiceMultipliers
+		:	originals.map(() => activeCriticalStaticExtraDiceMultipliers ?? 1);
 	const activeExtraDiceMultiplierArray = Array.isArray(activeExtraDiceMultipliers) ? activeExtraDiceMultipliers : originals.map(() => activeExtraDiceMultipliers ?? 1);
 	const activeDiceStepsArray = Array.isArray(activeDiceSteps) ? activeDiceSteps : originals.map(() => activeDiceSteps ?? 0);
 	const activeFormulaOperatorsArray = Array.isArray(activeFormulaOperators) ? activeFormulaOperators.map((ops) => (Array.isArray(ops) ? [...ops] : [])) : originals.map(() => []);
@@ -3388,6 +3417,9 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	const suffixChanged = activeModifiers !== suffix;
 	const additiveChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceArray[index] !== adj.additive);
 	const criticalStaticChanged = extraDiceAdjustments.some((adj, index) => activeCriticalStaticExtraDiceArray[index] !== (adj.criticalStaticAdditive ?? 0));
+	const criticalStaticMultiplierChanged = extraDiceAdjustments.some(
+		(adj, index) => activeCriticalStaticExtraDiceMultiplierArray[index] !== (adj.criticalStaticMultiplier ?? 1),
+	);
 	const multiplierChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceMultiplierArray[index] !== adj.multiplier);
 	const diceStepChanged = diceStepTotals.some((total, index) => activeDiceStepsArray[index] !== total);
 	const formulaOperatorChanged = !areStringMatrixEqual(activeFormulaOperatorsArray, formulaOperatorTokensByRoll);
@@ -3398,14 +3430,31 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		: '';
 	const advDisChanged = advDis !== activeAdvDis;
 
-	if (mode === 'apply' && !suffixChanged && !additiveChanged && !criticalStaticChanged && !multiplierChanged && !diceStepChanged && !formulaOperatorChanged && !optinBonusChanged && !advDisChanged) {
+	if (
+		mode === 'apply' &&
+		!suffixChanged &&
+		!additiveChanged &&
+		!criticalStaticChanged &&
+		!criticalStaticMultiplierChanged &&
+		!multiplierChanged &&
+		!diceStepChanged &&
+		!formulaOperatorChanged &&
+		!optinBonusChanged &&
+		!advDisChanged
+	) {
 		return false; // no changes
 	}
 
 	if (
 		mode === 'reset' ||
-		(!suffixModifiers.length &&
-			extraDiceAdjustments.every((adj) => adj.additive === 0 && (adj.criticalStaticAdditive ?? 0) === 0 && adj.multiplier === 1) &&
+			(!suffixModifiers.length &&
+			extraDiceAdjustments.every(
+				(adj) =>
+					adj.additive === 0 &&
+					(adj.criticalStaticAdditive ?? 0) === 0 &&
+					(adj.criticalStaticMultiplier ?? 1) === 1 &&
+					adj.multiplier === 1,
+			) &&
 			diceStepTotals.every((total) => total === 0) &&
 			formulaOperatorTokensByRoll.every((tokens) => !tokens.length) &&
 			optinBonusPartsByRoll.every((parts) => !parts.length) &&
@@ -3415,6 +3464,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		getConfigAC5E.preservedInitialData.activeModifiers = '';
 		getConfigAC5E.preservedInitialData.activeExtraDice = originals.map(() => 0);
 		getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDice = originals.map(() => 0);
+		getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDiceMultipliers = originals.map(() => 1);
 		getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = originals.map(() => 1);
 		getConfigAC5E.preservedInitialData.activeDiceSteps = originals.map(() => 0);
 		getConfigAC5E.preservedInitialData.activeFormulaOperators = originals.map(() => []);
@@ -3435,6 +3485,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		const resolvedFormula = resolveDamageFormulaDataReferences(formulaWithOptins, formulaReplacementData);
 		const extraDiceAdditive = extraDiceAdjustments[index]?.additive ?? 0;
 		const extraDiceCriticalStaticAdditive = extraDiceAdjustments[index]?.criticalStaticAdditive ?? 0;
+		const extraDiceCriticalStaticMultiplier = extraDiceAdjustments[index]?.criticalStaticMultiplier ?? 1;
 		const extraDiceMultiplier = extraDiceAdjustments[index]?.multiplier ?? 1;
 		const diceStepTotal = diceStepTotals[index] ?? 0;
 		const criticalStaticParts = [];
@@ -3452,8 +3503,9 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			else if (advDis === 'dis') term = `{${diceTerm},${diceTerm}}kl`;
 			else term = diceTerm;
 
-			if (extraDiceCriticalStaticAdditive > 0) {
-				const criticalDiceTerm = `${extraDiceCriticalStaticAdditive}d${shiftedSides}${suffix}`;
+			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
+			if (criticalStaticCount > 0) {
+				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}`;
 				let criticalTerm;
 				if (advDis === 'adv') criticalTerm = `{${criticalDiceTerm},${criticalDiceTerm}}kh`;
 				else if (advDis === 'dis') criticalTerm = `{${criticalDiceTerm},${criticalDiceTerm}}kl`;
@@ -3479,6 +3531,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	getConfigAC5E.preservedInitialData.activeModifiers = suffix;
 	getConfigAC5E.preservedInitialData.activeExtraDice = extraDiceAdjustments.map((adj) => adj.additive);
 	getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDice = extraDiceAdjustments.map((adj) => adj.criticalStaticAdditive ?? 0);
+	getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDiceMultipliers = extraDiceAdjustments.map((adj) => adj.criticalStaticMultiplier ?? 1);
 	getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = extraDiceAdjustments.map((adj) => adj.multiplier);
 	getConfigAC5E.preservedInitialData.activeDiceSteps = [...diceStepTotals];
 	getConfigAC5E.preservedInitialData.activeFormulaOperators = formulaOperatorTokensByRoll.map((tokens) => [...tokens]);
