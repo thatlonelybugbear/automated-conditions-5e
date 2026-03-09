@@ -2005,6 +2005,15 @@ export function _getTooltip(ac5eConfig = {}) {
 			tooltip += text;
 		}
 	};
+	const getPreferredBaseTargetADC = () => {
+		const numericOptinBaseTargetADC = Number(ac5eConfig?.optinBaseTargetADCValue);
+		if (!['attack', 'damage'].includes(hookType) && Number.isFinite(numericOptinBaseTargetADC)) return numericOptinBaseTargetADC;
+		const numericBaseRollTarget = Number(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target);
+		if (!['attack', 'damage'].includes(hookType) && Number.isFinite(numericBaseRollTarget)) return numericBaseRollTarget;
+		const numericInitialTargetADC = Number(initialTargetADC);
+		if (Number.isFinite(numericInitialTargetADC)) return numericInitialTargetADC;
+		return undefined;
+	};
 	const explicitOverride = ac5eConfig?.explicitModeOverride?.replacesCalculatedMode ? ac5eConfig.explicitModeOverride : null;
 	const suppressD20Calculated = explicitOverride?.family === 'd20';
 	const suppressDamageCalculated = explicitOverride?.family === 'damage';
@@ -2130,7 +2139,7 @@ export function _getTooltip(ac5eConfig = {}) {
 	const combinedTargetEntries = filterOptinEntries([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 	const combinedTargetADC = mapEntryLabels(combinedTargetEntries);
 	if (combinedTargetADC.length) {
-		let tooltipInitialTargetADC = initialTargetADC;
+		let tooltipInitialTargetADC = getPreferredBaseTargetADC();
 		let tooltipAlteredTargetADC = alteredTargetADC;
 		if (tooltipInitialTargetADC === undefined) tooltipInitialTargetADC = 10;
 		if (tooltipAlteredTargetADC === undefined) {
@@ -2519,7 +2528,13 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		return Number.isFinite(numeric) ? numeric : undefined;
 	};
 	const baseTargetADC =
-		getNumericTarget(ac5eConfig?.initialTargetADC) ?? getNumericTarget(config?.target) ?? getNumericTarget(config?.rolls?.[0]?.options?.target) ?? getNumericTarget(config?.rolls?.[0]?.target) ?? 10;
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
+		getNumericTarget(ac5eConfig?.initialTargetADC) ??
+		getNumericTarget(config?.target) ??
+		getNumericTarget(config?.rolls?.[0]?.options?.target) ??
+		getNumericTarget(config?.rolls?.[0]?.target) ??
+		10;
 	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
 	const targetValuePool =
 		targetValues.length ? targetValues
@@ -2680,6 +2695,26 @@ function _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog) {
 		midiOptions?.modifierTracker,
 		midiOptions?.tracker,
 	].some((value) => value && typeof value === 'object' && !foundry.utils.isEmpty(value));
+}
+
+export function _getD20TooltipOwnership(ac5eConfig, { midiRoller = _activeModule('midi-qol') } = {}) {
+	const hookType = ac5eConfig?.hookType;
+	const forceAc5eD20Tooltip =
+		hookType !== 'attack' &&
+		hookType !== 'damage' &&
+		!!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
+	const midiOwnsD20Tooltip =
+		!!midiRoller &&
+		!forceAc5eD20Tooltip &&
+		(hookType === 'attack' || (['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.midiOwnsAbilityTooltip));
+	const deferD20KeypressToMidi = midiOwnsD20Tooltip && hookType !== 'damage';
+	const useMidiD20Attribution = midiOwnsD20Tooltip && hookType !== 'damage';
+	return {
+		forceAc5eD20Tooltip,
+		midiOwnsD20Tooltip,
+		deferD20KeypressToMidi,
+		useMidiD20Attribution,
+	};
 }
 
 function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
@@ -2891,7 +2926,13 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 		return Number.isFinite(numeric) ? numeric : undefined;
 	};
 	const baseTargetADC =
-		getNumericTarget(ac5eConfig?.initialTargetADC) ?? getNumericTarget(config?.target) ?? getNumericTarget(config?.rolls?.[0]?.options?.target) ?? getNumericTarget(config?.rolls?.[0]?.target) ?? 10;
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
+		getNumericTarget(ac5eConfig?.initialTargetADC) ??
+		getNumericTarget(config?.target) ??
+		getNumericTarget(config?.rolls?.[0]?.options?.target) ??
+		getNumericTarget(config?.rolls?.[0]?.target) ??
+		10;
 	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
 	const targetValuePool =
 		targetValues.length ? targetValues
@@ -3005,16 +3046,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	}
 
 	const { skipDialogAdvantage, skipDialogDisadvantage, skipDialogNormal } = ac5eConfig.preAC5eConfig;
-	const forceAc5eD20Tooltip =
-		hookType !== 'attack' &&
-		hookType !== 'damage' &&
-		!!ac5eConfig.preAC5eConfig?.forceChatTooltip;
-	const midiOwnsD20Tooltip =
-		midiRoller &&
-		!forceAc5eD20Tooltip &&
-		(hookType === 'attack' || (['check', 'save'].includes(hookType) && !!ac5eConfig.preAC5eConfig?.midiOwnsAbilityTooltip));
-	const deferD20KeypressToMidi = midiOwnsD20Tooltip && hookType !== 'damage';
-	const useMidiD20Attribution = midiOwnsD20Tooltip && hookType !== 'damage';
+	const { deferD20KeypressToMidi, useMidiD20Attribution } = _getD20TooltipOwnership(ac5eConfig, { midiRoller });
 	const d20RollerLabel = useMidiD20Attribution ? roller : 'Core';
 	const returnEarly = !deferD20KeypressToMidi && skipDialogNormal && (skipDialogAdvantage || skipDialogDisadvantage);
 	const keypressAdvantageSource = !deferD20KeypressToMidi && skipDialogAdvantage && !returnEarly;
@@ -3556,6 +3588,13 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	};
 	const token = canvas.tokens.get(tokenId);
 	const actor = token?.actor;
+	const persistedAc5eConfig =
+		config?.options?.[Constants.MODULE_ID] ??
+		config?.[Constants.MODULE_ID] ??
+		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
+		dialog?.config?.options?.[Constants.MODULE_ID] ??
+		dialog?.config?.[Constants.MODULE_ID] ??
+		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
 	const ac5eConfig = {
 		hookType,
 		tokenId,
@@ -3630,6 +3669,26 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		},
 		returnEarly: false,
 	};
+	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
+	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') {
+		ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
+	}
+	const persistedOptinBaseTargetADC = persistedAc5eConfig?.optinBaseTargetADC;
+	if (Array.isArray(persistedOptinBaseTargetADC)) {
+		ac5eConfig.optinBaseTargetADC = foundry.utils.duplicate(persistedOptinBaseTargetADC);
+	}
+	if (persistedAc5eConfig?.optinBaseTargetADCValue !== undefined) {
+		ac5eConfig.optinBaseTargetADCValue = persistedAc5eConfig.optinBaseTargetADCValue;
+	}
+	if (persistedAc5eConfig?.initialTargetADC !== undefined) {
+		ac5eConfig.initialTargetADC = persistedAc5eConfig.initialTargetADC;
+	}
+	if (persistedAc5eConfig?.alteredTargetADC !== undefined) {
+		ac5eConfig.alteredTargetADC = persistedAc5eConfig.alteredTargetADC;
+	}
+	ac5eConfig.preAC5eConfig.skipDialogAdvantage = isPressed('skipDialogAdvantage');
+	ac5eConfig.preAC5eConfig.skipDialogDisadvantage = isPressed('skipDialogDisadvantage');
+	ac5eConfig.preAC5eConfig.skipDialogNormal = isPressed('skipDialogNormal');
 	const persistedOptins =
 		config?.options?.[Constants.MODULE_ID]?.optinSelected ??
 		config?.[Constants.MODULE_ID]?.optinSelected ??

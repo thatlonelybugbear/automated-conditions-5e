@@ -19,6 +19,7 @@ import {
 	_getTooltip,
 	_getConfig,
 	_filterOptinEntries,
+	_getD20TooltipOwnership,
 	_captureFrozenD20Baseline,
 	_captureFrozenDamageBaseline,
 	_restoreD20ConfigFromFrozenBaseline,
@@ -834,10 +835,12 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 		if (byPreTargets.length) return Math.min(...byPreTargets);
 	}
 
-	const direct =
-		useTargetAcs ?
-			collectFinite([ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, config?.target])
-		:	collectFinite([config?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target]);
+	const direct = collectFinite([
+		ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target,
+		config?.rolls?.[0]?.options?.target,
+		config?.rolls?.[0]?.target,
+		config?.target
+	]);
 	if (direct.length) return direct[0];
 
 	return 10;
@@ -1156,16 +1159,18 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 		const isAttackHook = ac5eConfig.hookType === 'attack';
 		if (ac5eConfig.alteredTargetADC !== undefined) {
 			const nextTarget = ac5eConfig.alteredTargetADC;
-			rollConfig.target = nextTarget;
 			const roll0Target = getExistingRoll(rollConfig, 0);
-			if (roll0Target) {
-				roll0Target.target = nextTarget;
-				if (roll0Target.options && typeof roll0Target.options === 'object') {
-					roll0Target.options.target = nextTarget;
+			if (isAttackHook || ac5eConfig.hookType === 'damage') {
+				rollConfig.target = nextTarget;
+				if (roll0Target) {
+					roll0Target.target = nextTarget;
+					if (roll0Target.options && typeof roll0Target.options === 'object') {
+						roll0Target.options.target = nextTarget;
+					}
 				}
 			}
 			if (Object.isExtensible(options)) {
-				options.target = nextTarget;
+				if (isAttackHook || ac5eConfig.hookType === 'damage') options.target = nextTarget;
 				if (!isAttackHook && ac5eConfig.hookType !== 'damage') {
 					options.initialTargetADC = ac5eConfig.initialTargetADC;
 					options.alteredTargetADC = ac5eConfig.alteredTargetADC;
@@ -1181,16 +1186,18 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 		} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
 			const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
 			ac5eConfig.optinBaseTargetADCValue = baseTarget;
-			rollConfig.target = baseTarget;
 			const roll0Target = getExistingRoll(rollConfig, 0);
-			if (roll0Target) {
-				roll0Target.target = baseTarget;
-				if (roll0Target.options && typeof roll0Target.options === 'object') {
-					roll0Target.options.target = baseTarget;
+			if (isAttackHook || ac5eConfig.hookType === 'damage') {
+				rollConfig.target = baseTarget;
+				if (roll0Target) {
+					roll0Target.target = baseTarget;
+					if (roll0Target.options && typeof roll0Target.options === 'object') {
+						roll0Target.options.target = baseTarget;
+					}
 				}
 			}
 			if (Object.isExtensible(options)) {
-				options.target = baseTarget;
+				if (isAttackHook || ac5eConfig.hookType === 'damage') options.target = baseTarget;
 				if (!isAttackHook && ac5eConfig.hookType !== 'damage') {
 					options.initialTargetADC = ac5eConfig.initialTargetADC ?? baseTarget;
 					delete options.alteredTargetADC;
@@ -1610,9 +1617,9 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
+	_captureFrozenD20Baseline(ac5eConfig, config);
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	applyExplicitModeOverride(ac5eConfig, config);
-	_captureFrozenD20Baseline(ac5eConfig, config);
 	// dialog.configure = !ac5eConfig.fastForward;
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
 }
@@ -1644,11 +1651,11 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	}
 
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
+	_captureFrozenD20Baseline(ac5eConfig, config);
 
 	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	applyExplicitModeOverride(ac5eConfig, config);
-	_captureFrozenD20Baseline(ac5eConfig, config);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (_hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
 	return ac5eConfig;
@@ -1734,9 +1741,9 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		}
 	}
 	if (_hookDebugEnabled('preRollAttackHook')) console.warn('AC5E._preRollAttack:', { ac5eConfig });
+	_captureFrozenD20Baseline(ac5eConfig, config);
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	applyExplicitModeOverride(ac5eConfig, config);
-	_captureFrozenD20Baseline(ac5eConfig, config);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	syncTargetsToConfigAndMessage(ac5eConfig, options.targets ?? [], message);
 	return ac5eConfig; //return so if we retrigger the function manually we get updated results.
@@ -1807,22 +1814,25 @@ export function _renderHijack(hook, render, elem) {
 	let { hookType, roller, tokenId, options } = getConfigAC5E || {};
 	let targetElement, tooltip;
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
-		// need to check if the dialog title changed which means that we need to reavaluate everything with the new Ability probably
 		const abilitySelect = render?.form?.querySelector?.('select[name="ability"]');
 		if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E.hookType) && abilitySelect && !abilitySelect.dataset.ac5eAbilityReevalBound) {
 			abilitySelect.dataset.ac5eAbilityReevalBound = 'true';
 			abilitySelect.addEventListener('change', (event) => {
 				const nextAbility = event?.currentTarget?.value;
-				if (!nextAbility || nextAbility === (getConfigAC5E?.options?.ability ?? render?.config?.ability)) return;
-				doDialogAbilityRender(render, getConfigAC5E, nextAbility);
+				const refreshed = refreshDialogAbilityState(render, getConfigAC5E, nextAbility);
+				if (refreshed) {
+					getConfigAC5E = refreshed;
+					queueMicrotask(() => _renderHijack('d20Dialog', render, elem));
+				}
 			});
 		}
 		const selectedAbility = abilitySelect?.value;
-		const shouldReevaluateDialogAbility =
-			hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E.hookType) && selectedAbility && selectedAbility !== (options?.ability ?? render?.config?.ability);
-		if (shouldReevaluateDialogAbility) {
-			doDialogAbilityRender(render, getConfigAC5E, selectedAbility);
-			return true;
+		if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E.hookType) && selectedAbility) {
+			const refreshed = refreshDialogAbilityState(render, getConfigAC5E, selectedAbility);
+			if (refreshed) {
+				getConfigAC5E = refreshed;
+				({ hookType, roller, tokenId, options } = getConfigAC5E || {});
+			}
 		}
 		if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
 		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
@@ -2003,12 +2013,12 @@ export function _renderHijack(hook, render, elem) {
 				const hT = ac5eElement?.hookType;
 				if (!hT) continue;
 				// When MidiQOL is active, prefer Midi's native tooltip pipeline for roll modes.
-				const shouldForceAbilityChatTooltip = ['check', 'save'].includes(hT) && !!ac5eElement?.preAC5eConfig?.forceChatTooltip;
-				if (['attack', 'check', 'save'].includes(hT) && !shouldForceAbilityChatTooltip) continue;
+				const { forceAc5eD20Tooltip } = _getD20TooltipOwnership(ac5eElement);
+				if (['attack', 'check', 'save'].includes(hT) && !forceAc5eD20Tooltip) continue;
 				tooltip = (messageFlags?.hookType === ac5eElement?.hookType && messageFlags?.tooltipObj?.[messageFlags.hookType]) || _getTooltip(ac5eElement);
 				if (tooltip === '') continue;
 				let thisTargetElement;
-				if (['check', 'save'].includes(hT) && shouldForceAbilityChatTooltip) {
+				if (['check', 'save'].includes(hT) && forceAc5eD20Tooltip) {
 					thisTargetElement =
 						elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ??
 						elem.querySelector('.chat-message header .flavor-text') ??
@@ -3884,27 +3894,53 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	return true;
 }
 
-function doDialogAbilityRender(dialog, getConfigAC5E, selectedAbility) {
-	if (!selectedAbility) return;
-	const newConfig = dialog.config;
-	newConfig.ability = selectedAbility;
-	newConfig.advantage = undefined;
-	newConfig.disadvantage = undefined;
-	const roll0 = getExistingRoll(newConfig, 0);
-	const roll0Options = getExistingRollOptions(newConfig, 0);
+function refreshDialogAbilityState(dialog, ac5eConfig, selectedAbility) {
+	if (!dialog?.config || !selectedAbility || !['check', 'save'].includes(ac5eConfig?.hookType)) return null;
+	const currentAbility = ac5eConfig?.options?.ability ?? dialog?.config?.ability;
+	if (!selectedAbility || selectedAbility === currentAbility) return null;
+	const activeHook = ac5eConfig.hookType === 'save' ? 'save' : 'check';
+	_restoreD20ConfigFromFrozenBaseline(ac5eConfig, dialog.config);
+	ac5eConfig.initialTargetADC = undefined;
+	ac5eConfig.alteredTargetADC = undefined;
+	ac5eConfig.optinBaseTargetADCValue = undefined;
+	ac5eConfig.optinBaseTargetADC = undefined;
+	ac5eConfig.targetADC = [];
+	if (ac5eConfig?.subject && typeof ac5eConfig.subject === 'object') ac5eConfig.subject.targetADC = [];
+	if (ac5eConfig?.opponent && typeof ac5eConfig.opponent === 'object') ac5eConfig.opponent.targetADC = [];
+	if (ac5eConfig.preAC5eConfig && typeof ac5eConfig.preAC5eConfig === 'object') {
+		const baseRoll0Options = ac5eConfig.preAC5eConfig.baseRoll0Options;
+		if (baseRoll0Options && Object.hasOwn(baseRoll0Options, 'target')) {
+			const baseTarget = baseRoll0Options.target;
+			dialog.config.target = baseTarget;
+			const baseRoll0 = getExistingRoll(dialog.config, 0);
+			const baseRoll0OptionsTarget = getExistingRollOptions(dialog.config, 0);
+			if (baseRoll0) baseRoll0.target = baseTarget;
+			if (baseRoll0OptionsTarget) baseRoll0OptionsTarget.target = baseTarget;
+		}
+		ac5eConfig.preAC5eConfig.frozenD20BaselineByProfile = {};
+		delete ac5eConfig.preAC5eConfig.frozenD20Baseline;
+		delete ac5eConfig.preAC5eConfig.activeRollProfileKey;
+	}
+	delete ac5eConfig.frozenD20Baseline;
+	dialog.config.ability = selectedAbility;
+	dialog.config.advantage = undefined;
+	dialog.config.disadvantage = undefined;
+	const roll0 = getExistingRoll(dialog.config, 0);
+	const roll0Options = getExistingRollOptions(dialog.config, 0);
+	delete dialog.config?.[Constants.MODULE_ID];
+	if (dialog.config?.options && typeof dialog.config.options === 'object') delete dialog.config.options[Constants.MODULE_ID];
+	if (roll0 && typeof roll0 === 'object') delete roll0[Constants.MODULE_ID];
+	if (roll0Options && typeof roll0Options === 'object') delete roll0Options[Constants.MODULE_ID];
 	if (roll0Options) roll0Options.advantageMode = 0;
 	if (roll0) roll0.parts = [];
 	if (roll0Options) roll0Options.maximum = null;
 	if (roll0Options) roll0Options.minimum = null;
-
-	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-	const newMessage = dialog.message;
-	const reEval = getConfigAC5E.reEval ?? {};
-	const activeHook = getConfigAC5E.hookType === 'save' ? 'save' : 'check';
-	if (activeHook === 'save') _preRollSavingThrow(newConfig, newDialog, newMessage, activeHook);
-	else _preRollAbilityCheck(newConfig, newDialog, newMessage, activeHook, reEval);
-	dialog.rebuild();
-	dialog.render();
+	const transientDialog = { options: { window: { title: dialog?.message?.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	const refreshedConfig =
+		activeHook === 'save' ?
+			_preRollSavingThrow(dialog.config, transientDialog, dialog.message, activeHook)
+		:	_preRollAbilityCheck(dialog.config, transientDialog, dialog.message, activeHook, ac5eConfig?.reEval);
+	return refreshedConfig ?? dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? dialog?.config?.[Constants.MODULE_ID] ?? ac5eConfig;
 }
 
 function compareArrays(a, b) {

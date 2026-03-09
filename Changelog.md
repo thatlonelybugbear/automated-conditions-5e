@@ -16,6 +16,8 @@
 - Stabilized damage dialog rerender behavior.
   - Fixed duplicate AC5E opt-in rows during damage dialog rerenders.
   - Fixed a stale critical bonus damage leak that could make formulas grow repeatedly when changing damage types in the dialog.
+- Reduced redundant roll-dialog syncing work.
+  - Removed unnecessary target/DC DOM syncing and a heavy ability-dialog rerender path, while keeping roll results and AC5E tooltip state aligned through the actual roll/build config flow.
 
 ## 13.5250.9
 
