@@ -1953,9 +1953,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			const entryBaseId = `${entry.effectUuid ?? ''}:${entry.changeIndex}:${hook}`;
 			const matchesQueuedUpdate = (queued) => queued?.id === entry.id || (queued?.baseId && queued.baseId === entryBaseId);
 			const pendingForEntry = updateArrays.pendingUses?.filter(matchesQueuedUpdate);
+			const pendingModeFamily = _getPendingUseModeFamily(mode);
 			if (pendingForEntry?.length) {
 				ac5eConfig.pendingUses ??= [];
-				for (const pending of pendingForEntry) ac5eConfig.pendingUses.push({ ...pending, id: entry.id });
+				for (const pending of pendingForEntry) {
+					ac5eConfig.pendingUses.push({
+						...pending,
+						id: entry.id,
+						modeFamily: pendingModeFamily || pending?.modeFamily,
+						modeKey: mode ?? pending?.modeKey,
+					});
+				}
 			}
 			for (const queued of updateArrays.activityUpdates.filter(matchesQueuedUpdate)) validActivityUpdates.push(queued.context ?? queued);
 			for (const queued of updateArrays.activityUpdatesGM.filter(matchesQueuedUpdate)) validActivityUpdatesGM.push(queued.context ?? queued);
@@ -2235,6 +2243,15 @@ function _normalizeUsesCountTarget(target) {
 function _looksLikeFormulaExpression(value) {
 	if (typeof value !== 'string') return false;
 	return /[@0-9()+\-*/]/.test(value);
+}
+
+function _getPendingUseModeFamily(mode) {
+	const normalizedMode = String(mode ?? '')
+		.trim()
+		.toLowerCase();
+	if (['advantage', 'disadvantage', 'noadvantage', 'nodisadvantage'].includes(normalizedMode)) return 'd20';
+	if (['critical', 'nocritical'].includes(normalizedMode)) return 'damage';
+	return '';
 }
 
 function handleUses({ actorType, change, effect, evalData, updateArrays, debug, hook, changeIndex, auraTokenUuid }) {

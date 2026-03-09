@@ -59,6 +59,9 @@ export function _rollFunctions(hook, ...args) {
 	} else if (hook === 'buildRoll') {
 		const [app, config, formData, index] = args;
 		return _buildRollConfig(app, config, formData, index, hook);
+	} else if (hook === 'postBuildRoll') {
+		const [processConfig, config, index, options] = args;
+		return _postBuildRollConfig(processConfig, config, index, options, hook);
 	} else if (hook === 'postRollConfig') {
 		const [rolls, config, dialog, message] = args;
 		return _postRollConfiguration(rolls, config, dialog, message, hook);
@@ -86,19 +89,82 @@ function _getMessageConfigOriginatingMessageId(messageConfig) {
 	return messageConfig?.data?.['flags.dnd5e.originatingMessage'] ?? messageConfig?.data?.flags?.dnd5e?.originatingMessage;
 }
 
+function _postBuildRollConfig(processConfig, config, index, options, hook) {
+	if (!_activeModule('midi-qol')) return true;
+	if (!processConfig || !config || typeof config !== 'object') return true;
+	const ac5eConfig =
+		processConfig?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
+		processConfig?.options?.[Constants.MODULE_ID] ??
+		processConfig?.[Constants.MODULE_ID];
+	if (ac5eConfig?.hookType !== 'check' || !ac5eConfig?.options?.skill) return true;
+	if (!ac5eConfig?.preAC5eConfig?.forceChatTooltip) return true;
+	const processRollOptions = processConfig?.rolls?.[index]?.options ?? processConfig?.rolls?.[0]?.options;
+	if (!processRollOptions || typeof processRollOptions !== 'object') return true;
+	const explicitOverride = ac5eConfig?.explicitModeOverride;
+	const ac5eMode =
+		explicitOverride?.family === 'd20' ? (
+			explicitOverride.action === 'advantage' ? CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE
+			: explicitOverride.action === 'disadvantage' ? CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE
+			: CONFIG?.Dice?.D20Roll?.ADV_MODE?.NORMAL
+		)
+		: typeof ac5eConfig?.advantageMode === 'number' ? ac5eConfig.advantageMode
+		: typeof processRollOptions?.[Constants.MODULE_ID]?.advantageMode === 'number' ? processRollOptions[Constants.MODULE_ID].advantageMode
+		: undefined;
+	const normalizedAction =
+		explicitOverride?.family === 'd20' ? explicitOverride.action
+		: ac5eMode === CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE ? 'advantage'
+		: ac5eMode === CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE ? 'disadvantage'
+		: 'normal';
+	config.options ??= {};
+	config.options.advantage = normalizedAction === 'advantage';
+	config.options.disadvantage = normalizedAction === 'disadvantage';
+	if (ac5eMode !== undefined) config.options.advantageMode = ac5eMode;
+	config.options.defaultButton = normalizedAction;
+	config.options[Constants.MODULE_ID] ??= {};
+	if (ac5eMode !== undefined) config.options[Constants.MODULE_ID].advantageMode = ac5eMode;
+	config.options[Constants.MODULE_ID].defaultButton = normalizedAction;
+	if (explicitOverride !== undefined) config.options[Constants.MODULE_ID].explicitModeOverride = foundry.utils.duplicate(explicitOverride);
+	return true;
+}
+
 function _resolveMessageFromConfig(config, messageConfig, hook) {
 	const originatingMessageId = _getMessageConfigOriginatingMessageId(messageConfig);
 	const eventMessageId = config?.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
-	const messageId = originatingMessageId ?? eventMessageId;
+	const messageId = eventMessageId ?? originatingMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid; //for midi
 	const registryHookMessage = messageId ? dnd5e?.registry?.messages?.get(messageId, hook)?.pop?.() : undefined;
-	const registryAnyMessage = !registryHookMessage && messageId ? dnd5e?.registry?.messages?.get(messageId)?.[0] : undefined;
+	const registryAnyMessage = !registryHookMessage && messageId ? dnd5e?.registry?.messages?.get(messageId)?.pop?.() : undefined;
 	const message = registryHookMessage ?? registryAnyMessage ?? (messageId ? game.messages.get(messageId) : undefined) ?? (messageUuid ? fromUuidSync(messageUuid) : undefined) ?? messageConfig;
 	return { messageId, message, originatingMessageId };
 }
 
-function _resolveOriginatingMessageContext(message, { triggerMessageId, originatingMessageId } = {}) {
-	return _resolveUseMessageContext({ message, messageId: triggerMessageId, originatingMessageId });
+function _getLatestAssociatedMessage(messageId, hook) {
+	if (!messageId) return undefined;
+	const preferredHooks = Array.isArray(hook) ? hook : [hook];
+	for (const preferredHook of preferredHooks.filter(Boolean)) {
+		const associated = dnd5e?.registry?.messages?.get(messageId, preferredHook)?.pop?.();
+		if (associated) return associated;
+	}
+	return undefined;
+}
+
+function _getPreferredAssociatedHooks({ hook, activity } = {}) {
+	if (hook !== 'damage') return [hook];
+	const activityType = String(activity?.type ?? activity?.activity?.type ?? '').trim().toLowerCase();
+	if (['attack', 'save', 'check'].includes(activityType)) return [activityType];
+	return [];
+}
+
+function _getResolvedHookActivity(config, activity) {
+	return activity ?? config?.subject ?? config?.activity ?? config?.options?.activity ?? config?.originatingUseConfig?.options?.activity;
+}
+
+function _getAssociatedRollMessage({ hook, activity, originatingMessage, config, resolvedMessageId, triggerMessageId } = {}) {
+	const resolvedActivity = _getResolvedHookActivity(config, activity);
+	const relatedHooks = _getPreferredAssociatedHooks({ hook, activity: resolvedActivity });
+	if (!relatedHooks.length) return undefined;
+	const anchoredOriginatingMessageId = originatingMessage?.id ?? config?.options?.originatingMessageId ?? resolvedMessageId ?? triggerMessageId;
+	return _getLatestAssociatedMessage(anchoredOriginatingMessageId, relatedHooks);
 }
 
 function _resolveDocumentFromRef(ref) {
@@ -296,10 +362,15 @@ function _syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls) {
 	const trackers = _collectMidiRollModifierTrackers(ac5eConfig, config, dialog, { includeAllChoices: true });
 	if (!trackers.length) return;
 	const debugMidiTooltipSync = _hookDebugEnabled('midiTooltipSync');
-	const mode = ac5eConfig?.advantageMode ?? rolls?.[0]?.options?.advantageMode ?? 0;
+	const mode = rolls?.[0]?.options?.advantageMode ?? ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? 0;
 	if (mode === undefined || mode === null) return;
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	if (!advModes) return;
+	const explicitOverride = getExplicitModeOverride(ac5eConfig);
+	const isDialogD20Override =
+		explicitOverride?.replacesCalculatedMode &&
+		explicitOverride?.family === 'd20' &&
+		explicitOverride?.source === 'dialog';
 	if (debugMidiTooltipSync) _logMidiTrackerBuildMarkerOnce('hooks._syncMidiResolvedAdvantageMode');
 
 	for (const [trackerIndex, tracker] of trackers.entries()) {
@@ -330,6 +401,15 @@ function _syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls) {
 				const label = configButtonsLabel || 'Roll Dialog';
 				const shouldAddConfigButtons = (hasOppositeAc5e || !hasModeAc5e) && !hasModeNonAc5e;
 				if (shouldAddConfigButtons) _setMidiAttributionSource(tracker, modeType, 'config-buttons', label);
+			}
+		}
+		if (isDialogD20Override) {
+			const modeType = mode === advModes.ADVANTAGE ? 'ADV' : mode === advModes.DISADVANTAGE ? 'DIS' : '';
+			_removeMidiAttributionSource(tracker, 'ADV', 'config-buttons');
+			_removeMidiAttributionSource(tracker, 'DIS', 'config-buttons');
+			if (modeType && !_hasNonAc5eAttributionForType(tracker, modeType)) {
+				const label = _getMidiAttributionSourceLabel(tracker, 'config-buttons') || 'Roll Dialog';
+				_setMidiAttributionSource(tracker, modeType, 'config-buttons', label);
 			}
 		}
 		if (debugMidiTooltipSync) {
@@ -414,23 +494,48 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 	options.d20 = {};
 	if (hook === 'damage') {
 		if (_activeModule('midi-qol')) {
-			options.d20.attackRollTotal = config?.workflow?.attackTotal;
-			options.d20.attackRollD20 = config?.workflow?.d20AttackRoll;
+			options.d20.d20Total = config?.workflow?.attackTotal;
+			options.d20.d20Result = config?.workflow?.d20AttackRoll;
+			options.d20.attackRollTotal = options.d20.d20Total;
+			options.d20.attackRollD20 = options.d20.d20Result;
+			options.d20.advantageMode = config?.workflow?.attackRoll?.options?.advantageMode ?? config?.workflow?.advantageMode;
 			options.d20.hasAdvantage = config?.workflow?.advantage;
 			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
 			options.d20.isCritical = config?.midiOptions?.isCritical ?? config?.workflow?.isCritical;
 			options.d20.isFumble = config?.midiOptions?.isFumble ?? config?.workflow?.isFumble;
 		} else {
-			const findRoll0 = game.messages
-				.filter((m) => {
-					const flags = _getMessageDnd5eFlags(m);
-					return flags?.originatingMessage === resolvedMessageId && flags?.roll?.type !== 'damage';
-				})
-				.at(-1)?.rolls?.[0];
-			options.d20.attackRollTotal = findRoll0?.total;
-			options.d20.attackRollD20 = findRoll0?.d20?.total;
-			options.d20.hasAdvantage = findRoll0?.options?.advantageMode > 0;
-			options.d20.hasDisadvantage = findRoll0?.options?.advantageMode < 0;
+			const attackMessage = _getAssociatedRollMessage({ hook, activity, originatingMessage, config, resolvedMessageId, triggerMessageId });
+			const findRoll0 = attackMessage?.rolls?.[0];
+			const ac5eAttackFlags = _getMessageFlagScope(attackMessage, Constants.MODULE_ID) ?? {};
+			const ac5eAttackRollFlags = findRoll0?.options?.[Constants.MODULE_ID] ?? {};
+			const resolvedAdvantageMode =
+				findRoll0?.options?.advantageMode ??
+				ac5eAttackRollFlags?.advantageMode ??
+				ac5eAttackFlags?.advantageMode ??
+				null;
+			const resolvedHasAdvantage =
+				typeof findRoll0?.options?.advantage === 'boolean' ? findRoll0.options.advantage
+				: typeof ac5eAttackRollFlags?.advantage === 'boolean' ? ac5eAttackRollFlags.advantage
+				: typeof ac5eAttackFlags?.advantage === 'boolean' ? ac5eAttackFlags.advantage
+				: typeof ac5eAttackRollFlags?.preAC5eConfig?.adv === 'boolean' ? ac5eAttackRollFlags.preAC5eConfig.adv
+				: typeof ac5eAttackFlags?.preAC5eConfig?.adv === 'boolean' ? ac5eAttackFlags.preAC5eConfig.adv
+				: typeof resolvedAdvantageMode === 'number' ? resolvedAdvantageMode > 0
+				:	false;
+			const resolvedHasDisadvantage =
+				typeof findRoll0?.options?.disadvantage === 'boolean' ? findRoll0.options.disadvantage
+				: typeof ac5eAttackRollFlags?.disadvantage === 'boolean' ? ac5eAttackRollFlags.disadvantage
+				: typeof ac5eAttackFlags?.disadvantage === 'boolean' ? ac5eAttackFlags.disadvantage
+				: typeof ac5eAttackRollFlags?.preAC5eConfig?.dis === 'boolean' ? ac5eAttackRollFlags.preAC5eConfig.dis
+				: typeof ac5eAttackFlags?.preAC5eConfig?.dis === 'boolean' ? ac5eAttackFlags.preAC5eConfig.dis
+				: typeof resolvedAdvantageMode === 'number' ? resolvedAdvantageMode < 0
+				:	false;
+			options.d20.d20Total = findRoll0?.total;
+			options.d20.d20Result = findRoll0?.d20?.total;
+			options.d20.attackRollTotal = options.d20.d20Total;
+			options.d20.attackRollD20 = options.d20.d20Result;
+			options.d20.advantageMode = resolvedAdvantageMode;
+			options.d20.hasAdvantage = resolvedHasAdvantage;
+			options.d20.hasDisadvantage = resolvedHasDisadvantage;
 			options.d20.isCritical = findRoll0?.isCritical ?? findRoll0?.options?.isCritical ?? config?.isCritical;
 			options.d20.isFumble = findRoll0?.isFumble ?? findRoll0?.options?.isFumble ?? config?.isFumble;
 		}
@@ -480,12 +585,17 @@ function _resolveMessageDataContext(config, hook, messageConfig) {
 		usageMessage,
 		resolvedMessageId,
 		useConfig,
-	} = _resolveOriginatingMessageContext(message, {
-		triggerMessageId,
+	} = _resolveUseMessageContext({
+		message,
+		messageId: triggerMessageId,
 		originatingMessageId,
 	});
 	const { item, activity, use, sourceMessage } = _resolveActivityItemUse({ config, message: resolvedMessage, originatingMessage, usageMessage, registryMessages, useConfig });
-	const primaryMessage = sourceMessage ?? resolvedMessage ?? message;
+	const primaryMessage = message ?? sourceMessage ?? resolvedMessage;
+	const messageForTargets =
+		hook === 'damage' ?
+			_getAssociatedRollMessage({ hook, activity, originatingMessage, config, resolvedMessageId, triggerMessageId }) ?? originatingMessage ?? primaryMessage
+		:	primaryMessage;
 	const options = _buildMessageOptions({
 		config,
 		hook,
@@ -498,10 +608,12 @@ function _resolveMessageDataContext(config, hook, messageConfig) {
 		item,
 		use,
 	});
-	const { attackingActor, attackingToken, messageTargets } = _resolveAttackerContext(primaryMessage, item);
+	const { attackingActor, attackingToken } = _resolveAttackerContext(primaryMessage, item);
+	const messageTargets = _getMessageDnd5eFlags(messageForTargets)?.targets;
 	return {
 		messageId: primaryMessage?.id,
 		message: primaryMessage,
+		messageForTargets,
 		activity,
 		item,
 		attackingActor,
@@ -538,17 +650,14 @@ function _debugMessageData(hook, context) {
 		});
 }
 
-function getMessageData(config, hook, messageConfig) {
-	const context = _resolveMessageDataContext(config, hook, messageConfig);
-	_debugMessageData(hook, context);
-	return context;
-}
-
 function _getHookMessageData(config, hook, fallbackMessage) {
-	const context = getMessageData(config, hook, fallbackMessage) ?? {};
-	const options = context.options ?? {};
-	const resolvedMessage = context.message ?? fallbackMessage;
-	return { ...context, options, messageForTargets: resolvedMessage };
+	const context = _resolveMessageDataContext(config, hook, fallbackMessage) ?? {};
+	_debugMessageData(hook, context);
+	return {
+		...context,
+		options: context.options ?? {},
+		messageForTargets: context.messageForTargets ?? context.message ?? fallbackMessage,
+	};
 }
 
 function _prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource = 'activity' } = {}) {
@@ -572,39 +681,13 @@ function _logResolvedTargets(label, subjectToken, opponentToken, options) {
 	});
 }
 
-function getTargets(message, { hook, activity } = {}) {
-	const subjectTokenId = message?.speaker?.token;
-	const messageTargets = _getMessageDnd5eFlags(message)?.targets;
-	if (messageTargets?.length) {
-		return messageTargets;
-	}
-	if (hook === 'save') {
-		// @to-do: verify save target selection rules during live testing (AoE vs self vs manual target selection).
-		if (activity?.target?.affects?.type === 'self') {
-			const speakerToken = message?.speaker?.token ? canvas.tokens.get(message.speaker.token) : null;
-			if (speakerToken?.actor) {
-				const targets = [
-					{
-						ac: speakerToken.actor.system?.attributes?.ac?.value ?? null,
-						uuid: speakerToken.actor.uuid,
-						tokenUuid: speakerToken.document?.uuid,
-						name: speakerToken.name,
-						img: speakerToken.document?.texture?.src,
-					},
-				];
-				return targets;
-			}
-		}
-		if (!game.user?.targets?.size) return [];
-	}
-	const targets = [...game.user.targets].map((target) => ({
-		ac: target.actor?.system?.attributes?.ac?.value ?? null,
-		uuid: target.actor?.uuid,
-		tokenUuid: target.document.uuid,
-		name: target.name,
-		img: target.document.texture.src,
-	}));
-	return targets;
+function getTargets({ message } = {}) {
+	const explicitMessage = message?.document ?? message;
+	const preTargets =
+		_getMessageFlagScope(explicitMessage, Constants.MODULE_ID)?.optionsSnapshot?.targets ??
+		_getMessageDnd5eFlags(explicitMessage)?.targets;
+	if (Array.isArray(preTargets) && preTargets.length) return preTargets;
+	return [];
 }
 
 function _isForcedSentinelAC(value) {
@@ -629,62 +712,114 @@ function _getLiveTargetAC(target = {}) {
 	return null;
 }
 
-function hydrateTargetACs(targets = []) {
+function hydrateTargetACs(targets = [], { allowLiveFallback = true } = {}) {
 	if (!Array.isArray(targets)) return [];
 	return targets.map((target) => {
 		if (!target || typeof target !== 'object') return target;
+		if (_isForcedSentinelAC(target.ac)) return { ...target, ac: null };
+		const snapshotAC = Number(target.ac);
+		if (Number.isFinite(snapshotAC)) return { ...target, ac: snapshotAC };
+		if (!allowLiveFallback) return target;
 		const liveAC = _getLiveTargetAC(target);
 		if (liveAC !== null) return { ...target, ac: liveAC };
-		if (_isForcedSentinelAC(target.ac)) return { ...target, ac: null };
 		return target;
 	});
 }
 
 function resolveTargets(message, messageTargets, { hook, activity } = {}) {
-	const freshTargets = getTargets(message, { hook, activity });
-	if (Array.isArray(freshTargets) && freshTargets.length) return hydrateTargetACs(freshTargets);
-	if (Array.isArray(messageTargets)) return hydrateTargetACs(messageTargets);
+	const freshTargets = getTargets({ message });
+	if (Array.isArray(freshTargets) && freshTargets.length) return hydrateTargetACs(freshTargets, { allowLiveFallback: false });
+	if (Array.isArray(messageTargets) && messageTargets.length) return hydrateTargetACs(messageTargets, { allowLiveFallback: false });
+	if (hook === 'save' && activity?.target?.affects?.type === 'self') {
+		const explicitMessage = message?.document ?? message;
+		const speakerToken = explicitMessage?.speaker?.token ? canvas.tokens.get(explicitMessage.speaker.token) : null;
+		if (speakerToken?.actor) {
+			return [
+				{
+					ac: speakerToken.actor.system?.attributes?.ac?.value ?? null,
+					uuid: speakerToken.actor.uuid,
+					tokenUuid: speakerToken.document?.uuid,
+					name: speakerToken.name,
+					img: speakerToken.document?.texture?.src,
+				},
+			];
+		}
+	}
+	if (!game.user?.targets?.size) return [];
+	const userTargets = [...game.user.targets].map((target) => ({
+		ac: target.actor?.system?.attributes?.ac?.value ?? null,
+		uuid: target.actor?.uuid,
+		tokenUuid: target.document.uuid,
+		name: target.name,
+		img: target.document.texture.src,
+	}));
+	if (Array.isArray(userTargets) && userTargets.length) return hydrateTargetACs(userTargets, { allowLiveFallback: true });
 	return [];
 }
 
-function syncResolvedTargetsToMessage(messageLike, targets) {
-	if (!messageLike || !Array.isArray(targets)) return;
-	_setMessageFlagScope(messageLike, 'dnd5e', { targets }, { merge: true });
+function syncResolvedTargetsToMessage(message, targets) {
+	if (!message || !Array.isArray(targets)) return;
+	const nextTargets = foundry.utils.duplicate(targets);
+	const currentAc5eFlags = _getMessageFlagScope(message, Constants.MODULE_ID);
+	const nextAc5eFlags =
+		currentAc5eFlags && typeof currentAc5eFlags === 'object' ?
+			foundry.utils.mergeObject(foundry.utils.duplicate(currentAc5eFlags), { optionsSnapshot: { targets: foundry.utils.duplicate(nextTargets) } }, { inplace: false })
+		:	{ optionsSnapshot: { targets: foundry.utils.duplicate(nextTargets) } };
+	try {
+		foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', nextTargets);
+		foundry.utils.setProperty(message, `data.flags.${Constants.MODULE_ID}`, nextAc5eFlags);
+	} catch (_err) {
+		// ignore immutable message-like payloads
+	}
 }
 
-function syncTargetsToConfigAndMessage(config, ac5eConfig, targets, messageLike) {
-	if (!Array.isArray(targets)) return;
+function getAssociatedRollTargets(originatingMessageId, activityType) {
+	if (!originatingMessageId || !activityType) return undefined;
+	return dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop()?.flags?.dnd5e?.targets;
+}
+
+function getPersistedTargetsForHook(ac5eConfig, config, message) {
+	const hookType = ac5eConfig?.hookType;
+	if (hookType === 'damage') {
+		const damageActivityType = ac5eConfig?.options?.activity?.type ?? config?.subject?.type;
+		const originatingMessageId = ac5eConfig?.options?.originatingMessageId ?? config?.options?.originatingMessageId;
+		const associatedTargets = getAssociatedRollTargets(originatingMessageId, damageActivityType);
+		if (Array.isArray(associatedTargets) && associatedTargets.length) return associatedTargets;
+	}
+	const flaggedTargets = _getMessageTargetsFromFlags(message);
+	if (Array.isArray(flaggedTargets) && flaggedTargets.length) return flaggedTargets;
+	return Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : [];
+}
+
+function syncTargetsToConfigAndMessage(ac5eConfig, targets, message) {
+	const resolvedTargets =
+		Array.isArray(targets) ? targets
+		: Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets
+		: null;
+	if (!resolvedTargets) return;
 	if (ac5eConfig && typeof ac5eConfig === 'object') {
 		ac5eConfig.options ??= {};
-		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(targets);
+		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
-	const targetMessage = messageLike ?? getMessageForConfigTargets(config) ?? config;
-	syncResolvedTargetsToMessage(targetMessage, targets);
+	syncResolvedTargetsToMessage(message, resolvedTargets);
 }
 
-function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, messageLikeOverride) {
+function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message) {
 	if (!config || !ac5eConfig || ac5eConfig.hookType !== 'attack') return;
 	if (Number.isInteger(ac5eConfig?.buildRollConfig?.index) && ac5eConfig.buildRollConfig.index !== 0) return;
 	refreshAttackAutoRangeState(ac5eConfig, config);
 
-	const messageLike = messageLikeOverride ?? getMessageForConfigTargets(config) ?? dialog?.message ?? config;
-	const messageTargets = _getMessageTargetsFromFlags(messageLike);
-	const finalTargets = resolveTargets(messageLike, messageTargets, { hook: 'attack', activity: ac5eConfig.options?.activity });
+	const messageForRead = message ?? getMessageForConfigTargets(config, 'attack', ac5eConfig.options?.activity) ?? dialog?.message;
+	const messageTargets = _getMessageTargetsFromFlags(messageForRead);
+	const finalTargets = resolveTargets(messageForRead, messageTargets, { hook: 'attack', activity: ac5eConfig.options?.activity });
 	if (!finalTargets.length) return;
 
-	syncTargetsToConfigAndMessage(config, ac5eConfig, finalTargets, messageLike);
+	syncTargetsToConfigAndMessage(ac5eConfig, finalTargets, message);
 	config.advantage = undefined;
 	config.disadvantage = undefined;
 	_calcAdvantageMode(ac5eConfig, config, undefined, undefined, { skipSetProperties: true });
-	syncTargetsToConfigAndMessage(config, ac5eConfig, ac5eConfig.options?.targets ?? finalTargets, messageLike);
-	if (ac5e?.debugTargets) {
-		console.warn('AC5E targets postRollConfiguration refresh', {
-			hook: ac5eConfig.hookType,
-			targetCount: finalTargets.length,
-			targetActorUuids: finalTargets.map((target) => target?.uuid).filter(Boolean),
-			targetTokenUuids: finalTargets.map((target) => target?.tokenUuid).filter(Boolean),
-		});
-	}
+	applyExplicitModeOverride(ac5eConfig, config);
+	syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? finalTargets, message);
 }
 
 function getBaseTargetADCValue(config, ac5eConfig) {
@@ -708,13 +843,25 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 	return 10;
 }
 
-function getMessageForConfigTargets(config) {
+function getMessageForConfigTargets(config, hook, activity) {
 	const options = config?.options ?? {};
 	const originatingMessageId = options?.originatingMessageId;
 	const messageId = originatingMessageId ?? options?.messageId;
-	const directMessage = messageId ? (game.messages.get(messageId) ?? dnd5e?.registry?.messages?.get(messageId)?.[0]) : undefined;
+	const directMessage = messageId ? (game.messages.get(messageId) ?? dnd5e?.registry?.messages?.get(messageId)?.pop?.()) : undefined;
 	const context = _resolveUseMessageContext({ message: directMessage, messageId, originatingMessageId });
-	return context?.originatingMessage ?? context?.message ?? directMessage;
+	const originatingMessage = context?.originatingMessage ?? context?.message ?? directMessage;
+	if (hook === 'damage') {
+		const associatedRollMessage = _getAssociatedRollMessage({
+			hook,
+			activity,
+			originatingMessage,
+			config,
+			resolvedMessageId: context?.resolvedMessageId,
+			triggerMessageId: messageId,
+		});
+		if (associatedRollMessage) return associatedRollMessage;
+	}
+	return originatingMessage;
 }
 
 function getSubjectTokenId(source) {
@@ -784,7 +931,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	options.tool = tool;
 	options.hook = hook;
 	options.activity = activity;
-	options.targets = getTargets();
+	options.targets = getTargets({ message: messageConfig });
 	_collectActivityDamageTypes(activity, options); //adds options.defaultDamageType, options.damageTYpes
 	options.riderStatuses = _getActivityEffectsStatusRiders(activity);
 	const useWarnings =
@@ -885,27 +1032,6 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
 	return true;
 }
-//@to-do: validate need of this/seems to match fine without
-function syncTargetADCToDialog(app, nextTarget) {
-	const root = app?.form ?? app?.element?.[0] ?? app?.element;
-	if (!root?.querySelectorAll) return;
-	const selectors = [
-		'input[name="target"]',
-		'input[name="target.value"]',
-		'input[name="rolls.0.target"]',
-		'input[name="rolls.0.target.value"]',
-		'input[name="rolls.0.options.target"]',
-		'input[name="rolls.0.options.target.value"]',
-	].join(', ');
-	const nextValue = String(nextTarget);
-	for (const input of root.querySelectorAll(selectors)) {
-		if (!input || input.value === nextValue) continue;
-		input.value = nextValue;
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-		input.dispatchEvent(new Event('change', { bubbles: true }));
-	}
-}
-
 function getExistingRoll(config, index = 0) {
 	if (!Array.isArray(config?.rolls)) return undefined;
 	const roll = config.rolls[index];
@@ -949,36 +1075,28 @@ function enforceDefaultButtonFocus(root, button, { attempts = 10, delay = 60 } =
 	tick();
 }
 
-export function _buildRollConfig(app, config, formData, index, hook) {
-	if (ac5e.buildDebug || _hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config, formData, index });
-	if (!config) return true;
-	const options = config.options ?? (config.options = {});
+export function _buildRollConfig(app, rollConfig, formData, index, hook) {
+	if (ac5e.buildDebug || _hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
+	if (!rollConfig) return true;
+	const options = rollConfig.options ?? (rollConfig.options = {});
 	const ac5eConfig = options[Constants.MODULE_ID] ?? (options[Constants.MODULE_ID] = {});
 	ac5eConfig.buildRollConfig = { hook, index };
 	const activeHook = ac5eConfig.hookType ?? hook;
 	const shouldSyncAttackTargets = activeHook === 'attack' || activeHook === 'damage';
-	const targetMessage = getMessageForConfigTargets(config) ?? config;
+	const targetMessage = getMessageForConfigTargets(rollConfig, activeHook, ac5eConfig.options?.activity);
 	let resolvedTargets = [];
 	if (shouldSyncAttackTargets) {
 		const messageTargets = _getMessageTargetsFromFlags(targetMessage);
 		resolvedTargets = resolveTargets(targetMessage, messageTargets, { hook: activeHook, activity: ac5eConfig.options?.activity });
-		syncTargetsToConfigAndMessage(config, ac5eConfig, resolvedTargets, targetMessage);
+		syncTargetsToConfigAndMessage(ac5eConfig, resolvedTargets, null);
 	}
-	if (ac5e?.debugTargets)
-		console.warn('AC5E targets buildRollConfig', {
-			hook: activeHook,
-			subjectTokenId: ac5eConfig.tokenId ?? getSubjectTokenIdFromConfig(config),
-			targetMessageId: targetMessage?.id,
-			targetCount: resolvedTargets?.length ?? 0,
-			targetTokenUuids: (resolvedTargets ?? []).map((target) => target?.tokenUuid).filter(Boolean),
-		});
 	if (ac5eConfig.hookType === 'damage') {
 		const optins = getOptinsFromForm(formData);
 		setOptinSelections(ac5eConfig, optins);
-		applyOptinCriticalToDamageConfig(ac5eConfig, config, formData);
-		syncCriticalStaticBonusDamageRollOptions(ac5eConfig, config?.rolls);
-		if (config?.rolls?.length) {
-			for (const roll of config.rolls) {
+		applyOptinCriticalToDamageConfig(ac5eConfig, rollConfig, formData);
+		syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rollConfig?.rolls);
+		if (rollConfig?.rolls?.length) {
+			for (const roll of rollConfig.rolls) {
 				if (!roll?.options) continue;
 				roll.options[Constants.MODULE_ID] ??= {};
 				roll.options[Constants.MODULE_ID].optinSelected = ac5eConfig.optinSelected;
@@ -986,12 +1104,12 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 		}
 	} else if (ac5eConfig.hookType && ['attack', 'save', 'check'].includes(ac5eConfig.hookType)) {
 		if (index !== 0) return true;
-		const preRestoreParts = _getD20ActivePartsSnapshot(config);
-		_restoreD20ConfigFromFrozenBaseline(ac5eConfig, config);
+		const preRestoreParts = _getD20ActivePartsSnapshot(rollConfig);
+		_restoreD20ConfigFromFrozenBaseline(ac5eConfig, rollConfig);
 		const preservedExternalParts = _collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts);
 		const optins = getOptinsFromForm(formData);
 		setOptinSelections(ac5eConfig, optins);
-		if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, config);
+		if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, rollConfig);
 		if (ac5e?.debugTargetADC)
 			console.warn('AC5E targetADC: buildRollConfig entries', {
 				hook: ac5eConfig.hookType,
@@ -1002,7 +1120,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 		const targetADCEntries = getTargetADCEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
 		const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(ac5eConfig.optinBaseTargetADC);
 		if (hasTargetADCOptins && (ac5eConfig.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(ac5eConfig.optinBaseTargetADCValue))) {
-			ac5eConfig.optinBaseTargetADCValue = getBaseTargetADCValue(config, ac5eConfig);
+			ac5eConfig.optinBaseTargetADCValue = getBaseTargetADCValue(rollConfig, ac5eConfig);
 		}
 		if (targetADCEntries.length) {
 			const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
@@ -1017,7 +1135,7 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 			ac5eConfig.targetADC = [...new Set(baseTargetADC.concat(selectedValues))];
 			if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: selected', { selectedIds: [...selectedIds], selectedValues, baseTargetADC, targetADC: ac5eConfig.targetADC });
 			if (selectedValues.length) {
-				const baseTarget = getBaseTargetADCValue(config, ac5eConfig);
+				const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
 				const type = ac5eConfig.hookType === 'attack' ? 'acBonus' : 'dcBonus';
 				ac5eConfig.initialTargetADC = baseTarget;
 				ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
@@ -1026,22 +1144,33 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 			ac5eConfig.targetADC = [...ac5eConfig.optinBaseTargetADC];
 			ac5eConfig.alteredTargetADC = undefined;
 			ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
+			if (!['attack', 'damage'].includes(ac5eConfig.hookType) && Object.isExtensible(options)) {
+				options.initialTargetADC = ac5eConfig.initialTargetADC;
+				delete options.alteredTargetADC;
+			}
 		}
-		config.advantage = undefined;
-		config.disadvantage = undefined;
-		_calcAdvantageMode(ac5eConfig, config, undefined, undefined, { skipSetProperties: true });
+		rollConfig.advantage = undefined;
+		rollConfig.disadvantage = undefined;
+		_calcAdvantageMode(ac5eConfig, rollConfig, undefined, undefined, { skipSetProperties: true });
+		applyExplicitModeOverride(ac5eConfig, rollConfig);
 		const isAttackHook = ac5eConfig.hookType === 'attack';
 		if (ac5eConfig.alteredTargetADC !== undefined) {
 			const nextTarget = ac5eConfig.alteredTargetADC;
-			config.target = nextTarget;
-			const roll0Target = getExistingRoll(config, 0);
+			rollConfig.target = nextTarget;
+			const roll0Target = getExistingRoll(rollConfig, 0);
 			if (roll0Target) {
 				roll0Target.target = nextTarget;
 				if (roll0Target.options && typeof roll0Target.options === 'object') {
 					roll0Target.options.target = nextTarget;
 				}
 			}
-			if (Object.isExtensible(options)) options.target = nextTarget;
+			if (Object.isExtensible(options)) {
+				options.target = nextTarget;
+				if (!isAttackHook && ac5eConfig.hookType !== 'damage') {
+					options.initialTargetADC = ac5eConfig.initialTargetADC;
+					options.alteredTargetADC = ac5eConfig.alteredTargetADC;
+				}
+			}
 			if (isAttackHook) {
 				if (Array.isArray(ac5eConfig.options?.targets)) {
 					for (const target of ac5eConfig.options.targets) {
@@ -1049,28 +1178,24 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 					}
 				}
 			}
-			if (formData?.object && typeof formData.object === 'object') {
-				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: buildRollConfig formData', { hook: ac5eConfig.hookType, nextTarget, formDataObject: formData.object });
-				if ('target' in formData.object) formData.object.target = nextTarget;
-				if ('target.value' in formData.object) formData.object['target.value'] = nextTarget;
-				if ('rolls.0.target' in formData.object) formData.object['rolls.0.target'] = nextTarget;
-				if ('rolls.0.target.value' in formData.object) formData.object['rolls.0.target.value'] = nextTarget;
-				if ('rolls.0.options.target' in formData.object) formData.object['rolls.0.options.target'] = nextTarget;
-				if ('rolls.0.options.target.value' in formData.object) formData.object['rolls.0.options.target.value'] = nextTarget;
-			}
-			syncTargetADCToDialog(app, nextTarget);
 		} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
-			const baseTarget = getBaseTargetADCValue(config, ac5eConfig);
+			const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
 			ac5eConfig.optinBaseTargetADCValue = baseTarget;
-			config.target = baseTarget;
-			const roll0Target = getExistingRoll(config, 0);
+			rollConfig.target = baseTarget;
+			const roll0Target = getExistingRoll(rollConfig, 0);
 			if (roll0Target) {
 				roll0Target.target = baseTarget;
 				if (roll0Target.options && typeof roll0Target.options === 'object') {
 					roll0Target.options.target = baseTarget;
 				}
 			}
-			if (Object.isExtensible(options)) options.target = baseTarget;
+			if (Object.isExtensible(options)) {
+				options.target = baseTarget;
+				if (!isAttackHook && ac5eConfig.hookType !== 'damage') {
+					options.initialTargetADC = ac5eConfig.initialTargetADC ?? baseTarget;
+					delete options.alteredTargetADC;
+				}
+			}
 			if (isAttackHook) {
 				if (Array.isArray(ac5eConfig.options?.targets)) {
 					for (const target of ac5eConfig.options.targets) {
@@ -1078,45 +1203,36 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 					}
 				}
 			}
-			if (formData?.object && typeof formData.object === 'object') {
-				if ('target' in formData.object) formData.object.target = baseTarget;
-				if ('target.value' in formData.object) formData.object['target.value'] = baseTarget;
-				if ('rolls.0.target' in formData.object) formData.object['rolls.0.target'] = baseTarget;
-				if ('rolls.0.target.value' in formData.object) formData.object['rolls.0.target.value'] = baseTarget;
-				if ('rolls.0.options.target' in formData.object) formData.object['rolls.0.options.target'] = baseTarget;
-				if ('rolls.0.options.target.value' in formData.object) formData.object['rolls.0.options.target.value'] = baseTarget;
-			}
-			syncTargetADCToDialog(app, baseTarget);
 		}
 		if (ac5eConfig.hookType === 'attack') {
-			syncTargetsToConfigAndMessage(config, ac5eConfig, ac5eConfig.options?.targets ?? [], targetMessage);
+			syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], null);
 		}
 		if (ac5e?.debugTargetADC)
 			console.warn('AC5E targetADC: buildRollConfig target', {
 				hook: ac5eConfig.hookType,
-				configTarget: config.target,
-				rollTarget: config?.rolls?.[0]?.target,
-				rollOptionsTarget: config?.rolls?.[0]?.options?.target,
+				configTarget: rollConfig.target,
+				rollTarget: rollConfig?.rolls?.[0]?.target,
+				rollOptionsTarget: rollConfig?.rolls?.[0]?.options?.target,
 				alteredTargetADC: ac5eConfig.alteredTargetADC,
 			});
-		const roll0 = getExistingRoll(config, 0);
-		const roll0Options = getExistingRollOptions(config, 0);
+		const roll0 = getExistingRoll(rollConfig, 0);
+		const roll0Options = getExistingRollOptions(rollConfig, 0);
 		const nextDefaultButton = ac5eConfig.defaultButton ?? 'normal';
 		ac5eConfig.defaultButton = nextDefaultButton;
 		if (Object.isExtensible(options)) {
-			options.advantage = config.advantage;
-			options.disadvantage = config.disadvantage;
+			options.advantage = rollConfig.advantage;
+			options.disadvantage = rollConfig.disadvantage;
 			options.advantageMode = ac5eConfig.advantageMode ?? options.advantageMode;
 			options.defaultButton = nextDefaultButton;
-			config.options = options;
+			rollConfig.options = options;
 		}
 		if (roll0Options && Object.isExtensible(roll0Options)) {
-			roll0.options.advantage = config.advantage;
-			roll0.options.disadvantage = config.disadvantage;
+			roll0.options.advantage = rollConfig.advantage;
+			roll0.options.disadvantage = rollConfig.disadvantage;
 			roll0.options.advantageMode = options.advantageMode;
 		}
-		if (config?.rolls?.length) {
-			for (const roll of config.rolls) {
+		if (rollConfig?.rolls?.length) {
+			for (const roll of rollConfig.rolls) {
 				if (!roll?.options) continue;
 				roll.options[Constants.MODULE_ID] ??= {};
 				roll.options[Constants.MODULE_ID].optinSelected = ac5eConfig.optinSelected;
@@ -1134,11 +1250,11 @@ export function _buildRollConfig(app, config, formData, index, hook) {
 				for (const value of values) partsToAdd.push(value);
 			}
 			ac5eConfig._lastAppliedD20OptinParts = [...partsToAdd];
-			_appendPartsToD20Config(config, partsToAdd);
+			_appendPartsToD20Config(rollConfig, partsToAdd);
 		} else {
 			ac5eConfig._lastAppliedD20OptinParts = [];
 		}
-		_appendPartsToD20Config(config, preservedExternalParts);
+		_appendPartsToD20Config(rollConfig, preservedExternalParts);
 	}
 	return true;
 }
@@ -1161,11 +1277,38 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 		options[Constants.MODULE_ID] ??
 		config?.[Constants.MODULE_ID] ??
 		dialog?.config?.options?.[Constants.MODULE_ID];
+	if (['attack', 'check', 'save'].includes(ac5eConfig?.hookType) && Array.isArray(rolls) && rolls[0]?.options) {
+		const resolvedAction = getActionFromResolvedD20Mode(rolls[0].options.advantageMode);
+		const proposedAction = getProposedModeOverrideAction(ac5eConfig) || 'normal';
+		const configRoll0Options = getExistingRollOptions(config, 0);
+		const existingExplicitOverride = getExplicitModeOverride(ac5eConfig);
+		syncResolvedD20ModeState(ac5eConfig, config, rolls[0].options, resolvedAction);
+		if (configRoll0Options && typeof configRoll0Options === 'object') {
+			configRoll0Options.advantage = rolls[0].options.advantage;
+			configRoll0Options.disadvantage = rolls[0].options.disadvantage;
+			configRoll0Options.advantageMode = rolls[0].options.advantageMode;
+		}
+		if (resolvedAction !== proposedAction) {
+			const overrideSource =
+				existingExplicitOverride?.replacesCalculatedMode && existingExplicitOverride?.source === 'keypress' ? 'keypress' : 'dialog';
+			const override = setExplicitModeOverride(ac5eConfig, { action: resolvedAction, source: overrideSource, force: true });
+			if (configRoll0Options && typeof configRoll0Options === 'object') {
+				configRoll0Options[Constants.MODULE_ID] ??= {};
+				configRoll0Options[Constants.MODULE_ID].explicitModeOverride = override;
+			}
+			rolls[0].options[Constants.MODULE_ID] ??= {};
+			rolls[0].options[Constants.MODULE_ID].explicitModeOverride = override;
+		} else if (getExplicitModeOverride(ac5eConfig)?.source === 'dialog') {
+			clearExplicitModeOverride(ac5eConfig);
+		}
+		_getTooltip(ac5eConfig);
+		if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType }, { merge: true });
+	}
 	if (_activeModule('midi-qol') && ['attack', 'check', 'save'].includes(ac5eConfig?.hookType) && Array.isArray(rolls) && rolls[0]?.options) {
 		const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 		const currentMode = rolls[0].options.advantageMode;
 		const isNonNormalMode = advModes && (currentMode === advModes.ADVANTAGE || currentMode === advModes.DISADVANTAGE);
-		if (isNonNormalMode) {
+		if (isNonNormalMode && !getExplicitModeOverride(ac5eConfig)?.replacesCalculatedMode) {
 			const selected = ac5eConfig?.optinSelected ?? {};
 			const countCollection = (value) =>
 				typeof value?.size === 'number' ? value.size
@@ -1213,9 +1356,8 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 	}
 	_syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls);
 	refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message);
-	const flaggedTargets = _getMessageTargetsFromFlags(message);
-	const currentTargets = flaggedTargets.length ? flaggedTargets : (ac5eConfig?.options?.targets ?? dnd5e.utils.getTargetDescriptors());
-	if (ac5eConfig?.hookType === 'attack' && Array.isArray(currentTargets)) {
+	if (ac5eConfig?.hookType === 'attack') {
+		const currentTargets = getPersistedTargetsForHook(ac5eConfig, config, message);
 		const finiteAcs = currentTargets.map((target) => Number(target?.ac)).filter((value) => Number.isFinite(value));
 		const nextTarget = finiteAcs.length ? Math.min(...finiteAcs) : undefined;
 
@@ -1229,13 +1371,20 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 		}
 		syncResolvedTargetsToMessage(message, foundry.utils.duplicate(currentTargets));
 	}
+	if (ac5eConfig?.hookType === 'damage') {
+		const currentTargets = getPersistedTargetsForHook(ac5eConfig, config, message);
+		if (Array.isArray(currentTargets)) syncResolvedTargetsToMessage(message, foundry.utils.duplicate(currentTargets));
+	}
 	if (!ac5eConfig?.pendingUses?.length) return true;
 	if (ac5eConfig.pendingUsesApplied) return true;
 	if (Array.isArray(rolls) && !rolls.length) return true;
 
 	const optins = ac5eConfig.optinSelected ?? {};
 	const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
-	const pending = ac5eConfig.pendingUses.filter((entry) => !entry.optin || selectedIds.has(entry.id));
+	const explicitOverride = getExplicitModeOverride(ac5eConfig);
+	const pending = ac5eConfig.pendingUses
+		.filter((entry) => !entry.optin || selectedIds.has(entry.id))
+		.filter((entry) => entry?.modeFamily !== explicitOverride?.family || !explicitOverride?.replacesCalculatedMode);
 	if (!pending.length) {
 		ac5eConfig.pendingUsesApplied = true;
 		return true;
@@ -1255,6 +1404,154 @@ function getOptinsFromForm(formData) {
 		optins[id] = !!value;
 	}
 	return optins;
+}
+
+function getExplicitModeOverride(ac5eConfig) {
+	return ac5eConfig?.explicitModeOverride && typeof ac5eConfig.explicitModeOverride === 'object' ? ac5eConfig.explicitModeOverride : null;
+}
+
+function getProposedModeOverrideAction(ac5eConfig) {
+	return String(ac5eConfig?.proposedButton ?? ac5eConfig?.calculatedDefaultButton ?? ac5eConfig?.defaultButton ?? '')
+		.trim()
+		.toLowerCase();
+}
+
+function getActionFromResolvedD20Mode(mode) {
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	if (!advModes) return 'normal';
+	if (mode === advModes.ADVANTAGE) return 'advantage';
+	if (mode === advModes.DISADVANTAGE) return 'disadvantage';
+	return 'normal';
+}
+
+function clearTooltipCacheForHook(ac5eConfig) {
+	const hookType = String(ac5eConfig?.hookType ?? '').trim();
+	if (!hookType) return;
+	if (ac5eConfig?.tooltipObj && typeof ac5eConfig.tooltipObj === 'object') delete ac5eConfig.tooltipObj[hookType];
+}
+
+function syncResolvedD20ModeState(ac5eConfig, config, rollOptions, action) {
+	if (!config || !rollOptions) return;
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	if (!advModes) return;
+	const normalizedAction = String(action ?? 'normal')
+		.trim()
+		.toLowerCase();
+	let advantageMode = advModes.NORMAL;
+	let advantage = true;
+	let disadvantage = true;
+	if (normalizedAction === 'advantage') {
+		advantageMode = advModes.ADVANTAGE;
+		advantage = true;
+		disadvantage = false;
+	} else if (normalizedAction === 'disadvantage') {
+		advantageMode = advModes.DISADVANTAGE;
+		advantage = false;
+		disadvantage = true;
+	}
+	config.advantage = advantage;
+	config.disadvantage = disadvantage;
+	rollOptions.advantage = advantage;
+	rollOptions.disadvantage = disadvantage;
+	rollOptions.advantageMode = advantageMode;
+	ac5eConfig.advantageMode = advantageMode;
+}
+
+function clearExplicitModeOverride(ac5eConfig) {
+	if (!ac5eConfig || typeof ac5eConfig !== 'object') return;
+	delete ac5eConfig.explicitModeOverride;
+	delete ac5eConfig.explicitRollDialogAction;
+	ac5eConfig.explicitRollDialogOverride = false;
+	clearTooltipCacheForHook(ac5eConfig);
+}
+
+function setExplicitModeOverride(ac5eConfig, { action, source, force = false } = {}) {
+	if (!ac5eConfig || typeof ac5eConfig !== 'object') return null;
+	const normalizedAction = String(action ?? '')
+		.trim()
+		.toLowerCase();
+	const hookType = String(ac5eConfig?.hookType ?? '')
+		.trim()
+		.toLowerCase();
+	const family = hookType === 'damage' ? 'damage' : 'd20';
+	const allowedActions = family === 'damage' ? ['critical', 'normal'] : ['advantage', 'disadvantage', 'normal'];
+	if (!allowedActions.includes(normalizedAction)) {
+		clearExplicitModeOverride(ac5eConfig);
+		return null;
+	}
+	const proposedAction = getProposedModeOverrideAction(ac5eConfig) || 'normal';
+	const replacesCalculatedMode = force || normalizedAction !== proposedAction;
+	if (!replacesCalculatedMode) {
+		clearExplicitModeOverride(ac5eConfig);
+		return null;
+	}
+	const override = {
+		action: normalizedAction,
+		source: source === 'dialog' ? 'dialog' : 'keypress',
+		family,
+		proposedAction,
+		replacesCalculatedMode: true,
+	};
+	ac5eConfig.explicitModeOverride = override;
+	ac5eConfig.explicitRollDialogAction = family === 'd20' ? normalizedAction : undefined;
+	ac5eConfig.explicitRollDialogOverride = family === 'd20';
+	clearTooltipCacheForHook(ac5eConfig);
+	return override;
+}
+
+function applyExplicitModeOverride(ac5eConfig, config) {
+	const override = getExplicitModeOverride(ac5eConfig);
+	if (!override?.replacesCalculatedMode || !config) return false;
+	const { action, family } = override;
+	const roll0 = getExistingRoll(config, 0);
+	const roll0Options = getExistingRollOptions(config, 0);
+	if (family === 'damage') {
+		const isCritical = action === 'critical';
+		config.isCritical = isCritical;
+		ac5eConfig.isCritical = isCritical;
+		ac5eConfig.defaultButton = action;
+		if (config.midiOptions && typeof config.midiOptions === 'object') config.midiOptions.isCritical = isCritical;
+		if (Array.isArray(config.rolls)) {
+			for (const roll of config.rolls) {
+				if (!roll?.options || typeof roll.options !== 'object') continue;
+				roll.options.isCritical = isCritical;
+				roll.options[Constants.MODULE_ID] ??= {};
+				roll.options[Constants.MODULE_ID].defaultButton = action;
+				roll.options[Constants.MODULE_ID].explicitModeOverride = override;
+			}
+		}
+		return true;
+	}
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	if (!advModes) return false;
+	let advantageMode = advModes.NORMAL;
+	if (action === 'advantage') {
+		config.advantage = true;
+		config.disadvantage = false;
+		advantageMode = advModes.ADVANTAGE;
+	} else if (action === 'disadvantage') {
+		config.advantage = false;
+		config.disadvantage = true;
+		advantageMode = advModes.DISADVANTAGE;
+	} else {
+		config.advantage = true;
+		config.disadvantage = true;
+	}
+	ac5eConfig.advantageMode = advantageMode;
+	ac5eConfig.defaultButton = action;
+	if (roll0Options && typeof roll0Options === 'object') {
+		roll0Options.advantage = config.advantage;
+		roll0Options.disadvantage = config.disadvantage;
+		roll0Options.advantageMode = advantageMode;
+		roll0Options.defaultButton = action;
+	}
+	if (roll0?.options?.[Constants.MODULE_ID] && typeof roll0.options[Constants.MODULE_ID] === 'object') {
+		roll0.options[Constants.MODULE_ID].advantageMode = advantageMode;
+		roll0.options[Constants.MODULE_ID].defaultButton = action;
+		roll0.options[Constants.MODULE_ID].explicitRollDialogOverride = true;
+		roll0.options[Constants.MODULE_ID].explicitModeOverride = override;
+	}
+	return true;
 }
 
 export async function _postUseActivity(activity, usageConfig, results, hook) {
@@ -1309,10 +1606,12 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 	_logResolvedTargets('save', subjectToken, opponentToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
 	if (ac5eConfig.returnEarly) {
+		applyExplicitModeOverride(ac5eConfig, config);
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
+	applyExplicitModeOverride(ac5eConfig, config);
 	_captureFrozenD20Baseline(ac5eConfig, config);
 	// dialog.configure = !ac5eConfig.fastForward;
 	return _setAC5eProperties(ac5eConfig, config, dialog, message);
@@ -1339,12 +1638,16 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 	// if (game.user.targets.size === 1) opponentToken = game.user.targets.first() !== subjectToken ? game.user.targets.first() : undefined;
 
 	ac5eConfig = _getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
-	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
+	if (ac5eConfig.returnEarly) {
+		applyExplicitModeOverride(ac5eConfig, config);
+		return _setAC5eProperties(ac5eConfig, config, dialog, message, options);
+	}
 
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
 
 	// if (dialog?.configure) dialog.configure = !ac5eConfig.fastForward;
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
+	applyExplicitModeOverride(ac5eConfig, config);
 	_captureFrozenD20Baseline(ac5eConfig, config);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (_hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
@@ -1384,7 +1687,10 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	_logResolvedTargets('attack', sourceToken, singleTargetToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceToken?.id, singleTargetToken?.id, options, reEval);
-	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
+	if (ac5eConfig.returnEarly) {
+		applyExplicitModeOverride(ac5eConfig, config);
+		return _setAC5eProperties(ac5eConfig, config, dialog, message);
+	}
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	let nearbyFoe,
@@ -1429,9 +1735,10 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	}
 	if (_hookDebugEnabled('preRollAttackHook')) console.warn('AC5E._preRollAttack:', { ac5eConfig });
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
+	applyExplicitModeOverride(ac5eConfig, config);
 	_captureFrozenD20Baseline(ac5eConfig, config);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
-	syncTargetsToConfigAndMessage(config, ac5eConfig, options.targets ?? [], messageForTargets);
+	syncTargetsToConfigAndMessage(ac5eConfig, options.targets ?? [], message);
 	return ac5eConfig; //return so if we retrigger the function manually we get updated results.
 }
 
@@ -1443,12 +1750,21 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		data: { /*flags: {dnd5e: {targets} } ,*/ speaker } = {},
 	} = message || {};
 
-	const { messageForTargets, activity, messageTargets, options } = _getHookMessageData(config, hook, message);
+	const { messageForTargets, activity: messageActivity, messageTargets, options } = _getHookMessageData(config, hook, message);
+	const activity = messageActivity || configActivity;
+	const directDamageTargets = getAssociatedRollTargets(options?.originatingMessageId, activity?.type);
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject(); //ammunition in damage is the Item5e
 	options.attackMode = attackMode;
 	options.mastery = mastery;
-	_prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource: 'roll' });
+	if (Array.isArray(directDamageTargets) && directDamageTargets.length) {
+		options.hook = hook;
+		options.activity = activity;
+		options.targets = foundry.utils.duplicate(directDamageTargets);
+		_collectRollDamageTypes(rolls, options);
+	} else {
+		_prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource: 'roll' });
+	}
 
 	const sourceToken = getSubjectTokenForHook(hook, messageForTargets, sourceActor);
 	const sourceTokenId = sourceToken?.id;
@@ -1465,13 +1781,18 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	_logResolvedTargets('damage', sourceToken, singleTargetToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceTokenId, singleTargetToken?.id, options, reEval);
-	if (ac5eConfig.returnEarly) return _setAC5eProperties(ac5eConfig, config, dialog, message);
+	if (ac5eConfig.returnEarly) {
+		applyExplicitModeOverride(ac5eConfig, config);
+		return _setAC5eProperties(ac5eConfig, config, dialog, message);
+	}
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	_calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
+	applyExplicitModeOverride(ac5eConfig, config);
 	applyOptinCriticalToDamageConfig(ac5eConfig, config);
 	_captureFrozenDamageBaseline(ac5eConfig, config);
 	_setAC5eProperties(ac5eConfig, config, dialog, message);
+	syncTargetsToConfigAndMessage(ac5eConfig, options.targets ?? [], message);
 	if (_hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage:', { ac5eConfig });
 	return ac5eConfig; //we need to be returning the ac5eConfig object to re-eval when needed in the renderHijacks
 }
@@ -1514,6 +1835,7 @@ export function _renderHijack(hook, render, elem) {
 				render.config.advantage = undefined;
 				render.config.disadvantage = undefined;
 				_calcAdvantageMode(getConfigAC5E, render.config, undefined, undefined, { skipSetProperties: true });
+				applyExplicitModeOverride(getConfigAC5E, render.config);
 				const targetADCEntries = getTargetADCEntriesForHook(getConfigAC5E, getConfigAC5E.hookType).filter((entry) => entry.optin);
 				const isAttackHook = getConfigAC5E.hookType === 'attack';
 				const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(getConfigAC5E.optinBaseTargetADC);
@@ -1578,7 +1900,7 @@ export function _renderHijack(hook, render, elem) {
 					getConfigAC5E.initialTargetADC = baseTarget;
 				}
 				const renderTargets = getConfigAC5E.options?.targets ?? [];
-				syncTargetsToConfigAndMessage(render.config, getConfigAC5E, renderTargets, render.message);
+				syncTargetsToConfigAndMessage(getConfigAC5E, renderTargets, null);
 			}
 		}
 		if (hook === 'damageDialog') {
@@ -1627,6 +1949,21 @@ export function _renderHijack(hook, render, elem) {
 		}
 		const allButtons = elem.querySelectorAll('button[data-action]');
 		for (const button of allButtons) {
+			if (!button.dataset.ac5eOverrideBound) {
+				button.dataset.ac5eOverrideBound = 'true';
+				button.addEventListener('click', (event) => {
+					const action = String(event.currentTarget?.dataset?.action ?? '').trim().toLowerCase();
+					const liveConfig =
+						render?.config?.options?.[Constants.MODULE_ID] ??
+						render?.config?.[Constants.MODULE_ID] ??
+						render?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
+						getConfigAC5E;
+					if (!liveConfig || typeof liveConfig !== 'object') return;
+					const allowedActions = liveConfig?.hookType === 'damage' ? ['critical', 'normal'] : ['advantage', 'disadvantage', 'normal'];
+					if (!allowedActions.includes(action)) return;
+					setExplicitModeOverride(liveConfig, { action, source: 'dialog' });
+				});
+			}
 			button.classList.remove('ac5e-button');
 			button.style.backgroundColor = '';
 			button.style.border = '';
@@ -1671,7 +2008,13 @@ export function _renderHijack(hook, render, elem) {
 				tooltip = (messageFlags?.hookType === ac5eElement?.hookType && messageFlags?.tooltipObj?.[messageFlags.hookType]) || _getTooltip(ac5eElement);
 				if (tooltip === '') continue;
 				let thisTargetElement;
-				if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
+				if (['check', 'save'].includes(hT) && shouldForceAbilityChatTooltip) {
+					thisTargetElement =
+						elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ??
+						elem.querySelector('.chat-message header .flavor-text') ??
+						elem.querySelector('.flavor-text') ??
+						elem.querySelector('.midi-qol-saves-display');
+				} else if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector(`.flavor-text`) ?? elem.querySelector('.midi-qol-saves-display');
 				else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
 				else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
 				//to-do: add AC5E pill on Item card. Next release
@@ -2020,7 +2363,6 @@ function doDialogAttackRender(dialog, elem, getConfigAC5E) {
 	newConfig.rolls[0].options.minimum = null;
 	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
 	const newMessage = dialog.message;
-	if (getConfigAC5E.options.targets) syncResolvedTargetsToMessage(newMessage, getConfigAC5E.options.targets);
 	getConfigAC5E = _preRollAttack(newConfig, newDialog, newMessage, 'attack');
 	dialog.rebuild();
 	dialog.render();
@@ -2901,6 +3243,7 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 				}
 				if (activeConfig.hookType === 'attack') refreshAttackAutoRangeState(activeConfig, activeDialog?.config);
 				_calcAdvantageMode(activeConfig, activeDialog.config, undefined, undefined, { skipSetProperties: true });
+				applyExplicitModeOverride(activeConfig, activeDialog.config);
 				_appendPartsToD20Config(activeDialog?.config, preservedExternalParts);
 				const roll0 = activeDialog.config?.rolls?.[0];
 				if (roll0?.options) {
@@ -2929,6 +3272,7 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 }
 
 function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission = false } = {}) {
+	for (const row of fieldset.querySelectorAll('.form-group')) row.remove();
 	const shouldSuffixUnnamedOptins = visibleEntries.length > 1;
 	visibleEntries.forEach((entry, index) => {
 		const isOptinEntry = Boolean(entry?.optin || entry?.forceOptin);
@@ -3143,7 +3487,6 @@ function refreshAttackAutoRangeState(ac5eConfig, config) {
 	const { nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = _autoRanged(activity, sourceToken, singleTargetToken, mergedOptions);
 	ac5eConfig.options ??= {};
 	ac5eConfig.options.distance = mergedOptions.distance;
-	if (config?.options && Object.isExtensible(config.options)) config.options.distance = mergedOptions.distance;
 	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(nearbyLabel);
 	if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
 		ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);

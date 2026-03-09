@@ -378,13 +378,6 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 	} catch (_err) {
 		// ignore immutable message-like payloads
 	}
-	if (messageLike?.updateSource instanceof Function) {
-		try {
-			messageLike.updateSource({ [`flags.${scope}`]: nextScope });
-		} catch (_err) {
-			// ignore immutable message source payloads
-		}
-	}
 }
 
 export function _getMessageDnd5eFlags(message) {
@@ -1027,6 +1020,9 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
 		else if ('minimum' in roll.options) delete roll.options.minimum;
 		if (rollBaseline.isCritical !== undefined && rollBaseline.isCritical !== null) roll.options.isCritical = rollBaseline.isCritical;
+		if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
+			delete roll.options.critical.bonusDamage;
+		}
 	}
 	if (Array.isArray(config.parts) || (Array.isArray(baseline?.parts) && baseline.parts.length)) {
 		config.parts = foundry.utils.duplicate(Array.isArray(baseline?.parts) ? baseline.parts : []);
@@ -1066,6 +1062,36 @@ function _writeFastForwardMode(ac5eConfig, config, roll0) {
 	};
 	applyResolvedMode(rollOptions);
 	applyResolvedMode(config);
+}
+
+function _syncResolvedFastForwardD20Override(ac5eConfig, config, action) {
+	if (!ac5eConfig || !config) return;
+	const rollOptions = _ensureRoll0Options(config);
+	const normalizedAction = String(action ?? 'normal')
+		.trim()
+		.toLowerCase();
+	let advantage = true;
+	let disadvantage = true;
+	let advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.NORMAL ?? 0;
+	if (normalizedAction === 'advantage') {
+		advantage = true;
+		disadvantage = false;
+		advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE ?? advantageMode;
+	} else if (normalizedAction === 'disadvantage') {
+		advantage = false;
+		disadvantage = true;
+		advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE ?? advantageMode;
+	}
+	ac5eConfig.advantageMode = advantageMode;
+	ac5eConfig.defaultButton = normalizedAction;
+	config.advantage = advantage;
+	config.disadvantage = disadvantage;
+	if (rollOptions && typeof rollOptions === 'object') {
+		rollOptions.advantage = advantage;
+		rollOptions.disadvantage = disadvantage;
+		rollOptions.advantageMode = advantageMode;
+		rollOptions.defaultButton = normalizedAction;
+	}
 }
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties = false } = {}) {
@@ -1457,6 +1483,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	}
 	if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = localDialog.options.advantageMode;
+	ac5eConfig.proposedButton = localDialog.options.defaultButton;
+	ac5eConfig.calculatedDefaultButton = localDialog.options.defaultButton;
 	ac5eConfig.defaultButton = localDialog.options.defaultButton;
 	if (!dialog?.configure) _writeFastForwardMode(ac5eConfig, config, roll0);
 	if (hook === 'attack') _syncMidiAttackRollModifierTracker(ac5eConfig, config);
@@ -1939,7 +1967,8 @@ export function _getTooltip(ac5eConfig = {}) {
 	const { hookType, subject, opponent, alteredCritThreshold, alteredFumbleThreshold, alteredTargetADC, initialTargetADC, tooltipObj } = ac5eConfig;
 	let tooltip;
 	const hasOptins = ac5eConfig?.optinSelected && Object.keys(ac5eConfig.optinSelected).length;
-	if (tooltipObj?.[hookType] && !hasOptins) return tooltipObj[hookType];
+	const bypassTooltipCache = ['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
+	if (tooltipObj?.[hookType] && !hasOptins && !bypassTooltipCache) return tooltipObj[hookType];
 	else tooltip = '<div class="ac5e-tooltip-content">';
 	const optinSelected = ac5eConfig?.optinSelected ?? {};
 	const filterOptinEntries = (entries = []) => _filterOptinEntries(entries, optinSelected);
@@ -1976,32 +2005,66 @@ export function _getTooltip(ac5eConfig = {}) {
 			tooltip += text;
 		}
 	};
+	const explicitOverride = ac5eConfig?.explicitModeOverride?.replacesCalculatedMode ? ac5eConfig.explicitModeOverride : null;
+	const suppressD20Calculated = explicitOverride?.family === 'd20';
+	const suppressDamageCalculated = explicitOverride?.family === 'damage';
+	const explicitOverrideBucketLabel =
+		explicitOverride?.source === 'dialog' ? 'Roll dialog user input'
+		: explicitOverride?.source === 'keypress' ? 'Override keypress'
+		: '';
 	if (subject) {
 		const subjectSuppressedStatuses = [...new Set(mapEntryLabels(subject?.suppressedStatuses ?? []))];
-		const subjectCritical = mapEntryLabels(filterOptinEntries(subject?.critical ?? []));
-		const subjectNoCritical = mapEntryLabels(filterOptinEntries(subject?.noCritical ?? []));
-		const subjectMidiAdvantage = [...new Set((subject?.midiAdvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-		const subjectMidiDisadvantage = [...new Set((subject?.midiDisadvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectCritical =
+			suppressDamageCalculated ?
+				(explicitOverride?.action === 'critical' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+			:	mapEntryLabels(filterOptinEntries(subject?.critical ?? []));
+		const subjectNoCritical =
+			suppressDamageCalculated ?
+				(explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+			:	mapEntryLabels(filterOptinEntries(subject?.noCritical ?? []));
+		const suppressSeparateMidiAbilityTooltip =
+			['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
+		const subjectMidiAdvantage =
+			suppressSeparateMidiAbilityTooltip ? []
+			: [...new Set((subject?.midiAdvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectMidiDisadvantage =
+			suppressSeparateMidiAbilityTooltip ? []
+			: [...new Set((subject?.midiDisadvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		const midiAdvantageSet = new Set(subjectMidiAdvantage.map(normalizeTooltipLabel));
 		const midiDisadvantageSet = new Set(subjectMidiDisadvantage.map(normalizeTooltipLabel));
-		const subjectAdvantageModes = [...mapEntryLabels(filterOptinEntries(subject?.advantage ?? [])), ...([...subject?.advantageNames] ?? [])].filter(
-			(label) => !midiAdvantageSet.has(normalizeTooltipLabel(label)),
-		);
-		const subjectDisadvantageModes = [...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter(
-			(label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)),
-		);
-		const subjectNoAdvantage = mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? []));
-		const subjectNoDisadvantage = mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? []));
+		const subjectAdvantageModes =
+			suppressD20Calculated ?
+				(explicitOverride?.action === 'advantage' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+			:	[...mapEntryLabels(filterOptinEntries(subject?.advantage ?? [])), ...([...subject?.advantageNames] ?? [])].filter(
+					(label) => !midiAdvantageSet.has(normalizeTooltipLabel(label)),
+				);
+		const subjectDisadvantageModes =
+			suppressD20Calculated ?
+				(explicitOverride?.action === 'disadvantage' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+			:	[...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter(
+					(label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)),
+				);
+		const subjectNormalModes =
+			suppressD20Calculated ?
+				(explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+			:	[];
+		const subjectNoAdvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? []));
+		const subjectNoDisadvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? []));
 		const subjectFail = mapEntryLabels(filterOptinEntries(subject?.fail ?? []));
 		const subjectRangeNotes = [...new Set(mapEntryLabels(subject?.rangeNotes ?? []))];
-		const subjectMidiFail = [...new Set((subject?.midiFail ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectMidiFail =
+			suppressSeparateMidiAbilityTooltip ? []
+			: [...new Set((subject?.midiFail ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		const subjectFumble = mapEntryLabels(filterOptinEntries(subject?.fumble ?? []));
 		const subjectSuccess = mapEntryLabels(filterOptinEntries(subject?.success ?? []));
-		const subjectMidiSuccess = [...new Set((subject?.midiSuccess ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectMidiSuccess =
+			suppressSeparateMidiAbilityTooltip ? []
+			: [...new Set((subject?.midiSuccess ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		addTooltip(subjectSuppressedStatuses.length, `<span style="display: block; text-align: left;">Suppressed Statuses: ${subjectSuppressedStatuses.join(', ')}</span>`);
 		addTooltip(subjectCritical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subjectCritical.join(', ')}</span>`);
 		addTooltip(subjectNoCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoCritical')}: ${subjectNoCritical.join(', ')}</span>`);
 		addTooltip(subjectAdvantageModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subjectAdvantageModes.join(', ')}</span>`);
+		addTooltip(subjectNormalModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Normal')}: ${subjectNormalModes.join(', ')}</span>`);
 		addTooltip(subjectMidiAdvantage.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Advantage')}: ${subjectMidiAdvantage.join(', ')}</span>`);
 		addTooltip(subjectMidiDisadvantage.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Disadvantage')}: ${subjectMidiDisadvantage.join(', ')}</span>`);
 		addTooltip(subjectNoAdvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoAdvantage')}: ${subjectNoAdvantage.join(', ')}</span>`);
@@ -2022,12 +2085,12 @@ export function _getTooltip(ac5eConfig = {}) {
 	}
 	if (opponent) {
 		const opponentSuppressedStatuses = [...new Set(mapEntryLabels(opponent?.suppressedStatuses ?? []))];
-		const opponentCritical = mapEntryLabels(filterOptinEntries(opponent?.critical ?? []));
-		const opponentNoCritical = mapEntryLabels(filterOptinEntries(opponent?.noCritical ?? []));
-		const opponentAdvantageModes = [...mapEntryLabels(filterOptinEntries(opponent?.advantage ?? [])), ...([...opponent?.advantageNames] ?? [])];
-		const opponentDisadvantageModes = [...mapEntryLabels(filterOptinEntries(opponent?.disadvantage ?? [])), ...([...opponent?.disadvantageNames] ?? [])];
-		const opponentNoAdvantage = mapEntryLabels(filterOptinEntries(opponent?.noAdvantage ?? []));
-		const opponentNoDisadvantage = mapEntryLabels(filterOptinEntries(opponent?.noDisadvantage ?? []));
+		const opponentCritical = suppressDamageCalculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.critical ?? []));
+		const opponentNoCritical = suppressDamageCalculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noCritical ?? []));
+		const opponentAdvantageModes = suppressD20Calculated ? [] : [...mapEntryLabels(filterOptinEntries(opponent?.advantage ?? [])), ...([...opponent?.advantageNames] ?? [])];
+		const opponentDisadvantageModes = suppressD20Calculated ? [] : [...mapEntryLabels(filterOptinEntries(opponent?.disadvantage ?? [])), ...([...opponent?.disadvantageNames] ?? [])];
+		const opponentNoAdvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noAdvantage ?? []));
+		const opponentNoDisadvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noDisadvantage ?? []));
 		const opponentFail = mapEntryLabels(filterOptinEntries(opponent?.fail ?? []));
 		const opponentFumble = mapEntryLabels(filterOptinEntries(opponent?.fumble ?? []));
 		const opponentSuccess = mapEntryLabels(filterOptinEntries(opponent?.success ?? []));
@@ -2449,12 +2512,31 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
 	const opponentModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.modifiers ?? [])));
 	const opponentExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.extraDice ?? [])));
+	const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
+	const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
+	const getNumericTarget = (value) => {
+		const numeric = Number(value);
+		return Number.isFinite(numeric) ? numeric : undefined;
+	};
+	const baseTargetADC =
+		getNumericTarget(ac5eConfig?.initialTargetADC) ?? getNumericTarget(config?.target) ?? getNumericTarget(config?.rolls?.[0]?.options?.target) ?? getNumericTarget(config?.rolls?.[0]?.target) ?? 10;
+	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
+	const targetValuePool =
+		targetValues.length ? targetValues
+		: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
+		: [];
+	const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'acBonus') : undefined);
+	const targetADCDisplayLabels =
+		targetADCLabels.length ? targetADCLabels
+		: dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
+	const modifyACPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyAC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
 	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
 	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
 	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
+	addCustomAttributionEntries(modifyACPrefix, targetADCDisplayLabels, { combineLabelList: true });
 	_logMidiTrackerSnapshot('attack.post', {
 		hookType: ac5eConfig?.hookType,
 		tracker,
@@ -2464,6 +2546,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 			disadvantageLabels,
 			noAdvantageLabels,
 			noDisadvantageLabels,
+			targetADCDisplayLabels,
 		},
 	});
 }
@@ -2582,6 +2665,21 @@ function _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { r
 	collect(config?.midiOptions?.modifierTracker);
 	collect(config?.midiOptions?.tracker);
 	return collected;
+}
+
+function _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog) {
+	if (!_activeModule('midi-qol')) return false;
+	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return false;
+	const hasWorkflowOptions = !foundry.utils.isEmpty(config?.workflowOptions ?? {});
+	if (hasWorkflowOptions) return true;
+	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
+	if (trackers.length) return true;
+	const midiOptions = config?.midiOptions ?? {};
+	return [
+		midiOptions?.advantageByChoice,
+		midiOptions?.modifierTracker,
+		midiOptions?.tracker,
+	].some((value) => value && typeof value === 'object' && !foundry.utils.isEmpty(value));
 }
 
 function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
@@ -2907,41 +3005,65 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	}
 
 	const { skipDialogAdvantage, skipDialogDisadvantage, skipDialogNormal } = ac5eConfig.preAC5eConfig;
-
-	const returnEarly = skipDialogNormal && (skipDialogAdvantage || skipDialogDisadvantage);
+	const forceAc5eD20Tooltip =
+		hookType !== 'attack' &&
+		hookType !== 'damage' &&
+		!!ac5eConfig.preAC5eConfig?.forceChatTooltip;
+	const midiOwnsD20Tooltip =
+		midiRoller &&
+		!forceAc5eD20Tooltip &&
+		(hookType === 'attack' || (['check', 'save'].includes(hookType) && !!ac5eConfig.preAC5eConfig?.midiOwnsAbilityTooltip));
+	const deferD20KeypressToMidi = midiOwnsD20Tooltip && hookType !== 'damage';
+	const useMidiD20Attribution = midiOwnsD20Tooltip && hookType !== 'damage';
+	const d20RollerLabel = useMidiD20Attribution ? roller : 'Core';
+	const returnEarly = !deferD20KeypressToMidi && skipDialogNormal && (skipDialogAdvantage || skipDialogDisadvantage);
+	const keypressAdvantageSource = !deferD20KeypressToMidi && skipDialogAdvantage && !returnEarly;
+	const keypressDisadvantageSource = !deferD20KeypressToMidi && skipDialogDisadvantage && !returnEarly;
 
 	if (returnEarly) {
+		const explicitKeypressAction =
+			skipDialogAdvantage ? (hookType === 'damage' ? 'critical' : 'advantage')
+			: skipDialogDisadvantage ? (hookType === 'damage' ? 'normal' : 'disadvantage')
+			: '';
+		if (explicitKeypressAction) {
+			ac5eConfig.explicitModeOverride = {
+				action: explicitKeypressAction,
+				source: 'keypress',
+				family: hookType === 'damage' ? 'damage' : 'd20',
+				proposedAction: String(ac5eConfig?.proposedButton ?? ac5eConfig?.defaultButton ?? '')
+					.trim()
+					.toLowerCase(),
+				replacesCalculatedMode: true,
+			};
+		}
 		ac5eConfig.returnEarly = true;
 		if (skipDialogAdvantage) {
 			if (hookType === 'damage') {
 				config.isCritical = true;
-				ac5eConfig.subject.critical.push(_localize('AC5E.OverrideCritical'));
+				ac5eConfig.subject.critical.push('Override keypress');
 			} else {
-				config.advantage = true;
-				ac5eConfig.subject.advantage.push(_localize('AC5E.OverrideAdvantage'));
-				config.disadvantage = false;
+				ac5eConfig.subject.advantage.push('Override keypress');
 			}
 		}
 		if (skipDialogDisadvantage) {
 			if (hookType === 'damage') {
 				config.isCritical = false;
-				ac5eConfig.subject.noCritical.push(_localize('AC5E.OverrideNoCritical'));
+				ac5eConfig.subject.noCritical.push('Override keypress');
 			} else {
-				config.disadvantage = true;
-				ac5eConfig.subject.disadvantage.push(_localize('AC5E.OverrideDisadvantage'));
-				config.advantage = false;
+				ac5eConfig.subject.disadvantage.push('Override keypress');
 			}
 		}
+		if (hookType !== 'damage' && explicitKeypressAction) _syncResolvedFastForwardD20Override(ac5eConfig, config, explicitKeypressAction);
 		if (settings.debug) console.warn('AC5E_getConfig returning early', { ac5eConfig });
 		return ac5eConfig;
 	} else {
-		if (skipDialogAdvantage) {
-			if (hookType === 'damage') ac5eConfig.subject.critical.push(_localize('AC5E.CriticalKeypress'));
-			else ac5eConfig.subject.advantage.push(_localize('AC5E.AdvantageKeypress'));
+		if (skipDialogAdvantage && !deferD20KeypressToMidi) {
+			if (hookType === 'damage') ac5eConfig.subject.critical.push('Keypress');
+			else ac5eConfig.subject.advantage.push('Keypress');
 		}
-		if (skipDialogDisadvantage) {
-			if (hookType === 'damage') ac5eConfig.subject.noCritical.push(_localize('AC5E.NoCriticalKeypress'));
-			else ac5eConfig.subject.disadvantage.push(_localize('AC5E.DisadvantageKeypress'));
+		if (skipDialogDisadvantage && !deferD20KeypressToMidi) {
+			if (hookType === 'damage') ac5eConfig.subject.noCritical.push('Keypress');
+			else ac5eConfig.subject.disadvantage.push('Keypress');
 		}
 	}
 
@@ -2973,21 +3095,30 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	ac5eConfig.subject.midiSuccess = midiAbilitySuccessAttribution;
 
 	if (!options.preConfigInitiative) {
-		if (hookType !== 'damage' && !skipDialogAdvantage && !adv && ((config.advantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)) {
-			if (midiRoller) {
+		if (
+			hookType !== 'damage' &&
+			!returnEarly &&
+			!adv &&
+			(((config.advantage && !deferD20KeypressToMidi) && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)
+		) {
+			if (useMidiD20Attribution) {
 				if (midiAdvAttribution.length) ac5eConfig.subject.advantage.push(...midiAdvAttribution);
-				else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
-			} else ac5eConfig.subject.advantage.push(`${roller} ${_localize('AC5E.Flags')}`);
+				else ac5eConfig.subject.advantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
+			} else ac5eConfig.subject.advantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
 		}
-		if (hookType !== 'damage' && !skipDialogAdvantage && !dis && ((config.disadvantage && !midiRoller) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)) {
-			if (midiRoller) {
+		if (
+			hookType !== 'damage' &&
+			!returnEarly &&
+			!dis &&
+			(((config.disadvantage && !deferD20KeypressToMidi) && !keypressDisadvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)
+		) {
+			if (useMidiD20Attribution) {
 				if (midiDisAttribution.length) ac5eConfig.subject.disadvantage.push(...midiDisAttribution);
-				else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
-			} else ac5eConfig.subject.disadvantage.push(`${roller} ${_localize('AC5E.Flags')}`);
+				else ac5eConfig.subject.disadvantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
+			} else ac5eConfig.subject.disadvantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
 		}
-		if (!skipDialogAdvantage && (config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical)) ac5eConfig.subject.critical.push(`${roller} ${_localize('AC5E.Flags')}`);
+		if (!returnEarly && (((config.isCritical && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.isCritical))) ac5eConfig.subject.critical.push(`${roller} ${_localize('AC5E.Flags')}`);
 	}
-
 	if (settings.debug || ac5e.debug_getConfig) console.warn('AC5E_getConfig', { ac5eConfig });
 	return ac5eConfig;
 }
@@ -3064,6 +3195,7 @@ export function _getDialogConfig({ hookType, useConfig, hookContext }) {
 
 function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type, modeCounts }) {
 	const capitalizeHook = hookType.capitalize();
+	const resolvedTypeLabel = String(typeLabel ?? '').trim() ? String(typeLabel).trim() : _localize('AC5E.SystemMode');
 	if (mode > 0) {
 		if (modeCounts?.override > 0) {
 			ac5eConfig.subject.forcedAdvantage = [_localize('AC5E.ForcedAdvantage')];
@@ -3073,8 +3205,8 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 			systemMode.suppressed = 'noDis';
 		} else {
 			systemMode.adv++;
-			if (!actor.hasConditionEffect(`ability${capitalizeHook}Advantage`)) ac5eConfig.subject.advantageNames.add(_localize(typeLabel));
-			if (type === 'init' && !actor.hasConditionEffect('initiativeAdvantage')) ac5eConfig.subject.advantageNames.add(_localize(typeLabel));
+			if (!actor.hasConditionEffect(`ability${capitalizeHook}Advantage`)) ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
+			if (type === 'init' && !actor.hasConditionEffect('initiativeAdvantage')) ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
 		}
 	}
 	if (mode < 0) {
@@ -3087,13 +3219,21 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 		} else {
 			systemMode.dis++;
 			//Do not add System Mode for stealth disadvantage; already added by name
-			if (!actor.hasConditionEffect(`ability${capitalizeHook}Disadvantage`) && ac5eConfig?.options?.skill !== 'ste') ac5eConfig.subject.disadvantageNames.add(_localize(typeLabel));
-			if (type === 'init' && !actor.hasConditionEffect('initiativeDisadvantage')) ac5eConfig.subject.disadvantageNames.add(_localize(typeLabel));
+			if (!actor.hasConditionEffect(`ability${capitalizeHook}Disadvantage`) && ac5eConfig?.options?.skill !== 'ste') ac5eConfig.subject.disadvantageNames.add(resolvedTypeLabel);
+			if (type === 'init' && !actor.hasConditionEffect('initiativeDisadvantage')) ac5eConfig.subject.disadvantageNames.add(resolvedTypeLabel);
 		}
 	}
 	if (max) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${max})`);
 	if (min) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${min})`);
 	return systemMode;
+}
+
+function _resolveSystemModeLabel(baseKey, detail) {
+	const base = _localize(baseKey);
+	const rawDetail = String(detail ?? '').trim();
+	if (!rawDetail) return base;
+	const detailLabel = game.i18n?.has?.(rawDetail) ? _localize(rawDetail) : rawDetail;
+	return `${base} (${detailLabel})`;
 }
 
 function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
@@ -3106,15 +3246,17 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage)
 				ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
 			const { mode, max, min, modeCounts } = getActorSkillRollObject({ actor, skill }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, modeCounts });
+			const skillLabel = actor?.system?.skills?.[skill]?.label ?? CONFIG?.DND5E?.skills?.[skill]?.label ?? skill;
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', skillLabel), ac5eConfig, systemMode, modeCounts });
 		}
 		if (tool) {
 			const { mode, max, min, modeCounts } = getActorToolRollObject({ actor, tool }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, modeCounts });
+			const toolLabel = actor?.system?.tools?.[tool]?.label ?? tool;
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', toolLabel), ac5eConfig, systemMode, modeCounts });
 		}
 		if (options.isInitiative) {
 			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'init' }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, type: 'init', modeCounts });
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Initiative')), ac5eConfig, systemMode, type: 'init', modeCounts });
 		}
 	}
 	if (ability && ['check', 'save'].includes(hookType)) {
@@ -3123,15 +3265,16 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 				ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
 			}
 			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'concentration' }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, modeCounts });
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Concentration')), ac5eConfig, systemMode, modeCounts });
 		} else {
 			const { mode, max, min, modeCounts } = getActorAbilityRollObject({ actor, ability, hookType }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, modeCounts });
+			const abilityLabel = CONFIG?.DND5E?.abilities?.[ability]?.label ?? CONFIG?.DND5E?.abilities?.[ability] ?? ability;
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', abilityLabel), ac5eConfig, systemMode, modeCounts });
 		}
 	}
 	if (options.isDeathSave && hookType === 'save') {
 		const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'death' }) || {};
-		collectRollMode({ actor, mode, max, min, hookType, typeLabel: 'AC5E.SystemMode', ac5eConfig, systemMode, modeCounts });
+		collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.DeathSave')), ac5eConfig, systemMode, modeCounts });
 	}
 	if (autoArmorChecks.notProficient && ['dex', 'str'].includes(ability)) {
 		ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.notProficient)} (${_localize('NotProficient')})`);
@@ -3183,7 +3326,9 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (dialog?.options) dialog.options.classes = dialog.options.classes?.concat('ac5e') ?? ['ac5e'];
 	// @to-do: re-evaluate if we need extra fields beyond system flags (e.g., targets already live under flags.dnd5e).
 	// @todo: replace cached tooltip HTML with structured flag payload and regenerate tooltip content from message flags at render time.
-	const optionsSnapshot = pickOptions(ac5eConfig.options ?? {}, ['ability', 'attackMode', 'skill', 'tool', 'defaultDamageType', 'damageTypes', 'distance']);
+	const optionSnapshotKeys = ['ability', 'attackMode', 'skill', 'tool', 'targets', 'target', 'defaultDamageType', 'damageTypes', 'distance'];
+	if (!['attack', 'damage'].includes(ac5eConfig.hookType)) optionSnapshotKeys.splice(6, 0, 'initialTargetADC', 'alteredTargetADC');
+	const optionsSnapshot = pickOptions(ac5eConfig.options ?? {}, optionSnapshotKeys);
 	const ac5eConfigMessage = {
 		[Constants.MODULE_ID]: {
 			tooltipObj: ac5eConfig.tooltipObj,
@@ -3255,6 +3400,9 @@ export function _getSafeUseConfig(ac5eConfig) {
 		hookType: ac5eConfig?.hookType,
 		tokenId: ac5eConfig?.tokenId,
 		targetId: ac5eConfig?.targetId,
+		advantageMode: ac5eConfig?.advantageMode ?? null,
+		advantage: ac5eConfig?.advantageMode > 0,
+		disadvantage: ac5eConfig?.advantageMode < 0,
 		isCritical: ac5eConfig?.isCritical ?? false,
 		isFumble: ac5eConfig?.isFumble ?? false,
 		options,
@@ -3391,6 +3539,21 @@ function _categorizeChangedOptionKeys(changedKeys = []) {
 
 function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval) {
 	const areKeysPressed = game.system.utils.areKeysPressed;
+	const event = config?.event;
+	const isPressed = (name) => {
+		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
+		if (viaSystem) return true;
+		switch (name) {
+			case 'skipDialogAdvantage':
+				return !!event?.altKey;
+			case 'skipDialogDisadvantage':
+				return !!event?.ctrlKey;
+			case 'skipDialogNormal':
+				return !!event?.shiftKey;
+			default:
+				return false;
+		}
+	};
 	const token = canvas.tokens.get(tokenId);
 	const actor = token?.actor;
 	const ac5eConfig = {
@@ -3461,9 +3624,9 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		modifiers: {},
 		preAC5eConfig: {
 			// fastForward: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') : hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') || areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
-			skipDialogAdvantage: areKeysPressed(config.event, 'skipDialogAdvantage'),
-			skipDialogDisadvantage: areKeysPressed(config.event, 'skipDialogDisadvantage'),
-			skipDialogNormal: areKeysPressed(config.event, 'skipDialogNormal'),
+			skipDialogAdvantage: isPressed('skipDialogAdvantage'),
+			skipDialogDisadvantage: isPressed('skipDialogDisadvantage'),
+			skipDialogNormal: isPressed('skipDialogNormal'),
 		},
 		returnEarly: false,
 	};
@@ -3527,8 +3690,12 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		const { workflow, ...safeMidiOptions } = midiOptions; // strips workflow before any cloning; Issue https://github.com/thatlonelybugbear/automated-conditions-5e/issues/696
 		ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(safeMidiOptions); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
 		const hasWorkflowOptions = !foundry.utils.isEmpty(config?.workflowOptions ?? {});
-		const needsAbilityTooltipFallback = ['check', 'save'].includes(ac5eConfig?.hookType) && !hasWorkflowOptions && foundry.utils.isEmpty(safeMidiOptions);
+		const midiOwnsAbilityTooltip = _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog);
+		const needsAbilityTooltipFallback =
+			['check', 'save'].includes(ac5eConfig?.hookType) &&
+			(foundry.utils.isEmpty(safeMidiOptions) || !midiOwnsAbilityTooltip);
 		ac5eConfig.preAC5eConfig.hasWorkflowOptions = hasWorkflowOptions;
+		ac5eConfig.preAC5eConfig.midiOwnsAbilityTooltip = midiOwnsAbilityTooltip;
 		ac5eConfig.preAC5eConfig.forceChatTooltip = needsAbilityTooltipFallback;
 	}
 	ac5eConfig.roller = roller;
@@ -4000,7 +4167,14 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		...lazySandbox,
 		_evalConstants: { ...lazySandbox._evalConstants }, // shallow copy is enough for boolean flags
 	};
-	const { ability, activity, distance, skill, tool } = options;
+	const sandboxOptions =
+		options && typeof options === 'object' ?
+			{
+				...options,
+				targets: Array.isArray(options.targets) ? foundry.utils.duplicate(options.targets) : options?.targets,
+			}
+		:	{};
+	const { ability, activity, distance, skill, tool } = sandboxOptions;
 	const item = activity?.item;
 	sandbox.rollingActor = {};
 	sandbox.opponentActor = {};
@@ -4014,7 +4188,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.canSee = _canSee(subjectToken, opponentToken);
 
 	sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
-	sandbox.opponentAC = opponentToken?.actor?.system?.attributes?.ac?.value;
+	const hookType = sandboxOptions?.hook;
+	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
+	sandbox.opponentAC = hookUsesTargetAC ? (sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value) : opponentToken?.actor?.system?.attributes?.ac?.value;
 	sandbox.opponentId = opponentToken?.id;
 	sandbox.opponentUuid = opponentToken?.document?.uuid;
 	sandbox.opponentActorId = opponentToken?.actor?.id;
@@ -4027,8 +4203,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 
 	const activityData = activity?.getRollData?.()?.activity || {};
 	sandbox.activity = activityData;
-	sandbox.ammunition = options.ammunition;
-	sandbox.ammunitionName = options.ammunition?.name;
+	sandbox.ammunition = sandboxOptions.ammunition;
+	sandbox.ammunitionName = sandboxOptions.ammunition?.name;
 	sandbox.consumptionItemName = {};
 	sandbox.consumptionItemIdentifier = {};
 	activity?.consumption?.targets?.forEach(({ target }) => {
@@ -4041,7 +4217,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		}
 	});
 	sandbox.activity.ability = activity?.ability;
-	sandbox.riderStatuses = options.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
+	sandbox.riderStatuses = sandboxOptions.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
 	sandbox.hasAttack = !foundry.utils.isEmpty(activity?.attack);
 	sandbox.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);
@@ -4053,18 +4229,18 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.spellcastingAbility = activity?.spellcastingAbility;
 	sandbox.messageFlags = activity?.messageFlags;
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
-	const actionType = activity?.getActionType?.(options.attackMode);
+	const actionType = activity?.getActionType?.(sandboxOptions.attackMode);
 	sandbox.actionType = actionType ? { [actionType]: true } : {};
-	sandbox.attackMode = options.attackMode ? { [options.attackMode]: true } : {};
-	if (options.attackMode) sandbox._evalConstants[options.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
-	sandbox.mastery = options.mastery ? { [options.mastery]: true } : {};
-	sandbox.damageTypes = options.damageTypes;
-	sandbox.defaultDamageType = options.defaultDamageType;
-	if (!foundry.utils.isEmpty(options.damageTypes)) foundry.utils.mergeObject(sandbox._evalConstants, options.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
-	sandbox.activity.damageTypes = options.damageTypes;
-	sandbox.activity.defaultDamageType = options.defaultDamageType;
-	sandbox.activity.attackMode = options.attackMode;
-	sandbox.activity.mastery = options.mastery;
+	sandbox.attackMode = sandboxOptions.attackMode ? { [sandboxOptions.attackMode]: true } : {};
+	if (sandboxOptions.attackMode) sandbox._evalConstants[sandboxOptions.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
+	sandbox.mastery = sandboxOptions.mastery ? { [sandboxOptions.mastery]: true } : {};
+	sandbox.damageTypes = sandboxOptions.damageTypes;
+	sandbox.defaultDamageType = sandboxOptions.defaultDamageType;
+	if (!foundry.utils.isEmpty(sandboxOptions.damageTypes)) foundry.utils.mergeObject(sandbox._evalConstants, sandboxOptions.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
+	sandbox.activity.damageTypes = sandboxOptions.damageTypes;
+	sandbox.activity.defaultDamageType = sandboxOptions.defaultDamageType;
+	sandbox.activity.attackMode = sandboxOptions.attackMode;
+	sandbox.activity.mastery = sandboxOptions.mastery;
 	if (actionType) {
 		sandbox._evalConstants[actionType] = true;
 		sandbox.activity.actionType = actionType;
@@ -4111,34 +4287,47 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.movementTurn = sandbox.rollingActor.movementTurn;
 
 	sandbox.worldTime = game.time?.worldTime;
-	sandbox.options = options;
-	sandbox.ability = options.ability ? { [options.ability]: true } : {};
-	sandbox.skill = options.skill ? { [options.skill]: true } : {};
-	sandbox.tool = options.tool ? { [options.tool]: true } : {};
-	if (options?.ability) sandbox._evalConstants[options.ability] = true;
-	if (options?.skill) sandbox._evalConstants[options.skill] = true;
-	if (options?.tool) sandbox._evalConstants[options.tool] = true;
+	sandbox.options = sandboxOptions;
+	sandbox.ability = sandboxOptions.ability ? { [sandboxOptions.ability]: true } : {};
+	sandbox.skill = sandboxOptions.skill ? { [sandboxOptions.skill]: true } : {};
+	sandbox.tool = sandboxOptions.tool ? { [sandboxOptions.tool]: true } : {};
+	if (sandboxOptions?.ability) sandbox._evalConstants[sandboxOptions.ability] = true;
+	if (sandboxOptions?.skill) sandbox._evalConstants[sandboxOptions.skill] = true;
+	if (sandboxOptions?.tool) sandbox._evalConstants[sandboxOptions.tool] = true;
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
-	sandbox.isConcentration = options?.isConcentration;
-	sandbox.isDeathSave = options?.isDeathSave;
-	sandbox.isInitiative = options?.isInitiative;
-	sandbox.distance = options?.distance;
-	sandbox.hook = options?.hook;
-	sandbox.targets = options?.targets ?? [];
-	sandbox.singleTarget = options?.targets?.length === 1 && true;
-	sandbox.castingLevel = options.spellLevel ?? itemData?.level ?? null;
+	sandbox.isConcentration = sandboxOptions?.isConcentration;
+	sandbox.isDeathSave = sandboxOptions?.isDeathSave;
+	sandbox.isInitiative = sandboxOptions?.isInitiative;
+	sandbox.distance = sandboxOptions?.distance;
+	sandbox.hook = sandboxOptions?.hook;
+	sandbox.targets = sandboxOptions?.targets ?? [];
+	sandbox.singleTarget = sandboxOptions?.targets?.length === 1 && true;
+	sandbox.castingLevel = sandboxOptions.spellLevel ?? itemData?.level ?? null;
 	sandbox.spellLevel = sandbox.castingLevel;
 	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
-	sandbox.scaling = options?.scaling ?? item?.flags?.dnd5e?.scaling ?? 0;
-	sandbox.attackRollTotal = options?.d20?.attackRollTotal;
-	sandbox.attackRollD20 = options?.d20?.attackRollD20;
-	const attackRollOverAC = sandbox.attackRollTotal - sandbox.opponentAC;
-	sandbox.attackRollOverAC = !isNaN(attackRollOverAC) ? attackRollOverAC : undefined;
-	sandbox.hasAdvantage = options?.d20?.hasAdvantage;
-	sandbox.hasDisadvantage = options?.d20?.hasDisadvantage;
-	sandbox.isCritical = options?.d20?.isCritical;
-	sandbox.isFumble = options?.d20?.isFumble;
+	sandbox.scaling = sandboxOptions?.scaling ?? item?.flags?.dnd5e?.scaling ?? 0;
+	sandbox.d20Total = sandboxOptions?.d20?.d20Total ?? sandboxOptions?.d20?.attackRollTotal;
+	sandbox.d20Result = sandboxOptions?.d20?.d20Result ?? sandboxOptions?.d20?.attackRollD20;
+	sandbox.targetValue = hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC : sandboxOptions?.target;
+	const d20ResultOverTarget = sandbox.d20Total - sandbox.targetValue;
+	sandbox.d20ResultOverTarget = !isNaN(d20ResultOverTarget) ? d20ResultOverTarget : undefined;
+	sandbox.attackRollTotal = sandbox.d20Total;
+	sandbox.attackRollD20 = sandbox.d20Result;
+	sandbox.attackRollOverAC = sandbox.d20ResultOverTarget;
+	const resolvedD20Mode =
+		sandboxOptions?.d20?.advantageMode ??
+		sandboxOptions?.advantageMode ??
+		sandboxOptions?.[Constants.MODULE_ID]?.advantageMode;
+	if (typeof resolvedD20Mode === 'number') {
+		sandbox.hasAdvantage = resolvedD20Mode > 0;
+		sandbox.hasDisadvantage = resolvedD20Mode < 0;
+	} else {
+		sandbox.hasAdvantage = sandboxOptions?.d20?.hasAdvantage ?? sandboxOptions?.advantage;
+		sandbox.hasDisadvantage = sandboxOptions?.d20?.hasDisadvantage ?? sandboxOptions?.disadvantage;
+	}
+	sandbox.isCritical = sandboxOptions?.d20?.isCritical;
+	sandbox.isFumble = sandboxOptions?.d20?.isFumble;
 	globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(sandbox);
 	globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(sandbox);
 

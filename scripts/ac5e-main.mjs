@@ -882,6 +882,7 @@ function ac5eSetup() {
 	];
 	const buildHooks = [
 		{ id: 'dnd5e.buildRollConfig', type: 'buildRoll' },
+		{ id: 'dnd5e.postBuildRollConfig', type: 'postBuildRoll' },
 		{ id: 'dnd5e.postRollConfiguration', type: 'postRollConfig' },
 	];
 	const foundryHooks = [{ id: 'preCreateItem', type: 'preCreateItem' }];

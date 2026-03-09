@@ -1,3 +1,22 @@
+## 13.5250.10
+
+- Reworked d20 and damage roll target persistence so attack rolls now persist their resolved target AC snapshots more reliably and linked damage rolls reuse those same snapshots.
+  - This keeps `modifyAC` and forced hit/miss sentinel AC changes aligned between attack adjudication, damage dialogs, and created chat messages.
+  - Damage rolls triggered from `attack`, `save`, or `check` activities now hydrate from the latest associated roll message for that originating workflow.
+- Improved d20 roll-mode override handling for manual roll-dialog choices and fast-forward keypresses.
+  - Manual dialog choices that differ from AC5E's proposed mode now behave as explicit overrides.
+  - `Alt` / `Ctrl` continue to act as additive advantage/disadvantage sources when not used as override combinations.
+  - `Shift+Alt` / `Shift+Ctrl` now behave consistently as explicit override keypresses in AC5E-owned flows.
+- Improved tooltip parity across AC5E and MidiQOL branches.
+  - Restored MidiQOL roll-dialog attribution for d20 dialog overrides when Midi owns the tooltip pipeline.
+  - AC5E fallback check/save/skill tooltips now handle keypress and override attribution more consistently when MidiQOL is enabled but not driving the actual workflow.
+- Refined sandbox roll-context fields.
+  - Added generic `d20Total`, `d20Result`, and `d20ResultOverTarget` style hydration while keeping legacy aliases for compatibility.
+  - Attack/damage target values now derive from persisted target snapshots instead of stale live AC fallbacks when available.
+- Stabilized damage dialog rerender behavior.
+  - Fixed duplicate AC5E opt-in rows during damage dialog rerenders.
+  - Fixed a stale critical bonus damage leak that could make formulas grow repeatedly when changing damage types in the dialog.
+
 ## 13.5250.9
 
 - Expanded attack `criticalThreshold` / `fumbleThreshold` formula handling to accept numeric expressions with dice and math helpers such as `min(...)` and `max(...)`.
