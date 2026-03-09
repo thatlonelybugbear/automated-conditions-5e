@@ -2006,6 +2006,14 @@ export function _getTooltip(ac5eConfig = {}) {
 		}
 	};
 	const getPreferredBaseTargetADC = () => {
+		const numericInitialTargetAcs = Object.values(ac5eConfig?.initialTargetADCs ?? {})
+			.map((entry) => Number(entry?.ac))
+			.filter((value) => Number.isFinite(value));
+		if (['attack', 'damage'].includes(hookType) && numericInitialTargetAcs.length) return Math.min(...numericInitialTargetAcs);
+		const numericBaseTargetAcs = Object.values(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey ?? {})
+			.map((entry) => Number(entry?.ac))
+			.filter((value) => Number.isFinite(value));
+		if (['attack', 'damage'].includes(hookType) && numericBaseTargetAcs.length) return Math.min(...numericBaseTargetAcs);
 		const numericOptinBaseTargetADC = Number(ac5eConfig?.optinBaseTargetADCValue);
 		if (!['attack', 'damage'].includes(hookType) && Number.isFinite(numericOptinBaseTargetADC)) return numericOptinBaseTargetADC;
 		const numericBaseRollTarget = Number(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target);
@@ -2527,7 +2535,15 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		const numeric = Number(value);
 		return Number.isFinite(numeric) ? numeric : undefined;
 	};
+	const initialTargetAcs = Object.values(ac5eConfig?.initialTargetADCs ?? {})
+		.map((entry) => getNumericTarget(entry?.ac))
+		.filter((value) => value !== undefined);
+	const baseTargetAcs = Object.values(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey ?? {})
+		.map((entry) => getNumericTarget(entry?.ac))
+		.filter((value) => value !== undefined);
 	const baseTargetADC =
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) && initialTargetAcs.length ? Math.min(...initialTargetAcs) : undefined) ??
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) && baseTargetAcs.length ? Math.min(...baseTargetAcs) : undefined) ??
 		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
 		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
 		getNumericTarget(ac5eConfig?.initialTargetADC) ??

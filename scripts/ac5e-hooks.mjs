@@ -825,14 +825,25 @@ function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message) 
 
 function getBaseTargetADCValue(config, ac5eConfig) {
 	const collectFinite = (values = []) => values.map((value) => Number(value)).filter((value) => Number.isFinite(value) && !_isForcedSentinelAC(value));
+	const collectNestedAcs = (value, acc = []) => {
+		if (!value || typeof value !== 'object') return acc;
+		const direct = Number(value?.ac);
+		if (Number.isFinite(direct) && !_isForcedSentinelAC(direct)) acc.push(direct);
+		for (const nested of Object.values(value)) collectNestedAcs(nested, acc);
+		return acc;
+	};
 
 	const hookType = ac5eConfig?.hookType;
 	const useTargetAcs = hookType === 'attack' || hookType === 'damage';
 	if (useTargetAcs) {
+		const optinBaseTargetADCValue = Number(ac5eConfig?.optinBaseTargetADCValue);
+		if (Number.isFinite(optinBaseTargetADCValue) && !_isForcedSentinelAC(optinBaseTargetADCValue)) return optinBaseTargetADCValue;
+		const byInitialTargets = collectNestedAcs(ac5eConfig?.initialTargetADCs);
+		if (byInitialTargets.length) return Math.min(...byInitialTargets);
+		const byPreTargets = collectNestedAcs(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey);
+		if (byPreTargets.length) return Math.min(...byPreTargets);
 		const byTargets = collectFinite((ac5eConfig?.options?.targets ?? []).map((target) => target?.ac));
 		if (byTargets.length) return Math.min(...byTargets);
-		const byPreTargets = collectFinite(Object.values(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey ?? {}).map((entry) => entry?.ac));
-		if (byPreTargets.length) return Math.min(...byPreTargets);
 	}
 
 	const direct = collectFinite([
@@ -844,6 +855,96 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 	if (direct.length) return direct[0];
 
 	return 10;
+}
+
+function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
+	const hookType = ac5eConfig?.hookType;
+	if (ac5eConfig?.tooltipObj && typeof ac5eConfig.tooltipObj === 'object' && hookType) {
+		delete ac5eConfig.tooltipObj[hookType];
+	}
+	const targetADCEntries = getTargetADCEntriesForHook(ac5eConfig, hookType).filter((entry) => entry.optin);
+	const baseTargetADCEntries = getTargetADCEntriesForHook(ac5eConfig, hookType)
+		.filter((entry) => !entry.optin)
+		.flatMap((entry) => (Array.isArray(entry.values) ? entry.values : []));
+	const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(ac5eConfig?.optinBaseTargetADC);
+	if (hasTargetADCOptins && (ac5eConfig.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(ac5eConfig.optinBaseTargetADCValue))) {
+		ac5eConfig.optinBaseTargetADCValue = getBaseTargetADCValue(rollConfig, ac5eConfig);
+	}
+	if (targetADCEntries.length) {
+		const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+		ac5eConfig.optinBaseTargetADC = [...baseTargetADCEntries];
+		const baseTargetADC = ac5eConfig.optinBaseTargetADC ?? [];
+		const selectedValues = [];
+		for (const entry of targetADCEntries) {
+			if (!selectedIds.has(entry.id)) continue;
+			const values = Array.isArray(entry.values) ? entry.values : [];
+			for (const value of values) selectedValues.push(value);
+		}
+		ac5eConfig.targetADC = [...new Set(baseTargetADC.concat(selectedValues))];
+		if (selectedValues.length) {
+			const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
+			const type = hookType === 'attack' ? 'acBonus' : 'dcBonus';
+			ac5eConfig.initialTargetADC = baseTarget;
+			ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
+		} else {
+			ac5eConfig.alteredTargetADC = undefined;
+			ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
+		}
+	} else if (Array.isArray(ac5eConfig.optinBaseTargetADC)) {
+		ac5eConfig.targetADC = [...ac5eConfig.optinBaseTargetADC];
+		ac5eConfig.alteredTargetADC = undefined;
+		ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
+	}
+	return { targetADCEntries, hasTargetADCOptins };
+}
+
+function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets = false } = {}) {
+	const options = rollConfig.options ?? (rollConfig.options = {});
+	const hookType = ac5eConfig?.hookType;
+	const isAttackHook = hookType === 'attack';
+	const isAttackLikeHook = isAttackHook || hookType === 'damage';
+	const roll0Target = getExistingRoll(rollConfig, 0);
+	if (ac5eConfig.alteredTargetADC !== undefined) {
+		const nextTarget = ac5eConfig.alteredTargetADC;
+		if (isAttackLikeHook) {
+			rollConfig.target = nextTarget;
+			if (roll0Target) {
+				roll0Target.target = nextTarget;
+				if (roll0Target.options && typeof roll0Target.options === 'object') roll0Target.options.target = nextTarget;
+			}
+			options.target = nextTarget;
+		} else {
+			options.initialTargetADC = ac5eConfig.initialTargetADC;
+			options.alteredTargetADC = ac5eConfig.alteredTargetADC;
+		}
+		if (isAttackHook && Array.isArray(ac5eConfig.options?.targets)) {
+			for (const target of ac5eConfig.options.targets) {
+				if (target && typeof target === 'object') target.ac = nextTarget;
+			}
+		}
+	} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
+		const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
+		ac5eConfig.optinBaseTargetADCValue = baseTarget;
+		if (isAttackLikeHook) {
+			rollConfig.target = baseTarget;
+			if (roll0Target) {
+				roll0Target.target = baseTarget;
+				if (roll0Target.options && typeof roll0Target.options === 'object') roll0Target.options.target = baseTarget;
+			}
+			options.target = baseTarget;
+		} else {
+			options.initialTargetADC = ac5eConfig.initialTargetADC ?? baseTarget;
+			delete options.alteredTargetADC;
+		}
+		if (isAttackHook && Array.isArray(ac5eConfig.options?.targets)) {
+			for (const target of ac5eConfig.options.targets) {
+				if (target && typeof target === 'object') target.ac = baseTarget;
+			}
+		}
+	}
+	if (syncAttackTargets && isAttackHook) {
+		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], null);
+	}
 }
 
 function getMessageForConfigTargets(config, hook, activity) {
@@ -1120,100 +1221,18 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 				opponentTargetADC: ac5eConfig?.opponent?.targetADC,
 				optins,
 			});
-		const targetADCEntries = getTargetADCEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
-		const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(ac5eConfig.optinBaseTargetADC);
-		if (hasTargetADCOptins && (ac5eConfig.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(ac5eConfig.optinBaseTargetADCValue))) {
-			ac5eConfig.optinBaseTargetADCValue = getBaseTargetADCValue(rollConfig, ac5eConfig);
-		}
-		if (targetADCEntries.length) {
-			const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
-			ac5eConfig.optinBaseTargetADC ??= Array.isArray(ac5eConfig.targetADC) ? [...ac5eConfig.targetADC] : [];
-			const baseTargetADC = ac5eConfig.optinBaseTargetADC ?? [];
-			const selectedValues = [];
-			for (const entry of targetADCEntries) {
-				if (!selectedIds.has(entry.id)) continue;
-				const values = Array.isArray(entry.values) ? entry.values : [];
-				for (const value of values) selectedValues.push(value);
-			}
-			ac5eConfig.targetADC = [...new Set(baseTargetADC.concat(selectedValues))];
-			if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: selected', { selectedIds: [...selectedIds], selectedValues, baseTargetADC, targetADC: ac5eConfig.targetADC });
-			if (selectedValues.length) {
-				const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
-				const type = ac5eConfig.hookType === 'attack' ? 'acBonus' : 'dcBonus';
-				ac5eConfig.initialTargetADC = baseTarget;
-				ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
-			}
-		} else if (Array.isArray(ac5eConfig.optinBaseTargetADC)) {
-			ac5eConfig.targetADC = [...ac5eConfig.optinBaseTargetADC];
-			ac5eConfig.alteredTargetADC = undefined;
-			ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
-			if (!['attack', 'damage'].includes(ac5eConfig.hookType) && Object.isExtensible(options)) {
-				options.initialTargetADC = ac5eConfig.initialTargetADC;
-				delete options.alteredTargetADC;
-			}
-		}
+		const { targetADCEntries } = rebuildOptinTargetADCState(ac5eConfig, rollConfig);
+		if (ac5e?.debugTargetADC)
+			console.warn('AC5E targetADC: selected', {
+				targetADCEntries,
+				optinSelected: ac5eConfig.optinSelected,
+				targetADC: ac5eConfig.targetADC,
+			});
 		rollConfig.advantage = undefined;
 		rollConfig.disadvantage = undefined;
 		_calcAdvantageMode(ac5eConfig, rollConfig, undefined, undefined, { skipSetProperties: true });
 		applyExplicitModeOverride(ac5eConfig, rollConfig);
-		const isAttackHook = ac5eConfig.hookType === 'attack';
-		if (ac5eConfig.alteredTargetADC !== undefined) {
-			const nextTarget = ac5eConfig.alteredTargetADC;
-			const roll0Target = getExistingRoll(rollConfig, 0);
-			if (isAttackHook || ac5eConfig.hookType === 'damage') {
-				rollConfig.target = nextTarget;
-				if (roll0Target) {
-					roll0Target.target = nextTarget;
-					if (roll0Target.options && typeof roll0Target.options === 'object') {
-						roll0Target.options.target = nextTarget;
-					}
-				}
-			}
-			if (Object.isExtensible(options)) {
-				if (isAttackHook || ac5eConfig.hookType === 'damage') options.target = nextTarget;
-				if (!isAttackHook && ac5eConfig.hookType !== 'damage') {
-					options.initialTargetADC = ac5eConfig.initialTargetADC;
-					options.alteredTargetADC = ac5eConfig.alteredTargetADC;
-				}
-			}
-			if (isAttackHook) {
-				if (Array.isArray(ac5eConfig.options?.targets)) {
-					for (const target of ac5eConfig.options.targets) {
-						if (target && typeof target === 'object') target.ac = nextTarget;
-					}
-				}
-			}
-		} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
-			const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
-			ac5eConfig.optinBaseTargetADCValue = baseTarget;
-			const roll0Target = getExistingRoll(rollConfig, 0);
-			if (isAttackHook || ac5eConfig.hookType === 'damage') {
-				rollConfig.target = baseTarget;
-				if (roll0Target) {
-					roll0Target.target = baseTarget;
-					if (roll0Target.options && typeof roll0Target.options === 'object') {
-						roll0Target.options.target = baseTarget;
-					}
-				}
-			}
-			if (Object.isExtensible(options)) {
-				if (isAttackHook || ac5eConfig.hookType === 'damage') options.target = baseTarget;
-				if (!isAttackHook && ac5eConfig.hookType !== 'damage') {
-					options.initialTargetADC = ac5eConfig.initialTargetADC ?? baseTarget;
-					delete options.alteredTargetADC;
-				}
-			}
-			if (isAttackHook) {
-				if (Array.isArray(ac5eConfig.options?.targets)) {
-					for (const target of ac5eConfig.options.targets) {
-						if (target && typeof target === 'object') target.ac = baseTarget;
-					}
-				}
-			}
-		}
-		if (ac5eConfig.hookType === 'attack') {
-			syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], null);
-		}
+		applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets: true });
 		if (ac5e?.debugTargetADC)
 			console.warn('AC5E targetADC: buildRollConfig target', {
 				hook: ac5eConfig.hookType,
@@ -1835,7 +1854,13 @@ export function _renderHijack(hook, render, elem) {
 			}
 		}
 		if (hook === 'damageDialog') doDialogDamageRender(render, elem, getConfigAC5E);
-		else if (getConfigAC5E.hookType === 'attack') doDialogAttackRender(render, elem, getConfigAC5E);
+		else if (getConfigAC5E.hookType === 'attack') {
+			const refreshed = doDialogAttackRender(render, elem, getConfigAC5E);
+			if (refreshed) {
+				getConfigAC5E = refreshed;
+				({ hookType, roller, tokenId, options } = getConfigAC5E || {});
+			}
+		}
 		if (hook === 'd20Dialog' && ['attack', 'save', 'check'].includes(getConfigAC5E.hookType) && !getConfigAC5E.options?.isInitiative) {
 			renderOptionalBonusesRoll(render, elem, getConfigAC5E);
 			const optinSelections = readOptinSelections(elem, getConfigAC5E);
@@ -1846,71 +1871,9 @@ export function _renderHijack(hook, render, elem) {
 				render.config.disadvantage = undefined;
 				_calcAdvantageMode(getConfigAC5E, render.config, undefined, undefined, { skipSetProperties: true });
 				applyExplicitModeOverride(getConfigAC5E, render.config);
-				const targetADCEntries = getTargetADCEntriesForHook(getConfigAC5E, getConfigAC5E.hookType).filter((entry) => entry.optin);
-				const isAttackHook = getConfigAC5E.hookType === 'attack';
-				const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(getConfigAC5E.optinBaseTargetADC);
-				if (hasTargetADCOptins && (getConfigAC5E.optinBaseTargetADCValue === undefined || _isForcedSentinelAC(getConfigAC5E.optinBaseTargetADCValue))) {
-					getConfigAC5E.optinBaseTargetADCValue = getBaseTargetADCValue(render.config, getConfigAC5E);
-				}
+				const { targetADCEntries } = rebuildOptinTargetADCState(getConfigAC5E, render.config);
 				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: render entries', { hook: getConfigAC5E.hookType, targetADCEntries, optinSelected: getConfigAC5E.optinSelected });
-				if (targetADCEntries.length) {
-					const selectedIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
-					const selectedValues = [];
-					for (const entry of targetADCEntries) {
-						if (!selectedIds.has(entry.id)) continue;
-						const values = Array.isArray(entry.values) ? entry.values : [];
-						for (const value of values) selectedValues.push(value);
-					}
-					if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: render selected', { selectedIds: [...selectedIds], selectedValues });
-					if (selectedValues.length) {
-						const baseTarget = getConfigAC5E.optinBaseTargetADCValue ?? 10;
-						const type = getConfigAC5E.hookType === 'attack' ? 'acBonus' : 'dcBonus';
-						const alteredTarget = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
-						if (!isNaN(alteredTarget)) {
-							render.config.target = alteredTarget;
-							const roll0Target = getExistingRoll(render.config, 0);
-							if (roll0Target) {
-								roll0Target.target = alteredTarget;
-								if (roll0Target.options && typeof roll0Target.options === 'object') {
-									roll0Target.options.target = alteredTarget;
-								}
-							}
-							if (isAttackHook && getConfigAC5E.options?.targets?.length) {
-								for (const target of getConfigAC5E.options.targets) {
-									if (ac5e?.debugTargets)
-										console.warn('AC5E targets render', {
-											hook: getConfigAC5E.hookType,
-											targetCount: getConfigAC5E.options?.targets?.length ?? 0,
-											targetTokenUuids: (getConfigAC5E.options?.targets ?? []).map((t) => t?.tokenUuid).filter(Boolean),
-											activeTargetUuid: target?.actor?.uuid,
-										});
-									if (target && typeof target === 'object') target.ac = alteredTarget;
-								}
-							}
-							getConfigAC5E.alteredTargetADC = alteredTarget;
-							getConfigAC5E.initialTargetADC = baseTarget;
-						}
-					}
-				} else if (Array.isArray(getConfigAC5E.optinBaseTargetADC) && getConfigAC5E.optinBaseTargetADCValue !== undefined) {
-					const baseTarget = getConfigAC5E.optinBaseTargetADCValue;
-					render.config.target = baseTarget;
-					const roll0Target = getExistingRoll(render.config, 0);
-					if (roll0Target) {
-						roll0Target.target = baseTarget;
-						if (roll0Target.options && typeof roll0Target.options === 'object') {
-							roll0Target.options.target = baseTarget;
-						}
-					}
-					if (isAttackHook && getConfigAC5E.options?.targets?.length) {
-						for (const target of getConfigAC5E.options.targets) {
-							if (target && typeof target === 'object') target.ac = baseTarget;
-						}
-					}
-					getConfigAC5E.alteredTargetADC = undefined;
-					getConfigAC5E.initialTargetADC = baseTarget;
-				}
-				const renderTargets = getConfigAC5E.options?.targets ?? [];
-				syncTargetsToConfigAndMessage(getConfigAC5E, renderTargets, null);
+				applyTargetADCStateToD20Config(getConfigAC5E, render.config, { syncAttackTargets: true });
 			}
 		}
 		if (hook === 'damageDialog') {
@@ -2330,52 +2293,76 @@ export function _preConfigureInitiative(subject, rollConfig) {
 	return ac5eConfig;
 }
 
+function refreshDialogAttackState(dialog, ac5eConfig, nextSelections = {}) {
+	if (!dialog?.config || ac5eConfig?.hookType !== 'attack') return null;
+	const currentSelections = {
+		ammunition: ac5eConfig?.options?.ammo ?? dialog?.config?.ammunition,
+		attackMode: ac5eConfig?.options?.attackMode ?? dialog?.config?.attackMode,
+		mastery: ac5eConfig?.options?.mastery ?? dialog?.config?.mastery
+	};
+	const nextAmmunition = nextSelections.ammunition ?? currentSelections.ammunition;
+	const nextAttackMode = nextSelections.attackMode ?? currentSelections.attackMode;
+	const nextMastery = nextSelections.mastery ?? currentSelections.mastery;
+	if (nextAmmunition === currentSelections.ammunition && nextAttackMode === currentSelections.attackMode && nextMastery === currentSelections.mastery) return null;
+	_restoreD20ConfigFromFrozenBaseline(ac5eConfig, dialog.config);
+	dialog.config.ammunition = nextAmmunition;
+	dialog.config.attackMode = nextAttackMode;
+	dialog.config.mastery = nextMastery;
+	dialog.config.advantage = undefined;
+	dialog.config.disadvantage = undefined;
+	const roll0 = getExistingRoll(dialog.config, 0);
+	const roll0Options = getExistingRollOptions(dialog.config, 0);
+	delete dialog.config?.[Constants.MODULE_ID];
+	if (dialog.config?.options && typeof dialog.config.options === 'object') delete dialog.config.options[Constants.MODULE_ID];
+	if (roll0 && typeof roll0 === 'object') delete roll0[Constants.MODULE_ID];
+	if (roll0Options && typeof roll0Options === 'object') delete roll0Options[Constants.MODULE_ID];
+	if (roll0) roll0.parts = [];
+	if (roll0Options) {
+		roll0Options.advantageMode = 0;
+		roll0Options.maximum = null;
+		roll0Options.minimum = null;
+	}
+	if (dialog.config.midiOptions) {
+		dialog.config.midiOptions.isCritical = false;
+		dialog.config.midiOptions.advantage = false;
+		dialog.config.midiOptions.disadvantage = false;
+	}
+	const transientDialog = { options: { window: { title: dialog?.message?.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+	return _preRollAttack(dialog.config, transientDialog, dialog.message, 'attack')
+		?? dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]
+		?? dialog?.config?.[Constants.MODULE_ID]
+		?? ac5eConfig;
+}
+
 function doDialogAttackRender(dialog, elem, getConfigAC5E) {
-	const selectedAmmunition = elem.querySelector('select[name="ammunition"]')?.value;
-	const selectedAttackMode = elem.querySelector('select[name="attackMode"]')?.value;
-	const selectedMastery = elem.querySelector('select[name="mastery"]')?.value;
-	const hasAmmunition = getConfigAC5E.options.ammo;
-	const hasAttackMode = getConfigAC5E.options.attackMode;
-	const hasMastery = getConfigAC5E.options.mastery;
-	const change =
-		hasAmmunition && selectedAmmunition && hasAmmunition !== selectedAmmunition ? 'ammunition'
-		: hasAttackMode && selectedAttackMode && hasAttackMode !== selectedAttackMode ? 'attackMode'
-		: hasMastery && selectedMastery && hasMastery !== selectedMastery ? 'mastery'
-		: false;
-	if (!change) {
-		if (hasAmmunition && selectedAmmunition) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsAmmunition ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		if (hasAttackMode) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsAttackMode ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		if (hasMastery) dialog.config.rolls[0].options[Constants.MODULE_ID].usedPartsMastery ??= dialog.config.rolls[0].options[Constants.MODULE_ID].parts;
-		return;
+	const attackModeSelect = elem.querySelector('select[name="attackMode"]');
+	const masterySelect = elem.querySelector('select[name="mastery"]');
+	const ammunitionSelect = elem.querySelector('select[name="ammunition"]');
+	for (const control of [attackModeSelect, masterySelect, ammunitionSelect]) {
+		if (!control || control.dataset.ac5eAttackReevalBound) continue;
+		control.dataset.ac5eAttackReevalBound = 'true';
+		control.addEventListener('change', () => {
+			const activeConfig =
+				dialog?.config?.options?.[Constants.MODULE_ID]
+				?? dialog?.config?.[Constants.MODULE_ID]
+				?? dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]
+				?? getConfigAC5E;
+			const refreshed = refreshDialogAttackState(dialog, activeConfig, {
+				ammunition: ammunitionSelect?.value,
+				attackMode: attackModeSelect?.value,
+				mastery: masterySelect?.value
+			});
+			if (refreshed) {
+				queueMicrotask(() => _renderHijack('d20Dialog', dialog, elem));
+			}
+		});
 	}
-	const newConfig = dialog.config;
-	if (selectedAmmunition) newConfig.ammunition = selectedAmmunition;
-	if (selectedAttackMode) newConfig.attackMode = selectedAttackMode;
-	if (selectedMastery) newConfig.mastery = selectedMastery;
-	if (change === 'ammunition')
-		newConfig.rolls[0].parts =
-			newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsAmmunition?.includes(part)) ?? [];
-	if (change === 'attackMode')
-		newConfig.rolls[0].parts =
-			newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsAttackMode?.includes(part)) ?? [];
-	if (change === 'mastery')
-		newConfig.rolls[0].parts =
-			newConfig.rolls[0].parts?.filter((part) => !getConfigAC5E.parts.includes(part) && !dialog.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.usedPartsMastery?.includes(part)) ?? [];
-	newConfig.advantage = undefined;
-	newConfig.disadvantage = undefined;
-	newConfig.rolls[0].options.advantageMode = 0;
-	if (newConfig.midiOptions) {
-		newConfig.midiOptions.isCritical = false;
-		newConfig.midiOptions.advantage = false;
-		newConfig.midiOptions.disadvantage = false;
-	}
-	newConfig.rolls[0].options.maximum = null;
-	newConfig.rolls[0].options.minimum = null;
-	const newDialog = { options: { window: { title: dialog.message.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-	const newMessage = dialog.message;
-	getConfigAC5E = _preRollAttack(newConfig, newDialog, newMessage, 'attack');
-	dialog.rebuild();
-	dialog.render();
+	const refreshed = refreshDialogAttackState(dialog, getConfigAC5E, {
+		ammunition: ammunitionSelect?.value,
+		attackMode: attackModeSelect?.value,
+		mastery: masterySelect?.value
+	});
+	return refreshed ?? getConfigAC5E;
 }
 
 function doDialogDamageRender(dialog, elem, getConfigAC5E) {

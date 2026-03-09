@@ -18,6 +18,10 @@
   - Fixed a stale critical bonus damage leak that could make formulas grow repeatedly when changing damage types in the dialog.
 - Reduced redundant roll-dialog syncing work.
   - Removed unnecessary target/DC DOM syncing and a heavy ability-dialog rerender path, while keeping roll results and AC5E tooltip state aligned through the actual roll/build config flow.
+- Simplified attack dialog refresh behavior.
+  - Attack mode, mastery, and ammunition changes now refresh AC5E attack state in place instead of forcing a full dialog rebuild/render cycle.
+- Fixed attack roll-dialog `modifyAC` opt-in tooltips using the wrong base AC during later dialog rebuilds.
+  - Attack roll dialogs, chat tooltips, and final target AC adjudication now stay aligned on the same modified AC snapshot.
 
 ## 13.5250.9
 
