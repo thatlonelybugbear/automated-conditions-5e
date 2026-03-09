@@ -1871,24 +1871,71 @@ function _buildItemMatcher(queryRaw) {
 	return matcher;
 }
 
-function _itemMatchesIdentifier(item, identifier, matcher) {
+function _normalizeItemLookupMatchOption(value) {
+	const parsed = String(value ?? 'name')
+		.trim()
+		.toLowerCase();
+	if (['name', 'identifier', 'id', 'uuid', 'any'].includes(parsed)) return parsed;
+	return 'name';
+}
+
+function _normalizeItemLookupNameModeOption(value) {
+	const parsed = String(value ?? 'exact')
+		.trim()
+		.toLowerCase();
+	if (['exact', 'partial'].includes(parsed)) return parsed;
+	return 'exact';
+}
+
+function _normalizeItemLookupOptions(options = {}) {
+	const input = options && typeof options === 'object' ? options : {};
+	return {
+		...input,
+		match: _normalizeItemLookupMatchOption(input.match),
+		nameMode: _normalizeItemLookupNameModeOption(input.nameMode),
+	};
+}
+
+function _itemNameMatches(item, identifier, matcher, options = {}) {
+	const name = String(item?.name ?? '');
+	if (!name) return false;
+	const query = String(identifier ?? '').trim();
+	if (!query) return false;
+
+	const nameMode = _normalizeItemLookupNameModeOption(options.nameMode);
+	const nameLower = name.toLowerCase();
+	const queryLower = query.toLowerCase();
+	if (nameMode === 'exact') return nameLower === queryLower;
+
+	const slug = name.slugify();
+	if (matcher?.SearchFilter?.testQuery) {
+		return matcher.SearchFilter.testQuery(matcher.rgx, name) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, slug));
+	}
+	return nameLower.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && slug.toLowerCase().includes(matcher.querySlug));
+}
+
+function _itemMatchesLookup(item, identifier, matcher, options = {}) {
 	if (!item || !identifier) return false;
+	const normalizedOptions = _normalizeItemLookupOptions(options);
+	const match = normalizedOptions.match;
+	const normalizedIdentifier = String(identifier ?? '').trim();
+	const identifierSlug = normalizedIdentifier.slugify();
 	const id = String(item.id ?? '');
 	const uuid = String(item.uuid ?? '');
 	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
 
-	if (id === identifier || uuid === identifier || directIdentifier === identifier) return true;
+	if (match === 'id') return id === normalizedIdentifier;
+	if (match === 'uuid') return uuid === normalizedIdentifier;
+	if (match === 'identifier') return directIdentifier === normalizedIdentifier;
+	if (match === 'name') return _itemNameMatches(item, identifier, matcher, normalizedOptions);
 
-	const name = String(item.name ?? '');
-	const slug = name.slugify();
-	const haystack = `${name} ${directIdentifier} ${slug}`.trim();
-
-	if (matcher?.SearchFilter?.testQuery) {
-		return matcher.SearchFilter.testQuery(matcher.rgx, haystack) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, haystack));
-	}
-
-	const normalizedHaystack = haystack.toLowerCase();
-	return normalizedHaystack.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && normalizedHaystack.includes(matcher.querySlug));
+	return (
+		id === normalizedIdentifier ||
+		uuid === normalizedIdentifier ||
+		directIdentifier === normalizedIdentifier ||
+		(identifierSlug && directIdentifier === identifierSlug) ||
+		_itemNameMatches(item, identifier, matcher, normalizedOptions)
+	);
 }
 
 function _resolveActorForItemLookup(source) {
@@ -1954,7 +2001,8 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	const actorItems = Array.from(actor.items ?? []);
 	if (!actorItems.length) return [];
 
-	const itemType = typeof options?.type === 'string' ? options.type.trim() : '';
+	const normalizedOptions = _normalizeItemLookupOptions(options);
+	const itemType = typeof normalizedOptions?.type === 'string' ? normalizedOptions.type.trim() : '';
 	const scopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
 	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
 	if (!identifiers.length) return scopedItems;
@@ -1966,7 +2014,7 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	for (const item of scopedItems) {
 		for (const identifier of identifiers) {
 			const matcher = matchers.get(identifier);
-			if (!_itemMatchesIdentifier(item, identifier, matcher)) continue;
+			if (!_itemMatchesLookup(item, identifier, matcher, normalizedOptions)) continue;
 			const itemKey = String(item?.uuid ?? item?.id ?? item?.name ?? '');
 			if (!seen.has(itemKey)) {
 				seen.add(itemKey);
@@ -4633,4 +4681,5 @@ export function _isUuidLike(value) {
 		return false;
 	}
 }
+
 
