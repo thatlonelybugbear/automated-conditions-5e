@@ -2371,12 +2371,12 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 	try {
 		_restoreDamageConfigFromFrozenBaseline(getConfigAC5E, dialog.config);
 		const frozenDamageBaseline = getConfigAC5E?.preAC5eConfig?.frozenDamageBaseline ?? getConfigAC5E?.frozenDamageBaseline;
-		ensureDamagePreservedInitialData(getConfigAC5E, frozenDamageBaseline);
-		captureBaseCriticalBonusDamage(getConfigAC5E, dialog?.config?.rolls);
 		renderOptionalBonusesDamage(dialog, elem, getConfigAC5E);
 		setOptinSelections(getConfigAC5E, readOptinSelections(elem, getConfigAC5E));
 		applyOptinCriticalToDamageConfig(getConfigAC5E, dialog.config);
 		const currentCritical = getConfigAC5E.isCritical ?? dialog.config.isCritical ?? false;
+		ensureDamagePreservedInitialData(getConfigAC5E, frozenDamageBaseline, dialog?.config?.rolls, currentCritical);
+		captureBaseCriticalBonusDamage(getConfigAC5E, dialog?.config?.rolls);
 		const previousCritical = getConfigAC5E._lastOptinCritical;
 		getConfigAC5E._lastOptinCritical = currentCritical;
 		if (previousCritical !== undefined && previousCritical !== currentCritical) {
@@ -2389,12 +2389,12 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		const baseFormulas =
 			getConfigAC5E.preservedInitialData?.formulas ?? (getConfigAC5E.isCritical ? dialog.config.rolls.map((roll) => roll?.parts?.join(' + ') ?? roll?.formula).filter(Boolean) : undefined);
 		const damageTypesByIndex = getDamageTypesByIndex(dialog, elem);
-		const selects = Array.fromRange(rollsLength)
+		const selectedDamageTypesByIndex = Array.fromRange(rollsLength)
 			.map((el) => {
 				const selected = damageTypesByIndex?.[el] ?? elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ?? dialog.config.rolls?.[el]?.options?.type;
 				return selected ? String(selected).toLowerCase() : undefined;
-			})
-			.filter(Boolean);
+			});
+		const selects = selectedDamageTypesByIndex.filter(Boolean);
 		const domFormulas = Array.from(elem.querySelectorAll('.formula'))
 			.map((el) => el.textContent?.trim())
 			.filter(Boolean);
@@ -2409,6 +2409,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		if (rollCountChanged) {
 			// Avoid rebuild loops when other modules add/remove damage rolls mid-render.
 			getConfigAC5E.options.selectedDamageTypes = selects;
+			getConfigAC5E.options.selectedDamageTypesByIndex = selectedDamageTypesByIndex;
 			const currentFormulas = formulas;
 			if (getConfigAC5E.preservedInitialData) {
 				const preserved = getConfigAC5E.preservedInitialData;
@@ -2553,6 +2554,7 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		getConfigAC5E.options.defaultDamageType = undefined;
 		getConfigAC5E.options.damageTypes = undefined;
 		getConfigAC5E.options.selectedDamageTypes = undefined;
+		getConfigAC5E.options.selectedDamageTypesByIndex = undefined;
 
 		const currentOptinSelections = readOptinSelections(elem, getConfigAC5E);
 		setOptinSelections(getConfigAC5E, currentOptinSelections);
@@ -2616,9 +2618,11 @@ function doDialogDamageRender(dialog, elem, getConfigAC5E) {
 		getConfigAC5E = _preRollDamage(newConfig, newDialog, newMessage, 'damage', reEval);
 		setOptinSelections(getConfigAC5E, currentOptinSelections);
 		applyOptinCriticalToDamageConfig(getConfigAC5E, dialog.config);
-		const nextDamageTypesByIndex = Array.isArray(damageTypesByIndex) ? [...damageTypesByIndex] : [];
+		const nextDamageTypesByIndex = Array.isArray(selectedDamageTypesByIndex) ? [...selectedDamageTypesByIndex] : [];
 		if (Number.isInteger(compared?.index) && compared?.selectedValue) nextDamageTypesByIndex[compared.index] = compared.selectedValue;
 
+		getConfigAC5E.options.selectedDamageTypes = selects;
+		getConfigAC5E.options.selectedDamageTypesByIndex = nextDamageTypesByIndex;
 		applyOrResetFormulaChanges(elem, getConfigAC5E, 'apply', baseFormulas, nextDamageTypesByIndex);
 		syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
 
@@ -2640,11 +2644,24 @@ function getDamageBaselineFormulas(baseline) {
 		.filter((formula) => typeof formula === 'string' && formula.trim().length);
 }
 
-function ensureDamagePreservedInitialData(ac5eConfig, baseline) {
+function getDamageFormulasFromRolls(rolls = []) {
+	return (Array.isArray(rolls) ? rolls : [])
+		.map((roll) =>
+			typeof roll?.formula === 'string' ? roll.formula
+			: Array.isArray(roll?.parts) && roll.parts.length ? roll.parts.join(' + ')
+			: undefined,
+		)
+		.filter((formula) => typeof formula === 'string' && formula.trim().length);
+}
+
+function ensureDamagePreservedInitialData(ac5eConfig, baseline, currentRolls = [], isCritical = false) {
 	if (!ac5eConfig) return;
-	const baselineFormulas = getDamageBaselineFormulas(baseline);
+	const baselineFormulas =
+		isCritical ?
+			getDamageFormulasFromRolls(currentRolls)
+		:	getDamageBaselineFormulas(baseline);
 	if (!baselineFormulas.length) return;
-	const profileKey = baseline?.profileKey ?? '__default__';
+	const profileKey = `${baseline?.profileKey ?? '__default__'}:${isCritical ? 'critical' : 'normal'}`;
 	const previousProfileKey = ac5eConfig._preservedInitialDataProfileKey ?? '__default__';
 	const existingLength = Array.isArray(ac5eConfig?.preservedInitialData?.formulas) ? ac5eConfig.preservedInitialData.formulas.length : 0;
 	if (ac5eConfig.preservedInitialData && previousProfileKey === profileKey && existingLength >= baselineFormulas.length) return;
@@ -2698,88 +2715,71 @@ function getDamageTypesByIndex(dialog, elem) {
 	return types;
 }
 
-function getRollDamageTypeFromForm(formData, config, index) {
-	const key = `roll.${index}.damageType`;
-	const fromForm = formData?.object?.[key];
-	if (fromForm) return String(fromForm).toLowerCase();
-	const rollType = config?.rolls?.[index]?.options?.type;
-	if (rollType) return String(rollType).toLowerCase();
-	if (config?.options?.type) return String(config.options.type).toLowerCase();
+function getRollDamageTypeFromForm(formData, rollConfig, index) {
+	return rollConfig?.options?.type;
+}
+
+function getDamageRollTypeAtIndex(ac5eConfig, damageTypesByIndex, index) {
+	const directType = damageTypesByIndex?.[index];
+	if (typeof directType === 'string' && directType.trim()) return String(directType).toLowerCase();
+	const selectedByIndex = ac5eConfig?.options?.selectedDamageTypesByIndex?.[index];
+	if (typeof selectedByIndex === 'string' && selectedByIndex.trim()) return String(selectedByIndex).toLowerCase();
+	const selectedType = ac5eConfig?.options?.selectedDamageTypes?.[index];
+	if (typeof selectedType === 'string' && selectedType.trim()) return String(selectedType).toLowerCase();
 	return undefined;
 }
 
-function resolveBonusAddTo(entry) {
+function resolveEntryAddTo(entry, defaultMode = 'base') {
 	if (entry?.addTo?.mode === 'all') return { mode: 'all', types: [] };
+	if (entry?.addTo?.mode === 'base') return { mode: 'base', types: [] };
+	if (entry?.addTo?.mode === 'global') return { mode: 'global', types: [] };
 	if (entry?.addTo?.mode === 'types' && Array.isArray(entry.addTo.types) && entry.addTo.types.length) {
 		return { mode: 'types', types: entry.addTo.types.map((t) => String(t).toLowerCase()) };
 	}
-	return { mode: 'base', types: [] };
+	return { mode: defaultMode, types: [] };
 }
 
-function shouldApplyBonusToRoll(entry, rollIndex, rollType, selectedTypes) {
-	const addTo = resolveBonusAddTo(entry);
-	if (addTo.mode === 'all') return true;
-	if (addTo.mode === 'base') {
-		if (rollIndex !== 0) return false;
-		if (!entry?.requiredDamageTypes?.length) return true;
-		if (!selectedTypes?.size) return false;
-		return entry.requiredDamageTypes.every((t) => selectedTypes.has(String(t).toLowerCase()));
-	}
-	if (!rollType) return false;
-	return addTo.types.some((t) => t === String(rollType).toLowerCase());
-}
-
-function isBonusEligibleForDamageTypes(entry, selectedTypes) {
-	const addTo = resolveBonusAddTo(entry);
-	if (addTo.mode === 'types') {
-		if (!selectedTypes?.size) return false;
-		return addTo.types.some((t) => selectedTypes.has(t));
-	}
-	if (!entry?.requiredDamageTypes?.length) return true;
+function hasRequiredDamageTypes(entry, selectedTypes) {
+	if (!Array.isArray(entry?.requiredDamageTypes) || !entry.requiredDamageTypes.length) return true;
 	if (!selectedTypes?.size) return false;
 	return entry.requiredDamageTypes.every((t) => selectedTypes.has(String(t).toLowerCase()));
 }
 
-function resolveExtraDiceAddTo(entry) {
-	if (entry?.addTo?.mode === 'all') return { mode: 'all', types: [] };
-	if (entry?.addTo?.mode === 'types' && Array.isArray(entry.addTo.types) && entry.addTo.types.length) {
-		return { mode: 'types', types: entry.addTo.types.map((t) => String(t).toLowerCase()) };
-	}
-	if (Array.isArray(entry?.requiredDamageTypes) && entry.requiredDamageTypes.length) {
-		return { mode: 'types', types: entry.requiredDamageTypes.map((t) => String(t).toLowerCase()) };
-	}
-	return { mode: 'base', types: [] };
-}
-
-function resolveCriticalAddTo(entry) {
-	if (entry?.addTo?.mode === 'all') return { mode: 'all', types: [] };
-	if (entry?.addTo?.mode === 'types' && Array.isArray(entry.addTo.types) && entry.addTo.types.length) {
-		return { mode: 'types', types: entry.addTo.types.map((t) => String(t).toLowerCase()) };
-	}
-	return { mode: 'global', types: [] };
-}
-
-function shouldApplyCriticalToRoll(entry, rollType) {
-	const addTo = resolveCriticalAddTo(entry);
+function shouldApplyAddToRoll(addTo, rollIndex, rollType, defaultMode = 'base') {
 	if (addTo.mode === 'all') return true;
-	if (addTo.mode === 'global') return false;
+	if (addTo.mode === defaultMode) return rollIndex === 0;
 	if (!rollType) return false;
 	return addTo.types.some((t) => t === String(rollType).toLowerCase());
+}
+
+function isDamageEntryEligibleForSelectedTypes(entry, selectedTypes, defaultMode = 'base') {
+	return hasRequiredDamageTypes(entry, selectedTypes);
+}
+
+function shouldApplyDamageEntryToRoll(entry, rollIndex, rollType, { defaultMode = 'base', selectedTypes = undefined } = {}) {
+	if (selectedTypes && !hasRequiredDamageTypes(entry, selectedTypes)) return false;
+	const addTo = resolveEntryAddTo(entry, defaultMode);
+	return shouldApplyAddToRoll(addTo, rollIndex, rollType, defaultMode);
+}
+
+function shouldApplyBonusToRoll(entry, rollIndex, rollType, selectedTypes) {
+	return shouldApplyDamageEntryToRoll(entry, rollIndex, rollType, { selectedTypes });
+}
+
+function isBonusEligibleForDamageTypes(entry, selectedTypes) {
+	return isDamageEntryEligibleForSelectedTypes(entry, selectedTypes);
+}
+
+function shouldApplyCriticalToRoll(entry, rollIndex, rollType, selectedTypes) {
+	return shouldApplyDamageEntryToRoll(entry, rollIndex, rollType, { defaultMode: 'global', selectedTypes });
 }
 
 function isExtraDiceEligibleForSelectedTypes(entry, selectedTypes) {
-	const addTo = resolveExtraDiceAddTo(entry);
-	if (addTo.mode === 'all' || addTo.mode === 'base') return true;
-	if (!selectedTypes?.size) return false;
-	return addTo.types.some((t) => selectedTypes.has(t));
+	return isDamageEntryEligibleForSelectedTypes(entry, selectedTypes);
 }
 
 function shouldApplyExtraDiceToRoll(entry, rollIndex, rollType) {
-	const addTo = resolveExtraDiceAddTo(entry);
-	if (addTo.mode === 'all') return true;
-	if (addTo.mode === 'base') return rollIndex === 0;
-	if (!rollType) return false;
-	return addTo.types.some((t) => t === String(rollType).toLowerCase());
+	return shouldApplyDamageEntryToRoll(entry, rollIndex, rollType);
 }
 
 function isCriticalStaticExtraDiceEntry(entry) {
@@ -2792,25 +2792,8 @@ function isRollCriticalForExtraDice(ac5eConfig, rollIndex) {
 	return Boolean(ac5eConfig?.isCritical ?? ac5eConfig?.preAC5eConfig?.wasCritical ?? false);
 }
 
-function resolveDamageModifierAddTo(entry) {
-	if (entry?.addTo?.mode === 'all') return { mode: 'all', types: [] };
-	if (entry?.addTo?.mode === 'types' && Array.isArray(entry.addTo.types) && entry.addTo.types.length) {
-		return { mode: 'types', types: entry.addTo.types.map((t) => String(t).toLowerCase()) };
-	}
-	return { mode: 'base', types: [] };
-}
-
 function shouldApplyDamageModifierToRoll(entry, rollIndex, rollType, selectedTypes) {
-	const addTo = resolveDamageModifierAddTo(entry);
-	if (addTo.mode === 'all') return true;
-	if (addTo.mode === 'base') {
-		if (rollIndex !== 0) return false;
-		if (!entry?.requiredDamageTypes?.length) return true;
-		if (!selectedTypes?.size) return false;
-		return entry.requiredDamageTypes.every((t) => selectedTypes.has(String(t).toLowerCase()));
-	}
-	if (!rollType) return false;
-	return addTo.types.some((t) => t === String(rollType).toLowerCase());
+	return shouldApplyDamageEntryToRoll(entry, rollIndex, rollType, { selectedTypes });
 }
 
 function isFormulaOperatorDamageModifier(value) {
@@ -3262,6 +3245,11 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 				activeDialog.config[Constants.MODULE_ID].advantageMode = activeConfig.advantageMode ?? 0;
 				activeDialog.config[Constants.MODULE_ID].optinSelected = activeConfig.optinSelected ?? {};
 			}
+			if (activeConfig?.hookType === 'damage') {
+				activeDialog.rebuild();
+				activeDialog.render();
+				return;
+			}
 			if (['attack', 'save', 'check'].includes(activeConfig?.hookType)) activeDialog.rebuild();
 			activeDialog.render();
 		}
@@ -3400,8 +3388,8 @@ function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 		.concat(ac5eConfig.opponent?.critical ?? [])
 		.filter((entry) => entry && typeof entry === 'object')
 		.filter((entry) => !entry.optin || selectedIds.has(entry.id));
-	const globalCriticalEntries = allCriticalEntries.filter((entry) => resolveCriticalAddTo(entry).mode !== 'types');
-	const localizedCriticalEntries = allCriticalEntries.filter((entry) => resolveCriticalAddTo(entry).mode === 'types');
+	const globalCriticalEntries = allCriticalEntries.filter((entry) => resolveEntryAddTo(entry, 'global').mode !== 'types');
+	const localizedCriticalEntries = allCriticalEntries.filter((entry) => resolveEntryAddTo(entry, 'global').mode === 'types');
 	const hasGlobalCritical = globalCriticalEntries.length > 0;
 	const wasOptinForced = !!ac5eConfig.optinForcedCritical;
 	const currentCritical = config.isCritical ?? config.midiOptions?.isCritical ?? false;
@@ -3449,8 +3437,10 @@ function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 			const roll = config.rolls[i];
 			if (!roll?.options) continue;
 			const rollType =
-				getRollDamageTypeFromForm(formData, config, i) ?? (Array.isArray(ac5eConfig?.options?.selectedDamageTypes) ? String(ac5eConfig.options.selectedDamageTypes[i] ?? '').toLowerCase() : undefined);
-			const localizedCritical = localizedCriticalEntries.some((entry) => shouldApplyCriticalToRoll(entry, rollType));
+				(typeof roll?.options?.type === 'string' && roll.options.type.trim()) ? String(roll.options.type).toLowerCase()
+				: getRollDamageTypeFromForm(formData, config, i)
+					?? getDamageRollTypeAtIndex(ac5eConfig, undefined, i);
+			const localizedCritical = localizedCriticalEntries.some((entry) => shouldApplyCriticalToRoll(entry, i, rollType, allTypes));
 			const effectiveRollCritical = config.isCritical || localizedCritical;
 			roll.options.isCritical = effectiveRollCritical;
 			rollCriticalByIndex[i] = effectiveRollCritical;
@@ -3505,6 +3495,17 @@ function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollInd
 	let criticalStaticMultiplier = 1;
 	for (const entry of entries) {
 		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		if (ac5e?.debug?.damageExtraDice) {
+			console.warn('AC5E extraDice optin', {
+				label: entry?.label ?? entry?.name,
+				id: entry?.id,
+				requiredDamageTypes: entry?.requiredDamageTypes,
+				addTo: resolveEntryAddTo(entry),
+				rollIndex,
+				rollType,
+				selected: true,
+			});
+		}
 		const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
 		if (criticalStatic && !isCriticalRoll) continue;
 		const values = Array.isArray(entry.values) ? entry.values : [];
@@ -3562,11 +3563,12 @@ function syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rolls) {
 	const preserved = ac5eConfig.preservedInitialData;
 	const baseByRoll = Array.isArray(preserved.baseCriticalBonusDamageByRoll) ? preserved.baseCriticalBonusDamageByRoll : [];
 	const activeByRoll = Array.isArray(preserved.activeCriticalBonusDamageByRoll) ? preserved.activeCriticalBonusDamageByRoll : [];
+	const foldBaseCriticalIntoFormula = Boolean(preserved.activeAdvDis);
 	for (let index = 0; index < rolls.length; index++) {
 		const roll = rolls[index];
 		if (!roll || typeof roll !== 'object') continue;
 		roll.options ??= {};
-		const baseBonus = normalizeCriticalBonusDamageFormula(baseByRoll[index]);
+		const baseBonus = foldBaseCriticalIntoFormula ? '' : normalizeCriticalBonusDamageFormula(baseByRoll[index]);
 		const ac5eBonus = normalizeCriticalBonusDamageFormula(activeByRoll[index]);
 		const combined = [baseBonus, ac5eBonus].filter(Boolean).join(' + ');
 		if (combined) {
@@ -3637,7 +3639,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	const hasDis = modifierValues.includes('dis') || subjectDisadvantage.length || opponentDisadvantage.length;
 	const optinBonusPartsByRoll = formulas.map((_, index) => {
 		if (!optinBonusEntries.length) return [];
-		const rollType = damageTypesByIndex?.[index] ? String(damageTypesByIndex[index]).toLowerCase() : undefined;
+		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 		const selectedParts = [];
 		for (const entry of optinBonusEntries) {
 			if (!shouldApplyBonusToRoll(entry, index, rollType, allTypes)) continue;
@@ -3653,7 +3655,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 	// const isCritical = getConfigAC5E.preAC5eConfig?.wasCritical ?? false;
 	// const extraDiceTotal = (getConfigAC5E.extraDice ?? []).reduce((a, b) => a + b, 0) * (isCritical ? 2 : 1);
 	const extraDiceAdjustments = formulas.map((_, index) => {
-		const rollType = damageTypesByIndex?.[index] ? String(damageTypesByIndex[index]).toLowerCase() : undefined;
+		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 		const isCriticalRoll = isRollCriticalForExtraDice(getConfigAC5E, index);
 		const entries = getDamageEntriesByMode(getConfigAC5E, allTypes, 'extraDice');
 		let baseAdditive = 0;
@@ -3662,7 +3664,19 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		let baseCriticalStaticMultiplier = 1;
 		for (const entry of entries) {
 			if (entry.optin) continue;
-			if (!shouldApplyExtraDiceToRoll(entry, index, rollType)) continue;
+			const appliesToRoll = shouldApplyExtraDiceToRoll(entry, index, rollType);
+			if (ac5e?.debug?.damageExtraDice) {
+				console.warn('AC5E extraDice base', {
+					label: entry?.label ?? entry?.name,
+					id: entry?.id,
+					requiredDamageTypes: entry?.requiredDamageTypes,
+					addTo: resolveEntryAddTo(entry),
+					rollIndex: index,
+					rollType,
+					appliesToRoll,
+				});
+			}
+			if (!appliesToRoll) continue;
 			const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
 			if (criticalStatic && !isCriticalRoll) continue;
 			const values = Array.isArray(entry.values) ? entry.values : [];
@@ -3686,7 +3700,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		};
 	});
 	const diceStepTotals = formulas.map((_, index) => {
-		const rollType = damageTypesByIndex?.[index] ? String(damageTypesByIndex[index]).toLowerCase() : undefined;
+		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 		const entries = [...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceUpgrade'), ...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceDowngrade')];
 		let total = 0;
 		for (const entry of entries) {
@@ -3700,7 +3714,7 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		return total;
 	});
 	const formulaOperatorTokensByRoll = formulas.map((_, index) => {
-		const rollType = damageTypesByIndex?.[index] ? String(damageTypesByIndex[index]).toLowerCase() : undefined;
+		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 		const tokens = [];
 		for (const entry of formulaOperatorEntries) {
 			if (!shouldApplyDamageModifierToRoll(entry, index, rollType, allTypes)) continue;
@@ -3822,7 +3836,12 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 		if (optinBonusParts.length) {
 			formulaWithOptins = typeof formulaWithOptins === 'string' && formulaWithOptins.trim().length ? `${formulaWithOptins} + ${optinBonusParts.join(' + ')}` : optinBonusParts.join(' + ');
 		}
-		const resolvedFormula = resolveDamageFormulaDataReferences(formulaWithOptins, formulaReplacementData);
+		const baseCriticalBonusDamage = normalizeCriticalBonusDamageFormula(getConfigAC5E.preservedInitialData?.baseCriticalBonusDamageByRoll?.[index]);
+		const formulaSource =
+			advDis && baseCriticalBonusDamage ?
+				`${formulaWithOptins} + ${baseCriticalBonusDamage}`
+			:	formulaWithOptins;
+		const resolvedFormula = resolveDamageFormulaDataReferences(formulaSource, formulaReplacementData);
 		const extraDiceAdditive = extraDiceAdjustments[index]?.additive ?? 0;
 		const extraDiceCriticalStaticAdditive = extraDiceAdjustments[index]?.criticalStaticAdditive ?? 0;
 		const extraDiceCriticalStaticMultiplier = extraDiceAdjustments[index]?.criticalStaticMultiplier ?? 1;

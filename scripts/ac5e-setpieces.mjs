@@ -1284,6 +1284,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const raw = match?.[1]?.trim()?.toLowerCase();
 		if (!raw) return undefined;
 		if (raw === 'all') return { mode: 'all', types: [] };
+		if (raw === 'base') return { mode: 'base', types: [] };
+		if (raw === 'global') return { mode: 'global', types: [] };
 		const types = raw
 			.split(/[,|]/)
 			.map((v) => v.trim())
@@ -1953,7 +1955,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			const entryBaseId = `${entry.effectUuid ?? ''}:${entry.changeIndex}:${hook}`;
 			const matchesQueuedUpdate = (queued) => queued?.id === entry.id || (queued?.baseId && queued.baseId === entryBaseId);
 			const pendingForEntry = updateArrays.pendingUses?.filter(matchesQueuedUpdate);
-			const pendingModeFamily = _getPendingUseModeFamily(mode);
+			const pendingModeFamily = _getPendingUseModeFamily(mode, hook);
 			if (pendingForEntry?.length) {
 				ac5eConfig.pendingUses ??= [];
 				for (const pending of pendingForEntry) {
@@ -2245,11 +2247,11 @@ function _looksLikeFormulaExpression(value) {
 	return /[@0-9()+\-*/]/.test(value);
 }
 
-function _getPendingUseModeFamily(mode) {
+function _getPendingUseModeFamily(mode, hook = '') {
 	const normalizedMode = String(mode ?? '')
 		.trim()
 		.toLowerCase();
-	if (['advantage', 'disadvantage', 'noadvantage', 'nodisadvantage'].includes(normalizedMode)) return 'd20';
+	if (['advantage', 'disadvantage', 'noadvantage', 'nodisadvantage'].includes(normalizedMode)) return hook === 'damage' ? 'damage' : 'd20';
 	if (['critical', 'nocritical'].includes(normalizedMode)) return 'damage';
 	return '';
 }

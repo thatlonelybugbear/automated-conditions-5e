@@ -7,6 +7,7 @@
   - Manual dialog choices that differ from AC5E's proposed mode now behave as explicit overrides.
   - `Alt` / `Ctrl` continue to act as additive advantage/disadvantage sources when not used as override combinations.
   - `Shift+Alt` / `Shift+Ctrl` now behave consistently as explicit override keypresses in AC5E-owned flows.
+  - When a user explicitly overrides AC5E's proposed d20 mode, AC5E now skips relevant roll-mode `usesCount` / cadence consumption that would otherwise have been spent on the bypassed mode calculation.
 - Improved tooltip parity across AC5E and MidiQOL branches.
   - Restored MidiQOL roll-dialog attribution for d20 dialog overrides when Midi owns the tooltip pipeline.
   - AC5E fallback check/save/skill tooltips now handle keypress and override attribution more consistently when MidiQOL is enabled but not driving the actual workflow.
@@ -14,12 +15,13 @@
   - Added generic `d20Total`, `d20Result`, and `d20ResultOverTarget` style hydration while keeping legacy aliases for compatibility.
   - Attack/damage target values now derive from persisted target snapshots instead of stale live AC fallbacks when available.
 - Stabilized damage dialog rerender behavior.
-  - Fixed duplicate AC5E opt-in rows during damage dialog rerenders.
-  - Fixed a stale critical bonus damage leak that could make formulas grow repeatedly when changing damage types in the dialog.
+- Hardened damage `addTo` routing across formula-altering damage entries.
+  - Damage-type conditions such as `fire` now correctly control whether an entry is available, while `addTo=...` only controls which damage roll is modified.
+  - Fixed `addTo=base`, typed `addTo=<damageType>`, and combinations such as `fire;addTo=thunder` so opt-in and non-opt-in entries apply to the intended damage part more reliably.
 - Reduced redundant roll-dialog syncing work.
   - Removed unnecessary target/DC DOM syncing and a heavy ability-dialog rerender path, while keeping roll results and AC5E tooltip state aligned through the actual roll/build config flow.
 - Simplified attack dialog refresh behavior.
-  - Attack mode, mastery, and ammunition changes now refresh AC5E attack state in place instead of forcing a full dialog rebuild/render cycle.
+  - Attack mode and ammunition changes now refresh AC5E attack state in place instead of forcing a full dialog rebuild/render cycle.
 - Fixed attack roll-dialog `modifyAC` opt-in tooltips using the wrong base AC during later dialog rebuilds.
   - Attack roll dialogs, chat tooltips, and final target AC adjudication now stay aligned on the same modified AC snapshot.
 

@@ -6,6 +6,39 @@ import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Function adapted from @kgar's Tidy 5e Sheet utility.
+export function simplifyFormula(formula = '', removeFlavor = false, debug = {}) {
+	try {
+		if (removeFlavor) {
+			formula = formula?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP, '')?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP_STRING, '')?.trim();
+		}
+
+		if (formula?.trim() === '') return '';
+
+		const roll = Roll.create(formula);
+		formula = roll.formula;
+		roll.terms.map((t, index) => {
+			if (t.isIntermediate && t.isDeterministic) {
+				const inter = new foundry.dice.terms.NumericTerm({
+					number: t.evaluate({ allowInteractive: false }).total,
+					options: t.options,
+				});
+				const m = String(t.formula).match(/^([\s\S]*?)(\s*(\[[^\]]*\]\s*)*)$/);
+				const trailingTags = (m && m[2]) || '';
+				formula = formula.replace(t.formula, String(inter.number) + trailingTags);
+			} else if (t.number === 0 && index) {
+				const operator = roll.terms[index - 1]?.operator;
+				if (operator) formula = formula.replace(`${operator} ${t.formula}`, '');
+			}
+			return t;
+		});
+		return new Roll(formula).formula;
+	} catch (e) {
+		console.warn('AC5E: Unable to simplify formula display, returning original formula.', { effect: debug?.effectUuid, change: debug?.changeKey }, e);
+		return formula;
+	}
+}
+
 const settings = new Settings();
 const USE_CONFIG_INFLIGHT_TTL_MS = 15000;
 const useConfigInflightCache = new Map();
