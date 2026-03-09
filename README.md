@@ -247,10 +247,6 @@ Snapshot includes:
 - Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips) for distance calculations.
 - Special thanks to [Tim](https://gitlab.com/tposney) for parts of code used, from his [MidiQOL](https://gitlab.com/tposney/midi-qol) module!!
 
-## Contributing
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Wiki can now be edited locally from a tracked `wiki/` folder and published via GitHub Actions.
-
 ## Manual installation
 <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json>
 ### For dnd5e v3.x, use manifest: 
