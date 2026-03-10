@@ -1301,8 +1301,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const getUsesCountTarget = (value) => {
 		const usesRaw = getBlacklistedKeysValue('usescount', value);
-		if (!usesRaw) return undefined;
-		const { target } = _parseUsesCountSpec(usesRaw);
+		if (usesRaw) {
+			const { target } = _parseUsesCountSpec(usesRaw);
+			return _normalizeUsesCountTarget(target)?.toLowerCase() || undefined;
+		}
+		const updateRaw = getBlacklistedKeysValue('update', value);
+		if (!updateRaw) return undefined;
+		const { target } = _parseUpdateSpec(updateRaw);
 		return _normalizeUsesCountTarget(target)?.toLowerCase() || undefined;
 	};
 	const hasCriticalStaticKeyword = (value) => {
@@ -1825,6 +1830,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			else fragments.push(`addTo=${rule.addTo}`);
 		}
 		if (rule?.usesCount !== undefined && rule?.usesCount !== null && String(rule.usesCount).trim() !== '') fragments.push(`usesCount=${rule.usesCount}`);
+		if (rule?.update !== undefined && rule?.update !== null && String(rule.update).trim() !== '') fragments.push(`update=${rule.update}`);
 		if (rule?.itemLimited) fragments.push('itemLimited');
 		if (rule?.description) fragments.push(`description=${rule.description}`);
 		if (rule?.optin) fragments.push('optin');
@@ -2219,6 +2225,14 @@ function _parseUsesCountSpec(rawValue) {
 	};
 }
 
+function _parseUpdateSpec(rawValue) {
+	const [target = '', ...valueParts] = _splitTopLevelCsv(String(rawValue ?? ''));
+	const updateRaw = valueParts.join(',').trim();
+	if (!updateRaw) return { target: target.trim(), op: 'delta', value: '' };
+	if (updateRaw.startsWith('=')) return { target: target.trim(), op: 'set', value: updateRaw.slice(1).trim() };
+	return { target: target.trim(), op: 'delta', value: updateRaw };
+}
+
 function _repairLegacyUsesCountConsume(consume) {
 	if (typeof consume !== 'string') return consume;
 	const trimmed = consume.trim();
@@ -2245,6 +2259,27 @@ function _normalizeUsesCountTarget(target) {
 function _looksLikeFormulaExpression(value) {
 	if (typeof value !== 'string') return false;
 	return /[@0-9()+\-*/]/.test(value);
+}
+
+function _evaluateCounterExpression(rawValue, evalData, debug, fallback = null) {
+	const trimmed = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+	const directNumber = Number(trimmed);
+	if (Number.isFinite(directNumber)) return directNumber;
+	if (!_looksLikeFormulaExpression(String(trimmed ?? ''))) return fallback;
+	let evaluated = evalDiceExpression(String(trimmed ?? ''));
+	if (!isNaN(evaluated)) return evaluated;
+	evaluated = _ac5eSafeEval({ expression: trimmed, sandbox: evalData, mode: 'formula', debug });
+	const evaluatedNumber = Number(evaluated);
+	if (Number.isFinite(evaluatedNumber)) return evaluatedNumber;
+	evaluated = evalDiceExpression(String(evaluated ?? ''));
+	return !isNaN(evaluated) ? evaluated : fallback;
+}
+
+function _applyUpdateOperation(currentValue, amount, mode = 'delta') {
+	if (!Number.isFinite(Number(currentValue)) || !Number.isFinite(Number(amount))) return null;
+	const current = Number(currentValue);
+	const numericAmount = Number(amount);
+	return mode === 'set' ? numericAmount : current + numericAmount;
 }
 
 function _getPendingUseModeFamily(mode, hook = '') {
@@ -2277,12 +2312,13 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		.map((v) => v.trim());
 	const keywordValues = rawValues.map((v) => v.toLowerCase());
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
+	const hasUpdate = getBlacklistedKeysValue('update', change.value);
 	const cadence = _extractCadenceFromValue(change.value);
 	const hasCadence = Boolean(cadence);
 	const isOnce = keywordValues.some((use) => use === 'once');
 	let isOptin = keywordValues.some((use) => use === 'optin');
 	const partialConsume = keywordValues.some((use) => use === 'partialconsume');
-	if (!hasCount && !isOnce && !hasCadence) {
+	if (!hasCount && !hasUpdate && !isOnce && !hasCadence) {
 		return true;
 	}
 	const effectId = effect.uuid ?? effect.id;
@@ -2296,6 +2332,107 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 	} else if (isOnce && isTransfer) {
 		if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 		else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
+	} else if (hasUpdate) {
+		const parsedUpdate = _parseUpdateSpec(hasUpdate);
+		const consumptionTarget = _normalizeUsesCountTarget(parsedUpdate.target);
+		if (!consumptionTarget) return false;
+		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
+		if (lowerConsumptionTarget.includes('flag') || lowerConsumptionTarget.startsWith('item.') || lowerConsumptionTarget === 'origin' || lowerConsumptionTarget.startsWith('origin.')) return false;
+		const consume = _evaluateCounterExpression(parsedUpdate.value, evalData, debug, null);
+		if (!Number.isFinite(Number(consume))) return false;
+		const actor = effect.target;
+		if (!(actor instanceof Actor)) return false;
+		const consumptionActor =
+			lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData.opponentActor
+			: lowerConsumptionTarget.startsWith('auraactor') ? evalData.auraActor
+			: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
+			: actor.getRollData();
+		const uuid = consumptionActor?.uuid ?? actor.uuid;
+		const attr = consumptionTarget.toLowerCase();
+		const customName = _extractCustomNameFromValue(change.value);
+		const applyFinalStandOverride = (finalStandLabel) => {
+			if (!finalStandLabel) return;
+			_registerUsesOverride(updateArrays, id, baseId, {
+				forceOptin: true,
+				forceDescription: true,
+				labelSuffix: finalStandLabel,
+				labelName: customName ?? undefined,
+				preferCustomName: Boolean(customName),
+			});
+			isOptin = true;
+		};
+		const queueActorUpdate = (updates, options) => {
+			const context = options ? { uuid, updates, options } : { uuid, updates };
+			if (isOwner) actorUpdates.push({ name: effect.name, context });
+			else actorUpdatesGM.push({ name: effect.name, context });
+		};
+		_logUsesCount('parsed', {
+			effect: effect?.name,
+			hook,
+			actorType,
+			id,
+			target: consumptionTarget,
+			consume,
+			raw: hasUpdate,
+			kind: 'update',
+			updateMode: parsedUpdate.op,
+		});
+
+		if (attr.includes('death')) {
+			const type = attr.includes('fail') ? 'attributes.death.failure' : 'attributes.death.success';
+			const valueRaw = foundry.utils.getProperty(consumptionActor, `system.${type}`) ?? foundry.utils.getProperty(consumptionActor, type);
+			const value = Number(valueRaw);
+			const newValue = _applyUpdateOperation(value, consume, parsedUpdate.op);
+			if (!Number.isFinite(newValue) || newValue < 0 || newValue > 3) return false;
+			queueActorUpdate({ [`system.${type}`]: newValue });
+		} else if (attr.includes('hpmax')) {
+			const { tempmax, max, value } = consumptionActor?.attributes?.hp ?? {};
+			if (![tempmax, max, value].every((v) => Number.isFinite(Number(v)))) return false;
+			const effectiveMax = Number(max) + Number(tempmax);
+			const newMax = _applyUpdateOperation(effectiveMax, consume, parsedUpdate.op);
+			if (!Number.isFinite(newMax) || newMax < 0) return false;
+			const newTempmax = newMax - Number(max);
+			if ((parsedUpdate.op === 'set' || Number(consume) < 0) && newMax <= 0) applyFinalStandOverride(_buildFinalStandDescription(newMax));
+			const noConcentration = !(newMax >= Number(value) || change.value.toLowerCase().includes('noconc'));
+			queueActorUpdate({ 'system.attributes.hp.tempmax': newTempmax }, { dnd5e: { concentrationCheck: noConcentration } });
+		} else if (attr.includes('hptemp')) {
+			const current = Number(consumptionActor?.attributes?.hp?.temp);
+			const newTemp = _applyUpdateOperation(current, consume, parsedUpdate.op);
+			if (!Number.isFinite(newTemp) || newTemp < 0) return false;
+			const noConcentration = !(newTemp >= current || change.value.toLowerCase().includes('noconc'));
+			queueActorUpdate({ 'system.attributes.hp.temp': newTemp }, { dnd5e: { concentrationCheck: noConcentration } });
+		} else if (attr.includes('hp')) {
+			const current = Number(consumptionActor?.attributes?.hp?.value);
+			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
+			if (!Number.isFinite(newValue)) return false;
+			if ((parsedUpdate.op === 'set' || Number(consume) < 0) && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
+			const noConcentration = !(newValue >= current || change.value.toLowerCase().includes('noconc'));
+			queueActorUpdate({ 'system.attributes.hp.value': newValue }, { dnd5e: { concentrationCheck: noConcentration } });
+		} else if (attr.includes('exhaustion')) {
+			const current = Number(consumptionActor?.attributes?.exhaustion);
+			const max = CONFIG?.DND5E?.conditionTypes?.exhaustion?.levels ?? 6;
+			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
+			if (!Number.isFinite(newValue) || newValue < 0 || newValue > max) return false;
+			if ((parsedUpdate.op === 'set' || Number(consume) > 0) && Number.isFinite(max) && newValue >= max) applyFinalStandOverride(_buildFinalStandDescription(newValue));
+			queueActorUpdate({ 'system.attributes.exhaustion': newValue });
+		} else if (attr.includes('inspiration')) {
+			const current = consumptionActor?.attributes?.inspiration ? 1 : 0;
+			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
+			if (!Number.isFinite(newValue) || newValue < 0 || newValue > 1) return false;
+			queueActorUpdate({ 'system.attributes.inspiration': !!newValue });
+		} else if (attr.includes('abilities.') && attr.endsWith('.value')) {
+			const abilityMatch = attr.match(/(?:^|\.)(?:system\.)?abilities\.([a-z0-9]+)\.value$/);
+			const abilityId = abilityMatch?.[1];
+			if (!abilityId) return false;
+			const valueRaw = foundry.utils.getProperty(consumptionActor, `abilities.${abilityId}.value`) ?? foundry.utils.getProperty(consumptionActor, `system.abilities.${abilityId}.value`);
+			const value = Number(valueRaw);
+			const newValue = _applyUpdateOperation(value, consume, parsedUpdate.op);
+			if (!Number.isFinite(newValue) || newValue < 0) return false;
+			if ((parsedUpdate.op === 'set' || Number(consume) < 0) && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
+			queueActorUpdate({ [`system.abilities.${abilityId}.value`]: newValue });
+		} else {
+			return false;
+		}
 	} else if (hasCount) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);

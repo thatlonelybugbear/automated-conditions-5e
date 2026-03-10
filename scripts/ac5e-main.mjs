@@ -282,6 +282,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 	const chance = definition.chance;
 	const addTo = definition.addTo;
 	const usesCount = definition.usesCount;
+	const update = definition.update;
 	const itemLimited = Boolean(definition.itemLimited);
 	const value = definition.value;
 	const bonus = definition.bonus ?? value;
@@ -309,6 +310,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 		chance,
 		addTo,
 		usesCount,
+		update,
 		itemLimited,
 		bonus,
 		set: definition.set,
@@ -349,6 +351,7 @@ function _buildUsageRulesState() {
 			chance: entry.chance,
 			addTo: entry.addTo,
 			usesCount: entry.usesCount,
+			update: entry.update,
 			itemLimited: entry.itemLimited,
 			bonus: entry.bonus,
 			set: entry.set,
@@ -470,6 +473,7 @@ function listUsageRules() {
 			chance: entry.chance,
 			addTo: entry.addTo,
 			usesCount: entry.usesCount,
+			update: entry.update,
 			itemLimited: entry.itemLimited,
 			bonus: entry.bonus,
 			set: entry.set,
@@ -506,6 +510,7 @@ function showUsageRuleKeys() {
 		chance: 'String|Number: optional chance gate evaluated before applying the rule.',
 		addTo: 'String|String[]: optional addTo target list for compatible modes.',
 		usesCount: 'String: uses/counter consumption instruction, for example "death.fail,(isCritical ? 2 : 1)".',
+		update: 'String: allowlisted actor update instruction. Delta is the default, and "=" sets an absolute value. Example: "opponentActor.hp,-5" or "rollingActor.hp,=1".',
 		itemLimited: 'Boolean: restricts matching to item-originated contexts where applicable.',
 		bonus: 'String|Number: bonus payload for bonus or extraDice-style rules. Alias: value.',
 		set: 'String|Number: set payload used by modes that replace a resolved value.',
@@ -1410,6 +1415,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 		'short',
 		'singleaura',
 		'threshold',
+		'update',
 		'usescount',
 		'wallsblock',
 	]);
@@ -1719,6 +1725,23 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 					changeIndex,
 					keyword: 'usesCount',
 					value: usesCountValue,
+				});
+			}
+
+			const updateValue = _extractFlagKeywordValue(rawValue, 'update');
+			if (updateValue != null && !updateValue.trim()) {
+				pushFinding({
+					severity: 'warn',
+					code: 'invalidUpdate',
+					message: 'update keyword has an empty value',
+					sourceType: source.sourceType,
+					actor,
+					item,
+					effect,
+					change,
+					changeIndex,
+					keyword: 'update',
+					value: updateValue,
 				});
 			}
 
