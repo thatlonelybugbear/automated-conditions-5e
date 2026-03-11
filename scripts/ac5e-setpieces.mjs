@@ -34,6 +34,18 @@ const statusEffectsOverrideState = {
 };
 const CADENCE_FLAG_KEY = 'cadence';
 
+function _preserveStandaloneSignedDiceFormula(expression) {
+	if (typeof expression !== 'string') return null;
+	const trimmed = expression.trim();
+	if (!/^[+-]/.test(trimmed)) return null;
+	if (/[()@]/.test(trimmed)) return null;
+	const unsigned = trimmed.slice(1).trim();
+	if (!unsigned) return null;
+	const signedDicePattern =
+		/^(?:(?:\d*)d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
+	return signedDicePattern.test(unsigned) ? `${trimmed[0]}${unsigned}` : null;
+}
+
 function _normalizeCadenceKey(value) {
 	if (value == null) return null;
 	const token = String(value).trim().toLowerCase();
@@ -3242,7 +3254,15 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		:	false;
 	if (isBonus) {
 		const replacementBonus = bonusReplacements(isBonus, evaluationData, isAura, effect);
-		bonus = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
+		const preservedSignedDiceBonus = _preserveStandaloneSignedDiceFormula(replacementBonus);
+		bonus =
+			preservedSignedDiceBonus ??
+			_ac5eSafeEval({
+				expression: replacementBonus,
+				sandbox: evaluationData,
+				mode: 'formula',
+				debug,
+			});
 	}
 	const isSet =
 		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
