@@ -90,17 +90,39 @@ function _getMessageConfigOriginatingMessageId(messageConfig) {
 	return messageConfig?.data?.['flags.dnd5e.originatingMessage'] ?? messageConfig?.data?.flags?.dnd5e?.originatingMessage;
 }
 
+function _buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
+	const hookType = String(ac5eConfig?.hookType ?? '').trim();
+	if (!hookType) return null;
+	const payload = {
+		hookType,
+		chatTooltip: typeof chatTooltip === 'string' ? chatTooltip : String(ac5eConfig?.chatTooltip ?? '').trim(),
+	};
+	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
+	return payload;
+}
+
 function _postBuildRollConfig(processConfig, config, index, options, hook) {
 	if (!_activeModule('midi-qol')) return true;
 	if (!processConfig || !config || typeof config !== 'object') return true;
+	const processRollOptions = processConfig?.rolls?.[index]?.options ?? processConfig?.rolls?.[0]?.options;
+	if (!processRollOptions || typeof processRollOptions !== 'object') return true;
 	const ac5eConfig =
+		processConfig?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
 		processConfig?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
 		processConfig?.options?.[Constants.MODULE_ID] ??
 		processConfig?.[Constants.MODULE_ID];
+	const sourceAc5eConfig =
+		config?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
+		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
+		config?.options?.[Constants.MODULE_ID] ??
+		config?.[Constants.MODULE_ID];
+	if (sourceAc5eConfig?.hookType === 'damage') {
+		if (sourceAc5eConfig?.tooltipObj && typeof sourceAc5eConfig.tooltipObj === 'object') delete sourceAc5eConfig.tooltipObj.damage;
+		processRollOptions[Constants.MODULE_ID] ??= {};
+		processRollOptions[Constants.MODULE_ID].chatTooltip = _getTooltip(sourceAc5eConfig);
+	}
 	if (ac5eConfig?.hookType !== 'check' || !ac5eConfig?.options?.skill) return true;
 	if (!ac5eConfig?.preAC5eConfig?.forceChatTooltip) return true;
-	const processRollOptions = processConfig?.rolls?.[index]?.options ?? processConfig?.rolls?.[0]?.options;
-	if (!processRollOptions || typeof processRollOptions !== 'object') return true;
 	const explicitOverride = ac5eConfig?.explicitModeOverride;
 	const ac5eMode =
 		explicitOverride?.family === 'd20' ? (
@@ -1179,6 +1201,17 @@ function enforceDefaultButtonFocus(root, button, { attempts = 10, delay = 60 } =
 	tick();
 }
 
+function _syncChatTooltipToRollConfigs(ac5eConfig, rollConfig) {
+	if (!ac5eConfig || !rollConfig?.rolls?.length) return;
+	const tooltip = _getTooltip(ac5eConfig);
+	ac5eConfig.chatTooltip = tooltip;
+	for (const roll of rollConfig.rolls) {
+		if (!roll?.options) continue;
+		roll.options[Constants.MODULE_ID] ??= {};
+		roll.options[Constants.MODULE_ID].chatTooltip = tooltip;
+	}
+}
+
 export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 	if (ac5e.buildDebug || _hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
 	if (!rollConfig) return true;
@@ -1206,6 +1239,7 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 				roll.options[Constants.MODULE_ID].optinSelected = ac5eConfig.optinSelected;
 			}
 		}
+		_syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 	} else if (ac5eConfig.hookType && ['attack', 'save', 'check'].includes(ac5eConfig.hookType)) {
 		if (index !== 0) return true;
 		const preRestoreParts = _getD20ActivePartsSnapshot(rollConfig);
@@ -1281,6 +1315,7 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 			ac5eConfig._lastAppliedD20OptinParts = [];
 		}
 		_appendPartsToD20Config(rollConfig, preservedExternalParts);
+		_syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 	}
 	return true;
 }
@@ -1291,9 +1326,13 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 	if (!Array.isArray(config?.rolls) && Array.isArray(rolls)) {
 		config.rolls = rolls;
 	}
-	if (Array.isArray(rolls) && Array.isArray(config?.rolls) && rolls[0]?.options?.[Constants.MODULE_ID]) {
-		const configRoll0Options = getExistingRollOptions(config, 0);
-		if (configRoll0Options) configRoll0Options[Constants.MODULE_ID] = rolls[0].options[Constants.MODULE_ID];
+	if (Array.isArray(rolls) && Array.isArray(config?.rolls)) {
+		for (let index = 0; index < rolls.length; index++) {
+			const rollOptions = rolls[index]?.options?.[Constants.MODULE_ID];
+			if (!rollOptions) continue;
+			const configRollOptions = getExistingRollOptions(config, index);
+			if (configRollOptions) configRollOptions[Constants.MODULE_ID] = rollOptions;
+		}
 	}
 
 	const options = config.options ?? {};
@@ -1329,6 +1368,26 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 		}
 		_getTooltip(ac5eConfig);
 		if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType }, { merge: true });
+	}
+	if (message && Array.isArray(rolls)) {
+		for (const roll of rolls) {
+			if (!roll?.options || typeof roll.options !== 'object') continue;
+			const rollAc5eConfig = roll.options?.[Constants.MODULE_ID];
+			if (!rollAc5eConfig || typeof rollAc5eConfig !== 'object') continue;
+			const payload = _buildChatRollPayload(rollAc5eConfig, {
+				chatTooltip:
+					typeof rollAc5eConfig?.chatTooltip === 'string' && rollAc5eConfig.chatTooltip.trim() ?
+						rollAc5eConfig.chatTooltip
+					: rollAc5eConfig?.hookType && ac5eConfig?.tooltipObj?.[rollAc5eConfig.hookType] ?
+						ac5eConfig.tooltipObj[rollAc5eConfig.hookType]
+					: typeof rollAc5eConfig?.hookType === 'string' && rollAc5eConfig.hookType && rollAc5eConfig !== ac5eConfig ?
+						_getTooltip(rollAc5eConfig)
+					: typeof ac5eConfig?.hookType === 'string' && ac5eConfig?.hookType === rollAc5eConfig?.hookType ?
+						_getTooltip(ac5eConfig)
+					: '',
+			});
+			if (payload) roll.options[Constants.MODULE_ID] = payload;
+		}
 	}
 	if (_activeModule('midi-qol') && ['attack', 'check', 'save'].includes(ac5eConfig?.hookType) && Array.isArray(rolls) && rolls[0]?.options) {
 		const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
@@ -1961,10 +2020,13 @@ export function _renderHijack(hook, render, elem) {
 	} else if (hook === 'chat' && hookType !== 'use') {
 		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
 		const messageFlags = render?.flags?.[Constants.MODULE_ID];
+		const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
+		const resolvedHookType = hookType ?? messageFlags?.hookType;
+		const resolvedRoller = roller ?? messageFlags?.roller;
 		if (!game.user.isGM) {
 			if (settings.showChatTooltips === 'none') return true;
-			else if (settings.showChatTooltips === 'players' && !getConfigAC5E?.hasPlayerOwner) return true;
-			else if (settings.showChatTooltips === 'owned' && getConfigAC5E?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
+			else if (settings.showChatTooltips === 'players' && !visibilityContext?.hasPlayerOwner) return true;
+			else if (settings.showChatTooltips === 'owned' && visibilityContext?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
 		}
 		if (_activeModule('midi-qol')) {
 			if (render?.rolls?.length > 1) {
@@ -1976,9 +2038,9 @@ export function _renderHijack(hook, render, elem) {
 				const hT = ac5eElement?.hookType;
 				if (!hT) continue;
 				// When MidiQOL is active, prefer Midi's native tooltip pipeline for roll modes.
-				const { forceAc5eD20Tooltip } = _getD20TooltipOwnership(ac5eElement);
+				const forceAc5eD20Tooltip = !!ac5eElement?.forceAc5eD20Tooltip || _getD20TooltipOwnership(ac5eElement).forceAc5eD20Tooltip;
 				if (['attack', 'check', 'save'].includes(hT) && !forceAc5eD20Tooltip) continue;
-				tooltip = (messageFlags?.hookType === ac5eElement?.hookType && messageFlags?.tooltipObj?.[messageFlags.hookType]) || _getTooltip(ac5eElement);
+				tooltip = ac5eElement?.chatTooltip || messageFlags?.tooltipObj?.[hT] || '';
 				if (tooltip === '') continue;
 				let thisTargetElement;
 				if (['check', 'save'].includes(hT) && forceAc5eD20Tooltip) {
@@ -1999,20 +2061,20 @@ export function _renderHijack(hook, render, elem) {
 			}
 			return true;
 		} else {
-			tooltip = messageFlags?.tooltipObj?.[messageFlags.hookType] || _getTooltip(getConfigAC5E);
-			if (roller === 'Core') {
+			tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[messageFlags.hookType] || '';
+			if (resolvedRoller === 'Core') {
 				if (tooltip === '') return true;
-				if (['attack', 'damage'].includes(hookType)) {
+				if (['attack', 'damage'].includes(resolvedHookType)) {
 					targetElement = elem.querySelector('.dice-formula');
 				} else {
 					targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
 				}
-			} else if (roller === 'RSR') {
+			} else if (resolvedRoller === 'RSR') {
 				//to-do: Rework this to use the new RSR system
-				if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
-				else if (['attack'].includes(hookType)) {
+				if (['check', 'save'].includes(resolvedHookType)) targetElement = elem.querySelector(`.flavor-text`);
+				else if (['attack'].includes(resolvedHookType)) {
 					targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
-				} else if (['damage'].includes(hookType)) {
+				} else if (['damage'].includes(resolvedHookType)) {
 					targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
 				}
 			}
@@ -3382,6 +3444,7 @@ function setOptinSelections(ac5eConfig, nextSelections) {
 
 function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	if (!ac5eConfig || !config) return;
+	ac5eConfig.preAC5eConfig ??= {};
 	const optionBaseCritical = config?.options?.[Constants.MODULE_ID]?.baseCritical ?? config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.baseCritical;
 	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
 	const allCriticalEntries = (ac5eConfig.subject?.critical ?? [])

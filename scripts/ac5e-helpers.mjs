@@ -792,8 +792,23 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
 
+function _getSelectedOptinIds(optinSelected = {}) {
+	const selected = new Set();
+	const visit = (value, key) => {
+		if (!value || typeof value !== 'object') {
+			if (value && key) selected.add(key);
+			return;
+		}
+		for (const [nestedKey, nestedValue] of Object.entries(value)) {
+			visit(nestedValue, nestedKey);
+		}
+	};
+	visit(optinSelected, '');
+	return selected;
+}
+
 export function _filterOptinEntries(entries = [], optinSelected = {}) {
-	const selected = new Set(Object.keys(optinSelected ?? {}).filter((key) => optinSelected[key]));
+	const selected = _getSelectedOptinIds(optinSelected);
 	return (entries ?? []).filter((entry) => {
 		if (!entry || typeof entry !== 'object') return true;
 		if (!entry.optin) return true;
@@ -3462,8 +3477,11 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 		[Constants.MODULE_ID]: {
 			tooltipObj: ac5eConfig.tooltipObj,
 			hookType: ac5eConfig.hookType,
+			roller: ac5eConfig.roller,
 			tokenId: ac5eConfig.tokenId,
 			targetId: ac5eConfig.targetId,
+			hasPlayerOwner: ac5eConfig.hasPlayerOwner,
+			ownership: ac5eConfig.ownership,
 			optionsSnapshot,
 		},
 	};
@@ -3669,6 +3687,15 @@ function _categorizeChangedOptionKeys(changedKeys = []) {
 function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval) {
 	const areKeysPressed = game.system.utils.areKeysPressed;
 	const event = config?.event;
+	const getPersistedHookConfig = (source, desiredHookType) => {
+		if (!source || typeof source !== 'object') return undefined;
+		const direct =
+			source?.options?.[Constants.MODULE_ID] ??
+			source?.[Constants.MODULE_ID];
+		if (direct?.hookType === desiredHookType || !desiredHookType) return direct;
+		const rollConfigs = Array.isArray(source?.rolls) ? source.rolls.map((roll) => roll?.options?.[Constants.MODULE_ID]).filter(Boolean) : [];
+		return rollConfigs.find((entry) => entry?.hookType === desiredHookType) ?? rollConfigs[0];
+	};
 	const isPressed = (name) => {
 		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
 		if (viaSystem) return true;
@@ -3686,12 +3713,8 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	const token = canvas.tokens.get(tokenId);
 	const actor = token?.actor;
 	const persistedAc5eConfig =
-		config?.options?.[Constants.MODULE_ID] ??
-		config?.[Constants.MODULE_ID] ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
-		dialog?.config?.options?.[Constants.MODULE_ID] ??
-		dialog?.config?.[Constants.MODULE_ID] ??
-		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
+		getPersistedHookConfig(config, hookType) ??
+		getPersistedHookConfig(dialog?.config, hookType);
 	const ac5eConfig = {
 		hookType,
 		tokenId,
@@ -3787,19 +3810,11 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	ac5eConfig.preAC5eConfig.skipDialogDisadvantage = isPressed('skipDialogDisadvantage');
 	ac5eConfig.preAC5eConfig.skipDialogNormal = isPressed('skipDialogNormal');
 	const persistedOptins =
-		config?.options?.[Constants.MODULE_ID]?.optinSelected ??
-		config?.[Constants.MODULE_ID]?.optinSelected ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.optinSelected ??
-		dialog?.config?.options?.[Constants.MODULE_ID]?.optinSelected ??
-		dialog?.config?.[Constants.MODULE_ID]?.optinSelected ??
-		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.optinSelected;
+		getPersistedHookConfig(config, hookType)?.optinSelected ??
+		getPersistedHookConfig(dialog?.config, hookType)?.optinSelected;
 	const persistedChanceRolls =
-		config?.options?.[Constants.MODULE_ID]?.chanceRolls ??
-		config?.[Constants.MODULE_ID]?.chanceRolls ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.chanceRolls ??
-		dialog?.config?.options?.[Constants.MODULE_ID]?.chanceRolls ??
-		dialog?.config?.[Constants.MODULE_ID]?.chanceRolls ??
-		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.chanceRolls;
+		getPersistedHookConfig(config, hookType)?.chanceRolls ??
+		getPersistedHookConfig(dialog?.config, hookType)?.chanceRolls;
 	const parseOptinsFromFormObject = (formObject = {}) => {
 		if (!formObject || typeof formObject !== 'object') return {};
 		const parsed = {};
