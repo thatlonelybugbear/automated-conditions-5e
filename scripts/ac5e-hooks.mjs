@@ -3570,11 +3570,10 @@ function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollInd
 			});
 		}
 		const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
-		if (criticalStatic && !isCriticalRoll) continue;
 		const values = Array.isArray(entry.values) ? entry.values : [];
 		for (const value of values) {
 			const parsed = _parseExtraDiceValue(value);
-			if (criticalStatic) {
+			if (criticalStatic && isCriticalRoll) {
 				criticalStaticAdditive += parsed.additive;
 				criticalStaticMultiplier *= parsed.multiplier;
 				continue;
@@ -3741,11 +3740,10 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			}
 			if (!appliesToRoll) continue;
 			const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
-			if (criticalStatic && !isCriticalRoll) continue;
 			const values = Array.isArray(entry.values) ? entry.values : [];
 			for (const value of values) {
 				const parsed = _parseExtraDiceValue(value);
-				if (criticalStatic) {
+				if (criticalStatic && isCriticalRoll) {
 					baseCriticalStaticAdditive += parsed.additive;
 					baseCriticalStaticMultiplier *= parsed.multiplier;
 					continue;

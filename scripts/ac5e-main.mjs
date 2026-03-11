@@ -505,7 +505,7 @@ function showUsageRuleKeys() {
 		evaluate: 'Function: runtime-only predicate callback that receives the sandbox and rule context. Not persisted.',
 		priority: 'Number: ordering hint when multiple rules of the same type are collected.',
 		optin: 'Boolean: exposes the rule as an optional opt-in entry in supported roll dialogs.',
-		criticalStatic: 'Boolean: for extraDice rules, marks the bonus as crit-only static extra dice logic.',
+		criticalStatic: 'Boolean: for extraDice rules, applies the bonus normally but prevents it from being doubled on critical hits.',
 		partialConsume: 'Boolean: for usesCount rules, allows bounded counters to consume only the remaining available amount instead of failing when the full requested amount is not available.',
 		cadence: 'String: once-per cadence. Supported values: "oncePerTurn", "oncePerRound", and "oncePerCombat".',
 		chance: 'String|Number: optional chance gate evaluated before applying the rule.',
