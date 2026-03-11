@@ -1790,7 +1790,18 @@ export function _autoRanged(activity, token, target, options) {
 		if (modernRules && short >= 2 * distanceUnit) short += 12 * distanceUnit;
 		else short *= 2;
 	}
-	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) return { inRange: distance <= reach };
+	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) {
+		return {
+			nearbyFoe: false,
+			inRange: distance <= reach,
+			range: 'normal',
+			longDisadvantage: false,
+			outOfRangeFail: true,
+			outOfRangeFailSourceLabel: 'meleeOoR',
+			outOfRangeFailSourceMode: 'meleeOoR',
+			distance,
+		};
+	}
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
@@ -3554,6 +3565,13 @@ export function _getSafeUseConfig(ac5eConfig) {
 		isFumble: ac5eConfig?.isFumble ?? false,
 		options,
 		optionsSnapshot,
+		subject: {
+			fail: foundry.utils.duplicate(ac5eConfig?.subject?.fail ?? []),
+			rangeNotes: foundry.utils.duplicate(ac5eConfig?.subject?.rangeNotes ?? []),
+		},
+		opponent: {
+			fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []),
+		},
 		bonuses: {
 			subject: sanitizeBonuses(ac5eConfig?.subject?.bonus),
 			opponent: sanitizeBonuses(ac5eConfig?.opponent?.bonus),
@@ -3715,6 +3733,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	const persistedAc5eConfig =
 		getPersistedHookConfig(config, hookType) ??
 		getPersistedHookConfig(dialog?.config, hookType);
+	const originatingUseConfig = options?.originatingUseConfig;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
@@ -3789,6 +3808,9 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		},
 		returnEarly: false,
 	};
+	if (Array.isArray(originatingUseConfig?.subject?.fail)) ac5eConfig.subject.fail.push(...foundry.utils.duplicate(originatingUseConfig.subject.fail));
+	if (Array.isArray(originatingUseConfig?.subject?.rangeNotes)) ac5eConfig.subject.rangeNotes.push(...foundry.utils.duplicate(originatingUseConfig.subject.rangeNotes));
+	if (Array.isArray(originatingUseConfig?.opponent?.fail)) ac5eConfig.opponent.fail.push(...foundry.utils.duplicate(originatingUseConfig.opponent.fail));
 	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
 	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') {
 		ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);

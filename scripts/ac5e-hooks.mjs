@@ -1116,6 +1116,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	let targets = game.user?.targets;
 	let singleTargetToken = isTargetSelf ? sourceToken : targets?.first();
 	const needsTarget = settings.needsTarget;
+	const placesTemplate = !!activity?.target?.template?.type;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
 	if (invalidTargets) {
@@ -1125,6 +1126,19 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
+	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type === 'attack';
+	if (shouldCheckPreUseRange) {
+		ac5eConfig.subject.rangeNotes = [];
+		const failLabel = _localize('AC5E.OutOfRange');
+		const { inRange, outOfRangeFail, outOfRangeFailSourceLabel } = _autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
+		if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
+			ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
+		}
+		if (outOfRangeFail && !usageConfig?.workflow?.AoO && !inRange && !ac5eConfig.subject.fail.includes(failLabel)) {
+			ac5eConfig.subject.fail.push(failLabel);
+		}
+	}
 	const subjectFail = _filterOptinEntries(ac5eConfig?.subject?.fail ?? [], ac5eConfig?.optinSelected);
 	const opponentFail = _filterOptinEntries(ac5eConfig?.opponent?.fail ?? [], ac5eConfig?.optinSelected);
 	const failEntries = [...subjectFail, ...opponentFail];
@@ -1786,16 +1800,17 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		outOfRangeFailSourceLabel;
 	if (singleTargetToken) {
 		ac5eConfig.subject.rangeNotes = [];
+		const failLabel = _localize('AC5E.OutOfRange');
 		({ nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = _autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig }));
 		//Nearby Foe
 		if (nearbyFoe) {
 			ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
 		}
 		if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
-			ac5eConfig.subject.rangeNotes.push(`${_localize('AC5E.OutOfRange')} fail suppressed: ${outOfRangeFailSourceLabel}`);
+			ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 		}
-		if (outOfRangeFail && !config.workflow?.AoO && !inRange) {
-			ac5eConfig.subject.fail.push(_localize('AC5E.OutOfRange'));
+		if (outOfRangeFail && !config.workflow?.AoO && !inRange && !ac5eConfig.subject.fail.includes(failLabel)) {
+			ac5eConfig.subject.fail.push(failLabel);
 		}
 		if (range === 'long' && longDisadvantage) {
 			ac5eConfig.subject.disadvantage.push(_localize('RangeLong'));
