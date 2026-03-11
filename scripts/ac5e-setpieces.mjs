@@ -1131,6 +1131,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'short',
 		'singleaura',
 		'threshold',
+		'update',
 		'usescount',
 		'wallsblock',
 	]);
@@ -2915,7 +2916,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 }
 
 export function _applyPendingUses(pendingUses = []) {
-	if (!pendingUses?.length) return;
+	if (!pendingUses?.length) return Promise.resolve();
 	const validActivityUpdates = [];
 	const validActivityUpdatesGM = [];
 	const validActorUpdates = [];
@@ -2967,7 +2968,7 @@ export function _applyPendingUses(pendingUses = []) {
 	}
 	_recordCadencePendingUses(pendingUses).catch((err) => console.warn('AC5E cadence tracking failed', err));
 
-	ac5eQueue
+	const queuePromise = ac5eQueue
 		.add(async () => {
 			try {
 				const allPromises = [];
@@ -3029,6 +3030,7 @@ export function _applyPendingUses(pendingUses = []) {
 
 	const uniqueEffectDeletionsGM = Array.from(new Set(validEffectDeletionsGM.filter((uuid) => typeof uuid === 'string' && uuid.length)));
 	_doQueries({ validActivityUpdatesGM, validActorUpdatesGM, validEffectDeletionsGM: uniqueEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM });
+	return queuePromise;
 }
 
 function _asFiniteNumber(value) {

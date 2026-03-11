@@ -1656,7 +1656,15 @@ function applyExplicitModeOverride(ac5eConfig, config) {
 export async function _postUseActivity(activity, usageConfig, results, hook) {
 	const message = results?.message;
 	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
-	if (!message || !ac5eConfig) return true;
+	if (!ac5eConfig) return true;
+	if ((hook === 'use' || hook === 'postUse') && ac5eConfig?.pendingUses?.length && !ac5eConfig.pendingUsesApplied) {
+		const optins = ac5eConfig.optinSelected ?? {};
+		const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
+		const pending = ac5eConfig.pendingUses.filter((entry) => !entry.optin || selectedIds.has(entry.id));
+		if (pending.length) await _applyPendingUses(pending);
+		ac5eConfig.pendingUsesApplied = true;
+	}
+	if (!message) return true;
 
 	const dnd5eUseFlag = _getMessageDnd5eFlags(message);
 	if (dnd5eUseFlag) {
@@ -3162,12 +3170,14 @@ function getSelectedOptinEntries(ac5eConfig, optins, selectedTypes, hookType) {
 function getAllOptinEntriesForHook(ac5eConfig, hookType) {
 	const subjectBonuses = Array.isArray(ac5eConfig?.subject?.bonus) ? ac5eConfig.subject.bonus : [];
 	const opponentBonuses = Array.isArray(ac5eConfig?.opponent?.bonus) ? ac5eConfig.opponent.bonus : [];
+	const subjectInfo = Array.isArray(ac5eConfig?.subject?.info) ? ac5eConfig.subject.info : [];
+	const opponentInfo = Array.isArray(ac5eConfig?.opponent?.info) ? ac5eConfig.opponent.info : [];
 	const subjectTargetADC = Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : [];
 	const opponentTargetADC = Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : [];
 	const subjectRange = Array.isArray(ac5eConfig?.subject?.range) ? ac5eConfig.subject.range : [];
 	const opponentRange = Array.isArray(ac5eConfig?.opponent?.range) ? ac5eConfig.opponent.range : [];
 	return subjectBonuses
-		.concat(opponentBonuses, subjectTargetADC, opponentTargetADC, subjectRange, opponentRange)
+		.concat(opponentBonuses, subjectInfo, opponentInfo, subjectTargetADC, opponentTargetADC, subjectRange, opponentRange)
 		.filter((entry) => entry && typeof entry === 'object' && entry.optin && (!entry.hook || entry.hook === hookType));
 }
 

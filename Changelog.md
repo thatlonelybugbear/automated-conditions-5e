@@ -3,6 +3,11 @@
 - Reworked AC5E default distance calculation to use cached perimeter lookups while preserving the legacy path as a fallback.
   - The default AC5E distance helper now reuses cached token perimeter points instead of rebuilding them on every check.
   - Legacy distance calculation remains available internally and is still used when deferring to MidiQOL distance handling.
+- Followed up `info` / `update` workflow integration.
+  - Added `info` mode exposure to DAE-generated AC5E flag lists.
+  - Added tooltip and Midi attribution support so `info` entries surface as reasons without affecting formulas.
+  - Persisted queued `update=...` side effects through use workflows so `use.info` style entries resolve after successful activity use.
+  - Added post-use application fixes so queued actor updates survive pre-use setup, no-message use flows, and opt-in selection filtering.
 
 ## 13.5250.10
 

@@ -418,5 +418,7 @@
 	"AC5E.Flags": "flags",
 	"AC5E.FlagsInitiativeAdv": "System advantage on Initiative",
 	"AC5E.TargetGrantsModifier": "Granted modifier",
-	"AC5E.TargetGrantsExtraDice": "Granted extra dice"
+	"AC5E.TargetGrantsExtraDice": "Granted extra dice",
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}"
 }

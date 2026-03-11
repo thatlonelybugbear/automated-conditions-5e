@@ -2475,6 +2475,9 @@ export function _getTooltip(ac5eConfig = {}) {
 		const opponentExtraDiceLabels = mapEntryLabels(filterOptinEntries(opponent.extraDice));
 		addTooltip(opponentExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponentExtraDiceLabels.join(', ')}</span>`);
 	}
+	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
+	const infoLabels = [...new Set(mapEntryLabels(infoEntries))];
+	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Info')}: ${infoLabels.join(', ')}</span>`);
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
 		const combinedEntries = filterOptinEntries([...(subject?.criticalThreshold ?? []), ...(opponent?.criticalThreshold ?? [])]);
@@ -2812,6 +2815,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
 	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
 	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
+	const infoLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.info ?? [])).concat(labelsFromEntries(filterOptin(opponent?.info ?? []))));
 	const addEntries = (type, labels = []) => {
 		dropConfigButtonsAttribution(type, labels);
 		const keypressLabels = keypressLabelsByType[type];
@@ -2843,6 +2847,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('CRIT', criticalLabels);
 	addEntries('NOCRIT', noCriticalLabels);
+	addCustomAttributionEntries(_localize('AC5E.Info'), infoLabels);
 	const hasAc5eAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
 		if (!typed || typeof typed !== 'object') return false;
@@ -3209,6 +3214,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
 	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+	const infoLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.info ?? [])).concat(labelsFromEntries(filterOptin(opponent?.info ?? []))));
 	const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 	const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
 	const addEntries = (type, labels = []) => {
@@ -3251,6 +3257,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('FAIL', failLabels);
 	addEntries('SUCCESS', successLabels);
+	addCustomAttributionEntries(_localize('AC5E.Info'), infoLabels, { combineLabelList: true });
 	const hasAc5eAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
 		if (!typed || typeof typed !== 'object') return false;
@@ -3804,10 +3811,12 @@ export function _getSafeUseConfig(ac5eConfig) {
 		optionsSnapshot,
 		subject: {
 			fail: foundry.utils.duplicate(ac5eConfig?.subject?.fail ?? []),
+			info: foundry.utils.duplicate(ac5eConfig?.subject?.info ?? []),
 			rangeNotes: foundry.utils.duplicate(ac5eConfig?.subject?.rangeNotes ?? []),
 		},
 		opponent: {
 			fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []),
+			info: foundry.utils.duplicate(ac5eConfig?.opponent?.info ?? []),
 		},
 		bonuses: {
 			subject: sanitizeBonuses(ac5eConfig?.subject?.bonus),
@@ -3818,6 +3827,8 @@ export function _getSafeUseConfig(ac5eConfig) {
 		extraDice: foundry.utils.duplicate(ac5eConfig?.extraDice ?? []),
 		threshold: foundry.utils.duplicate(ac5eConfig?.threshold ?? []),
 		fumbleThreshold: foundry.utils.duplicate(ac5eConfig?.fumbleThreshold ?? []),
+		pendingUses: foundry.utils.duplicate(ac5eConfig?.pendingUses ?? []),
+		pendingUsesApplied: !!ac5eConfig?.pendingUsesApplied,
 		preAC5eConfig: {
 			adv: ac5eConfig?.preAC5eConfig?.adv ?? null,
 			dis: ac5eConfig?.preAC5eConfig?.dis ?? null,
@@ -3989,6 +4000,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			midiDisadvantage: [],
 			noDisadvantage: [],
 			fail: [],
+			info: [],
 			midiFail: [],
 			bonus: [],
 			critical: [],
@@ -4015,6 +4027,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			disadvantageNames: new Set(),
 			noDisadvantage: [],
 			fail: [],
+			info: [],
 			bonus: [],
 			critical: [],
 			noCritical: [],
@@ -4046,8 +4059,10 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		returnEarly: false,
 	};
 	if (Array.isArray(originatingUseConfig?.subject?.fail)) ac5eConfig.subject.fail.push(...foundry.utils.duplicate(originatingUseConfig.subject.fail));
+	if (Array.isArray(originatingUseConfig?.subject?.info)) ac5eConfig.subject.info.push(...foundry.utils.duplicate(originatingUseConfig.subject.info));
 	if (Array.isArray(originatingUseConfig?.subject?.rangeNotes)) ac5eConfig.subject.rangeNotes.push(...foundry.utils.duplicate(originatingUseConfig.subject.rangeNotes));
 	if (Array.isArray(originatingUseConfig?.opponent?.fail)) ac5eConfig.opponent.fail.push(...foundry.utils.duplicate(originatingUseConfig.opponent.fail));
+	if (Array.isArray(originatingUseConfig?.opponent?.info)) ac5eConfig.opponent.info.push(...foundry.utils.duplicate(originatingUseConfig.opponent.info));
 	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
 	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') {
 		ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
@@ -4463,6 +4478,7 @@ export function _generateAC5eFlags() {
 		bonus: allModesActionTypes,
 		critical: allModesActionTypes,
 		disadvantage: allModesActionTypes,
+		info: [...allModesActionTypes, 'use'],
 		modifier: modifierActionTypes,
 		modifyDC: modifyDCActionTypes,
 		noAdvantage: allModesActionTypes,
@@ -4489,7 +4505,7 @@ export function _generateAC5eFlags() {
 	}
 
 	// Keep ACTIONTYPE entries for backwards compatibility, but not for damage-only dice up/down modes.
-	const genericActionTypeModes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'noAdvantage', 'noCritical', 'noDisadvantage', 'success'];
+	const genericActionTypeModes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'info', 'modifier', 'modifyDC', 'noAdvantage', 'noCritical', 'noDisadvantage', 'success'];
 	for (const scope of scopes) {
 		for (const mode of genericActionTypeModes) moduleFlags.add(`${scope.prefix}.ACTIONTYPE.${mode}`);
 	}

@@ -421,5 +421,7 @@
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration//death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
 			}
 		}
-	}
+	},
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}"
 }

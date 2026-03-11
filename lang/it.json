@@ -418,5 +418,7 @@
 				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 			}
 		}
-	}
+	},
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}"
 }
