@@ -204,6 +204,7 @@ function _normalizeUsageRuleMode(mode) {
 	const aliases = {
 		adv: 'advantage',
 		dis: 'disadvantage',
+		info: 'info',
 		noadv: 'noAdvantage',
 		nodis: 'noDisadvantage',
 		nocrit: 'noCritical',
@@ -497,7 +498,7 @@ function showUsageRuleKeys() {
 		scope: 'String: application scope. Supported values: "effect" and "universal".',
 		hook: 'String: evaluation hook. Supported values include "*", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
 		target: 'String: which side the rule applies to. Supported values: "subject", "opponent", and "aura". Alias: actorType.',
-		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
+		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "info", "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
 		name: 'String: user-facing label shown in tooltips, dialogs, and attribution.',
 		description: 'String: optional explanatory text carried with the rule.',
 		condition: 'String: AC5E-safe expression evaluated against the per-roll sandbox. Alias: expression.',

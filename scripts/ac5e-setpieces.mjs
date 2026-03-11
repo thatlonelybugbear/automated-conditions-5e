@@ -1045,6 +1045,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['nodis', 'noDisadvantage'],
 			['diceupgrade', 'diceUpgrade'],
 			['dicedowngrade', 'diceDowngrade'],
+			['info', 'info'],
 			['dis', 'disadvantage'],
 			['adv', 'advantage'],
 			['criticalthres', 'criticalThreshold'],
@@ -1373,6 +1374,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				return localizeText('AC5E.OptinDescription.ForcesFumble', 'Forces a fumble');
 			case 'success':
 				return localizeTemplate('AC5E.OptinDescription.ForcesSuccess', { roll }, `Forces automatic success on ${roll}`);
+			case 'info':
+				return localizeTemplate('AC5E.OptinDescription.AppliesNonRollEffect', { roll }, `Applies a non-roll effect on ${roll}`);
 			case 'bonus':
 				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.SetsRollBonus', { roll, value: set }, `Sets ${roll} bonus to ${set}`);
 				if (bonus !== undefined && bonus !== '')
