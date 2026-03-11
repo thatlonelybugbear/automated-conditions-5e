@@ -1,3 +1,9 @@
+## 13.5250.11
+
+- Reworked AC5E default distance calculation to use cached perimeter lookups while preserving the legacy path as a fallback.
+  - The default AC5E distance helper now reuses cached token perimeter points instead of rebuilding them on every check.
+  - Legacy distance calculation remains available internally and is still used when deferring to MidiQOL distance handling.
+
 ## 13.5250.10
 
 - Reworked d20 and damage roll target persistence so attack rolls now persist their resolved target AC snapshots more reliably and linked damage rolls reuse those same snapshots.
