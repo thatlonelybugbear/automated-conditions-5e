@@ -82,6 +82,9 @@
 		"Name": "Mostra avviso personaggio senza token",
 		"Text": "Avviso AC5E: il personaggio per cui stai tirando non ha un token sulla scena. I risultati possono essere distorti"
 	},
+	"AC5E.Statuses": {
+		"UnderwaterCombat": "Combattimento Subacqueo"
+	},
 	"AC5E.WarCaster": "Mago da Battaglia",
 	"AC5E.ModifyAC": "CA Modificata",
 	"AC5E.ModifyDC": "CD Modificata",
@@ -157,49 +160,49 @@
 	"AC5E.TargetGrantsExtraDice": "Dadi extra concessi",
 	"AC5E.NoChanges": "Nessun cambiamento",
 	"AC5E.SystemMode": "Modalità di Sistema",
-	"AC5E.OptinDescription.Roll.Attack": "attack rolls",
-	"AC5E.OptinDescription.Roll.Damage": "damage rolls",
+	"AC5E.OptinDescription.Roll.Attack": "Tiri per colpire",
+	"AC5E.OptinDescription.Roll.Damage": "Tiri danno",
 	"AC5E.OptinDescription.Roll.Check": "checks",
-	"AC5E.OptinDescription.Roll.Save": "saving throws",
-	"AC5E.OptinDescription.Roll.Generic": "rolls",
-	"AC5E.OptinDescription.GrantsAdvantage": "Grants advantage on {roll}",
-	"AC5E.OptinDescription.ImposesDisadvantage": "Imposes disadvantage on {roll}",
-	"AC5E.OptinDescription.RemovesAdvantage": "Removes advantage on {roll}",
-	"AC5E.OptinDescription.RemovesDisadvantage": "Removes disadvantage on {roll}",
-	"AC5E.OptinDescription.ForcesCritical": "Forces a critical hit",
-	"AC5E.OptinDescription.PreventsCritical": "Prevents critical hits",
-	"AC5E.OptinDescription.ForcesFailure": "Forces automatic failure on {roll}",
-	"AC5E.OptinDescription.ForcesFumble": "Forces a fumble",
-	"AC5E.OptinDescription.ForcesSuccess": "Forces automatic success on {roll}",
-	"AC5E.OptinDescription.SetsRollBonus": "Sets {roll} bonus to {value}",
-	"AC5E.OptinDescription.AppliesRollBonus": "Applies {value} to {roll}",
-	"AC5E.OptinDescription.ModifiesRollBonus": "Modifies {roll} bonus",
-	"AC5E.OptinDescription.SetsTargetAC": "Sets target AC to {value}",
-	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifies target AC by {value}",
-	"AC5E.OptinDescription.ModifiesTargetAC": "Modifies target AC",
-	"AC5E.OptinDescription.SetsMinimumD20": "Sets minimum d20 result to {value}",
-	"AC5E.OptinDescription.SetsMaximumD20": "Sets maximum d20 result to {value}",
-	"AC5E.OptinDescription.AppliesRollModifier": "Applies roll modifier",
-	"AC5E.OptinDescription.AppliesRollModifierWithValue": "Applies roll modifier ({value})",
-	"AC5E.OptinDescription.SetsCriticalThreshold": "Sets critical threshold to {value}",
-	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modifies critical threshold",
-	"AC5E.OptinDescription.SetsFumbleThreshold": "Sets fumble threshold to {value}",
-	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifies fumble threshold",
-	"AC5E.OptinDescription.AddsExtraDamageDice": "Adds extra damage dice",
-	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Adds extra damage dice ({value})",
-	"AC5E.OptinDescription.UpgradesDamageDice": "Upgrades damage dice",
-	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Upgrades damage dice ({value})",
-	"AC5E.OptinDescription.DowngradesDamageDice": "Downgrades damage dice",
-	"AC5E.OptinDescription.DowngradesDamageDiceWithValue": "Downgrades damage dice ({value})",
-	"AC5E.OptinDescription.ModifiesAttackRange": "Modifies attack range behavior",
-	"AC5E.OptinDescription.FinalStandDropsTo": "Final stand (drops to {value})",
-	"AC5E.Chance.Triggered": "is triggered",
-	"AC5E.Chance.TriggeredWithRoll": "is triggered (rolled {roll})",
-	"AC5E.OptinCadence.OncePerTurn": "(1/turn)",
+	"AC5E.OptinDescription.Roll.Save": "Tiri Salvezza",
+	"AC5E.OptinDescription.Roll.Generic": "tiri",
+	"AC5E.OptinDescription.GrantsAdvantage": "Concede vantaggio su {roll}",
+	"AC5E.OptinDescription.ImposesDisadvantage": "Impone svantaggio su {roll}",
+	"AC5E.OptinDescription.RemovesAdvantage": "Elimina vantaggio su {roll}",
+	"AC5E.OptinDescription.RemovesDisadvantage": "Elimina svantaggio su {roll}",
+	"AC5E.OptinDescription.ForcesCritical": "Forza un colpo critico",
+	"AC5E.OptinDescription.PreventsCritical": "Impedisce i colpi critici",
+	"AC5E.OptinDescription.ForcesFailure": "Forza un fallimento automatico su {roll}",
+	"AC5E.OptinDescription.ForcesFumble": "Forza un fallimento critico",
+	"AC5E.OptinDescription.ForcesSuccess": "Forza un successo automatico su {roll}",
+	"AC5E.OptinDescription.SetsRollBonus": "Imposta bonus {roll} a {value}",
+	"AC5E.OptinDescription.AppliesRollBonus": "Applica {value} a {roll}",
+	"AC5E.OptinDescription.ModifiesRollBonus": "Modifica bonus {roll}",
+	"AC5E.OptinDescription.SetsTargetAC": "Imposta CA del bersaglio a {value}",
+	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifica CA del bersaglio di {value}",
+	"AC5E.OptinDescription.ModifiesTargetAC": "Modifica CA del bersaglio",
+	"AC5E.OptinDescription.SetsMinimumD20": "Imposta risultato minimo del d20 a {value}",
+	"AC5E.OptinDescription.SetsMaximumD20": "Imposta risultato massimo del d20 a {value}",
+	"AC5E.OptinDescription.AppliesRollModifier": "Applica modificatore al tiro",
+	"AC5E.OptinDescription.AppliesRollModifierWithValue": "Applica modificatore al tiro ({value})",
+	"AC5E.OptinDescription.SetsCriticalThreshold": "Imposta soglia di critico a {value}",
+	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modifica soglia di critico",
+	"AC5E.OptinDescription.SetsFumbleThreshold": "Imposta soglia di fallimento critico a {value}",
+	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifica soglia di fallimento critico",
+	"AC5E.OptinDescription.AddsExtraDamageDice": "Aggiunge dadi di danno extra",
+	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Aggiunge dadi di danno extra ({value})",
+	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta grado dei dadi di danno",
+	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta grado dei dadi di danno ({value})",
+	"AC5E.OptinDescription.DowngradesDamageDice": "Riduce grado dei dadi di danno",
+	"AC5E.OptinDescription.DowngradesDamageDiceWithValue": "Riduce grado dei dadi di danno ({value})",
+	"AC5E.OptinDescription.ModifiesAttackRange": "Modifica comportamento della portata dell'attacco",
+	"AC5E.OptinDescription.FinalStandDropsTo": "Ultimo sforzo (scende a {value})",
+	"AC5E.Chance.Triggered": "si attiva",
+	"AC5E.Chance.TriggeredWithRoll": "si attiva (tirato {roll})",
+	"AC5E.OptinCadence.OncePerTurn": "(1/turno)",
 	"AC5E.OptinCadence.OncePerRound": "(1/round)",
-	"AC5E.OptinCadence.OncePerCombat": "(1/combat)",
+	"AC5E.OptinCadence.OncePerCombat": "(1/combattimento)",
 	"AC5E.OptinLegend.Optional": "AC5E",
-	"AC5E.OptinLegend.FromOtherSources": "AC5E From other sources (ask for permission)",
+	"AC5E.OptinLegend.FromOtherSources": "AC5E da altre fonti (chiedere il permesso)",
 	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Pericoli ambientali (2024)",
 		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
@@ -318,8 +321,8 @@
 				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/TS/abilità/strumento"
 			},
 			"abilityOverride": {
-				"name": "Override the ability used for the roll",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
+				"name": "Sovrascrivi l'abilità utilizzata per il tiro",
+				"description": "Solo attacco. Usa override=cha o abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -372,8 +375,8 @@
 				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento"
 			},
 			"abilityOverride": {
-				"name": "Grant an overridden ability to opponent rolls",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
+				"name": "Concedi caratterisctica sovrascritta ai tiri dell'avversario",
+				"description": "Solo Attacco. Usa override=cha o abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -426,23 +429,23 @@
 				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
 			},
 			"abilityOverride": {
-				"name": "An aura overriding the ability used for rolls",
-				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
+				"name": "Un'aura che sovrascrive la caratteristica utilizzata per i tiri",
+				"description": "Solo Attacco. Usa raggio come al solito più override=cha o abilityOverride=cha."
 			}
 		}
 	},
 	"AC5E.Info": "Info",
-	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applica un effetto non legato al tiro su {roll}",
 	"AC5E.advantageBehaviorOverride": {
-		"Name": "Override system advantage handling",
-		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
+		"Name": "Sovrascrivi gestione del vantaggio del sistema",
+		"Hint": "Se abilitato, AC5E sopprime il tiro nativo di vantaggio/svantaggio e converte il vantaggio/svantaggio temporaneo nelle formule sottostanti."
 	},
 	"AC5E.advantageBehaviorAdvantageFormula": {
-		"Name": "Advantage bonus formula",
-		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
+		"Name": "Formula bonus vantaggio",
+		"Hint": "Applicata quando è presente un vantaggio temporaneo e la sovrascrittura è abilitata. Esempio: 3d6kh1 oppure 2."
 	},
 	"AC5E.advantageBehaviorDisadvantageFormula": {
-		"Name": "Disadvantage penalty formula",
-		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
+		"Name": "Formula penalità svantaggio",
+		"Hint": "Applicata quando è presente uno svantaggio temporaneo e la sovrascrittura è abilitata. Esempio: -3d6kh1 oppure -2."
 	}
 }
