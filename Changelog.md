@@ -1,3 +1,47 @@
+## 13.5250.11
+
+- Reworked AC5E default distance calculation to use cached perimeter lookups while preserving the legacy path as a fallback.
+  - The default AC5E distance helper now reuses cached token perimeter points instead of rebuilding them on every check.
+  - Legacy distance calculation remains available internally and is still used when deferring to MidiQOL distance handling.
+- Expanded `info` support across AC5E action hooks.
+  - Full flag forms such as `flags.automated-conditions-5e.use.info`, `flags.automated-conditions-5e.attack.info`, `flags.automated-conditions-5e.damage.info`, `flags.automated-conditions-5e.save.info`, and `flags.automated-conditions-5e.check.info` can now be used to show AC5E reasons and process side effects without changing the rolled formula.
+  - `info` entries now surface correctly in AC5E/Midi tooltip attribution and survive use flows that resolve after the activity succeeds.
+- Added `update=...` for allowlisted actor value changes, designed to pair naturally with `info`.
+  - `update` supports direct changes to HP, temp HP, effective max HP, exhaustion, death saves, inspiration, and ability scores.
+  - Positive and negative values now read naturally for state-style updates such as exhaustion and death saves.
+  - Example: `flags.automated-conditions-5e.use.info | update=opponentActor.exhaustion,1`
+  - Example: `flags.automated-conditions-5e.damage.info | update=rollingActor.hp,-1d6`
+- Improved item lookup helpers.
+  - `ac5e.hasItem(...)` and `ac5e.getItems(...)` now default to exact name matching instead of broad partial matching.
+  - `match: "any"` still supports convenient identifier-style lookup, including slugified queries such as `"misty-step"`.
+  - Added `ac5e.getItem(...)` as a first-match helper.
+  - Signatures:
+    - `ac5e.hasItem(source, itemIdentifier, options = {})`
+    - `ac5e.getItem(source, itemIdentifier, options = {})`
+    - `ac5e.getItems(source, itemIdentifier, options = {})`
+  - Available `options`:
+    - `match: "name" | "identifier" | "id" | "uuid" | "any"`
+    - `nameMode: "exact" | "partial"`
+    - `type: "<item type>"`
+  - Example: `ac5e.getItems(_token.id, "fire", { match: "any", nameMode: "partial" })` returns all matching items whose name or identifier contains `fire`.
+- Reworked `criticalStatic` handling for `damage.extraDice`.
+  - `criticalStatic` extra dice now apply outside normal crit doubling, so they can be used for “add this die, but do not double it on a crit” style effects.
+  - Example: `flags.automated-conditions-5e.damage.extraDice | bonus=1;criticalStatic`
+- Stabilized AC5E damage attribution in chat, including MidiQOL-linked attack+damage messages.
+  - Damage tooltips now preserve AC5E `Extra Dice` and other selected opt-in reasons more reliably in combined attack/damage workflows.
+- Added transient advantage/disadvantage conversion support.
+  - `convertAdvantage` and `convertDisadvantage` let a rule turn native d20 advantage/disadvantage into AC5E-driven bonus formulas instead of rolling `2d20kh/kl`.
+  - `hasAdvantage` / `hasDisadvantage` remain usable for downstream conditions even when the actual d20 roll is converted back to a straight roll.
+- Added attack-only `abilityOverride`.
+  - `abilityOverride` can now be used as an evaluated AC5E attack flag, including `grants` and `aura` variants, to change which ability an attack uses.
+  - Tooltip output now shows the winning override in a compact form such as `Ability: DEX -> CHA (New Effect)`.
+  - Example: `flags.automated-conditions-5e.attack.abilityOverride | override=cha; optin`
+- Added world settings for advantage/disadvantage conversion formulas.
+  - You can enable a world-level override for system advantage handling and provide separate replacement formulas for advantage and disadvantage.
+  - Each side is handled independently, so leaving one formula blank keeps the normal system behavior for that side.
+  - Per-rule `convertAdvantage` / `convertDisadvantage` can still force conversion for a specific roll even when the world setting is off.
+- Out-of-range failures are now applied earlier in the activity flow again, keeping warnings and blocked uses aligned with the main AC5E range checks.
+
 ## 13.5250.10
 
 - Reworked d20 and damage roll target persistence so attack rolls now persist their resolved target AC snapshots more reliably and linked damage rolls reuse those same snapshots.

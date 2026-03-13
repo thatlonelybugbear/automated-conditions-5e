@@ -316,6 +316,10 @@
 			"success": {
 				"name": "d20 rolls succeed",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/damage/death/save/skill/tool"
+			},
+			"abilityOverride": {
+				"name": "Override the ability used for the roll",
+				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -366,6 +370,10 @@
 			"success": {
 				"name": "d20 rolls against or caused by you succeed",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration/death/save/skill/tool"
+			},
+			"abilityOverride": {
+				"name": "Grant an overridden ability to opponent rolls",
+				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -416,7 +424,25 @@
 			"success": {
 				"name": "An aura forcing success",
 				"description": "Replace ACTIONTYPE with one of: all/attack/check/concentration//death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
+			},
+			"abilityOverride": {
+				"name": "An aura overriding the ability used for rolls",
+				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
 			}
 		}
+	},
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
+	"AC5E.advantageBehaviorOverride": {
+		"Name": "Override system advantage handling",
+		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
+	},
+	"AC5E.advantageBehaviorAdvantageFormula": {
+		"Name": "Advantage bonus formula",
+		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
+	},
+	"AC5E.advantageBehaviorDisadvantageFormula": {
+		"Name": "Disadvantage penalty formula",
+		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
 	}
 }

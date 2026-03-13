@@ -42,6 +42,8 @@ export function simplifyFormula(formula = '', removeFlavor = false, debug = {}) 
 const settings = new Settings();
 const USE_CONFIG_INFLIGHT_TTL_MS = 15000;
 const useConfigInflightCache = new Map();
+const DISTANCE_PERIMETER_CACHE_LIMIT = 500;
+const distancePerimeterCache = new Map();
 const FLAG_REGISTRY_HOOK_TYPES = new Set(['attack', 'damage', 'save', 'check', 'heal', 'init', 'use']);
 const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'advantage',
@@ -451,7 +453,7 @@ export function _resolveUseMessageContext({ message = null, messageId = null, or
  * Gets the minimum distance between two tokens,
  * evaluating perimeter grid spaces they occupy and checking for walls blocking.
  */
-export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
+export function _getDistanceLegacy(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
 	let totalDistance = Infinity;
 	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
 	let adjacent2D;
@@ -465,6 +467,10 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		if (tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
 		else tokenB = canvas.tokens.get(tokenB);
 	}
+	if (tokenA instanceof TokenDocument) tokenA = tokenA.object;
+	if (tokenB instanceof TokenDocument) tokenB = tokenB.object;
+	if (tokenA instanceof Actor) tokenA = tokenA.getActiveTokens()[0] ?? null;
+	if (tokenB instanceof Actor) tokenB = tokenB.getActiveTokens()[0] ?? null;
 	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
 
 	const { grid } = canvas || {};
@@ -490,7 +496,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		outer: for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
 				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-				adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
 				if (adjacent2D && meleeDiagonals) {
 					totalDistance = gridDistance;
 					diagonals = 0;
@@ -539,7 +545,7 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 			outer: for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
 					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-					adjacent2D = testAdjacency(canvas.grid.getOffset(pointA), canvas.grid.getOffset(pointB));
+					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
 					if (adjacent2D && meleeDiagonals) {
 						totalDistance = gridDistance;
 						diagonals = 0;
@@ -560,8 +566,15 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 
 	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
 	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units });
-	if (includeUnits) return ((totalDistance * 100) | 0) / 100 + units;
-	return ((totalDistance * 100) | 0) / 100;
+	if (includeUnits) return roundDistance(totalDistance) + units;
+	return roundDistance(totalDistance);
+}
+
+export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
+	if (_activeModule('midi-qol') && !overrideMidi) {
+		return _getDistanceLegacy(tokenA, tokenB, includeUnits, overrideMidi, checkCollision, includeHeight);
+	}
+	return _getCachedDistance(tokenA, tokenB, includeUnits, checkCollision, includeHeight);
 }
 
 function _testDistanceCollision(pointA, pointB, source, checkCollision) {
@@ -575,6 +588,308 @@ function _testDistanceCollision(pointA, pointB, source, checkCollision) {
 	});
 }
 
+function resolveDistanceToken(token) {
+	const tokenInstance = foundry.canvas.placeables.Token;
+	if (typeof token === 'string') {
+		if (token.includes('.')) token = fromUuidSync(token)?.object;
+		else token = canvas.tokens.get(token);
+	}
+	if (token instanceof TokenDocument) token = token.object;
+	if (token instanceof Actor) token = token.getActiveTokens()[0] ?? null;
+	return token instanceof tokenInstance ? token : null;
+}
+
+function centerKey(point) {
+	return `${point.x}_${point.y}`;
+}
+
+function uniqueCenters(points = []) {
+	const deduped = {};
+	for (const point of points) {
+		if (!point) continue;
+		deduped[centerKey(point)] = point;
+	}
+	return Object.values(deduped);
+}
+
+function offsetKey(offset) {
+	return `${offset.i}_${offset.j}`;
+}
+function getOccupiedOffsets2D(token, data = {}) {
+	if (!token?.document || canvas.grid.isGridless) return [];
+	const offsets = token.document.getOccupiedGridSpaceOffsets(data);
+	const deduped = {};
+	for (const { i, j } of offsets) {
+		const key = `${i}_${j}`;
+		if (!deduped[key]) deduped[key] = { i, j };
+	}
+	return Object.values(deduped);
+}
+function getCentersFromOffsets(offsets = []) {
+	return uniqueCenters(offsets.map((offset) => canvas.grid.getCenterPoint(offset)));
+}
+function getPerimeterOffsetsFromOccupiedOffsets(offsets = []) {
+	if (!offsets.length || canvas.grid.isGridless) return [];
+	const occupied = new Map(offsets.map((offset) => [offsetKey(offset), offset]));
+	const perimeter = [];
+	for (const offset of offsets) {
+		const adjacentOffsets = canvas.grid.getAdjacentOffsets(offset);
+		const isPerimeter = adjacentOffsets.some((adjacent) => !occupied.has(offsetKey(adjacent)));
+		if (isPerimeter) perimeter.push(offset);
+	}
+	return perimeter;
+}
+function testDistanceAdjacency(coords1, coords2, { meleeDiagonals = false } = {}) {
+	const { grid } = canvas ?? {};
+	if (!grid) return false;
+	if (grid.isHexagonal && typeof grid.getCube === 'function') {
+		const c1 = grid.getCube(coords1);
+		const c2 = grid.getCube(coords2);
+		const d0 = foundry.grid.HexagonalGrid.cubeDistance(c1, c2);
+		if (c1.k === undefined || c2.k === undefined) return d0 === 1;
+		if (d0 > 1) return false;
+		const d1 = Math.abs(c1.k - c2.k);
+		if (d1 > 1) return false;
+		if (meleeDiagonals) return d0 + d1 !== 0;
+		if (grid.diagonals === CONST.GRID_DIAGONALS.ILLEGAL) return d0 + d1 === 1;
+		return d0 + d1 !== 0;
+	}
+	return testAdjacency(coords1, coords2);
+}
+
+function getLegacyPerimeterCenters(token) {
+	const { isGridless, isHexagonal, isSquare } = canvas.grid;
+	if (isHexagonal) return getHexesOnPerimeter(token);
+	if (isGridless) return getGridlessSquaresOnPerimeter(token);
+	if (isSquare) return getSquaresOnPerimeter(token);
+	return [];
+}
+
+function getOccupiedPerimeterCenters(token, data = {}) {
+	const occupiedOffsets = getOccupiedOffsets2D(token, data);
+	const perimeterOffsets = getPerimeterOffsetsFromOccupiedOffsets(occupiedOffsets);
+	return getCentersFromOffsets(perimeterOffsets);
+}
+function compareCenterSets(left = [], right = []) {
+	const leftMap = new Map(left.map((point) => [centerKey(point), point]));
+	const rightMap = new Map(right.map((point) => [centerKey(point), point]));
+	const onlyLeft = [];
+	const onlyRight = [];
+	for (const [key, point] of leftMap.entries()) {
+		if (!rightMap.has(key)) onlyLeft.push(point);
+	}
+	for (const [key, point] of rightMap.entries()) {
+		if (!leftMap.has(key)) onlyRight.push(point);
+	}
+	return { onlyLeft, onlyRight };
+}
+function benchmarkFunction(fn, iterations, ...args) {
+	const count = Math.max(1, Number(iterations) || 1);
+	const started = performance.now();
+	let result;
+	for (let i = 0; i < count; i += 1) {
+		result = fn(...args);
+	}
+	const totalMs = performance.now() - started;
+	return {
+		iterations: count,
+		totalMs,
+		perIterationMs: totalMs / count,
+		lastResult: result,
+	};
+}
+export async function _debugBenchmarkPerimeterGridSpaceCenters(token, { iterations = 100, data = {}, useFoundryBenchmark = false } = {}) {
+	const legacyFn = () => uniqueCenters(getLegacyPerimeterCenters(token));
+	const occupiedFn = () => uniqueCenters(getOccupiedPerimeterCenters(token, data));
+	const legacy = benchmarkFunction(legacyFn, iterations);
+	const occupied = benchmarkFunction(occupiedFn, iterations);
+	if (useFoundryBenchmark && foundry?.utils?.benchmark) {
+		await foundry.utils.benchmark(legacyFn, iterations);
+		await foundry.utils.benchmark(occupiedFn, iterations);
+	}
+	const comparison = compareCenterSets(legacy.lastResult ?? [], occupied.lastResult ?? []);
+	return {
+		tokenId: token?.id ?? null,
+		iterations,
+		legacy,
+		occupied,
+		comparison: {
+			onlyLegacyCount: comparison.onlyLeft.length,
+			onlyOccupiedCount: comparison.onlyRight.length,
+			onlyLegacy: comparison.onlyLeft,
+			onlyOccupied: comparison.onlyRight,
+		},
+	};
+}
+function getTokenPerimeterCacheKey(token) {
+	token = resolveDistanceToken(token);
+	if (!token || !canvas?.grid || !canvas?.scene) return null;
+	const doc = token.document;
+	const shape = token.shape;
+	const shapeKey =
+		shape?.constructor?.name === 'Rectangle'
+			? `rect:${shape.x ?? 0}:${shape.y ?? 0}:${shape.width ?? 0}:${shape.height ?? 0}`
+			: shape?.constructor?.name === 'Circle'
+				? `circle:${shape.x ?? 0}:${shape.y ?? 0}:${shape.radius ?? 0}`
+				: shape?.points?.length
+					? `poly:${shape.points.join(',')}`
+					: shape?.toPolygon?.()?.points?.length
+						? `poly:${shape.toPolygon().points.join(',')}`
+						: shape?.constructor?.name ?? 'shape';
+	return [
+		canvas.scene.id,
+		token.id,
+		token.x,
+		token.y,
+		doc.width,
+		doc.height,
+		doc.elevation ?? 0,
+		canvas.grid.type,
+		canvas.grid.size,
+		canvas.grid.sizeX,
+		canvas.grid.sizeY,
+		canvas.grid.distance,
+		shapeKey,
+	].join(':');
+}
+
+function rememberPerimeterCacheEntry(key, value) {
+	if (!key) return value;
+	if (distancePerimeterCache.has(key)) distancePerimeterCache.delete(key);
+	distancePerimeterCache.set(key, value);
+	if (distancePerimeterCache.size > DISTANCE_PERIMETER_CACHE_LIMIT) {
+		const oldestKey = distancePerimeterCache.keys().next().value;
+		if (oldestKey !== undefined) distancePerimeterCache.delete(oldestKey);
+	}
+	return value;
+}
+
+function getCachedLegacyPerimeterCenters(token) {
+	token = resolveDistanceToken(token);
+	if (!token) return [];
+	const key = getTokenPerimeterCacheKey(token);
+	const cached = key ? distancePerimeterCache.get(key) : null;
+	if (cached) {
+		distancePerimeterCache.delete(key);
+		distancePerimeterCache.set(key, cached);
+		return cached.points;
+	}
+	const points = uniqueCenters(getLegacyPerimeterCenters(token));
+	rememberPerimeterCacheEntry(key, {
+		key,
+		tokenId: token.id,
+		points,
+		createdAt: Date.now(),
+	});
+	return points;
+}
+
+function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false, includeHeight = true } = {}) {
+	tokenA = resolveDistanceToken(tokenA);
+	tokenB = resolveDistanceToken(tokenB);
+	if (!tokenA || !tokenB) return null;
+	let totalDistance = Infinity;
+	let diagonals = 0;
+	let spaces = 0;
+	let adjacent2D;
+	let bestPair = null;
+	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
+	const { grid } = canvas || {};
+	if (foundry.utils.isEmpty(grid)) return null;
+	const { distance: gridDistance, isGridless, isHexagonal, isSquare } = grid;
+
+	if (isHexagonal) {
+		const tokenAHexes = getCachedLegacyPerimeterCenters(tokenA);
+		const tokenBHexes = getCachedLegacyPerimeterCenters(tokenB);
+		outer: for (const pointA of tokenAHexes) {
+			for (const pointB of tokenBHexes) {
+				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
+				if (adjacent2D && meleeDiagonals) {
+					totalDistance = gridDistance;
+					diagonals = 0;
+					spaces = 1;
+					bestPair = { tokenA: pointA, tokenB: pointB };
+					break outer;
+				}
+				const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+				if (distance2D < totalDistance) {
+					totalDistance = distance2D;
+					diagonals = pathDiagonals;
+					spaces = pathSpaces;
+					bestPair = { tokenA: pointA, tokenB: pointB };
+				}
+			}
+		}
+	} else {
+		const areTokensIntersencting = tokenA.bounds.intersects(tokenB.bounds);
+		if (areTokensIntersencting) {
+			totalDistance = 0;
+			diagonals = 0;
+			spaces = 0;
+			bestPair = { tokenA: tokenA.center, tokenB: tokenB.center };
+		} else if (isGridless) {
+			const tokenASquares = getCachedLegacyPerimeterCenters(tokenA);
+			const tokenBSquares = getCachedLegacyPerimeterCenters(tokenB);
+			for (const pointA of tokenASquares) {
+				for (const pointB of tokenBSquares) {
+					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false;
+						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+						bestPair = { tokenA: pointA, tokenB: pointB };
+					}
+				}
+			}
+		} else if (isSquare) {
+			const tokenASquares = getCachedLegacyPerimeterCenters(tokenA);
+			const tokenBSquares = getCachedLegacyPerimeterCenters(tokenB);
+			outer: for (const pointA of tokenASquares) {
+				for (const pointB of tokenBSquares) {
+					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
+					if (adjacent2D && meleeDiagonals) {
+						totalDistance = gridDistance;
+						diagonals = 0;
+						spaces = 1;
+						bestPair = { tokenA: pointA, tokenB: pointB };
+						break outer;
+					}
+					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
+					if (distance2D < totalDistance) {
+						totalDistance = distance2D;
+						diagonals = pathDiagonals;
+						spaces = pathSpaces;
+						bestPair = { tokenA: pointA, tokenB: pointB };
+					}
+				}
+			}
+		}
+	}
+
+	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
+	return {
+		tokenA,
+		tokenB,
+		distance: roundDistance(totalDistance),
+		bestPair,
+		cache: {
+			size: distancePerimeterCache.size,
+			limit: DISTANCE_PERIMETER_CACHE_LIMIT,
+		},
+	};
+}
+
+export function _getCachedDistance(tokenA, tokenB, includeUnits = false, checkCollision = false, includeHeight = true) {
+	const result = getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision, includeHeight });
+	if (!result) return Infinity;
+	if (includeUnits) return `${result.distance}${canvas?.grid?.units ?? ''}`;
+	return result.distance;
+}
+
 // reworked canvas.grid.testAdjacency to not care about diagonals
 function testAdjacency(coords1, coords2) {
 	const { i: i1, j: j1, k: k1 } = canvas.grid.getOffset(coords1);
@@ -584,6 +899,11 @@ function testAdjacency(coords1, coords2) {
 	// @to-do: use 3D foundry functions instead of heightdifference dz
 	const dk = k1 !== undefined ? Math.abs(k1 - k2) : 0;
 	return Math.max(di, dj, dk) === 1;
+}
+
+function roundDistance(distance) {
+	if (!Number.isFinite(distance)) return distance;
+	return ((distance * 100) | 0) / 100;
 }
 
 function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D) {
@@ -792,13 +1112,113 @@ export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
 	return min ? min <= exhaustionLevel : exhaustionLevel;
 }
 
+function _getSelectedOptinIds(optinSelected = {}) {
+	const selected = new Set();
+	const visit = (value, key) => {
+		if (!value || typeof value !== 'object') {
+			if (value && key) selected.add(key);
+			return;
+		}
+		for (const [nestedKey, nestedValue] of Object.entries(value)) {
+			visit(nestedValue, nestedKey);
+		}
+	};
+	visit(optinSelected, '');
+	return selected;
+}
+
 export function _filterOptinEntries(entries = [], optinSelected = {}) {
-	const selected = new Set(Object.keys(optinSelected ?? {}).filter((key) => optinSelected[key]));
+	const selected = _getSelectedOptinIds(optinSelected);
 	return (entries ?? []).filter((entry) => {
 		if (!entry || typeof entry !== 'object') return true;
 		if (!entry.optin) return true;
 		return selected.has(entry.id);
 	});
+}
+
+function _normalizeAdvantageBehavior(rawValue = null) {
+	const source = rawValue && typeof rawValue === 'object' ? rawValue : {};
+	const modeToken = String(source.mode ?? source.type ?? '').trim().toLowerCase();
+	const advantageFormula = typeof source.advantageFormula === 'string' ? source.advantageFormula.trim() : '';
+	const disadvantageFormula = typeof source.disadvantageFormula === 'string' ? source.disadvantageFormula.trim() : '';
+	const mode = modeToken === 'custom' || advantageFormula || disadvantageFormula ? 'custom' : 'native';
+	return {
+		mode,
+		advantageFormula,
+		disadvantageFormula,
+	};
+}
+
+function _normalizeAbilityOverride(rawValue = null) {
+	const normalized = String(rawValue ?? '').trim().toLowerCase();
+	return normalized || '';
+}
+
+export function _getConfiguredAdvantageBehavior(ac5eConfig = {}, fallback = {}) {
+	const explicit =
+		ac5eConfig?.advantageBehavior ??
+		fallback?.advantageBehavior ??
+		fallback?.[Constants.MODULE_ID]?.advantageBehavior ??
+		null;
+	const merged = _normalizeAdvantageBehavior(settings.advantageBehavior);
+	if (explicit && typeof explicit === 'object') foundry.utils.mergeObject(merged, _normalizeAdvantageBehavior(explicit), { inplace: true, overwrite: true });
+	if (merged.mode !== 'custom' && (merged.advantageFormula || merged.disadvantageFormula)) merged.mode = 'custom';
+	return merged;
+}
+
+export function _getActiveAbilityOverrideEntry(ac5eConfig = {}) {
+	const selected = ac5eConfig?.optinSelected ?? {};
+	const filterEntries = (entries = []) =>
+		_filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
+	const entries = [
+		...filterEntries(ac5eConfig?.subject?.abilityOverride ?? []),
+		...filterEntries(ac5eConfig?.opponent?.abilityOverride ?? []),
+	].filter((entry) => typeof entry?.abilityOverride === 'string' && entry.abilityOverride.trim());
+	return entries.length ? entries[entries.length - 1] : null;
+}
+
+export function _getActiveAbilityOverride(ac5eConfig = {}) {
+	const entry = _getActiveAbilityOverrideEntry(ac5eConfig);
+	return entry ? String(entry.abilityOverride).trim().toLowerCase() : '';
+}
+
+export function _getTransientRollState(ac5eConfig = {}, fallback = {}) {
+	const d20 = fallback?.d20 && typeof fallback.d20 === 'object' ? fallback.d20 : fallback;
+	const explicitAdv = d20?.hasTransitAdvantage ?? ac5eConfig?.hasTransitAdvantage ?? ac5eConfig?.transientRollState?.hasTransitAdvantage;
+	const explicitDis = d20?.hasTransitDisadvantage ?? ac5eConfig?.hasTransitDisadvantage ?? ac5eConfig?.transientRollState?.hasTransitDisadvantage;
+	const advantageMode =
+		typeof d20?.advantageMode === 'number' ? d20.advantageMode
+		: typeof ac5eConfig?.advantageMode === 'number' ? ac5eConfig.advantageMode
+		: ac5eConfig?.transientRollState?.advantageMode;
+	const defaultButton =
+		typeof d20?.defaultButton === 'string' ? d20.defaultButton
+		: typeof ac5eConfig?.defaultButton === 'string' ? ac5eConfig.defaultButton
+		: ac5eConfig?.transientRollState?.defaultButton;
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE ?? {};
+	const inferredAdvantage =
+		explicitAdv ??
+		(typeof advantageMode === 'number' ? advantageMode === advModes.ADVANTAGE
+		: defaultButton === 'advantage' ? true
+		: false);
+	const inferredDisadvantage =
+		explicitDis ??
+		(typeof advantageMode === 'number' ? advantageMode === advModes.DISADVANTAGE
+		: defaultButton === 'disadvantage' ? true
+		: false);
+	return {
+		hasTransitAdvantage: Boolean(inferredAdvantage),
+		hasTransitDisadvantage: Boolean(inferredDisadvantage),
+		advantageMode,
+		defaultButton,
+	};
+}
+
+export function _entryMatchesTransientState(entry, ac5eConfig = {}, fallback = {}) {
+	if (!entry || typeof entry !== 'object') return true;
+	const { hasTransitAdvantage, hasTransitDisadvantage } = _getTransientRollState(ac5eConfig, fallback);
+	if (entry.requiresTransitAdvantage && !hasTransitAdvantage) return false;
+	if (entry.requiresTransitDisadvantage && !hasTransitDisadvantage) return false;
+	return true;
 }
 
 const D20_BASELINE_HOOKS = new Set(['attack', 'save', 'check']);
@@ -1070,6 +1490,33 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 	return true;
 }
 
+function _resolveTransientBehaviorFormula(formula, transientRollState = {}) {
+	const rawFormula = String(formula ?? '').trim();
+	if (!rawFormula) return '';
+	const preserveStandaloneSignedDiceFormula = (expression) => {
+		if (typeof expression !== 'string') return null;
+		const trimmed = expression.trim();
+		if (!/^[+-]/.test(trimmed)) return null;
+		if (/[()@]/.test(trimmed)) return null;
+		const unsigned = trimmed.slice(1).trim();
+		if (!unsigned) return null;
+		const signedDicePattern =
+			/^(?:(?:\d*)d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
+		return signedDicePattern.test(unsigned) ? `${trimmed[0]}${unsigned}` : null;
+	};
+	const normalizedFormula = rawFormula;
+	const preservedSignedDiceFormula = preserveStandaloneSignedDiceFormula(normalizedFormula);
+	if (preservedSignedDiceFormula) return preservedSignedDiceFormula;
+	const sandbox = {
+		hasTransitAdvantage: !!transientRollState?.hasTransitAdvantage,
+		hasTransitDisadvantage: !!transientRollState?.hasTransitDisadvantage,
+		hasAdvantage: !!transientRollState?.hasTransitAdvantage,
+		hasDisadvantage: !!transientRollState?.hasTransitDisadvantage,
+	};
+	const prepared = _ac5eSafeEval({ expression: normalizedFormula, sandbox, mode: 'formula' });
+	return typeof prepared === 'string' ? prepared.trim() : String(prepared ?? '').trim();
+}
+
 function _ensureRoll0Options(config, roll0) {
 	if (!config) return roll0?.options ?? null;
 	if (!Array.isArray(config.rolls)) config.rolls = [];
@@ -1229,6 +1676,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	}
 	const localDialog = dialog ?? { options: {} };
 	localDialog.options ??= {};
+	ac5eConfig.transientBehaviorParts = [];
 	const ac5eForcedRollTarget = 999;
 	const getGlobalDamageCriticalEntries = (entries = []) =>
 		(entries ?? []).filter((entry) => {
@@ -1258,18 +1706,54 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const opponentAdvantageNamesCount = _collectionCount(ac5eConfig.opponent.advantageNames);
 		const subjectDisadvantageNamesCount = _collectionCount(ac5eConfig.subject.disadvantageNames);
 		const opponentDisadvantageNamesCount = _collectionCount(ac5eConfig.opponent.disadvantageNames);
-		if (subjectAdvantage.length || opponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount) {
-			config.advantage = true;
+		const hasAdvantageSources = Boolean(subjectAdvantage.length || opponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
+		const hasDisadvantageSources = Boolean(subjectDisadvantage.length || opponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
+		const transientRollState = {
+			hasTransitAdvantage: hasAdvantageSources,
+			hasTransitDisadvantage: hasDisadvantageSources,
+			advantageMode:
+				hasAdvantageSources && hasDisadvantageSources ? NORM_MODE
+				: hasAdvantageSources ? ADV_MODE
+				: hasDisadvantageSources ? DIS_MODE
+				: NORM_MODE,
+			defaultButton:
+				hasAdvantageSources && hasDisadvantageSources ? 'normal'
+				: hasAdvantageSources ? 'advantage'
+				: hasDisadvantageSources ? 'disadvantage'
+				: 'normal',
+		};
+		ac5eConfig.transientRollState = transientRollState;
+		ac5eConfig.hasTransitAdvantage = transientRollState.hasTransitAdvantage;
+		ac5eConfig.hasTransitDisadvantage = transientRollState.hasTransitDisadvantage;
+		ac5eConfig.advantageBehavior = _getConfiguredAdvantageBehavior(ac5eConfig, config);
+		config.advantage = hasAdvantageSources;
+		config.disadvantage = hasDisadvantageSources;
+		if (subjectNoAdv.length || opponentNoAdv.length) config.advantage = false;
+		if (subjectNoDis.length || opponentNoDis.length) config.disadvantage = false;
+		const allTransitEntries = [ac5eConfig?.subject, ac5eConfig?.opponent]
+			.flatMap((side) => (side && typeof side === 'object' ? Object.values(side) : []))
+			.flatMap((entries) => (Array.isArray(entries) ? entries : []))
+			.filter((entry) => entry && typeof entry === 'object');
+		const filteredTransitEntries = _filterOptinEntries(allTransitEntries, ac5eConfig.optinSelected)
+			.filter((entry) => _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
+		const transitConversionEntries = filteredTransitEntries.filter((entry) => entry?.requiresTransitAdvantage || entry?.requiresTransitDisadvantage);
+		const transientBehaviorParts = [];
+		if (ac5eConfig.advantageBehavior?.mode === 'custom') {
+			const advantageFormula = String(ac5eConfig.advantageBehavior.advantageFormula ?? '').trim();
+			const disadvantageFormula = String(ac5eConfig.advantageBehavior.disadvantageFormula ?? '').trim();
+			const resolvedAdvantageFormula = transientRollState.hasTransitAdvantage ? _resolveTransientBehaviorFormula(advantageFormula, transientRollState) : '';
+			const resolvedDisadvantageFormula = transientRollState.hasTransitDisadvantage ? _resolveTransientBehaviorFormula(disadvantageFormula, transientRollState) : '';
+			const shouldConvertAdvantage = transientRollState.hasTransitAdvantage && !!resolvedAdvantageFormula;
+			const shouldConvertDisadvantage = transientRollState.hasTransitDisadvantage && !!resolvedDisadvantageFormula;
+			if (shouldConvertAdvantage) transientBehaviorParts.push(resolvedAdvantageFormula);
+			if (shouldConvertDisadvantage) transientBehaviorParts.push(resolvedDisadvantageFormula);
+			if (shouldConvertAdvantage) config.advantage = false;
+			if (shouldConvertDisadvantage) config.disadvantage = false;
+		} else {
+			if (config.advantage && transitConversionEntries.some((entry) => entry?.requiresTransitAdvantage)) config.advantage = false;
+			if (config.disadvantage && transitConversionEntries.some((entry) => entry?.requiresTransitDisadvantage)) config.disadvantage = false;
 		}
-		if (subjectNoAdv.length || opponentNoAdv.length) {
-			config.advantage = false;
-		}
-		if (subjectDisadvantage.length || opponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount) {
-			config.disadvantage = true;
-		}
-		if (subjectNoDis.length || opponentNoDis.length) {
-			config.disadvantage = false;
-		}
+		ac5eConfig.transientBehaviorParts = transientBehaviorParts;
 		if (config.advantage && config.disadvantage) {
 			config.advantage = true; // both true let system handle it
 			config.disadvantage = true; // both true let system handle it
@@ -1456,6 +1940,25 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		return next;
 	};
 	const nextInjectedParts = Array.isArray(ac5eConfig.parts) ? [...ac5eConfig.parts] : [];
+	for (const part of ac5eConfig.transientBehaviorParts ?? []) {
+		if (typeof part === 'string' && part.trim()) nextInjectedParts.push(part.trim());
+	}
+	if (hook !== 'damage') {
+		const deferredTransitBonusEntries = _filterOptinEntries(
+			[...(ac5eConfig?.subject?.bonus ?? []), ...(ac5eConfig?.opponent?.bonus ?? [])],
+			ac5eConfig.optinSelected,
+		).filter(
+			(entry) =>
+				entry &&
+				typeof entry === 'object' &&
+				!entry.optin &&
+				(entry.requiresTransitAdvantage || entry.requiresTransitDisadvantage) &&
+				_entryMatchesTransientState(entry, ac5eConfig),
+		);
+		for (const entry of deferredTransitBonusEntries) {
+			for (const value of entry.values ?? []) nextInjectedParts.push(value);
+		}
+	}
 	if (roll0) {
 		roll0.options ??= {};
 		roll0.options[Constants.MODULE_ID] ??= {};
@@ -1499,7 +2002,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	};
 	const effectiveModifiers = foundry.utils.duplicate(ac5eConfig.modifiers ?? {});
 	for (const side of ['subject', 'opponent']) {
-		const sideModifiers = _filterOptinEntries(ac5eConfig?.[side]?.modifiers ?? [], ac5eConfig.optinSelected);
+		const sideModifiers = _filterOptinEntries(ac5eConfig?.[side]?.modifiers ?? [], ac5eConfig.optinSelected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 		for (const entry of sideModifiers) {
 			if (!entry || typeof entry !== 'object') continue;
 			applyModifierConstraint(effectiveModifiers, entry.modifier);
@@ -1522,6 +2025,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	if (!dialog?.configure) _writeFastForwardMode(ac5eConfig, config, roll0);
 	if (hook === 'attack') _syncMidiAttackRollModifierTracker(ac5eConfig, config);
 	else if (hook === 'check' || hook === 'save') _syncMidiAbilityRollModifierTracker(ac5eConfig, config, localDialog);
+	if (ac5eConfig?.tooltipObj && hook) delete ac5eConfig.tooltipObj[hook];
 	_getTooltip(ac5eConfig);
 	if (skipSetProperties) return ac5eConfig;
 	return _setAC5eProperties(ac5eConfig, config, localDialog, message);
@@ -1775,7 +2279,18 @@ export function _autoRanged(activity, token, target, options) {
 		if (modernRules && short >= 2 * distanceUnit) short += 12 * distanceUnit;
 		else short *= 2;
 	}
-	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) return { inRange: distance <= reach };
+	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) {
+		return {
+			nearbyFoe: false,
+			inRange: distance <= reach,
+			range: 'normal',
+			longDisadvantage: false,
+			outOfRangeFail: true,
+			outOfRangeFailSourceLabel: 'meleeOoR',
+			outOfRangeFailSourceMode: 'meleeOoR',
+			distance,
+		};
+	}
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
 	if (sharpShooter && long && actionType == 'rwak') short = long;
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
@@ -1871,24 +2386,71 @@ function _buildItemMatcher(queryRaw) {
 	return matcher;
 }
 
-function _itemMatchesIdentifier(item, identifier, matcher) {
+function _normalizeItemLookupMatchOption(value) {
+	const parsed = String(value ?? 'name')
+		.trim()
+		.toLowerCase();
+	if (['name', 'identifier', 'id', 'uuid', 'any'].includes(parsed)) return parsed;
+	return 'name';
+}
+
+function _normalizeItemLookupNameModeOption(value) {
+	const parsed = String(value ?? 'exact')
+		.trim()
+		.toLowerCase();
+	if (['exact', 'partial'].includes(parsed)) return parsed;
+	return 'exact';
+}
+
+function _normalizeItemLookupOptions(options = {}) {
+	const input = options && typeof options === 'object' ? options : {};
+	return {
+		...input,
+		match: _normalizeItemLookupMatchOption(input.match),
+		nameMode: _normalizeItemLookupNameModeOption(input.nameMode),
+	};
+}
+
+function _itemNameMatches(item, identifier, matcher, options = {}) {
+	const name = String(item?.name ?? '');
+	if (!name) return false;
+	const query = String(identifier ?? '').trim();
+	if (!query) return false;
+
+	const nameMode = _normalizeItemLookupNameModeOption(options.nameMode);
+	const nameLower = name.toLowerCase();
+	const queryLower = query.toLowerCase();
+	if (nameMode === 'exact') return nameLower === queryLower;
+
+	const slug = name.slugify();
+	if (matcher?.SearchFilter?.testQuery) {
+		return matcher.SearchFilter.testQuery(matcher.rgx, name) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, slug));
+	}
+	return nameLower.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && slug.toLowerCase().includes(matcher.querySlug));
+}
+
+function _itemMatchesLookup(item, identifier, matcher, options = {}) {
 	if (!item || !identifier) return false;
+	const normalizedOptions = _normalizeItemLookupOptions(options);
+	const match = normalizedOptions.match;
+	const normalizedIdentifier = String(identifier ?? '').trim();
+	const identifierSlug = normalizedIdentifier.slugify();
 	const id = String(item.id ?? '');
 	const uuid = String(item.uuid ?? '');
 	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
 
-	if (id === identifier || uuid === identifier || directIdentifier === identifier) return true;
+	if (match === 'id') return id === normalizedIdentifier;
+	if (match === 'uuid') return uuid === normalizedIdentifier;
+	if (match === 'identifier') return directIdentifier === normalizedIdentifier;
+	if (match === 'name') return _itemNameMatches(item, identifier, matcher, normalizedOptions);
 
-	const name = String(item.name ?? '');
-	const slug = name.slugify();
-	const haystack = `${name} ${directIdentifier} ${slug}`.trim();
-
-	if (matcher?.SearchFilter?.testQuery) {
-		return matcher.SearchFilter.testQuery(matcher.rgx, haystack) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, haystack));
-	}
-
-	const normalizedHaystack = haystack.toLowerCase();
-	return normalizedHaystack.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && normalizedHaystack.includes(matcher.querySlug));
+	return (
+		id === normalizedIdentifier ||
+		uuid === normalizedIdentifier ||
+		directIdentifier === normalizedIdentifier ||
+		(identifierSlug && directIdentifier === identifierSlug) ||
+		_itemNameMatches(item, identifier, matcher, normalizedOptions)
+	);
 }
 
 function _resolveActorForItemLookup(source) {
@@ -1954,7 +2516,8 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	const actorItems = Array.from(actor.items ?? []);
 	if (!actorItems.length) return [];
 
-	const itemType = typeof options?.type === 'string' ? options.type.trim() : '';
+	const normalizedOptions = _normalizeItemLookupOptions(options);
+	const itemType = typeof normalizedOptions?.type === 'string' ? normalizedOptions.type.trim() : '';
 	const scopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
 	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
 	if (!identifiers.length) return scopedItems;
@@ -1966,7 +2529,7 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	for (const item of scopedItems) {
 		for (const identifier of identifiers) {
 			const matcher = matchers.get(identifier);
-			if (!_itemMatchesIdentifier(item, identifier, matcher)) continue;
+			if (!_itemMatchesLookup(item, identifier, matcher, normalizedOptions)) continue;
 			const itemKey = String(item?.uuid ?? item?.id ?? item?.name ?? '');
 			if (!seen.has(itemKey)) {
 				seen.add(itemKey);
@@ -2004,7 +2567,7 @@ export function _getTooltip(ac5eConfig = {}) {
 	if (tooltipObj?.[hookType] && !hasOptins && !bypassTooltipCache) return tooltipObj[hookType];
 	else tooltip = '<div class="ac5e-tooltip-content">';
 	const optinSelected = ac5eConfig?.optinSelected ?? {};
-	const filterOptinEntries = (entries = []) => _filterOptinEntries(entries, optinSelected);
+	const filterOptinEntries = (entries = []) => _filterOptinEntries(entries, optinSelected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 	const getChanceTooltipSuffix = (chanceData = {}) => {
 		if (!chanceData || typeof chanceData !== 'object') return '';
 		if (!chanceData.enabled || !chanceData.triggered) return '';
@@ -2031,6 +2594,19 @@ export function _getTooltip(ac5eConfig = {}) {
 			.trim()
 			.replace(/\s+/g, ' ')
 			.toLowerCase();
+	const activeAbilityOverrideEntry = _getActiveAbilityOverrideEntry(ac5eConfig);
+	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? '')
+		.trim()
+		.toUpperCase();
+	const activeAbilityOverrideLabel =
+		typeof activeAbilityOverrideEntry?.label === 'string' && activeAbilityOverrideEntry.label.trim() ? activeAbilityOverrideEntry.label.trim()
+		: typeof activeAbilityOverrideEntry?.name === 'string' && activeAbilityOverrideEntry.name.trim() ? activeAbilityOverrideEntry.name.trim()
+		: '';
+	const activeAbilityOverrideValue = typeof activeAbilityOverrideEntry?.abilityOverride === 'string' ? activeAbilityOverrideEntry.abilityOverride.trim().toUpperCase() : '';
+	const activeAbilityOverrideText =
+		activeAbilityOverrideEntry && activeAbilityOverrideValue ?
+			`Ability: ${baselineAbility || '?'} -> ${activeAbilityOverrideValue}${activeAbilityOverrideLabel ? ` (${activeAbilityOverrideLabel})` : ''}`
+		: '';
 	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
 		if (condition) {
@@ -2130,6 +2706,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectBonusLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subjectBonusLabels.join(', ')}</span>`);
 		const subjectModifierLabels = mapEntryLabels(filterOptinEntries(subject.modifiers));
 		addTooltip(subjectModifierLabels.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subjectModifierLabels.join(', ')}</span>`);
+		addTooltip(Boolean(activeAbilityOverrideText), `<span style="display: block; text-align: left;">${activeAbilityOverrideText}</span>`);
 		const subjectExtraDiceLabels = mapEntryLabels(filterOptinEntries(subject.extraDice));
 		addTooltip(subjectExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.ExtraDice')}: ${subjectExtraDiceLabels.join(', ')}</span>`);
 	}
@@ -2164,6 +2741,9 @@ export function _getTooltip(ac5eConfig = {}) {
 		const opponentExtraDiceLabels = mapEntryLabels(filterOptinEntries(opponent.extraDice));
 		addTooltip(opponentExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponentExtraDiceLabels.join(', ')}</span>`);
 	}
+	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
+	const infoLabels = [...new Set(mapEntryLabels(infoEntries))];
+	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Info')}: ${infoLabels.join(', ')}</span>`);
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
 		const combinedEntries = filterOptinEntries([...(subject?.criticalThreshold ?? []), ...(opponent?.criticalThreshold ?? [])]);
@@ -2481,7 +3061,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	clearLegacySet(tracker?.advReminderAttribution);
 
 	const selected = ac5eConfig?.optinSelected ?? {};
-	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected);
+	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 	const subject = ac5eConfig?.subject ?? {};
 	const opponent = ac5eConfig?.opponent ?? {};
 
@@ -2501,6 +3081,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
 	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
 	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
+	const infoLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.info ?? [])).concat(labelsFromEntries(filterOptin(opponent?.info ?? []))));
 	const addEntries = (type, labels = []) => {
 		dropConfigButtonsAttribution(type, labels);
 		const keypressLabels = keypressLabelsByType[type];
@@ -2532,6 +3113,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('CRIT', criticalLabels);
 	addEntries('NOCRIT', noCriticalLabels);
+	addCustomAttributionEntries(_localize('AC5E.Info'), infoLabels);
 	const hasAc5eAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
 		if (!typed || typeof typed !== 'object') return false;
@@ -2878,7 +3460,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	clearLegacySet(tracker?.advReminderAttribution);
 
 	const selected = ac5eConfig?.optinSelected ?? {};
-	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected);
+	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 	const subject = ac5eConfig?.subject ?? {};
 	const opponent = ac5eConfig?.opponent ?? {};
 
@@ -2898,6 +3480,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
 	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+	const infoLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.info ?? [])).concat(labelsFromEntries(filterOptin(opponent?.info ?? []))));
 	const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 	const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
 	const addEntries = (type, labels = []) => {
@@ -2940,6 +3523,7 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	addEntries('NODIS', noDisadvantageLabels);
 	addEntries('FAIL', failLabels);
 	addEntries('SUCCESS', successLabels);
+	addCustomAttributionEntries(_localize('AC5E.Info'), infoLabels, { combineLabelList: true });
 	const hasAc5eAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
 		if (!typed || typeof typed !== 'object') return false;
@@ -3093,7 +3677,6 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			originatingMessageId: options?.originatingMessageId,
 		});
 	}
-
 	const { skipDialogAdvantage, skipDialogDisadvantage, skipDialogNormal } = ac5eConfig.preAC5eConfig;
 	const { deferD20KeypressToMidi, useMidiD20Attribution } = _getD20TooltipOwnership(ac5eConfig, { midiRoller });
 	const d20RollerLabel = useMidiD20Attribution ? roller : 'Core';
@@ -3414,8 +3997,13 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 		[Constants.MODULE_ID]: {
 			tooltipObj: ac5eConfig.tooltipObj,
 			hookType: ac5eConfig.hookType,
+			roller: ac5eConfig.roller,
 			tokenId: ac5eConfig.tokenId,
 			targetId: ac5eConfig.targetId,
+			hasTransitAdvantage: !!ac5eConfig.hasTransitAdvantage,
+			hasTransitDisadvantage: !!ac5eConfig.hasTransitDisadvantage,
+			hasPlayerOwner: ac5eConfig.hasPlayerOwner,
+			ownership: ac5eConfig.ownership,
 			optionsSnapshot,
 		},
 	};
@@ -3488,6 +4076,15 @@ export function _getSafeUseConfig(ac5eConfig) {
 		isFumble: ac5eConfig?.isFumble ?? false,
 		options,
 		optionsSnapshot,
+		subject: {
+			fail: foundry.utils.duplicate(ac5eConfig?.subject?.fail ?? []),
+			info: foundry.utils.duplicate(ac5eConfig?.subject?.info ?? []),
+			rangeNotes: foundry.utils.duplicate(ac5eConfig?.subject?.rangeNotes ?? []),
+		},
+		opponent: {
+			fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []),
+			info: foundry.utils.duplicate(ac5eConfig?.opponent?.info ?? []),
+		},
 		bonuses: {
 			subject: sanitizeBonuses(ac5eConfig?.subject?.bonus),
 			opponent: sanitizeBonuses(ac5eConfig?.opponent?.bonus),
@@ -3497,6 +4094,8 @@ export function _getSafeUseConfig(ac5eConfig) {
 		extraDice: foundry.utils.duplicate(ac5eConfig?.extraDice ?? []),
 		threshold: foundry.utils.duplicate(ac5eConfig?.threshold ?? []),
 		fumbleThreshold: foundry.utils.duplicate(ac5eConfig?.fumbleThreshold ?? []),
+		pendingUses: foundry.utils.duplicate(ac5eConfig?.pendingUses ?? []),
+		pendingUsesApplied: !!ac5eConfig?.pendingUsesApplied,
 		preAC5eConfig: {
 			adv: ac5eConfig?.preAC5eConfig?.adv ?? null,
 			dis: ac5eConfig?.preAC5eConfig?.dis ?? null,
@@ -3621,6 +4220,15 @@ function _categorizeChangedOptionKeys(changedKeys = []) {
 function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval) {
 	const areKeysPressed = game.system.utils.areKeysPressed;
 	const event = config?.event;
+	const getPersistedHookConfig = (source, desiredHookType) => {
+		if (!source || typeof source !== 'object') return undefined;
+		const direct =
+			source?.options?.[Constants.MODULE_ID] ??
+			source?.[Constants.MODULE_ID];
+		if (direct?.hookType === desiredHookType || !desiredHookType) return direct;
+		const rollConfigs = Array.isArray(source?.rolls) ? source.rolls.map((roll) => roll?.options?.[Constants.MODULE_ID]).filter(Boolean) : [];
+		return rollConfigs.find((entry) => entry?.hookType === desiredHookType) ?? rollConfigs[0];
+	};
 	const isPressed = (name) => {
 		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
 		if (viaSystem) return true;
@@ -3638,12 +4246,9 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	const token = canvas.tokens.get(tokenId);
 	const actor = token?.actor;
 	const persistedAc5eConfig =
-		config?.options?.[Constants.MODULE_ID] ??
-		config?.[Constants.MODULE_ID] ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
-		dialog?.config?.options?.[Constants.MODULE_ID] ??
-		dialog?.config?.[Constants.MODULE_ID] ??
-		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID];
+		getPersistedHookConfig(config, hookType) ??
+		getPersistedHookConfig(dialog?.config, hookType);
+	const originatingUseConfig = options?.originatingUseConfig;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
@@ -3662,6 +4267,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			midiDisadvantage: [],
 			noDisadvantage: [],
 			fail: [],
+			info: [],
 			midiFail: [],
 			bonus: [],
 			critical: [],
@@ -3674,6 +4280,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
+			abilityOverride: [],
 			diceUpgrade: [],
 			diceDowngrade: [],
 			range: [],
@@ -3688,6 +4295,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			disadvantageNames: new Set(),
 			noDisadvantage: [],
 			fail: [],
+			info: [],
 			bonus: [],
 			critical: [],
 			noCritical: [],
@@ -3698,6 +4306,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
+			abilityOverride: [],
 			diceUpgrade: [],
 			diceDowngrade: [],
 			range: [],
@@ -3718,6 +4327,11 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		},
 		returnEarly: false,
 	};
+	if (Array.isArray(originatingUseConfig?.subject?.fail)) ac5eConfig.subject.fail.push(...foundry.utils.duplicate(originatingUseConfig.subject.fail));
+	if (Array.isArray(originatingUseConfig?.subject?.info)) ac5eConfig.subject.info.push(...foundry.utils.duplicate(originatingUseConfig.subject.info));
+	if (Array.isArray(originatingUseConfig?.subject?.rangeNotes)) ac5eConfig.subject.rangeNotes.push(...foundry.utils.duplicate(originatingUseConfig.subject.rangeNotes));
+	if (Array.isArray(originatingUseConfig?.opponent?.fail)) ac5eConfig.opponent.fail.push(...foundry.utils.duplicate(originatingUseConfig.opponent.fail));
+	if (Array.isArray(originatingUseConfig?.opponent?.info)) ac5eConfig.opponent.info.push(...foundry.utils.duplicate(originatingUseConfig.opponent.info));
 	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
 	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') {
 		ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
@@ -3739,19 +4353,11 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	ac5eConfig.preAC5eConfig.skipDialogDisadvantage = isPressed('skipDialogDisadvantage');
 	ac5eConfig.preAC5eConfig.skipDialogNormal = isPressed('skipDialogNormal');
 	const persistedOptins =
-		config?.options?.[Constants.MODULE_ID]?.optinSelected ??
-		config?.[Constants.MODULE_ID]?.optinSelected ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.optinSelected ??
-		dialog?.config?.options?.[Constants.MODULE_ID]?.optinSelected ??
-		dialog?.config?.[Constants.MODULE_ID]?.optinSelected ??
-		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.optinSelected;
+		getPersistedHookConfig(config, hookType)?.optinSelected ??
+		getPersistedHookConfig(dialog?.config, hookType)?.optinSelected;
 	const persistedChanceRolls =
-		config?.options?.[Constants.MODULE_ID]?.chanceRolls ??
-		config?.[Constants.MODULE_ID]?.chanceRolls ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.chanceRolls ??
-		dialog?.config?.options?.[Constants.MODULE_ID]?.chanceRolls ??
-		dialog?.config?.[Constants.MODULE_ID]?.chanceRolls ??
-		dialog?.config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.chanceRolls;
+		getPersistedHookConfig(config, hookType)?.chanceRolls ??
+		getPersistedHookConfig(dialog?.config, hookType)?.chanceRolls;
 	const parseOptinsFromFormObject = (formObject = {}) => {
 		if (!formObject || typeof formObject !== 'object') return {};
 		const parsed = {};
@@ -4138,9 +4744,11 @@ export function _generateAC5eFlags() {
 	const noCriticalActionTypes = ['all', 'attack', 'damage'];
 	const actionTypesByMode = {
 		advantage: allModesActionTypes,
+		abilityOverride: ['attack'],
 		bonus: allModesActionTypes,
 		critical: allModesActionTypes,
 		disadvantage: allModesActionTypes,
+		info: [...allModesActionTypes, 'use'],
 		modifier: modifierActionTypes,
 		modifyDC: modifyDCActionTypes,
 		noAdvantage: allModesActionTypes,
@@ -4167,7 +4775,7 @@ export function _generateAC5eFlags() {
 	}
 
 	// Keep ACTIONTYPE entries for backwards compatibility, but not for damage-only dice up/down modes.
-	const genericActionTypeModes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'modifier', 'modifyDC', 'noAdvantage', 'noCritical', 'noDisadvantage', 'success'];
+	const genericActionTypeModes = ['advantage', 'bonus', 'critical', 'disadvantage', 'fail', 'fumble', 'info', 'modifier', 'modifyDC', 'noAdvantage', 'noCritical', 'noDisadvantage', 'success'];
 	for (const scope of scopes) {
 		for (const mode of genericActionTypeModes) moduleFlags.add(`${scope.prefix}.ACTIONTYPE.${mode}`);
 	}
@@ -4397,6 +5005,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = sandboxOptions;
 	sandbox.ability = sandboxOptions.ability ? { [sandboxOptions.ability]: true } : {};
+	sandbox.abilityOverride = sandboxOptions.ability ?? '';
 	sandbox.skill = sandboxOptions.skill ? { [sandboxOptions.skill]: true } : {};
 	sandbox.tool = sandboxOptions.tool ? { [sandboxOptions.tool]: true } : {};
 	if (sandboxOptions?.ability) sandbox._evalConstants[sandboxOptions.ability] = true;
@@ -4427,6 +5036,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandboxOptions?.d20?.advantageMode ??
 		sandboxOptions?.advantageMode ??
 		sandboxOptions?.[Constants.MODULE_ID]?.advantageMode;
+	const transientRollState = _getTransientRollState({}, sandboxOptions);
+	sandbox.hasTransitAdvantage = transientRollState.hasTransitAdvantage;
+	sandbox.hasTransitDisadvantage = transientRollState.hasTransitDisadvantage;
+	sandbox.advantageBehavior = _getConfiguredAdvantageBehavior({}, sandboxOptions);
 	if (typeof resolvedD20Mode === 'number') {
 		sandbox.hasAdvantage = resolvedD20Mode > 0;
 		sandbox.hasDisadvantage = resolvedD20Mode < 0;
@@ -4434,6 +5047,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		sandbox.hasAdvantage = sandboxOptions?.d20?.hasAdvantage ?? sandboxOptions?.advantage;
 		sandbox.hasDisadvantage = sandboxOptions?.d20?.hasDisadvantage ?? sandboxOptions?.disadvantage;
 	}
+	sandbox.hasAdvantage = Boolean(sandbox.hasAdvantage || sandbox.hasTransitAdvantage);
+	sandbox.hasDisadvantage = Boolean(sandbox.hasDisadvantage || sandbox.hasTransitDisadvantage);
 	sandbox.isCritical = sandboxOptions?.d20?.isCritical;
 	sandbox.isFumble = sandboxOptions?.d20?.isFumble;
 	globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(sandbox);
@@ -4633,4 +5248,7 @@ export function _isUuidLike(value) {
 		return false;
 	}
 }
+
+
+
 

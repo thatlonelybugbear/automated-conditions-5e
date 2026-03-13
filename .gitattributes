@@ -4,5 +4,6 @@ wiki/ export-ignore
 CONTRIBUTING.md export-ignore
 README.md export-ignore
 TO-DO.md export-ignore
+developmentChangelog.md export-ignore
 scripts/wiki-pull.ps1 export-ignore
 scripts/pre-release-check.ps1 export-ignore

@@ -19,6 +19,8 @@ import {
 	_getTooltip,
 	_getConfig,
 	_filterOptinEntries,
+	_entryMatchesTransientState,
+	_getActiveAbilityOverride,
 	_getD20TooltipOwnership,
 	_captureFrozenD20Baseline,
 	_captureFrozenDamageBaseline,
@@ -90,17 +92,70 @@ function _getMessageConfigOriginatingMessageId(messageConfig) {
 	return messageConfig?.data?.['flags.dnd5e.originatingMessage'] ?? messageConfig?.data?.flags?.dnd5e?.originatingMessage;
 }
 
+function _buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
+	const hookType = String(ac5eConfig?.hookType ?? '').trim();
+	if (!hookType) return null;
+	const payload = {
+		hookType,
+		chatTooltip: typeof chatTooltip === 'string' ? chatTooltip : String(ac5eConfig?.chatTooltip ?? '').trim(),
+	};
+	if (ac5eConfig?.hasTransitAdvantage) payload.hasTransitAdvantage = true;
+	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;
+	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
+	return payload;
+}
+
+function _applyAbilityOverrideToCoreConfig(config, activity, abilityOverride) {
+	const normalizedAbility = String(abilityOverride ?? '').trim().toLowerCase();
+	if (!config || !normalizedAbility) return;
+	if (!config.subject || typeof config.subject !== 'object') return;
+	const activityType = String(activity?.type ?? '').trim().toLowerCase();
+	if (!activityType) return;
+	config.subject[activityType] ??= {};
+	if (config.subject[activityType] && typeof config.subject[activityType] === 'object') {
+		config.subject[activityType].ability = normalizedAbility;
+	}
+}
+
+function _restoreAbilityToBaseline(config, ac5eConfig) {
+	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? '')
+		.trim()
+		.toLowerCase();
+	if (!baselineAbility) return;
+	ac5eConfig.options ??= {};
+	ac5eConfig.options.ability = baselineAbility;
+	if (config?.options && typeof config.options === 'object') config.options.ability = baselineAbility;
+	if (!config?.subject || typeof config.subject !== 'object') return;
+	const hookType = String(ac5eConfig?.hookType ?? '').trim().toLowerCase();
+	if (!hookType) return;
+	config.subject[hookType] ??= {};
+	if (config.subject[hookType] && typeof config.subject[hookType] === 'object') {
+		config.subject[hookType].ability = baselineAbility;
+	}
+}
+
 function _postBuildRollConfig(processConfig, config, index, options, hook) {
 	if (!_activeModule('midi-qol')) return true;
 	if (!processConfig || !config || typeof config !== 'object') return true;
+	const processRollOptions = processConfig?.rolls?.[index]?.options ?? processConfig?.rolls?.[0]?.options;
+	if (!processRollOptions || typeof processRollOptions !== 'object') return true;
 	const ac5eConfig =
+		processConfig?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
 		processConfig?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
 		processConfig?.options?.[Constants.MODULE_ID] ??
 		processConfig?.[Constants.MODULE_ID];
+	const sourceAc5eConfig =
+		config?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
+		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
+		config?.options?.[Constants.MODULE_ID] ??
+		config?.[Constants.MODULE_ID];
+	if (sourceAc5eConfig?.hookType === 'damage') {
+		if (sourceAc5eConfig?.tooltipObj && typeof sourceAc5eConfig.tooltipObj === 'object') delete sourceAc5eConfig.tooltipObj.damage;
+		processRollOptions[Constants.MODULE_ID] ??= {};
+		processRollOptions[Constants.MODULE_ID].chatTooltip = _getTooltip(sourceAc5eConfig);
+	}
 	if (ac5eConfig?.hookType !== 'check' || !ac5eConfig?.options?.skill) return true;
 	if (!ac5eConfig?.preAC5eConfig?.forceChatTooltip) return true;
-	const processRollOptions = processConfig?.rolls?.[index]?.options ?? processConfig?.rolls?.[0]?.options;
-	if (!processRollOptions || typeof processRollOptions !== 'object') return true;
 	const explicitOverride = ac5eConfig?.explicitModeOverride;
 	const ac5eMode =
 		explicitOverride?.family === 'd20' ? (
@@ -502,6 +557,8 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 			options.d20.advantageMode = config?.workflow?.attackRoll?.options?.advantageMode ?? config?.workflow?.advantageMode;
 			options.d20.hasAdvantage = config?.workflow?.advantage;
 			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
+			options.d20.hasTransitAdvantage = config?.workflow?.attackRoll?.options?.[Constants.MODULE_ID]?.hasTransitAdvantage;
+			options.d20.hasTransitDisadvantage = config?.workflow?.attackRoll?.options?.[Constants.MODULE_ID]?.hasTransitDisadvantage;
 			options.d20.isCritical = config?.midiOptions?.isCritical ?? config?.workflow?.isCritical;
 			options.d20.isFumble = config?.midiOptions?.isFumble ?? config?.workflow?.isFumble;
 		} else {
@@ -537,6 +594,8 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 			options.d20.advantageMode = resolvedAdvantageMode;
 			options.d20.hasAdvantage = resolvedHasAdvantage;
 			options.d20.hasDisadvantage = resolvedHasDisadvantage;
+			options.d20.hasTransitAdvantage = ac5eAttackRollFlags?.hasTransitAdvantage ?? ac5eAttackFlags?.hasTransitAdvantage;
+			options.d20.hasTransitDisadvantage = ac5eAttackRollFlags?.hasTransitDisadvantage ?? ac5eAttackFlags?.hasTransitDisadvantage;
 			options.d20.isCritical = findRoll0?.isCritical ?? findRoll0?.options?.isCritical ?? config?.isCritical;
 			options.d20.isFumble = findRoll0?.isFumble ?? findRoll0?.options?.isFumble ?? config?.isFumble;
 		}
@@ -1094,6 +1153,7 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	let targets = game.user?.targets;
 	let singleTargetToken = isTargetSelf ? sourceToken : targets?.first();
 	const needsTarget = settings.needsTarget;
+	const placesTemplate = !!activity?.target?.template?.type;
 	//to-do: add an override for 'force' and a keypress, so that one could "target" unseen tokens. Default to source then probably?
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
 	if (invalidTargets) {
@@ -1103,6 +1163,19 @@ export function _preUseActivity(activity, usageConfig, dialogConfig, messageConf
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
+	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type === 'attack';
+	if (shouldCheckPreUseRange) {
+		ac5eConfig.subject.rangeNotes = [];
+		const failLabel = _localize('AC5E.OutOfRange');
+		const { inRange, outOfRangeFail, outOfRangeFailSourceLabel } = _autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
+		if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
+			ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
+		}
+		if (outOfRangeFail && !usageConfig?.workflow?.AoO && !inRange && !ac5eConfig.subject.fail.includes(failLabel)) {
+			ac5eConfig.subject.fail.push(failLabel);
+		}
+	}
 	const subjectFail = _filterOptinEntries(ac5eConfig?.subject?.fail ?? [], ac5eConfig?.optinSelected);
 	const opponentFail = _filterOptinEntries(ac5eConfig?.opponent?.fail ?? [], ac5eConfig?.optinSelected);
 	const failEntries = [...subjectFail, ...opponentFail];
@@ -1179,6 +1252,17 @@ function enforceDefaultButtonFocus(root, button, { attempts = 10, delay = 60 } =
 	tick();
 }
 
+function _syncChatTooltipToRollConfigs(ac5eConfig, rollConfig) {
+	if (!ac5eConfig || !rollConfig?.rolls?.length) return;
+	const tooltip = _getTooltip(ac5eConfig);
+	ac5eConfig.chatTooltip = tooltip;
+	for (const roll of rollConfig.rolls) {
+		if (!roll?.options) continue;
+		roll.options[Constants.MODULE_ID] ??= {};
+		roll.options[Constants.MODULE_ID].chatTooltip = tooltip;
+	}
+}
+
 export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 	if (ac5e.buildDebug || _hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
 	if (!rollConfig) return true;
@@ -1206,6 +1290,7 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 				roll.options[Constants.MODULE_ID].optinSelected = ac5eConfig.optinSelected;
 			}
 		}
+		_syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 	} else if (ac5eConfig.hookType && ['attack', 'save', 'check'].includes(ac5eConfig.hookType)) {
 		if (index !== 0) return true;
 		const preRestoreParts = _getD20ActivePartsSnapshot(rollConfig);
@@ -1264,6 +1349,8 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 				roll.options[Constants.MODULE_ID].optinSelected = ac5eConfig.optinSelected;
 				roll.options[Constants.MODULE_ID].defaultButton = ac5eConfig.defaultButton;
 				roll.options[Constants.MODULE_ID].advantageMode = ac5eConfig.advantageMode;
+				roll.options[Constants.MODULE_ID].hasTransitAdvantage = !!ac5eConfig.hasTransitAdvantage;
+				roll.options[Constants.MODULE_ID].hasTransitDisadvantage = !!ac5eConfig.hasTransitDisadvantage;
 			}
 		}
 		const entries = getBonusEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
@@ -1272,6 +1359,7 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 			const partsToAdd = [];
 			for (const entry of entries) {
 				if (!selectedIds.has(entry.id)) continue;
+				if (!_entryMatchesTransientState(entry, ac5eConfig)) continue;
 				const values = Array.isArray(entry.values) ? entry.values : [];
 				for (const value of values) partsToAdd.push(value);
 			}
@@ -1281,6 +1369,7 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 			ac5eConfig._lastAppliedD20OptinParts = [];
 		}
 		_appendPartsToD20Config(rollConfig, preservedExternalParts);
+		_syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 	}
 	return true;
 }
@@ -1291,9 +1380,13 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 	if (!Array.isArray(config?.rolls) && Array.isArray(rolls)) {
 		config.rolls = rolls;
 	}
-	if (Array.isArray(rolls) && Array.isArray(config?.rolls) && rolls[0]?.options?.[Constants.MODULE_ID]) {
-		const configRoll0Options = getExistingRollOptions(config, 0);
-		if (configRoll0Options) configRoll0Options[Constants.MODULE_ID] = rolls[0].options[Constants.MODULE_ID];
+	if (Array.isArray(rolls) && Array.isArray(config?.rolls)) {
+		for (let index = 0; index < rolls.length; index++) {
+			const rollOptions = rolls[index]?.options?.[Constants.MODULE_ID];
+			if (!rollOptions) continue;
+			const configRollOptions = getExistingRollOptions(config, index);
+			if (configRollOptions) configRollOptions[Constants.MODULE_ID] = rollOptions;
+		}
 	}
 
 	const options = config.options ?? {};
@@ -1329,6 +1422,26 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 		}
 		_getTooltip(ac5eConfig);
 		if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType }, { merge: true });
+	}
+	if (message && Array.isArray(rolls)) {
+		for (const roll of rolls) {
+			if (!roll?.options || typeof roll.options !== 'object') continue;
+			const rollAc5eConfig = roll.options?.[Constants.MODULE_ID];
+			if (!rollAc5eConfig || typeof rollAc5eConfig !== 'object') continue;
+			const payload = _buildChatRollPayload(rollAc5eConfig, {
+				chatTooltip:
+					typeof rollAc5eConfig?.chatTooltip === 'string' && rollAc5eConfig.chatTooltip.trim() ?
+						rollAc5eConfig.chatTooltip
+					: rollAc5eConfig?.hookType && ac5eConfig?.tooltipObj?.[rollAc5eConfig.hookType] ?
+						ac5eConfig.tooltipObj[rollAc5eConfig.hookType]
+					: typeof rollAc5eConfig?.hookType === 'string' && rollAc5eConfig.hookType && rollAc5eConfig !== ac5eConfig ?
+						_getTooltip(rollAc5eConfig)
+					: typeof ac5eConfig?.hookType === 'string' && ac5eConfig?.hookType === rollAc5eConfig?.hookType ?
+						_getTooltip(ac5eConfig)
+					: '',
+			});
+			if (payload) roll.options[Constants.MODULE_ID] = payload;
+		}
 	}
 	if (_activeModule('midi-qol') && ['attack', 'check', 'save'].includes(ac5eConfig?.hookType) && Array.isArray(rolls) && rolls[0]?.options) {
 		const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
@@ -1583,7 +1696,15 @@ function applyExplicitModeOverride(ac5eConfig, config) {
 export async function _postUseActivity(activity, usageConfig, results, hook) {
 	const message = results?.message;
 	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
-	if (!message || !ac5eConfig) return true;
+	if (!ac5eConfig) return true;
+	if ((hook === 'use' || hook === 'postUse') && ac5eConfig?.pendingUses?.length && !ac5eConfig.pendingUsesApplied) {
+		const optins = ac5eConfig.optinSelected ?? {};
+		const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
+		const pending = ac5eConfig.pendingUses.filter((entry) => !entry.optin || selectedIds.has(entry.id));
+		if (pending.length) await _applyPendingUses(pending);
+		ac5eConfig.pendingUsesApplied = true;
+	}
+	if (!message) return true;
 
 	const dnd5eUseFlag = _getMessageDnd5eFlags(message);
 	if (dnd5eUseFlag) {
@@ -1713,11 +1834,25 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	_logResolvedTargets('attack', sourceToken, singleTargetToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceToken?.id, singleTargetToken?.id, options, reEval);
+	_applyAbilityOverrideToCoreConfig(config, activity, ac5eConfig?.abilityOverride);
 	if (ac5eConfig.returnEarly) {
 		applyExplicitModeOverride(ac5eConfig, config);
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	ac5eConfig.preAC5eConfig ??= {};
+	if (!ac5eConfig.preAC5eConfig.baseAbility) {
+		ac5eConfig.preAC5eConfig.baseAbility = String(options?.ability ?? config?.subject?.[activity?.type ?? '']?.ability ?? '')
+			.trim()
+			.toLowerCase();
+	}
+	ac5eConfig.abilityOverride = _getActiveAbilityOverride(ac5eConfig) || ac5eConfig?.abilityOverride || '';
+	if (ac5eConfig.abilityOverride) {
+		ac5eConfig.options ??= {};
+		ac5eConfig.options.ability = ac5eConfig.abilityOverride;
+		options.ability = ac5eConfig.abilityOverride;
+	}
+	_applyAbilityOverrideToCoreConfig(config, activity, ac5eConfig?.abilityOverride);
 
 	let nearbyFoe,
 		inRange,
@@ -1727,16 +1862,17 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		outOfRangeFailSourceLabel;
 	if (singleTargetToken) {
 		ac5eConfig.subject.rangeNotes = [];
+		const failLabel = _localize('AC5E.OutOfRange');
 		({ nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = _autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig }));
 		//Nearby Foe
 		if (nearbyFoe) {
 			ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
 		}
 		if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
-			ac5eConfig.subject.rangeNotes.push(`${_localize('AC5E.OutOfRange')} fail suppressed: ${outOfRangeFailSourceLabel}`);
+			ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 		}
-		if (outOfRangeFail && !config.workflow?.AoO && !inRange) {
-			ac5eConfig.subject.fail.push(_localize('AC5E.OutOfRange'));
+		if (outOfRangeFail && !config.workflow?.AoO && !inRange && !ac5eConfig.subject.fail.includes(failLabel)) {
+			ac5eConfig.subject.fail.push(failLabel);
 		}
 		if (range === 'long' && longDisadvantage) {
 			ac5eConfig.subject.disadvantage.push(_localize('RangeLong'));
@@ -1961,10 +2097,13 @@ export function _renderHijack(hook, render, elem) {
 	} else if (hook === 'chat' && hookType !== 'use') {
 		if (!['both', 'chat'].includes(settings.showTooltips)) return true;
 		const messageFlags = render?.flags?.[Constants.MODULE_ID];
+		const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
+		const resolvedHookType = hookType ?? messageFlags?.hookType;
+		const resolvedRoller = roller ?? messageFlags?.roller;
 		if (!game.user.isGM) {
 			if (settings.showChatTooltips === 'none') return true;
-			else if (settings.showChatTooltips === 'players' && !getConfigAC5E?.hasPlayerOwner) return true;
-			else if (settings.showChatTooltips === 'owned' && getConfigAC5E?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
+			else if (settings.showChatTooltips === 'players' && !visibilityContext?.hasPlayerOwner) return true;
+			else if (settings.showChatTooltips === 'owned' && visibilityContext?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return true;
 		}
 		if (_activeModule('midi-qol')) {
 			if (render?.rolls?.length > 1) {
@@ -1976,9 +2115,9 @@ export function _renderHijack(hook, render, elem) {
 				const hT = ac5eElement?.hookType;
 				if (!hT) continue;
 				// When MidiQOL is active, prefer Midi's native tooltip pipeline for roll modes.
-				const { forceAc5eD20Tooltip } = _getD20TooltipOwnership(ac5eElement);
+				const forceAc5eD20Tooltip = !!ac5eElement?.forceAc5eD20Tooltip || _getD20TooltipOwnership(ac5eElement).forceAc5eD20Tooltip;
 				if (['attack', 'check', 'save'].includes(hT) && !forceAc5eD20Tooltip) continue;
-				tooltip = (messageFlags?.hookType === ac5eElement?.hookType && messageFlags?.tooltipObj?.[messageFlags.hookType]) || _getTooltip(ac5eElement);
+				tooltip = ac5eElement?.chatTooltip || messageFlags?.tooltipObj?.[hT] || '';
 				if (tooltip === '') continue;
 				let thisTargetElement;
 				if (['check', 'save'].includes(hT) && forceAc5eD20Tooltip) {
@@ -1999,20 +2138,20 @@ export function _renderHijack(hook, render, elem) {
 			}
 			return true;
 		} else {
-			tooltip = messageFlags?.tooltipObj?.[messageFlags.hookType] || _getTooltip(getConfigAC5E);
-			if (roller === 'Core') {
+			tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[messageFlags.hookType] || '';
+			if (resolvedRoller === 'Core') {
 				if (tooltip === '') return true;
-				if (['attack', 'damage'].includes(hookType)) {
+				if (['attack', 'damage'].includes(resolvedHookType)) {
 					targetElement = elem.querySelector('.dice-formula');
 				} else {
 					targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
 				}
-			} else if (roller === 'RSR') {
+			} else if (resolvedRoller === 'RSR') {
 				//to-do: Rework this to use the new RSR system
-				if (['check', 'save'].includes(hookType)) targetElement = elem.querySelector(`.flavor-text`);
-				else if (['attack'].includes(hookType)) {
+				if (['check', 'save'].includes(resolvedHookType)) targetElement = elem.querySelector(`.flavor-text`);
+				else if (['attack'].includes(resolvedHookType)) {
 					targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
-				} else if (['damage'].includes(hookType)) {
+				} else if (['damage'].includes(resolvedHookType)) {
 					targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
 				}
 			}
@@ -2103,6 +2242,7 @@ export function _renderSettings(app, html, data) {
 	html = html instanceof HTMLElement ? html : html[0];
 	renderChatTooltipsSettings(html);
 	renderColoredButtonSettings(html);
+	renderAdvantageBehaviorSettings(html);
 }
 
 function renderColoredButtonSettings(html) {
@@ -2215,6 +2355,24 @@ function renderChatTooltipsSettings(html) {
 
 	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
 	updateChatTooltipVisibility();
+}
+
+function renderAdvantageBehaviorSettings(html) {
+	const overrideToggle = html.querySelector(`[name="${Constants.MODULE_ID}.advantageBehaviorOverride"]`);
+	const advFormula = html.querySelector(`[name="${Constants.MODULE_ID}.advantageBehaviorAdvantageFormula"]`);
+	const disFormula = html.querySelector(`[name="${Constants.MODULE_ID}.advantageBehaviorDisadvantageFormula"]`);
+	if (!overrideToggle || !advFormula || !disFormula) return;
+
+	const updateVisibility = () => {
+		const visible = Boolean(overrideToggle.checked);
+		for (const input of [advFormula, disFormula]) {
+			const container = input.closest('.form-group') || input.parentElement;
+			if (container) container.style.display = visible ? 'flex' : 'none';
+		}
+	};
+
+	overrideToggle.addEventListener('change', updateVisibility);
+	updateVisibility();
 }
 
 function notifyPreUse(actorName, warning, type) {
@@ -2992,6 +3150,7 @@ function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
 
 function getRollNonBonusOptinEntries(ac5eConfig, hookType) {
 	const modes = ['advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'modifiers'];
+	if (hookType === 'attack') modes.push('abilityOverride');
 	return modes.flatMap((mode) => {
 		const subjectEntries = Array.isArray(ac5eConfig?.subject?.[mode]) ? ac5eConfig.subject[mode] : [];
 		const opponentEntries = Array.isArray(ac5eConfig?.opponent?.[mode]) ? ac5eConfig.opponent[mode] : [];
@@ -3085,12 +3244,14 @@ function getSelectedOptinEntries(ac5eConfig, optins, selectedTypes, hookType) {
 function getAllOptinEntriesForHook(ac5eConfig, hookType) {
 	const subjectBonuses = Array.isArray(ac5eConfig?.subject?.bonus) ? ac5eConfig.subject.bonus : [];
 	const opponentBonuses = Array.isArray(ac5eConfig?.opponent?.bonus) ? ac5eConfig.opponent.bonus : [];
+	const subjectInfo = Array.isArray(ac5eConfig?.subject?.info) ? ac5eConfig.subject.info : [];
+	const opponentInfo = Array.isArray(ac5eConfig?.opponent?.info) ? ac5eConfig.opponent.info : [];
 	const subjectTargetADC = Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : [];
 	const opponentTargetADC = Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : [];
 	const subjectRange = Array.isArray(ac5eConfig?.subject?.range) ? ac5eConfig.subject.range : [];
 	const opponentRange = Array.isArray(ac5eConfig?.opponent?.range) ? ac5eConfig.opponent.range : [];
 	return subjectBonuses
-		.concat(opponentBonuses, subjectTargetADC, opponentTargetADC, subjectRange, opponentRange)
+		.concat(opponentBonuses, subjectInfo, opponentInfo, subjectTargetADC, opponentTargetADC, subjectRange, opponentRange)
 		.filter((entry) => entry && typeof entry === 'object' && entry.optin && (!entry.hook || entry.hook === hookType));
 }
 
@@ -3224,6 +3385,15 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 				if (activeConfig.hookType === 'attack') refreshAttackAutoRangeState(activeConfig, activeDialog?.config);
 				_calcAdvantageMode(activeConfig, activeDialog.config, undefined, undefined, { skipSetProperties: true });
 				applyExplicitModeOverride(activeConfig, activeDialog.config);
+				activeConfig.abilityOverride = _getActiveAbilityOverride(activeConfig) || '';
+				if (activeConfig.abilityOverride) {
+					activeConfig.options ??= {};
+					activeConfig.options.ability = activeConfig.abilityOverride;
+					if (activeDialog?.config?.options) activeDialog.config.options.ability = activeConfig.abilityOverride;
+				} else {
+					_restoreAbilityToBaseline(activeDialog?.config, activeConfig);
+				}
+				_applyAbilityOverrideToCoreConfig(activeDialog?.config, { type: activeConfig.hookType }, activeConfig?.abilityOverride);
 				_appendPartsToD20Config(activeDialog?.config, preservedExternalParts);
 				const roll0 = activeDialog.config?.rolls?.[0];
 				if (roll0?.options) {
@@ -3382,6 +3552,7 @@ function setOptinSelections(ac5eConfig, nextSelections) {
 
 function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	if (!ac5eConfig || !config) return;
+	ac5eConfig.preAC5eConfig ??= {};
 	const optionBaseCritical = config?.options?.[Constants.MODULE_ID]?.baseCritical ?? config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.baseCritical;
 	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
 	const allCriticalEntries = (ac5eConfig.subject?.critical ?? [])
@@ -3507,11 +3678,10 @@ function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollInd
 			});
 		}
 		const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
-		if (criticalStatic && !isCriticalRoll) continue;
 		const values = Array.isArray(entry.values) ? entry.values : [];
 		for (const value of values) {
 			const parsed = _parseExtraDiceValue(value);
-			if (criticalStatic) {
+			if (criticalStatic && isCriticalRoll) {
 				criticalStaticAdditive += parsed.additive;
 				criticalStaticMultiplier *= parsed.multiplier;
 				continue;
@@ -3678,11 +3848,10 @@ function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', baseFor
 			}
 			if (!appliesToRoll) continue;
 			const criticalStatic = isCriticalStaticExtraDiceEntry(entry);
-			if (criticalStatic && !isCriticalRoll) continue;
 			const values = Array.isArray(entry.values) ? entry.values : [];
 			for (const value of values) {
 				const parsed = _parseExtraDiceValue(value);
-				if (criticalStatic) {
+				if (criticalStatic && isCriticalRoll) {
 					baseCriticalStaticAdditive += parsed.additive;
 					baseCriticalStaticMultiplier *= parsed.multiplier;
 					continue;

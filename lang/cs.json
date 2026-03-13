@@ -295,6 +295,10 @@
 			"success": {
 				"name": "Úspěšný hod k20",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/damage/death/save/skill/tool"
+			},
+			"abilityOverride": {
+				"name": "Override the ability used for the roll",
+				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -345,6 +349,10 @@
 			"success": {
 				"name": "Zajištění úspěchu hodů k20 proti tobě, nebo tebou vyvolaných",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration/death/save/skill/tool"
+			},
+			"abilityOverride": {
+				"name": "Grant an overridden ability to opponent rolls",
+				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -395,6 +403,10 @@
 			"success": {
 				"name": "Aura vynucující úspěch",
 				"description": "Nahraď ACTIONTYPE jedním z: all/attack/check/concentration//death/save/skill/tool. Změň formát hodnoty: radius=Číslo;allies, enemies, nebo omit pro VŠECHNY;další podmínky"
+			},
+			"abilityOverride": {
+				"name": "An aura overriding the ability used for rolls",
+				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.attack.fumbleThreshold": {
@@ -418,5 +430,19 @@
 		"RangedNearbyFoes": "Dostřel + blízcí nepřátelé",
 		"RangedLongDisadvantage": "Ranged long disadvantage",
 		"RangedOutOfRange": "Ranged out of range"
+	},
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
+	"AC5E.advantageBehaviorOverride": {
+		"Name": "Override system advantage handling",
+		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
+	},
+	"AC5E.advantageBehaviorAdvantageFormula": {
+		"Name": "Advantage bonus formula",
+		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
+	},
+	"AC5E.advantageBehaviorDisadvantageFormula": {
+		"Name": "Disadvantage penalty formula",
+		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
 	}
 }

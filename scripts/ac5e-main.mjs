@@ -18,6 +18,7 @@ import {
 	_resolveUuidString,
 	_isUuidLike,
 	_hasItem,
+	_debugBenchmarkPerimeterGridSpaceCenters,
 } from './ac5e-helpers.mjs';
 import { _renderHijack, _renderSettings, _rollFunctions, _overtimeHazards } from './ac5e-hooks.mjs';
 import { _migrate } from './ac5e-migrations.mjs';
@@ -203,7 +204,9 @@ function _normalizeUsageRuleMode(mode) {
 	if (!parsed) return null;
 	const aliases = {
 		adv: 'advantage',
+		abilityoverride: 'abilityOverride',
 		dis: 'disadvantage',
+		info: 'info',
 		noadv: 'noAdvantage',
 		nodis: 'noDisadvantage',
 		nocrit: 'noCritical',
@@ -265,6 +268,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 	if (!hook) return null;
 	const mode = _normalizeUsageRuleMode(definition.mode);
 	if (!mode) return null;
+	if (mode === 'abilityOverride' && hook !== 'attack') return null;
 	const target = _normalizeUsageRuleTarget(definition.target ?? definition.actorType);
 	if (!target) return null;
 	const cadence = _normalizeUsageRuleCadence(definition.cadence);
@@ -282,6 +286,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 	const chance = definition.chance;
 	const addTo = definition.addTo;
 	const usesCount = definition.usesCount;
+	const update = definition.update;
 	const itemLimited = Boolean(definition.itemLimited);
 	const value = definition.value;
 	const bonus = definition.bonus ?? value;
@@ -309,6 +314,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 		chance,
 		addTo,
 		usesCount,
+		update,
 		itemLimited,
 		bonus,
 		set: definition.set,
@@ -349,6 +355,8 @@ function _buildUsageRulesState() {
 			chance: entry.chance,
 			addTo: entry.addTo,
 			usesCount: entry.usesCount,
+			update: entry.update,
+			abilityOverride: entry.abilityOverride,
 			itemLimited: entry.itemLimited,
 			bonus: entry.bonus,
 			set: entry.set,
@@ -470,6 +478,7 @@ function listUsageRules() {
 			chance: entry.chance,
 			addTo: entry.addTo,
 			usesCount: entry.usesCount,
+			update: entry.update,
 			itemLimited: entry.itemLimited,
 			bonus: entry.bonus,
 			set: entry.set,
@@ -493,19 +502,25 @@ function showUsageRuleKeys() {
 		scope: 'String: application scope. Supported values: "effect" and "universal".',
 		hook: 'String: evaluation hook. Supported values include "*", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
 		target: 'String: which side the rule applies to. Supported values: "subject", "opponent", and "aura". Alias: actorType.',
-		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
+		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "info", "abilityOverride" (attack only), "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
 		name: 'String: user-facing label shown in tooltips, dialogs, and attribution.',
 		description: 'String: optional explanatory text carried with the rule.',
 		condition: 'String: AC5E-safe expression evaluated against the per-roll sandbox. Alias: expression.',
 		evaluate: 'Function: runtime-only predicate callback that receives the sandbox and rule context. Not persisted.',
 		priority: 'Number: ordering hint when multiple rules of the same type are collected.',
 		optin: 'Boolean: exposes the rule as an optional opt-in entry in supported roll dialogs.',
-		criticalStatic: 'Boolean: for extraDice rules, marks the bonus as crit-only static extra dice logic.',
+		criticalStatic: 'Boolean: for extraDice rules, applies the bonus normally but prevents it from being doubled on critical hits.',
 		partialConsume: 'Boolean: for usesCount rules, allows bounded counters to consume only the remaining available amount instead of failing when the full requested amount is not available.',
 		cadence: 'String: once-per cadence. Supported values: "oncePerTurn", "oncePerRound", and "oncePerCombat".',
 		chance: 'String|Number: optional chance gate evaluated before applying the rule.',
 		addTo: 'String|String[]: optional addTo target list for compatible modes.',
+		convertAdvantage: 'Boolean: when true, converts native advantage into AC5E-driven behavior for this rule even if the world override is off.',
+		convertDisadvantage: 'Boolean: when true, converts native disadvantage into AC5E-driven behavior for this rule even if the world override is off.',
+		hasTransitAdvantage: 'Boolean: legacy alias for convertAdvantage.',
+		hasTransitDisadvantage: 'Boolean: legacy alias for convertDisadvantage.',
 		usesCount: 'String: uses/counter consumption instruction, for example "death.fail,(isCritical ? 2 : 1)".',
+		update: 'String: allowlisted actor update instruction. Delta is the default, and "=" sets an absolute value. Example: "opponentActor.hp,-5" or "rollingActor.hp,=1".',
+		abilityOverride: 'String: overrides the ability used for attack hooks only. Example: "cha".',
 		itemLimited: 'Boolean: restricts matching to item-originated contexts where applicable.',
 		bonus: 'String|Number: bonus payload for bonus or extraDice-style rules. Alias: value.',
 		set: 'String|Number: set payload used by modes that replace a resolved value.',
@@ -972,6 +987,7 @@ function ac5eSetup() {
 	globalThis[Constants.MODULE_NAME_SHORT].checkNearby = checkNearby;
 	globalThis[Constants.MODULE_NAME_SHORT].checkRanged = _autoRanged;
 	globalThis[Constants.MODULE_NAME_SHORT].checkVisibility = _canSee;
+	globalThis[Constants.MODULE_NAME_SHORT].debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;
 	globalThis[Constants.MODULE_NAME_SHORT].evaluationData = _createEvaluationSandbox;
 	globalThis[Constants.MODULE_NAME_SHORT].getItems = _getItems;
 	globalThis[Constants.MODULE_NAME_SHORT].getItemOrActivity = _getItemOrActivity;
@@ -1373,6 +1389,8 @@ function _logLintReport(report) {
 
 export function lintAc5eFlags({ log = true, includeDisabled = true, includeSceneActors = true, includeWorldItems = true } = {}) {
 	const blacklist = new Set([
+		'ability',
+		'abilityoverride',
 		'addto',
 		'allies',
 		'bonus',
@@ -1403,6 +1421,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 		'oncepercombat',
 		'optin',
 		'outofrangefail',
+		'override',
 		'partialconsume',
 		'radius',
 		'reach',
@@ -1410,6 +1429,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 		'short',
 		'singleaura',
 		'threshold',
+		'update',
 		'usescount',
 		'wallsblock',
 	]);
@@ -1722,6 +1742,23 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 				});
 			}
 
+			const updateValue = _extractFlagKeywordValue(rawValue, 'update');
+			if (updateValue != null && !updateValue.trim()) {
+				pushFinding({
+					severity: 'warn',
+					code: 'invalidUpdate',
+					message: 'update keyword has an empty value',
+					sourceType: source.sourceType,
+					actor,
+					item,
+					effect,
+					change,
+					changeIndex,
+					keyword: 'update',
+					value: updateValue,
+				});
+			}
+
 			const hasCadenceToken = fragments.some((fragment) => Boolean(_normalizeCadenceToken(fragment)));
 			if (!hasCadenceToken && !parsedKeywords.some(({ keyword }) => keyword === 'cadence')) {
 				const cadenceValue = _extractFlagKeywordValue(rawValue, 'cadence');
@@ -1912,4 +1949,5 @@ export async function importTroubleshooterSnapshot(file = null) {
 	console.log('AC5E troubleshooter import:', parsed);
 	return parsed;
 }
+
 

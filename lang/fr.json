@@ -226,6 +226,10 @@
 			"noDisadvantage": {
 				"name": "Suppress disadvantage mode",
 				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"abilityOverride": {
+				"name": "Override the ability used for the roll",
+				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -276,6 +280,10 @@
 			"noDisadvantage": {
 				"name": "Grant no disadvantage mode",
 				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"abilityOverride": {
+				"name": "Grant an overridden ability to opponent rolls",
+				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -326,6 +334,10 @@
 			"noDisadvantage": {
 				"name": "An aura that suppresses disadvantage mode",
 				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
+			},
+			"abilityOverride": {
+				"name": "An aura overriding the ability used for rolls",
+				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
@@ -418,5 +430,19 @@
 	"AC5E.Flags": "flags",
 	"AC5E.FlagsInitiativeAdv": "System advantage on Initiative",
 	"AC5E.TargetGrantsModifier": "Granted modifier",
-	"AC5E.TargetGrantsExtraDice": "Granted extra dice"
+	"AC5E.TargetGrantsExtraDice": "Granted extra dice",
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
+	"AC5E.advantageBehaviorOverride": {
+		"Name": "Override system advantage handling",
+		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
+	},
+	"AC5E.advantageBehaviorAdvantageFormula": {
+		"Name": "Advantage bonus formula",
+		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
+	},
+	"AC5E.advantageBehaviorDisadvantageFormula": {
+		"Name": "Disadvantage penalty formula",
+		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
+	}
 }
