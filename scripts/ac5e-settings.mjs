@@ -27,6 +27,9 @@ export default class Settings {
 	static USAGE_RULES_REGISTRY = 'usageRulesRegistry';
 	static CONTEXT_KEYWORDS_ALLOW_PLAYER_PERSIST = 'contextKeywordsAllowPlayerPersist';
 	static DEV_MODE_ENABLED = 'devModeEnabled';
+	static ADVANTAGE_BEHAVIOR_OVERRIDE = 'advantageBehaviorOverride';
+	static ADVANTAGE_BEHAVIOR_ADV_FORMULA = 'advantageBehaviorAdvantageFormula';
+	static ADVANTAGE_BEHAVIOR_DIS_FORMULA = 'advantageBehaviorDisadvantageFormula';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -192,6 +195,30 @@ export default class Settings {
 			default: true,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_OVERRIDE, {
+			name: 'AC5E.advantageBehaviorOverride.Name',
+			hint: 'AC5E.advantageBehaviorOverride.Hint',
+			scope: 'world',
+			config: true,
+			default: false,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_ADV_FORMULA, {
+			name: 'AC5E.advantageBehaviorAdvantageFormula.Name',
+			hint: 'AC5E.advantageBehaviorAdvantageFormula.Hint',
+			scope: 'world',
+			config: true,
+			default: '',
+			type: String,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_DIS_FORMULA, {
+			name: 'AC5E.advantageBehaviorDisadvantageFormula.Name',
+			hint: 'AC5E.advantageBehaviorDisadvantageFormula.Hint',
+			scope: 'world',
+			config: true,
+			default: '',
+			type: String,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.DEBUG, {
 			name: 'DEBUG',
 			scope: 'world',
@@ -296,6 +323,14 @@ export default class Settings {
 	get tokenlessActorWarn() {
 		return game.settings.get(Constants.MODULE_ID, Settings.TOKENLESSACTOR_WARN);
 	}
+	get advantageBehavior() {
+		const enabled = Boolean(game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_OVERRIDE));
+		return {
+			mode: enabled ? 'custom' : 'native',
+			advantageFormula: enabled ? game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_ADV_FORMULA) ?? '' : '',
+			disadvantageFormula: enabled ? game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_DIS_FORMULA) ?? '' : '',
+		};
+	}
 	get buttonColorEnabled() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Enabled);
 	}
@@ -330,3 +365,4 @@ export default class Settings {
 		return game.settings.get(Constants.MODULE_ID, Settings.USAGE_RULES_REGISTRY);
 	}
 }
+

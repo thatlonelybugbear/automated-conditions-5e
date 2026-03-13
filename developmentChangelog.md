@@ -3,6 +3,14 @@
 ## Unreleased
 ## Development Notes
 
+- Transient advantage world-setting follow-up (Date: 2026-03-12)
+  - Scope:
+    - `scripts/ac5e-helpers.mjs`
+  - Advantage/disadvantage override semantics:
+    - Adjusted custom world advantage handling so the advantage and disadvantage override formulas are interpreted independently.
+    - If the override checkbox is enabled but only one formula is provided, AC5E now converts only that populated side.
+    - Blank override formula values no longer suppress the native d20 mechanic for that side; they fall back to the system's normal advantage/disadvantage handling.
+
 - Info / update workflow follow-up (Date: 2026-03-11)
   - Scope:
     - `scripts/ac5e-helpers.mjs`

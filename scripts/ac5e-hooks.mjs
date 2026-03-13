@@ -19,6 +19,8 @@ import {
 	_getTooltip,
 	_getConfig,
 	_filterOptinEntries,
+	_entryMatchesTransientState,
+	_getActiveAbilityOverride,
 	_getD20TooltipOwnership,
 	_captureFrozenD20Baseline,
 	_captureFrozenDamageBaseline,
@@ -97,8 +99,39 @@ function _buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
 		hookType,
 		chatTooltip: typeof chatTooltip === 'string' ? chatTooltip : String(ac5eConfig?.chatTooltip ?? '').trim(),
 	};
+	if (ac5eConfig?.hasTransitAdvantage) payload.hasTransitAdvantage = true;
+	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;
 	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
 	return payload;
+}
+
+function _applyAbilityOverrideToCoreConfig(config, activity, abilityOverride) {
+	const normalizedAbility = String(abilityOverride ?? '').trim().toLowerCase();
+	if (!config || !normalizedAbility) return;
+	if (!config.subject || typeof config.subject !== 'object') return;
+	const activityType = String(activity?.type ?? '').trim().toLowerCase();
+	if (!activityType) return;
+	config.subject[activityType] ??= {};
+	if (config.subject[activityType] && typeof config.subject[activityType] === 'object') {
+		config.subject[activityType].ability = normalizedAbility;
+	}
+}
+
+function _restoreAbilityToBaseline(config, ac5eConfig) {
+	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? '')
+		.trim()
+		.toLowerCase();
+	if (!baselineAbility) return;
+	ac5eConfig.options ??= {};
+	ac5eConfig.options.ability = baselineAbility;
+	if (config?.options && typeof config.options === 'object') config.options.ability = baselineAbility;
+	if (!config?.subject || typeof config.subject !== 'object') return;
+	const hookType = String(ac5eConfig?.hookType ?? '').trim().toLowerCase();
+	if (!hookType) return;
+	config.subject[hookType] ??= {};
+	if (config.subject[hookType] && typeof config.subject[hookType] === 'object') {
+		config.subject[hookType].ability = baselineAbility;
+	}
 }
 
 function _postBuildRollConfig(processConfig, config, index, options, hook) {
@@ -524,6 +557,8 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 			options.d20.advantageMode = config?.workflow?.attackRoll?.options?.advantageMode ?? config?.workflow?.advantageMode;
 			options.d20.hasAdvantage = config?.workflow?.advantage;
 			options.d20.hasDisadvantage = config?.workflow?.disadvantage;
+			options.d20.hasTransitAdvantage = config?.workflow?.attackRoll?.options?.[Constants.MODULE_ID]?.hasTransitAdvantage;
+			options.d20.hasTransitDisadvantage = config?.workflow?.attackRoll?.options?.[Constants.MODULE_ID]?.hasTransitDisadvantage;
 			options.d20.isCritical = config?.midiOptions?.isCritical ?? config?.workflow?.isCritical;
 			options.d20.isFumble = config?.midiOptions?.isFumble ?? config?.workflow?.isFumble;
 		} else {
@@ -559,6 +594,8 @@ function _buildMessageOptions({ config, hook, message, triggerMessageId, resolve
 			options.d20.advantageMode = resolvedAdvantageMode;
 			options.d20.hasAdvantage = resolvedHasAdvantage;
 			options.d20.hasDisadvantage = resolvedHasDisadvantage;
+			options.d20.hasTransitAdvantage = ac5eAttackRollFlags?.hasTransitAdvantage ?? ac5eAttackFlags?.hasTransitAdvantage;
+			options.d20.hasTransitDisadvantage = ac5eAttackRollFlags?.hasTransitDisadvantage ?? ac5eAttackFlags?.hasTransitDisadvantage;
 			options.d20.isCritical = findRoll0?.isCritical ?? findRoll0?.options?.isCritical ?? config?.isCritical;
 			options.d20.isFumble = findRoll0?.isFumble ?? findRoll0?.options?.isFumble ?? config?.isFumble;
 		}
@@ -1312,6 +1349,8 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 				roll.options[Constants.MODULE_ID].optinSelected = ac5eConfig.optinSelected;
 				roll.options[Constants.MODULE_ID].defaultButton = ac5eConfig.defaultButton;
 				roll.options[Constants.MODULE_ID].advantageMode = ac5eConfig.advantageMode;
+				roll.options[Constants.MODULE_ID].hasTransitAdvantage = !!ac5eConfig.hasTransitAdvantage;
+				roll.options[Constants.MODULE_ID].hasTransitDisadvantage = !!ac5eConfig.hasTransitDisadvantage;
 			}
 		}
 		const entries = getBonusEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
@@ -1320,6 +1359,7 @@ export function _buildRollConfig(app, rollConfig, formData, index, hook) {
 			const partsToAdd = [];
 			for (const entry of entries) {
 				if (!selectedIds.has(entry.id)) continue;
+				if (!_entryMatchesTransientState(entry, ac5eConfig)) continue;
 				const values = Array.isArray(entry.values) ? entry.values : [];
 				for (const value of values) partsToAdd.push(value);
 			}
@@ -1794,11 +1834,25 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	_logResolvedTargets('attack', sourceToken, singleTargetToken, options);
 	let ac5eConfig = _getConfig(config, dialog, hook, sourceToken?.id, singleTargetToken?.id, options, reEval);
+	_applyAbilityOverrideToCoreConfig(config, activity, ac5eConfig?.abilityOverride);
 	if (ac5eConfig.returnEarly) {
 		applyExplicitModeOverride(ac5eConfig, config);
 		return _setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	ac5eConfig.preAC5eConfig ??= {};
+	if (!ac5eConfig.preAC5eConfig.baseAbility) {
+		ac5eConfig.preAC5eConfig.baseAbility = String(options?.ability ?? config?.subject?.[activity?.type ?? '']?.ability ?? '')
+			.trim()
+			.toLowerCase();
+	}
+	ac5eConfig.abilityOverride = _getActiveAbilityOverride(ac5eConfig) || ac5eConfig?.abilityOverride || '';
+	if (ac5eConfig.abilityOverride) {
+		ac5eConfig.options ??= {};
+		ac5eConfig.options.ability = ac5eConfig.abilityOverride;
+		options.ability = ac5eConfig.abilityOverride;
+	}
+	_applyAbilityOverrideToCoreConfig(config, activity, ac5eConfig?.abilityOverride);
 
 	let nearbyFoe,
 		inRange,
@@ -2188,6 +2242,7 @@ export function _renderSettings(app, html, data) {
 	html = html instanceof HTMLElement ? html : html[0];
 	renderChatTooltipsSettings(html);
 	renderColoredButtonSettings(html);
+	renderAdvantageBehaviorSettings(html);
 }
 
 function renderColoredButtonSettings(html) {
@@ -2300,6 +2355,24 @@ function renderChatTooltipsSettings(html) {
 
 	tooltipSelect.addEventListener('change', updateChatTooltipVisibility);
 	updateChatTooltipVisibility();
+}
+
+function renderAdvantageBehaviorSettings(html) {
+	const overrideToggle = html.querySelector(`[name="${Constants.MODULE_ID}.advantageBehaviorOverride"]`);
+	const advFormula = html.querySelector(`[name="${Constants.MODULE_ID}.advantageBehaviorAdvantageFormula"]`);
+	const disFormula = html.querySelector(`[name="${Constants.MODULE_ID}.advantageBehaviorDisadvantageFormula"]`);
+	if (!overrideToggle || !advFormula || !disFormula) return;
+
+	const updateVisibility = () => {
+		const visible = Boolean(overrideToggle.checked);
+		for (const input of [advFormula, disFormula]) {
+			const container = input.closest('.form-group') || input.parentElement;
+			if (container) container.style.display = visible ? 'flex' : 'none';
+		}
+	};
+
+	overrideToggle.addEventListener('change', updateVisibility);
+	updateVisibility();
 }
 
 function notifyPreUse(actorName, warning, type) {
@@ -3077,6 +3150,7 @@ function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
 
 function getRollNonBonusOptinEntries(ac5eConfig, hookType) {
 	const modes = ['advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'modifiers'];
+	if (hookType === 'attack') modes.push('abilityOverride');
 	return modes.flatMap((mode) => {
 		const subjectEntries = Array.isArray(ac5eConfig?.subject?.[mode]) ? ac5eConfig.subject[mode] : [];
 		const opponentEntries = Array.isArray(ac5eConfig?.opponent?.[mode]) ? ac5eConfig.opponent[mode] : [];
@@ -3311,6 +3385,15 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig) {
 				if (activeConfig.hookType === 'attack') refreshAttackAutoRangeState(activeConfig, activeDialog?.config);
 				_calcAdvantageMode(activeConfig, activeDialog.config, undefined, undefined, { skipSetProperties: true });
 				applyExplicitModeOverride(activeConfig, activeDialog.config);
+				activeConfig.abilityOverride = _getActiveAbilityOverride(activeConfig) || '';
+				if (activeConfig.abilityOverride) {
+					activeConfig.options ??= {};
+					activeConfig.options.ability = activeConfig.abilityOverride;
+					if (activeDialog?.config?.options) activeDialog.config.options.ability = activeConfig.abilityOverride;
+				} else {
+					_restoreAbilityToBaseline(activeDialog?.config, activeConfig);
+				}
+				_applyAbilityOverrideToCoreConfig(activeDialog?.config, { type: activeConfig.hookType }, activeConfig?.abilityOverride);
 				_appendPartsToD20Config(activeDialog?.config, preservedExternalParts);
 				const roll0 = activeDialog.config?.rolls?.[0];
 				if (roll0?.options) {

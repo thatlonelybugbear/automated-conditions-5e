@@ -1045,6 +1045,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['nodis', 'noDisadvantage'],
 			['diceupgrade', 'diceUpgrade'],
 			['dicedowngrade', 'diceDowngrade'],
+			['abilityoverride', 'abilityOverride'],
 			['info', 'info'],
 			['dis', 'disadvantage'],
 			['adv', 'advantage'],
@@ -1094,14 +1095,20 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const blacklist = new Set([
 		'addto',
+		'ability',
+		'abilityoverride',
 		'allies',
 		'bonus',
 		'cadence',
 		'chance',
+		'convertadvantage',
+		'convertdisadvantage',
 		'criticalstatic',
 		'description',
 		'enemies',
 		'fail',
+		'hastransitadvantage',
+		'hastransitdisadvantage',
 		'includeself',
 		'itemlimited',
 		'long',
@@ -1124,6 +1131,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'oncepercombat',
 		'optin',
 		'outofrangefail',
+		'override',
 		'partialconsume',
 		'radius',
 		'reach',
@@ -1324,6 +1332,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const { target } = _parseUpdateSpec(updateRaw);
 		return _normalizeUsesCountTarget(target)?.toLowerCase() || undefined;
 	};
+	const hasTransitAdvantageKeyword = (value) => {
+		if (!value) return false;
+		return /(?:^|;)\s*(?:hastransitadvantage|convertadvantage)\s*(?:;|$)/i.test(String(value));
+	};
+	const hasTransitDisadvantageKeyword = (value) => {
+		if (!value) return false;
+		return /(?:^|;)\s*(?:hastransitdisadvantage|convertdisadvantage)\s*(?:;|$)/i.test(String(value));
+	};
 	const hasCriticalStaticKeyword = (value) => {
 		if (!value) return false;
 		return /(?:^|;)\s*criticalstatic\s*(?:;|$)/i.test(String(value));
@@ -1415,9 +1431,22 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				return localizeText('AC5E.OptinDescription.DowngradesDamageDice', 'Downgrades damage dice');
 			case 'range':
 				return localizeText('AC5E.OptinDescription.ModifiesAttackRange', 'Modifies attack range behavior');
+			case 'abilityOverride':
+				if (hook !== 'attack') return undefined;
+				if (typeof bonus === 'string' && bonus.trim()) return `Uses ${bonus.trim().toUpperCase()} for ${roll}`;
+				return `Overrides the ability used for ${roll}`;
 			default:
 				return undefined;
 		}
+	};
+	const parseAbilityOverride = (rawValue) => {
+		const direct =
+			getBlacklistedKeysValue('abilityoverride', rawValue) ||
+			getBlacklistedKeysValue('override', rawValue) ||
+			'';
+		const normalizedDirect = String(direct ?? '').trim().toLowerCase();
+		if (['str', 'dex', 'con', 'int', 'wis', 'cha'].includes(normalizedDirect)) return normalizedDirect;
+		return '';
 	};
 	const parseBooleanValue = (raw) => {
 		if (raw === undefined || raw === null) return undefined;
@@ -1611,6 +1640,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}) => {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
+		if (mode === 'abilityOverride' && hook !== 'attack') return null;
 		const debug = { effectUuid: effect.uuid, changeKey: change.key };
 		const entryId = isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
@@ -1632,9 +1662,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const requiredDamageTypes = getRequiredDamageTypes(change.value);
 		const addTo = getAddTo(change.value);
 		const usesCountTarget = getUsesCountTarget(change.value);
+		const requiresTransitAdvantage = hasTransitAdvantageKeyword(change.value);
+		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(change.value);
 		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(change.value);
+		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(change.value) : '';
 		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
-		const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
+		const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold }) : undefined;
 		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
@@ -1659,10 +1692,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			forceOptin,
 			cadence,
 			criticalStatic,
+			abilityOverride,
 			requiredDamageTypes,
 			addTo,
 			usesCountTarget,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
+			requiresTransitAdvantage,
+			requiresTransitDisadvantage,
 			changeIndex,
 			effectUuid: effect.uuid,
 			changeKey: change.key,
@@ -1817,6 +1853,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!hookMatches) continue;
 		const mode = String(rule?.mode ?? '').trim();
 		if (!mode) continue;
+		if (mode === 'abilityOverride' && hook !== 'attack') continue;
 		const targetType = String(rule?.target ?? 'subject')
 			.trim()
 			.toLowerCase();
@@ -1847,9 +1884,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 		if (rule?.usesCount !== undefined && rule?.usesCount !== null && String(rule.usesCount).trim() !== '') fragments.push(`usesCount=${rule.usesCount}`);
 		if (rule?.update !== undefined && rule?.update !== null && String(rule.update).trim() !== '') fragments.push(`update=${rule.update}`);
+		if (rule?.abilityOverride !== undefined && rule?.abilityOverride !== null && String(rule.abilityOverride).trim() !== '') fragments.push(`abilityOverride=${rule.abilityOverride}`);
 		if (rule?.itemLimited) fragments.push('itemLimited');
 		if (rule?.description) fragments.push(`description=${rule.description}`);
 		if (rule?.optin) fragments.push('optin');
+		if (rule?.convertAdvantage || rule?.hasTransitAdvantage) fragments.push('convertAdvantage');
+		if (rule?.convertDisadvantage || rule?.hasTransitDisadvantage) fragments.push('convertDisadvantage');
 		if (rule?.criticalStatic) fragments.push('criticalStatic');
 		if (rule?.partialConsume) fragments.push('partialConsume');
 		if (rule?.cadence) fragments.push(rule.cadence);
@@ -1908,9 +1948,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const requiredDamageTypes = getRequiredDamageTypes(ruleValue);
 		const addTo = getAddTo(ruleValue);
 		const usesCountTarget = getUsesCountTarget(ruleValue);
+		const requiresTransitAdvantage = hasTransitAdvantageKeyword(ruleValue);
+		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(ruleValue);
 		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(ruleValue);
+		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(ruleValue) : '';
 		const description = getDescription(ruleValue);
-		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus, modifier, set, threshold }) : undefined;
+		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold }) : undefined;
 		let valuesToEvaluate = ruleValue
 			.split(';')
 			.map((v) => v.trim())
@@ -1944,10 +1987,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			forceOptin: false,
 			cadence,
 			criticalStatic,
+			abilityOverride,
 			requiredDamageTypes,
 			addTo,
 			usesCountTarget,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
+			requiresTransitAdvantage,
+			requiresTransitDisadvantage,
 			changeIndex: 0,
 			effectUuid: pseudoEffect.uuid,
 			changeKey: pseudoChange.key,
@@ -2005,7 +2051,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			for (const queued of updateArrays.effectUpdatesGM.filter(matchesQueuedUpdate)) validEffectUpdatesGM.push(queued.context ?? queued);
 			for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 			for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
-			if (['bonus', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+			if (['bonus', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
@@ -2040,7 +2086,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				}
 				if (set) entryValues.push(`${set}`);
 				entry.values = entryValues;
-				if (!optin && configMode) ac5eConfig[configMode].push(...entryValues);
+				const deferTransitBonus = mode === 'bonus' && !optin && (entry.requiresTransitAdvantage || entry.requiresTransitDisadvantage);
+				if (!deferTransitBonus && !optin && configMode) ac5eConfig[configMode].push(...entryValues);
 			}
 			if (modifier) {
 				if (hook === 'damage') {
