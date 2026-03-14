@@ -1,10 +1,6 @@
 import {
-	_ac5eActorRollData,
 	_ac5eSafeEval,
 	_activeModule,
-	_canSee,
-	_calcAdvantageMode,
-	_createEvaluationSandbox,
 	_dispositionCheck,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
@@ -16,12 +12,12 @@ import {
 	_i18nConditions,
 	_autoArmor,
 	_autoEncumbrance,
-	_autoRanged,
-	_raceOrType,
 	_staticID,
 	_sleep,
 	_safeFromUuidSync,
 } from './ac5e-helpers.mjs';
+import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
+import { autoRanged, canSee } from './ac5e-systemRules.mjs';
 import { _doQueries, _setCombatCadenceFlag } from './ac5e-queries.mjs';
 import { ac5eQueue, statusEffectsTables } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
@@ -41,8 +37,7 @@ function _preserveStandaloneSignedDiceFormula(expression) {
 	if (/[()@]/.test(trimmed)) return null;
 	const unsigned = trimmed.slice(1).trim();
 	if (!unsigned) return null;
-	const signedDicePattern =
-		/^(?:(?:\d*)d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
+	const signedDicePattern = /^(?:(?:\d*)d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
 	return signedDicePattern.test(unsigned) ? `${trimmed[0]}${unsigned}` : null;
 }
 
@@ -627,8 +622,8 @@ function buildStatusEffectsTables() {
 	const tables = {
 		blinded: mkStatus('blinded', _i18nConditions('Blinded'), {
 			attack: {
-				subject: (ctx) => (!_canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
-				opponent: (ctx) => (!_canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.subjectAlert2014 ? 'advantage' : ''),
+				subject: (ctx) => (!canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
+				opponent: (ctx) => (!canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.subjectAlert2014 ? 'advantage' : ''),
 			},
 		}),
 
@@ -662,8 +657,8 @@ function buildStatusEffectsTables() {
 
 		invisible: mkStatus('invisible', _i18nConditions('Invisible'), {
 			attack: {
-				subject: (ctx) => (!ctx.opponentAlert2014 && !_canSee(ctx.opponentToken, ctx.subjectToken) ? 'advantage' : ''),
-				opponent: (ctx) => (!_canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
+				subject: (ctx) => (!ctx.opponentAlert2014 && !canSee(ctx.opponentToken, ctx.subjectToken) ? 'advantage' : ''),
+				opponent: (ctx) => (!canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
 			},
 			check: { subject: (ctx) => (ctx.modernRules && ctx.isInitiative ? 'advantage' : '') },
 		}),
@@ -724,7 +719,7 @@ function buildStatusEffectsTables() {
 		dodging: mkStatus('dodging', _i18nConditions('Dodging'), {
 			attack: {
 				opponent: (ctx) =>
-					settings.expandedConditions && ctx.opponentToken && ctx.subject && _canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.opponent?.statuses.has('incapacitated') && ctx.opponentMove ?
+					settings.expandedConditions && ctx.opponentToken && ctx.subject && canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.opponent?.statuses.has('incapacitated') && ctx.opponentMove ?
 						'disadvantage'
 					:	'',
 			},
@@ -792,7 +787,7 @@ function isFrightenedByVisibleSource(ctx) {
 	if (ctx.subject?.statuses.has('frightened') && !frightenedEffects.length) return true; //if none of the effects that apply frightened status on the actor have an origin, force true
 	return frightenedEffects.some((effect) => {
 		const originToken = _getEffectOriginToken(effect, 'token'); //undefined if no effect.origin
-		return originToken && _canSee(ctx.subjectToken, originToken);
+		return originToken && canSee(ctx.subjectToken, originToken);
 	});
 }
 
@@ -1245,7 +1240,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isSkill || isTool);
 		const modifyHooks = isModifyAC || isModifyDC;
 		const isRange = change.key.toLowerCase().includes('.range');
-		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || (isRange && hook === 'attack');
+		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
+		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
@@ -1440,11 +1436,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 	};
 	const parseAbilityOverride = (rawValue) => {
-		const direct =
-			getBlacklistedKeysValue('abilityoverride', rawValue) ||
-			getBlacklistedKeysValue('override', rawValue) ||
-			'';
-		const normalizedDirect = String(direct ?? '').trim().toLowerCase();
+		const direct = getBlacklistedKeysValue('abilityoverride', rawValue) || getBlacklistedKeysValue('override', rawValue) || '';
+		const normalizedDirect = String(direct ?? '')
+			.trim()
+			.toLowerCase();
 		if (['str', 'dex', 'con', 'int', 'wis', 'cha'].includes(normalizedDirect)) return normalizedDirect;
 		return '';
 	};
@@ -1627,22 +1622,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 		return valuesToEvaluate;
 	};
-	const buildValidFlagEntry = ({
-		change,
-		changeIndex,
-		effect,
-		hook,
-		sandbox,
-		isAura = false,
-		auraToken = null,
-		sourceActor = null,
-		sourceNameFallback = '',
-	}) => {
+	const buildValidFlagEntry = ({ change, changeIndex, effect, hook, sandbox, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
 		if (mode === 'abilityOverride' && hook !== 'attack') return null;
 		const debug = { effectUuid: effect.uuid, changeKey: change.key };
-		const entryId = isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
+		const entryId =
+			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
 		const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({
 			value: change.value,
@@ -1667,7 +1653,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(change.value);
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(change.value) : '';
 		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
-		const autoDescription = !description && (optin || usesOverride?.forceDescription) ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold }) : undefined;
+		const autoDescription =
+			!description && (optin || usesOverride?.forceDescription) ?
+				buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold })
+			:	undefined;
 		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
@@ -1716,20 +1705,22 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (mode === 'range') entry.range = parseRangeData({ key: change.key, value: change.value, evaluationData: sandbox, effect, isAura, debug });
 		return entry;
 	};
-	const processEffectChange = ({
-		change,
-		changeIndex,
-		effect,
-		hook,
-		sandbox,
-		actorType,
-		token = null,
-		isAura = false,
-		auraToken = null,
-		sourceActor = null,
-		sourceNameFallback = '',
-	}) => {
-		if (!effectChangesTest({ token, change, actorType, hook, effect, updateArrays, evaluationData: isAura ? undefined : sandbox, auraTokenEvaluationData: isAura ? sandbox : undefined, changeIndex, auraTokenUuid: auraToken?.document?.uuid })) return;
+	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
+		if (
+			!effectChangesTest({
+				token,
+				change,
+				actorType,
+				hook,
+				effect,
+				updateArrays,
+				evaluationData: isAura ? undefined : sandbox,
+				auraTokenEvaluationData: isAura ? sandbox : undefined,
+				changeIndex,
+				auraTokenUuid: auraToken?.document?.uuid,
+			})
+		)
+			return;
 		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox, isAura, auraToken, sourceActor, sourceNameFallback });
 		if (!entry?.evaluation) return;
 		if (isAura && change.value.toLowerCase().includes('singleaura')) {
@@ -2717,7 +2708,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData.opponentActor
 						: lowerConsumptionTarget.startsWith('auraactor') ? evalData.auraActor
 						: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
-						: actor.getRollData(); //  actor is the effectActor
+						: actor.getRollData(); // actor is the effectActor
 					const uuid = consumptionActor?.uuid ?? actor.uuid;
 					_logUsesCount('resolve-actor-attr', {
 						effect: effect?.name,
@@ -3516,7 +3507,12 @@ function evalNumericFormulaExpression(expr, { maxDice = 100, maxSides = 1000, de
 
 		let sum = 0;
 		for (let i = 0; i < count; i++) {
-			sum += isCoin ? (Math.random() < 0.5 ? 1 : 0) : Math.floor(Math.random() * sides) + 1;
+			sum +=
+				isCoin ?
+					Math.random() < 0.5 ?
+						1
+					:	0
+				:	Math.floor(Math.random() * sides) + 1;
 		}
 		return String(sum);
 	});
@@ -3531,4 +3527,3 @@ function evalNumericFormulaExpression(expr, { maxDice = 100, maxSides = 1000, de
 		return NaN;
 	}
 }
-

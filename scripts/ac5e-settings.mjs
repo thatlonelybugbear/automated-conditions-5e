@@ -327,8 +327,8 @@ export default class Settings {
 		const enabled = Boolean(game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_OVERRIDE));
 		return {
 			mode: enabled ? 'custom' : 'native',
-			advantageFormula: enabled ? game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_ADV_FORMULA) ?? '' : '',
-			disadvantageFormula: enabled ? game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_DIS_FORMULA) ?? '' : '',
+			advantageFormula: enabled ? (game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_ADV_FORMULA) ?? '') : '',
+			disadvantageFormula: enabled ? (game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_DIS_FORMULA) ?? '') : '',
 		};
 	}
 	get buttonColorEnabled() {
@@ -365,4 +365,3 @@ export default class Settings {
 		return game.settings.get(Constants.MODULE_ID, Settings.USAGE_RULES_REGISTRY);
 	}
 }
-
