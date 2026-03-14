@@ -1,13 +1,12 @@
 import Constants from './ac5e-constants.mjs';
-import { lazySandbox } from './ac5e-main.mjs';
+import { debugBenchmarkPerimeterGridSpaceCenters, getCachedDistanceCore } from './helpers/ac5e-helpers-distance.mjs';
 import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
-import { _ac5eChecks } from './ac5e-setpieces.mjs';
 import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Function adapted from @kgar's Tidy 5e Sheet utility.
-export function simplifyFormula(formula = '', removeFlavor = false, debug = {}) {
+function simplifyFormula(formula = '', removeFlavor = false, debug = {}) {
 	try {
 		if (removeFlavor) {
 			formula = formula?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP, '')?.replace(foundry.dice.terms.RollTerm.FLAVOR_REGEXP_STRING, '')?.trim();
@@ -42,8 +41,6 @@ export function simplifyFormula(formula = '', removeFlavor = false, debug = {}) 
 const settings = new Settings();
 const USE_CONFIG_INFLIGHT_TTL_MS = 15000;
 const useConfigInflightCache = new Map();
-const DISTANCE_PERIMETER_CACHE_LIMIT = 500;
-const distancePerimeterCache = new Map();
 const FLAG_REGISTRY_HOOK_TYPES = new Set(['attack', 'damage', 'save', 'check', 'heal', 'init', 'use']);
 const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'advantage',
@@ -324,7 +321,7 @@ export function _reindexFlagRegistryActor(document) {
 	return ac5eFlagRegistryState;
 }
 
-export function _getRelevantFlagRegistryEntries({ actor = null, item = null, effect = null, hookType = null, mode = null, targetScope = null } = {}) {
+function _getRelevantFlagRegistryEntries({ actor = null, item = null, effect = null, hookType = null, mode = null, targetScope = null } = {}) {
 	const actorUuid = _safeUuid(actor);
 	const itemUuid = _safeUuid(item);
 	const effectUuid = _safeUuid(effect);
@@ -368,7 +365,7 @@ function _pruneUseConfigInflightCache(now = Date.now()) {
 	}
 }
 
-function _getUseConfigInflightCacheEntry(ids = []) {
+export function _getUseConfigInflightCacheEntry(ids = []) {
 	_pruneUseConfigInflightCache();
 	for (const id of ids) {
 		if (!id) continue;
@@ -448,625 +445,549 @@ export function _resolveUseMessageContext({ message = null, messageId = null, or
 	};
 }
 
-/**
- * Foundry v12 updated.
- * Gets the minimum distance between two tokens,
- * evaluating perimeter grid spaces they occupy and checking for walls blocking.
- */
-export function _getDistanceLegacy(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
-	let totalDistance = Infinity;
-	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
-	let adjacent2D;
-
-	const tokenInstance = foundry.canvas.placeables.Token;
-	if (typeof tokenA === 'string') {
-		if (tokenA.includes('.')) tokenA = fromUuidSync(tokenA)?.object;
-		else tokenA = canvas.tokens.get(tokenA);
-	}
-	if (typeof tokenB === 'string') {
-		if (tokenB.includes('.')) tokenB = fromUuidSync(tokenB)?.object;
-		else tokenB = canvas.tokens.get(tokenB);
-	}
-	if (tokenA instanceof TokenDocument) tokenA = tokenA.object;
-	if (tokenB instanceof TokenDocument) tokenB = tokenB.object;
-	if (tokenA instanceof Actor) tokenA = tokenA.getActiveTokens()[0] ?? null;
-	if (tokenB instanceof Actor) tokenB = tokenB.getActiveTokens()[0] ?? null;
-	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
-
-	const { grid } = canvas || {};
-	if (foundry.utils.isEmpty(grid)) return totalDistance;
-	const { size, sizeX, sizeY, diagonals: gridDiagonals, distance: gridDistance, units, isGridless, isHexagonal, isSquare } = grid;
-
-	if (_activeModule('midi-qol') && !overrideMidi) {
-		const result = MidiQOL.computeDistance(tokenA, tokenB);
-		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: tokenA?.id, targetId: tokenB?.id, result, units });
-		if (result === -1) return totalDistance;
-		if (includeUnits) return result + units;
-		return result;
-	}
-
-	let diagonals, spaces;
-
-	if (isHexagonal) {
-		const tokenAHexes = getHexesOnPerimeter(tokenA);
-		if (settings.debug) tokenAHexes.forEach((e) => canvas.ping(e));
-		const tokenBHexes = getHexesOnPerimeter(tokenB);
-		if (settings.debug) tokenBHexes.forEach((e) => canvas.ping(e));
-
-		outer: for (const pointA of tokenAHexes) {
-			for (const pointB of tokenBHexes) {
-				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
-				if (adjacent2D && meleeDiagonals) {
-					totalDistance = gridDistance;
-					diagonals = 0;
-					spaces = 1;
-					break outer;
-				} else {
-					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-					if (distance2D < totalDistance) {
-						totalDistance = distance2D;
-						diagonals = pathDiagonals;
-						spaces = pathSpaces;
-					}
-				}
-			}
-		}
-	} else {
-		const areTokensIntersencting = tokenA.bounds.intersects(tokenB.bounds);
-		if (areTokensIntersencting) {
-			totalDistance = 0;
-			diagonals = 0;
-			spaces = 0;
-		} else if (isGridless) {
-			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA);
-			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
-			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
-			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
-			for (const pointA of tokenASquares) {
-			for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-					if (distance2D < totalDistance) {
-						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false; //@to-do: offer a setting to turn on and set to user choice.
-						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
-						diagonals = pathDiagonals;
-						spaces = pathSpaces;
-					}
-				}
-			}
-		} else if (isSquare) {
-			//const tokensIntersection = tokenA.bounds.intersection(tokenB.bounds);
-			const tokenASquares = getSquaresOnPerimeter(tokenA);
-			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
-			const tokenBSquares = getSquaresOnPerimeter(tokenB);
-			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
-
-			outer: for (const pointA of tokenASquares) {
-				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
-					if (adjacent2D && meleeDiagonals) {
-						totalDistance = gridDistance;
-						diagonals = 0;
-						spaces = 1;
-						break outer;
-					} else {
-						const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-						if (distance2D < totalDistance) {
-							totalDistance = distance2D;
-							diagonals = pathDiagonals;
-							spaces = pathSpaces;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units });
-	if (includeUnits) return roundDistance(totalDistance) + units;
-	return roundDistance(totalDistance);
-}
-
 export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi = true, checkCollision = false, includeHeight = true) {
 	if (_activeModule('midi-qol') && !overrideMidi) {
-		return _getDistanceLegacy(tokenA, tokenB, includeUnits, overrideMidi, checkCollision, includeHeight);
+		let resolvedTokenA = tokenA;
+		let resolvedTokenB = tokenB;
+		if (typeof resolvedTokenA === 'string') {
+			if (resolvedTokenA.includes('.')) resolvedTokenA = fromUuidSync(resolvedTokenA)?.object;
+			else resolvedTokenA = canvas.tokens.get(resolvedTokenA);
+		}
+		if (typeof resolvedTokenB === 'string') {
+			if (resolvedTokenB.includes('.')) resolvedTokenB = fromUuidSync(resolvedTokenB)?.object;
+			else resolvedTokenB = canvas.tokens.get(resolvedTokenB);
+		}
+		if (resolvedTokenA instanceof TokenDocument) resolvedTokenA = resolvedTokenA.object;
+		if (resolvedTokenB instanceof TokenDocument) resolvedTokenB = resolvedTokenB.object;
+		if (resolvedTokenA instanceof Actor) resolvedTokenA = resolvedTokenA.getActiveTokens()[0] ?? null;
+		if (resolvedTokenB instanceof Actor) resolvedTokenB = resolvedTokenB.getActiveTokens()[0] ?? null;
+		const result = MidiQOL.computeDistance(resolvedTokenA, resolvedTokenB);
+		const units = canvas?.grid?.units ?? '';
+		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: resolvedTokenA?.id, targetId: resolvedTokenB?.id, result, units });
+		if (result === -1) return Infinity;
+		if (includeUnits) return result + units;
+		return result;
 	}
 	return _getCachedDistance(tokenA, tokenB, includeUnits, checkCollision, includeHeight);
 }
 
-function _testDistanceCollision(pointA, pointB, source, checkCollision) {
-	if (!checkCollision) return false;
-	const backend = CONFIG.Canvas?.polygonBackends?.[checkCollision];
-	if (!backend?.testCollision) return false;
-	return backend.testCollision(pointB, pointA, {
-		source,
-		mode: 'any',
-		type: checkCollision,
+export { debugBenchmarkPerimeterGridSpaceCenters as _debugBenchmarkPerimeterGridSpaceCenters };
+function _getCachedDistance(tokenA, tokenB, includeUnits = false, checkCollision = false, includeHeight = true) {
+	return getCachedDistanceCore(tokenA, tokenB, includeUnits, checkCollision, includeHeight);
+}
+
+function normalizeDamageTypesForBaseline(damageTypes) {
+	const normalized = {};
+	if (Array.isArray(damageTypes)) {
+		for (const value of damageTypes) {
+			const key = String(value ?? '')
+				.trim()
+				.toLowerCase();
+			if (key) normalized[key] = true;
+		}
+		return normalized;
+	}
+	if (damageTypes && typeof damageTypes === 'object') {
+		for (const [key, enabled] of Object.entries(damageTypes)) {
+			if (!enabled) continue;
+			const normalizedKey = String(key ?? '')
+				.trim()
+				.toLowerCase();
+			if (normalizedKey) normalized[normalizedKey] = true;
+		}
+		return normalized;
+	}
+	const single = String(damageTypes ?? '')
+		.trim()
+		.toLowerCase();
+	if (single) normalized[single] = true;
+	return normalized;
+}
+
+function getDamageBaselineRollProfile(ac5eConfig, config) {
+	const options = ac5eConfig?.options ?? {};
+	const ammunitionId =
+		typeof config?.ammunition === 'string' ? config.ammunition
+		: config?.ammunition?.id ? config.ammunition.id
+		: typeof options?.ammo === 'string' ? options.ammo
+		: options?.ammunition?.id ? options.ammunition.id
+		: null;
+	const normalizedDamageTypes = normalizeDamageTypesForBaseline(options?.damageTypes);
+	const rollTypes = Array.isArray(config?.rolls) ? config.rolls.map((roll) => roll?.options?.type ?? null) : [];
+	return {
+		hookType: ac5eConfig?.hookType,
+		attackMode: config?.attackMode ?? options?.attackMode ?? null,
+		mastery: config?.mastery ?? options?.mastery ?? null,
+		ammunition: ammunitionId,
+		defaultDamageType: options?.defaultDamageType ?? null,
+		damageTypes: Object.keys(normalizedDamageTypes).sort(),
+		rollTypes,
+	};
+}
+
+const DAMAGE_BASELINE_HOOKS = new Set(['damage']);
+
+function getDamageBaselineProfileKey(profile = {}) {
+	return JSON.stringify(profile);
+}
+
+function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
+	const frozenRolls = (Array.isArray(config?.rolls) ? config.rolls : []).map((roll) => {
+		const parts = Array.isArray(roll?.parts) ? roll.parts : [];
+		const formula =
+			typeof roll?.formula === 'string' ? roll.formula
+			: parts.length ? parts.join(' + ')
+			: null;
+		return Object.freeze({
+			formula,
+			parts: Object.freeze(foundry.utils.duplicate(parts)),
+			type: roll?.options?.type ?? null,
+			maximum: roll?.options?.maximum ?? null,
+			minimum: roll?.options?.minimum ?? null,
+			isCritical: roll?.options?.isCritical ?? null,
+		});
+	});
+	return Object.freeze({
+		profile: Object.freeze(foundry.utils.duplicate(profile)),
+		profileKey: getDamageBaselineProfileKey(profile),
+		isCritical: !!config?.isCritical,
+		defaultButton: ac5eConfig?.defaultButton ?? null,
+		parts: Object.freeze(foundry.utils.duplicate(Array.isArray(config?.parts) ? config.parts : [])),
+		damageModifiers: Object.freeze(foundry.utils.duplicate(Array.isArray(ac5eConfig?.damageModifiers) ? ac5eConfig.damageModifiers : [])),
+		rolls: Object.freeze(frozenRolls),
 	});
 }
 
-function resolveDistanceToken(token) {
-	const tokenInstance = foundry.canvas.placeables.Token;
-	if (typeof token === 'string') {
-		if (token.includes('.')) token = fromUuidSync(token)?.object;
-		else token = canvas.tokens.get(token);
+export function _captureFrozenDamageBaseline(ac5eConfig, config) {
+	if (!ac5eConfig || !config) return null;
+	if (!DAMAGE_BASELINE_HOOKS.has(ac5eConfig.hookType)) return null;
+	config.rolls ??= [];
+	ac5eConfig.preAC5eConfig ??= {};
+	const rollProfile = getDamageBaselineRollProfile(ac5eConfig, config);
+	const profileKey = getDamageBaselineProfileKey(rollProfile);
+	ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile ??= {};
+	let baseline = ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile[profileKey];
+	if (!baseline) {
+		baseline = freezeDamageRollSnapshot(rollProfile, config, ac5eConfig);
+		ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile[profileKey] = baseline;
 	}
-	if (token instanceof TokenDocument) token = token.object;
-	if (token instanceof Actor) token = token.getActiveTokens()[0] ?? null;
-	return token instanceof tokenInstance ? token : null;
+	ac5eConfig.preAC5eConfig.activeDamageRollProfileKey = profileKey;
+	ac5eConfig.preAC5eConfig.frozenDamageBaseline = baseline;
+	ac5eConfig.frozenDamageBaseline = baseline;
+	return baseline;
 }
 
-function centerKey(point) {
-	return `${point.x}_${point.y}`;
+export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
+	if (!ac5eConfig || !config) return false;
+	if (!DAMAGE_BASELINE_HOOKS.has(ac5eConfig.hookType)) return false;
+	config.rolls ??= [];
+	const preConfig = ac5eConfig.preAC5eConfig ?? {};
+	const profile = getDamageBaselineRollProfile(ac5eConfig, config);
+	const profileKey = getDamageBaselineProfileKey(profile);
+	const baseline = preConfig?.frozenDamageBaselineByProfile?.[profileKey] ?? preConfig?.frozenDamageBaseline ?? ac5eConfig?.frozenDamageBaseline;
+	if (!baseline) return false;
+	const baselineRolls = Array.isArray(baseline?.rolls) ? baseline.rolls : [];
+	for (let index = 0; index < baselineRolls.length; index++) {
+		const rollBaseline = baselineRolls[index];
+		if (!rollBaseline) continue;
+		const roll = config.rolls[index] ?? (config.rolls[index] = {});
+		roll.options ??= {};
+		roll.parts = foundry.utils.duplicate(Array.isArray(rollBaseline.parts) ? rollBaseline.parts : []);
+		if (typeof rollBaseline.formula === 'string') roll.formula = rollBaseline.formula;
+		else if (Array.isArray(roll.parts) && roll.parts.length) roll.formula = roll.parts.join(' + ');
+		if (rollBaseline.type !== undefined && rollBaseline.type !== null) roll.options.type = rollBaseline.type;
+		if (rollBaseline.maximum !== undefined && rollBaseline.maximum !== null) roll.options.maximum = rollBaseline.maximum;
+		else if ('maximum' in roll.options) delete roll.options.maximum;
+		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
+		else if ('minimum' in roll.options) delete roll.options.minimum;
+		if (rollBaseline.isCritical !== undefined && rollBaseline.isCritical !== null) roll.options.isCritical = rollBaseline.isCritical;
+		if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
+			delete roll.options.critical.bonusDamage;
+		}
+	}
+	if (Array.isArray(config.parts) || (Array.isArray(baseline?.parts) && baseline.parts.length)) {
+		config.parts = foundry.utils.duplicate(Array.isArray(baseline?.parts) ? baseline.parts : []);
+	}
+	if (baseline?.isCritical !== undefined) config.isCritical = !!baseline.isCritical;
+	if (config?.midiOptions) config.midiOptions.isCritical = !!config.isCritical;
+	if (baseline?.defaultButton !== undefined && baseline?.defaultButton !== null) ac5eConfig.defaultButton = baseline.defaultButton;
+	preConfig.activeDamageRollProfileKey = baseline.profileKey ?? profileKey;
+	preConfig.frozenDamageBaseline = baseline;
+	ac5eConfig.preAC5eConfig = preConfig;
+	ac5eConfig.frozenDamageBaseline = baseline;
+	return true;
 }
 
-function uniqueCenters(points = []) {
-	const deduped = {};
-	for (const point of points) {
-		if (!point) continue;
-		deduped[centerKey(point)] = point;
+export function getAlteredTargetValueOrThreshold(initialValue = 0, ac5eValues, type) {
+	const additiveValues = [];
+	const staticValues = [];
+
+	for (const item of ac5eValues) {
+		if (item == null) continue;
+
+		if (typeof item === 'number') {
+			additiveValues.push(item);
+			continue;
+		}
+
+		const cleaned = String(item).trim();
+		if (/^[+-]\d+$/.test(cleaned)) {
+			additiveValues.push(parseInt(cleaned, 10));
+			continue;
+		}
+		if (/^\d+$/.test(cleaned)) {
+			staticValues.push(parseInt(cleaned, 10));
+			continue;
+		}
 	}
-	return Object.values(deduped);
+	const newStaticThreshold = staticValues.length > 0 ? staticValues[staticValues.length - 1] : initialValue;
+	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
+	const finalValue = newStaticThreshold + totalModifier;
+
+	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue });
+
+	return finalValue;
 }
 
-function offsetKey(offset) {
-	return `${offset.i}_${offset.j}`;
-}
-function getOccupiedOffsets2D(token, data = {}) {
-	if (!token?.document || canvas.grid.isGridless) return [];
-	const offsets = token.document.getOccupiedGridSpaceOffsets(data);
-	const deduped = {};
-	for (const { i, j } of offsets) {
-		const key = `${i}_${j}`;
-		if (!deduped[key]) deduped[key] = { i, j };
-	}
-	return Object.values(deduped);
-}
-function getCentersFromOffsets(offsets = []) {
-	return uniqueCenters(offsets.map((offset) => canvas.grid.getCenterPoint(offset)));
-}
-function getPerimeterOffsetsFromOccupiedOffsets(offsets = []) {
-	if (!offsets.length || canvas.grid.isGridless) return [];
-	const occupied = new Map(offsets.map((offset) => [offsetKey(offset), offset]));
-	const perimeter = [];
-	for (const offset of offsets) {
-		const adjacentOffsets = canvas.grid.getAdjacentOffsets(offset);
-		const isPerimeter = adjacentOffsets.some((adjacent) => !occupied.has(offsetKey(adjacent)));
-		if (isPerimeter) perimeter.push(offset);
-	}
-	return perimeter;
-}
-function testDistanceAdjacency(coords1, coords2, { meleeDiagonals = false } = {}) {
-	const { grid } = canvas ?? {};
-	if (!grid) return false;
-	if (grid.isHexagonal && typeof grid.getCube === 'function') {
-		const c1 = grid.getCube(coords1);
-		const c2 = grid.getCube(coords2);
-		const d0 = foundry.grid.HexagonalGrid.cubeDistance(c1, c2);
-		if (c1.k === undefined || c2.k === undefined) return d0 === 1;
-		if (d0 > 1) return false;
-		const d1 = Math.abs(c1.k - c2.k);
-		if (d1 > 1) return false;
-		if (meleeDiagonals) return d0 + d1 !== 0;
-		if (grid.diagonals === CONST.GRID_DIAGONALS.ILLEGAL) return d0 + d1 === 1;
-		return d0 + d1 !== 0;
-	}
-	return testAdjacency(coords1, coords2);
-}
+/**
+ * Check relative or exact disposition between two tokens.
+ * @param {Token5e|TokenDocument5e} t1
+ * @param {Token5e|TokenDocument5e} t2
+ * @param {string|number|} check - Disposition type or constant
+ * @returns {boolean}
+ */
+export function _dispositionCheck(t1, t2, check = 'all', mult) {
+	if (!t1 || !t2) return false;
+	if (check === 'all') return true;
 
-function getLegacyPerimeterCenters(token) {
-	const { isGridless, isHexagonal, isSquare } = canvas.grid;
-	if (isHexagonal) return getHexesOnPerimeter(token);
-	if (isGridless) return getGridlessSquaresOnPerimeter(token);
-	if (isSquare) return getSquaresOnPerimeter(token);
-	return [];
-}
+	t1 = t1 instanceof TokenDocument ? t1 : t1.document;
+	t2 = t2 instanceof TokenDocument ? t2 : t2.document;
 
-function getOccupiedPerimeterCenters(token, data = {}) {
-	const occupiedOffsets = getOccupiedOffsets2D(token, data);
-	const perimeterOffsets = getPerimeterOffsetsFromOccupiedOffsets(occupiedOffsets);
-	return getCentersFromOffsets(perimeterOffsets);
-}
-function compareCenterSets(left = [], right = []) {
-	const leftMap = new Map(left.map((point) => [centerKey(point), point]));
-	const rightMap = new Map(right.map((point) => [centerKey(point), point]));
-	const onlyLeft = [];
-	const onlyRight = [];
-	for (const [key, point] of leftMap.entries()) {
-		if (!rightMap.has(key)) onlyLeft.push(point);
-	}
-	for (const [key, point] of rightMap.entries()) {
-		if (!leftMap.has(key)) onlyRight.push(point);
-	}
-	return { onlyLeft, onlyRight };
-}
-function benchmarkFunction(fn, iterations, ...args) {
-	const count = Math.max(1, Number(iterations) || 1);
-	const started = performance.now();
+	if (typeof check === 'number') return t2.disposition === check;
+
 	let result;
-	for (let i = 0; i < count; i += 1) {
-		result = fn(...args);
+	switch (check) {
+		case 'different':
+			result = t1.disposition !== t2.disposition;
+			break;
+		case 'opposite':
+		case 'enemy':
+			result = t1.disposition * t2.disposition === -1;
+			break;
+		case 'same':
+		case 'ally':
+			result = t1.disposition === t2.disposition;
+			break;
+		default: {
+			const constVal = CONST.TOKEN_DISPOSITIONS[check.toUpperCase()];
+			result = constVal !== undefined && t2.disposition === constVal;
+			break;
+		}
 	}
-	const totalMs = performance.now() - started;
-	return {
-		iterations: count,
-		totalMs,
-		perIterationMs: totalMs / count,
-		lastResult: result,
-	};
-}
-export async function _debugBenchmarkPerimeterGridSpaceCenters(token, { iterations = 100, data = {}, useFoundryBenchmark = false } = {}) {
-	const legacyFn = () => uniqueCenters(getLegacyPerimeterCenters(token));
-	const occupiedFn = () => uniqueCenters(getOccupiedPerimeterCenters(token, data));
-	const legacy = benchmarkFunction(legacyFn, iterations);
-	const occupied = benchmarkFunction(occupiedFn, iterations);
-	if (useFoundryBenchmark && foundry?.utils?.benchmark) {
-		await foundry.utils.benchmark(legacyFn, iterations);
-		await foundry.utils.benchmark(occupiedFn, iterations);
-	}
-	const comparison = compareCenterSets(legacy.lastResult ?? [], occupied.lastResult ?? []);
-	return {
-		tokenId: token?.id ?? null,
-		iterations,
-		legacy,
-		occupied,
-		comparison: {
-			onlyLegacyCount: comparison.onlyLeft.length,
-			onlyOccupiedCount: comparison.onlyRight.length,
-			onlyLegacy: comparison.onlyLeft,
-			onlyOccupied: comparison.onlyRight,
-		},
-	};
-}
-function getTokenPerimeterCacheKey(token) {
-	token = resolveDistanceToken(token);
-	if (!token || !canvas?.grid || !canvas?.scene) return null;
-	const doc = token.document;
-	const shape = token.shape;
-	const shapeKey =
-		shape?.constructor?.name === 'Rectangle'
-			? `rect:${shape.x ?? 0}:${shape.y ?? 0}:${shape.width ?? 0}:${shape.height ?? 0}`
-			: shape?.constructor?.name === 'Circle'
-				? `circle:${shape.x ?? 0}:${shape.y ?? 0}:${shape.radius ?? 0}`
-				: shape?.points?.length
-					? `poly:${shape.points.join(',')}`
-					: shape?.toPolygon?.()?.points?.length
-						? `poly:${shape.toPolygon().points.join(',')}`
-						: shape?.constructor?.name ?? 'shape';
-	return [
-		canvas.scene.id,
-		token.id,
-		token.x,
-		token.y,
-		doc.width,
-		doc.height,
-		doc.elevation ?? 0,
-		canvas.grid.type,
-		canvas.grid.size,
-		canvas.grid.sizeX,
-		canvas.grid.sizeY,
-		canvas.grid.distance,
-		shapeKey,
-	].join(':');
+	if (mult) return !result;
+	return result;
 }
 
-function rememberPerimeterCacheEntry(key, value) {
-	if (!key) return value;
-	if (distancePerimeterCache.has(key)) distancePerimeterCache.delete(key);
-	distancePerimeterCache.set(key, value);
-	if (distancePerimeterCache.size > DISTANCE_PERIMETER_CACHE_LIMIT) {
-		const oldestKey = distancePerimeterCache.keys().next().value;
-		if (oldestKey !== undefined) distancePerimeterCache.delete(oldestKey);
-	}
-	return value;
+export function _autoArmor(actor) {
+	if (!actor) return {};
+	const hasArmor = actor.armor;
+	const hasShield = actor.shield;
+	return {
+		hasStealthDisadvantage:
+			hasArmor?.system.properties.has('stealthDisadvantage') ? 'Armor'
+			: hasShield?.system.properties.has('stealthDisadvantage') ? 'EquipmentShield'
+			: actor.itemTypes.equipment.some((item) => item.system.equipped && item.system.properties.has('stealthDisadvantage')) ? 'AC5E.Equipment'
+			: false,
+		notProficient:
+			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier ? 'Armor'
+			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier ? 'EquipmentShield'
+			: false,
+	};
 }
 
-function getCachedLegacyPerimeterCenters(token) {
-	token = resolveDistanceToken(token);
-	if (!token) return [];
-	const key = getTokenPerimeterCacheKey(token);
-	const cached = key ? distancePerimeterCache.get(key) : null;
-	if (cached) {
-		distancePerimeterCache.delete(key);
-		distancePerimeterCache.set(key, cached);
-		return cached.points;
+export function _autoEncumbrance(actor, abilityId) {
+	if (!settings.autoEncumbrance) return null;
+	return ['con', 'dex', 'str'].includes(abilityId) && _hasStatuses(actor, 'heavilyEncumbered').length;
+}
+
+const _itemMatcherCache = new Map();
+
+function _escapeRegExp(value) {
+	const str = String(value ?? '');
+	return typeof RegExp.escape === 'function' ? RegExp.escape(str) : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function _normalizeItemIdentifierInput(itemIdentifier) {
+	if (itemIdentifier == null) return [];
+	const values = Array.isArray(itemIdentifier) ? itemIdentifier : [itemIdentifier];
+	return values
+		.map((value) => {
+			if (typeof value === 'string') return value.trim();
+			if (typeof value === 'object') {
+				return String(value.identifier ?? value.system?.identifier ?? value.name ?? value.id ?? value.uuid ?? '').trim();
+			}
+			return String(value).trim();
+		})
+		.filter(Boolean);
+}
+
+function _getLocalizedItemQuery(query) {
+	const localized = _localize(query);
+	if (localized && localized !== query) return String(localized);
+	if (game?.i18n?.has?.(query)) return String(game.i18n.localize(query));
+	return String(query);
+}
+
+function _buildItemMatcher(queryRaw) {
+	const query = String(queryRaw ?? '').trim();
+	if (!query) return null;
+
+	const SearchFilter = foundry?.applications?.ux?.SearchFilter;
+	const localizedQuery = _getLocalizedItemQuery(query);
+
+	if (!SearchFilter?.cleanQuery || !SearchFilter?.testQuery) {
+		return {
+			queryLower: localizedQuery.toLowerCase(),
+			querySlug: localizedQuery.slugify(),
+		};
 	}
-	const points = uniqueCenters(getLegacyPerimeterCenters(token));
-	rememberPerimeterCacheEntry(key, {
-		key,
-		tokenId: token.id,
-		points,
-		createdAt: Date.now(),
+
+	const cacheKey = `${game?.i18n?.lang ?? 'en'}:${localizedQuery}`;
+	const cached = _itemMatcherCache.get(cacheKey);
+	if (cached) return cached;
+
+	const cleanedQuery = SearchFilter.cleanQuery(localizedQuery);
+	if (!cleanedQuery) return null;
+
+	const cleanedSlug = cleanedQuery.slugify();
+	const matcher = {
+		SearchFilter,
+		rgx: new RegExp(_escapeRegExp(cleanedQuery), 'i'),
+		rgxSlug: cleanedSlug ? new RegExp(_escapeRegExp(cleanedSlug), 'i') : null,
+		queryLower: cleanedQuery.toLowerCase(),
+		querySlug: cleanedSlug,
+	};
+	_itemMatcherCache.set(cacheKey, matcher);
+	return matcher;
+}
+
+function _normalizeItemLookupMatchOption(value) {
+	const parsed = String(value ?? 'name')
+		.trim()
+		.toLowerCase();
+	if (['name', 'identifier', 'id', 'uuid', 'any'].includes(parsed)) return parsed;
+	return 'name';
+}
+
+function _normalizeItemLookupNameModeOption(value) {
+	const parsed = String(value ?? 'exact')
+		.trim()
+		.toLowerCase();
+	if (['exact', 'partial'].includes(parsed)) return parsed;
+	return 'exact';
+}
+
+function _normalizeItemLookupOptions(options = {}) {
+	const input = options && typeof options === 'object' ? options : {};
+	return {
+		...input,
+		match: _normalizeItemLookupMatchOption(input.match),
+		nameMode: _normalizeItemLookupNameModeOption(input.nameMode),
+		equipped: typeof input.equipped === 'boolean' ? input.equipped : undefined,
+		attuned: typeof input.attuned === 'boolean' ? input.attuned : undefined,
+		hasUses: typeof input.hasUses === 'boolean' ? input.hasUses : undefined,
+		hasQuantity: typeof input.hasQuantity === 'boolean' ? input.hasQuantity : undefined,
+	};
+}
+
+function _itemNameMatches(item, identifier, matcher, options = {}) {
+	const name = String(item?.name ?? '');
+	if (!name) return false;
+	const query = String(identifier ?? '').trim();
+	if (!query) return false;
+
+	const nameMode = _normalizeItemLookupNameModeOption(options.nameMode);
+	const nameLower = name.toLowerCase();
+	const queryLower = query.toLowerCase();
+	if (nameMode === 'exact') return nameLower === queryLower;
+
+	const slug = name.slugify();
+	if (matcher?.SearchFilter?.testQuery) {
+		return matcher.SearchFilter.testQuery(matcher.rgx, name) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, slug));
+	}
+	return nameLower.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && slug.toLowerCase().includes(matcher.querySlug));
+}
+
+function _itemMatchesLookup(item, identifier, matcher, options = {}) {
+	if (!item || !identifier) return false;
+	const normalizedOptions = _normalizeItemLookupOptions(options);
+	const match = normalizedOptions.match;
+	const normalizedIdentifier = String(identifier ?? '').trim();
+	const identifierSlug = normalizedIdentifier.slugify();
+	const id = String(item.id ?? '');
+	const uuid = String(item.uuid ?? '');
+	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
+
+	if (match === 'id') return id === normalizedIdentifier;
+	if (match === 'uuid') return uuid === normalizedIdentifier;
+	if (match === 'identifier') return directIdentifier === normalizedIdentifier;
+	if (match === 'name') return _itemNameMatches(item, identifier, matcher, normalizedOptions);
+
+	return (
+		id === normalizedIdentifier ||
+		uuid === normalizedIdentifier ||
+		directIdentifier === normalizedIdentifier ||
+		(identifierSlug && directIdentifier === identifierSlug) ||
+		_itemNameMatches(item, identifier, matcher, normalizedOptions)
+	);
+}
+
+function _itemIsAttuned(item) {
+	return !!item?.system?.attuned;
+}
+
+function _itemHasUses(item) {
+	return !!(item?.system?.uses?.max || item?.system?.uses?.value);
+}
+
+function _itemHasQuantity(item) {
+	return !!item?.system?.quantity;
+}
+
+function _itemMatchesLookupStateFilters(item, options = {}) {
+	if (!item) return false;
+	if (options.equipped !== undefined && Boolean(item?.system?.equipped) !== options.equipped) return false;
+	if (options.attuned !== undefined && _itemIsAttuned(item) !== options.attuned) return false;
+	if (options.hasUses !== undefined && _itemHasUses(item) !== options.hasUses) return false;
+	if (options.hasQuantity !== undefined && _itemHasQuantity(item) !== options.hasQuantity) return false;
+	return true;
+}
+
+function _resolveActorForItemLookup(source) {
+	if (!source) return null;
+
+	// Actor-like
+	if (source instanceof foundry.abstract.Document && source.documentName === 'Actor') return source;
+	if (source?.document instanceof foundry.abstract.Document && source.document.documentName === 'Actor') return source.document;
+
+	// Token-like
+	if (source?.actor?.items) return source.actor;
+
+	// Structured reference object
+	if (typeof source === 'object') {
+		const reference = source.tokenId ?? source.tokenUuid ?? source.actorId ?? source.actorUuid ?? source.uuid ?? null;
+		if (typeof reference === 'string' && reference.trim()) return _resolveActorForItemLookup(reference.trim());
+	}
+
+	if (typeof source !== 'string') return null;
+	const reference = source.trim();
+	if (!reference) return null;
+
+	// tokenId => canvas.scene.tokens.get(tokenId)?.actor
+	const actorFromTokenId = canvas?.scene?.tokens?.get?.(reference)?.actor ?? canvas?.tokens?.get?.(reference)?.actor ?? null;
+	if (actorFromTokenId?.items) return actorFromTokenId;
+
+	// tokenUuid => fromUuidSync(tokenUuid)?.actor
+	const tokenUuidLike = reference.startsWith('Token.') || reference.includes('.Token.');
+	if (tokenUuidLike) {
+		const tokenDocument = _safeFromUuidSync(reference);
+		const actorFromTokenUuid = tokenDocument?.actor ?? null;
+		if (actorFromTokenUuid?.items) return actorFromTokenUuid;
+	}
+
+	// actorId => game.actors.get(actorId)
+	const actorFromId = game?.actors?.get?.(reference) ?? null;
+	if (actorFromId?.items) return actorFromId;
+
+	// actorUuid => fromUuidSync(actorUuid)
+	const actorUuidLike = reference.startsWith('Actor.') || reference.includes('.Actor.');
+	if (actorUuidLike || _isUuidLike(reference)) {
+		const actorDocument = _safeFromUuidSync(reference);
+		const actorFromUuid = actorDocument?.actor ?? actorDocument ?? null;
+		if (actorFromUuid?.items) return actorFromUuid;
+	}
+
+	return null;
+}
+
+/*
+ * Gets actor items filtered by identifier/name/id/uuid matching.
+ * source supports Actor, Token, tokenId, tokenUuid, actorId, actorUuid, or {tokenId|tokenUuid|actorId|actorUuid}.
+ * @param {Actor|Token|string|object} source - Source that resolves to an actor.
+ * @param {string|string[]|object} [itemIdentifier] - Identifier/name/id/uuid query. If omitted, returns all actor items.
+ * @param {object} [options]
+ * @param {string} [options.type] - Optional item.type filter.
+ * @returns {Array} - Matching item documents.
+ */
+export function _getItems(source, itemIdentifier, options = {}) {
+	const actor = _resolveActorForItemLookup(source);
+	if (!actor?.items) return [];
+
+	const actorItems = Array.from(actor.items ?? []);
+	if (!actorItems.length) return [];
+
+	const normalizedOptions = _normalizeItemLookupOptions(options);
+	const itemType = typeof normalizedOptions?.type === 'string' ? normalizedOptions.type.trim() : '';
+	const typeScopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
+	const scopedItems = typeScopedItems.filter((item) => _itemMatchesLookupStateFilters(item, normalizedOptions));
+	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
+	if (!identifiers.length) return scopedItems;
+
+	const matchers = new Map(identifiers.map((identifier) => [identifier, _buildItemMatcher(identifier)]));
+	const seen = new Set();
+	const matches = [];
+
+	for (const item of scopedItems) {
+		for (const identifier of identifiers) {
+			const matcher = matchers.get(identifier);
+			if (!_itemMatchesLookup(item, identifier, matcher, normalizedOptions)) continue;
+			const itemKey = String(item?.uuid ?? item?.id ?? item?.name ?? '');
+			if (!seen.has(itemKey)) {
+				seen.add(itemKey);
+				matches.push(item);
+			}
+			break;
+		}
+	}
+
+	return matches;
+}
+
+/*
+ * Checks whether at least one item matches.
+ * @param {Actor|Token|string|object} source
+ * @param {string|string[]|object} itemIdentifier
+ * @param {object} [options]
+ * @returns {boolean}
+ */
+export function _hasItem(source, itemIdentifier, options = {}) {
+	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
+	if (!identifiers.length) return false;
+	return _getItems(source, identifiers, options).length > 0;
+}
+
+function _getSelectedOptinIds(optinSelected = {}) {
+	const selected = new Set();
+	const visit = (value, key) => {
+		if (!value || typeof value !== 'object') {
+			if (value && key) selected.add(key);
+			return;
+		}
+		for (const [nestedKey, nestedValue] of Object.entries(value)) {
+			visit(nestedValue, nestedKey);
+		}
+	};
+	visit(optinSelected, '');
+	return selected;
+}
+
+export function _filterOptinEntries(entries = [], optinSelected = {}) {
+	const selected = _getSelectedOptinIds(optinSelected);
+	return (entries ?? []).filter((entry) => {
+		if (!entry || typeof entry !== 'object') return true;
+		if (!entry.optin) return true;
+		return selected.has(entry.id);
 	});
-	return points;
-}
-
-function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false, includeHeight = true } = {}) {
-	tokenA = resolveDistanceToken(tokenA);
-	tokenB = resolveDistanceToken(tokenB);
-	if (!tokenA || !tokenB) return null;
-	let totalDistance = Infinity;
-	let diagonals = 0;
-	let spaces = 0;
-	let adjacent2D;
-	let bestPair = null;
-	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
-	const { grid } = canvas || {};
-	if (foundry.utils.isEmpty(grid)) return null;
-	const { distance: gridDistance, isGridless, isHexagonal, isSquare } = grid;
-
-	if (isHexagonal) {
-		const tokenAHexes = getCachedLegacyPerimeterCenters(tokenA);
-		const tokenBHexes = getCachedLegacyPerimeterCenters(tokenB);
-		outer: for (const pointA of tokenAHexes) {
-			for (const pointB of tokenBHexes) {
-				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
-				if (adjacent2D && meleeDiagonals) {
-					totalDistance = gridDistance;
-					diagonals = 0;
-					spaces = 1;
-					bestPair = { tokenA: pointA, tokenB: pointB };
-					break outer;
-				}
-				const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-				if (distance2D < totalDistance) {
-					totalDistance = distance2D;
-					diagonals = pathDiagonals;
-					spaces = pathSpaces;
-					bestPair = { tokenA: pointA, tokenB: pointB };
-				}
-			}
-		}
-	} else {
-		const areTokensIntersencting = tokenA.bounds.intersects(tokenB.bounds);
-		if (areTokensIntersencting) {
-			totalDistance = 0;
-			diagonals = 0;
-			spaces = 0;
-			bestPair = { tokenA: tokenA.center, tokenB: tokenB.center };
-		} else if (isGridless) {
-			const tokenASquares = getCachedLegacyPerimeterCenters(tokenA);
-			const tokenBSquares = getCachedLegacyPerimeterCenters(tokenB);
-			for (const pointA of tokenASquares) {
-				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-					if (distance2D < totalDistance) {
-						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false;
-						totalDistance = leeway && distance2D <= leeway ? gridDistance : distance2D;
-						diagonals = pathDiagonals;
-						spaces = pathSpaces;
-						bestPair = { tokenA: pointA, tokenB: pointB };
-					}
-				}
-			}
-		} else if (isSquare) {
-			const tokenASquares = getCachedLegacyPerimeterCenters(tokenA);
-			const tokenBSquares = getCachedLegacyPerimeterCenters(tokenB);
-			outer: for (const pointA of tokenASquares) {
-				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
-					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
-					if (adjacent2D && meleeDiagonals) {
-						totalDistance = gridDistance;
-						diagonals = 0;
-						spaces = 1;
-						bestPair = { tokenA: pointA, tokenB: pointB };
-						break outer;
-					}
-					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
-					if (distance2D < totalDistance) {
-						totalDistance = distance2D;
-						diagonals = pathDiagonals;
-						spaces = pathSpaces;
-						bestPair = { tokenA: pointA, tokenB: pointB };
-					}
-				}
-			}
-		}
-	}
-
-	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
-	return {
-		tokenA,
-		tokenB,
-		distance: roundDistance(totalDistance),
-		bestPair,
-		cache: {
-			size: distancePerimeterCache.size,
-			limit: DISTANCE_PERIMETER_CACHE_LIMIT,
-		},
-	};
-}
-
-export function _getCachedDistance(tokenA, tokenB, includeUnits = false, checkCollision = false, includeHeight = true) {
-	const result = getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision, includeHeight });
-	if (!result) return Infinity;
-	if (includeUnits) return `${result.distance}${canvas?.grid?.units ?? ''}`;
-	return result.distance;
-}
-
-// reworked canvas.grid.testAdjacency to not care about diagonals
-function testAdjacency(coords1, coords2) {
-	const { i: i1, j: j1, k: k1 } = canvas.grid.getOffset(coords1);
-	const { i: i2, j: j2, k: k2 } = canvas.grid.getOffset(coords2);
-	const di = Math.abs(i1 - i2);
-	const dj = Math.abs(j1 - j2);
-	// @to-do: use 3D foundry functions instead of heightdifference dz
-	const dk = k1 !== undefined ? Math.abs(k1 - k2) : 0;
-	return Math.max(di, dj, dk) === 1;
-}
-
-function roundDistance(distance) {
-	if (!Number.isFinite(distance)) return distance;
-	return ((distance * 100) | 0) / 100;
-}
-
-function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D) {
-	const tokenAz0 = (tokenA.document.elevation / grid.distance) | 0;
-	const tokenAz1 = tokenAz0 + Math.max(1, Math.min(tokenA.document.width | 0, tokenA.document.height | 0));
-	const tokenBz0 = (tokenB.document.elevation / grid.distance) | 0;
-	const tokenBz1 = tokenBz0 + Math.max(1, Math.min(tokenB.document.width | 0, tokenB.document.height | 0));
-	const dz =
-		tokenBz0 >= tokenAz1 ? tokenBz0 - tokenAz1 + 1
-		: tokenAz0 >= tokenBz1 ? tokenAz0 - tokenBz1 + 1
-		: 0;
-	if (Math.abs(dz) <= 1 && adjacent2D) return totalDistance;
-	if (grid.isGridless) {
-		const verticalDistance = dz * grid.distance;
-		totalDistance = dz ? Math.sqrt(totalDistance * totalDistance + verticalDistance * verticalDistance) : totalDistance;
-	} else totalDistance = dz ? calculateDiagonalsZ(diagonals, dz, spaces, grid) : totalDistance;
-	return totalDistance;
-}
-
-function getHexesOnPerimeter(t) {
-	const perimeterPoints = getHexPerimeterPoints(t);
-	if (!perimeterPoints || perimeterPoints.length === 0) {
-		console.warn('No perimeter points found for the token.');
-		return [];
-	}
-
-	const foundHexes = {};
-
-	for (let i = 0; i < perimeterPoints.length; i += 1) {
-		const p = perimeterPoints[i];
-		const nudged = nudgeToward(p, t.center);
-		const pointToCube = canvas.grid.pointToCube({ x: nudged[0], y: nudged[1] });
-		const hex = canvas.grid.getCenterPoint(pointToCube);
-		hex.id = hex.x + hex.y;
-		if (!foundHexes[hex.id] && hex.x > t.bounds.left && hex.x < t.bounds.right && hex.y < t.bounds.bottom && hex.y > t.bounds.top) {
-			foundHexes[hex.id] = hex;
-		}
-	}
-	return Object.values(foundHexes);
-}
-function nudgeToward(point, center, distance = 0.2) {
-	const dx = center.x - point.x;
-	const dy = center.y - point.y;
-	const radians = Math.atan2(dy, dx);
-	const degrees = radians * (180 / Math.PI);
-	const nudgedPoint = getHexTranslatedPoint(point, degrees, distance);
-	return [nudgedPoint.x, nudgedPoint.y];
-}
-
-function getHexPerimeterPoints(t) {
-	const clipperP = t.shape.toClipperPoints();
-
-	const points = [];
-	clipperP.forEach((r) => points.push({ x: t.x + r.X, y: t.y + r.Y }));
-	return points;
-}
-
-function getHexTranslatedPoint(point, direction, distance) {
-	direction = Math.toRadians(direction);
-	const dx = Math.cos(direction);
-	const dy = Math.sin(direction);
-	let q;
-	let r;
-	if (canvas.grid.columns) {
-		q = 2 * Math.SQRT1_3 * dx;
-		r = -0.5 * q + dy;
-	} else {
-		r = 2 * Math.SQRT1_3 * dy;
-		q = -0.5 * r + dx;
-	}
-	const s = ((distance / canvas.grid.distance) * canvas.grid.size) / ((Math.abs(r) + Math.abs(q) + Math.abs(q + r)) / 2);
-	const newPoint = { x: point.x + dx * s, y: point.y + dy * s };
-	return newPoint;
-}
-
-function getGridlessSquaresOnPerimeter(t) {
-	const perimeterCenterPoints = {};
-	if (t.bounds.width === canvas.grid.sizeX && t.bounds.height === canvas.grid.sizeY)
-		perimeterCenterPoints['one'] = { x: t.x + Math.floor(canvas.grid.size / 2), y: t.y + Math.floor(canvas.grid.size / 2) };
-	else {
-		const bounds = t.bounds;
-		for (let x = bounds.x; x < bounds.right; x += canvas.grid.size) {
-			for (let y = bounds.y; y < bounds.bottom; y += canvas.grid.size) {
-				if (x === bounds.x || x === bounds.right - canvas.grid.size || y === bounds.y || y === bounds.bottom - canvas.grid.size) {
-					const newX = x;
-					const newY = y;
-					const centerPoint = { x: newX + Math.floor(canvas.grid.size / 2), y: newY + Math.floor(canvas.grid.size / 2) };
-					const newID = `${centerPoint.x}_${centerPoint.y}`;
-					if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
-				}
-			}
-		}
-	}
-	return Object.values(perimeterCenterPoints);
-}
-
-function getSquaresOnPerimeter(t) {
-	const perimeterCenterPoints = {};
-	const clipperPoints = game.version < 13 ? t.shape.toPolygon().toClipperPoints() : t.shape.toClipperPoints();
-	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
-		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
-			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
-				const newX = t.x + x;
-				const newY = t.y + y;
-				const centerPoint = canvas.grid.getCenterPoint({ i: Math.floor(newY / canvas.grid.size), j: Math.floor(newX / canvas.grid.size) });
-				const newID = `${centerPoint.x}_${centerPoint.y}`;
-				if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
-			}
-		}
-	}
-	return Object.values(perimeterCenterPoints);
-}
-
-function calculateDiagonalsZ(diagonals, dz, spaces, grid) {
-	const XY = { diagonals, illegal: spaces, moves: 0 };
-	const Z = { illegal: dz, diagonals: Math.min(XY.illegal, dz), diagonalsXYZ: 0, diagonalsXZ_YZ: 0, moves: 0 };
-	Z.diagonalsXYZ = Math.min(XY.diagonals, Z.diagonals);
-	Z.diagonalsXZ_YZ = Z.diagonals - Z.diagonalsXYZ;
-	XY.moves = spaces - (XY.diagonals + Z.diagonalsXZ_YZ);
-	Z.moves = dz - Z.diagonals;
-	const overallDiagonals = Math.max(XY.diagonals, Z.diagonals);
-	let totalDistance = 0;
-	switch (grid.diagonals) {
-		case CONST.GRID_DIAGONALS.EQUIDISTANT:
-			totalDistance = XY.moves + Z.moves + overallDiagonals;
-			break;
-
-		case CONST.GRID_DIAGONALS.ALTERNATING_1:
-			for (let i = 1; i <= overallDiagonals; i++) {
-				totalDistance += i & 1 ? 1 : 2; // Odd/even check with bitwise
-			}
-			totalDistance += XY.moves + Z.moves;
-			break;
-
-		case CONST.GRID_DIAGONALS.ALTERNATING_2:
-			for (let i = 1; i <= overallDiagonals; i++) {
-				totalDistance += i & 1 ? 2 : 1; // Alternate between 2 and 1
-			}
-			totalDistance += XY.moves + Z.moves;
-			break;
-
-		case CONST.GRID_DIAGONALS.ILLEGAL:
-			totalDistance = XY.illegal + Z.illegal;
-			break;
-
-		case CONST.GRID_DIAGONALS.EXACT:
-			totalDistance = XY.moves + Z.moves + (overallDiagonals - Z.diagonalsXYZ) * Math.sqrt(2) + Z.diagonalsXYZ * Math.sqrt(3);
-			break;
-
-		case CONST.GRID_DIAGONALS.APPROXIMATE:
-			totalDistance = XY.moves + Z.moves + overallDiagonals * 1.5;
-			break;
-
-		case CONST.GRID_DIAGONALS.RECTILINEAR:
-			totalDistance = XY.moves + Z.moves + overallDiagonals * 2;
-			break;
-
-		default:
-			throw new Error(`${Constants.MODULE_NAME_SHORT}: Unknown diagonal rule: ${grid.diagonals}`);
-	}
-
-	totalDistance *= grid.distance;
-	return totalDistance;
 }
 
 export function _i18nConditions(name) {
@@ -1104,76 +1025,12 @@ export function _hasAppliedEffects(actor) {
 	return !!actor?.appliedEffects.length;
 }
 
-export function _getExhaustionLevel(actor, min = undefined, max = undefined) {
-	if (!actor) return false;
-	let exhaustionLevel = '';
-	const hasExhaustion = actor.statuses.has('exhaustion') || actor.flags?.['automated-conditions-5e']?.statuses;
-	if (hasExhaustion) exhaustionLevel = actor.system.attributes.exhaustion;
-	return min ? min <= exhaustionLevel : exhaustionLevel;
-}
-
-function _getSelectedOptinIds(optinSelected = {}) {
-	const selected = new Set();
-	const visit = (value, key) => {
-		if (!value || typeof value !== 'object') {
-			if (value && key) selected.add(key);
-			return;
-		}
-		for (const [nestedKey, nestedValue] of Object.entries(value)) {
-			visit(nestedValue, nestedKey);
-		}
-	};
-	visit(optinSelected, '');
-	return selected;
-}
-
-export function _filterOptinEntries(entries = [], optinSelected = {}) {
-	const selected = _getSelectedOptinIds(optinSelected);
-	return (entries ?? []).filter((entry) => {
-		if (!entry || typeof entry !== 'object') return true;
-		if (!entry.optin) return true;
-		return selected.has(entry.id);
-	});
-}
-
-function _normalizeAdvantageBehavior(rawValue = null) {
-	const source = rawValue && typeof rawValue === 'object' ? rawValue : {};
-	const modeToken = String(source.mode ?? source.type ?? '').trim().toLowerCase();
-	const advantageFormula = typeof source.advantageFormula === 'string' ? source.advantageFormula.trim() : '';
-	const disadvantageFormula = typeof source.disadvantageFormula === 'string' ? source.disadvantageFormula.trim() : '';
-	const mode = modeToken === 'custom' || advantageFormula || disadvantageFormula ? 'custom' : 'native';
-	return {
-		mode,
-		advantageFormula,
-		disadvantageFormula,
-	};
-}
-
-function _normalizeAbilityOverride(rawValue = null) {
-	const normalized = String(rawValue ?? '').trim().toLowerCase();
-	return normalized || '';
-}
-
-export function _getConfiguredAdvantageBehavior(ac5eConfig = {}, fallback = {}) {
-	const explicit =
-		ac5eConfig?.advantageBehavior ??
-		fallback?.advantageBehavior ??
-		fallback?.[Constants.MODULE_ID]?.advantageBehavior ??
-		null;
-	const merged = _normalizeAdvantageBehavior(settings.advantageBehavior);
-	if (explicit && typeof explicit === 'object') foundry.utils.mergeObject(merged, _normalizeAdvantageBehavior(explicit), { inplace: true, overwrite: true });
-	if (merged.mode !== 'custom' && (merged.advantageFormula || merged.disadvantageFormula)) merged.mode = 'custom';
-	return merged;
-}
-
-export function _getActiveAbilityOverrideEntry(ac5eConfig = {}) {
+function _getActiveAbilityOverrideEntry(ac5eConfig = {}) {
 	const selected = ac5eConfig?.optinSelected ?? {};
-	const filterEntries = (entries = []) =>
-		_filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
-	const entries = [
-		...filterEntries(ac5eConfig?.subject?.abilityOverride ?? []),
-		...filterEntries(ac5eConfig?.opponent?.abilityOverride ?? []),
-	].filter((entry) => typeof entry?.abilityOverride === 'string' && entry.abilityOverride.trim());
+	const filterEntries = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
+	const entries = [...filterEntries(ac5eConfig?.subject?.abilityOverride ?? []), ...filterEntries(ac5eConfig?.opponent?.abilityOverride ?? [])].filter(
+		(entry) => typeof entry?.abilityOverride === 'string' && entry.abilityOverride.trim(),
+	);
 	return entries.length ? entries[entries.length - 1] : null;
 }
 
@@ -1182,7 +1039,7 @@ export function _getActiveAbilityOverride(ac5eConfig = {}) {
 	return entry ? String(entry.abilityOverride).trim().toLowerCase() : '';
 }
 
-export function _getTransientRollState(ac5eConfig = {}, fallback = {}) {
+function _getTransientRollState(ac5eConfig = {}, fallback = {}) {
 	const d20 = fallback?.d20 && typeof fallback.d20 === 'object' ? fallback.d20 : fallback;
 	const explicitAdv = d20?.hasTransitAdvantage ?? ac5eConfig?.hasTransitAdvantage ?? ac5eConfig?.transientRollState?.hasTransitAdvantage;
 	const explicitDis = d20?.hasTransitDisadvantage ?? ac5eConfig?.hasTransitDisadvantage ?? ac5eConfig?.transientRollState?.hasTransitDisadvantage;
@@ -1222,7 +1079,6 @@ export function _entryMatchesTransientState(entry, ac5eConfig = {}, fallback = {
 }
 
 const D20_BASELINE_HOOKS = new Set(['attack', 'save', 'check']);
-const DAMAGE_BASELINE_HOOKS = new Set(['damage']);
 
 function getD20BaselineRollProfile(ac5eConfig, config) {
 	const hookType = ac5eConfig?.hookType;
@@ -1350,1215 +1206,6 @@ export function _restoreD20ConfigFromFrozenBaseline(ac5eConfig, config) {
 	return true;
 }
 
-function normalizeDamageTypesForBaseline(damageTypes) {
-	const normalized = {};
-	if (Array.isArray(damageTypes)) {
-		for (const value of damageTypes) {
-			const key = String(value ?? '')
-				.trim()
-				.toLowerCase();
-			if (key) normalized[key] = true;
-		}
-		return normalized;
-	}
-	if (damageTypes && typeof damageTypes === 'object') {
-		for (const [key, enabled] of Object.entries(damageTypes)) {
-			if (!enabled) continue;
-			const normalizedKey = String(key ?? '')
-				.trim()
-				.toLowerCase();
-			if (normalizedKey) normalized[normalizedKey] = true;
-		}
-		return normalized;
-	}
-	const single = String(damageTypes ?? '')
-		.trim()
-		.toLowerCase();
-	if (single) normalized[single] = true;
-	return normalized;
-}
-
-function getDamageBaselineRollProfile(ac5eConfig, config) {
-	const options = ac5eConfig?.options ?? {};
-	const ammunitionId =
-		typeof config?.ammunition === 'string' ? config.ammunition
-		: config?.ammunition?.id ? config.ammunition.id
-		: typeof options?.ammo === 'string' ? options.ammo
-		: options?.ammunition?.id ? options.ammunition.id
-		: null;
-	const normalizedDamageTypes = normalizeDamageTypesForBaseline(options?.damageTypes);
-	const rollTypes = Array.isArray(config?.rolls) ? config.rolls.map((roll) => roll?.options?.type ?? null) : [];
-	return {
-		hookType: ac5eConfig?.hookType,
-		attackMode: config?.attackMode ?? options?.attackMode ?? null,
-		mastery: config?.mastery ?? options?.mastery ?? null,
-		ammunition: ammunitionId,
-		defaultDamageType: options?.defaultDamageType ?? null,
-		damageTypes: Object.keys(normalizedDamageTypes).sort(),
-		rollTypes,
-	};
-}
-
-function getDamageBaselineProfileKey(profile = {}) {
-	return JSON.stringify(profile);
-}
-
-function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
-	const frozenRolls = (Array.isArray(config?.rolls) ? config.rolls : []).map((roll) => {
-		const parts = Array.isArray(roll?.parts) ? roll.parts : [];
-		const formula =
-			typeof roll?.formula === 'string' ? roll.formula
-			: parts.length ? parts.join(' + ')
-			: null;
-		return Object.freeze({
-			formula,
-			parts: Object.freeze(foundry.utils.duplicate(parts)),
-			type: roll?.options?.type ?? null,
-			maximum: roll?.options?.maximum ?? null,
-			minimum: roll?.options?.minimum ?? null,
-			isCritical: roll?.options?.isCritical ?? null,
-		});
-	});
-	return Object.freeze({
-		profile: Object.freeze(foundry.utils.duplicate(profile)),
-		profileKey: getDamageBaselineProfileKey(profile),
-		isCritical: !!config?.isCritical,
-		defaultButton: ac5eConfig?.defaultButton ?? null,
-		parts: Object.freeze(foundry.utils.duplicate(Array.isArray(config?.parts) ? config.parts : [])),
-		damageModifiers: Object.freeze(foundry.utils.duplicate(Array.isArray(ac5eConfig?.damageModifiers) ? ac5eConfig.damageModifiers : [])),
-		rolls: Object.freeze(frozenRolls),
-	});
-}
-
-export function _captureFrozenDamageBaseline(ac5eConfig, config) {
-	if (!ac5eConfig || !config) return null;
-	if (!DAMAGE_BASELINE_HOOKS.has(ac5eConfig.hookType)) return null;
-	config.rolls ??= [];
-	ac5eConfig.preAC5eConfig ??= {};
-	const rollProfile = getDamageBaselineRollProfile(ac5eConfig, config);
-	const profileKey = getDamageBaselineProfileKey(rollProfile);
-	ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile ??= {};
-	let baseline = ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile[profileKey];
-	if (!baseline) {
-		baseline = freezeDamageRollSnapshot(rollProfile, config, ac5eConfig);
-		ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile[profileKey] = baseline;
-	}
-	ac5eConfig.preAC5eConfig.activeDamageRollProfileKey = profileKey;
-	ac5eConfig.preAC5eConfig.frozenDamageBaseline = baseline;
-	ac5eConfig.frozenDamageBaseline = baseline;
-	return baseline;
-}
-
-export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
-	if (!ac5eConfig || !config) return false;
-	if (!DAMAGE_BASELINE_HOOKS.has(ac5eConfig.hookType)) return false;
-	config.rolls ??= [];
-	const preConfig = ac5eConfig.preAC5eConfig ?? {};
-	const profile = getDamageBaselineRollProfile(ac5eConfig, config);
-	const profileKey = getDamageBaselineProfileKey(profile);
-	const baseline = preConfig?.frozenDamageBaselineByProfile?.[profileKey] ?? preConfig?.frozenDamageBaseline ?? ac5eConfig?.frozenDamageBaseline;
-	if (!baseline) return false;
-	const baselineRolls = Array.isArray(baseline?.rolls) ? baseline.rolls : [];
-	for (let index = 0; index < baselineRolls.length; index++) {
-		const rollBaseline = baselineRolls[index];
-		if (!rollBaseline) continue;
-		const roll = config.rolls[index] ?? (config.rolls[index] = {});
-		roll.options ??= {};
-		roll.parts = foundry.utils.duplicate(Array.isArray(rollBaseline.parts) ? rollBaseline.parts : []);
-		if (typeof rollBaseline.formula === 'string') roll.formula = rollBaseline.formula;
-		else if (Array.isArray(roll.parts) && roll.parts.length) roll.formula = roll.parts.join(' + ');
-		if (rollBaseline.type !== undefined && rollBaseline.type !== null) roll.options.type = rollBaseline.type;
-		if (rollBaseline.maximum !== undefined && rollBaseline.maximum !== null) roll.options.maximum = rollBaseline.maximum;
-		else if ('maximum' in roll.options) delete roll.options.maximum;
-		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
-		else if ('minimum' in roll.options) delete roll.options.minimum;
-		if (rollBaseline.isCritical !== undefined && rollBaseline.isCritical !== null) roll.options.isCritical = rollBaseline.isCritical;
-		if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
-			delete roll.options.critical.bonusDamage;
-		}
-	}
-	if (Array.isArray(config.parts) || (Array.isArray(baseline?.parts) && baseline.parts.length)) {
-		config.parts = foundry.utils.duplicate(Array.isArray(baseline?.parts) ? baseline.parts : []);
-	}
-	if (baseline?.isCritical !== undefined) config.isCritical = !!baseline.isCritical;
-	if (config?.midiOptions) config.midiOptions.isCritical = !!config.isCritical;
-	if (baseline?.defaultButton !== undefined && baseline?.defaultButton !== null) ac5eConfig.defaultButton = baseline.defaultButton;
-	preConfig.activeDamageRollProfileKey = baseline.profileKey ?? profileKey;
-	preConfig.frozenDamageBaseline = baseline;
-	ac5eConfig.preAC5eConfig = preConfig;
-	ac5eConfig.frozenDamageBaseline = baseline;
-	return true;
-}
-
-function _resolveTransientBehaviorFormula(formula, transientRollState = {}) {
-	const rawFormula = String(formula ?? '').trim();
-	if (!rawFormula) return '';
-	const preserveStandaloneSignedDiceFormula = (expression) => {
-		if (typeof expression !== 'string') return null;
-		const trimmed = expression.trim();
-		if (!/^[+-]/.test(trimmed)) return null;
-		if (/[()@]/.test(trimmed)) return null;
-		const unsigned = trimmed.slice(1).trim();
-		if (!unsigned) return null;
-		const signedDicePattern =
-			/^(?:(?:\d*)d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
-		return signedDicePattern.test(unsigned) ? `${trimmed[0]}${unsigned}` : null;
-	};
-	const normalizedFormula = rawFormula;
-	const preservedSignedDiceFormula = preserveStandaloneSignedDiceFormula(normalizedFormula);
-	if (preservedSignedDiceFormula) return preservedSignedDiceFormula;
-	const sandbox = {
-		hasTransitAdvantage: !!transientRollState?.hasTransitAdvantage,
-		hasTransitDisadvantage: !!transientRollState?.hasTransitDisadvantage,
-		hasAdvantage: !!transientRollState?.hasTransitAdvantage,
-		hasDisadvantage: !!transientRollState?.hasTransitDisadvantage,
-	};
-	const prepared = _ac5eSafeEval({ expression: normalizedFormula, sandbox, mode: 'formula' });
-	return typeof prepared === 'string' ? prepared.trim() : String(prepared ?? '').trim();
-}
-
-function _ensureRoll0Options(config, roll0) {
-	if (!config) return roll0?.options ?? null;
-	if (!Array.isArray(config.rolls)) config.rolls = [];
-	if (!config.rolls[0] || typeof config.rolls[0] !== 'object') config.rolls[0] = { options: {} };
-	const rollEntry = config.rolls[0];
-	if (!rollEntry.options || typeof rollEntry.options !== 'object') rollEntry.options = {};
-	if (roll0 && roll0 !== rollEntry) roll0.options = rollEntry.options;
-	return rollEntry.options;
-}
-
-function _writeFastForwardMode(ac5eConfig, config, roll0) {
-	if (!ac5eConfig || !config) return;
-	const rollOptions = _ensureRoll0Options(config, roll0);
-	if (!rollOptions) return;
-	const resolvedAdvantage = config.advantage;
-	const resolvedDisadvantage = config.disadvantage;
-	const applyResolvedMode = (target) => {
-		if (!target || typeof target !== 'object') return;
-		if (ac5eConfig.defaultButton !== undefined) target.defaultButton = ac5eConfig.defaultButton;
-		if (ac5eConfig.advantageMode !== undefined) target.advantageMode = ac5eConfig.advantageMode;
-		if (resolvedAdvantage !== undefined) target.advantage = !!resolvedAdvantage;
-		if (resolvedDisadvantage !== undefined) target.disadvantage = !!resolvedDisadvantage;
-	};
-	applyResolvedMode(rollOptions);
-	applyResolvedMode(config);
-}
-
-function _syncResolvedFastForwardD20Override(ac5eConfig, config, action) {
-	if (!ac5eConfig || !config) return;
-	const rollOptions = _ensureRoll0Options(config);
-	const normalizedAction = String(action ?? 'normal')
-		.trim()
-		.toLowerCase();
-	let advantage = true;
-	let disadvantage = true;
-	let advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.NORMAL ?? 0;
-	if (normalizedAction === 'advantage') {
-		advantage = true;
-		disadvantage = false;
-		advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE ?? advantageMode;
-	} else if (normalizedAction === 'disadvantage') {
-		advantage = false;
-		disadvantage = true;
-		advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE ?? advantageMode;
-	}
-	ac5eConfig.advantageMode = advantageMode;
-	ac5eConfig.defaultButton = normalizedAction;
-	config.advantage = advantage;
-	config.disadvantage = disadvantage;
-	if (rollOptions && typeof rollOptions === 'object') {
-		rollOptions.advantage = advantage;
-		rollOptions.disadvantage = disadvantage;
-		rollOptions.advantageMode = advantageMode;
-		rollOptions.defaultButton = normalizedAction;
-	}
-}
-
-export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties = false } = {}) {
-	const { ADVANTAGE: ADV_MODE, DISADVANTAGE: DIS_MODE, NORMAL: NORM_MODE } = CONFIG.Dice.D20Roll.ADV_MODE;
-	const isForcedSentinelAC = (value) => Number.isFinite(Number(value)) && Math.abs(Number(value)) === 999;
-	const getTargetKey = (target, index = 0) => {
-		if (!target || typeof target !== 'object') return `index:${index}`;
-		const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
-		if (tokenUuid) return `token:${tokenUuid}`;
-		const actorUuid = target?.uuid;
-		if (actorUuid) return `actor:${actorUuid}:index:${index}`;
-		return `index:${index}`;
-	};
-	const getLiveTargetAC = (target = {}) => {
-		const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
-		if (tokenUuid) {
-			const tokenDoc = fromUuidSync(tokenUuid);
-			const tokenActor = tokenDoc?.actor ?? tokenDoc?.object?.actor;
-			const tokenAC = tokenActor?.system?.attributes?.ac?.value;
-			if (Number.isFinite(Number(tokenAC))) return Number(tokenAC);
-		}
-		const actorUuid = target?.uuid;
-		if (actorUuid) {
-			const actor = fromUuidSync(actorUuid);
-			const actorAC = actor?.system?.attributes?.ac?.value;
-			if (Number.isFinite(Number(actorAC))) return Number(actorAC);
-		}
-		const embeddedAC = target?.ac;
-		if (Number.isFinite(Number(embeddedAC)) && !isForcedSentinelAC(embeddedAC)) return Number(embeddedAC);
-		return null;
-	};
-	const hasRoll0 = Array.isArray(config.rolls) && config.rolls[0] && typeof config.rolls[0] === 'object';
-	const roll0 = hasRoll0 ? config.rolls[0] : { options: {} };
-	if (hasRoll0 && (!roll0.options || typeof roll0.options !== 'object')) roll0.options = {};
-	const hook = ac5eConfig.hookType;
-	const pickNonSentinelNumber = (...values) => {
-		for (const value of values) {
-			const numeric = Number(value);
-			if (!Number.isFinite(numeric)) continue;
-			if (isForcedSentinelAC(numeric)) continue;
-			return numeric;
-		}
-		return undefined;
-	};
-	const getMutableAttackTargetCollections = () => {
-		const collections = [];
-		const ac5eTargets = Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : null;
-		if (ac5eTargets) collections.push(ac5eTargets);
-		return collections;
-	};
-	const getMessageAttackTargets = () => {
-		const dnd5eFlags = _getMessageDnd5eFlags(message);
-		const messageTargets = Array.isArray(dnd5eFlags?.targets) ? dnd5eFlags.targets : null;
-		return messageTargets ?? [];
-	};
-	ac5eConfig.preAC5eConfig ??= {};
-	if (!ac5eConfig.preAC5eConfig.baseRoll0Options) {
-		const targetCollections = hook === 'attack' || hook === 'damage' ? getMutableAttackTargetCollections() : [];
-		const liveTargetAcs = targetCollections[0]?.map((target) => getLiveTargetAC(target)).filter((ac) => ac !== null) ?? [];
-		const baselineTarget = liveTargetAcs.length ? Math.min(...liveTargetAcs) : (roll0.options.target ?? config?.target);
-		const currentTarget = roll0.options.target ?? config?.target;
-		ac5eConfig.preAC5eConfig.baseRoll0Options = {
-			criticalSuccess: roll0.options.criticalSuccess,
-			criticalFailure: roll0.options.criticalFailure,
-			target: isForcedSentinelAC(currentTarget) && Number.isFinite(Number(baselineTarget)) ? baselineTarget : currentTarget,
-		};
-	}
-	if ((hook === 'attack' || hook === 'damage') && !ac5eConfig.preAC5eConfig.baseTargetAcByKey) {
-		const baseTargets = getMutableAttackTargetCollections()[0] ?? getMessageAttackTargets();
-		const byKey = {};
-		baseTargets.forEach((target, index) => {
-			const key = getTargetKey(target, index);
-			byKey[key] = {
-				key,
-				hasAC: Object.hasOwn(target ?? {}, 'ac'),
-				ac: getLiveTargetAC(target) ?? target?.ac,
-				uuid: target?.uuid,
-				tokenUuid: target?.tokenUuid ?? target?.token?.uuid,
-				name: target?.name,
-				img: target?.img,
-			};
-		});
-		ac5eConfig.preAC5eConfig.baseTargetAcByKey = byKey;
-	}
-	const baseTargetAcByKey = ac5eConfig.preAC5eConfig.baseTargetAcByKey ?? {};
-	const baseRoll0Options = ac5eConfig.preAC5eConfig.baseRoll0Options;
-	if (Object.hasOwn(baseRoll0Options, 'criticalSuccess')) roll0.options.criticalSuccess = baseRoll0Options.criticalSuccess;
-	if (Object.hasOwn(baseRoll0Options, 'criticalFailure')) roll0.options.criticalFailure = baseRoll0Options.criticalFailure;
-	if (Object.hasOwn(baseRoll0Options, 'target')) {
-		roll0.options.target = baseRoll0Options.target;
-		roll0.target = baseRoll0Options.target;
-		config.target = baseRoll0Options.target;
-	}
-	if (hook === 'attack' || hook === 'damage') {
-		for (const targets of getMutableAttackTargetCollections()) {
-			for (let i = 0; i < targets.length; i++) {
-				const baseEntry = baseTargetAcByKey[getTargetKey(targets[i], i)];
-				if (!baseEntry?.hasAC) continue;
-				targets[i].ac = baseEntry.ac;
-			}
-		}
-	}
-	const localDialog = dialog ?? { options: {} };
-	localDialog.options ??= {};
-	ac5eConfig.transientBehaviorParts = [];
-	const ac5eForcedRollTarget = 999;
-	const getGlobalDamageCriticalEntries = (entries = []) =>
-		(entries ?? []).filter((entry) => {
-			if (!entry || typeof entry !== 'object') return true;
-			const addTo = entry?.addTo;
-			if (addTo?.mode === 'types' && Array.isArray(addTo.types) && addTo.types.length) return false;
-			return true;
-		});
-	const subjectGlobalDamageCritical = hook === 'damage' ? getGlobalDamageCriticalEntries(_filterOptinEntries(ac5eConfig.subject.critical, ac5eConfig.optinSelected)) : [];
-	const opponentGlobalDamageCritical = hook === 'damage' ? getGlobalDamageCriticalEntries(_filterOptinEntries(ac5eConfig.opponent.critical, ac5eConfig.optinSelected)) : [];
-	if (hook === 'damage') {
-		if (subjectGlobalDamageCritical.length || opponentGlobalDamageCritical.length) {
-			ac5eConfig.isCritical = true;
-			config.isCritical = true; // does this break something? added back to properly focus on button
-			localDialog.options.defaultButton = 'critical';
-		}
-	} else {
-		const subjectAdvantage = _filterOptinEntries(ac5eConfig.subject.advantage, ac5eConfig.optinSelected);
-		const opponentAdvantage = _filterOptinEntries(ac5eConfig.opponent.advantage, ac5eConfig.optinSelected);
-		const subjectDisadvantage = _filterOptinEntries(ac5eConfig.subject.disadvantage, ac5eConfig.optinSelected);
-		const opponentDisadvantage = _filterOptinEntries(ac5eConfig.opponent.disadvantage, ac5eConfig.optinSelected);
-		const subjectNoAdv = _filterOptinEntries(ac5eConfig.subject.noAdvantage, ac5eConfig.optinSelected);
-		const opponentNoAdv = _filterOptinEntries(ac5eConfig.opponent.noAdvantage, ac5eConfig.optinSelected);
-		const subjectNoDis = _filterOptinEntries(ac5eConfig.subject.noDisadvantage, ac5eConfig.optinSelected);
-		const opponentNoDis = _filterOptinEntries(ac5eConfig.opponent.noDisadvantage, ac5eConfig.optinSelected);
-		const subjectAdvantageNamesCount = _collectionCount(ac5eConfig.subject.advantageNames);
-		const opponentAdvantageNamesCount = _collectionCount(ac5eConfig.opponent.advantageNames);
-		const subjectDisadvantageNamesCount = _collectionCount(ac5eConfig.subject.disadvantageNames);
-		const opponentDisadvantageNamesCount = _collectionCount(ac5eConfig.opponent.disadvantageNames);
-		const hasAdvantageSources = Boolean(subjectAdvantage.length || opponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
-		const hasDisadvantageSources = Boolean(subjectDisadvantage.length || opponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
-		const transientRollState = {
-			hasTransitAdvantage: hasAdvantageSources,
-			hasTransitDisadvantage: hasDisadvantageSources,
-			advantageMode:
-				hasAdvantageSources && hasDisadvantageSources ? NORM_MODE
-				: hasAdvantageSources ? ADV_MODE
-				: hasDisadvantageSources ? DIS_MODE
-				: NORM_MODE,
-			defaultButton:
-				hasAdvantageSources && hasDisadvantageSources ? 'normal'
-				: hasAdvantageSources ? 'advantage'
-				: hasDisadvantageSources ? 'disadvantage'
-				: 'normal',
-		};
-		ac5eConfig.transientRollState = transientRollState;
-		ac5eConfig.hasTransitAdvantage = transientRollState.hasTransitAdvantage;
-		ac5eConfig.hasTransitDisadvantage = transientRollState.hasTransitDisadvantage;
-		ac5eConfig.advantageBehavior = _getConfiguredAdvantageBehavior(ac5eConfig, config);
-		config.advantage = hasAdvantageSources;
-		config.disadvantage = hasDisadvantageSources;
-		if (subjectNoAdv.length || opponentNoAdv.length) config.advantage = false;
-		if (subjectNoDis.length || opponentNoDis.length) config.disadvantage = false;
-		const allTransitEntries = [ac5eConfig?.subject, ac5eConfig?.opponent]
-			.flatMap((side) => (side && typeof side === 'object' ? Object.values(side) : []))
-			.flatMap((entries) => (Array.isArray(entries) ? entries : []))
-			.filter((entry) => entry && typeof entry === 'object');
-		const filteredTransitEntries = _filterOptinEntries(allTransitEntries, ac5eConfig.optinSelected)
-			.filter((entry) => _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
-		const transitConversionEntries = filteredTransitEntries.filter((entry) => entry?.requiresTransitAdvantage || entry?.requiresTransitDisadvantage);
-		const transientBehaviorParts = [];
-		if (ac5eConfig.advantageBehavior?.mode === 'custom') {
-			const advantageFormula = String(ac5eConfig.advantageBehavior.advantageFormula ?? '').trim();
-			const disadvantageFormula = String(ac5eConfig.advantageBehavior.disadvantageFormula ?? '').trim();
-			const resolvedAdvantageFormula = transientRollState.hasTransitAdvantage ? _resolveTransientBehaviorFormula(advantageFormula, transientRollState) : '';
-			const resolvedDisadvantageFormula = transientRollState.hasTransitDisadvantage ? _resolveTransientBehaviorFormula(disadvantageFormula, transientRollState) : '';
-			const shouldConvertAdvantage = transientRollState.hasTransitAdvantage && !!resolvedAdvantageFormula;
-			const shouldConvertDisadvantage = transientRollState.hasTransitDisadvantage && !!resolvedDisadvantageFormula;
-			if (shouldConvertAdvantage) transientBehaviorParts.push(resolvedAdvantageFormula);
-			if (shouldConvertDisadvantage) transientBehaviorParts.push(resolvedDisadvantageFormula);
-			if (shouldConvertAdvantage) config.advantage = false;
-			if (shouldConvertDisadvantage) config.disadvantage = false;
-		} else {
-			if (config.advantage && transitConversionEntries.some((entry) => entry?.requiresTransitAdvantage)) config.advantage = false;
-			if (config.disadvantage && transitConversionEntries.some((entry) => entry?.requiresTransitDisadvantage)) config.disadvantage = false;
-		}
-		ac5eConfig.transientBehaviorParts = transientBehaviorParts;
-		if (config.advantage && config.disadvantage) {
-			config.advantage = true; // both true let system handle it
-			config.disadvantage = true; // both true let system handle it
-			localDialog.options.advantageMode = NORM_MODE;
-			localDialog.options.defaultButton = 'normal';
-		} else if (config.advantage && !config.disadvantage) {
-			localDialog.options.advantageMode = ADV_MODE;
-			localDialog.options.defaultButton = 'advantage';
-		} else if (!config.advantage && config.disadvantage) {
-			localDialog.options.advantageMode = DIS_MODE;
-			localDialog.options.defaultButton = 'disadvantage';
-		} else {
-			localDialog.options.advantageMode = NORM_MODE;
-			localDialog.options.defaultButton = 'normal';
-		}
-		if (hook === 'attack' || hook === 'damage') {
-			ac5eConfig.initialTargetADCs = {};
-			ac5eConfig.alteredTargetADCs = {};
-			// need to allow damage hooks too for results shown?
-			if (ac5eConfig.threshold?.length) {
-				//for attack rolls
-				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
-				roll0.options.criticalSuccess = finalThreshold;
-				ac5eConfig.alteredCritThreshold = finalThreshold;
-			}
-			if (ac5eConfig.fumbleThreshold?.length) {
-				//for attack rolls
-				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalFailure, ac5eConfig.fumbleThreshold, 'fumbleThreshold');
-				roll0.options.criticalFailure = finalThreshold;
-				ac5eConfig.alteredFumbleThreshold = finalThreshold;
-			}
-			if (ac5eConfig.targetADC?.length) {
-				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: apply attack/damage', { hook, targetADC: ac5eConfig.targetADC, rollTarget: roll0?.options?.target, configTarget: config?.target });
-				const targetCollections = getMutableAttackTargetCollections();
-				const primaryTargets = targetCollections[0];
-				const fallbackInitialTargetADC = pickNonSentinelNumber(primaryTargets?.[0]?.ac, ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, roll0?.options?.target, config?.target) ?? 10;
-				const alteredTargetADCs = {};
-				const initialTargetADCs = {};
-				let initialTargetADC;
-				let lowerTargetADC;
-				if (!foundry.utils.isEmpty(primaryTargets)) {
-					for (const targets of targetCollections) {
-						targets.forEach((target, index) => {
-							const key = getTargetKey(target, index);
-							const baseEntry = baseTargetAcByKey[key];
-							const sourceTarget = targets[index] ?? target ?? {};
-							const initialPerTargetADC = pickNonSentinelNumber(baseEntry?.ac, getLiveTargetAC(sourceTarget), sourceTarget?.ac);
-							if (!Number.isFinite(initialPerTargetADC)) return;
-							const alteredTargetADC = getAlteredTargetValueOrThreshold(initialPerTargetADC, ac5eConfig.targetADC, 'acBonus');
-							if (!isNaN(alteredTargetADC)) {
-								targets[index].ac = alteredTargetADC;
-								initialTargetADC = initialTargetADC === undefined || initialPerTargetADC < initialTargetADC ? initialPerTargetADC : initialTargetADC;
-								if (!lowerTargetADC || alteredTargetADC < lowerTargetADC) lowerTargetADC = alteredTargetADC;
-								initialTargetADCs[key] = {
-									key,
-									ac: initialPerTargetADC,
-									uuid: sourceTarget?.uuid ?? baseEntry?.uuid,
-									tokenUuid: sourceTarget?.tokenUuid ?? sourceTarget?.token?.uuid ?? baseEntry?.tokenUuid,
-									name: sourceTarget?.name ?? baseEntry?.name,
-									img: sourceTarget?.img ?? baseEntry?.img,
-								};
-								alteredTargetADCs[key] = {
-									key,
-									ac: alteredTargetADC,
-									baseAC: initialPerTargetADC,
-									uuid: sourceTarget?.uuid ?? baseEntry?.uuid,
-									tokenUuid: sourceTarget?.tokenUuid ?? sourceTarget?.token?.uuid ?? baseEntry?.tokenUuid,
-									name: sourceTarget?.name ?? baseEntry?.name,
-									img: sourceTarget?.img ?? baseEntry?.img,
-								};
-							}
-						});
-					}
-				} else {
-					const alteredTargetADC = getAlteredTargetValueOrThreshold(fallbackInitialTargetADC, ac5eConfig.targetADC, 'acBonus');
-					if (!isNaN(alteredTargetADC)) lowerTargetADC = alteredTargetADC;
-					initialTargetADC = fallbackInitialTargetADC;
-				}
-				ac5eConfig.initialTargetADCs = initialTargetADCs;
-				ac5eConfig.alteredTargetADCs = alteredTargetADCs;
-				if (!isNaN(lowerTargetADC)) {
-					if (roll0?.options) roll0.options.target = lowerTargetADC;
-					if (roll0) roll0.target = lowerTargetADC;
-					if (config) config.target = lowerTargetADC;
-					ac5eConfig.alteredTargetADC = lowerTargetADC;
-					ac5eConfig.initialTargetADC = initialTargetADC ?? fallbackInitialTargetADC;
-				}
-				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: result attack/damage', { initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
-			} else {
-				ac5eConfig.alteredTargetADC = undefined;
-			}
-		}
-		if (ac5eConfig.targetADC?.length && hook !== 'attack' && hook !== 'damage') {
-			//check, save, skill
-			const initialTargetADC = pickNonSentinelNumber(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.target, roll0?.options?.target) ?? 10;
-			const alteredTargetADC = getAlteredTargetValueOrThreshold(initialTargetADC, ac5eConfig.targetADC, 'dcBonus');
-			if (!isNaN(alteredTargetADC)) {
-				ac5eConfig.initialTargetADC = roll0.options.target;
-				roll0.options.target = alteredTargetADC;
-				if (roll0) roll0.target = alteredTargetADC;
-				if (config) config.target = alteredTargetADC;
-				ac5eConfig.alteredTargetADC = alteredTargetADC;
-				ac5eConfig.initialTargetADC = initialTargetADC;
-			}
-			if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: result non-attack', { hook, initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
-		}
-		const subjectFail = _filterOptinEntries(ac5eConfig.subject.fail, ac5eConfig.optinSelected);
-		const opponentFail = _filterOptinEntries(ac5eConfig.opponent.fail, ac5eConfig.optinSelected);
-		if (subjectFail.length || opponentFail.length) {
-			if (roll0) {
-				roll0.options.criticalSuccess = 21;
-				roll0.options.target = ac5eForcedRollTarget;
-				roll0.target = ac5eForcedRollTarget;
-				if (config) config.target = ac5eForcedRollTarget;
-				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
-					for (const targets of getMutableAttackTargetCollections()) {
-						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
-					}
-				}
-			}
-		}
-		const subjectSuccess = _filterOptinEntries(ac5eConfig.subject.success, ac5eConfig.optinSelected);
-		const opponentSuccess = _filterOptinEntries(ac5eConfig.opponent.success, ac5eConfig.optinSelected);
-		if (subjectSuccess.length || opponentSuccess.length) {
-			if (roll0) {
-				roll0.options.criticalFailure = 0;
-				roll0.options.target = -ac5eForcedRollTarget;
-				roll0.target = -ac5eForcedRollTarget;
-				if (config) config.target = -ac5eForcedRollTarget;
-				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
-					for (const targets of getMutableAttackTargetCollections()) {
-						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
-					}
-				}
-			}
-		}
-		const subjectFumble = _filterOptinEntries(ac5eConfig.subject.fumble, ac5eConfig.optinSelected);
-		const opponentFumble = _filterOptinEntries(ac5eConfig.opponent.fumble, ac5eConfig.optinSelected);
-		if (subjectFumble.length || opponentFumble.length) {
-			ac5eConfig.isFumble = true;
-			if (roll0) {
-				roll0.options.criticalSuccess = 21;
-				roll0.options.criticalFailure = 20;
-				if (hook !== 'attack') roll0.options.target = ac5eForcedRollTarget;
-			}
-		}
-		const hasDamageGlobalCritical = hook === 'damage' ? subjectGlobalDamageCritical.length || opponentGlobalDamageCritical.length : false;
-		if ((hook === 'damage' && hasDamageGlobalCritical) || (hook !== 'damage' && (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length))) {
-			ac5eConfig.isCritical = true;
-			if (roll0) {
-				roll0.options.criticalSuccess = 1;
-				roll0.options.criticalFailure = 0;
-				if (hook !== 'attack') roll0.options.target = -ac5eForcedRollTarget;
-			}
-		}
-	}
-	const subjectNoCritical = _filterOptinEntries(ac5eConfig.subject.noCritical, ac5eConfig.optinSelected);
-	const opponentNoCritical = _filterOptinEntries(ac5eConfig.opponent.noCritical, ac5eConfig.optinSelected);
-	if (subjectNoCritical.length || opponentNoCritical.length) {
-		if (hook === 'attack') roll0.options.criticalSuccess = 21;
-		if (hook === 'damage') localDialog.options.defaultButton = 'normal';
-		ac5eConfig.isCritical = false;
-		config.isCritical = false;
-	}
-	const stripTrailingInjectedParts = (parts = [], injected = []) => {
-		if (!Array.isArray(parts)) return [];
-		if (!Array.isArray(injected) || !injected.length) return [...parts];
-		const next = [...parts];
-		const injectedLength = injected.length;
-		while (next.length >= injectedLength) {
-			let matches = true;
-			const offset = next.length - injectedLength;
-			for (let i = 0; i < injectedLength; i++) {
-				if (next[offset + i] !== injected[i]) {
-					matches = false;
-					break;
-				}
-			}
-			if (!matches) break;
-			next.splice(offset, injectedLength);
-		}
-		return next;
-	};
-	const nextInjectedParts = Array.isArray(ac5eConfig.parts) ? [...ac5eConfig.parts] : [];
-	for (const part of ac5eConfig.transientBehaviorParts ?? []) {
-		if (typeof part === 'string' && part.trim()) nextInjectedParts.push(part.trim());
-	}
-	if (hook !== 'damage') {
-		const deferredTransitBonusEntries = _filterOptinEntries(
-			[...(ac5eConfig?.subject?.bonus ?? []), ...(ac5eConfig?.opponent?.bonus ?? [])],
-			ac5eConfig.optinSelected,
-		).filter(
-			(entry) =>
-				entry &&
-				typeof entry === 'object' &&
-				!entry.optin &&
-				(entry.requiresTransitAdvantage || entry.requiresTransitDisadvantage) &&
-				_entryMatchesTransientState(entry, ac5eConfig),
-		);
-		for (const entry of deferredTransitBonusEntries) {
-			for (const value of entry.values ?? []) nextInjectedParts.push(value);
-		}
-	}
-	if (roll0) {
-		roll0.options ??= {};
-		roll0.options[Constants.MODULE_ID] ??= {};
-		const ac5eRollOptions = roll0.options[Constants.MODULE_ID];
-		const previousInjectedParts = Array.isArray(ac5eRollOptions.appliedParts) ? ac5eRollOptions.appliedParts : [];
-		const currentParts = Array.isArray(roll0.parts) ? roll0.parts : [];
-		const baseParts = stripTrailingInjectedParts(currentParts, previousInjectedParts);
-		if (typeof roll0.parts !== 'undefined' || previousInjectedParts.length || nextInjectedParts.length) {
-			roll0.parts = baseParts.concat(nextInjectedParts);
-		}
-		ac5eRollOptions.appliedParts = foundry.utils.duplicate(nextInjectedParts);
-	} else if (typeof config?.parts !== 'undefined') {
-		if (Object.isExtensible(config)) config[Constants.MODULE_ID] ??= {};
-		const ac5eConfigOptions = config[Constants.MODULE_ID] ?? {};
-		const previousInjectedParts = Array.isArray(ac5eConfigOptions.appliedParts) ? ac5eConfigOptions.appliedParts : [];
-		const currentParts = Array.isArray(config.parts) ? config.parts : [];
-		const baseParts = stripTrailingInjectedParts(currentParts, previousInjectedParts);
-		config.parts = baseParts.concat(nextInjectedParts);
-		if (Object.isExtensible(ac5eConfigOptions)) ac5eConfigOptions.appliedParts = foundry.utils.duplicate(nextInjectedParts);
-	}
-	const applyModifierConstraint = (modifierConfig, modifierValue) => {
-		if (modifierValue === undefined || modifierValue === null) return;
-		const cleaned = String(modifierValue).trim().toLowerCase().replace(/\s+/g, '');
-		const maxMatch = cleaned.match(/^max(-?\d+)$/);
-		if (maxMatch) {
-			const maxValue = Number(maxMatch[1]);
-			if (Number.isFinite(maxValue)) {
-				const currentMax = modifierConfig.maximum;
-				modifierConfig.maximum = !Number.isFinite(currentMax) || currentMax > maxValue ? maxValue : currentMax;
-			}
-			return;
-		}
-		const minMatch = cleaned.match(/^min(-?\d+)$/);
-		if (minMatch) {
-			const minValue = Number(minMatch[1]);
-			if (Number.isFinite(minValue)) {
-				const currentMin = modifierConfig.minimum;
-				modifierConfig.minimum = !Number.isFinite(currentMin) || currentMin < minValue ? minValue : currentMin;
-			}
-		}
-	};
-	const effectiveModifiers = foundry.utils.duplicate(ac5eConfig.modifiers ?? {});
-	for (const side of ['subject', 'opponent']) {
-		const sideModifiers = _filterOptinEntries(ac5eConfig?.[side]?.modifiers ?? [], ac5eConfig.optinSelected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
-		for (const entry of sideModifiers) {
-			if (!entry || typeof entry !== 'object') continue;
-			applyModifierConstraint(effectiveModifiers, entry.modifier);
-		}
-	}
-	ac5eConfig.effectiveModifiers = effectiveModifiers;
-	// Interim solution until system supports this
-	if (roll0?.options) {
-		const { maximum, minimum } = effectiveModifiers;
-		if (Number.isFinite(maximum)) roll0.options.maximum = maximum;
-		else if ('maximum' in roll0.options) delete roll0.options.maximum;
-		if (Number.isFinite(minimum)) roll0.options.minimum = minimum;
-		else if ('minimum' in roll0.options) delete roll0.options.minimum;
-	}
-	if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'normal';
-	ac5eConfig.advantageMode = localDialog.options.advantageMode;
-	ac5eConfig.proposedButton = localDialog.options.defaultButton;
-	ac5eConfig.calculatedDefaultButton = localDialog.options.defaultButton;
-	ac5eConfig.defaultButton = localDialog.options.defaultButton;
-	if (!dialog?.configure) _writeFastForwardMode(ac5eConfig, config, roll0);
-	if (hook === 'attack') _syncMidiAttackRollModifierTracker(ac5eConfig, config);
-	else if (hook === 'check' || hook === 'save') _syncMidiAbilityRollModifierTracker(ac5eConfig, config, localDialog);
-	if (ac5eConfig?.tooltipObj && hook) delete ac5eConfig.tooltipObj[hook];
-	_getTooltip(ac5eConfig);
-	if (skipSetProperties) return ac5eConfig;
-	return _setAC5eProperties(ac5eConfig, config, localDialog, message);
-}
-
-export function getAlteredTargetValueOrThreshold(initialValue = 0, ac5eValues, type) {
-	const additiveValues = [];
-	const staticValues = [];
-
-	for (const item of ac5eValues) {
-		if (item == null) continue;
-
-		if (typeof item === 'number') {
-			additiveValues.push(item);
-			continue;
-		}
-
-		const cleaned = String(item).trim();
-		if (/^[+-]\d+$/.test(cleaned)) {
-			additiveValues.push(parseInt(cleaned, 10));
-			continue;
-		}
-		if (/^\d+$/.test(cleaned)) {
-			staticValues.push(parseInt(cleaned, 10));
-			continue;
-		}
-	}
-	const newStaticThreshold = staticValues.length > 0 ? staticValues[staticValues.length - 1] : initialValue;
-	const totalModifier = additiveValues.reduce((sum, val) => sum + val, 0);
-	const finalValue = newStaticThreshold + totalModifier;
-
-	if (settings.debug) console.warn(`${Constants.MODULE_NAME_SHORT} - getAlteredTargetValueOrThreshold for ${type}:`, { initialValue, staticValues, additiveValues, finalValue });
-
-	return finalValue;
-}
-
-/**
- * Check relative or exact disposition between two tokens.
- * @param {Token5e|TokenDocument5e} t1
- * @param {Token5e|TokenDocument5e} t2
- * @param {string|number|} check - Disposition type or constant
- * @returns {boolean}
- */
-export function _dispositionCheck(t1, t2, check = 'all', mult) {
-	if (!t1 || !t2) return false;
-	if (check === 'all') return true;
-
-	t1 = t1 instanceof TokenDocument ? t1 : t1.document;
-	t2 = t2 instanceof TokenDocument ? t2 : t2.document;
-
-	if (typeof check === 'number') return t2.disposition === check;
-
-	let result;
-	switch (check) {
-		case 'different':
-			result = t1.disposition !== t2.disposition;
-			break;
-		case 'opposite':
-		case 'enemy':
-			result = t1.disposition * t2.disposition === -1;
-			break;
-		case 'same':
-		case 'ally':
-			result = t1.disposition === t2.disposition;
-			break;
-		default: {
-			const constVal = CONST.TOKEN_DISPOSITIONS[check.toUpperCase()];
-			result = constVal !== undefined && t2.disposition === constVal;
-			break;
-		}
-	}
-	if (mult) return !result;
-	return result;
-}
-
-export function _findNearby({
-	token, // Token5e, TokenDocument5e, ID string, or UUID
-	disposition = 'all', // 'same', 'different', 'opposite' or false === 'all'
-	radius = 5, // Distance radius (default 5), 0 for full map
-	lengthTest = false, // Number, true or false; if number, returns boolean test against that, if true returns Number of found tokens.
-	hasStatuses = [], // Array of status effect IDs to filter by
-	includeToken = false, // Include source token in results
-	includeIncapacitated = false, // Include dead/incapacitated tokens, use 'only' to return ONLY incapacitated tokens
-	partyMember = false, // Return only party members
-}) {
-	if (!canvas || !canvas.tokens?.placeables) return false;
-	const tokenInstance = foundry.canvas.placeables.Token;
-	if (token instanceof TokenDocument) {
-		token = token.object;
-	} else if (!(token instanceof tokenInstance)) {
-		const resolved = fromUuidSync(token);
-		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
-	}
-	if (!token) return false;
-	let mult;
-	const foundryDispositionCONST = CONST.TOKEN_DISPOSITIONS;
-	const usableUserProvidedDispositions = ['all', 'ally', 'different', 'enemy', 'friendly', 'neutral', 'opposite', 'same', 'secret'];
-	if (typeof disposition === 'number') {
-		if (!Object.values(foundryDispositionCONST).includes(disposition)) {
-			ui.notifications.error(`AC5e disposition check error. User provided disposition: ${disposition} but Foundry available ones are -2, -1, 0, 1; returning all tokens instead`);
-			disposition = 'all';
-		}
-	} else if (typeof disposition === 'string') {
-		disposition = disposition.toLowerCase();
-		if (disposition.startsWith('!')) {
-			mult = true;
-			disposition = disposition.slice(1);
-		}
-		if (!usableUserProvidedDispositions.includes(disposition)) {
-			ui.notifications.error(`AC5e disposition check error. User provided disposition: "${disposition}". Use one of: "${usableUserProvidedDispositions.join('"/"')}"; returning all tokens instead`);
-			disposition = 'all';
-		}
-	} else disposition = 'all';
-
-	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
-		if (!includeToken && target === token) return false;
-		if (partyMember && game.actors.party) {
-			const {
-				members: { ids },
-			} = game.actors.party.system;
-			if (!ids.has(target.actor?.id)) return false;
-		}
-		if (!includeIncapacitated && _hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
-		if (includeIncapacitated === 'only' && !_hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
-		if (!_dispositionCheck(token, target, disposition, mult)) return false;
-		if (hasStatuses.length && !_hasStatuses(target.actor, hasStatuses, true)) return false;
-		if (radius === 0) return true; // full map
-		const distance = _getDistance(token, target);
-		return distance <= radius;
-	});
-	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - findNearby():`, nearbyTokens);
-	if (lengthTest === true) return nearbyTokens.length;
-	else if (typeof lengthTest === 'number') return nearbyTokens.length >= lengthTest;
-	return nearbyTokens;
-}
-
-export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, hasStatuses = [], partyMember = false } = {}) {
-	return _findNearby({ token, disposition, radius, hasStatuses, includeToken, includeIncapacitated, lengthTest: count, partyMember });
-}
-
-export function _autoArmor(actor) {
-	if (!actor) return {};
-	const hasArmor = actor.armor;
-	const hasShield = actor.shield;
-	return {
-		hasStealthDisadvantage:
-			hasArmor?.system.properties.has('stealthDisadvantage') ? 'Armor'
-			: hasShield?.system.properties.has('stealthDisadvantage') ? 'EquipmentShield'
-			: actor.itemTypes.equipment.some((item) => item.system.equipped && item.system.properties.has('stealthDisadvantage')) ? 'AC5E.Equipment'
-			: false,
-		notProficient:
-			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier ? 'Armor'
-			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier ? 'EquipmentShield'
-			: false,
-	};
-}
-
-export function _autoEncumbrance(actor, abilityId) {
-	if (!settings.autoEncumbrance) return null;
-	return ['con', 'dex', 'str'].includes(abilityId) && _hasStatuses(actor, 'heavilyEncumbered').length;
-}
-
-export function _autoRanged(activity, token, target, options) {
-	const distanceUnit = canvas.grid.distance;
-	const modernRules = settings.dnd5eModernRules;
-	const isSpell = activity.isSpell;
-	const isAttack = activity.type === 'attack';
-	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
-	const { actionType, item, range } = activity || {};
-	if (!range || !token) return {};
-	let { value: short, long, reach } = range;
-	const distance = options?.distance ?? (target ? _getDistance(token, target) : undefined);
-	const normalizedDamageTypes =
-		Array.isArray(options?.damageTypes) ? options.damageTypes
-		: options?.damageTypes ? [options.damageTypes]
-		: [];
-	const selectedDamageTypes = new Set([options?.defaultDamageType ?? '', ...normalizedDamageTypes].map((t) => String(t ?? '').toLowerCase()).filter(Boolean));
-	const rangeEntries = (() => {
-		const ac5eConfig = options?.ac5eConfig;
-		if (!ac5eConfig) return [];
-		const subjectEntries = Array.isArray(ac5eConfig?.subject?.range) ? ac5eConfig.subject.range : [];
-		const opponentEntries = Array.isArray(ac5eConfig?.opponent?.range) ? ac5eConfig.opponent.range : [];
-		return _filterOptinEntries(subjectEntries.concat(opponentEntries), ac5eConfig?.optinSelected).filter((entry) => {
-			if (!entry || typeof entry !== 'object' || entry.mode !== 'range') return false;
-			if (entry.hook && entry.hook !== 'attack') return false;
-			const required = Array.isArray(entry.requiredDamageTypes) ? entry.requiredDamageTypes.map((t) => String(t).toLowerCase()) : [];
-			if (!required.length) return true;
-			return required.some((t) => selectedDamageTypes.has(t));
-		});
-	})();
-	const applyRangeComponent = (base, component) => {
-		if (!component || typeof component !== 'object') return base;
-		const value = Number(component.value);
-		if (!Number.isFinite(value)) return base;
-		const next = component.operation === 'delta' ? Number(base ?? 0) + value : value;
-		return Math.max(0, next);
-	};
-	const getRangeEntryLabel = (entry) => {
-		const label = entry?.label ?? entry?.name ?? entry?.id;
-		const normalized = String(label ?? '').trim();
-		return normalized || undefined;
-	};
-	let longDisadvantage = settings.autoRangeChecks.has('rangedLongDisadvantage');
-	let nearbyFoeDisadvantage = settings.autoRangeChecks.has('rangedNearbyFoes');
-	let outOfRangeFail = settings.autoRangeChecks.has('rangedOoR');
-	let outOfRangeFailSourceLabel;
-	let outOfRangeFailSourceMode;
-	for (const entry of rangeEntries) {
-		const rangeConfig = entry?.range ?? {};
-		const entryLabel = getRangeEntryLabel(entry);
-		short = applyRangeComponent(short, rangeConfig.short);
-		long = applyRangeComponent(long, rangeConfig.long);
-		reach = applyRangeComponent(reach, rangeConfig.reach);
-		if (rangeConfig.bonus) {
-			short = applyRangeComponent(short, rangeConfig.bonus);
-			long = applyRangeComponent(long, rangeConfig.bonus);
-			reach = applyRangeComponent(reach, rangeConfig.bonus);
-		}
-		if (typeof rangeConfig.longDisadvantage === 'boolean') longDisadvantage = rangeConfig.longDisadvantage;
-		if (typeof rangeConfig.noLongDisadvantage === 'boolean') longDisadvantage = !rangeConfig.noLongDisadvantage;
-		if (typeof rangeConfig.nearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoeDisadvantage;
-		if (typeof rangeConfig.nearbyFoes === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoes;
-		if (typeof rangeConfig.noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoeDisadvantage;
-		if (typeof rangeConfig.noNearbyFoes === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoes;
-		if (typeof rangeConfig.fail === 'boolean') {
-			outOfRangeFail = rangeConfig.fail;
-			outOfRangeFailSourceLabel = entryLabel;
-			outOfRangeFailSourceMode = 'fail';
-		}
-		if (typeof rangeConfig.outOfRangeFail === 'boolean') {
-			outOfRangeFail = rangeConfig.outOfRangeFail;
-			outOfRangeFailSourceLabel = entryLabel;
-			outOfRangeFailSourceMode = 'outOfRangeFail';
-		}
-		if (typeof rangeConfig.noFail === 'boolean') {
-			outOfRangeFail = !rangeConfig.noFail;
-			outOfRangeFailSourceLabel = entryLabel;
-			outOfRangeFailSourceMode = 'noFail';
-		}
-		if (typeof rangeConfig.noOutOfRangeFail === 'boolean') {
-			outOfRangeFail = !rangeConfig.noOutOfRangeFail;
-			outOfRangeFailSourceLabel = entryLabel;
-			outOfRangeFailSourceMode = 'noOutOfRangeFail';
-		}
-	}
-	const noLongDisadvantage = !longDisadvantage;
-	const flags = token.actor?.flags?.[Constants.MODULE_ID];
-	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
-	if (spellSniper && isSpell && isAttack && !!short) {
-		// if (modernRules && short >= 10) short += 60;
-		if (modernRules && short >= 2 * distanceUnit) short += 12 * distanceUnit;
-		else short *= 2;
-	}
-	if (settings.autoRangeChecks.has('meleeOoR') && reach && ['mwak', 'msak'].includes(actionType) && !options?.attackMode?.includes('thrown')) {
-		return {
-			nearbyFoe: false,
-			inRange: distance <= reach,
-			range: 'normal',
-			longDisadvantage: false,
-			outOfRangeFail: true,
-			outOfRangeFailSourceLabel: 'meleeOoR',
-			outOfRangeFailSourceMode: 'meleeOoR',
-			distance,
-		};
-	}
-	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
-	if (sharpShooter && long && actionType == 'rwak') short = long;
-	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
-
-	const nearbyFoe =
-		!midiNearbyFoe &&
-		!['mwak', 'msak'].includes(actionType) &&
-		nearbyFoeDisadvantage &&
-		_findNearby({ token, disposition: 'opposite', radius: distanceUnit, lengthTest: 1 }) && //hostile vs friendly disposition only
-		!crossbowExpert &&
-		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
-	let isShort, isLong;
-	const midiChecks = midiCheckRange && midiCheckRange !== 'none'; //give priority to midi checks as it will already by included in the workflow by midi.
-	if (midiChecks || (!outOfRangeFail && !longDisadvantage) || (!short && !long) || distance <= short) isShort = true; //expect short and long being null for some items, and handle these cases as in short range.
-	if (!isShort) {
-		if (longDisadvantage || outOfRangeFail) isLong = distance <= long;
-		if (!isLong && !outOfRangeFail) isLong = true;
-	}
-	const inRange =
-		isShort ? 'short'
-		: isLong ? 'long'
-		: false;
-	return {
-		inRange: !!inRange,
-		range: inRange,
-		distance,
-		nearbyFoe,
-		noLongDisadvantage,
-		longDisadvantage,
-		outOfRangeFail,
-		outOfRangeFailSourceLabel,
-		outOfRangeFailSourceMode,
-	};
-}
-const _itemMatcherCache = new Map();
-
-function _escapeRegExp(value) {
-	const str = String(value ?? '');
-	return typeof RegExp.escape === 'function' ? RegExp.escape(str) : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function _normalizeItemIdentifierInput(itemIdentifier) {
-	if (itemIdentifier == null) return [];
-	const values = Array.isArray(itemIdentifier) ? itemIdentifier : [itemIdentifier];
-	return values
-		.map((value) => {
-			if (typeof value === 'string') return value.trim();
-			if (typeof value === 'object') {
-				return String(value.identifier ?? value.system?.identifier ?? value.name ?? value.id ?? value.uuid ?? '').trim();
-			}
-			return String(value).trim();
-		})
-		.filter(Boolean);
-}
-
-function _getLocalizedItemQuery(query) {
-	const localized = _localize(query);
-	if (localized && localized !== query) return String(localized);
-	if (game?.i18n?.has?.(query)) return String(game.i18n.localize(query));
-	return String(query);
-}
-
-function _buildItemMatcher(queryRaw) {
-	const query = String(queryRaw ?? '').trim();
-	if (!query) return null;
-
-	const SearchFilter = foundry?.applications?.ux?.SearchFilter;
-	const localizedQuery = _getLocalizedItemQuery(query);
-
-	if (!SearchFilter?.cleanQuery || !SearchFilter?.testQuery) {
-		return {
-			queryLower: localizedQuery.toLowerCase(),
-			querySlug: localizedQuery.slugify(),
-		};
-	}
-
-	const cacheKey = `${game?.i18n?.lang ?? 'en'}:${localizedQuery}`;
-	const cached = _itemMatcherCache.get(cacheKey);
-	if (cached) return cached;
-
-	const cleanedQuery = SearchFilter.cleanQuery(localizedQuery);
-	if (!cleanedQuery) return null;
-
-	const cleanedSlug = cleanedQuery.slugify();
-	const matcher = {
-		SearchFilter,
-		rgx: new RegExp(_escapeRegExp(cleanedQuery), 'i'),
-		rgxSlug: cleanedSlug ? new RegExp(_escapeRegExp(cleanedSlug), 'i') : null,
-		queryLower: cleanedQuery.toLowerCase(),
-		querySlug: cleanedSlug,
-	};
-	_itemMatcherCache.set(cacheKey, matcher);
-	return matcher;
-}
-
-function _normalizeItemLookupMatchOption(value) {
-	const parsed = String(value ?? 'name')
-		.trim()
-		.toLowerCase();
-	if (['name', 'identifier', 'id', 'uuid', 'any'].includes(parsed)) return parsed;
-	return 'name';
-}
-
-function _normalizeItemLookupNameModeOption(value) {
-	const parsed = String(value ?? 'exact')
-		.trim()
-		.toLowerCase();
-	if (['exact', 'partial'].includes(parsed)) return parsed;
-	return 'exact';
-}
-
-function _normalizeItemLookupOptions(options = {}) {
-	const input = options && typeof options === 'object' ? options : {};
-	return {
-		...input,
-		match: _normalizeItemLookupMatchOption(input.match),
-		nameMode: _normalizeItemLookupNameModeOption(input.nameMode),
-	};
-}
-
-function _itemNameMatches(item, identifier, matcher, options = {}) {
-	const name = String(item?.name ?? '');
-	if (!name) return false;
-	const query = String(identifier ?? '').trim();
-	if (!query) return false;
-
-	const nameMode = _normalizeItemLookupNameModeOption(options.nameMode);
-	const nameLower = name.toLowerCase();
-	const queryLower = query.toLowerCase();
-	if (nameMode === 'exact') return nameLower === queryLower;
-
-	const slug = name.slugify();
-	if (matcher?.SearchFilter?.testQuery) {
-		return matcher.SearchFilter.testQuery(matcher.rgx, name) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, slug));
-	}
-	return nameLower.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && slug.toLowerCase().includes(matcher.querySlug));
-}
-
-function _itemMatchesLookup(item, identifier, matcher, options = {}) {
-	if (!item || !identifier) return false;
-	const normalizedOptions = _normalizeItemLookupOptions(options);
-	const match = normalizedOptions.match;
-	const normalizedIdentifier = String(identifier ?? '').trim();
-	const identifierSlug = normalizedIdentifier.slugify();
-	const id = String(item.id ?? '');
-	const uuid = String(item.uuid ?? '');
-	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
-
-	if (match === 'id') return id === normalizedIdentifier;
-	if (match === 'uuid') return uuid === normalizedIdentifier;
-	if (match === 'identifier') return directIdentifier === normalizedIdentifier;
-	if (match === 'name') return _itemNameMatches(item, identifier, matcher, normalizedOptions);
-
-	return (
-		id === normalizedIdentifier ||
-		uuid === normalizedIdentifier ||
-		directIdentifier === normalizedIdentifier ||
-		(identifierSlug && directIdentifier === identifierSlug) ||
-		_itemNameMatches(item, identifier, matcher, normalizedOptions)
-	);
-}
-
-function _resolveActorForItemLookup(source) {
-	if (!source) return null;
-
-	// Actor-like
-	if (source instanceof foundry.abstract.Document && source.documentName === 'Actor') return source;
-	if (source?.document instanceof foundry.abstract.Document && source.document.documentName === 'Actor') return source.document;
-
-	// Token-like
-	if (source?.actor?.items) return source.actor;
-
-	// Structured reference object
-	if (typeof source === 'object') {
-		const reference = source.tokenId ?? source.tokenUuid ?? source.actorId ?? source.actorUuid ?? source.uuid ?? null;
-		if (typeof reference === 'string' && reference.trim()) return _resolveActorForItemLookup(reference.trim());
-	}
-
-	if (typeof source !== 'string') return null;
-	const reference = source.trim();
-	if (!reference) return null;
-
-	// tokenId => canvas.scene.tokens.get(tokenId)?.actor
-	const actorFromTokenId = canvas?.scene?.tokens?.get?.(reference)?.actor ?? canvas?.tokens?.get?.(reference)?.actor ?? null;
-	if (actorFromTokenId?.items) return actorFromTokenId;
-
-	// tokenUuid => fromUuidSync(tokenUuid)?.actor
-	const tokenUuidLike = reference.startsWith('Token.') || reference.includes('.Token.');
-	if (tokenUuidLike) {
-		const tokenDocument = _safeFromUuidSync(reference);
-		const actorFromTokenUuid = tokenDocument?.actor ?? null;
-		if (actorFromTokenUuid?.items) return actorFromTokenUuid;
-	}
-
-	// actorId => game.actors.get(actorId)
-	const actorFromId = game?.actors?.get?.(reference) ?? null;
-	if (actorFromId?.items) return actorFromId;
-
-	// actorUuid => fromUuidSync(actorUuid)
-	const actorUuidLike = reference.startsWith('Actor.') || reference.includes('.Actor.');
-	if (actorUuidLike || _isUuidLike(reference)) {
-		const actorDocument = _safeFromUuidSync(reference);
-		const actorFromUuid = actorDocument?.actor ?? actorDocument ?? null;
-		if (actorFromUuid?.items) return actorFromUuid;
-	}
-
-	return null;
-}
-
-/*
- * Gets actor items filtered by identifier/name/id/uuid matching.
- * source supports Actor, Token, tokenId, tokenUuid, actorId, actorUuid, or {tokenId|tokenUuid|actorId|actorUuid}.
- * @param {Actor|Token|string|object} source - Source that resolves to an actor.
- * @param {string|string[]|object} [itemIdentifier] - Identifier/name/id/uuid query. If omitted, returns all actor items.
- * @param {object} [options]
- * @param {string} [options.type] - Optional item.type filter.
- * @returns {Array} - Matching item documents.
- */
-export function _getItems(source, itemIdentifier, options = {}) {
-	const actor = _resolveActorForItemLookup(source);
-	if (!actor?.items) return [];
-
-	const actorItems = Array.from(actor.items ?? []);
-	if (!actorItems.length) return [];
-
-	const normalizedOptions = _normalizeItemLookupOptions(options);
-	const itemType = typeof normalizedOptions?.type === 'string' ? normalizedOptions.type.trim() : '';
-	const scopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
-	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
-	if (!identifiers.length) return scopedItems;
-
-	const matchers = new Map(identifiers.map((identifier) => [identifier, _buildItemMatcher(identifier)]));
-	const seen = new Set();
-	const matches = [];
-
-	for (const item of scopedItems) {
-		for (const identifier of identifiers) {
-			const matcher = matchers.get(identifier);
-			if (!_itemMatchesLookup(item, identifier, matcher, normalizedOptions)) continue;
-			const itemKey = String(item?.uuid ?? item?.id ?? item?.name ?? '');
-			if (!seen.has(itemKey)) {
-				seen.add(itemKey);
-				matches.push(item);
-			}
-			break;
-		}
-	}
-
-	return matches;
-}
-
-/*
- * Checks whether at least one item matches.
- * @param {Actor|Token|string|object} source
- * @param {string|string[]|object} itemIdentifier
- * @param {object} [options]
- * @returns {boolean}
- */
-export function _hasItem(source, itemIdentifier, options = {}) {
-	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
-	if (!identifiers.length) return false;
-	return _getItems(source, identifiers, options).length > 0;
-}
-
-export function _systemCheck(testVersion) {
-	return foundry.utils.isNewerVersion(game.system.version, testVersion);
-}
-
 export function _getTooltip(ac5eConfig = {}) {
 	const { hookType, subject, opponent, alteredCritThreshold, alteredFumbleThreshold, alteredTargetADC, initialTargetADC, tooltipObj } = ac5eConfig;
 	let tooltip;
@@ -2606,7 +1253,7 @@ export function _getTooltip(ac5eConfig = {}) {
 	const activeAbilityOverrideText =
 		activeAbilityOverrideEntry && activeAbilityOverrideValue ?
 			`Ability: ${baselineAbility || '?'} -> ${activeAbilityOverrideValue}${activeAbilityOverrideLabel ? ` (${activeAbilityOverrideLabel})` : ''}`
-		: '';
+		:	'';
 	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
 		if (condition) {
@@ -2642,50 +1289,47 @@ export function _getTooltip(ac5eConfig = {}) {
 		const subjectSuppressedStatuses = [...new Set(mapEntryLabels(subject?.suppressedStatuses ?? []))];
 		const subjectCritical =
 			suppressDamageCalculated ?
-				(explicitOverride?.action === 'critical' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+				explicitOverride?.action === 'critical' && explicitOverrideBucketLabel ?
+					[explicitOverrideBucketLabel]
+				:	[]
 			:	mapEntryLabels(filterOptinEntries(subject?.critical ?? []));
 		const subjectNoCritical =
 			suppressDamageCalculated ?
-				(explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+				explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ?
+					[explicitOverrideBucketLabel]
+				:	[]
 			:	mapEntryLabels(filterOptinEntries(subject?.noCritical ?? []));
-		const suppressSeparateMidiAbilityTooltip =
-			['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
-		const subjectMidiAdvantage =
-			suppressSeparateMidiAbilityTooltip ? []
-			: [...new Set((subject?.midiAdvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-		const subjectMidiDisadvantage =
-			suppressSeparateMidiAbilityTooltip ? []
-			: [...new Set((subject?.midiDisadvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const suppressSeparateMidiAbilityTooltip = ['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
+		const subjectMidiAdvantage = suppressSeparateMidiAbilityTooltip ? [] : [...new Set((subject?.midiAdvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectMidiDisadvantage = suppressSeparateMidiAbilityTooltip ? [] : [...new Set((subject?.midiDisadvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		const midiAdvantageSet = new Set(subjectMidiAdvantage.map(normalizeTooltipLabel));
 		const midiDisadvantageSet = new Set(subjectMidiDisadvantage.map(normalizeTooltipLabel));
 		const subjectAdvantageModes =
 			suppressD20Calculated ?
-				(explicitOverride?.action === 'advantage' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
-			:	[...mapEntryLabels(filterOptinEntries(subject?.advantage ?? [])), ...([...subject?.advantageNames] ?? [])].filter(
-					(label) => !midiAdvantageSet.has(normalizeTooltipLabel(label)),
-				);
+				explicitOverride?.action === 'advantage' && explicitOverrideBucketLabel ?
+					[explicitOverrideBucketLabel]
+				:	[]
+			:	[...mapEntryLabels(filterOptinEntries(subject?.advantage ?? [])), ...([...subject?.advantageNames] ?? [])].filter((label) => !midiAdvantageSet.has(normalizeTooltipLabel(label)));
 		const subjectDisadvantageModes =
 			suppressD20Calculated ?
-				(explicitOverride?.action === 'disadvantage' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
-			:	[...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter(
-					(label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)),
-				);
+				explicitOverride?.action === 'disadvantage' && explicitOverrideBucketLabel ?
+					[explicitOverrideBucketLabel]
+				:	[]
+			:	[...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter((label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)));
 		const subjectNormalModes =
 			suppressD20Calculated ?
-				(explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ? [explicitOverrideBucketLabel] : [])
+				explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ?
+					[explicitOverrideBucketLabel]
+				:	[]
 			:	[];
 		const subjectNoAdvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? []));
 		const subjectNoDisadvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? []));
 		const subjectFail = mapEntryLabels(filterOptinEntries(subject?.fail ?? []));
 		const subjectRangeNotes = [...new Set(mapEntryLabels(subject?.rangeNotes ?? []))];
-		const subjectMidiFail =
-			suppressSeparateMidiAbilityTooltip ? []
-			: [...new Set((subject?.midiFail ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectMidiFail = suppressSeparateMidiAbilityTooltip ? [] : [...new Set((subject?.midiFail ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		const subjectFumble = mapEntryLabels(filterOptinEntries(subject?.fumble ?? []));
 		const subjectSuccess = mapEntryLabels(filterOptinEntries(subject?.success ?? []));
-		const subjectMidiSuccess =
-			suppressSeparateMidiAbilityTooltip ? []
-			: [...new Set((subject?.midiSuccess ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+		const subjectMidiSuccess = suppressSeparateMidiAbilityTooltip ? [] : [...new Set((subject?.midiSuccess ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		addTooltip(subjectSuppressedStatuses.length, `<span style="display: block; text-align: left;">Suppressed Statuses: ${subjectSuppressedStatuses.join(', ')}</span>`);
 		addTooltip(subjectCritical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subjectCritical.join(', ')}</span>`);
 		addTooltip(subjectNoCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoCritical')}: ${subjectNoCritical.join(', ')}</span>`);
@@ -2787,7 +1431,7 @@ export function _getTooltip(ac5eConfig = {}) {
 	return tooltip;
 }
 
-function _getMidiAttackAttributionEntries(workflow, type) {
+export function _getMidiAttackAttributionEntries(workflow, type) {
 	if (!workflow || !type) return [];
 	const isAc5eAttributionSource = (source) => {
 		if (typeof source !== 'string') return false;
@@ -2950,17 +1594,8 @@ function _logMidiTrackerSnapshot(phase, { hookType, tracker, ac5eConfig, extra =
 	});
 }
 
-function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
-	if (!_activeModule('midi-qol')) return;
-	if (ac5eConfig?.hookType !== 'attack') return;
-	const tracker = config?.workflow?.attackRollModifierTracker;
-	if (!tracker || typeof tracker !== 'object') return;
-	tracker.attribution ??= {};
-	if (typeof tracker.attribution !== 'object') return;
-	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAttackRollModifierTracker');
-	_logMidiTrackerSnapshot('attack.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig });
+function _createMidiTrackerSyncContext(tracker, trackedTypes = []) {
 	const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
 	const legacySourcePrefix = `${Constants.MODULE_ID}:`;
 	const displaySourcePrefix = 'AC5E ';
 	const toLabel = (entry) => {
@@ -3002,7 +1637,6 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		ADV: new Set([_localize('AC5E.AdvantageKeypress'), _localize('AC5E.OverrideAdvantage')].map(normalizeLabel).filter(Boolean)),
 		DIS: new Set([_localize('AC5E.DisadvantageKeypress'), _localize('AC5E.OverrideDisadvantage')].map(normalizeLabel).filter(Boolean)),
 	};
-	const configButtonSources = new Set(['config-buttons']);
 	const hasMidiKeypressAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
 		if (!typed || typeof typed !== 'object') return false;
@@ -3054,66 +1688,8 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	};
 	const dropConfigButtonsAttribution = (type, labels = []) => {
 		if (!labels.length) return;
-		for (const source of configButtonSources) removeAttributionSource(type, source);
+		removeAttributionSource(type, 'config-buttons');
 	};
-	for (const type of trackedTypes) clearTrackedType(type);
-	clearLegacySet(tracker?.legacyAttribution);
-	clearLegacySet(tracker?.advReminderAttribution);
-
-	const selected = ac5eConfig?.optinSelected ?? {};
-	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
-	const subject = ac5eConfig?.subject ?? {};
-	const opponent = ac5eConfig?.opponent ?? {};
-
-	const advantageLabels = dedupeLabels(
-		labelsFromEntries(filterOptin(subject?.advantage ?? []))
-			.concat(labelsFromEntries(filterOptin(opponent?.advantage ?? [])))
-			.concat(labelsFromCollection(subject?.advantageNames))
-			.concat(labelsFromCollection(opponent?.advantageNames)),
-	);
-	const disadvantageLabels = dedupeLabels(
-		labelsFromEntries(filterOptin(subject?.disadvantage ?? []))
-			.concat(labelsFromEntries(filterOptin(opponent?.disadvantage ?? [])))
-			.concat(labelsFromCollection(subject?.disadvantageNames))
-			.concat(labelsFromCollection(opponent?.disadvantageNames)),
-	);
-	const noAdvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noAdvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noAdvantage ?? []))));
-	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
-	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
-	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
-	const infoLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.info ?? [])).concat(labelsFromEntries(filterOptin(opponent?.info ?? []))));
-	const addEntries = (type, labels = []) => {
-		dropConfigButtonsAttribution(type, labels);
-		const keypressLabels = keypressLabelsByType[type];
-		for (const label of labels) {
-			const normalizedLabel = normalizeLabel(label);
-			if (!normalizedLabel) continue;
-			if (keypressLabels?.has(normalizedLabel) && hasMidiKeypressAttribution(type)) continue;
-			if (hasEquivalentMidiAttribution(type, label)) continue;
-			const displayLabel = withDisplayPrefix(label);
-			if (!displayLabel) continue;
-			_setMidiTrackerAttribution(tracker, type, displayLabel, displayLabel);
-		}
-	};
-	const addCustomAttributionEntries = (prefixLabel, labels = []) => {
-		const prefix = String(prefixLabel ?? '').trim();
-		if (!prefix || !labels.length) return;
-		for (const [index, label] of labels.entries()) {
-			const cleaned = String(label ?? '').trim();
-			if (!cleaned) continue;
-			const displayLabel = `${prefix}: ${cleaned}`;
-			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
-			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
-			_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
-		}
-	};
-	addEntries('ADV', advantageLabels);
-	addEntries('DIS', disadvantageLabels);
-	addEntries('NOADV', noAdvantageLabels);
-	addEntries('NODIS', noDisadvantageLabels);
-	addEntries('CRIT', criticalLabels);
-	addEntries('NOCRIT', noCriticalLabels);
-	addCustomAttributionEntries(_localize('AC5E.Info'), infoLabels);
 	const hasAc5eAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
 		if (!typed || typeof typed !== 'object') return false;
@@ -3124,20 +1700,161 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		if (!typed || typeof typed !== 'object') return false;
 		return Object.keys(typed).some((source) => typeof source === 'string' && !source.startsWith(legacySourcePrefix) && !/^ac5e(?:\b|[:\s-])/i.test(source));
 	};
+	return {
+		clearLegacySet,
+		clearTrackedType,
+		configButtonsFallbackLabel,
+		dedupeLabels,
+		dropConfigButtonsAttribution,
+		hasAc5eAttribution,
+		hasEquivalentMidiAttribution,
+		hasMidiKeypressAttribution,
+		hasNonAc5eAttribution,
+		keypressLabelsByType,
+		labelsFromCollection,
+		labelsFromEntries,
+		legacySourcePrefix,
+		normalizeLabel,
+		withDisplayPrefix,
+	};
+}
+
+function _collectMidiTrackerCoreLabels(ac5eConfig) {
+	const selected = ac5eConfig?.optinSelected ?? {};
+	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
+	const subject = ac5eConfig?.subject ?? {};
+	const opponent = ac5eConfig?.opponent ?? {};
+	const collectLabels = (subjectKey, opponentKey = subjectKey, includeNameCollections = false) => {
+		const labels = _labelsFromMidiTrackerEntries(filterOptin(subject?.[subjectKey] ?? [])).concat(_labelsFromMidiTrackerEntries(filterOptin(opponent?.[opponentKey] ?? [])));
+		if (includeNameCollections) {
+			labels.push(..._labelsFromMidiTrackerCollection(subject?.[`${subjectKey}Names`]));
+			labels.push(..._labelsFromMidiTrackerCollection(opponent?.[`${opponentKey}Names`]));
+		}
+		return _dedupeMidiTrackerLabels(labels);
+	};
+	return {
+		filterOptin,
+		subject,
+		opponent,
+		advantageLabels: collectLabels('advantage', 'advantage', true),
+		disadvantageLabels: collectLabels('disadvantage', 'disadvantage', true),
+		noAdvantageLabels: collectLabels('noAdvantage'),
+		noDisadvantageLabels: collectLabels('noDisadvantage'),
+		infoLabels: collectLabels('info'),
+	};
+}
+
+function _labelsFromMidiTrackerEntries(entries = []) {
+	const next = [];
+	const source = Array.isArray(entries) ? entries : [entries];
+	for (const entry of source) {
+		if (entry === undefined || entry === null) continue;
+		if (typeof entry === 'string' || typeof entry === 'number') {
+			const label = String(entry).trim();
+			if (label) next.push(label);
+			continue;
+		}
+		if (typeof entry !== 'object') continue;
+		const value = entry?.label ?? entry?.name ?? entry?.id ?? entry?.bonus ?? entry?.modifier ?? entry?.set ?? entry?.threshold;
+		const label = value === undefined || value === null ? '' : String(value).trim();
+		if (label) next.push(label);
+	}
+	return next;
+}
+
+function _labelsFromMidiTrackerCollection(value) {
+	if (value instanceof Set) return _labelsFromMidiTrackerEntries([...value]);
+	if (Array.isArray(value)) return _labelsFromMidiTrackerEntries(value);
+	if (typeof value === 'string') return _labelsFromMidiTrackerEntries([value]);
+	return [];
+}
+
+function _dedupeMidiTrackerLabels(entries = []) {
+	return [...new Set(entries.map((entry) => String(entry ?? '').trim()).filter(Boolean))];
+}
+
+function _addMidiTrackerEntries(tracker, trackerContext, type, labels = []) {
+	trackerContext.dropConfigButtonsAttribution(type, labels);
+	const keypressLabels = trackerContext.keypressLabelsByType[type];
+	for (const label of labels) {
+		const normalizedLabel = trackerContext.normalizeLabel(label);
+		if (!normalizedLabel) continue;
+		if (keypressLabels?.has(normalizedLabel) && trackerContext.hasMidiKeypressAttribution(type)) continue;
+		if (trackerContext.hasEquivalentMidiAttribution(type, label)) continue;
+		const displayLabel = trackerContext.withDisplayPrefix(label);
+		if (!displayLabel) continue;
+		_setMidiTrackerAttribution(tracker, type, displayLabel, displayLabel);
+	}
+}
+
+function _addMidiTrackerCustomAttributionEntries(tracker, trackerContext, prefixLabel, labels = [], options = {}) {
+	const prefix = String(prefixLabel ?? '').trim();
+	const cleanedLabels = labels.map((label) => String(label ?? '').trim()).filter(Boolean);
+	if (!prefix || !cleanedLabels.length) return;
+	const { combineLabelList = false } = options ?? {};
+	if (combineLabelList) {
+		const displayLabel = `${prefix}: ${cleanedLabels.join(', ')}`;
+		const sourceSuffix = trackerContext.normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
+		const source = `${trackerContext.legacySourcePrefix}tooltip:${sourceSuffix}:0`;
+		_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
+		return;
+	}
+	for (const [index, label] of cleanedLabels.entries()) {
+		const displayLabel = `${prefix}: ${label}`;
+		const sourceSuffix = trackerContext.normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
+		const source = `${trackerContext.legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
+		_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
+	}
+}
+
+function _getMidiSelectedAdvantageType(ac5eConfig, config) {
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
-	const selectedType =
+	return (
 		selectedMode === advModes?.ADVANTAGE ? 'ADV'
 		: selectedMode === advModes?.DISADVANTAGE ? 'DIS'
-		: '';
-	if (selectedType) {
-		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
-		const hasOppositeAc5e = hasAc5eAttribution(oppositeType);
-		const hasSelectedNonAc5e = hasNonAc5eAttribution(selectedType);
-		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
-		const shouldAddConfigButtons = (hasOppositeAc5e || !hasSelectedAc5e) && !hasSelectedNonAc5e;
-		if (shouldAddConfigButtons) _setMidiTrackerAttribution(tracker, selectedType, 'config-buttons', configButtonsFallbackLabel);
-	}
+		: ''
+	);
+}
+
+function _syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config) {
+	const selectedType = _getMidiSelectedAdvantageType(ac5eConfig, config);
+	if (!selectedType) return;
+	const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
+	const hasOppositeAc5e = trackerContext.hasAc5eAttribution(oppositeType);
+	const hasSelectedNonAc5e = trackerContext.hasNonAc5eAttribution(selectedType);
+	const hasSelectedAc5e = trackerContext.hasAc5eAttribution(selectedType);
+	const shouldAddConfigButtons = (hasOppositeAc5e || !hasSelectedAc5e) && !hasSelectedNonAc5e;
+	if (shouldAddConfigButtons) _setMidiTrackerAttribution(tracker, selectedType, 'config-buttons', trackerContext.configButtonsFallbackLabel);
+}
+
+export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
+	if (!_activeModule('midi-qol')) return;
+	if (ac5eConfig?.hookType !== 'attack') return;
+	const tracker = config?.workflow?.attackRollModifierTracker;
+	if (!tracker || typeof tracker !== 'object') return;
+	tracker.attribution ??= {};
+	if (typeof tracker.attribution !== 'object') return;
+	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAttackRollModifierTracker');
+	_logMidiTrackerSnapshot('attack.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig });
+	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
+	const trackerContext = _createMidiTrackerSyncContext(tracker, trackedTypes);
+	const { clearLegacySet, clearTrackedType, dedupeLabels, labelsFromEntries } = trackerContext;
+	for (const type of trackedTypes) clearTrackedType(type);
+	clearLegacySet(tracker?.legacyAttribution);
+	clearLegacySet(tracker?.advReminderAttribution);
+
+	const { filterOptin, subject, opponent, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } = _collectMidiTrackerCoreLabels(ac5eConfig);
+	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
+	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
+	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', advantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', disadvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', noAdvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', noDisadvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'CRIT', criticalLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'NOCRIT', noCriticalLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels);
+	_syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config);
 	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
 	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
@@ -3172,17 +1889,15 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
 		: [];
 	const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'acBonus') : undefined);
-	const targetADCDisplayLabels =
-		targetADCLabels.length ? targetADCLabels
-		: dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
+	const targetADCDisplayLabels = targetADCLabels.length ? targetADCLabels : dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
 	const modifyACPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyAC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
-	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
-	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
-	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
-	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
-	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
-	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
-	addCustomAttributionEntries(modifyACPrefix, targetADCDisplayLabels, { combineLabelList: true });
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Bonus'), subjectBonusLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.Modifier'), subjectModifierLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, modifyACPrefix, targetADCDisplayLabels);
 	_logMidiTrackerSnapshot('attack.post', {
 		hookType: ac5eConfig?.hookType,
 		tracker,
@@ -3197,7 +1912,7 @@ function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	});
 }
 
-function _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, type) {
+export function _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, type) {
 	if (!type) return [];
 	const entries = [];
 	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
@@ -3313,7 +2028,7 @@ function _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { r
 	return collected;
 }
 
-function _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog) {
+export function _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog) {
 	if (!_activeModule('midi-qol')) return false;
 	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return false;
 	const hasWorkflowOptions = !foundry.utils.isEmpty(config?.workflowOptions ?? {});
@@ -3321,23 +2036,13 @@ function _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog) {
 	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
 	if (trackers.length) return true;
 	const midiOptions = config?.midiOptions ?? {};
-	return [
-		midiOptions?.advantageByChoice,
-		midiOptions?.modifierTracker,
-		midiOptions?.tracker,
-	].some((value) => value && typeof value === 'object' && !foundry.utils.isEmpty(value));
+	return [midiOptions?.advantageByChoice, midiOptions?.modifierTracker, midiOptions?.tracker].some((value) => value && typeof value === 'object' && !foundry.utils.isEmpty(value));
 }
 
 export function _getD20TooltipOwnership(ac5eConfig, { midiRoller = _activeModule('midi-qol') } = {}) {
 	const hookType = ac5eConfig?.hookType;
-	const forceAc5eD20Tooltip =
-		hookType !== 'attack' &&
-		hookType !== 'damage' &&
-		!!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
-	const midiOwnsD20Tooltip =
-		!!midiRoller &&
-		!forceAc5eD20Tooltip &&
-		(hookType === 'attack' || (['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.midiOwnsAbilityTooltip));
+	const forceAc5eD20Tooltip = hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
+	const midiOwnsD20Tooltip = !!midiRoller && !forceAc5eD20Tooltip && (hookType === 'attack' || (['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.midiOwnsAbilityTooltip));
 	const deferD20KeypressToMidi = midiOwnsD20Tooltip && hookType !== 'damage';
 	const useMidiD20Attribution = midiOwnsD20Tooltip && hookType !== 'damage';
 	return {
@@ -3348,7 +2053,7 @@ export function _getD20TooltipOwnership(ac5eConfig, { midiRoller = _activeModule
 	};
 }
 
-function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
+export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	if (!_activeModule('midi-qol')) return;
 	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return;
 	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
@@ -3358,231 +2063,59 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 		tracker.attribution ??= {};
 		if (typeof tracker.attribution !== 'object') continue;
 		_logMidiTrackerSnapshot('ability.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig, extra: { trackerIndex, trackerCount: trackers.length } });
-		const configButtonsFallbackLabel = String(tracker?.attribution?.ADV?.['config-buttons'] ?? tracker?.attribution?.DIS?.['config-buttons'] ?? 'Roll Dialog').trim() || 'Roll Dialog';
 		const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS', 'AC5E'];
-		const legacySourcePrefix = `${Constants.MODULE_ID}:`;
-		const displaySourcePrefix = 'AC5E ';
-	const toLabel = (entry) => {
-		if (entry === undefined || entry === null) return '';
-		if (typeof entry === 'string' || typeof entry === 'number') return String(entry).trim();
-		if (typeof entry !== 'object') return '';
-		const value = entry?.label ?? entry?.name ?? entry?.id ?? entry?.bonus ?? entry?.modifier ?? entry?.set ?? entry?.threshold;
-		return value === undefined || value === null ? '' : String(value).trim();
-	};
-	const labelsFromEntries = (entries = []) => {
-		const next = [];
-		const source = Array.isArray(entries) ? entries : [entries];
-		for (const entry of source) {
-			const label = toLabel(entry);
-			if (label) next.push(label);
-		}
-		return next;
-	};
-	const labelsFromCollection = (value) => {
-		if (value instanceof Set) return labelsFromEntries([...value]);
-		if (Array.isArray(value)) return labelsFromEntries(value);
-		if (typeof value === 'string') return labelsFromEntries([value]);
-		return [];
-	};
-	const dedupeLabels = (entries = []) => [...new Set(entries.map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-	const normalizeLabel = (value) =>
-		String(value ?? '')
-			.trim()
-			.replace(/\s+/g, ' ')
-			.replace(/^ac5e[:\s-]*/i, '')
-			.toLowerCase();
-	const withDisplayPrefix = (label) => {
-		const cleaned = String(label ?? '').trim();
-		if (!cleaned) return '';
-		return /^ac5e(?:\b|[:\s-])/i.test(cleaned) ? cleaned : `${displaySourcePrefix}${cleaned}`;
-	};
-	const midiKeypressSources = new Set(['keyPress', 'forcedKeyPress']);
-	const keypressLabelsByType = {
-		ADV: new Set([_localize('AC5E.AdvantageKeypress'), _localize('AC5E.OverrideAdvantage')].map(normalizeLabel).filter(Boolean)),
-		DIS: new Set([_localize('AC5E.DisadvantageKeypress'), _localize('AC5E.OverrideDisadvantage')].map(normalizeLabel).filter(Boolean)),
-	};
-	const configButtonSources = new Set(['config-buttons']);
-	const hasMidiKeypressAttribution = (type) => {
-		const typed = tracker?.attribution?.[type];
-		if (!typed || typeof typed !== 'object') return false;
-		return Object.keys(typed).some((source) => midiKeypressSources.has(source));
-	};
-	const hasEquivalentMidiAttribution = (type, label) => {
-		const typed = tracker?.attribution?.[type];
-		if (!typed || typeof typed !== 'object') return false;
-		const normalizedLabel = normalizeLabel(label);
-		if (!normalizedLabel) return false;
-		return Object.entries(typed).some(([source, displayName]) => {
-			if (typeof source !== 'string') return false;
-			if (source.startsWith(legacySourcePrefix) || source.startsWith(displaySourcePrefix)) return false;
-			return normalizeLabel(displayName) === normalizedLabel;
-		});
-	};
-	const clearTrackedType = (type) => {
-		const typed = tracker?.attribution?.[type];
-		if (!typed || typeof typed !== 'object') return;
-		for (const source of Object.keys(typed)) {
-			if (!source.startsWith(legacySourcePrefix) && !source.startsWith(displaySourcePrefix)) continue;
-			delete typed[source];
-		}
-		if (!Object.keys(typed).length) delete tracker.attribution[type];
-	};
-	const clearLegacySet = (setValue) => {
-		if (!(setValue instanceof Set)) return;
-		for (const value of [...setValue]) {
-			if (typeof value !== 'string') continue;
-			const split = value.indexOf(':');
-			if (split <= 0) continue;
-			const type = value.slice(0, split);
-			const source = value.slice(split + 1);
-			if (!trackedTypes.includes(type)) continue;
-			if (!source.startsWith(legacySourcePrefix) && !source.startsWith(displaySourcePrefix)) continue;
-			setValue.delete(value);
-		}
-	};
-	const removeAttributionSource = (type, source) => {
-		if (!type || !source) return;
-		const typed = tracker?.attribution?.[type];
-		if (typed && typeof typed === 'object' && Object.prototype.hasOwnProperty.call(typed, source)) {
-			delete typed[source];
-			if (!Object.keys(typed).length) delete tracker.attribution[type];
-		}
-		const legacyKey = `${type}:${source}`;
-		if (tracker?.legacyAttribution instanceof Set) tracker.legacyAttribution.delete(legacyKey);
-		if (tracker?.advReminderAttribution instanceof Set) tracker.advReminderAttribution.delete(legacyKey);
-	};
-	const dropConfigButtonsAttribution = (type, labels = []) => {
-		if (!labels.length) return;
-		for (const source of configButtonSources) removeAttributionSource(type, source);
-	};
-	for (const type of trackedTypes) clearTrackedType(type);
-	clearLegacySet(tracker?.legacyAttribution);
-	clearLegacySet(tracker?.advReminderAttribution);
+		const trackerContext = _createMidiTrackerSyncContext(tracker, trackedTypes);
+		const { clearLegacySet, clearTrackedType, dedupeLabels, labelsFromEntries } = trackerContext;
+		for (const type of trackedTypes) clearTrackedType(type);
+		clearLegacySet(tracker?.legacyAttribution);
+		clearLegacySet(tracker?.advReminderAttribution);
 
-	const selected = ac5eConfig?.optinSelected ?? {};
-	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
-	const subject = ac5eConfig?.subject ?? {};
-	const opponent = ac5eConfig?.opponent ?? {};
-
-	const advantageLabels = dedupeLabels(
-		labelsFromEntries(filterOptin(subject?.advantage ?? []))
-			.concat(labelsFromEntries(filterOptin(opponent?.advantage ?? [])))
-			.concat(labelsFromCollection(subject?.advantageNames))
-			.concat(labelsFromCollection(opponent?.advantageNames)),
-	);
-	const disadvantageLabels = dedupeLabels(
-		labelsFromEntries(filterOptin(subject?.disadvantage ?? []))
-			.concat(labelsFromEntries(filterOptin(opponent?.disadvantage ?? [])))
-			.concat(labelsFromCollection(subject?.disadvantageNames))
-			.concat(labelsFromCollection(opponent?.disadvantageNames)),
-	);
-	const noAdvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noAdvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noAdvantage ?? []))));
-	const noDisadvantageLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noDisadvantage ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noDisadvantage ?? []))));
-	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
-	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
-	const infoLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.info ?? [])).concat(labelsFromEntries(filterOptin(opponent?.info ?? []))));
-	const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
-	const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
-	const addEntries = (type, labels = []) => {
-		dropConfigButtonsAttribution(type, labels);
-		const keypressLabels = keypressLabelsByType[type];
-		for (const label of labels) {
-			const normalizedLabel = normalizeLabel(label);
-			if (!normalizedLabel) continue;
-			if (keypressLabels?.has(normalizedLabel) && hasMidiKeypressAttribution(type)) continue;
-			if (hasEquivalentMidiAttribution(type, label)) continue;
-			const displayLabel = withDisplayPrefix(label);
-			if (!displayLabel) continue;
-			_setMidiTrackerAttribution(tracker, type, displayLabel, displayLabel);
-		}
-	};
-	const addCustomAttributionEntries = (prefixLabel, labels = [], options = {}) => {
-		const prefix = String(prefixLabel ?? '').trim();
-		const cleanedLabels = labels.map((label) => String(label ?? '').trim()).filter(Boolean);
-		if (!prefix || !cleanedLabels.length) return;
-		const { combineLabelList = false } = options ?? {};
-		if (combineLabelList) {
-			const displayLabel = `${prefix}: ${cleanedLabels.join(', ')}`;
-			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
-			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:0`;
-			_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
-			return;
-		}
-		for (const [index, label] of cleanedLabels.entries()) {
-			const cleaned = String(label ?? '').trim();
-			if (!cleaned) continue;
-			const displayLabel = `${prefix}: ${cleaned}`;
-			const sourceSuffix = normalizeLabel(displayLabel).replace(/[^a-z0-9_-]/g, '-') || 'entry';
-			const source = `${legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
-			_setMidiTrackerAttribution(tracker, 'AC5E', source, displayLabel);
-		}
-	};
-	addEntries('ADV', advantageLabels);
-	addEntries('DIS', disadvantageLabels);
-	addEntries('NOADV', noAdvantageLabels);
-	addEntries('NODIS', noDisadvantageLabels);
-	addEntries('FAIL', failLabels);
-	addEntries('SUCCESS', successLabels);
-	addCustomAttributionEntries(_localize('AC5E.Info'), infoLabels, { combineLabelList: true });
-	const hasAc5eAttribution = (type) => {
-		const typed = tracker?.attribution?.[type];
-		if (!typed || typeof typed !== 'object') return false;
-		return Object.keys(typed).some((source) => typeof source === 'string' && (source.startsWith(legacySourcePrefix) || /^ac5e(?:\b|[:\s-])/i.test(source)));
-	};
-	const hasNonAc5eAttribution = (type) => {
-		const typed = tracker?.attribution?.[type];
-		if (!typed || typeof typed !== 'object') return false;
-		return Object.keys(typed).some((source) => typeof source === 'string' && !source.startsWith(legacySourcePrefix) && !/^ac5e(?:\b|[:\s-])/i.test(source));
-	};
-	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
-	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
-	const selectedType =
-		selectedMode === advModes?.ADVANTAGE ? 'ADV'
-		: selectedMode === advModes?.DISADVANTAGE ? 'DIS'
-		: '';
-	if (selectedType) {
-		const oppositeType = selectedType === 'ADV' ? 'DIS' : 'ADV';
-		const hasOppositeAc5e = hasAc5eAttribution(oppositeType);
-		const hasSelectedNonAc5e = hasNonAc5eAttribution(selectedType);
-		const hasSelectedAc5e = hasAc5eAttribution(selectedType);
-		const shouldAddConfigButtons = (hasOppositeAc5e || !hasSelectedAc5e) && !hasSelectedNonAc5e;
-		if (shouldAddConfigButtons) _setMidiTrackerAttribution(tracker, selectedType, 'config-buttons', configButtonsFallbackLabel);
-	}
-	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
-	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
-	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
-	const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
-	const opponentModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.modifiers ?? [])));
-	const opponentExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.extraDice ?? [])));
-	const getNumericTarget = (value) => {
-		const numeric = Number(value);
-		return Number.isFinite(numeric) ? numeric : undefined;
-	};
-	const baseTargetADC =
-		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
-		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
-		getNumericTarget(ac5eConfig?.initialTargetADC) ??
-		getNumericTarget(config?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.options?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.target) ??
-		10;
-	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
-	const targetValuePool =
-		targetValues.length ? targetValues
-		: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
-		: [];
-	const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
-	const targetADCDisplayLabels =
-		targetADCLabels.length ? targetADCLabels
-		: dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
-	const modifyDCPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
-	addCustomAttributionEntries(_localize('AC5E.Bonus'), subjectBonusLabels);
-	addCustomAttributionEntries(_localize('DND5E.Modifier'), subjectModifierLabels);
-	addCustomAttributionEntries(_localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
-	addCustomAttributionEntries(_localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
-	addCustomAttributionEntries(_localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
-	addCustomAttributionEntries(_localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
-	addCustomAttributionEntries(modifyDCPrefix, targetADCDisplayLabels, { combineLabelList: true });
+		const { filterOptin, subject, opponent, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } = _collectMidiTrackerCoreLabels(ac5eConfig);
+		const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
+		const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+		const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
+		const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
+		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', advantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'DIS', disadvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', noAdvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', noDisadvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels, { combineLabelList: true });
+		_syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config);
+		const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
+		const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
+		const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
+		const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
+		const opponentModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.modifiers ?? [])));
+		const opponentExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.extraDice ?? [])));
+		const getNumericTarget = (value) => {
+			const numeric = Number(value);
+			return Number.isFinite(numeric) ? numeric : undefined;
+		};
+		const baseTargetADC =
+			(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
+			(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
+			getNumericTarget(ac5eConfig?.initialTargetADC) ??
+			getNumericTarget(config?.target) ??
+			getNumericTarget(config?.rolls?.[0]?.options?.target) ??
+			getNumericTarget(config?.rolls?.[0]?.target) ??
+			10;
+		const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
+		const targetValuePool =
+			targetValues.length ? targetValues
+			: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
+			: [];
+		const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
+		const targetADCDisplayLabels = targetADCLabels.length ? targetADCLabels : dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
+		const modifyDCPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Bonus'), subjectBonusLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.Modifier'), subjectModifierLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsModifier'), opponentModifierLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsExtraDice'), opponentExtraDiceLabels);
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, modifyDCPrefix, targetADCDisplayLabels, { combineLabelList: true });
 		_logMidiTrackerSnapshot('ability.post', {
 			hookType: ac5eConfig?.hookType,
 			tracker,
@@ -3601,357 +2134,6 @@ function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	}
 }
 
-export function _getConfig(config, dialog, hookType, tokenId, targetId, options = {}, reEval = false) {
-	// foundry.utils.mergeObject(options, { spellLevel: dialog?.data?.flags?.use?.spellLevel, attackMode: config?.attackMode });
-	if (settings.debug || ac5e.debug_getConfig) console.warn('AC5E._getConfig:', { config });
-	const existingAC5e = config?.[Constants.MODULE_ID]; //to-do: any need for that one?
-	// if (!foundry.utils.isEmpty(existingAC5e) && !reEval) foundry.utils.mergeObject(options, existingAC5e.options);
-	if (settings.debug) console.error('AC5E._getConfig', { mergedOptions: options });
-	const useConfig = _getUseConfig({ options, config });
-	if (useConfig?.options) {
-		_mergeUseOptions(options, useConfig.options);
-		options.originatingUseConfig = foundry.utils.duplicate(useConfig);
-		if (options.originatingUseConfig?.options?.originatingUseConfig !== undefined) delete options.originatingUseConfig.options.originatingUseConfig;
-		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig use options', { hookType, merged: useConfig.options });
-	}
-	const { ac5eConfig, actor, midiRoller, roller } = _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval);
-	const hookContext = _getHookConfig({ hookType, useConfig, config, dialog, tokenId, targetId, options, reEval });
-	const dialogContext = _getDialogConfig({ hookType, useConfig, hookContext, config, dialog });
-	ac5eConfig.useConfig = useConfig;
-	ac5eConfig.useConfigBase = hookContext?.base ?? null;
-	ac5eConfig.hookContext = hookContext;
-	ac5eConfig.dialogContext = dialogContext;
-	if (useConfig?.optionsSnapshot && hookContext?.reEval?.options?.length) {
-		const snapshot = useConfig.optionsSnapshot;
-		const currentOptions = pickOptions(options, hookContext.reEval.options);
-		const changedKeys = hookContext.reEval.options.filter((key) => !foundry.utils.objectsEqual(currentOptions[key], snapshot[key]));
-		const changed = _categorizeChangedOptionKeys(changedKeys);
-		const flagReEvalOn = hookContext?.reEval?.flagReEvalOn ?? ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'];
-		const requiresFlagReEvaluation = changedKeys.length > 0 && flagReEvalOn.some((category) => changed?.[category]);
-		ac5eConfig.reEval ??= {};
-		ac5eConfig.reEval.useConfigSnapshot = snapshot;
-		ac5eConfig.reEval.useConfigMatches = changedKeys.length === 0;
-		ac5eConfig.reEval.useConfigChangedKeys = changedKeys;
-		ac5eConfig.reEval.changed = changed;
-		ac5eConfig.reEval.canReuseUseBaseline = !requiresFlagReEvaluation;
-		ac5eConfig.reEval.requiresFlagReEvaluation = requiresFlagReEvaluation;
-		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers'))
-			console.warn('AC5E getConfig use snapshot', {
-				hookType,
-				changedKeys,
-				changed,
-				flagReEvalOn,
-				requiresFlagReEvaluation,
-				useConfigMatches: ac5eConfig.reEval.useConfigMatches,
-			});
-		if (_debugFlagEnabled('checksReuse', 'debugChecksReuse'))
-			console.warn('AC5E getConfig reEval decision', {
-				hookType,
-				policy: hookContext?.reEval?.policyName,
-				phase: hookContext?.reEval?.phase,
-				changedKeys,
-				changed,
-				requiresFlagReEvaluation,
-				canReuseUseBaseline: ac5eConfig.reEval.canReuseUseBaseline,
-			});
-	}
-	if (hookContext?.reEval?.options?.length) {
-		const currentOptions = pickOptions(options, hookContext.reEval.options);
-		ac5eConfig.reEval ??= {};
-		ac5eConfig.reEval.currentOptions = currentOptions;
-		ac5eConfig.reEval.optionKeys = hookContext.reEval.options;
-		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig reEval options', { hookType, currentOptions });
-		if (!foundry.utils.isEmpty(currentOptions)) {
-			foundry.utils.mergeObject(options, currentOptions, { inplace: true });
-			foundry.utils.mergeObject(ac5eConfig.options, currentOptions, { inplace: true });
-			if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig reEval applied', { hookType, currentOptions });
-		}
-	}
-	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) {
-		console.warn('AC5E getConfig layers', {
-			hookType,
-			useConfig,
-			hookContext,
-			dialogContext,
-			messageId: options?.messageId,
-			originatingMessageId: options?.originatingMessageId,
-		});
-	}
-	const { skipDialogAdvantage, skipDialogDisadvantage, skipDialogNormal } = ac5eConfig.preAC5eConfig;
-	const { deferD20KeypressToMidi, useMidiD20Attribution } = _getD20TooltipOwnership(ac5eConfig, { midiRoller });
-	const d20RollerLabel = useMidiD20Attribution ? roller : 'Core';
-	const returnEarly = !deferD20KeypressToMidi && skipDialogNormal && (skipDialogAdvantage || skipDialogDisadvantage);
-	const keypressAdvantageSource = !deferD20KeypressToMidi && skipDialogAdvantage && !returnEarly;
-	const keypressDisadvantageSource = !deferD20KeypressToMidi && skipDialogDisadvantage && !returnEarly;
-
-	if (returnEarly) {
-		const explicitKeypressAction =
-			skipDialogAdvantage ? (hookType === 'damage' ? 'critical' : 'advantage')
-			: skipDialogDisadvantage ? (hookType === 'damage' ? 'normal' : 'disadvantage')
-			: '';
-		if (explicitKeypressAction) {
-			ac5eConfig.explicitModeOverride = {
-				action: explicitKeypressAction,
-				source: 'keypress',
-				family: hookType === 'damage' ? 'damage' : 'd20',
-				proposedAction: String(ac5eConfig?.proposedButton ?? ac5eConfig?.defaultButton ?? '')
-					.trim()
-					.toLowerCase(),
-				replacesCalculatedMode: true,
-			};
-		}
-		ac5eConfig.returnEarly = true;
-		if (skipDialogAdvantage) {
-			if (hookType === 'damage') {
-				config.isCritical = true;
-				ac5eConfig.subject.critical.push('Override keypress');
-			} else {
-				ac5eConfig.subject.advantage.push('Override keypress');
-			}
-		}
-		if (skipDialogDisadvantage) {
-			if (hookType === 'damage') {
-				config.isCritical = false;
-				ac5eConfig.subject.noCritical.push('Override keypress');
-			} else {
-				ac5eConfig.subject.disadvantage.push('Override keypress');
-			}
-		}
-		if (hookType !== 'damage' && explicitKeypressAction) _syncResolvedFastForwardD20Override(ac5eConfig, config, explicitKeypressAction);
-		if (settings.debug) console.warn('AC5E_getConfig returning early', { ac5eConfig });
-		return ac5eConfig;
-	} else {
-		if (skipDialogAdvantage && !deferD20KeypressToMidi) {
-			if (hookType === 'damage') ac5eConfig.subject.critical.push('Keypress');
-			else ac5eConfig.subject.advantage.push('Keypress');
-		}
-		if (skipDialogDisadvantage && !deferD20KeypressToMidi) {
-			if (hookType === 'damage') ac5eConfig.subject.noCritical.push('Keypress');
-			else ac5eConfig.subject.disadvantage.push('Keypress');
-		}
-	}
-
-	// const actorSystemRollMode = [];
-	const { adv, dis } = getSystemRollConfig({ actor, options, hookType, ac5eConfig });
-	const midiAttackAdvAttribution = midiRoller ? _getMidiAttackAttributionEntries(config?.workflow, 'ADV') : [];
-	const midiAttackDisAttribution = midiRoller ? _getMidiAttackAttributionEntries(config?.workflow, 'DIS') : [];
-	const midiAbilityAdvAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'ADV') : [];
-	const midiAbilityDisAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'DIS') : [];
-	const midiAbilityFailAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'FAIL') : [];
-	const midiAbilitySuccessAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'SUCCESS') : [];
-	const hasMidiAttackAdvAttribution = midiAttackAdvAttribution.length > 0;
-	const hasMidiAttackDisAttribution = midiAttackDisAttribution.length > 0;
-	const hasMidiAbilityAdvAttribution = midiAbilityAdvAttribution.length > 0;
-	const hasMidiAbilityDisAttribution = midiAbilityDisAttribution.length > 0;
-	const hasMidiAdvAttribution =
-		hookType === 'attack' ? hasMidiAttackAdvAttribution
-		: ['check', 'save'].includes(hookType) ? hasMidiAbilityAdvAttribution
-		: false;
-	const hasMidiDisAttribution =
-		hookType === 'attack' ? hasMidiAttackDisAttribution
-		: ['check', 'save'].includes(hookType) ? hasMidiAbilityDisAttribution
-		: false;
-	const midiAdvAttribution = [...new Set((hookType === 'attack' ? midiAttackAdvAttribution : midiAbilityAdvAttribution).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-	const midiDisAttribution = [...new Set((hookType === 'attack' ? midiAttackDisAttribution : midiAbilityDisAttribution).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
-	ac5eConfig.subject.midiAdvantage = midiAdvAttribution;
-	ac5eConfig.subject.midiDisadvantage = midiDisAttribution;
-	ac5eConfig.subject.midiFail = midiAbilityFailAttribution;
-	ac5eConfig.subject.midiSuccess = midiAbilitySuccessAttribution;
-
-	if (!options.preConfigInitiative) {
-		if (
-			hookType !== 'damage' &&
-			!returnEarly &&
-			!adv &&
-			(((config.advantage && !deferD20KeypressToMidi) && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)
-		) {
-			if (useMidiD20Attribution) {
-				if (midiAdvAttribution.length) ac5eConfig.subject.advantage.push(...midiAdvAttribution);
-				else ac5eConfig.subject.advantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
-			} else ac5eConfig.subject.advantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
-		}
-		if (
-			hookType !== 'damage' &&
-			!returnEarly &&
-			!dis &&
-			(((config.disadvantage && !deferD20KeypressToMidi) && !keypressDisadvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)
-		) {
-			if (useMidiD20Attribution) {
-				if (midiDisAttribution.length) ac5eConfig.subject.disadvantage.push(...midiDisAttribution);
-				else ac5eConfig.subject.disadvantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
-			} else ac5eConfig.subject.disadvantage.push(`${d20RollerLabel} ${_localize('AC5E.Flags')}`);
-		}
-		if (!returnEarly && (((config.isCritical && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.isCritical))) ac5eConfig.subject.critical.push(`${roller} ${_localize('AC5E.Flags')}`);
-	}
-	if (settings.debug || ac5e.debug_getConfig) console.warn('AC5E_getConfig', { ac5eConfig });
-	return ac5eConfig;
-}
-
-export function _getUseConfig({ options, config } = {}) {
-	let useConfig = options?.originatingUseConfig ?? config?.options?.originatingUseConfig ?? null;
-	let debugMeta = { source: useConfig ? 'options' : 'unknown' };
-	const originatingMessageId = options?.originatingMessageId;
-	const messageId = originatingMessageId ?? options?.messageId;
-	const context = _resolveUseMessageContext({ messageId, originatingMessageId });
-	const { triggerMessage, originatingMessageId: resolvedOriginatingMessageId, originatingMessage, usageMessage, registryMessages } = context;
-	if (!useConfig) {
-		useConfig = context.useConfig;
-		debugMeta = {
-			source: useConfig ? 'message' : 'none',
-			messageId,
-			originatingMessageId: resolvedOriginatingMessageId,
-			hasMessage: !!triggerMessage,
-			registryCount: _collectionCount(registryMessages),
-		};
-		if (!useConfig) {
-			const cacheEntry = _getUseConfigInflightCacheEntry([resolvedOriginatingMessageId, messageId]);
-			if (cacheEntry?.useConfig) {
-				useConfig = foundry.utils.duplicate(cacheEntry.useConfig);
-				debugMeta = {
-					...debugMeta,
-					source: 'inflight-cache',
-					cacheExpiresAt: cacheEntry.expiresAt,
-				};
-			}
-		}
-	}
-	if (useConfig) {
-		const dnd5eUseFlag = _getMessageDnd5eFlags(usageMessage) ?? _getMessageDnd5eFlags(originatingMessage);
-		useConfig = foundry.utils.duplicate(useConfig);
-		if (useConfig?.options?.originatingUseConfig !== undefined) delete useConfig.options.originatingUseConfig;
-		if (dnd5eUseFlag) {
-			useConfig.options ??= {};
-			if (dnd5eUseFlag.use?.spellLevel !== undefined) useConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;
-			if (dnd5eUseFlag.scaling !== undefined) useConfig.options.scaling ??= dnd5eUseFlag.scaling;
-			if (Array.isArray(dnd5eUseFlag.use?.effects)) useConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
-			if (Array.isArray(dnd5eUseFlag.targets)) useConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
-			if (dnd5eUseFlag.activity) useConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);
-			if (dnd5eUseFlag.item) useConfig.options.item ??= foundry.utils.duplicate(dnd5eUseFlag.item);
-		}
-	}
-	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getUseConfig', { useConfig, debugMeta });
-	return useConfig;
-}
-
-export function _getHookConfig({ hookType, useConfig }) {
-	const base =
-		useConfig ?
-			{
-				options: foundry.utils.duplicate(useConfig.options ?? {}),
-				bonuses: foundry.utils.duplicate(useConfig.bonuses ?? {}),
-				extraDice: foundry.utils.duplicate(useConfig.extraDice ?? []),
-				damageModifiers: foundry.utils.duplicate(useConfig.damageModifiers ?? []),
-				parts: foundry.utils.duplicate(useConfig.parts ?? []),
-				threshold: foundry.utils.duplicate(useConfig.threshold ?? []),
-				fumbleThreshold: foundry.utils.duplicate(useConfig.fumbleThreshold ?? []),
-			}
-		:	null;
-	const reEval = _getReEvalPolicy({ hookType, phase: 'hook' });
-	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getHookConfig', { hookType, useConfig, base, reEval });
-	return { hookType, useConfig, base, reEval };
-}
-
-export function _getDialogConfig({ hookType, useConfig, hookContext }) {
-	const reEval = _getReEvalPolicy({ hookType, phase: 'dialog' });
-	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getDialogConfig', { hookType, useConfig, hookContext, reEval });
-	return { hookType, useConfig, hookContext, reEval };
-}
-
-function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type, modeCounts }) {
-	const capitalizeHook = hookType.capitalize();
-	const resolvedTypeLabel = String(typeLabel ?? '').trim() ? String(typeLabel).trim() : _localize('AC5E.SystemMode');
-	if (mode > 0) {
-		if (modeCounts?.override > 0) {
-			ac5eConfig.subject.forcedAdvantage = [_localize('AC5E.ForcedAdvantage')];
-			systemMode.override = modeCounts.override;
-		} else if (modeCounts?.disadvantages.suppressed) {
-			ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
-			systemMode.suppressed = 'noDis';
-		} else {
-			systemMode.adv++;
-			if (!actor.hasConditionEffect(`ability${capitalizeHook}Advantage`)) ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
-			if (type === 'init' && !actor.hasConditionEffect('initiativeAdvantage')) ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
-		}
-	}
-	if (mode < 0) {
-		if (modeCounts?.override < 0) {
-			ac5eConfig.subject.forcedDisadvantage = [_localize('AC5E.ForcedDisadvantage')];
-			systemMode.override = modeCounts.override;
-		} else if (modeCounts?.advantages.suppressed) {
-			ac5eConfig.subject.noAdvantage = [_localize('AC5E.NoAdvantage')];
-			systemMode.suppressed = 'noAdv';
-		} else {
-			systemMode.dis++;
-			//Do not add System Mode for stealth disadvantage; already added by name
-			if (!actor.hasConditionEffect(`ability${capitalizeHook}Disadvantage`) && ac5eConfig?.options?.skill !== 'ste') ac5eConfig.subject.disadvantageNames.add(resolvedTypeLabel);
-			if (type === 'init' && !actor.hasConditionEffect('initiativeDisadvantage')) ac5eConfig.subject.disadvantageNames.add(resolvedTypeLabel);
-		}
-	}
-	if (max) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${max})`);
-	if (min) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${min})`);
-	return systemMode;
-}
-
-function _resolveSystemModeLabel(baseKey, detail) {
-	const base = _localize(baseKey);
-	const rawDetail = String(detail ?? '').trim();
-	if (!rawDetail) return base;
-	const detailLabel = game.i18n?.has?.(rawDetail) ? _localize(rawDetail) : rawDetail;
-	return `${base} (${detailLabel})`;
-}
-
-function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
-	if (!actor || hookType === 'damage' || hookType === 'use') return {};
-	const systemMode = { adv: 0, dis: 0 };
-	const autoArmorChecks = _autoArmor(actor);
-	const { ability, skill, tool } = options || {};
-	if (hookType === 'check') {
-		if (skill) {
-			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage)
-				ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
-			const { mode, max, min, modeCounts } = getActorSkillRollObject({ actor, skill }) || {};
-			const skillLabel = actor?.system?.skills?.[skill]?.label ?? CONFIG?.DND5E?.skills?.[skill]?.label ?? skill;
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', skillLabel), ac5eConfig, systemMode, modeCounts });
-		}
-		if (tool) {
-			const { mode, max, min, modeCounts } = getActorToolRollObject({ actor, tool }) || {};
-			const toolLabel = actor?.system?.tools?.[tool]?.label ?? tool;
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', toolLabel), ac5eConfig, systemMode, modeCounts });
-		}
-		if (options.isInitiative) {
-			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'init' }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Initiative')), ac5eConfig, systemMode, type: 'init', modeCounts });
-		}
-	}
-	if (ability && ['check', 'save'].includes(hookType)) {
-		if (options.isConcentration) {
-			if (_hasItem(actor, _localize('AC5E.WarCaster'))) {
-				ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
-			}
-			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'concentration' }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Concentration')), ac5eConfig, systemMode, modeCounts });
-		} else {
-			const { mode, max, min, modeCounts } = getActorAbilityRollObject({ actor, ability, hookType }) || {};
-			const abilityLabel = CONFIG?.DND5E?.abilities?.[ability]?.label ?? CONFIG?.DND5E?.abilities?.[ability] ?? ability;
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', abilityLabel), ac5eConfig, systemMode, modeCounts });
-		}
-	}
-	if (options.isDeathSave && hookType === 'save') {
-		const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'death' }) || {};
-		collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.DeathSave')), ac5eConfig, systemMode, modeCounts });
-	}
-	if (autoArmorChecks.notProficient && ['dex', 'str'].includes(ability)) {
-		ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.notProficient)} (${_localize('NotProficient')})`);
-		systemMode.dis++;
-	}
-	if (_autoEncumbrance(actor, ability)) {
-		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
-		systemMode.dis++;
-	}
-	if (settings.debug) console.warn('AC5E_getSystemRollConfig', { ac5eConfig });
-	return systemMode;
-}
-
 export function getConcOrDeathOrInitRollObject({ actor, type }) {
 	return actor?.system?.attributes?.[type]?.roll || {};
 }
@@ -3968,587 +2150,8 @@ export function getActorToolRollObject({ actor, tool }) {
 	return actor?.system?.tools?.[tool]?.roll;
 }
 
-export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
-	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
-
-	if (ac5eConfig.hookType === 'use') {
-		const safeUseConfig = _getSafeUseConfig(ac5eConfig);
-		const ac5eConfigDialog = { [Constants.MODULE_ID]: safeUseConfig };
-		if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
-		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig.options ?? {}, { merge: false });
-		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug)
-			console.warn('AC5e post helpers._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
-		return;
-	}
-	ac5eConfig.subject.advantageNames = [...ac5eConfig.subject.advantageNames];
-	ac5eConfig.subject.disadvantageNames = [...ac5eConfig.subject.disadvantageNames];
-	ac5eConfig.opponent.advantageNames = [...ac5eConfig.opponent.advantageNames];
-	ac5eConfig.opponent.disadvantageNames = [...ac5eConfig.opponent.disadvantageNames];
-
-	const safeDialogConfig = _getSafeDialogConfig(ac5eConfig);
-	const ac5eConfigDialog = { [Constants.MODULE_ID]: safeDialogConfig };
-	if (dialog?.options) dialog.options.classes = dialog.options.classes?.concat('ac5e') ?? ['ac5e'];
-	// @to-do: re-evaluate if we need extra fields beyond system flags (e.g., targets already live under flags.dnd5e).
-	// @todo: replace cached tooltip HTML with structured flag payload and regenerate tooltip content from message flags at render time.
-	const optionSnapshotKeys = ['ability', 'attackMode', 'skill', 'tool', 'targets', 'target', 'defaultDamageType', 'damageTypes', 'distance'];
-	if (!['attack', 'damage'].includes(ac5eConfig.hookType)) optionSnapshotKeys.splice(6, 0, 'initialTargetADC', 'alteredTargetADC');
-	const optionsSnapshot = pickOptions(ac5eConfig.options ?? {}, optionSnapshotKeys);
-	const ac5eConfigMessage = {
-		[Constants.MODULE_ID]: {
-			tooltipObj: ac5eConfig.tooltipObj,
-			hookType: ac5eConfig.hookType,
-			roller: ac5eConfig.roller,
-			tokenId: ac5eConfig.tokenId,
-			targetId: ac5eConfig.targetId,
-			hasTransitAdvantage: !!ac5eConfig.hasTransitAdvantage,
-			hasTransitDisadvantage: !!ac5eConfig.hasTransitDisadvantage,
-			hasPlayerOwner: ac5eConfig.hasPlayerOwner,
-			ownership: ac5eConfig.ownership,
-			optionsSnapshot,
-		},
-	};
-
-	const rollOptionsTarget = _ensureRoll0Options(config);
-	const mergeTarget = rollOptionsTarget ?? config;
-	if (mergeTarget) foundry.utils.mergeObject(mergeTarget, ac5eConfigDialog);
-	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, ac5eConfigMessage[Constants.MODULE_ID], { merge: true });
-	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post helpers._setAC5eProperties', { ac5eConfig, config, dialog, message });
-}
-
-export function _getSafeUseConfig(ac5eConfig) {
-	const options = foundry.utils.duplicate(ac5eConfig?.options ?? {});
-	const toDocumentRef = (value) => {
-		if (!value) return null;
-		if (typeof value === 'string' && value.includes('.')) {
-			return {
-				id: value.split('.').at(-1),
-				type: undefined,
-				uuid: value,
-			};
-		}
-		const uuid = value?.uuid;
-		if (!uuid || typeof uuid !== 'string') return null;
-		return {
-			id: value?.id ?? value?._id ?? uuid.split('.').at(-1),
-			type: value?.type,
-			uuid,
-		};
-	};
-	const activityRef = toDocumentRef(options.activity);
-	const itemRef = toDocumentRef(options.item) ?? toDocumentRef(options.activity?.item);
-	if (activityRef) options.activity = activityRef;
-	else delete options.activity;
-	if (itemRef) options.item = itemRef;
-	else delete options.item;
-	delete options.ammo;
-	delete options.ammunition;
-	delete options.originatingUseConfig;
-	delete options._ac5eHookChecksCache;
-	for (const key of Object.keys(options)) {
-		if (key.startsWith('_')) delete options[key];
-	}
-	const optionsSnapshot = pickOptions(options, ['ability', 'attackMode', 'skill', 'tool', 'targets', 'distance', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'scaling', 'spellLevel']);
-	const sanitizeBonuses = (entries = []) =>
-		Array.isArray(entries) ?
-			entries.map((entry) => ({
-				id: entry?.id,
-				label: entry?.label ?? entry?.name,
-				name: entry?.name,
-				effectUuid: entry?.effectUuid,
-				changeIndex: entry?.changeIndex,
-				hook: entry?.hook,
-				mode: entry?.mode,
-				optin: !!entry?.optin,
-				target: entry?.target,
-				requiredDamageTypes: foundry.utils.duplicate(entry?.requiredDamageTypes ?? []),
-				values: foundry.utils.duplicate(entry?.values ?? []),
-			}))
-		:	[];
-
-	return {
-		hookType: ac5eConfig?.hookType,
-		tokenId: ac5eConfig?.tokenId,
-		targetId: ac5eConfig?.targetId,
-		advantageMode: ac5eConfig?.advantageMode ?? null,
-		advantage: ac5eConfig?.advantageMode > 0,
-		disadvantage: ac5eConfig?.advantageMode < 0,
-		isCritical: ac5eConfig?.isCritical ?? false,
-		isFumble: ac5eConfig?.isFumble ?? false,
-		options,
-		optionsSnapshot,
-		subject: {
-			fail: foundry.utils.duplicate(ac5eConfig?.subject?.fail ?? []),
-			info: foundry.utils.duplicate(ac5eConfig?.subject?.info ?? []),
-			rangeNotes: foundry.utils.duplicate(ac5eConfig?.subject?.rangeNotes ?? []),
-		},
-		opponent: {
-			fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []),
-			info: foundry.utils.duplicate(ac5eConfig?.opponent?.info ?? []),
-		},
-		bonuses: {
-			subject: sanitizeBonuses(ac5eConfig?.subject?.bonus),
-			opponent: sanitizeBonuses(ac5eConfig?.opponent?.bonus),
-		},
-		parts: foundry.utils.duplicate(ac5eConfig?.parts ?? []),
-		damageModifiers: foundry.utils.duplicate(ac5eConfig?.damageModifiers ?? []),
-		extraDice: foundry.utils.duplicate(ac5eConfig?.extraDice ?? []),
-		threshold: foundry.utils.duplicate(ac5eConfig?.threshold ?? []),
-		fumbleThreshold: foundry.utils.duplicate(ac5eConfig?.fumbleThreshold ?? []),
-		pendingUses: foundry.utils.duplicate(ac5eConfig?.pendingUses ?? []),
-		pendingUsesApplied: !!ac5eConfig?.pendingUsesApplied,
-		preAC5eConfig: {
-			adv: ac5eConfig?.preAC5eConfig?.adv ?? null,
-			dis: ac5eConfig?.preAC5eConfig?.dis ?? null,
-			wasCritical: ac5eConfig?.preAC5eConfig?.wasCritical ?? null,
-		},
-	};
-}
-
-export function _getSafeDialogConfig(ac5eConfig) {
-	const safe = foundry.utils.duplicate(ac5eConfig ?? {});
-	if (safe?.options && typeof safe.options === 'object') {
-		delete safe.options.activity;
-		delete safe.options.ammo;
-		delete safe.options.ammunition;
-		delete safe.options.originatingUseConfig;
-		delete safe.options._ac5eHookChecksCache;
-		for (const key of Object.keys(safe.options)) {
-			if (key.startsWith('_')) delete safe.options[key];
-		}
-	}
-	delete safe.originatingUseConfig;
-	delete safe.useConfig;
-	delete safe.useConfigBase;
-	delete safe.hookContext;
-	delete safe.dialogContext;
-	if (safe?.reEval && typeof safe.reEval === 'object') {
-		delete safe.reEval.useConfigSnapshot;
-		delete safe.reEval.currentOptions;
-	}
-	return safe;
-}
-
-export function _mergeUseOptions(targetOptions, useOptions) {
-	if (!targetOptions || !useOptions) return;
-	const allowlist = ['ability', 'attackMode', 'defaultDamageType', 'damageTypes', 'hook', 'mastery', 'riderStatuses', 'scaling', 'skill', 'spellLevel', 'tool', 'targets', 'useEffects'];
-	const filtered = {};
-	for (const key of allowlist) {
-		if (useOptions[key] !== undefined) filtered[key] = useOptions[key];
-	}
-	if (!Object.keys(filtered).length) return;
-	for (const [key, value] of Object.entries(filtered)) {
-		if (!Array.isArray(value)) continue;
-		const existing = targetOptions[key];
-		if (!existing || (Array.isArray(existing) && existing.length === 0 && value.length)) {
-			targetOptions[key] = foundry.utils.duplicate(value);
-		}
-	}
-	for (const [key, value] of Object.entries(filtered)) {
-		if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-		const existing = targetOptions[key];
-		if (!existing || (typeof existing === 'object' && !Array.isArray(existing) && Object.keys(existing).length === 0 && Object.keys(value).length)) {
-			targetOptions[key] = foundry.utils.duplicate(value);
-		}
-	}
-	foundry.utils.mergeObject(targetOptions, filtered, { overwrite: false });
-}
-
-function pickOptions(source, keys) {
-	if (!source || !Array.isArray(keys)) return {};
-	const picked = {};
-	for (const key of keys) {
-		if (source[key] !== undefined) picked[key] = source[key];
-	}
-	return picked;
-}
-
-const REEVAL_POLICY_BY_HOOK = {
-	attack: {
-		options: ['targets', 'distance', 'ability', 'attackMode', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'mastery'],
-		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
-	},
-	damage: {
-		options: ['targets', 'distance', 'ability', 'attackMode', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'mastery'],
-		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
-	},
-	save: {
-		options: ['targets', 'distance', 'ability', 'defaultDamageType', 'damageTypes', 'riderStatuses'],
-		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
-	},
-	check: {
-		options: ['targets', 'distance', 'ability', 'skill', 'tool'],
-		flagReEvalOn: ['targeting', 'rollProfile', 'other'],
-	},
-	use: {
-		options: ['targets', 'distance', 'ability', 'attackMode', 'skill', 'tool', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'scaling', 'spellLevel'],
-		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
-	},
-	default: {
-		options: ['targets', 'distance', 'ability', 'attackMode', 'skill', 'tool', 'defaultDamageType', 'damageTypes', 'riderStatuses'],
-		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
-	},
-};
-
-function _getReEvalPolicy({ hookType, phase = 'hook' } = {}) {
-	const base = REEVAL_POLICY_BY_HOOK[hookType] ?? REEVAL_POLICY_BY_HOOK.default;
-	let options = [...base.options];
-	if (phase === 'dialog') options = options.filter((key) => key !== 'riderStatuses');
-	return {
-		policyName: hookType in REEVAL_POLICY_BY_HOOK ? hookType : 'default',
-		phase,
-		options: [...new Set(options)],
-		flagReEvalOn: [...base.flagReEvalOn],
-	};
-}
-
-function _getReEvalOptionKeys({ hookType, phase = 'hook' } = {}) {
-	return _getReEvalPolicy({ hookType, phase }).options;
-}
-
-function _categorizeChangedOptionKeys(changedKeys = []) {
-	const keys = new Set(changedKeys);
-	const known = new Set(['targets', 'distance', 'ability', 'attackMode', 'skill', 'tool', 'mastery', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'spellLevel', 'scaling']);
-	return {
-		targeting: ['targets', 'distance'].some((key) => keys.has(key)),
-		rollProfile: ['ability', 'attackMode', 'skill', 'tool', 'mastery'].some((key) => keys.has(key)),
-		damageTyping: ['defaultDamageType', 'damageTypes', 'riderStatuses'].some((key) => keys.has(key)),
-		scaling: ['spellLevel', 'scaling'].some((key) => keys.has(key)),
-		other: changedKeys.some((key) => !known.has(key)),
-	};
-}
-
-function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval) {
-	const areKeysPressed = game.system.utils.areKeysPressed;
-	const event = config?.event;
-	const getPersistedHookConfig = (source, desiredHookType) => {
-		if (!source || typeof source !== 'object') return undefined;
-		const direct =
-			source?.options?.[Constants.MODULE_ID] ??
-			source?.[Constants.MODULE_ID];
-		if (direct?.hookType === desiredHookType || !desiredHookType) return direct;
-		const rollConfigs = Array.isArray(source?.rolls) ? source.rolls.map((roll) => roll?.options?.[Constants.MODULE_ID]).filter(Boolean) : [];
-		return rollConfigs.find((entry) => entry?.hookType === desiredHookType) ?? rollConfigs[0];
-	};
-	const isPressed = (name) => {
-		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
-		if (viaSystem) return true;
-		switch (name) {
-			case 'skipDialogAdvantage':
-				return !!event?.altKey;
-			case 'skipDialogDisadvantage':
-				return !!event?.ctrlKey;
-			case 'skipDialogNormal':
-				return !!event?.shiftKey;
-			default:
-				return false;
-		}
-	};
-	const token = canvas.tokens.get(tokenId);
-	const actor = token?.actor;
-	const persistedAc5eConfig =
-		getPersistedHookConfig(config, hookType) ??
-		getPersistedHookConfig(dialog?.config, hookType);
-	const originatingUseConfig = options?.originatingUseConfig;
-	const ac5eConfig = {
-		hookType,
-		tokenId,
-		targetId,
-		isOwner: token?.document.isOwner,
-		hasPlayerOwner: token?.document.hasPlayerOwner, //check again if it needs token.actor.hasPlayerOwner; what happens for Wild Shape?
-		ownership: actor?.ownership,
-		subject: {
-			advantage: [],
-			advantageNames: new Set(),
-			midiAdvantage: [],
-			suppressedStatuses: [],
-			noAdvantage: [],
-			disadvantage: [],
-			disadvantageNames: new Set(),
-			midiDisadvantage: [],
-			noDisadvantage: [],
-			fail: [],
-			info: [],
-			midiFail: [],
-			bonus: [],
-			critical: [],
-			noCritical: [],
-			success: [],
-			midiSuccess: [],
-			fumble: [],
-			modifiers: [],
-			criticalThreshold: [],
-			fumbleThreshold: [],
-			targetADC: [],
-			extraDice: [],
-			abilityOverride: [],
-			diceUpgrade: [],
-			diceDowngrade: [],
-			range: [],
-			rangeNotes: [],
-		},
-		opponent: {
-			advantage: [],
-			advantageNames: new Set(),
-			suppressedStatuses: [],
-			noAdvantage: [],
-			disadvantage: [],
-			disadvantageNames: new Set(),
-			noDisadvantage: [],
-			fail: [],
-			info: [],
-			bonus: [],
-			critical: [],
-			noCritical: [],
-			success: [],
-			fumble: [],
-			modifiers: [],
-			criticalThreshold: [],
-			fumbleThreshold: [],
-			targetADC: [],
-			extraDice: [],
-			abilityOverride: [],
-			diceUpgrade: [],
-			diceDowngrade: [],
-			range: [],
-		},
-		options,
-		parts: [],
-		targetADC: [],
-		extraDice: [],
-		threshold: [],
-		fumbleThreshold: [],
-		damageModifiers: [],
-		modifiers: {},
-		preAC5eConfig: {
-			// fastForward: hookType !== 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') : hookType === 'damage' ? areKeysPressed(config.event, 'skipDialogNormal') || areKeysPressed(config.event, 'skipDialogDisadvantage') : false,
-			skipDialogAdvantage: isPressed('skipDialogAdvantage'),
-			skipDialogDisadvantage: isPressed('skipDialogDisadvantage'),
-			skipDialogNormal: isPressed('skipDialogNormal'),
-		},
-		returnEarly: false,
-	};
-	if (Array.isArray(originatingUseConfig?.subject?.fail)) ac5eConfig.subject.fail.push(...foundry.utils.duplicate(originatingUseConfig.subject.fail));
-	if (Array.isArray(originatingUseConfig?.subject?.info)) ac5eConfig.subject.info.push(...foundry.utils.duplicate(originatingUseConfig.subject.info));
-	if (Array.isArray(originatingUseConfig?.subject?.rangeNotes)) ac5eConfig.subject.rangeNotes.push(...foundry.utils.duplicate(originatingUseConfig.subject.rangeNotes));
-	if (Array.isArray(originatingUseConfig?.opponent?.fail)) ac5eConfig.opponent.fail.push(...foundry.utils.duplicate(originatingUseConfig.opponent.fail));
-	if (Array.isArray(originatingUseConfig?.opponent?.info)) ac5eConfig.opponent.info.push(...foundry.utils.duplicate(originatingUseConfig.opponent.info));
-	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
-	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') {
-		ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
-	}
-	const persistedOptinBaseTargetADC = persistedAc5eConfig?.optinBaseTargetADC;
-	if (Array.isArray(persistedOptinBaseTargetADC)) {
-		ac5eConfig.optinBaseTargetADC = foundry.utils.duplicate(persistedOptinBaseTargetADC);
-	}
-	if (persistedAc5eConfig?.optinBaseTargetADCValue !== undefined) {
-		ac5eConfig.optinBaseTargetADCValue = persistedAc5eConfig.optinBaseTargetADCValue;
-	}
-	if (persistedAc5eConfig?.initialTargetADC !== undefined) {
-		ac5eConfig.initialTargetADC = persistedAc5eConfig.initialTargetADC;
-	}
-	if (persistedAc5eConfig?.alteredTargetADC !== undefined) {
-		ac5eConfig.alteredTargetADC = persistedAc5eConfig.alteredTargetADC;
-	}
-	ac5eConfig.preAC5eConfig.skipDialogAdvantage = isPressed('skipDialogAdvantage');
-	ac5eConfig.preAC5eConfig.skipDialogDisadvantage = isPressed('skipDialogDisadvantage');
-	ac5eConfig.preAC5eConfig.skipDialogNormal = isPressed('skipDialogNormal');
-	const persistedOptins =
-		getPersistedHookConfig(config, hookType)?.optinSelected ??
-		getPersistedHookConfig(dialog?.config, hookType)?.optinSelected;
-	const persistedChanceRolls =
-		getPersistedHookConfig(config, hookType)?.chanceRolls ??
-		getPersistedHookConfig(dialog?.config, hookType)?.chanceRolls;
-	const parseOptinsFromFormObject = (formObject = {}) => {
-		if (!formObject || typeof formObject !== 'object') return {};
-		const parsed = {};
-		const nested = formObject.ac5eOptins;
-		if (nested && typeof nested === 'object') {
-			for (const [id, value] of Object.entries(nested)) {
-				if (value) parsed[id] = true;
-			}
-		}
-		for (const [key, value] of Object.entries(formObject)) {
-			if (!key.startsWith('ac5eOptins.')) continue;
-			const id = key.slice('ac5eOptins.'.length);
-			if (id && value) parsed[id] = true;
-		}
-		return parsed;
-	};
-	const formOptins = {
-		...parseOptinsFromFormObject(config?.formData?.object),
-		...parseOptinsFromFormObject(config?.options?.formData?.object),
-		...parseOptinsFromFormObject(config?.options),
-	};
-	const resolvedOptins =
-		persistedOptins && typeof persistedOptins === 'object' ? foundry.utils.duplicate(persistedOptins)
-		: Object.keys(formOptins).length ? formOptins
-		: null;
-	if (resolvedOptins) ac5eConfig.optinSelected = resolvedOptins;
-	if (persistedChanceRolls && typeof persistedChanceRolls === 'object') ac5eConfig.chanceRolls = foundry.utils.duplicate(persistedChanceRolls);
-	ac5eConfig.originatingMessageId = options?.originatingMessageId;
-	ac5eConfig.originatingUseConfig = undefined;
-	if (reEval) ac5eConfig.reEval = reEval;
-	const wasCritical = config.isCritical || ac5eConfig.preAC5eConfig.midiOptions?.isCritical || ac5eConfig.preAC5eConfig.critKey;
-	ac5eConfig.preAC5eConfig.wasCritical = wasCritical;
-	if (options.skill || options.tool) ac5eConfig.title = dialog?.options?.window?.title;
-	const midiRoller = _activeModule('midi-qol');
-	const rsrRoller = _activeModule('ready-set-roll-5e');
-	const roller =
-		midiRoller ? 'MidiQOL'
-		: rsrRoller ? 'RSR'
-		: 'Core';
-	ac5eConfig.preAC5eConfig.hasWorkflowOptions = false;
-	ac5eConfig.preAC5eConfig.forceChatTooltip = false;
-	if (midiRoller) {
-		const midiOptions = config.midiOptions ?? {};
-		const { workflow, ...safeMidiOptions } = midiOptions; // strips workflow before any cloning; Issue https://github.com/thatlonelybugbear/automated-conditions-5e/issues/696
-		ac5eConfig.preAC5eConfig.midiOptions = foundry.utils.duplicate(safeMidiOptions); //otherwise Error: Cannot set property isTrusted of #<PointerEvent> which has only a getter
-		const hasWorkflowOptions = !foundry.utils.isEmpty(config?.workflowOptions ?? {});
-		const midiOwnsAbilityTooltip = _midiOwnsAbilityTooltipPipeline(ac5eConfig, config, dialog);
-		const needsAbilityTooltipFallback =
-			['check', 'save'].includes(ac5eConfig?.hookType) &&
-			(foundry.utils.isEmpty(safeMidiOptions) || !midiOwnsAbilityTooltip);
-		ac5eConfig.preAC5eConfig.hasWorkflowOptions = hasWorkflowOptions;
-		ac5eConfig.preAC5eConfig.midiOwnsAbilityTooltip = midiOwnsAbilityTooltip;
-		ac5eConfig.preAC5eConfig.forceChatTooltip = needsAbilityTooltipFallback;
-	}
-	ac5eConfig.roller = roller;
-	ac5eConfig.preAC5eConfig.adv = config.advantage;
-	ac5eConfig.preAC5eConfig.dis = config.disadvantage;
-	return { ac5eConfig, token, actor, midiRoller, roller };
-}
-
 export function _activeModule(moduleID) {
 	return game.modules.get(moduleID)?.active;
-}
-
-export function _canSee(source, target, status) {
-	if (!source || !target) {
-		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
-		return false;
-	}
-	if (source === target) {
-		if (settings.debug) console.warn('AC5e: Source and target are the same');
-		return true;
-	}
-
-	if (_activeModule('midi-qol')) return MidiQOL.canSee(source, target);
-
-	const hasSight = source.document.sight.enabled; //source.hasSight
-	const hasVision = source.vision; //can be undefined if the source isn't controlled at the time of the tests; can be the target of an attack etc, so won't be selected in this case or rolling without a token controlled.
-	if (!hasSight || !hasVision) {
-		_initializeVision(source);
-		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee(): Initializing vision as the source token has no visionSource available; `, {
-			source: source?.id,
-			target: target?.id,
-			visionSourceId: source.sourceId,
-		});
-	}
-
-	const NON_SIGHT_CONSIDERED_SIGHT = ['blindsight'];
-	const detectionModes = CONFIG.Canvas.detectionModes;
-	const DETECTION_TYPES = { SIGHT: 0, SOUND: 1, MOVE: 2, OTHER: 3 };
-	const { BASIC_MODE_ID } = game.version > '13' ? foundry.canvas.perception.DetectionMode : new DetectionMode();
-	const sightDetectionModes = Object.keys(detectionModes).filter((d) => detectionModes[d].type === DETECTION_TYPES.SIGHT || NON_SIGHT_CONSIDERED_SIGHT.includes(d));
-
-	const matchedModes = new Set();
-	const t = Math.min(target.w, target.h) / 4;
-	const targetPoint = target.center;
-	const offsets =
-		t > 0 ?
-			[
-				[0, 0],
-				[-t, -t],
-				[-t, t],
-				[t, t],
-				[t, -t],
-				[-t, 0],
-				[t, 0],
-				[0, -t],
-				[0, t],
-			]
-		:	[[0, 0]];
-	const tests = offsets.map((o) => ({
-		point: new PIXI.Point(targetPoint.x + o[0], targetPoint.y + o[1]),
-		elevation: target?.document.elevation ?? 0,
-		los: new Map(),
-	}));
-	const config = { tests, object: target };
-
-	const tokenDetectionModes = normalizeDetectionModes(source.detectionModes);
-	let validModes = new Set();
-
-	const sourceBlinded = source.actor?.statuses.has('blinded');
-	const targetInvisible = target.actor?.statuses.has('invisible');
-	const targetEthereal = target.actor?.statuses.has('ethereal');
-	if (!status && !sourceBlinded && !targetInvisible && !targetEthereal) {
-		validModes = new Set(sightDetectionModes);
-		const lightSources = canvas?.effects?.lightSources;
-		for (const lightSource of lightSources ?? []) {
-			if (!lightSource.active || lightSource.data.disabled) continue;
-			const result = lightSource.testVisibility?.(config);
-			if (result === true) matchedModes.add(detectionModes.lightPerception?.id);
-		}
-	} else if (status === 'blinded' || sourceBlinded) {
-		validModes = new Set(['blindsight', 'seeAll' /*'feelTremor'*/]);
-	} else if (status === 'invisible' || status === 'ethereal' || targetInvisible || targetEthereal) {
-		validModes = new Set(['seeAll', 'seeInvisibility']);
-	}
-	for (const detectionMode of tokenDetectionModes) {
-		if (!detectionMode.enabled || !detectionMode.range) continue;
-		if (!validModes.has(detectionMode.id)) continue;
-		const mode = detectionModes[detectionMode.id];
-		const result = mode ? mode.testVisibility(source.vision, detectionMode, config) : false;
-		if (result === true) matchedModes.add(mode.id);
-	}
-	if (settings.debug)
-		console.warn(`${Constants.MODULE_NAME_SHORT}._canSee()`, { source: source?.id, target: target?.id, result: matchedModes, visionInitialized: !hasSight, sourceId: source.sourceId });
-	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId); //remove initialized vision source only if the source doesn't have sight enabled in the first place!
-	return Array.from(matchedModes).length > 0;
-}
-
-function normalizeDetectionModes(modes) {
-	if (!modes) return [];
-
-	if (!Array.isArray(modes)) {
-		return Object.entries(modes).map(([id, data]) => ({
-			id,
-			...data,
-		}));
-	}
-	return modes;
-}
-
-function _initializeVision(token) {
-	token.document.sight.enabled = true;
-	token.document._prepareDetectionModes();
-	const sourceId = token.sourceId;
-	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token });
-
-	token.vision.initialize({
-		x: token.center.x,
-		y: token.center.y,
-		elevation: token.document.elevation,
-		radius: Math.clamp(token.sightRange, 0, canvas?.dimensions?.maxR ?? 0),
-		externalRadius: token.externalRadius,
-		angle: token.document.sight.angle,
-		contrast: token.document.sight.contrast,
-		saturation: token.document.sight.saturation,
-		brightness: token.document.sight.brightness,
-		attenuation: token.document.sight.attenuation,
-		rotation: token.document.rotation,
-		visionMode: token.document.sight.visionMode,
-		// preview: !!token._original,
-		color: token.document.sight.color?.toNearest(),
-		blinded: token.document.hasStatusEffect(CONFIG.specialStatusEffects.BLIND),
-	});
-	if (!token.vision.los) {
-		token.vision.shape = token.vision._createRestrictedPolygon();
-		token.vision.los = token.vision.shape;
-	}
-	if (token.vision.visionMode) token.vision.visionMode.animated = false;
-	canvas?.effects?.visionSources.set(sourceId, token.vision);
-	return true;
 }
 
 export function _staticID(id) {
@@ -4557,7 +2160,7 @@ export function _staticID(id) {
 	return id.padEnd(16, '0');
 }
 
-export function _getActionType(activity, returnClassifications = false) {
+function _getActionType(activity, returnClassifications = false) {
 	if (['mwak', 'msak', 'rwak', 'rsak'].includes(activity?.actionType)) return activity.actionType;
 	let actionType = activity?.attack?.type;
 	if (!actionType) return null;
@@ -4602,7 +2205,7 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 	}
 }
 
-export function _resolveActorFromOrigin(origin) {
+function _resolveActorFromOrigin(origin) {
 	if (!origin) return undefined;
 
 	// If origin is an ActiveEffect on an Item or Actor
@@ -4643,20 +2246,6 @@ function sizeWarnings(targetCount, setting) {
 
 	if (setting === 'warn') ui.notifications.warn(message);
 	else console.warn(message);
-}
-
-export function _raceOrType(actor, dataType = 'race') {
-	const systemData = actor?.system;
-	if (!systemData?.details?.type) return {}; //needed for 5.1.x and some type of actors that might be on the canvas?!
-	let data;
-	if (actor.type === 'character' || actor.type === 'npc') {
-		data = foundry.utils.duplicate(systemData.details.type); //{value, subtype, swarm, custom}
-		data.race = systemData.details.race?.identifier ?? data.value; //{value, subtype, swarm, custom, race: raceItem.identifier ?? value}
-		data.type = actor.type;
-	} else if (actor.type === 'group') data = { type: 'group', value: systemData.type.value };
-	else if (actor.type === 'vehicle') data = { type: 'vehicle', value: systemData.vehicleType };
-	if (dataType === 'all') return Object.fromEntries(Object.entries(data).map(([k, v]) => [k, typeof v === 'string' ? v.toLocaleLowerCase() : v]));
-	else return data[dataType]?.toLocaleLowerCase();
 }
 
 export function _generateAC5eFlags() {
@@ -4784,40 +2373,6 @@ export function _generateAC5eFlags() {
 	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`));
 }
 
-let tempDiv = null;
-
-export function _getValidColor(color, fallback, user) {
-	if (!color) return fallback;
-	const lower = color.trim().toLowerCase();
-
-	if (['false', 'none', 'null', '0'].includes(lower)) return lower;
-	else if (['user', 'game.user.color'].includes(lower)) return user?.color?.css || fallback;
-	else if (lower === 'default') return fallback;
-
-	// Accept valid hex format directly
-	if (/^#[0-9a-f]{6}$/i.test(lower)) return lower;
-
-	// Use hidden div to resolve computed color
-	if (!tempDiv) {
-		tempDiv = document.createElement('div');
-		tempDiv.style.display = 'none';
-		document.body.appendChild(tempDiv);
-	}
-
-	tempDiv.style.color = color;
-	const computedColor = window.getComputedStyle(tempDiv).color;
-
-	const match = computedColor.match(/\d+/g);
-	if (match && match.length >= 3) {
-		return `#${match
-			.slice(0, 3)
-			.map((n) => parseInt(n).toString(16).padStart(2, '0'))
-			.join('')}`;
-	}
-
-	return fallback;
-}
-
 /**
  * Safely evaluate a string expression within a controlled sandbox.
  * Supports:
@@ -4838,229 +2393,6 @@ export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', de
 	if (mode === 'condition') return evaluateCondition(expression, sandbox, debug);
 	if (mode === 'formula') return prepareRollFormula(expression, sandbox, debug);
 	throw new Error(`Invalid mode for _ac5eSafeEval: ${mode}`);
-}
-
-export function _ac5eActorRollData(token) {
-	const actor = token?.actor;
-	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
-	const actorData = actor.getRollData();
-	actorData.currencyWeight = actor.system.currencyWeight;
-	actorData.effects = actor.appliedEffects;
-	actorData.equippedItems = { names: [], identifiers: [] };
-	actorData.items = actor.items?.map((i) => {
-		if (i.system?.equipped) {
-			actorData.equippedItems.names.push(i.name);
-			actorData.equippedItems.identifiers.push(i.identifier);
-		}
-		return { name: i.name, uuid: i.uuid, id: i.id, identifier: i.identifier, type: i.type, uses: i.system?.uses || {}, equipped: i.system?.equipped };
-	});
-	actorData.level = actorData.details?.level || actorData.details?.cr;
-	actorData.levelCr = actorData.level;
-	actorData.hasArmor = !!actorData.attributes?.ac?.equippedArmor;
-	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
-	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
-	actorData.type = actor.type;
-	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
-	actorData.creatureType = Array.from(new Set(Object.values(_raceOrType(actor, 'all')).filter(Boolean)));
-	actorData.token = token;
-	actorData.tokenSize = token.document.width * token.document.height;
-	actorData.tokenElevation = token.document.elevation;
-	actorData.tokenSenses = token.document.detectionModes;
-	actorData.tokenUuid = token.document.uuid;
-	actorData.uuid = token.actor.uuid;
-	const active = game.combat?.active;
-	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
-	actorData.isTurn = active && currentCombatant === token.id;
-	actorData.combatTurn = active ? game.combat.turns.findIndex((combatant) => combatant.tokenId === token.id) : undefined;
-	actorData.movementLastSegment =
-		active && token.document.movementHistory?.filter((m) => m.movementId === token.document.movementHistory.at(-1).movementId).reduce((acc, c) => (acc += c.cost ?? 0), 0);
-	actorData.movementTurn = active && token.document.movementHistory?.reduce((acc, c) => (acc += c.cost ?? 0), 0);
-	return actorData;
-}
-
-export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
-	const sandbox = {
-		...lazySandbox,
-		_evalConstants: { ...lazySandbox._evalConstants }, // shallow copy is enough for boolean flags
-	};
-	const sandboxOptions =
-		options && typeof options === 'object' ?
-			{
-				...options,
-				targets: Array.isArray(options.targets) ? foundry.utils.duplicate(options.targets) : options?.targets,
-			}
-		:	{};
-	const { ability, activity, distance, skill, tool } = sandboxOptions;
-	const item = activity?.item;
-	sandbox.rollingActor = {};
-	sandbox.opponentActor = {};
-
-	sandbox.rollingActor = _ac5eActorRollData(subjectToken) || {};
-	sandbox.tokenId = subjectToken?.id;
-	sandbox.tokenUuid = subjectToken?.document?.uuid;
-	sandbox.actorId = subjectToken?.actor?.id;
-	sandbox.actorUuid = subjectToken?.actor?.uuid;
-	sandbox.canMove = sandbox.rollingActor?.canMove;
-	sandbox.canSee = _canSee(subjectToken, opponentToken);
-
-	sandbox.opponentActor = _ac5eActorRollData(opponentToken) || {};
-	const hookType = sandboxOptions?.hook;
-	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
-	sandbox.opponentAC = hookUsesTargetAC ? (sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value) : opponentToken?.actor?.system?.attributes?.ac?.value;
-	sandbox.opponentId = opponentToken?.id;
-	sandbox.opponentUuid = opponentToken?.document?.uuid;
-	sandbox.opponentActorId = opponentToken?.actor?.id;
-	sandbox.opponentActorUuid = opponentToken?.actor?.uuid;
-	sandbox.isSeen = _canSee(opponentToken, subjectToken);
-	/* backwards compatibility */
-	sandbox.targetActor = sandbox.opponentActor;
-	sandbox.targetId = opponentToken?.id;
-	/* end of backwards compatibility */
-
-	const activityData = activity?.getRollData?.()?.activity || {};
-	sandbox.activity = activityData;
-	sandbox.ammunition = sandboxOptions.ammunition;
-	sandbox.ammunitionName = sandboxOptions.ammunition?.name;
-	sandbox.consumptionItemName = {};
-	sandbox.consumptionItemIdentifier = {};
-	activity?.consumption?.targets?.forEach(({ target }) => {
-		if (target) {
-			const targetItem = activity?.actor?.items.get(target);
-			if (targetItem) {
-				sandbox.consumptionItemName[targetItem.name] = true;
-				sandbox.consumptionItemIdentifier[targetItem.identifier] = true;
-			}
-		}
-	});
-	sandbox.activity.ability = activity?.ability;
-	sandbox.riderStatuses = sandboxOptions.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
-	sandbox.hasAttack = !foundry.utils.isEmpty(activity?.attack);
-	sandbox.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
-	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);
-	sandbox.hasSave = !foundry.utils.isEmpty(activity?.save);
-	sandbox.hasCheck = !foundry.utils.isEmpty(activity?.check);
-	sandbox.isSpell = activity?.isSpell;
-	sandbox.isScaledScroll = activity?.isScaledScroll;
-	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
-	sandbox.spellcastingAbility = activity?.spellcastingAbility;
-	sandbox.messageFlags = activity?.messageFlags;
-	sandbox.activityName = activity ? { [activity.name]: true } : {};
-	const actionType = activity?.getActionType?.(sandboxOptions.attackMode);
-	sandbox.actionType = actionType ? { [actionType]: true } : {};
-	sandbox.attackMode = sandboxOptions.attackMode ? { [sandboxOptions.attackMode]: true } : {};
-	if (sandboxOptions.attackMode) sandbox._evalConstants[sandboxOptions.attackMode] = true; //backwards compatibility for attack mode directly in the sandbox
-	sandbox.mastery = sandboxOptions.mastery ? { [sandboxOptions.mastery]: true } : {};
-	sandbox.damageTypes = sandboxOptions.damageTypes;
-	sandbox.defaultDamageType = sandboxOptions.defaultDamageType;
-	if (!foundry.utils.isEmpty(sandboxOptions.damageTypes)) foundry.utils.mergeObject(sandbox._evalConstants, sandboxOptions.damageTypes); //backwards compatibility for damagetypes directly in the sandbox
-	sandbox.activity.damageTypes = sandboxOptions.damageTypes;
-	sandbox.activity.defaultDamageType = sandboxOptions.defaultDamageType;
-	sandbox.activity.attackMode = sandboxOptions.attackMode;
-	sandbox.activity.mastery = sandboxOptions.mastery;
-	if (actionType) {
-		sandbox._evalConstants[actionType] = true;
-		sandbox.activity.actionType = actionType;
-	}
-	if (activity?.attack?.type) {
-		sandbox._evalConstants[activity.attack.type.value] = true;
-		sandbox._evalConstants[activity.attack.type.classification] = true;
-	}
-	if (!!activityData.activation?.type) sandbox._evalConstants[activityData.activation.type] = true;
-	if (activityData?.type) sandbox._evalConstants[activityData.type] = true;
-
-	//item data
-	const itemData = item?.getRollData?.()?.item || {};
-	sandbox.item = itemData;
-	sandbox.item.uuid = item?.uuid;
-	sandbox.item.id = item?.id;
-	sandbox.itemType = item?.type;
-	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
-	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
-	sandbox.itemName = item ? { [itemData.name]: true } : {};
-	sandbox.item.hasAttack = item?.hasAttack;
-	sandbox.item.hasSave = item?.system?.hasSave;
-	sandbox.item.hasSummoning = item?.system?.hasSummoning;
-	sandbox.item.hasLimitedUses = item?.system?.hasLimitedUses;
-	sandbox.item.isHealing = item?.system?.isHealing;
-	sandbox.item.isEnchantment = item?.system?.isEnchantment;
-	sandbox.item.transferredEffects = item?.transferredEffects;
-	sandbox.itemProperties = {};
-	if (item) {
-		sandbox._evalConstants[item.type] = true; // this is under Item5e#system#type 'weapon'/'spell' etc
-		if (!!itemData.type?.value) sandbox._evalConstants[itemData.type.value] = true;
-		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
-		const ammoProperties = sandbox.ammunition?.system?.properties;
-		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox._evalConstants[p] = true));
-	}
-
-	const combat = game.combat;
-	sandbox.combat = { active: combat?.active, round: combat?.round, turn: combat?.turn, current: combat?.current, turns: combat?.turns };
-	sandbox.isTurn = sandbox.rollingActor.isTurn;
-	sandbox.isOpponentTurn = sandbox.opponentActor.isTurn;
-	sandbox.isTargetTurn = sandbox.isOpponentTurn; //backwards compatibility for changing the target to opponent for clarity.
-	sandbox.movementLastSegment = sandbox.rollingActor.movementLastSegment; //backwards compatibility. Moved into _ac5eActorRollData
-	sandbox.movementTurn = sandbox.rollingActor.movementTurn;
-
-	sandbox.worldTime = game.time?.worldTime;
-	sandbox.options = sandboxOptions;
-	sandbox.ability = sandboxOptions.ability ? { [sandboxOptions.ability]: true } : {};
-	sandbox.abilityOverride = sandboxOptions.ability ?? '';
-	sandbox.skill = sandboxOptions.skill ? { [sandboxOptions.skill]: true } : {};
-	sandbox.tool = sandboxOptions.tool ? { [sandboxOptions.tool]: true } : {};
-	if (sandboxOptions?.ability) sandbox._evalConstants[sandboxOptions.ability] = true;
-	if (sandboxOptions?.skill) sandbox._evalConstants[sandboxOptions.skill] = true;
-	if (sandboxOptions?.tool) sandbox._evalConstants[sandboxOptions.tool] = true;
-	// in options there are options.isDeathSave options.isInitiative options.isConcentration
-	sandbox.isConcentration = sandboxOptions?.isConcentration;
-	sandbox.isDeathSave = sandboxOptions?.isDeathSave;
-	sandbox.isInitiative = sandboxOptions?.isInitiative;
-	sandbox.distance = sandboxOptions?.distance;
-	sandbox.hook = sandboxOptions?.hook;
-	sandbox.targets = sandboxOptions?.targets ?? [];
-	sandbox.singleTarget = sandboxOptions?.targets?.length === 1 && true;
-	sandbox.castingLevel = sandboxOptions.spellLevel ?? itemData?.level ?? null;
-	sandbox.spellLevel = sandbox.castingLevel;
-	//@to-do: check if it's better to retrieve as baseSpellLevel + scaling
-	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
-	sandbox.scaling = sandboxOptions?.scaling ?? item?.flags?.dnd5e?.scaling ?? 0;
-	sandbox.d20Total = sandboxOptions?.d20?.d20Total ?? sandboxOptions?.d20?.attackRollTotal;
-	sandbox.d20Result = sandboxOptions?.d20?.d20Result ?? sandboxOptions?.d20?.attackRollD20;
-	sandbox.targetValue = hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC : sandboxOptions?.target;
-	const d20ResultOverTarget = sandbox.d20Total - sandbox.targetValue;
-	sandbox.d20ResultOverTarget = !isNaN(d20ResultOverTarget) ? d20ResultOverTarget : undefined;
-	sandbox.attackRollTotal = sandbox.d20Total;
-	sandbox.attackRollD20 = sandbox.d20Result;
-	sandbox.attackRollOverAC = sandbox.d20ResultOverTarget;
-	const resolvedD20Mode =
-		sandboxOptions?.d20?.advantageMode ??
-		sandboxOptions?.advantageMode ??
-		sandboxOptions?.[Constants.MODULE_ID]?.advantageMode;
-	const transientRollState = _getTransientRollState({}, sandboxOptions);
-	sandbox.hasTransitAdvantage = transientRollState.hasTransitAdvantage;
-	sandbox.hasTransitDisadvantage = transientRollState.hasTransitDisadvantage;
-	sandbox.advantageBehavior = _getConfiguredAdvantageBehavior({}, sandboxOptions);
-	if (typeof resolvedD20Mode === 'number') {
-		sandbox.hasAdvantage = resolvedD20Mode > 0;
-		sandbox.hasDisadvantage = resolvedD20Mode < 0;
-	} else {
-		sandbox.hasAdvantage = sandboxOptions?.d20?.hasAdvantage ?? sandboxOptions?.advantage;
-		sandbox.hasDisadvantage = sandboxOptions?.d20?.hasDisadvantage ?? sandboxOptions?.disadvantage;
-	}
-	sandbox.hasAdvantage = Boolean(sandbox.hasAdvantage || sandbox.hasTransitAdvantage);
-	sandbox.hasDisadvantage = Boolean(sandbox.hasDisadvantage || sandbox.hasTransitDisadvantage);
-	sandbox.isCritical = sandboxOptions?.d20?.isCritical;
-	sandbox.isFumble = sandboxOptions?.d20?.isFumble;
-	globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(sandbox);
-	globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(sandbox);
-
-	if (sandbox.undefined || sandbox['']) {
-		delete sandbox.undefined; //guard against sandbox.undefined = true being present
-		delete sandbox[''];
-		console.warn('AC5E sandbox.undefined detected!!!');
-	}
-	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: sandbox });
-	return sandbox;
 }
 
 export function _collectActivityDamageTypes(activity, options) {
@@ -5248,7 +2580,3 @@ export function _isUuidLike(value) {
 		return false;
 	}
 }
-
-
-
-
