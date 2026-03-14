@@ -3,6 +3,7 @@
 - Internal refactor of hooks/helpers/system rules to streamline dnd5e rebuilds and reduce dialog re-renders.
 - Auto-range/opt-in tooltips now share a single attribution path between AC5E and Midi for more consistent roll dialogs.
 - Debug/log plumbing trimmed and targeted debug gates added; existing user-facing behavior should remain unchanged.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn>) 🤗
 
 ## 13.5250.11
 
