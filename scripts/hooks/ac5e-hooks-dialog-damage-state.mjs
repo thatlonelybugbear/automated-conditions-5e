@@ -608,7 +608,7 @@ function getDamageOptinModeEntries(ac5eConfig, mode) {
 }
 
 export function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
-	const modes = ['advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success'];
+	const modes = ['advantage', 'disadvantage', 'modifier', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success'];
 	return modes.flatMap((mode) => getDamageOptinModeEntries(ac5eConfig, mode)).filter((entry) => isBonusEligibleForDamageTypes(entry, selectedTypes));
 }
 
