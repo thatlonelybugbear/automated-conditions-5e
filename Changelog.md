@@ -1,5 +1,9 @@
+## 13.5250.12.1
+
+- Adds `optin` support for `...damage.modifier` modes
 
 ## 13.5250.12
+
 - Internal refactor of hooks/helpers/system rules to streamline dnd5e rebuilds and reduce dialog re-renders.
 - Auto-range/opt-in tooltips now share a single attribution path between AC5E and Midi for more consistent roll dialogs.
 - Debug/log plumbing trimmed and targeted debug gates added; existing user-facing behavior should remain unchanged.
