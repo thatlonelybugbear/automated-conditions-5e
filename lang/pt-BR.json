@@ -202,12 +202,12 @@
 	"AC5E.OptinCadence.OncePerRound": "(1/rodada)",
 	"AC5E.OptinCadence.OncePerCombat": "(1/combate)",
 	"AC5E.OptinLegend.Optional": "AC5E",
-	"AC5E.OptinLegend.FromOtherSources": "AC5E From other sources (ask for permission)",
+	"AC5E.OptinLegend.FromOtherSources": "AC5E De outras fontes (solicite permissão)",
 	"AC5E.EnvironmentalHazards": {
-		"SettingsName": "Riscos Ambientais (2024)",
-		"SettingsHint": "Automatize as condições Chamuscado e Sufocamento, com base no conjunto de regras do D&D5e de 2024",
-		"BurningHazard": "Chamuscado",
-		"SuffocatingHazard": "Sufocamento"
+		"SettingsName": "Environmental Hazards (2024)",
+		"SettingsHint": "Automatize as condições Burning e Suffocation, com base no conjunto de regras do D&D5e de 2024",
+		"BurningHazard": "Burning",
+		"SuffocatingHazard": "Suffocation"
 	},
 	"dae.fieldData.fieldCategories.AC5E": "AC5e",
 	"dae.AC5E.fieldData": {
@@ -319,10 +319,6 @@
 			"success": {
 				"name": "Rolagem de d20 Sucesso",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/save/skill/tool."
-			},
-			"abilityOverride": {
-				"name": "Override the ability used for the roll",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -373,10 +369,6 @@
 			"success": {
 				"name": "Sucesso às Rolagens de d20 Contra ou Causadas por Você",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
-			},
-			"abilityOverride": {
-				"name": "Grant an overridden ability to opponent rolls",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -427,25 +419,7 @@
 			"success": {
 				"name": "Aura Forçando Sucesso",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
-			},
-			"abilityOverride": {
-				"name": "An aura overriding the ability used for rolls",
-				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
 			}
 		}
-	},
-	"AC5E.Info": "Info",
-	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
-	"AC5E.advantageBehaviorOverride": {
-		"Name": "Override system advantage handling",
-		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
-	},
-	"AC5E.advantageBehaviorAdvantageFormula": {
-		"Name": "Advantage bonus formula",
-		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
-	},
-	"AC5E.advantageBehaviorDisadvantageFormula": {
-		"Name": "Disadvantage penalty formula",
-		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
 	}
 }
