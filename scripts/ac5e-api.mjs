@@ -1567,6 +1567,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.debug ??= {
 		evaluations: false,
 		optins: false,
+		auraCadenceOptins: false,
 		getConfigLayers: false,
 		checksReuse: false,
 		midiTooltipSync: false,

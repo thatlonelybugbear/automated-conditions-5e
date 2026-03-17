@@ -183,6 +183,28 @@ function applyPendingUsesIfNeeded(ac5eConfig, rolls) {
 	const pending = ac5eConfig.pendingUses
 		.filter((entry) => !entry.optin || selectedIds.has(entry.id))
 		.filter((entry) => entry?.modeFamily !== explicitOverride?.family || !explicitOverride?.replacesCalculatedMode);
+	if (ac5e?.debug?.auraCadenceOptins) {
+		const auraPending = ac5eConfig.pendingUses.filter((entry) => String(entry?.id ?? '').includes(':aura:'));
+		if (auraPending.length) {
+			console.warn('AC5E aura pending uses before post-roll apply', {
+				selectedIds: [...selectedIds].filter((id) => String(id).includes(':aura:')),
+				allAuraPending: auraPending.map((entry) => ({
+					id: entry?.id,
+					cadence: entry?.cadence,
+					optin: entry?.optin,
+					modeFamily: entry?.modeFamily,
+				})),
+				appliedAuraPending: pending
+					.filter((entry) => String(entry?.id ?? '').includes(':aura:'))
+					.map((entry) => ({
+						id: entry?.id,
+						cadence: entry?.cadence,
+						optin: entry?.optin,
+						modeFamily: entry?.modeFamily,
+					})),
+			});
+		}
+	}
 	if (!pending.length) {
 		ac5eConfig.pendingUsesApplied = true;
 		return;

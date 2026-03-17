@@ -1,3 +1,7 @@
+## 13.5250.12.2
+
+- Fix for `.aura.damage.bonus` not correctly updating cadence when toggled as an opt-in.
+
 ## 13.5250.12.1
 
 - Adds `optin` support for `...damage.modifier` modes

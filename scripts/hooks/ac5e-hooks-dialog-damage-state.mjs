@@ -199,6 +199,25 @@ export function renderOptionalBonusesDamage(dialog, elem, ac5eConfig, deps) {
 		...getDamageEntriesByMode(ac5eConfig, selectedTypes, 'diceDowngrade'),
 		...getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes),
 	].filter((entry) => Boolean(entry?.optin || entry?.forceOptin));
+	if (ac5e?.debug?.auraCadenceOptins) {
+		const auraEntries = entries.filter((entry) => entry?.isAura || String(entry?.id ?? '').includes(':aura:'));
+		if (auraEntries.length) {
+			console.warn('AC5E aura damage optins rendered', {
+				selectedTypes,
+				optinSelected: ac5eConfig?.optinSelected ?? {},
+				entries: auraEntries.map((entry) => ({
+					id: entry?.id,
+					label: entry?.label ?? entry?.name,
+					mode: entry?.mode,
+					cadence: entry?.cadence,
+					optin: entry?.optin,
+					forceOptin: entry?.forceOptin,
+					auraTokenUuid: entry?.auraTokenUuid,
+					requiredDamageTypes: entry?.requiredDamageTypes,
+				})),
+			});
+		}
+	}
 	deps.renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps);
 }
 

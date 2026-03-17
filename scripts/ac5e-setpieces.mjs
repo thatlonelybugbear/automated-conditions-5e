@@ -209,12 +209,32 @@ function _isCadenceUseBlocked({ cadence, id, pendingUses = [] } = {}) {
 	if (!cadenceKey || !id) return false;
 	const combat = game.combat;
 	if (!combat?.active) return cadenceKey === 'oncePerCombat';
-	if (Array.isArray(pendingUses) && pendingUses.some((entry) => entry?.id === id && _normalizeCadenceKey(entry?.cadence) === cadenceKey)) return true;
+	const pendingBlocked =
+		Array.isArray(pendingUses) && pendingUses.some((entry) => entry?.id === id && _normalizeCadenceKey(entry?.cadence) === cadenceKey);
+	if (pendingBlocked) {
+		if (ac5e?.debug?.auraCadenceOptins && String(id).includes(':aura:')) {
+			console.warn('AC5E aura cadence blocked by pending use', {
+				id,
+				cadence: cadenceKey,
+				pendingUses: pendingUses
+					.filter((entry) => String(entry?.id ?? '').includes(':aura:'))
+					.map((entry) => ({ id: entry?.id, cadence: entry?.cadence, modeFamily: entry?.modeFamily, optin: entry?.optin })),
+			});
+		}
+		return true;
+	}
 	const state = _getCadenceState(combat);
 	const bucket = state?.used?.[cadenceKey];
 	if (!bucket || typeof bucket !== 'object') return false;
 	const entry = _getCadenceBucketEntry(bucket, id);
 	if (!entry) return false;
+	if (ac5e?.debug?.auraCadenceOptins && String(id).includes(':aura:')) {
+		console.warn('AC5E aura cadence blocked by recorded state', {
+			id,
+			cadence: cadenceKey,
+			entry,
+		});
+	}
 	if (cadenceKey === 'oncePerRound') return _isOncePerRoundBlocked(entry, combat);
 	return true;
 }
@@ -247,6 +267,17 @@ async function _recordCadencePendingUses(pendingUses = []) {
 			combatantId: cadenceCombatantId ?? combatantId,
 			timestamp: now,
 		});
+		if (ac5e?.debug?.auraCadenceOptins && String(entry?.id ?? '').includes(':aura:')) {
+			console.warn('AC5E aura cadence recorded', {
+				id: entry.id,
+				cadence,
+				cadenceTurn,
+				cadenceCombatantId,
+				name: entry?.name,
+				modeFamily: entry?.modeFamily,
+				optin: entry?.optin,
+			});
+		}
 		changed = true;
 	}
 	if (!changed) return;
@@ -1245,7 +1276,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
-		const cadenceActorType = resolvedActorType ?? actorType;
+		const cadenceActorType = auraTokenEvaluationData ? 'aura' : (resolvedActorType ?? actorType);
 		if (change.value.toLowerCase().includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
@@ -2012,10 +2043,33 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
 			const entryBaseId = `${entry.effectUuid ?? ''}:${entry.changeIndex}:${hook}`;
-			const matchesQueuedUpdate = (queued) => queued?.id === entry.id || (queued?.baseId && queued.baseId === entryBaseId);
+			const matchesQueuedUpdate = (queued) => {
+				if (!queued) return false;
+				if (queued.id === entry.id) return true;
+				if (!queued?.baseId || queued.baseId !== entryBaseId) return false;
+				if (!entry?.isAura && !entry?.auraTokenUuid) return true;
+				const queuedId = String(queued.id ?? '');
+				const auraSuffix = entry?.auraTokenUuid ? `:aura:${entry.auraTokenUuid}` : '';
+				return Boolean(auraSuffix) && queuedId.endsWith(auraSuffix);
+			};
 			const pendingForEntry = updateArrays.pendingUses?.filter(matchesQueuedUpdate);
 			const pendingModeFamily = _getPendingUseModeFamily(mode, hook);
 			if (pendingForEntry?.length) {
+				if (ac5e?.debug?.auraCadenceOptins && entry?.isAura && entry?.optin) {
+					console.warn('AC5E aura pending uses matched to entry', {
+						entryId: entry.id,
+						entryLabel: entry.label ?? entry.name,
+						mode,
+						hook,
+						pendingForEntry: pendingForEntry.map((pending) => ({
+							id: pending?.id,
+							baseId: pending?.baseId,
+							cadence: pending?.cadence,
+							optin: pending?.optin,
+							modeFamily: pending?.modeFamily,
+						})),
+					});
+				}
 				ac5eConfig.pendingUses ??= [];
 				for (const pending of pendingForEntry) {
 					ac5eConfig.pendingUses.push({

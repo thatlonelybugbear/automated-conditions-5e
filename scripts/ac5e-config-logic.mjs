@@ -302,21 +302,28 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	const persistedOptins = getPersistedHookConfig(config, hookType)?.optinSelected ?? getPersistedHookConfig(dialog?.config, hookType)?.optinSelected;
 	const persistedChanceRolls = getPersistedHookConfig(config, hookType)?.chanceRolls ?? getPersistedHookConfig(dialog?.config, hookType)?.chanceRolls;
 	const parseOptinsFromFormObject = (formObject = {}) => {
-		if (!formObject || typeof formObject !== 'object') return {};
+		if (!formObject || typeof formObject !== 'object') return null;
 		const parsed = {};
+		let sawOptinKey = false;
 		const nested = formObject.ac5eOptins;
-		if (nested && typeof nested === 'object') for (const [id, value] of Object.entries(nested)) if (value) parsed[id] = true;
+		if (nested && typeof nested === 'object') {
+			sawOptinKey = true;
+			for (const [id, value] of Object.entries(nested)) if (value) parsed[id] = true;
+		}
 		for (const [key, value] of Object.entries(formObject)) {
 			if (!key.startsWith('ac5eOptins.')) continue;
+			sawOptinKey = true;
 			const id = key.slice('ac5eOptins.'.length);
 			if (id && value) parsed[id] = true;
 		}
-		return parsed;
+		return sawOptinKey ? parsed : null;
 	};
-	const formOptins = { ...parseOptinsFromFormObject(config?.formData?.object), ...parseOptinsFromFormObject(config?.options?.formData?.object), ...parseOptinsFromFormObject(config?.options) };
+	const parsedFormOptins = [parseOptinsFromFormObject(config?.formData?.object), parseOptinsFromFormObject(config?.options?.formData?.object), parseOptinsFromFormObject(config?.options)];
+	const hasFormOptins = parsedFormOptins.some((entry) => entry !== null);
+	const formOptins = Object.assign({}, ...parsedFormOptins.filter((entry) => entry && typeof entry === 'object'));
 	const resolvedOptins =
-		persistedOptins && typeof persistedOptins === 'object' ? foundry.utils.duplicate(persistedOptins)
-		: Object.keys(formOptins).length ? formOptins
+		hasFormOptins ? formOptins
+		: persistedOptins && typeof persistedOptins === 'object' ? foundry.utils.duplicate(persistedOptins)
 		: null;
 	if (resolvedOptins) ac5eConfig.optinSelected = resolvedOptins;
 	if (persistedChanceRolls && typeof persistedChanceRolls === 'object') ac5eConfig.chanceRolls = foundry.utils.duplicate(persistedChanceRolls);
