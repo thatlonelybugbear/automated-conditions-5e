@@ -319,7 +319,11 @@
 			"success": {
 				"name": "Rolagem de d20 Sucesso",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/save/skill/tool."
-			}
+			},
+			"abilityOverride": {
+        		"name": "Substituir o Atributo Usado na Rolagem",
+        		"description": "Apenas ataque. Use override=cha ou abilityOverride=cha."
+      		}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 			"advantage": {
@@ -369,7 +373,11 @@
 			"success": {
 				"name": "Sucesso às Rolagens de d20 Contra ou Causadas por Você",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
-			}
+			},
+			"abilityOverride": {
+        		"name": "Conceder Substituição do Atributo Usado na Rolagem do Oponente",
+        		"description": "Apenas ataque. Use override=cha ou abilityOverride=cha."
+      		}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
@@ -419,7 +427,25 @@
 			"success": {
 				"name": "Aura Forçando Sucesso",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
+			},
+			"abilityOverride": {
+				"name": "Aura que Substitui o Atributo Usado na Rolagem",
+				"description": "Apenas ataque. Use radius como de costume, mais override=cha ou abilityOverride=cha."
 			}
 		}
+	},
+	"AC5E.Info": "Info",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Aplica um efeito que não envolve rolagem em {roll}",
+	"AC5E.advantageBehaviorOverride": {
+		"Name": "Substituir Gerenciamento de Vantagem do Sistema",
+		"Hint": "Se ativado, o AC5e suprime a rolagem nativa de vantagem/desvantagem e converte a vantagem/desvantagem transitória nas fórmulas abaixo."
+	},
+	"AC5E.advantageBehaviorAdvantageFormula": {
+		"Name": "Fórmula de Bônus de Vantagem",
+		"Hint": "Aplicado quando há vantagem transitória e a substituição estiver habilitada. Exemplo: 3d6kh1 ou 2."
+	},
+	"AC5E.advantageBehaviorDisadvantageFormula": {
+		"Name": "Fórmula de Penalidade de Desvantagem",
+		"Hint": "Aplicado quando há desvantagem transitória e a substituição estiver habilitada. Exemplo: -3d6kh1 or -2."
 	}
 }
