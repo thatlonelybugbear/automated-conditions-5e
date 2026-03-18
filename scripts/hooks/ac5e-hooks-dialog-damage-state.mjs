@@ -421,11 +421,8 @@ function shouldApplyAddToRoll(addTo, rollIndex, rollType, defaultMode = 'base') 
 }
 
 function isDamageEntryEligibleForSelectedTypes(entry, selectedTypes) {
-	console.log('Checking damage entry eligibility for selected types', { entry, selectedTypes });
 	if (!hasRequiredDamageTypes(entry, selectedTypes)) return false;
-	console.log(hasRequiredDamageTypes(entry, selectedTypes), 'has required damage types');
 	const addTo = resolveEntryAddTo(entry);
-	console.log('Resolved addTo', addTo);
 	if (addTo.mode !== 'types') return true;
 	if (!selectedTypes?.size) return false;
 	return addTo.types.some((type) => selectedTypes.has(String(type).toLowerCase()));
@@ -779,9 +776,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const allTypes = new Set(damageTypesByIndex.filter(Boolean).map((type) => String(type).toLowerCase()));
 	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
 	const isOptinEntrySelected = (entry) => Boolean(entry?.forceOptin || (entry?.id && selectedOptinIds.has(entry.id)));
-	const damageBonusEntries = getDamageEntriesByMode(getConfigAC5E, allTypes, 'bonus').filter(
-		(entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry),
-	);
+	const damageBonusEntries = getDamageEntriesByMode(getConfigAC5E, allTypes, 'bonus').filter((entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry));
 	const subjectAdvantage = _filterOptinEntries(getConfigAC5E.subject.advantage, getConfigAC5E.optinSelected);
 	const opponentAdvantage = _filterOptinEntries(getConfigAC5E.opponent.advantage, getConfigAC5E.optinSelected);
 	const subjectDisadvantage = _filterOptinEntries(getConfigAC5E.subject.disadvantage, getConfigAC5E.optinSelected);

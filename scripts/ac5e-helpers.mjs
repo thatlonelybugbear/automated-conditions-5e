@@ -545,6 +545,7 @@ function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
 			maximum: roll?.options?.maximum ?? null,
 			minimum: roll?.options?.minimum ?? null,
 			isCritical: roll?.options?.isCritical ?? null,
+			criticalBonusDamage: roll?.options?.critical?.bonusDamage ?? null,
 		});
 	});
 	return Object.freeze({
@@ -592,6 +593,7 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (!rollBaseline) continue;
 		const roll = config.rolls[index] ?? (config.rolls[index] = {});
 		roll.options ??= {};
+		const existingCriticalBonusDamage = roll?.options?.critical?.bonusDamage;
 		roll.parts = foundry.utils.duplicate(Array.isArray(rollBaseline.parts) ? rollBaseline.parts : []);
 		if (typeof rollBaseline.formula === 'string') roll.formula = rollBaseline.formula;
 		else if (Array.isArray(roll.parts) && roll.parts.length) roll.formula = roll.parts.join(' + ');
@@ -601,7 +603,11 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
 		else if ('minimum' in roll.options) delete roll.options.minimum;
 		if (rollBaseline.isCritical !== undefined && rollBaseline.isCritical !== null) roll.options.isCritical = rollBaseline.isCritical;
-		if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
+		const restoredCriticalBonusDamage = rollBaseline.criticalBonusDamage ?? existingCriticalBonusDamage;
+		if (typeof restoredCriticalBonusDamage === 'string' && restoredCriticalBonusDamage.trim().length) {
+			roll.options.critical ??= {};
+			roll.options.critical.bonusDamage = restoredCriticalBonusDamage;
+		} else if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
 			delete roll.options.critical.bonusDamage;
 		}
 	}
