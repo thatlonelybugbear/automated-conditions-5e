@@ -1,3 +1,7 @@
+## 13.5250.12.5
+
+- Fix for broad `rage` checks
+
 ## 13.5250.12.4
 
 - Fix for `addTo` not being added in single type damage parts.
