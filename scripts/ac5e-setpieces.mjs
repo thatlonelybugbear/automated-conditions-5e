@@ -209,8 +209,7 @@ function _isCadenceUseBlocked({ cadence, id, pendingUses = [] } = {}) {
 	if (!cadenceKey || !id) return false;
 	const combat = game.combat;
 	if (!combat?.active) return cadenceKey === 'oncePerCombat';
-	const pendingBlocked =
-		Array.isArray(pendingUses) && pendingUses.some((entry) => entry?.id === id && _normalizeCadenceKey(entry?.cadence) === cadenceKey);
+	const pendingBlocked = Array.isArray(pendingUses) && pendingUses.some((entry) => entry?.id === id && _normalizeCadenceKey(entry?.cadence) === cadenceKey);
 	if (pendingBlocked) {
 		if (ac5e?.debug?.auraCadenceOptins && String(id).includes(':aura:')) {
 			console.warn('AC5E aura cadence blocked by pending use', {
@@ -456,7 +455,10 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
 			const context = buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
 			const actorStatuses = Array.from(actor.statuses ?? []);
-			if (actor.appliedEffects.some((effect) => effect?.parent?.identifier?.includes('rage'))) actorStatuses.push('raging');
+			const raging = actor.appliedEffects.some((effect) => {
+				return ['rage', 'raging'].includes(effect.parent?.identifier) || [_localize('AC5E.Rage'), _localize('AC5E.Raging')].includes(effect.name);
+			});
+			if (raging) actorStatuses.push('raging');
 			if (actor.appliedEffects.some((effect) => effect?.name.includes(_localize('AC5E.Statuses.UnderwaterCombat')))) actorStatuses.push('underwaterCombat');
 
 			for (const status of actorStatuses) {
