@@ -2132,7 +2132,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (set) entryValues.push(`${set}`);
 				entry.values = entryValues;
 				const deferTransitBonus = mode === 'bonus' && !optin && (entry.requiresTransitAdvantage || entry.requiresTransitDisadvantage);
-				if (!deferTransitBonus && !optin && configMode) ac5eConfig[configMode].push(...entryValues);
+				const shouldDeferDamageBonusToDamagePipeline = hook === 'damage' && mode === 'bonus';
+				if (!deferTransitBonus && !optin && configMode && !shouldDeferDamageBonusToDamagePipeline) ac5eConfig[configMode].push(...entryValues);
 			}
 			if (modifier) {
 				if (hook === 'damage') {

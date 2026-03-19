@@ -545,6 +545,7 @@ function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
 			maximum: roll?.options?.maximum ?? null,
 			minimum: roll?.options?.minimum ?? null,
 			isCritical: roll?.options?.isCritical ?? null,
+			criticalBonusDamage: roll?.options?.critical?.bonusDamage ?? null,
 		});
 	});
 	return Object.freeze({
@@ -592,6 +593,7 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (!rollBaseline) continue;
 		const roll = config.rolls[index] ?? (config.rolls[index] = {});
 		roll.options ??= {};
+		const existingCriticalBonusDamage = roll?.options?.critical?.bonusDamage;
 		roll.parts = foundry.utils.duplicate(Array.isArray(rollBaseline.parts) ? rollBaseline.parts : []);
 		if (typeof rollBaseline.formula === 'string') roll.formula = rollBaseline.formula;
 		else if (Array.isArray(roll.parts) && roll.parts.length) roll.formula = roll.parts.join(' + ');
@@ -601,7 +603,11 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
 		else if ('minimum' in roll.options) delete roll.options.minimum;
 		if (rollBaseline.isCritical !== undefined && rollBaseline.isCritical !== null) roll.options.isCritical = rollBaseline.isCritical;
-		if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
+		const restoredCriticalBonusDamage = rollBaseline.criticalBonusDamage ?? existingCriticalBonusDamage;
+		if (typeof restoredCriticalBonusDamage === 'string' && restoredCriticalBonusDamage.trim().length) {
+			roll.options.critical ??= {};
+			roll.options.critical.bonusDamage = restoredCriticalBonusDamage;
+		} else if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
 			delete roll.options.critical.bonusDamage;
 		}
 	}
@@ -1214,7 +1220,35 @@ export function _getTooltip(ac5eConfig = {}) {
 	if (tooltipObj?.[hookType] && !hasOptins && !bypassTooltipCache) return tooltipObj[hookType];
 	else tooltip = '<div class="ac5e-tooltip-content">';
 	const optinSelected = ac5eConfig?.optinSelected ?? {};
-	const filterOptinEntries = (entries = []) => _filterOptinEntries(entries, optinSelected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
+	const selectedDamageTypes = new Set(
+		[
+			...(Array.isArray(ac5eConfig?.options?.selectedDamageTypesByIndex) ? ac5eConfig.options.selectedDamageTypesByIndex : []),
+			...(Array.isArray(ac5eConfig?.options?.selectedDamageTypes) ? ac5eConfig.options.selectedDamageTypes : []),
+		]
+			.filter((value) => typeof value === 'string' && value.trim())
+			.map((value) => String(value).toLowerCase()),
+	);
+	const resolveTooltipEntryAddTo = (entry, defaultMode = 'base') => {
+		if (entry?.addTo?.mode === 'all') return { mode: 'all', types: [] };
+		if (entry?.addTo?.mode === 'base') return { mode: 'base', types: [] };
+		if (entry?.addTo?.mode === 'global') return { mode: 'global', types: [] };
+		if (entry?.addTo?.mode === 'types' && Array.isArray(entry?.addTo?.types) && entry.addTo.types.length)
+			return { mode: 'types', types: entry.addTo.types.map((type) => String(type).toLowerCase()) };
+		return { mode: defaultMode, types: [] };
+	};
+	const isDamageTooltipEntryVisible = (entry) => {
+		if (hookType !== 'damage' || !entry || typeof entry !== 'object') return true;
+		const requiredDamageTypes = Array.isArray(entry?.requiredDamageTypes) ? entry.requiredDamageTypes.map((type) => String(type).toLowerCase()) : [];
+		if (requiredDamageTypes.length && (!selectedDamageTypes.size || !requiredDamageTypes.every((type) => selectedDamageTypes.has(type)))) return false;
+		const addTo = resolveTooltipEntryAddTo(entry);
+		if (addTo.mode !== 'types') return true;
+		if (!selectedDamageTypes.size) return false;
+		return addTo.types.some((type) => selectedDamageTypes.has(type));
+	};
+	const filterOptinEntries = (entries = []) =>
+		_filterOptinEntries(entries, optinSelected)
+			.filter((entry) => _entryMatchesTransientState(entry, ac5eConfig))
+			.filter((entry) => isDamageTooltipEntryVisible(entry));
 	const getChanceTooltipSuffix = (chanceData = {}) => {
 		if (!chanceData || typeof chanceData !== 'object') return '';
 		if (!chanceData.enabled || !chanceData.triggered) return '';

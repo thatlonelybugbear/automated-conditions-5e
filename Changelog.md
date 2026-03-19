@@ -1,3 +1,13 @@
+## 13.5250.12.4
+
+- Fix for `addTo` not being added in single type damage parts.
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
+## 13.5250.12.3
+
+- Preserves system-provided `roll.options.critical.bonusDamage` through damage-dialog rerenders so forced crits retain their extra dice instead of losing them during AC5E rebuilds.
+- Unified `damage.bonus` add-to routing and tooltip filtering so base and opt-in entries now share the same damage-part targeting, and tooltips hide entries when `addTo`/damage-type filters stop matching.
+
 ## 13.5250.12.2
 
 - Fix for `.aura.damage.bonus` not correctly updating cadence when toggled as an opt-in.
