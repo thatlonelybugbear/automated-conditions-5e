@@ -360,7 +360,7 @@ export function getSelectedDamageTypesFromDialog(dialog, elem) {
 		const value = select?.value ?? dialog?.config?.rolls?.[index]?.options?.type;
 		if (value) types.add(String(value).toLowerCase());
 	});
-	if (!types.size && dialog?.config?.rolls?.length) {
+	if (dialog?.config?.rolls?.length) {
 		for (const roll of dialog.config.rolls) {
 			if (roll?.options?.type) types.add(String(roll.options.type).toLowerCase());
 		}
@@ -377,16 +377,23 @@ export function getDamageTypesByIndex(dialog, elem) {
 		const index = match ? Number(match[1]) : undefined;
 		if (Number.isInteger(index)) types[index] = select?.value ?? dialog?.config?.rolls?.[index]?.options?.type;
 	});
-	if (!types.length && dialog?.config?.rolls?.length) {
+	if (dialog?.config?.rolls?.length) {
 		dialog.config.rolls.forEach((roll, index) => {
-			if (roll?.options?.type) types[index] = roll.options.type;
+			if (types[index] === undefined && roll?.options?.type) types[index] = roll.options.type;
 		});
 	}
 	return types;
 }
 
 export function getRollDamageTypeFromForm(formData, rollConfig, index) {
-	return rollConfig?.options?.type;
+	const directKey = `roll.${index}.damageType`;
+	const directValue = formData?.[directKey];
+	if (typeof directValue === 'string' && directValue.trim()) return String(directValue).toLowerCase();
+	const nestedValue = formData?.roll?.[index]?.damageType;
+	if (typeof nestedValue === 'string' && nestedValue.trim()) return String(nestedValue).toLowerCase();
+	const configValue = rollConfig?.rolls?.[index]?.options?.type;
+	if (typeof configValue === 'string' && configValue.trim()) return String(configValue).toLowerCase();
+	return undefined;
 }
 
 export function getDamageRollTypeAtIndex(ac5eConfig, damageTypesByIndex, index) {
