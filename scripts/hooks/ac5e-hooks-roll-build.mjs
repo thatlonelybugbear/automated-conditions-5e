@@ -8,6 +8,7 @@ import { getMessageTargetsFromFlags, resolveTargets, syncTargetsToConfigAndMessa
 import { applyExplicitModeOverride } from './ac5e-hooks-roll-post.mjs';
 import { getBonusEntriesForHook } from './ac5e-hooks-roll-selections.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
+import { getExistingRoll, getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
 
 export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (deps.buildDebug || deps.hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
@@ -147,14 +148,3 @@ function syncChatTooltipToRollConfigs(ac5eConfig, rollConfig) {
 	}
 }
 
-function getExistingRoll(config, index = 0) {
-	if (!Array.isArray(config?.rolls)) return undefined;
-	const roll = config.rolls[index];
-	return roll && typeof roll === 'object' ? roll : undefined;
-}
-
-function getExistingRollOptions(config, index = 0) {
-	const roll = getExistingRoll(config, index);
-	const options = roll?.options;
-	return options && typeof options === 'object' ? options : undefined;
-}

@@ -588,6 +588,7 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 	const baseline = preConfig?.frozenDamageBaselineByProfile?.[profileKey] ?? preConfig?.frozenDamageBaseline ?? ac5eConfig?.frozenDamageBaseline;
 	if (!baseline) return false;
 	const baselineRolls = Array.isArray(baseline?.rolls) ? baseline.rolls : [];
+	if (config.rolls.length > baselineRolls.length) config.rolls.length = baselineRolls.length;
 	for (let index = 0; index < baselineRolls.length; index++) {
 		const rollBaseline = baselineRolls[index];
 		if (!rollBaseline) continue;
@@ -795,6 +796,10 @@ function _normalizeItemLookupNameModeOption(value) {
 
 function _normalizeItemLookupOptions(options = {}) {
 	const input = options && typeof options === 'object' ? options : {};
+	const rawProperties =
+		typeof input.properties === 'string' ? [input.properties]
+		: Array.isArray(input.properties) ? input.properties
+		: [];
 	return {
 		...input,
 		match: _normalizeItemLookupMatchOption(input.match),
@@ -803,6 +808,7 @@ function _normalizeItemLookupOptions(options = {}) {
 		attuned: typeof input.attuned === 'boolean' ? input.attuned : undefined,
 		hasUses: typeof input.hasUses === 'boolean' ? input.hasUses : undefined,
 		hasQuantity: typeof input.hasQuantity === 'boolean' ? input.hasQuantity : undefined,
+		properties: [...new Set(rawProperties.map((value) => String(value ?? '').trim()).filter(Boolean))],
 	};
 }
 
@@ -860,12 +866,22 @@ function _itemHasQuantity(item) {
 	return !!item?.system?.quantity;
 }
 
+function _itemHasProperty(item, property) {
+	const normalizedProperty = String(property ?? '').trim();
+	if (!normalizedProperty) return false;
+	const itemProperties = item?.system?.properties;
+	if (!itemProperties) return false;
+	if (typeof itemProperties.has === 'function') return itemProperties.has(normalizedProperty);
+	return false;
+}
+
 function _itemMatchesLookupStateFilters(item, options = {}) {
 	if (!item) return false;
 	if (options.equipped !== undefined && Boolean(item?.system?.equipped) !== options.equipped) return false;
 	if (options.attuned !== undefined && _itemIsAttuned(item) !== options.attuned) return false;
 	if (options.hasUses !== undefined && _itemHasUses(item) !== options.hasUses) return false;
 	if (options.hasQuantity !== undefined && _itemHasQuantity(item) !== options.hasQuantity) return false;
+	if (Array.isArray(options.properties) && options.properties.some((property) => !_itemHasProperty(item, property))) return false;
 	return true;
 }
 
@@ -923,6 +939,7 @@ function _resolveActorForItemLookup(source) {
  * @param {string|string[]|object} [itemIdentifier] - Identifier/name/id/uuid query. If omitted, returns all actor items.
  * @param {object} [options]
  * @param {string} [options.type] - Optional item.type filter.
+ * @param {string|string[]} [options.properties] - Optional item.system.properties filter; all requested properties must be present.
  * @returns {Array} - Matching item documents.
  */
 export function _getItems(source, itemIdentifier, options = {}) {

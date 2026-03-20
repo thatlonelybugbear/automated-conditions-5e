@@ -3,10 +3,6 @@ import { doDialogAttackRender, refreshDialogAbilityState } from './ac5e-hooks-di
 import { applyOptinCriticalToDamageConfig, doDialogDamageRender } from './ac5e-hooks-dialog-damage-state.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
 
-export function getRenderHijackDialogConfig(render, fallbackConfig, { Constants }) {
-	return getDialogAc5eConfig(render, fallbackConfig);
-}
-
 export function renderRollConfigDialogHijack(hook, render, elem, initialConfig, deps) {
 	let getConfigAC5E = initialConfig;
 	getConfigAC5E = bindDialogAbilityRefresh(hook, render, elem, getConfigAC5E, deps);
@@ -28,7 +24,7 @@ function bindDialogAbilityRefresh(hook, render, elem, initialConfig, deps) {
 		abilitySelect.dataset.ac5eAbilityReevalBound = 'true';
 		abilitySelect.addEventListener('change', (event) => {
 			const nextAbility = event?.currentTarget?.value;
-			const activeConfig = getRenderHijackDialogConfig(render, getConfigAC5E, deps);
+			const activeConfig = getDialogAc5eConfig(render, getConfigAC5E);
 			const refreshed = refreshDialogAbilityState(render, activeConfig, nextAbility, deps);
 			if (refreshed) {
 				getConfigAC5E = refreshed;
@@ -120,7 +116,7 @@ function applyDialogTitleOverrides(render, elem, getConfigAC5E) {
 
 function applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip, deps) {
 	if (render?.message) deps.setMessageFlagScope(render.message, deps.Constants.MODULE_ID, { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType }, { merge: true });
-	const ac5eForButton = getRenderHijackDialogConfig(render, getConfigAC5E, deps);
+	const ac5eForButton = getDialogAc5eConfig(render, getConfigAC5E);
 	let defaultButton = ac5eForButton?.defaultButton ?? 'normal';
 	const hasRequestedButton = !!elem.querySelector(`button[data-action="${defaultButton}"]`);
 	if (!hasRequestedButton) {
@@ -136,7 +132,7 @@ function applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip
 				const action = String(event.currentTarget?.dataset?.action ?? '')
 					.trim()
 					.toLowerCase();
-				const liveConfig = getRenderHijackDialogConfig(render, getConfigAC5E, deps);
+				const liveConfig = getDialogAc5eConfig(render, getConfigAC5E);
 				if (!liveConfig || typeof liveConfig !== 'object') return;
 				const allowedActions = liveConfig?.hookType === 'damage' ? ['critical', 'normal'] : ['advantage', 'disadvantage', 'normal'];
 				if (!allowedActions.includes(action)) return;

@@ -1,6 +1,8 @@
 import { _getMessageDnd5eFlags, _getMessageFlagScope, getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
+import { getExistingRoll } from './ac5e-hooks-ui-utils.mjs';
+import { getConfigEntriesByModes } from './ac5e-hooks-roll-selections.mjs';
 
 export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 	const hookType = ac5eConfig?.hookType;
@@ -131,13 +133,6 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 }
 
 function getTargetADCEntriesForHook(ac5eConfig, hookType) {
-	const subjectEntries = Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : [];
-	const opponentEntries = Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : [];
-	return subjectEntries.concat(opponentEntries).filter((entry) => entry && typeof entry === 'object' && entry.mode === 'targetADC' && (!entry.hook || entry.hook === hookType));
+	return getConfigEntriesByModes(ac5eConfig, 'targetADC', hookType, (entry) => entry.mode === 'targetADC');
 }
 
-function getExistingRoll(config, index = 0) {
-	if (!Array.isArray(config?.rolls)) return undefined;
-	const roll = config.rolls[index];
-	return roll && typeof roll === 'object' ? roll : undefined;
-}

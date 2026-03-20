@@ -707,7 +707,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	};
 	const sandboxOptions = options;
 	const activity = options.activity;
-	const item = options.item;
+	const item = activity?.item;
 	sandbox.rollingActor = rollingActor || {};
 	sandbox.opponentActor = opponentActor || {};
 	sandbox.tokenId = subjectToken?.id;

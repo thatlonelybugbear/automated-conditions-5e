@@ -4,6 +4,7 @@ import { _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
 import { getPersistedTargetsForHook, syncResolvedTargetsToMessage } from './ac5e-hooks-target-context.mjs';
 import { refreshAttackTargetsForSubmission } from './ac5e-hooks-target-attack.mjs';
+import { getExistingRoll, getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
 
 export function postRollConfiguration(rolls, config, dialog, message, hook, deps) {
 	if (deps.buildDebug || deps.hookDebugEnabled('postRollConfigurationHook')) console.warn('AC5E._postRollConfiguration', { hook, rolls, config, dialog, message });
@@ -373,11 +374,3 @@ function countCollection(value) {
 	);
 }
 
-function getExistingRoll(config, index = 0) {
-	return Array.isArray(config?.rolls) ? config.rolls[index] : undefined;
-}
-
-function getExistingRollOptions(config, index = 0) {
-	const roll = getExistingRoll(config, index);
-	return roll?.options && typeof roll.options === 'object' ? roll.options : undefined;
-}

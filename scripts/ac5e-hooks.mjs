@@ -56,7 +56,8 @@ import { postBuildRollConfig } from './hooks/ac5e-hooks-roll-post-build.mjs';
 import { applyExplicitModeOverride, buildChatRollPayload, postRollConfiguration, setExplicitModeOverride } from './hooks/ac5e-hooks-roll-post.mjs';
 import { enforceDefaultButtonFocus, getExistingRoll, getExistingRollOptions } from './hooks/ac5e-hooks-ui-utils.mjs';
 import { postUseActivity, preUseActivity } from './hooks/ac5e-hooks-use-activity.mjs';
-import { getRenderHijackDialogConfig, renderRollConfigDialogHijack } from './hooks/ac5e-hooks-render-dialog.mjs';
+import { renderRollConfigDialogHijack } from './hooks/ac5e-hooks-render-dialog.mjs';
+import { getDialogAc5eConfig } from './hooks/ac5e-hooks-dialog-state.mjs';
 import { renderChatMessageHijack } from './hooks/ac5e-hooks-render-chat.mjs';
 import { renderSettings } from './settings/ac5e-settings-render.mjs';
 
@@ -237,7 +238,7 @@ export function _renderHijack(hook, render, elem) {
 	const getConfigAC5E =
 		hook === 'chat' ?
 			(render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID])
-		:	getRenderHijackDialogConfig(render, undefined, { Constants });
+		:	getDialogAc5eConfig(render, undefined);
 	if (_hookDebugEnabled('renderHijackHook')) console.warn('AC5E._renderHijack:', { hook, render, elem });
 	if (!getConfigAC5E) return;
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
