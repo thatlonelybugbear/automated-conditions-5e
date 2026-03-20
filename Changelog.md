@@ -1,3 +1,7 @@
+## 13.5250.13.1
+
+- Quick fix for multiple combat updates triggering overtime hazards.
+
 ## 13.5250.13
 
 - Fixed damage-dialog bonus parts so typed bonus damage can create a new damage part and still be seen by later matching bonuses in the same rebuild.
