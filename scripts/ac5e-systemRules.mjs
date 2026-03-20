@@ -301,7 +301,12 @@ function initializeVision(token) {
 }
 
 export async function overtimeHazards(combat, update, options, user) {
-	if (!settings.autoHazards /*|| !game.user.isGM*/ || game.users.find((u) => u.isGM && u.active)?.id !== user) return true;
+	if (!settings.autoHazards || !game.user?.isActiveGM) return true;
+	const advancedTurn = Object.hasOwn(update ?? {}, 'round') || Object.hasOwn(update ?? {}, 'turn');
+	const forwardTurnAdvance = options?.direction === 1;
+	if (options?.ac5eCadenceSync || !advancedTurn || !forwardTurnAdvance) return true;
+	const currentCombatantId = combat.combatant?.id;
+	if (!currentCombatantId) return true;
 
 	const hasPHB = game.modules.get('dnd-players-handbook')?.active;
 	const token = combat.combatant?.token?.object;
