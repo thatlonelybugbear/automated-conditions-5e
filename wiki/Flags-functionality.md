@@ -125,6 +125,9 @@ Replace `MODE` with one of the following:
       - Example: `set=min(4, 1d8)`
 - `fumbleThreshold` - Alters the threshold for fumble on d20 attack rolls.
     - Same logic like the `criticalThreshold` flag above.
+- `info` - Adds an informational AC5E entry without changing the rolled formula by itself.
+   - Can be paired with `enforceMode=advantage`, `enforceMode=disadvantage`, or `enforceMode=normal` to force the final d20 roll mode after other advantage/disadvantage calculations.
+   - Example: `flags.automated-conditions-5e.attack.info | enforceMode=normal`
 
 
 > 💡 For `criticalThreshold`, `fumbleThreshold`, `modifyAC` and `modifyDC` flags, you can use `set=` instead of the normal `threshold` or `bonus`, to **set** the value provided, instead of adding or subtracting from the actor values.
@@ -151,6 +154,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | Key                    | Description |
 |------------------------|-------------|
 | `itemLimited`          | Will limit the effect to rolls of the source item |
+| `enforceMode=normal/advantage/disadvantage` | For `info` entries on d20 hooks, forces the final resolved roll mode |
 | `once`                 | Will apply the effect once |
 | `usesCount=Number`     | Will limit the effect to the number of uses provided |
 | `usesCount=origin`     | For actor owned items, uses from the item or activity origin of the effect will be consumed |

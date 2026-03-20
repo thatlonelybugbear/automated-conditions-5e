@@ -40,7 +40,7 @@ Supported definition fields include:
 - `key`, `hook`, `target`, `mode`
 - `value`/`bonus`, `set`, `modifier`, `threshold`
 - `chance`, `addTo`, `usesCount`
-- `criticalStatic`, `partialConsume`
+- `criticalStatic`, `partialConsume`, `enforceMode`
 - `condition` (string expression), `evaluate` (runtime function)
 - `cadence`, `optin`, `name`, `description`
 - `effectName`, `effectUuid`, `sourceUuid` (label/source hints)
@@ -66,6 +66,7 @@ This returns a plain object with short descriptions for fields such as:
 - `optin`
 - `criticalStatic`
 - `partialConsume`
+- `enforceMode`
 - `usesCount`
 - `bonus`
 - `set`
@@ -114,6 +115,23 @@ Notes:
 
 - `partialConsume: true` lets bounded counters consume only the remaining available amount instead of failing when the requested value would exceed the cap.
 - `criticalStatic: true` is intended for `extraDice` rules and marks the entry as crit-only static extra dice logic.
+- `enforceMode: "advantage" | "disadvantage" | "normal"` is intended for `info` rules on d20 hooks and forces the final resolved roll mode.
+
+Example:
+
+```js
+ac5e.usageRules.register({
+  key: "steadyAimOverride",
+  persistent: true,
+  scope: "universal",
+  hook: "attack",
+  target: "subject",
+  mode: "info",
+  name: "Steady Aim Override",
+  enforceMode: "normal",
+  condition: "rollingActor.statuses.prone",
+});
+```
 
 ## Key uniqueness
 

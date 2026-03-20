@@ -1439,6 +1439,18 @@ export function _getTooltip(ac5eConfig = {}) {
 	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
 	const infoLabels = [...new Set(mapEntryLabels(infoEntries))];
 	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Info')}: ${infoLabels.join(', ')}</span>`);
+	const enforcedD20Mode = ['advantage', 'disadvantage', 'normal'].includes(ac5eConfig?.enforcedD20Mode) ? ac5eConfig.enforcedD20Mode : null;
+	const enforcedModeEntries = enforcedD20Mode ? infoEntries.filter((entry) => entry?.enforceMode === enforcedD20Mode) : [];
+	const enforcedModeLabels = [...new Set(mapEntryLabels(enforcedModeEntries))];
+	const enforcedModeLabel =
+		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
+		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
+		: enforcedD20Mode === 'normal' ? _localize('DND5E.Normal')
+		: '';
+	addTooltip(
+		enforcedModeLabels.length,
+		`<span style="display: block; text-align: left;">Forced Roll Mode (${enforcedModeLabel}): ${enforcedModeLabels.join(', ')}</span>`,
+	);
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
 		const combinedEntries = filterOptinEntries([...(subject?.criticalThreshold ?? []), ...(opponent?.criticalThreshold ?? [])]);

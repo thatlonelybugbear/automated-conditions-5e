@@ -1145,6 +1145,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'criticalstatic',
 		'description',
 		'enemies',
+		'enforcemode',
 		'fail',
 		'hastransitadvantage',
 		'hastransitdisadvantage',
@@ -1384,6 +1385,22 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!value) return false;
 		return /(?:^|;)\s*criticalstatic\s*(?:;|$)/i.test(String(value));
 	};
+	const normalizeEnforceMode = (value) => {
+		if (value == null) return undefined;
+		const normalized = String(value).trim().toLowerCase();
+		if (!normalized) return undefined;
+		if (normalized === 'adv' || normalized === 'advantage') return 'advantage';
+		if (normalized === 'dis' || normalized === 'disadvantage') return 'disadvantage';
+		if (normalized === 'normal' || normalized === 'norm') return 'normal';
+		return undefined;
+	};
+	const getEnforceMode = (value) => normalizeEnforceMode(getBlacklistedKeysValue('enforcemode', value));
+	const getPriorityValue = (value) => {
+		const rawPriority = getBlacklistedKeysValue('priority', value);
+		if (!rawPriority) return 0;
+		const parsedPriority = Number(rawPriority);
+		return Number.isFinite(parsedPriority) ? parsedPriority : 0;
+	};
 	const isHpUsesTarget = (target) => {
 		if (!target) return false;
 		return target === 'hp' || target.endsWith('.hp') || target.endsWith('attributes.hp.value') || target.endsWith('system.attributes.hp.value');
@@ -1410,7 +1427,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (Number.isFinite(num)) return num >= 0 ? `+${num}` : `${num}`;
 		return String(value ?? '').trim();
 	};
-	const buildAutoDescription = ({ mode, hook, bonus, modifier, set, threshold }) => {
+	const buildAutoDescription = ({ mode, hook, bonus, modifier, set, threshold, enforceMode }) => {
 		const roll = hookLabel(hook);
 		switch (mode) {
 			case 'advantage':
@@ -1432,6 +1449,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'success':
 				return localizeTemplate('AC5E.OptinDescription.ForcesSuccess', { roll }, `Forces automatic success on ${roll}`);
 			case 'info':
+				if (enforceMode === 'advantage') return localizeTemplate('AC5E.OptinDescription.ForcesAdvantage', { roll }, `Forces advantage on ${roll}`);
+				if (enforceMode === 'disadvantage') return localizeTemplate('AC5E.OptinDescription.ForcesDisadvantage', { roll }, `Forces disadvantage on ${roll}`);
+				if (enforceMode === 'normal') return localizeTemplate('AC5E.OptinDescription.ForcesNormal', { roll }, `Forces a normal roll on ${roll}`);
 				return localizeTemplate('AC5E.OptinDescription.AppliesNonRollEffect', { roll }, `Applies a non-roll effect on ${roll}`);
 			case 'bonus':
 				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.SetsRollBonus', { roll, value: set }, `Sets ${roll} bonus to ${set}`);
@@ -1688,6 +1708,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const forceOptin = Boolean(usesOverride?.forceOptin);
 		const optin = change.value.toLowerCase().includes('optin') || forceOptin;
 		const cadence = _extractCadenceFromValue(change.value);
+		const priority = getPriorityValue(change.value);
 		const customName = getCustomName(change.value);
 		const requiredDamageTypes = getRequiredDamageTypes(change.value);
 		const addTo = getAddTo(change.value);
@@ -1695,11 +1716,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const requiresTransitAdvantage = hasTransitAdvantageKeyword(change.value);
 		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(change.value);
 		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(change.value);
+		const enforceMode = mode === 'info' ? getEnforceMode(change.value) : undefined;
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(change.value) : '';
 		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
 		const autoDescription =
 			!description && (optin || usesOverride?.forceDescription) ?
-				buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold })
+				buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold, enforceMode })
 			:	undefined;
 		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
@@ -1724,7 +1746,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			optin,
 			forceOptin,
 			cadence,
+			priority,
 			criticalStatic,
+			enforceMode,
 			abilityOverride,
 			requiredDamageTypes,
 			addTo,
@@ -1936,6 +1960,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (rule?.usesCount !== undefined && rule?.usesCount !== null && String(rule.usesCount).trim() !== '') fragments.push(`usesCount=${rule.usesCount}`);
 		if (rule?.update !== undefined && rule?.update !== null && String(rule.update).trim() !== '') fragments.push(`update=${rule.update}`);
 		if (rule?.abilityOverride !== undefined && rule?.abilityOverride !== null && String(rule.abilityOverride).trim() !== '') fragments.push(`abilityOverride=${rule.abilityOverride}`);
+		if (rule?.enforceMode !== undefined && rule?.enforceMode !== null && String(rule.enforceMode).trim() !== '') fragments.push(`enforceMode=${rule.enforceMode}`);
+		if (rule?.priority !== undefined && rule?.priority !== null && String(rule.priority).trim() !== '') fragments.push(`priority=${rule.priority}`);
 		if (rule?.itemLimited) fragments.push('itemLimited');
 		if (rule?.description) fragments.push(`description=${rule.description}`);
 		if (rule?.optin) fragments.push('optin');
@@ -1993,6 +2019,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		});
 		const optin = Boolean(rule?.optin);
 		const cadence = _extractCadenceFromValue(ruleValue);
+		const priority = getPriorityValue(ruleValue);
 		const valueCustomName = getCustomName(ruleValue);
 		const customName = valueCustomName;
 		const resolvedCustomName = customName && customName !== rulePrimaryName ? customName : undefined;
@@ -2002,9 +2029,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const requiresTransitAdvantage = hasTransitAdvantageKeyword(ruleValue);
 		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(ruleValue);
 		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(ruleValue);
+		const enforceMode = mode === 'info' ? getEnforceMode(ruleValue) : undefined;
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(ruleValue) : '';
 		const description = getDescription(ruleValue);
-		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold }) : undefined;
+		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold, enforceMode }) : undefined;
 		let valuesToEvaluate = ruleValue
 			.split(';')
 			.map((v) => v.trim())
@@ -2037,7 +2065,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			optin,
 			forceOptin: false,
 			cadence,
+			priority,
 			criticalStatic,
+			enforceMode,
 			abilityOverride,
 			requiredDamageTypes,
 			addTo,

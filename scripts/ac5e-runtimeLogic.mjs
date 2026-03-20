@@ -309,6 +309,18 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			if (addTo?.mode === 'types' && Array.isArray(addTo.types) && addTo.types.length) return false;
 			return true;
 		});
+	const resolveForcedD20Mode = (entries = []) => {
+		const normalizedEntries = Array.isArray(entries) ? entries : [];
+		let winner = null;
+		for (const entry of normalizedEntries) {
+			const enforceMode = entry?.enforceMode;
+			if (!enforceMode) continue;
+			const priority = Number(entry?.priority);
+			const sortPriority = Number.isFinite(priority) ? priority : 0;
+			if (!winner || sortPriority >= winner.priority) winner = { mode: enforceMode, priority: sortPriority };
+		}
+		return winner?.mode;
+	};
 	const subjectGlobalDamageCritical = hook === 'damage' ? getGlobalDamageCriticalEntries(_filterOptinEntries(ac5eConfig.subject.critical, ac5eConfig.optinSelected)) : [];
 	const opponentGlobalDamageCritical = hook === 'damage' ? getGlobalDamageCriticalEntries(_filterOptinEntries(ac5eConfig.opponent.critical, ac5eConfig.optinSelected)) : [];
 	if (hook === 'damage') {
@@ -326,6 +338,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const opponentNoAdv = _filterOptinEntries(ac5eConfig.opponent.noAdvantage, ac5eConfig.optinSelected);
 		const subjectNoDis = _filterOptinEntries(ac5eConfig.subject.noDisadvantage, ac5eConfig.optinSelected);
 		const opponentNoDis = _filterOptinEntries(ac5eConfig.opponent.noDisadvantage, ac5eConfig.optinSelected);
+		const subjectInfo = _filterOptinEntries(ac5eConfig.subject.info, ac5eConfig.optinSelected);
+		const opponentInfo = _filterOptinEntries(ac5eConfig.opponent.info, ac5eConfig.optinSelected);
 		const subjectAdvantageNamesCount = _collectionCount(ac5eConfig.subject.advantageNames);
 		const opponentAdvantageNamesCount = _collectionCount(ac5eConfig.opponent.advantageNames);
 		const subjectDisadvantageNamesCount = _collectionCount(ac5eConfig.subject.disadvantageNames);
@@ -354,6 +368,20 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		config.disadvantage = hasDisadvantageSources;
 		if (subjectNoAdv.length || opponentNoAdv.length) config.advantage = false;
 		if (subjectNoDis.length || opponentNoDis.length) config.disadvantage = false;
+		const enforcedD20Mode = resolveForcedD20Mode(
+			[...subjectInfo, ...opponentInfo].filter((entry) => entry && typeof entry === 'object' && _entryMatchesTransientState(entry, ac5eConfig, transientRollState)),
+		);
+		ac5eConfig.enforcedD20Mode = enforcedD20Mode ?? null;
+		if (enforcedD20Mode === 'advantage') {
+			config.advantage = true;
+			config.disadvantage = false;
+		} else if (enforcedD20Mode === 'disadvantage') {
+			config.advantage = false;
+			config.disadvantage = true;
+		} else if (enforcedD20Mode === 'normal') {
+			config.advantage = false;
+			config.disadvantage = false;
+		}
 		const allTransitEntries = [ac5eConfig?.subject, ac5eConfig?.opponent]
 			.flatMap((side) => (side && typeof side === 'object' ? Object.values(side) : []))
 			.flatMap((entries) => (Array.isArray(entries) ? entries : []))
