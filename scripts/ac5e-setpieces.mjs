@@ -1683,7 +1683,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const usesCountTarget = getUsesCountTarget(change.value);
 		const requiresTransitAdvantage = hasTransitAdvantageKeyword(change.value);
 		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(change.value);
-		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(change.value);
+		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(change.value);
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(change.value) : '';
 		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
 		const autoDescription =
@@ -1974,7 +1974,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const usesCountTarget = getUsesCountTarget(ruleValue);
 		const requiresTransitAdvantage = hasTransitAdvantageKeyword(ruleValue);
 		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(ruleValue);
-		const criticalStatic = mode === 'extraDice' && hasCriticalStaticKeyword(ruleValue);
+		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(ruleValue);
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(ruleValue) : '';
 		const description = getDescription(ruleValue);
 		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold }) : undefined;
