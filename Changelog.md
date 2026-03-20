@@ -1,4 +1,4 @@
-## 13.5250.13.2
+## 13.5250.14
 
 - Combat cadence turn syncing now updates within the original combat advance instead of triggering a second AC5E combat update.
 - Added `info | enforceMode=normal/advantage/disadvantage` for forcing the final d20 roll mode, with tooltip attribution for the active enforcing entry.
