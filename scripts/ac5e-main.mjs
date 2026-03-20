@@ -153,7 +153,7 @@ function registerHooks(settings) {
 	];
 	const foundryHooks = [{ id: 'preCreateItem', type: 'preCreateItem' }];
 	const renderHooks = [
-		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
+		{ id: 'renderChatMessageHTML', type: 'chat' },
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
 	];

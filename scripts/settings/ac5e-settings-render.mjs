@@ -1,7 +1,6 @@
 import Constants from '../ac5e-constants.mjs';
 
 export function renderSettings(app, html, data) {
-	html = html instanceof HTMLElement ? html : html[0];
 	renderChatTooltipsSettings(html);
 	renderColoredButtonSettings(html);
 	renderAdvantageBehaviorSettings(html);
