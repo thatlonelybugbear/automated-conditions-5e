@@ -1,3 +1,7 @@
+## 13.5250.13.2
+
+- Combat cadence turn syncing now updates within the original combat advance instead of triggering a second AC5E combat update.
+
 ## 13.5250.13.1
 
 - Quick fix for multiple combat updates triggering overtime hazards.

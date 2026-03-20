@@ -29,6 +29,7 @@ const statusEffectsOverrideState = {
 	seq: 1,
 };
 const CADENCE_FLAG_KEY = 'cadence';
+const CADENCE_FLAG_REPLACE_PATH = `flags.${Constants.MODULE_ID}.==${CADENCE_FLAG_KEY}`;
 
 function _preserveStandaloneSignedDiceFormula(expression) {
 	if (typeof expression !== 'string') return null;
@@ -204,6 +205,20 @@ function _resolveCadenceAnchor(combat, evalData = {}) {
 	return { turn: fallbackTurn, combatantId: fallbackCombatantId };
 }
 
+function _resolveNextCombatCadenceStep(combat, update = {}) {
+	const currentRound = _toFiniteNumberOrNull(combat?.round);
+	const currentTurn = _toFiniteNumberOrNull(combat?.turn);
+	const hasRoundUpdate = Object.hasOwn(update ?? {}, 'round');
+	const hasTurnUpdate = Object.hasOwn(update ?? {}, 'turn');
+	const nextRound = hasRoundUpdate ? _toFiniteNumberOrNull(update.round) : currentRound;
+	const nextTurn = hasTurnUpdate ? _toFiniteNumberOrNull(update.turn) : currentTurn;
+	const turns = Array.isArray(combat?.turns) ? combat.turns : [];
+	const nextCombatantId =
+		nextTurn !== null && nextTurn >= 0 && nextTurn < turns.length ? (turns[nextTurn]?.id ?? null)
+		: combat?.combatant?.id ?? null;
+	return { nextRound, nextTurn, nextCombatantId, hasRoundUpdate, hasTurnUpdate };
+}
+
 function _isCadenceUseBlocked({ cadence, id, pendingUses = [] } = {}) {
 	const cadenceKey = _normalizeCadenceKey(cadence);
 	if (!cadenceKey || !id) return false;
@@ -288,10 +303,10 @@ async function _recordCadencePendingUses(pendingUses = []) {
 export async function _syncCombatCadenceFlags(combat, _update, _options) {
 	if (!combat) return true;
 	if (!game.user?.isActiveGM) return true;
+	if (_options?.ac5eCadenceSync) return true;
+	const { nextRound, nextTurn, nextCombatantId, hasRoundUpdate, hasTurnUpdate } = _resolveNextCombatCadenceStep(combat, _update);
+	if (!hasRoundUpdate && !hasTurnUpdate) return true;
 	const state = _getCadenceState(combat);
-	const nextRound = _toFiniteNumberOrNull(combat.round);
-	const nextTurn = _toFiniteNumberOrNull(combat.turn);
-	const nextCombatantId = combat.combatant?.id ?? null;
 	const previousRound = _toFiniteNumberOrNull(state?.last?.round);
 	const previousTurn = _toFiniteNumberOrNull(state?.last?.turn);
 	const previousCombatantId = state?.last?.combatantId ?? null;
@@ -302,11 +317,7 @@ export async function _syncCombatCadenceFlags(combat, _update, _options) {
 	if (roundChanged || turnChanged || combatantChanged) state.used.oncePerTurn = {};
 	state.last = { round: nextRound, turn: nextTurn, combatantId: nextCombatantId };
 	state.updatedAt = Date.now();
-	try {
-		await _setCombatCadenceFlag({ combatUuid: combat.uuid, state });
-	} catch (err) {
-		console.warn('AC5E combat cadence sync failed', { combatUuid: combat.uuid, err });
-	}
+	_update[CADENCE_FLAG_REPLACE_PATH] = state;
 	return true;
 }
 

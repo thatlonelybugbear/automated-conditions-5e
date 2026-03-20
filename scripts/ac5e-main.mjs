@@ -193,7 +193,7 @@ function registerHooks(settings) {
 	}
 
 	hooksRegistered.renderSettingsConfig = Hooks.on('renderSettingsConfig', _renderSettings);
-	hooksRegistered['updateCombat.cadence'] = Hooks.on('updateCombat', _syncCombatCadenceFlags);
+	hooksRegistered['preUpdateCombat.cadence'] = Hooks.on('preUpdateCombat', _syncCombatCadenceFlags);
 	hooksRegistered['updateCombat.hazards'] = Hooks.on('updateCombat', overtimeHazards);
 	hooksRegistered['updateSetting.contextKeywords'] = Hooks.on('updateSetting', onContextKeywordsRegistrySettingUpdate);
 	hooksRegistered['updateSetting.usageRules'] = Hooks.on('updateSetting', onUsageRulesRegistrySettingUpdate);
