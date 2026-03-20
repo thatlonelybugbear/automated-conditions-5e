@@ -1908,7 +1908,23 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const registeredName = typeof rule?.name === 'string' ? rule.name.trim() : '';
 		const rulePrimaryName = registeredName || ruleFallbackName;
 		const fragments = [];
-		if (rule?.bonus !== undefined && rule?.bonus !== null && String(rule.bonus).trim() !== '') fragments.push(`bonus=${rule.bonus}`);
+		const standaloneRangeKeywords = new Set([
+			'longdisadvantage',
+			'nolongdisadvantage',
+			'nearbyfoes',
+			'nonearbyfoes',
+			'nearbyfoedisadvantage',
+			'nonearbyfoedisadvantage',
+			'fail',
+			'outofrangefail',
+			'nofail',
+			'nooutofrangefail',
+		]);
+		if (rule?.bonus !== undefined && rule?.bonus !== null && String(rule.bonus).trim() !== '') {
+			const trimmedBonus = String(rule.bonus).trim();
+			if (mode === 'range' && standaloneRangeKeywords.has(trimmedBonus.toLowerCase())) fragments.push(trimmedBonus);
+			else fragments.push(`bonus=${rule.bonus}`);
+		}
 		if (rule?.set !== undefined && rule?.set !== null && String(rule.set).trim() !== '') fragments.push(`set=${rule.set}`);
 		if (rule?.modifier !== undefined && rule?.modifier !== null && String(rule.modifier).trim() !== '') fragments.push(`modifier=${rule.modifier}`);
 		if (rule?.threshold !== undefined && rule?.threshold !== null && String(rule.threshold).trim() !== '') fragments.push(`threshold=${rule.threshold}`);

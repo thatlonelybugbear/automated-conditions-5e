@@ -1456,8 +1456,14 @@ export function _getTooltip(ac5eConfig = {}) {
 	const combinedTargetADC = mapEntryLabels(combinedTargetEntries);
 	if (combinedTargetADC.length) {
 		let tooltipInitialTargetADC = getPreferredBaseTargetADC();
-		let tooltipAlteredTargetADC = alteredTargetADC;
+		const numericAlteredTargetAcs = Object.values(ac5eConfig?.alteredTargetADCs ?? {})
+			.map((entry) => Number(entry?.ac))
+			.filter((value) => Number.isFinite(value));
+		let tooltipAlteredTargetADC = Number.isFinite(Number(alteredTargetADC)) ? Number(alteredTargetADC) : undefined;
 		if (tooltipInitialTargetADC === undefined) tooltipInitialTargetADC = 10;
+		if (tooltipAlteredTargetADC === undefined && ['attack', 'damage'].includes(hookType) && numericAlteredTargetAcs.length) {
+			tooltipAlteredTargetADC = Math.min(...numericAlteredTargetAcs);
+		}
 		if (tooltipAlteredTargetADC === undefined) {
 			const type = hookType === 'attack' ? 'acBonus' : 'dcBonus';
 			const entryValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
@@ -1921,6 +1927,9 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const initialTargetAcs = Object.values(ac5eConfig?.initialTargetADCs ?? {})
 		.map((entry) => getNumericTarget(entry?.ac))
 		.filter((value) => value !== undefined);
+	const alteredTargetAcs = Object.values(ac5eConfig?.alteredTargetADCs ?? {})
+		.map((entry) => getNumericTarget(entry?.ac))
+		.filter((value) => value !== undefined);
 	const baseTargetAcs = Object.values(ac5eConfig?.preAC5eConfig?.baseTargetAcByKey ?? {})
 		.map((entry) => getNumericTarget(entry?.ac))
 		.filter((value) => value !== undefined);
@@ -1939,7 +1948,10 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		targetValues.length ? targetValues
 		: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
 		: [];
-	const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'acBonus') : undefined);
+	const alteredTargetADC =
+		getNumericTarget(ac5eConfig?.alteredTargetADC) ??
+		(['attack', 'damage'].includes(ac5eConfig?.hookType) && alteredTargetAcs.length ? Math.min(...alteredTargetAcs) : undefined) ??
+		(targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'acBonus') : undefined);
 	const targetADCDisplayLabels = targetADCLabels.length ? targetADCLabels : dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
 	const modifyACPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyAC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Bonus'), subjectBonusLabels);
