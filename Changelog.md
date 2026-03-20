@@ -2,9 +2,11 @@
 
 - Fixed damage-dialog bonus parts so typed bonus damage can create a new damage part and still be seen by later matching bonuses in the same rebuild.
 - Fixed damage-dialog rerenders so changing a selected damage type no longer duplicates appended typed bonus damage parts or spin into recursive rerender loops.
-- Damage-dialog opt-ins now include `damage.info` entries, so optional post-damage riders like Trip can appear in the damage dialog.
+- `criticalStatic` now works on `damage.bonus` entries, including `addTo` targeting and created typed damage parts.
+- Damage-dialog opt-ins now include `damage.info` entries.
 - `ac5e.getItems(...)` and `ac5e.hasItem(...)` now support `properties` filters, including combinations like `{ type: 'weapon', properties: ['hvy', 'mgc'] }`.
 - Reinstate missing `item` data from the sandbox.
+- Some codebase cleanup.
 
 ## 13.5250.12.5
 
