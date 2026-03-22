@@ -2,7 +2,7 @@
     "id": "automated-conditions-5e",
     "title": "Automated Conditions 5e",
     "description": "A small module for Foundry VTT that tries to automate some rolling aspects of the common 5e Conditions.",
-    "version": "13.5250.14",
+    "version": "14.530.1",
     "authors": [
         {
             "name": "thatlonelybugbear",
@@ -13,8 +13,8 @@
         }
     ],
     "compatibility": {
-        "minimum": "13",
-        "verified": "13.351"
+        "minimum": "14",
+        "verified": "14.357"
     },
     "esmodules": ["scripts/ac5e-main.mjs"],
     "relationships": {
@@ -23,9 +23,9 @@
                 "id": "dnd5e",
                 "type": "system",
                 "compatibility": {
-                    "minimum": "5.1.0",
-                    "maximum": "5.3",
-                    "verified": "5.2.5"
+                    "minimum": "5.3",
+                    "maximum": "6.0.0",
+                    "verified": "5.3"
                 }
             }
         ] 
@@ -77,7 +77,7 @@
     "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
     "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
     "license": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/LICENSE",
-    "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json",
-    "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v13.5250.14/module.zip",
+    "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v14.530.1/module.json",
+    "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v14.530.1/module.zip",
     "changelog": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/Changelog.md"
 }
