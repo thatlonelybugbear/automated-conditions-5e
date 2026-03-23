@@ -209,7 +209,7 @@ export function autoRanged(activity, token, target, options) {
 export function canSee(source, target, status) {
 	const resolvedSource = _resolveVisibilityToken(source);
 	const resolvedTarget = _resolveVisibilityToken(target);
-	const midiCanSee = _activeModule('midi-qol') ? globalThis.MidiDAEEval?.canSee : null;
+	const midiCanSee = !status && _activeModule('midi-qol') ? globalThis.MidiDAEEval?.canSee : null;
 	if (typeof midiCanSee === 'function') {
 		try {
 			const midiResult = !!midiCanSee(resolvedSource ?? source, resolvedTarget ?? target);
