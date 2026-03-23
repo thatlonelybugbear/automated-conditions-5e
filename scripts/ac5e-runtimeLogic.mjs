@@ -9,6 +9,7 @@ import {
 	_entryMatchesTransientState,
 	_filterOptinEntries,
 	_getActivityEffectsStatusRiders,
+	_getLightLevel,
 	_getMessageDnd5eFlags,
 	_getTooltip,
 	_setMessageFlagScope,
@@ -130,6 +131,15 @@ export function _ac5eActorRollData(token, rollData) {
 	actorData.tokenElevation = token.document.elevation;
 	actorData.tokenSenses = token.document.detectionModes;
 	actorData.tokenUuid = token.document.uuid;
+	const resolvedLightLevel = _getLightLevel(token);
+	actorData.lightLevelValue = resolvedLightLevel;
+	actorData.lightLevel = {
+		bright: resolvedLightLevel === 'bright',
+		dim: resolvedLightLevel === 'dim',
+		dark: resolvedLightLevel === 'darkness',
+		darkness: resolvedLightLevel === 'darkness',
+		level: resolvedLightLevel,
+	};
 	actorData.uuid = token.actor.uuid;
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;

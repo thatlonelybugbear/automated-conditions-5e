@@ -6,6 +6,7 @@ import {
 	_getDistance,
 	_getItems,
 	_getItemOrActivity,
+	_getLightLevel,
 	_hasItem,
 	_inspectFlagRegistry,
 	_isUuidLike,
@@ -1558,6 +1559,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.checkNearby = checkNearby;
 	ac5e.checkRanged = autoRanged;
 	ac5e.checkVisibility = canSee;
+	ac5e.getLightLevel = _getLightLevel;
 	ac5e.debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;
 	ac5e.evaluationData = _createEvaluationSandbox;
 	ac5e.getItems = _getItems;

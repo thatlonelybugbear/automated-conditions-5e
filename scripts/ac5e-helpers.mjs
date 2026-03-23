@@ -1,9 +1,127 @@
 import Constants from './ac5e-constants.mjs';
-import { debugBenchmarkPerimeterGridSpaceCenters, getCachedDistanceCore } from './helpers/ac5e-helpers-distance.mjs';
+import { debugBenchmarkPerimeterGridSpaceCenters, getCachedDistanceCore, getPerimeterCenters } from './helpers/ac5e-helpers-distance.mjs';
 import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
 import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function _getUniquePointKey(point = {}) {
+	return `${Math.round(Number(point?.x) || 0)}:${Math.round(Number(point?.y) || 0)}:${Math.round(Number(point?.elevation) || 0)}`;
+}
+
+export function _getTokenLightSamplePoints(token, { includeCenter = true } = {}) {
+	if (!token) return [];
+	const points = [];
+	const center = token.center;
+	const elevation = token.document?.elevation ?? token.elevation ?? 0;
+	if (includeCenter && center) points.push({ x: center.x, y: center.y, elevation });
+	for (const point of getPerimeterCenters(token) ?? []) {
+		if (!point) continue;
+		points.push({ x: point.x, y: point.y, elevation });
+	}
+	const unique = new Map();
+	for (const point of points) unique.set(_getUniquePointKey(point), point);
+	return Array.from(unique.values());
+}
+
+function _getSceneBaselineLightLevel(scene = canvas?.scene, { considerSceneDarkness = false } = {}) {
+	if (!considerSceneDarkness) return 'darkness';
+	const darkness = Number(scene?.environment?.darknessLevel ?? scene?.darkness ?? 1);
+	if (darkness <= 0.25) return 'bright';
+	if (darkness <= 0.75) return 'dim';
+	return 'darkness';
+}
+
+function _classifyPointLightLevel({ point, token, baseline = _getSceneBaselineLightLevel() } = {}) {
+	if (!point || !token) return baseline;
+	let matchedLevel = baseline;
+	for (const lightSource of canvas?.effects?.lightSources ?? []) {
+		if (!lightSource?.active || lightSource?.data?.disabled) continue;
+		const shapeContains = typeof lightSource.shape?.contains === 'function' ? lightSource.shape.contains(point.x, point.y) : false;
+		const losContains = !shapeContains && typeof lightSource.los?.contains === 'function' ? lightSource.los.contains(point.x, point.y) : false;
+		const config = {
+			tests: [{
+				point: { x: point.x, y: point.y },
+				elevation: point.elevation ?? token.document?.elevation ?? token.elevation ?? 0,
+				los: new Map(),
+			}],
+			object: token,
+		};
+		const lit = shapeContains || losContains || lightSource.testVisibility?.(config) === true;
+		if (!lit) continue;
+		const sourceX = Number(lightSource.x ?? lightSource.data?.x);
+		const sourceY = Number(lightSource.y ?? lightSource.data?.y);
+		const brightRadius = Number(lightSource.data?.bright ?? 0);
+		const dimRadius = Number(lightSource.data?.dim ?? 0);
+		const distance = Number.isFinite(sourceX) && Number.isFinite(sourceY) ? Math.hypot(point.x - sourceX, point.y - sourceY) : undefined;
+		if (Number.isFinite(distance) && brightRadius > 0 && distance <= brightRadius) return 'bright';
+		if (matchedLevel !== 'bright') matchedLevel = 'dim';
+		if (Number.isFinite(distance) && dimRadius > 0 && distance <= dimRadius) matchedLevel = 'dim';
+	}
+	return matchedLevel;
+}
+
+export function _getTokenLightingState(token, options = {}) {
+	if (!token) {
+		return {
+			level: 'darkness',
+			baselineLevel: _getSceneBaselineLightLevel(options.scene, options),
+			samplePoints: [],
+			sampleLevels: [],
+			brightSamples: 0,
+			dimSamples: 0,
+			darknessSamples: 0,
+			inBrightLight: false,
+			inDimLight: false,
+			inDarkness: true,
+		};
+	}
+	const baselineLevel = _getSceneBaselineLightLevel(options.scene, options);
+	const samplePoints = _getTokenLightSamplePoints(token, options);
+	const points = samplePoints.length ? samplePoints : [{ x: token.center?.x, y: token.center?.y, elevation: token.document?.elevation ?? token.elevation ?? 0 }];
+	const sampleLevels = points.map((point) => _classifyPointLightLevel({ point, token, baseline: baselineLevel }));
+	const brightSamples = sampleLevels.filter((level) => level === 'bright').length;
+	const dimSamples = sampleLevels.filter((level) => level === 'dim').length;
+	const darknessSamples = sampleLevels.filter((level) => level === 'darkness').length;
+	const inBrightLight = brightSamples > 0;
+	const inDimLight = !inBrightLight && dimSamples > 0;
+	const inDarkness = darknessSamples === sampleLevels.length;
+	const level = inBrightLight ? 'bright' : (inDimLight ? 'dim' : 'darkness');
+	return {
+		level,
+		baselineLevel,
+		samplePoints: points,
+		sampleLevels,
+		brightSamples,
+		dimSamples,
+		darknessSamples,
+		inBrightLight,
+		inDimLight,
+		inDarkness,
+	};
+}
+
+function _resolveTokenForLighting(token) {
+	if (!token) return canvas?.tokens?.controlled?.[0] ?? null;
+	let resolvedToken = token;
+	if (typeof resolvedToken === 'string') {
+		if (resolvedToken.includes('.')) {
+			const resolved = fromUuidSync(resolvedToken, { strict: false });
+			resolvedToken = resolved?.object ?? resolved ?? null;
+		} else {
+			resolvedToken = canvas?.tokens?.get?.(resolvedToken) ?? null;
+		}
+	}
+	if (resolvedToken instanceof TokenDocument) resolvedToken = resolvedToken.object;
+	if (resolvedToken instanceof Actor) resolvedToken = resolvedToken.getActiveTokens?.()[0] ?? _getTokenFromActor(resolvedToken) ?? null;
+	if (resolvedToken?.document instanceof TokenDocument && resolvedToken?.center) return resolvedToken;
+	return null;
+}
+
+export function _getLightLevel(token = null, options = {}) {
+	const resolvedToken = _resolveTokenForLighting(token);
+	return _getTokenLightingState(resolvedToken, options)?.level ?? 'darkness';
+}
 
 // Function adapted from @kgar's Tidy 5e Sheet utility.
 function simplifyFormula(formula = '', removeFlavor = false, debug = {}) {
@@ -450,11 +568,11 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		let resolvedTokenA = tokenA;
 		let resolvedTokenB = tokenB;
 		if (typeof resolvedTokenA === 'string') {
-			if (resolvedTokenA.includes('.')) resolvedTokenA = fromUuidSync(resolvedTokenA)?.object;
+			if (resolvedTokenA.includes('.')) resolvedTokenA = _safeFromUuidSync(resolvedTokenA)?.object;
 			else resolvedTokenA = canvas.tokens.get(resolvedTokenA);
 		}
 		if (typeof resolvedTokenB === 'string') {
-			if (resolvedTokenB.includes('.')) resolvedTokenB = fromUuidSync(resolvedTokenB)?.object;
+			if (resolvedTokenB.includes('.')) resolvedTokenB = _safeFromUuidSync(resolvedTokenB)?.object;
 			else resolvedTokenB = canvas.tokens.get(resolvedTokenB);
 		}
 		if (resolvedTokenA instanceof TokenDocument) resolvedTokenA = resolvedTokenA.object;
@@ -2255,12 +2373,12 @@ function _getActionType(activity, returnClassifications = false) {
 export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, id, uuid */) {
 	if (!effect?.origin) return undefined;
 
-	let origin = fromUuidSync(effect.origin);
+	let origin = _safeFromUuidSync(effect.origin);
 	let actor = _resolveActorFromOrigin(origin);
 
 	// Check if origin itself has an origin (chained origin), resolve again
 	if (!actor && origin?.origin) {
-		const deeperOrigin = fromUuidSync(origin.origin);
+		const deeperOrigin = _safeFromUuidSync(origin.origin);
 		actor = _resolveActorFromOrigin(deeperOrigin);
 	}
 
@@ -2584,7 +2702,7 @@ export function _getActivityEffectsStatusRiders(activity) {
 export function _getItemOrActivity(itemID, activityID, actor) {
 	if (actor && !(actor instanceof Actor)) {
 		if (game.actors.getName(actor) instanceof Actor) actor = game.actors.getName(actor);
-		else if (actor.includes('.')) actor = fromUuidSync(actor);
+		else if (actor.includes('.')) actor = _safeFromUuidSync(actor);
 		else actor = game.actors.get(actor);
 		if (!(actor instanceof Actor)) {
 			actor = undefined;

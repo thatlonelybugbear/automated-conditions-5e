@@ -217,7 +217,7 @@ function testDistanceAdjacency(coords1, coords2, { meleeDiagonals = false } = {}
 	return testAdjacency(coords1, coords2);
 }
 
-function getPerimeterCenters(token) {
+export function getPerimeterCenters(token) {
 	const { isGridless, isHexagonal, isSquare } = canvas.grid;
 	if (isHexagonal) return getHexesOnPerimeter(token);
 	if (isGridless) return getGridlessSquaresOnPerimeter(token);
