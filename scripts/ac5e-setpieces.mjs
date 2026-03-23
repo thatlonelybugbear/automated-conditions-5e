@@ -3470,7 +3470,16 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		// Preserve extraDice multiplier literals (x2/^2) so they can be parsed downstream.
 		const isExtraDiceMultiplierLiteral = mode === 'extraDice' && typeof bonus === 'string' && /^\+?\s*(?:x|\^)\s*-?\d+\s*$/i.test(bonus.trim());
 		if (isExtraDiceMultiplierLiteral) bonus = bonus.trim();
-		else bonus = Number(evalDiceExpression(bonus)); // non-bonus modes should resolve to numeric values
+		else {
+			let normalizedBonus = bonus;
+			if (mode === 'extraDice' && typeof normalizedBonus === 'string') {
+				const trimmedBonus = normalizedBonus.trim();
+				if (/^\+\s*(?:\d+|\d*d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?)\s*$/i.test(trimmedBonus)) {
+					normalizedBonus = trimmedBonus.replace(/^\+\s*/, '');
+				}
+			}
+			bonus = Number(evalDiceExpression(normalizedBonus)); // non-bonus modes should resolve to numeric values
+		}
 	}
 	if (set !== undefined && set !== '') {
 		if (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack') set = String(evalNumericFormulaExpression(set, { debug }));
