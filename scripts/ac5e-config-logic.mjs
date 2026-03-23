@@ -34,6 +34,44 @@ function _collectionCount(collection) {
 	return 0;
 }
 
+function _getResolvedAdvantageMode(config = {}) {
+	const directMode = config?.advantageMode;
+	if (typeof directMode === 'number') return directMode;
+	const optionMode = config?.options?.advantageMode;
+	if (typeof optionMode === 'number') return optionMode;
+	const rollMode = config?.rolls?.[0]?.options?.advantageMode;
+	if (typeof rollMode === 'number') return rollMode;
+	const advantage = config?.advantage;
+	const disadvantage = config?.disadvantage;
+	if (advantage === true && disadvantage !== true) return CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE ?? 1;
+	if (disadvantage === true && advantage !== true) return CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE ?? -1;
+	if (advantage === true || disadvantage === true) return CONFIG?.Dice?.D20Roll?.ADV_MODE?.NORMAL ?? 0;
+	return null;
+}
+
+function _modeHasAdvantage(mode) {
+	if (typeof mode !== 'number') return false;
+	return mode > 0;
+}
+
+function _modeHasDisadvantage(mode) {
+	if (typeof mode !== 'number') return false;
+	return mode < 0;
+}
+
+function _getModeCountValue(bucket) {
+	if (typeof bucket === 'number') return Math.max(0, bucket);
+	if (Array.isArray(bucket)) return bucket.length;
+	if (!bucket || typeof bucket !== 'object') return 0;
+	if (typeof bucket.count === 'number') return Math.max(0, bucket.count);
+	if (typeof bucket.active === 'number') return Math.max(0, bucket.active);
+	if (bucket.active === true) return 1;
+	if (Array.isArray(bucket.active)) return bucket.active.length;
+	if (typeof bucket.value === 'number') return Math.max(0, bucket.value);
+	if (bucket.value === true) return 1;
+	return 0;
+}
+
 function pickOptions(source, keys) {
 	if (!source || !Array.isArray(keys)) return {};
 	const picked = {};
@@ -97,6 +135,23 @@ function _categorizeChangedOptionKeys(changedKeys = []) {
 function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type, modeCounts }) {
 	const capitalizeHook = hookType.capitalize();
 	const resolvedTypeLabel = String(typeLabel ?? '').trim() ? String(typeLabel).trim() : _localize('AC5E.SystemMode');
+	if (modeCounts?.override === 0) {
+		ac5eConfig.subject.noAdvantage = [_localize('AC5E.NoAdvantage')];
+		ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
+		systemMode.override = 0;
+	}
+	if (mode === 0 && modeCounts?.override === undefined) {
+		const advantageCount = _getModeCountValue(modeCounts?.advantages);
+		const disadvantageCount = _getModeCountValue(modeCounts?.disadvantages);
+		if (advantageCount > 0) {
+			systemMode.adv += advantageCount;
+			ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
+		}
+		if (disadvantageCount > 0) {
+			systemMode.dis += disadvantageCount;
+			ac5eConfig.subject.disadvantageNames.add(resolvedTypeLabel);
+		}
+	}
 	if (mode > 0) {
 		if (modeCounts?.override > 0) {
 			ac5eConfig.subject.forcedAdvantage = [_localize('AC5E.ForcedAdvantage')];
@@ -141,7 +196,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 	const systemMode = { adv: 0, dis: 0 };
 	const autoArmorChecks = _autoArmor(actor);
 	const { ability, skill, tool } = options || {};
-	if (hookType === 'check') {
+	if (hookType === 'check' || hookType === 'init') {
 		if (skill) {
 			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage)
 				ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
@@ -154,9 +209,9 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			const toolLabel = actor?.system?.tools?.[tool]?.label ?? tool;
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', toolLabel), ac5eConfig, systemMode, modeCounts });
 		}
-		if (options.isInitiative) {
+		if (options.isInitiative || hookType === 'init') {
 			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'init' }) || {};
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Initiative')), ac5eConfig, systemMode, type: 'init', modeCounts });
+			collectRollMode({ actor, mode, max, min, hookType: 'check', typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Initiative')), ac5eConfig, systemMode, type: 'init', modeCounts });
 		}
 	}
 	if (ability && ['check', 'save'].includes(hookType)) {
@@ -182,6 +237,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 		ac5eConfig.subject.disadvantage.push(_i18nConditions('HeavilyEncumbered'));
 		systemMode.dis++;
 	}
+	ac5eConfig.systemRollMode = systemMode;
 	if (settings.debug) console.warn('AC5E_getSystemRollConfig', { ac5eConfig });
 	return systemMode;
 }
@@ -354,6 +410,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	ac5eConfig.roller = roller;
 	ac5eConfig.preAC5eConfig.adv = config.advantage;
 	ac5eConfig.preAC5eConfig.dis = config.disadvantage;
+	ac5eConfig.preAC5eConfig.advantageMode = _getResolvedAdvantageMode(config);
 	return { ac5eConfig, actor, midiRoller, roller };
 }
 
@@ -401,6 +458,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	}
 	const { skipDialogAdvantage, skipDialogDisadvantage, skipDialogNormal } = ac5eConfig.preAC5eConfig;
 	const { deferD20KeypressToMidi, useMidiD20Attribution } = _getD20TooltipOwnership(ac5eConfig, { midiRoller });
+	ac5eConfig.preAC5eConfig.deferD20KeypressToMidi = deferD20KeypressToMidi;
 	const d20RollerLabel = useMidiD20Attribution ? roller : 'Core';
 	const returnEarly = !deferD20KeypressToMidi && skipDialogNormal && (skipDialogAdvantage || skipDialogDisadvantage);
 	const keypressAdvantageSource = !deferD20KeypressToMidi && skipDialogAdvantage && !returnEarly;
@@ -473,12 +531,15 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	ac5eConfig.subject.midiDisadvantage = midiDisAttribution;
 	ac5eConfig.subject.midiFail = midiAbilityFailAttribution;
 	ac5eConfig.subject.midiSuccess = midiAbilitySuccessAttribution;
+	const incomingAdvantageMode = ac5eConfig.preAC5eConfig?.advantageMode;
+	const incomingAdvantage = _modeHasAdvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && config.advantage === true && config.disadvantage !== true);
+	const incomingDisadvantage = _modeHasDisadvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && config.disadvantage === true && config.advantage !== true);
 	if (!options.preConfigInitiative) {
 		if (
 			hookType !== 'damage' &&
 			!returnEarly &&
 			!adv &&
-			((config.advantage && !deferD20KeypressToMidi && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)
+			((incomingAdvantage && !deferD20KeypressToMidi && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)
 		) {
 			if (useMidiD20Attribution) {
 				if (midiAdvAttribution.length) ac5eConfig.subject.advantage.push(...midiAdvAttribution);
@@ -489,7 +550,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			hookType !== 'damage' &&
 			!returnEarly &&
 			!dis &&
-			((config.disadvantage && !deferD20KeypressToMidi && !keypressDisadvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)
+			((incomingDisadvantage && !deferD20KeypressToMidi && !keypressDisadvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)
 		) {
 			if (useMidiD20Attribution) {
 				if (midiDisAttribution.length) ac5eConfig.subject.disadvantage.push(...midiDisAttribution);
