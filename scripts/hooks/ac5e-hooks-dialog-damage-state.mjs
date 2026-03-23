@@ -24,8 +24,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const baseRolls = getNonSyntheticDamageRolls(dialog.config.rolls);
 		const rollsLength = baseRolls.length;
 		const previousRollCount = getConfigAC5E._lastDamageRollCount ?? rollsLength;
-		const baseFormulas =
-			getConfigAC5E.preservedInitialData?.formulas ?? (getConfigAC5E.isCritical ? baseRolls.map((roll) => roll?.parts?.join(' + ') ?? roll?.formula).filter(Boolean) : undefined);
+		const baseFormulas = getConfigAC5E.preservedInitialData?.formulas ?? (getConfigAC5E.isCritical ? baseRolls.map((roll) => roll?.parts?.join(' + ') ?? roll?.formula).filter(Boolean) : undefined);
 		const damageTypesByIndex = getDamageTypesByIndex(dialog, elem);
 		const selectedDamageTypesByIndex = Array.fromRange(rollsLength).map((el) => {
 			const selected = damageTypesByIndex?.[el] ?? elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ?? dialog.config.rolls?.[el]?.options?.type;
@@ -694,7 +693,9 @@ function extractImplicitBonusDamageType(value) {
 	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => String(key).toLowerCase()));
 	let detectedType;
 	const formula = raw.replace(/\[([^\]]+)\]/g, (match, inner) => {
-		const normalized = String(inner ?? '').trim().toLowerCase();
+		const normalized = String(inner ?? '')
+			.trim()
+			.toLowerCase();
 		if (!knownDamageTypes.has(normalized)) return match;
 		detectedType ??= normalized;
 		return '';
@@ -860,8 +861,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const appendedBonusPartsByType = new Map();
 	const appendedCriticalBonusPartsByType = new Map();
 	const isCriticalDamageRollAtIndex = (index) => isRollCriticalForExtraDice(getConfigAC5E, index);
-	const isGlobalCriticalDamage =
-		formulas.some((_, index) => isCriticalDamageRollAtIndex(index)) || Boolean(getConfigAC5E?.isCritical ?? getConfigAC5E?.preAC5eConfig?.wasCritical ?? false);
+	const isGlobalCriticalDamage = formulas.some((_, index) => isCriticalDamageRollAtIndex(index)) || Boolean(getConfigAC5E?.isCritical ?? getConfigAC5E?.preAC5eConfig?.wasCritical ?? false);
 	const applyBonusPartToType = (rollType, part, criticalOnly = false) => {
 		if (!part || !rollType) return false;
 		const normalizedType = String(rollType).toLowerCase();
@@ -1096,9 +1096,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const optinBonusChanged = !areStringMatrixEqual(activeOptinBonusPartsArray, bonusPartsByRoll);
 	const appendedBonusChanged = !areBonusRollEntriesEqual(activeAppendedBonusRolls, appendedBonusRolls);
 	const activeCriticalBonusDamageArray =
-		Array.isArray(getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll) ?
-			getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll
-		:	originals.map(() => '');
+		Array.isArray(getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll) ? getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll : originals.map(() => '');
 	const criticalBonusChanged =
 		activeCriticalBonusDamageArray.length !== criticalBonusDamageByRoll.length ||
 		activeCriticalBonusDamageArray.some((value, index) => normalizeCriticalBonusDamageFormula(value) !== normalizeCriticalBonusDamageFormula(criticalBonusDamageByRoll[index]));
