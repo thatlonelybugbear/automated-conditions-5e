@@ -662,6 +662,8 @@ function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
 			type: roll?.options?.type ?? null,
 			maximum: roll?.options?.maximum ?? null,
 			minimum: roll?.options?.minimum ?? null,
+			maximize: roll?.options?.maximize ?? null,
+			minimize: roll?.options?.minimize ?? null,
 			isCritical: roll?.options?.isCritical ?? null,
 			criticalBonusDamage: roll?.options?.critical?.bonusDamage ?? null,
 		});
@@ -721,6 +723,10 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		else if ('maximum' in roll.options) delete roll.options.maximum;
 		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
 		else if ('minimum' in roll.options) delete roll.options.minimum;
+		if (rollBaseline.maximize !== undefined && rollBaseline.maximize !== null) roll.options.maximize = rollBaseline.maximize;
+		else if ('maximize' in roll.options) delete roll.options.maximize;
+		if (rollBaseline.minimize !== undefined && rollBaseline.minimize !== null) roll.options.minimize = rollBaseline.minimize;
+		else if ('minimize' in roll.options) delete roll.options.minimize;
 		if (rollBaseline.isCritical !== undefined && rollBaseline.isCritical !== null) roll.options.isCritical = rollBaseline.isCritical;
 		const restoredCriticalBonusDamage = rollBaseline.criticalBonusDamage ?? existingCriticalBonusDamage;
 		if (typeof restoredCriticalBonusDamage === 'string' && restoredCriticalBonusDamage.trim().length) {
@@ -1267,6 +1273,8 @@ function freezeRollProfileSnapshot(profile = {}, roll0 = {}, config = {}, ac5eCo
 		criticalFailure: roll0Options.criticalFailure ?? null,
 		maximum: roll0Options.maximum ?? null,
 		minimum: roll0Options.minimum ?? null,
+		maximize: roll0Options.maximize ?? null,
+		minimize: roll0Options.minimize ?? null,
 	});
 	return Object.freeze({
 		profile: frozenProfile,
@@ -1338,6 +1346,10 @@ export function _restoreD20ConfigFromFrozenBaseline(ac5eConfig, config) {
 	else if (hasRoll0 && 'maximum' in roll0.options) delete roll0.options.maximum;
 	if (hasRoll0 && target.minimum !== undefined && target.minimum !== null) roll0.options.minimum = target.minimum;
 	else if (hasRoll0 && 'minimum' in roll0.options) delete roll0.options.minimum;
+	if (hasRoll0 && target.maximize !== undefined && target.maximize !== null) roll0.options.maximize = target.maximize;
+	else if (hasRoll0 && 'maximize' in roll0.options) delete roll0.options.maximize;
+	if (hasRoll0 && target.minimize !== undefined && target.minimize !== null) roll0.options.minimize = target.minimize;
+	else if (hasRoll0 && 'minimize' in roll0.options) delete roll0.options.minimize;
 	if (hasRoll0) roll0.options[Constants.MODULE_ID] ??= {};
 	if (hasRoll0) roll0.options[Constants.MODULE_ID].appliedParts = Array.isArray(baseline?.appliedParts) ? foundry.utils.duplicate(baseline.appliedParts) : [];
 	preConfig.activeRollProfileKey = baseline.profileKey ?? profileKey;

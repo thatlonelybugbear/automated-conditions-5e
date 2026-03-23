@@ -2204,16 +2204,24 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						requiredDamageTypes: foundry.utils.duplicate(entry.requiredDamageTypes ?? []),
 					});
 				} else if (!optin) {
-					let mod;
-					if (modifier.includes('max')) {
-						mod = Number(modifier.replace('max', ''));
+					const normalizedModifier = _normalizeLiteralModifierSyntax(String(modifier));
+					const maxMatch = normalizedModifier.match(/^max(-?\d+)$/i);
+					if (maxMatch) {
+						const mod = Number(maxMatch[1]);
 						const inplaceMod = ac5eConfig.modifiers.maximum;
-						if (mod) ac5eConfig.modifiers.maximum = !inplaceMod || inplaceMod > mod ? mod : inplaceMod;
+						if (Number.isFinite(mod)) ac5eConfig.modifiers.maximum = !Number.isFinite(inplaceMod) || inplaceMod > mod ? mod : inplaceMod;
 					}
-					if (modifier.includes('min')) {
-						mod = Number(modifier.replace('min', ''));
+					const minMatch = normalizedModifier.match(/^min(-?\d+)$/i);
+					if (minMatch) {
+						const mod = Number(minMatch[1]);
 						const inplaceMod = ac5eConfig.modifiers.minimum;
-						if (mod) ac5eConfig.modifiers.minimum = !inplaceMod || inplaceMod < mod ? mod : inplaceMod;
+						if (Number.isFinite(mod)) ac5eConfig.modifiers.minimum = !Number.isFinite(inplaceMod) || inplaceMod < mod ? mod : inplaceMod;
+					}
+					if (/^maximize$/i.test(normalizedModifier)) ac5eConfig.modifiers.maximize = true;
+					else if (/^minimize$/i.test(normalizedModifier)) ac5eConfig.modifiers.minimize = true;
+					else if (_isLiteralModifierSyntax(normalizedModifier, hook)) {
+						ac5eConfig.modifiers.literals ??= [];
+						if (!ac5eConfig.modifiers.literals.includes(normalizedModifier)) ac5eConfig.modifiers.literals.push(normalizedModifier);
 					}
 				}
 			}
@@ -3401,6 +3409,22 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 	return expression;
 }
 
+function _normalizeLiteralModifierSyntax(value) {
+	if (typeof value !== 'string') return '';
+	return value.trim().replace(/\s+/g, '');
+}
+
+function _isLiteralModifierSyntax(value, hook) {
+	const normalized = _normalizeLiteralModifierSyntax(value);
+	if (!normalized) return false;
+	if (/^[*/%]/.test(normalized)) return true;
+	if (/^(?:maximize|minimize)$/i.test(normalized)) return true;
+	if (globalThis.dnd5e?.utils?.isValidDieModifier?.(normalized)) return true;
+	if (/^(?:min|max)-?\d+$/i.test(normalized)) return true;
+	if (hook === 'damage' && /^(?:adv|dis)$/i.test(normalized)) return true;
+	return false;
+}
+
 function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura, debug, chanceCache, chanceKey }) {
 	let bonus, set, modifier, threshold, chance;
 	const rawValue = String(value ?? '');
@@ -3433,9 +3457,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	if (isModifier) {
 		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect);
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
-		// Preserve leading operator modifier fragments (e.g. "/2", "* 1.5", "%3") as suffix syntax.
-		// These are appended to an existing roll formula and are invalid as standalone Roll formulas.
-		if (typeof trimmedModifier === 'string' && /^[*/%]/.test(trimmedModifier)) modifier = trimmedModifier;
+		if (typeof trimmedModifier === 'string' && _isLiteralModifierSyntax(trimmedModifier, hook)) modifier = _normalizeLiteralModifierSyntax(trimmedModifier);
 		else modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isThreshold = lowerValue.includes('threshold') && hook === 'attack' ? getBlacklistedKeysValue('threshold', rawValue) : false;

@@ -628,9 +628,23 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		config.parts = baseParts.concat(nextInjectedParts);
 		if (Object.isExtensible(ac5eConfigOptions)) ac5eConfigOptions.appliedParts = foundry.utils.duplicate(nextInjectedParts);
 	}
+	const isLiteralDieModifier = (value) => {
+		const cleaned = typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, '') : '';
+		if (!cleaned || /^(?:maximize|minimize)$/i.test(cleaned)) return false;
+		if (globalThis.dnd5e?.utils?.isValidDieModifier?.(cleaned)) return true;
+		return /^(?:min|max)-?\d+$/i.test(cleaned);
+	};
 	const applyModifierConstraint = (modifierConfig, modifierValue) => {
 		if (modifierValue === undefined || modifierValue === null) return;
 		const cleaned = String(modifierValue).trim().toLowerCase().replace(/\s+/g, '');
+		if (cleaned === 'maximize') {
+			modifierConfig.maximize = true;
+			return;
+		}
+		if (cleaned === 'minimize') {
+			modifierConfig.minimize = true;
+			return;
+		}
 		const maxMatch = cleaned.match(/^max(-?\d+)$/);
 		if (maxMatch) {
 			const maxValue = Number(maxMatch[1]);
@@ -647,7 +661,11 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				const currentMin = modifierConfig.minimum;
 				modifierConfig.minimum = !Number.isFinite(currentMin) || currentMin < minValue ? minValue : currentMin;
 			}
+			return;
 		}
+		if (!isLiteralDieModifier(cleaned)) return;
+		modifierConfig.literals ??= [];
+		if (!modifierConfig.literals.includes(cleaned)) modifierConfig.literals.push(cleaned);
 	};
 	const effectiveModifiers = foundry.utils.duplicate(ac5eConfig.modifiers ?? {});
 	for (const side of ['subject', 'opponent']) {
@@ -658,12 +676,24 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		}
 	}
 	ac5eConfig.effectiveModifiers = effectiveModifiers;
+	if (Array.isArray(effectiveModifiers?.literals) && effectiveModifiers.literals.length) {
+		console.warn('AC5E unsupported literal die modifiers on d20 roll ignored', {
+			hook,
+			modifiers: [...effectiveModifiers.literals],
+			id: ac5eConfig?.id,
+			itemUuid: ac5eConfig?.item?.uuid ?? ac5eConfig?.itemUuid,
+		});
+	}
 	if (roll0?.options) {
-		const { maximum, minimum } = effectiveModifiers;
+		const { maximum, minimum, maximize, minimize } = effectiveModifiers;
 		if (Number.isFinite(maximum)) roll0.options.maximum = maximum;
 		else if ('maximum' in roll0.options) delete roll0.options.maximum;
 		if (Number.isFinite(minimum)) roll0.options.minimum = minimum;
 		else if ('minimum' in roll0.options) delete roll0.options.minimum;
+		if (maximize) roll0.options.maximize = true;
+		else if ('maximize' in roll0.options) delete roll0.options.maximize;
+		if (minimize) roll0.options.minimize = true;
+		else if ('minimize' in roll0.options) delete roll0.options.minimize;
 	}
 	if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = localDialog.options.advantageMode;

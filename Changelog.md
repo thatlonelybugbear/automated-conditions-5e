@@ -1,3 +1,11 @@
+## 13.5250.15
+
+- Initiative advantage and disadvantage handling is now more consistent between native dnd5e and AC5E resolution.
+- Token light level is now available to AC5E evaluation and helper lookups.
+- `damage.extraDice` now handles leading `+` values correctly.
+- Damage modifiers now support `maximize` and `minimize`, and targeted damage modifiers no longer spill onto unrelated damage parts.
+- Unsupported literal die modifiers on d20 rolls are now ignored with a clear console warning instead of failing silently.
+
 ## 13.5250.14
 
 - Combat cadence turn syncing now updates within the original combat advance instead of triggering a second AC5E combat update.
