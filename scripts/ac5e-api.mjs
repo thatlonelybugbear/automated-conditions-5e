@@ -1567,6 +1567,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.hasItem = _hasItem;
 	ac5e.logEvaluationData = false;
 	ac5e.debug ??= {
+		canSee: false,
 		evaluations: false,
 		optins: false,
 		auraCadenceOptins: false,

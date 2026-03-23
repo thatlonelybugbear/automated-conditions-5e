@@ -3,6 +3,7 @@ import { _activeModule, _dispositionCheck, _filterOptinEntries, _getDistance, _h
 import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
+const _canSeeDebugEnabled = () => Boolean(settings.debug || globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.canSee);
 
 export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasStatuses = [], includeToken = false, includeIncapacitated = false, partyMember = false }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
@@ -206,56 +207,84 @@ export function autoRanged(activity, token, target, options) {
 }
 
 export function canSee(source, target, status) {
+	const resolvedSource = _resolveVisibilityToken(source);
+	const resolvedTarget = _resolveVisibilityToken(target);
+	const midiCanSee = _activeModule('midi-qol') ? globalThis.MidiDAEEval?.canSee : null;
+	if (typeof midiCanSee === 'function') {
+		try {
+			const midiResult = !!midiCanSee(resolvedSource ?? source, resolvedTarget ?? target);
+			if (_canSeeDebugEnabled()) {
+				console.warn(`${Constants.MODULE_NAME_SHORT}.canSee() midi`, {
+					source: resolvedSource?.id ?? source?.id ?? source,
+					target: resolvedTarget?.id ?? target?.id ?? target,
+					status,
+					result: midiResult,
+				});
+			}
+			return midiResult;
+		} catch (error) {
+			if (_canSeeDebugEnabled()) console.warn('AC5e: Midi canSee fallback failed, using AC5e visibility fallback instead', error);
+		}
+	}
+	source = resolvedSource;
+	target = resolvedTarget;
 	if (!source || !target) {
-		if (settings.debug) console.warn('AC5e: No valid tokens for canSee check');
+		if (_canSeeDebugEnabled()) console.warn('AC5e: No valid tokens for canSee check');
 		return false;
 	}
 	const detectionModes = CONFIG.Canvas?.detectionModes ?? {};
-	const sightDetectionModes = ['basicSight', 'lightPerception'];
 	const matchedModes = new Set();
-	const tests = [
-		{
-			point: target.center,
-			elevation: target.document?.elevation ?? target.elevation ?? 0,
-			los: new Map(),
-		},
-	];
-	const hasSight = !!source.document?.sight?.enabled;
-	if (!source.vision) initializeVision(source);
-	else if (!hasSight && !canvas.effects?.visionSources?.has?.(source.sourceId)) initializeVision(source);
+	const { visionSource, temporaryVision } = _getVisionSourceForCanSee(source);
+	if (!visionSource) {
+		if (_canSeeDebugEnabled()) console.warn('AC5e: No valid vision source for canSee check', { source: source?.id, target: target?.id });
+		return false;
+	}
+	const tests = _createVisibilityTests(target, visionSource);
 	const config = { tests, object: target };
 
-	const tokenDetectionModes = normalizeDetectionModes(source.detectionModes);
+	const tokenDetectionModes = normalizeDetectionModes(source.document?.detectionModes ?? source.detectionModes);
 	let validModes = new Set();
 
 	const sourceBlinded = source.actor?.statuses.has('blinded');
 	const targetInvisible = target.actor?.statuses.has('invisible');
 	const targetEthereal = target.actor?.statuses.has('ethereal');
 	if (!status && !sourceBlinded && !targetInvisible && !targetEthereal) {
-		validModes = new Set(sightDetectionModes);
+		validModes = new Set(['basicSight', 'lightPerception']);
 		const lightSources = canvas?.effects?.lightSources;
 		for (const lightSource of lightSources ?? []) {
-			if (!lightSource?.active || lightSource?.data?.disabled) continue;
+			if (!lightSource?.data?.vision || !lightSource?.active || lightSource?.data?.disabled) continue;
 			const result = lightSource.testVisibility?.(config);
 			if (result === true) matchedModes.add(detectionModes.lightPerception?.id);
 		}
 	} else if (status === 'blinded' || sourceBlinded) {
 		validModes = new Set(['blindsight', 'seeAll']);
 	} else if (status === 'invisible' || status === 'ethereal' || targetInvisible || targetEthereal) {
-		validModes = new Set(['seeAll', 'seeInvisibility']);
+		validModes = new Set(['blindsight', 'seeAll', 'seeInvisibility']);
 	}
-	for (const detectionMode of tokenDetectionModes) {
-		if (!detectionMode?.enabled || !detectionMode?.range) continue;
-		if (!validModes.has(detectionMode.id)) continue;
-		const mode = detectionModes[detectionMode.id];
-		const result = mode ? mode.testVisibility(source.vision, detectionMode, config) : false;
-		if (result === true && mode?.id) matchedModes.add(mode.id);
+	try {
+		for (const detectionMode of tokenDetectionModes) {
+			if (!detectionMode?.enabled || (!detectionMode?.range && detectionMode?.range !== 0)) continue;
+			if (!validModes.has(detectionMode.id)) continue;
+			const mode = detectionModes[detectionMode.id];
+			const result = mode ? mode.testVisibility(visionSource, detectionMode, config) : false;
+			if (result === true && mode?.id) matchedModes.add(mode.id);
+		}
+		if (_canSeeDebugEnabled()) {
+			console.warn(`${Constants.MODULE_NAME_SHORT}.canSee()`, {
+				source: source?.id,
+				target: target?.id,
+				status,
+				validModes: Array.from(validModes),
+				result: matchedModes,
+				tests: tests.map((test) => ({ x: test.point.x, y: test.point.y, elevation: test.elevation })),
+				temporaryVision,
+				sourceId: source.sourceId,
+			});
+		}
+		return matchedModes.size > 0;
+	} finally {
+		_destroyTemporaryVisionSource(visionSource, temporaryVision);
 	}
-	if (settings.debug) {
-		console.warn(`${Constants.MODULE_NAME_SHORT}.canSee()`, { source: source?.id, target: target?.id, result: matchedModes, visionInitialized: !hasSight, sourceId: source.sourceId });
-	}
-	if (!hasSight) canvas.effects?.visionSources.delete(source.sourceId);
-	return matchedModes.size > 0;
 }
 
 function normalizeDetectionModes(modes) {
@@ -269,35 +298,86 @@ function normalizeDetectionModes(modes) {
 	return modes;
 }
 
-function initializeVision(token) {
-	token.document.sight.enabled = true;
-	token.document._prepareDetectionModes();
-	const sourceId = token.sourceId;
-	token.vision = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token });
+function _resolveVisibilityToken(token) {
+	const tokenInstance = foundry.canvas.placeables.Token;
+	if (token instanceof TokenDocument) return token.object;
+	if (token instanceof tokenInstance) return token;
+	if (typeof token === 'string') {
+		const resolved = fromUuidSync(token);
+		if (resolved?.type === 'Token') return resolved.object;
+		if (resolved instanceof TokenDocument) return resolved.object;
+		return canvas?.tokens?.get?.(token) ?? null;
+	}
+	return token ?? null;
+}
 
-	token.vision.initialize({
+function _createVisibilityTests(target, visionSource) {
+	const targetPoint = target.center;
+	const t = Math.min(target.w ?? 0, target.h ?? 0) / 4;
+	const t2 = Math.max(0, Math.min(target.w ?? 0, target.h ?? 0) / 2 - 2);
+	const offsets = t > 0
+		? [[0, 0], [-t, -t], [-t, t], [t, t], [t, -t], [-t, 0], [t, 0], [0, -t], [0, t], [-t2, -t2], [-t2, t2], [t2, t2], [t2, -t2], [-t2, 0], [t2, 0], [0, -t2], [0, t2]]
+		: [[0, 0]];
+	const elevation = target.document?.elevation ?? target.elevation ?? 0;
+	const tests = offsets.map(([dx, dy]) => ({
+		point: new PIXI.Point(targetPoint.x + dx, targetPoint.y + dy),
+		elevation,
+		los: new Map(),
+	}));
+	if (visionSource) _populateVisibilityLOS(tests, visionSource);
+	return tests;
+}
+
+function _populateVisibilityLOS(tests, visionSource) {
+	const sightBackend = CONFIG.Canvas?.polygonBackends?.sight;
+	if (!visionSource || !sightBackend?.testCollision) return;
+	const origin = { x: visionSource.x, y: visionSource.y };
+	for (const test of tests) {
+		const collision = sightBackend.testCollision(origin, test.point, {
+			type: 'sight',
+			mode: 'any',
+			source: visionSource,
+			useThreshold: true,
+			priority: visionSource.priority,
+		});
+		test.los.set(visionSource, !collision);
+	}
+}
+
+function _getVisionSourceForCanSee(token) {
+	if (token?.vision?.los) return { visionSource: token.vision, temporaryVision: false };
+	const sourceId = `${token?.sourceId ?? token?.id ?? 'ac5e-vision'}-ac5e-cansee`;
+	const visionSource = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token });
+	visionSource.initialize({
 		x: token.center.x,
 		y: token.center.y,
-		elevation: token.document.elevation,
-		radius: Math.clamp(token.sightRange, 0, canvas?.dimensions?.maxR ?? 0),
+		elevation: token.document?.elevation ?? token.elevation ?? 0,
+		radius: Math.clamp(token.sightRange ?? 0, 0, canvas?.dimensions?.maxR ?? 0),
+		lightRadius: token.lightPerceptionRange ?? 0,
 		externalRadius: token.externalRadius,
-		angle: token.document.sight.angle,
-		contrast: token.document.sight.contrast,
-		saturation: token.document.sight.saturation,
-		brightness: token.document.sight.brightness,
-		attenuation: token.document.sight.attenuation,
-		rotation: token.document.rotation,
-		visionMode: token.document.sight.visionMode,
-		color: token.document.sight.color?.toNearest(),
-		blinded: token.document.hasStatusEffect(CONFIG.specialStatusEffects.BLIND),
+		angle: token.document?.sight?.angle ?? 360,
+		contrast: token.document?.sight?.contrast ?? 0,
+		saturation: token.document?.sight?.saturation ?? 0,
+		brightness: token.document?.sight?.brightness ?? 0,
+		attenuation: token.document?.sight?.attenuation ?? 0,
+		rotation: token.document?.rotation ?? token.rotation ?? 0,
+		visionMode: token.document?.sight?.visionMode,
+		color: token.document?.sight?.color?.toNearest?.() ?? token.document?.sight?.color,
+		blinded: token.document?.hasStatusEffect?.(CONFIG.specialStatusEffects.BLIND) ?? token.actor?.statuses?.has('blinded') ?? false,
+		disabled: false,
 	});
-	if (!token.vision.los) {
-		token.vision.shape = token.vision._createRestrictedPolygon();
-		token.vision.los = token.vision.shape;
+	if (!visionSource.los) {
+		visionSource.shape = visionSource._createRestrictedPolygon();
+		visionSource.los = visionSource.shape;
 	}
-	if (token.vision.visionMode) token.vision.visionMode.animated = false;
-	canvas?.effects?.visionSources.set(sourceId, token.vision);
-	return true;
+	if (visionSource.visionMode) visionSource.visionMode.animated = false;
+	return { visionSource, temporaryVision: true };
+}
+
+function _destroyTemporaryVisionSource(visionSource, temporaryVision) {
+	if (!temporaryVision || !visionSource) return;
+	visionSource.visionMode?.deactivate?.(visionSource);
+	visionSource.destroy?.();
 }
 
 export async function overtimeHazards(combat, update, options, user) {
