@@ -1100,6 +1100,10 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	return matches;
 }
 
+export function _getItem(source, itemIdentifier, options = {}) {
+	return _getItems(source, itemIdentifier, options)[0] ?? null;
+}
+
 /*
  * Checks whether at least one item matches.
  * @param {Actor|Token|string|object} source

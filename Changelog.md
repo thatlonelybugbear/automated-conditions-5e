@@ -2,9 +2,16 @@
 
 - Initiative advantage and disadvantage handling is now more consistent between native dnd5e and AC5E resolution.
 - Token light level is now available to AC5E evaluation and helper lookups.
+  - Access via `xyzActor.lightLevel.bright`/`dim`/`darkness`.
+- `canSee` now defers to MidiQOL only when no status override is in play, so blinded/invisible/ethereal checks consistently use AC5E’s fallback logic.
+  - Added a world setting for using ac5e.canSee checks which adds preselected opt-ins for 'Cannot see target' and 'Target cannot be seen' when MidiQOL is not enabled.
+  - Changes to `canSee` logic of handling tokens with vision disabled.
 - `damage.extraDice` now handles leading `+` values correctly.
 - Damage modifiers now support `maximize` and `minimize`, and targeted damage modifiers no longer spill onto unrelated damage parts.
 - Unsupported literal die modifiers on d20 rolls are now ignored with a clear console warning instead of failing silently.
+- Exposed `ac5e.getItem(tokenOrActor, itemIdentifier, options = {})` as a first-match helper for convenient single-item retrieval based on the same options as `ac5e.getItems(...)`.
+  - Returns the first matching item or null if no match exists.
+  - Example: `ac5e.getItem(token.id, "fireball", { match: "any", nameMode: "partial" })` returns the first item whose name or identifier contains `fireball`.
 
 ## 13.5250.14
 

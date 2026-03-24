@@ -4,6 +4,7 @@ import {
 	_buildFlagRegistry,
 	_debugBenchmarkPerimeterGridSpaceCenters,
 	_getDistance,
+	_getItem,
 	_getItems,
 	_getItemOrActivity,
 	_getLightLevel,
@@ -13,6 +14,7 @@ import {
 	_reindexFlagRegistryActor,
 	_resolveUuidString,
 	_safeFromUuidSync,
+	_getItem,
 } from './ac5e-helpers.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _setContextKeywordsSetting, _setUsageRulesSetting } from './ac5e-queries.mjs';
@@ -1563,6 +1565,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;
 	ac5e.evaluationData = _createEvaluationSandbox;
 	ac5e.getItems = _getItems;
+	ac5e.getItem = _getItem;
 	ac5e.getItemOrActivity = _getItemOrActivity;
 	ac5e.hasItem = _hasItem;
 	ac5e.logEvaluationData = false;

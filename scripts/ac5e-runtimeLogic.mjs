@@ -36,7 +36,10 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, options 
 	const item = normalizedOptions?.item;
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
 	const formulaData = rollDataDocument?.getRollData?.();
-	const dataActor = subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor' : opponentToken?.actor === (activity ?? item)?.actor ? 'opponentActor' : null;
+	const dataActor =
+		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
+		: opponentToken?.actor === (activity ?? item)?.actor ? 'opponentActor'
+		: null;
 	const rollingActor = dataActor === 'rollingActor' ? _ac5eActorRollData(subjectToken, formulaData) : _ac5eActorRollData(subjectToken);
 	const opponentActor = dataActor === 'opponentActor' ? _ac5eActorRollData(opponentToken, formulaData) : _ac5eActorRollData(opponentToken);
 	return {
@@ -131,15 +134,6 @@ export function _ac5eActorRollData(token, rollData) {
 	actorData.tokenElevation = token.document.elevation;
 	actorData.tokenSenses = token.document.detectionModes;
 	actorData.tokenUuid = token.document.uuid;
-	const resolvedLightLevel = _getLightLevel(token);
-	actorData.lightLevelValue = resolvedLightLevel;
-	actorData.lightLevel = {
-		bright: resolvedLightLevel === 'bright',
-		dim: resolvedLightLevel === 'dim',
-		dark: resolvedLightLevel === 'darkness',
-		darkness: resolvedLightLevel === 'darkness',
-		level: resolvedLightLevel,
-	};
 	actorData.uuid = token.actor.uuid;
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
@@ -186,7 +180,7 @@ function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
 				type: item.type,
 				uses: item.system?.uses || {},
 				equipped,
-				attuned: !!item.system?.attuned
+				attuned: !!item.system?.attuned,
 			});
 		}
 		itemViewsCache = { items, equippedItems };
@@ -206,6 +200,7 @@ function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
 		if (!active) return active;
 		return token.document.movementHistory?.reduce((acc, entry) => (acc += entry.cost ?? 0), 0);
 	});
+	defineCachedValue('lightLevel', () => ({ [_getLightLevel(token)]: true }));
 }
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties = false } = {}) {
