@@ -502,6 +502,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 
 	ac5eConfig = ac5eFlags({ ac5eConfig, subjectToken, opponentToken });
+	if (settings.automateStatuses) addSyntheticVisibilityAttackOptins(ac5eConfig, subjectToken, opponentToken);
 	if (cacheKey) checksCache[cacheKey] = createChecksSnapshot(ac5eConfig);
 	if (settings.debug) console.log('AC5E._ac5eChecks:', { ac5eConfig });
 	return ac5eConfig;
@@ -660,14 +661,81 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 	};
 }
 
+function addDefaultOptinSelection(ac5eConfig, entryId, selected = true) {
+	if (!ac5eConfig || !entryId) return;
+	ac5eConfig.optinSelected ??= {};
+	if (!(entryId in ac5eConfig.optinSelected)) ac5eConfig.optinSelected[entryId] = !!selected;
+}
+
+function midiHandlesVisibilityAttackRules() {
+	if (!_activeModule('midi-qol')) return false;
+	const midiConfig = globalThis.MidiQOL?.configSettings?.();
+	if (!midiConfig?.optionalRulesEnabled) return false;
+	const optionalRules = midiConfig.optionalRules ?? {};
+	const invisAdvantage = optionalRules.invisAdvantage ?? 'none';
+	const hiddenAdvantage = optionalRules.hiddenAdvantage ?? 'none';
+
+	return hiddenAdvantage !== 'none' || invisAdvantage !== 'none';
+}
+
+function addSyntheticVisibilityAttackOptins(ac5eConfig, subjectToken, opponentToken) {
+	if (ac5eConfig?.hookType !== 'attack' || !settings.visibilityChecks || !subjectToken || !opponentToken) return;
+	if (midiHandlesVisibilityAttackRules()) return;
+	const subjectCanSeeTarget = canSee(subjectToken, opponentToken);
+	const targetCanSeeSubject = canSee(opponentToken, subjectToken);
+	const syntheticEntries = [];
+
+	if (!subjectCanSeeTarget) {
+		syntheticEntries.push({
+			id: `ac5e:visibility:${subjectToken.id}:${opponentToken.id}:cannot-see-target`,
+			name: _localize('AC5E.CannotSeeTarget'),
+			label: _localize('AC5E.CannotSeeTarget'),
+			hook: 'attack',
+			mode: 'disadvantage',
+			actorType: 'subject',
+			target: 'subject',
+			optin: true,
+			forceOptin: false,
+			evaluation: true,
+			sourceActorId: subjectToken.actor?.id ?? null,
+			sourceActorName: subjectToken.actor?.name ?? subjectToken.name ?? '',
+			changeKey: 'ac5e.synthetic.visibility.cannotSeeTarget',
+		});
+	}
+	if (!targetCanSeeSubject) {
+		syntheticEntries.push({
+			id: `ac5e:visibility:${subjectToken.id}:${opponentToken.id}:target-cannot-see-attacker`,
+			name: _localize('AC5E.TargetCannotSeeAttacker'),
+			label: _localize('AC5E.TargetCannotSeeAttacker'),
+			hook: 'attack',
+			mode: 'advantage',
+			actorType: 'subject',
+			target: 'subject',
+			optin: true,
+			forceOptin: false,
+			evaluation: true,
+			sourceActorId: subjectToken.actor?.id ?? null,
+			sourceActorName: subjectToken.actor?.name ?? subjectToken.name ?? '',
+			changeKey: 'ac5e.synthetic.visibility.targetCannotSeeAttacker',
+		});
+	}
+
+	for (const entry of syntheticEntries) {
+		const bucket = ac5eConfig?.[entry.actorType]?.[entry.mode];
+		if (!Array.isArray(bucket) || bucket.some((existing) => existing?.id === entry.id)) continue;
+		bucket.push(entry);
+		addDefaultOptinSelection(ac5eConfig, entry.id, true);
+	}
+}
+
 function buildStatusEffectsTables() {
 	const mkStatus = (id, name, rules) => ({ _id: _staticID(id), name, rules });
 
 	const tables = {
 		blinded: mkStatus('blinded', _i18nConditions('Blinded'), {
 			attack: {
-				subject: (ctx) => (!canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
-				opponent: (ctx) => (!canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.subjectAlert2014 ? 'advantage' : ''),
+				subject: (ctx) => (!settings.visibilityChecks && !canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
+				opponent: (ctx) => (!settings.visibilityChecks && !canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.subjectAlert2014 ? 'advantage' : ''),
 			},
 		}),
 
@@ -701,8 +769,8 @@ function buildStatusEffectsTables() {
 
 		invisible: mkStatus('invisible', _i18nConditions('Invisible'), {
 			attack: {
-				subject: (ctx) => (!ctx.opponentAlert2014 && !canSee(ctx.opponentToken, ctx.subjectToken) ? 'advantage' : ''),
-				opponent: (ctx) => (!canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
+				subject: (ctx) => (!settings.visibilityChecks && !ctx.opponentAlert2014 && !canSee(ctx.opponentToken, ctx.subjectToken) ? 'advantage' : ''),
+				opponent: (ctx) => (!settings.visibilityChecks && !canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
 			},
 			check: { subject: (ctx) => (ctx.modernRules && ctx.isInitiative ? 'advantage' : '') },
 		}),

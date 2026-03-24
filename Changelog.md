@@ -1,3 +1,9 @@
+## 13.5250.15.3
+
+- Added the `Visibility checks` world setting so the “Cannot See Target”/“Target Cannot See Attacker” opt-ins and adv/dis logics are gated behind a single toggle and can be hidden when MidiQOL already applies those optional rules.
+- When `Visibility checks` is enabled, the blinded/invisible attack automation routes through the two opt-ins, so the user can uncheck them before the final mode settles.
+- AC5E now skips the synthetic visibility opt-ins whenever MidiQOL’s optional rules for invisibility or hidden attackers are enabled, preventing duplicate reasons in the dialog/tooltip.
+
 ## 13.5250.15
 
 - Initiative advantage and disadvantage handling is now more consistent between native dnd5e and AC5E resolution.

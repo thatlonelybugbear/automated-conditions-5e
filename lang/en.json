@@ -18,6 +18,10 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Players",
 	"AC5E.ExpandedConditionsName": "Expanded conditions",
 	"AC5E.ExpandedConditionsHint": "When enabled, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
+	"AC5E.VisibilityChecksSetting": {
+		"Name": "Visibility checks",
+		"Hint": "When enabled, AC5e adds the attack visibility rules for cannot see target and target cannot see attacker."
+	},
 	"AC5E.ActivityUse": {
 		"Name": "Item Use Checks",
 		"Hint": "Allow, Enforce (cancel + notify), or Warn (allow + notify). Checks: actions while incapacitated; spellcasting while raging, silenced, or armor non-proficient",
@@ -138,6 +142,8 @@
 	"AC5E.TargetGrantsNoAdvantage": "Granted no advantage",
 	"AC5E.TargetGrantsNoCritical": "Granted no criticals",
 	"AC5E.TargetGrantsNoDisadvantage": "Granted no disadvantage",
+	"AC5E.CannotSeeTarget": "Cannot See Target",
+	"AC5E.TargetCannotSeeAttacker": "Target Cannot See Attacker",
 	"AC5E.Bonus": "Bonus",
 	"AC5E.ExtraDice": "Extra dice",
 	"AC5E.Success": "Success",

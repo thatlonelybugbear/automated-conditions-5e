@@ -69,7 +69,7 @@ export function readOptinSelections(elem, _ac5eConfig) {
 	const inputs = elem.querySelectorAll('input[data-ac5e-optin="true"]');
 	for (const input of inputs) {
 		const id = input.dataset.ac5eOptinId;
-		if (id && input.checked) selected[id] = true;
+		if (id) selected[id] = !!input.checked;
 	}
 	return selected;
 }

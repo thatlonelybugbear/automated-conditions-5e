@@ -364,13 +364,13 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		const nested = formObject.ac5eOptins;
 		if (nested && typeof nested === 'object') {
 			sawOptinKey = true;
-			for (const [id, value] of Object.entries(nested)) if (value) parsed[id] = true;
+			for (const [id, value] of Object.entries(nested)) parsed[id] = !!value;
 		}
 		for (const [key, value] of Object.entries(formObject)) {
 			if (!key.startsWith('ac5eOptins.')) continue;
 			sawOptinKey = true;
 			const id = key.slice('ac5eOptins.'.length);
-			if (id && value) parsed[id] = true;
+			if (id) parsed[id] = !!value;
 		}
 		return sawOptinKey ? parsed : null;
 	};

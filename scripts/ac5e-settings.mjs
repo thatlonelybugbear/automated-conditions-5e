@@ -7,6 +7,7 @@ export default class Settings {
 	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'showNameTooltips';
 	static SHOW_CHAT_TOOLTIPS = 'showChatTooltips';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
+	static AUTOMATE_VISIBILITY_CHECKS = 'visibilityChecks';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
 	static AUTOMATE_RANGE_CHECKS = 'autoRangeChecks';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
@@ -117,6 +118,14 @@ export default class Settings {
 			scope: 'world',
 			config: true,
 			default: false,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_VISIBILITY_CHECKS, {
+			name: 'AC5E.VisibilityChecksSetting.Name',
+			hint: 'AC5E.VisibilityChecksSetting.Hint',
+			scope: 'world',
+			config: true,
+			default: true,
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS, {
@@ -300,6 +309,9 @@ export default class Settings {
 	}
 	get expandedConditions() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS);
+	}
+	get visibilityChecks() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_VISIBILITY_CHECKS);
 	}
 	get autoHazards() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS);
