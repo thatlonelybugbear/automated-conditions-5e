@@ -1,3 +1,7 @@
+## 13.5250.16.1
+
+- Fixed duplicate `damage.bonus` entries with identical formulas so both contributions apply instead of being collapsed by the rebuild dedupe logic.
+
 ## 13.5250.15.3
 
 - Added the `Visibility checks` world setting so the “Cannot See Target”/“Target Cannot See Attacker” opt-ins and adv/dis logics are gated behind a single toggle and can be hidden when MidiQOL already applies those optional rules.

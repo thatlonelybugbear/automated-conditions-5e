@@ -1000,11 +1000,12 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		}
 		pendingDamageBonusEntries = nextPendingDamageBonusEntries;
 	}
-	for (let index = 0; index < bonusPartsByRoll.length; index++) bonusPartsByRoll[index] = [...new Set(bonusPartsByRoll[index])];
-	for (let index = 0; index < criticalBonusPartsByRoll.length; index++) criticalBonusPartsByRoll[index] = [...new Set(criticalBonusPartsByRoll[index])];
+	// Preserve identical bonus parts from distinct sources. Rerender stability is handled
+	// by the preserved baseline/state machinery, so value-based dedupe would under-apply
+	// cases like two separate +1 damage bonuses.
 	const appendedBonusRollTypes = [...new Set([...appendedBonusPartsByType.keys(), ...appendedCriticalBonusPartsByType.keys()])];
 	const appendedBonusRolls = appendedBonusRollTypes.map((type) => {
-		const parts = [...new Set(appendedBonusPartsByType.get(type) ?? [])];
+		const parts = appendedBonusPartsByType.get(type) ?? [];
 		return { formula: parts.length ? parts.join(' + ') : '0', type };
 	});
 	const extraDiceAdjustments = formulas.map((_, index) => {
@@ -1161,7 +1162,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		return nextFormula;
 	});
 	for (const entry of appendedBonusRolls) {
-		const appendedCriticalParts = [...new Set(appendedCriticalBonusPartsByType.get(entry.type) ?? [])];
+		const appendedCriticalParts = appendedCriticalBonusPartsByType.get(entry.type) ?? [];
 		criticalBonusDamageByRoll.push(appendedCriticalParts.join(' + '));
 	}
 	const suffixChanged = !areStringArraysEqual(activeModifiersArray, suffixesByRoll);
