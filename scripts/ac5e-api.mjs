@@ -14,7 +14,6 @@ import {
 	_reindexFlagRegistryActor,
 	_resolveUuidString,
 	_safeFromUuidSync,
-	_getItem,
 } from './ac5e-helpers.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _setContextKeywordsSetting, _setUsageRulesSetting } from './ac5e-queries.mjs';
