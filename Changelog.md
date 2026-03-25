@@ -1,3 +1,7 @@
+## 13.5250.16.2
+
+- Fixed `canSee` Midi delegation so MidiQOL's `optionalRules.invisVision` alone no longer makes follow-up attacks inherit `Defender not detected` disadvantage when AC5E is handling attack visibility logic.
+
 ## 13.5250.16.1
 
 - Fixed duplicate `damage.bonus` entries with identical formulas so both contributions apply instead of being collapsed by the rebuild dedupe logic.
