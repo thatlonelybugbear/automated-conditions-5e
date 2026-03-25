@@ -1,6 +1,6 @@
-## 13.5250.16.2
+## 13.5250.16.3
 
-- Fixed `canSee` Midi delegation so MidiQOL's `optionalRules.invisVision` alone no longer makes follow-up attacks inherit `Defender not detected` disadvantage when AC5E is handling attack visibility logic.
+- Removed MidiQOL delegation from AC5E `canSee()` so AC5E visibility checks no longer perturb Midi's transient attack perception state on follow-up attacks.
 
 ## 13.5250.16.1
 

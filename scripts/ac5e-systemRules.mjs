@@ -5,16 +5,6 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 const _canSeeDebugEnabled = () => Boolean(settings.debug || globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.canSee);
 
-function _midiOwnsVisibilityAttackRules() {
-	if (!_activeModule('midi-qol')) return false;
-	const midiConfig = globalThis.MidiQOL?.configSettings?.();
-	if (!midiConfig?.optionalRulesEnabled) return false;
-	const optionalRules = midiConfig.optionalRules ?? {};
-	const invisAdvantage = optionalRules.invisAdvantage ?? 'none';
-	const hiddenAdvantage = optionalRules.hiddenAdvantage ?? 'none';
-	return invisAdvantage !== 'none' || hiddenAdvantage !== 'none';
-}
-
 export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasStatuses = [], includeToken = false, includeIncapacitated = false, partyMember = false }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = foundry.canvas.placeables.Token;
@@ -219,23 +209,6 @@ export function autoRanged(activity, token, target, options) {
 export function canSee(source, target, status) {
 	const resolvedSource = _resolveVisibilityToken(source);
 	const resolvedTarget = _resolveVisibilityToken(target);
-	const midiCanSee = !status && _midiOwnsVisibilityAttackRules() ? globalThis.MidiDAEEval?.canSee : null;
-	if (typeof midiCanSee === 'function') {
-		try {
-			const midiResult = !!midiCanSee(resolvedSource ?? source, resolvedTarget ?? target);
-			if (_canSeeDebugEnabled()) {
-				console.warn(`${Constants.MODULE_NAME_SHORT}.canSee() midi`, {
-					source: resolvedSource?.id ?? source?.id ?? source,
-					target: resolvedTarget?.id ?? target?.id ?? target,
-					status,
-					result: midiResult,
-				});
-			}
-			return midiResult;
-		} catch (error) {
-			if (_canSeeDebugEnabled()) console.warn('AC5e: Midi canSee fallback failed, using AC5e visibility fallback instead', error);
-		}
-	}
 	source = resolvedSource;
 	target = resolvedTarget;
 	if (!source || !target) {

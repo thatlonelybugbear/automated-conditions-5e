@@ -72,6 +72,19 @@ function _getModeCountValue(bucket) {
 	return 0;
 }
 
+function _logMidiVisibilityDebug(payload) {
+	try {
+		console.warn(`AC5E MIDI VIS DEBUG ${JSON.stringify(payload)}`);
+	} catch {
+		console.warn('AC5E MIDI VIS DEBUG', payload);
+	}
+}
+
+function _serializeSetEntries(value) {
+	if (value instanceof Set) return [...value].map((entry) => entry?.id ?? entry?.document?.id ?? entry?.uuid ?? String(entry));
+	return [];
+}
+
 function pickOptions(source, keys) {
 	if (!source || !Array.isArray(keys)) return {};
 	const picked = {};
@@ -211,7 +224,18 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 		}
 		if (options.isInitiative || hookType === 'init') {
 			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'init' }) || {};
-			collectRollMode({ actor, mode, max, min, hookType: 'check', typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Initiative')), ac5eConfig, systemMode, type: 'init', modeCounts });
+			collectRollMode({
+				actor,
+				mode,
+				max,
+				min,
+				hookType: 'check',
+				typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.Initiative')),
+				ac5eConfig,
+				systemMode,
+				type: 'init',
+				modeCounts,
+			});
 		}
 	}
 	if (ability && ['check', 'save'].includes(hookType)) {
@@ -534,12 +558,41 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const incomingAdvantageMode = ac5eConfig.preAC5eConfig?.advantageMode;
 	const incomingAdvantage = _modeHasAdvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && config.advantage === true && config.disadvantage !== true);
 	const incomingDisadvantage = _modeHasDisadvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && config.disadvantage === true && config.advantage !== true);
+	if (hookType === 'attack' && globalThis.ac5e?.debug?.midiVisibilityImport) {
+		const midiConfig = globalThis.MidiQOL?.configSettings?.();
+		_logMidiVisibilityDebug({
+			optionalRulesEnabled: midiConfig?.optionalRulesEnabled ?? null,
+			invisAdvantage: midiConfig?.optionalRules?.invisAdvantage ?? null,
+			hiddenAdvantage: midiConfig?.optionalRules?.hiddenAdvantage ?? null,
+			invisVision: midiConfig?.optionalRules?.invisVision ?? null,
+			workflowTokenId: config?.workflow?.token?.id ?? null,
+			workflowFirstTargetId: config?.workflow?.targets?.first?.()?.id ?? [...(config?.workflow?.targets ?? [])][0]?.id ?? null,
+			workflowTokenCanSee: _serializeSetEntries(config?.workflow?.tokenCanSee),
+			workflowTargetsCanSee: _serializeSetEntries(config?.workflow?.targetsCanSee),
+			workflowTokenCanSense: _serializeSetEntries(config?.workflow?.tokenCanSense),
+			workflowTargetsCanSense: _serializeSetEntries(config?.workflow?.targetsCanSense),
+			configAdvantageMode: config?.advantageMode ?? null,
+			configOptionsAdvantageMode: config?.options?.advantageMode ?? null,
+			configRoll0AdvantageMode: config?.rolls?.[0]?.options?.advantageMode ?? null,
+			midiAttackAdvAttribution,
+			midiAttackDisAttribution,
+			configAdvantage: config?.advantage ?? null,
+			configDisadvantage: config?.disadvantage ?? null,
+			midiOptionsAdvantage: config?.midiOptions?.advantage ?? null,
+			midiOptionsDisadvantage: config?.midiOptions?.disadvantage ?? null,
+			incomingAdvantageMode,
+			incomingAdvantage,
+			incomingDisadvantage
+		});
+	}
 	if (!options.preConfigInitiative) {
 		if (
 			hookType !== 'damage' &&
 			!returnEarly &&
 			!adv &&
-			((incomingAdvantage && !deferD20KeypressToMidi && !keypressAdvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.advantage || hasMidiAdvAttribution)
+			((incomingAdvantage && !deferD20KeypressToMidi && !keypressAdvantageSource) ||
+				ac5eConfig.preAC5eConfig.midiOptions?.advantage ||
+				hasMidiAdvAttribution)
 		) {
 			if (useMidiD20Attribution) {
 				if (midiAdvAttribution.length) ac5eConfig.subject.advantage.push(...midiAdvAttribution);
@@ -550,7 +603,9 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			hookType !== 'damage' &&
 			!returnEarly &&
 			!dis &&
-			((incomingDisadvantage && !deferD20KeypressToMidi && !keypressDisadvantageSource) || ac5eConfig.preAC5eConfig.midiOptions?.disadvantage || hasMidiDisAttribution)
+			((incomingDisadvantage && !deferD20KeypressToMidi && !keypressDisadvantageSource) ||
+				ac5eConfig.preAC5eConfig.midiOptions?.disadvantage ||
+				hasMidiDisAttribution)
 		) {
 			if (useMidiD20Attribution) {
 				if (midiDisAttribution.length) ac5eConfig.subject.disadvantage.push(...midiDisAttribution);

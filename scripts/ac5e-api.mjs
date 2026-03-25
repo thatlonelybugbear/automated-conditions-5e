@@ -1570,6 +1570,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.logEvaluationData = false;
 	ac5e.debug ??= {
 		canSee: false,
+		midiVisibilityImport: false,
 		evaluations: false,
 		optins: false,
 		auraCadenceOptins: false,
