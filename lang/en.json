@@ -20,7 +20,7 @@
 	"AC5E.ExpandedConditionsHint": "When enabled, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
 	"AC5E.VisibilityChecksSetting": {
 		"Name": "Visibility checks",
-		"Hint": "When enabled, AC5e adds the attack visibility rules for cannot see target and target cannot see attacker."
+		"Hint": "When enabled, AC5e injects the 'Cannot See Target' / 'Target Cannot See Attacker' opt-ins and lets those entries drive the attack's advantage/disadvantage instead of only the blinded/invisible statuses. The opt-ins are suppressed when MidiQOL already applies its optional invisibility/hidden attacker rules to avoid duplicate reasons."
 	},
 	"AC5E.ActivityUse": {
 		"Name": "Item Use Checks",
