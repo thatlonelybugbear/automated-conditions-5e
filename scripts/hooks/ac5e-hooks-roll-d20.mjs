@@ -24,7 +24,6 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	deps.captureFrozenD20Baseline(ac5eConfig, config);
 	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, config);
-	void syncMidiSaveDCMessageContent({ config, ac5eConfig, messageTargets });
 	return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 }
 
@@ -52,52 +51,7 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 	deps.captureFrozenD20Baseline(ac5eConfig, config);
 	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, config);
-	void syncMidiSaveDCMessageContent({ config, ac5eConfig, messageTargets });
 	deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	if (deps.hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
 	return ac5eConfig;
-}
-
-async function syncMidiSaveDCMessageContent({ config, ac5eConfig, messageTargets } = {}) {
-	try {
-		const midiMessageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
-		if (!midiMessageUuid) return;
-		const initialTargetADC = Number(ac5eConfig?.initialTargetADC);
-		const alteredTargetADC = Number(ac5eConfig?.alteredTargetADC);
-		if (!Number.isFinite(initialTargetADC) || !Number.isFinite(alteredTargetADC) || initialTargetADC === alteredTargetADC) return;
-		const messageMidi = fromUuidSync(midiMessageUuid);
-		if (!messageMidi?.content || typeof messageMidi.update !== 'function') return;
-		const content = String(messageMidi.content ?? '');
-		if (!content.includes('midi-qol-saveDC')) return;
-		const resolvedTargetCount = getMidiMessageTargetCount(content, messageTargets);
-		const useWildcardMarker = resolvedTargetCount !== 1;
-		const nextContent =
-			useWildcardMarker ?
-				markMidiSaveDCLabelsModified(content, initialTargetADC)
-			:	replaceMidiSaveDCContent(content, initialTargetADC, alteredTargetADC);
-		if (!nextContent || nextContent === content) return;
-		await messageMidi.update({ content: nextContent });
-	} catch (err) {
-		console.warn('AC5E failed to sync Midi save DC message content', err);
-	}
-}
-
-function getMidiMessageTargetCount(content, messageTargets) {
-	if (Array.isArray(messageTargets) && messageTargets.length) return messageTargets.length;
-	const saveTargetMatches = String(content ?? '').match(/midi-qol-save-class/g);
-	return Array.isArray(saveTargetMatches) ? saveTargetMatches.length : 0;
-}
-
-function replaceMidiSaveDCContent(content, initialTargetADC, alteredTargetADC) {
-	const baseLabel = `DC ${initialTargetADC}`;
-	const nextLabel = `DC ${alteredTargetADC}`;
-	return String(content ?? '')
-		.replaceAll(`>${baseLabel}<`, `>${nextLabel}<`)
-		.replaceAll(`vs ${baseLabel}`, `vs ${nextLabel}`);
-}
-
-function markMidiSaveDCLabelsModified(content, initialTargetADC) {
-	const baseLabel = `DC ${initialTargetADC}`;
-	const markedLabel = `DC ${initialTargetADC} (*)`;
-	return String(content ?? '').replaceAll(`>${baseLabel}<`, `>${markedLabel}<`);
 }
