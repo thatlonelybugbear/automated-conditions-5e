@@ -676,7 +676,7 @@ function getCollectedDamageEntries(ac5eConfig, mode, { selectedTypes = undefined
 }
 
 export function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
-	const modes = ['advantage', 'disadvantage', 'modifier', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info'];
+	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info'];
 	return modes.flatMap((mode) => getCollectedDamageEntries(ac5eConfig, mode, { optinOnly: true })).filter((entry) => isDamageEntryEligibleForSelectedTypes(entry, selectedTypes));
 }
 
