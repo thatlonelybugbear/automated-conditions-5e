@@ -1,3 +1,9 @@
+## 13.5250.17.2
+
+- Fixed damage roll modifier opt-ins so they show up correctly in the damage dialog.
+- Fixed `ac5e.usageRules` object registrations so `enforceMode` is kept and works correctly.
+- WIKI updates
+
 ## 13.5250.17.1
 
 - Fixed `info` entries with `enforceMode=normal/advantage/disadvantage` so they are preserved through AC5E roll processing and correctly force the final d20 roll mode.
