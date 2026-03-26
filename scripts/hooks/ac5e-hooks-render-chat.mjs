@@ -75,9 +75,9 @@ async function syncMidiRenderedSaveDC({ render, elem, getConfigAC5E, messageFlag
 		const saveConfig =
 			ac5eEntries.find((entry) => ['check', 'save'].includes(entry?.hookType) && hasAlteredTargetADC(entry)) ??
 			(['check', 'save'].includes(messageFlags?.hookType) && hasAlteredTargetADC(messageFlags) ? messageFlags : undefined);
-		if (!saveConfig) return;
-		const initialTargetADC = Number(saveConfig.initialTargetADC);
-		const alteredTargetADC = Number(saveConfig.alteredTargetADC);
+		const resolvedTargetADC = resolveMidiRenderedTargetADC({ render, elem, saveConfig, messageFlags });
+		if (!resolvedTargetADC) return;
+		const { initialTargetADC, alteredTargetADC } = resolvedTargetADC;
 		if (!Number.isFinite(initialTargetADC) || !Number.isFinite(alteredTargetADC) || initialTargetADC === alteredTargetADC) return;
 		const saveDisplay = elem?.querySelector('.midi-qol-saves-display');
 		if (!saveDisplay) return;
@@ -102,6 +102,41 @@ function hasAlteredTargetADC(ac5eConfig) {
 	const initialTargetADC = Number(ac5eConfig?.initialTargetADC);
 	const alteredTargetADC = Number(ac5eConfig?.alteredTargetADC);
 	return Number.isFinite(initialTargetADC) && Number.isFinite(alteredTargetADC) && initialTargetADC !== alteredTargetADC;
+}
+
+function resolveMidiRenderedTargetADC({ render, elem, saveConfig, messageFlags } = {}) {
+	if (hasAlteredTargetADC(saveConfig)) {
+		return {
+			initialTargetADC: Number(saveConfig.initialTargetADC),
+			alteredTargetADC: Number(saveConfig.alteredTargetADC),
+		};
+	}
+	if (hasAlteredTargetADC(messageFlags)) {
+		return {
+			initialTargetADC: Number(messageFlags.initialTargetADC),
+			alteredTargetADC: Number(messageFlags.alteredTargetADC),
+		};
+	}
+	const content = String(render?.content ?? '');
+	const domHints = Array.from(elem?.querySelectorAll?.('[data-tooltip-html]') ?? [])
+		.map((node) => String(node?.getAttribute?.('data-tooltip-html') ?? ''))
+		.filter(Boolean);
+	const regex = buildModifiedDCPattern();
+	for (const source of [...domHints, content]) {
+		const match = regex.exec(source);
+		if (!match) continue;
+		const alteredTargetADC = Number(match[1]);
+		const initialTargetADC = Number(match[2]);
+		if (!Number.isFinite(initialTargetADC) || !Number.isFinite(alteredTargetADC) || initialTargetADC === alteredTargetADC) continue;
+		return { initialTargetADC, alteredTargetADC };
+	}
+	return null;
+}
+
+function buildModifiedDCPattern() {
+	const label = String(game?.i18n?.localize?.('AC5E.ModifyDC') ?? 'Modified DC').trim();
+	const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+	return new RegExp(`${escaped}\\s+(\\d+)\\s*\\((\\d+)\\)`, 'i');
 }
 
 function patchMidiRenderedSaveDC(saveDisplay, initialTargetADC, alteredTargetADC, useWildcardMarker) {

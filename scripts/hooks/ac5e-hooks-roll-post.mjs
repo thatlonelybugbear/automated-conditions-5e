@@ -77,7 +77,12 @@ function reconcileResolvedD20Mode(ac5eConfig, config, rolls, message) {
 		clearExplicitModeOverride(ac5eConfig);
 	}
 	_getTooltip(ac5eConfig);
-	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType }, { merge: true });
+	if (message && typeof message === 'object') {
+		const messagePayload = { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType };
+		if (Number.isFinite(Number(ac5eConfig?.initialTargetADC))) messagePayload.initialTargetADC = Number(ac5eConfig.initialTargetADC);
+		if (Number.isFinite(Number(ac5eConfig?.alteredTargetADC))) messagePayload.alteredTargetADC = Number(ac5eConfig.alteredTargetADC);
+		_setMessageFlagScope(message, Constants.MODULE_ID, messagePayload, { merge: true });
+	}
 }
 
 function syncChatRollPayloads(rolls, message, ac5eConfig, deps) {
@@ -105,6 +110,8 @@ export function buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
 		hookType,
 		chatTooltip: typeof chatTooltip === 'string' ? chatTooltip : String(ac5eConfig?.chatTooltip ?? '').trim(),
 	};
+	if (Number.isFinite(Number(ac5eConfig?.initialTargetADC))) payload.initialTargetADC = Number(ac5eConfig.initialTargetADC);
+	if (Number.isFinite(Number(ac5eConfig?.alteredTargetADC))) payload.alteredTargetADC = Number(ac5eConfig.alteredTargetADC);
 	if (ac5eConfig?.hasTransitAdvantage) payload.hasTransitAdvantage = true;
 	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;
 	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
