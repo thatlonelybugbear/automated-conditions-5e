@@ -18,6 +18,10 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
 	"AC5E.ExpandedConditionsName": "Condizioni Ampliate AC5e",
 	"AC5E.ExpandedConditionsHint": "Se abilitato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
+	"AC5E.VisibilityChecksSetting": {
+		"Name": "Controlli Visibilità",
+		"Hint": "Quando abilitato, AC5e inserisce le opzioni 'Impossibile vedere Bersaglio' / 'Bersaglio non può vedere Attaccante' e permette a tali voci di determinare il vantaggio/svantaggio dell'attacco, anziché basarsi solo sugli stati di cecità/invisibilità. Le opzioni vengono soppresse quando MidiQOL applica già le sue regole opzionali di invisibilità/attaccante nascosto per evitare duplicazioni."
+	},
 	"AC5E.ActivityUse": {
 		"Name": "Controlli Utilizzo Elementi",
 		"Hint": "Consenti, Applica (annulla + avvisa) o Avverti (consenti + avvisa). Controlli: azioni mentre si è inabili; lancio di incantesimi mentre si è in preda alla furia, silenziati o non competenti nell'uso dell'armatura",
@@ -138,6 +142,8 @@
 	"AC5E.TargetGrantsNoAdvantage": "Vantaggio non concesso",
 	"AC5E.TargetGrantsNoCritical": "Critici non concessi",
 	"AC5E.TargetGrantsNoDisadvantage": "Svantaggio non concesso",
+	"AC5E.CannotSeeTarget": "Impossibile vedere Bersaglio",
+	"AC5E.TargetCannotSeeAttacker": "Bersaglio non può vedere Attaccante",
 	"AC5E.Bonus": "Bonus",
 	"AC5E.ExtraDice": "Dadi Extra",
 	"AC5E.Success": "Successo",
