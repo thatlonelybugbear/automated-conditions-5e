@@ -1,6 +1,6 @@
 # Automated Conditions 5e: Roll Flags Guide
 
-Applies to version: `13.5250.5`
+Applies to version: `13.5250.17.1`
 
 AC5e processes Active Effects with relevant module flags. If the effect's condition evaluates to `true`, it alters the relevant roll accordingly.
 
@@ -117,6 +117,8 @@ Replace `MODE` with one of the following:
 - `modifyDC`: Adds a numeric or calculated bonus to the DC of the rolled action
    - Include `bonus=XXX` in the effect value, following the same logic as a normal bonus to be added or subtracted from the default roll's DC.
    - Or include `set=XXX` in the effect value to **set** the DC to the specified value (number or dice roll).
+   - With MidiQOL save/check cards, AC5E updates the displayed item-card DC after final resolution.
+   - If a shared card represents mixed per-target modified DCs, the shared label is marked as `DC X (*)` and the per-target Midi attribution remains the detailed source of truth.
 - `criticalThreshold` - Alters the threshold for critical on d20 attack rolls.
     - `threshold=(opponentActor.creatureType.includes('dragon') ? -2 : -1)` which, when the opponent is a Dragon, will reduce the critical threshold by `2`, otherwise it is reduced by 1. If you increase the critical threshold to more than 20, you won't be able to crit :wink:
     - You can also use dice rolls, `threshold=1d4` will add the result to the critical threhold
@@ -127,7 +129,11 @@ Replace `MODE` with one of the following:
     - Same logic like the `criticalThreshold` flag above.
 - `info` - Adds an informational AC5E entry without changing the rolled formula by itself.
    - Can be paired with `enforceMode=advantage`, `enforceMode=disadvantage`, or `enforceMode=normal` to force the final d20 roll mode after other advantage/disadvantage calculations.
-   - Example: `flags.automated-conditions-5e.attack.info | enforceMode=normal`
+   - Short aliases are also accepted: `adv`, `dis`, `norm`.
+   - Canonical Active Effect usage:
+     - `key: flags.automated-conditions-5e.attack.info`
+     - `value: enforceMode=normal;`
+   - When `enforceMode` wins, overridden pure d20-state entries (`advantage`, `disadvantage`, `noAdvantage`, `noDisadvantage`) do not consume `once`, cadence, or `usesCount`.
 
 
 > 💡 For `criticalThreshold`, `fumbleThreshold`, `modifyAC` and `modifyDC` flags, you can use `set=` instead of the normal `threshold` or `bonus`, to **set** the value provided, instead of adding or subtracting from the actor values.
@@ -176,6 +182,8 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `noProne` (and similar status keys) | Suppresses a specific status for roll automation while the effect is active |
 
 If multiple same-action-type entries are present on the same effect, AC5e disambiguates labels automatically (for example by appending `#2`).
+
+> When `enforceMode` forces the final d20 mode, AC5E and MidiQOL attribution surfaces show the forced result and suppress overridden d20-state reasons for clarity.
 
 > When using `once` or `usesCount` and the uses are depleted, the effect will either be disabled or deleted, based on it being a transfer effect or not.
 

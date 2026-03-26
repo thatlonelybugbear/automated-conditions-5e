@@ -1,6 +1,6 @@
 ## Table of Contents
 
-Applies to version: `13.5250.5`
+Applies to version: `13.5250.17.1`
 
 - [Assassinate](#assassinate)
 - [Aura of Protection](#aura-of-protection)
@@ -25,6 +25,8 @@ Applies to version: `13.5250.5`
 - [Random Examples of Functionality](#random-examples-of-functionality)
   - [Aura of Save Disadvantage](#aura-of-save-disadvantage)
 - [New Syntax Examples](#new-syntax-examples)
+- [Enforced Roll Mode](#enforced-roll-mode)
+- [Modified Save DC](#modified-save-dc)
 <hr>
 
 > 💡 The active effect's change mode doesn't matter currently. Recommendation, use Custom or Override.
@@ -227,3 +229,44 @@ key: flags.automated-conditions-5e.use.fail
 
 value: chance=25; rollingActor.effects.some(e => e.name === "Dazed"); description=Reaction disrupted.
 ```
+
+## Enforced Roll Mode
+### Force advantage from an informational entry
+```
+key: flags.automated-conditions-5e.attack.info
+
+value: enforceMode=advantage; name=Steady Aim;
+```
+
+### Force normal mode after other d20-state calculations
+```
+key: flags.automated-conditions-5e.save.info
+
+value: enforceMode=normal; name=Unshakable Focus;
+```
+
+Notes:
+
+- `enforceMode` belongs in the Active Effect value field.
+- Accepted values are `advantage`, `disadvantage`, `normal`, plus short aliases `adv`, `dis`, `norm`.
+- When `enforceMode` wins, overridden pure d20-state entries do not consume `once`, cadence, or `usesCount`.
+
+## Modified Save DC
+### Increase save DC by 2
+```
+key: flags.automated-conditions-5e.save.modifyDC
+
+value: bonus=2;
+```
+
+### Set save DC to a fixed value when a condition matches
+```
+key: flags.automated-conditions-5e.save.modifyDC
+
+value: set=17; rollingActor.attributes.hp.pct < 50;
+```
+
+MidiQOL note:
+
+- AC5E updates the visible MidiQOL save/check item-card DC label after final `modifyDC` resolution.
+- If one shared card represents mixed per-target modified DCs, the visible label is marked as `DC X (*)` and the per-target attribution tooltip shows the detailed source.

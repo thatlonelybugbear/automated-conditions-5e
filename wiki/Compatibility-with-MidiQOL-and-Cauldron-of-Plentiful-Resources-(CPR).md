@@ -1,7 +1,10 @@
 Generally, they can all work together, but I would recommend some settings adjustments:
 - Automate D&D5e statuses: Choose either CPR + MidiQOL flags integration or AC5e 
 - Range checks: Choose either MidiQOL or AC5e
+- Visibility checks: Choose either MidiQOL optional visibility rules or AC5E visibility checks
 - AC5E opt-ins require roll dialogs to be configurable. If another module forces `dialog.configure = false`, optional AC5E selections cannot be shown.
+- AC5E `enforceMode` is reflected in MidiQOL attribution, so overridden d20-state reasons are hidden in favor of the final forced roll mode.
+- AC5E `modifyDC` updates visible MidiQOL save/check item-card DC labels after resolution. When a shared card represents mixed per-target DCs, the shared label is marked with `(*)` and the per-target attribution remains the detailed source of truth.
 
 ## Automate d&d5e statuses
 ### AC5e
@@ -28,3 +31,22 @@ For MidiQOL range checks, you need to go into settings > Workflow settings > Mec
 For the MidiQOL nearby foes equivalent you can go into settings > Workflow settings > Rules tab, and in Optional Game Rules:
 
 <img width="791" height="80" alt="image" src="https://github.com/user-attachments/assets/6c98163a-ccf2-4cfc-a1cc-2238668871f1" />
+
+## Visibility Checks
+### AC5e
+AC5E exposes a dedicated `Visibility checks` setting. When enabled, AC5E drives the `Cannot See Target` / `Target Cannot See Attacker` style roll-state logic and related opt-ins.
+
+Recommendation:
+
+- If you want AC5E to own visibility automation and opt-ins, keep AC5E `Visibility checks` enabled and disable the overlapping MidiQOL optional visibility rules.
+
+### MidiQOL
+MidiQOL can also apply overlapping visibility logic through its optional rules for things like hidden attackers and invisibility-related attack handling.
+
+Recommendation:
+
+- If MidiQOL is handling those optional visibility rules, disable AC5E `Visibility checks` to avoid duplicate or competing visibility reasons.
+
+Practical rule:
+
+- Range checks and visibility checks should each have one owner. Pick AC5E or MidiQOL for each category rather than enabling both sides of the same automation.
