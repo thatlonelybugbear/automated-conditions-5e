@@ -1,5 +1,6 @@
 import { _getDistance, _hasValidTargets, _localize } from '../ac5e-helpers.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
+import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-forward.mjs';
 
 function logInitialVisibilityFormulaDebug(stage, ac5eConfig, config, dialog) {
 	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
@@ -64,6 +65,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
 	logInitialVisibilityFormulaDebug('afterChecks', ac5eConfig, config, dialog);
 	deps.syncD20AbilityOverrideState(config, ac5eConfig, { activity, options });
 	applyAttackRangeState({ ac5eConfig, activity, sourceToken, singleTargetToken, options, config });

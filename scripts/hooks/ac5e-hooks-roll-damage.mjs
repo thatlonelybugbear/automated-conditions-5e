@@ -1,3 +1,5 @@
+import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-forward.mjs';
+
 export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
@@ -34,6 +36,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
 	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, config);
 	deps.applyOptinCriticalToDamageConfig(ac5eConfig, config);

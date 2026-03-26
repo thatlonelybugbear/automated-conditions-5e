@@ -1,3 +1,5 @@
+import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-forward.mjs';
+
 export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	const { messageForTargets, activity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	options.isDeathSave = config.hookNames.includes('deathSave');
@@ -18,6 +20,7 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 		return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
+	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
 	deps.captureFrozenD20Baseline(ac5eConfig, config);
 	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, config);
@@ -44,6 +47,7 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 		return deps.setAC5eProperties(ac5eConfig, config, dialog, message, options);
 	}
 	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
+	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
 	deps.captureFrozenD20Baseline(ac5eConfig, config);
 	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, config);
