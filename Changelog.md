@@ -3,6 +3,7 @@
 - Fixed `info` entries with `enforceMode=normal/advantage/disadvantage` so they are preserved through AC5E roll processing and correctly force the final d20 roll mode.
 - When `enforceMode` wins, overridden pure d20-state entries no longer consume `once`, cadence, or `usesCount`.
 - Cleaned up enforced-mode attribution so the roll dialog tooltip and MidiQOL attribution tooltip show the forced roll mode and suppress overridden d20-state reasons.
+- Updated MidiQOL save/check item-card DC labels after AC5E `modifyDC` applies, replacing the displayed DC when it is unambiguous and marking it with `(*)` when the card may contain mixed per-target DCs.
 - Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>).
 
 ## 13.5250.17
