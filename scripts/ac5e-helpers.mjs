@@ -1466,10 +1466,13 @@ export function _getTooltip(ac5eConfig = {}) {
 	const explicitOverride = ac5eConfig?.explicitModeOverride?.replacesCalculatedMode ? ac5eConfig.explicitModeOverride : null;
 	const suppressD20Calculated = explicitOverride?.family === 'd20';
 	const suppressDamageCalculated = explicitOverride?.family === 'damage';
+	const enforcedD20Mode = ['advantage', 'disadvantage', 'normal'].includes(ac5eConfig?.enforcedD20Mode) ? ac5eConfig.enforcedD20Mode : null;
+	const suppressResolvedD20Buckets = suppressD20Calculated || Boolean(enforcedD20Mode);
 	const explicitOverrideBucketLabel =
 		explicitOverride?.source === 'dialog' ? 'Roll dialog user input'
 		: explicitOverride?.source === 'keypress' ? 'Override keypress'
 		: '';
+	let hiddenResolvedD20TooltipEntries = 0;
 	if (subject) {
 		const subjectSuppressedStatuses = [...new Set(mapEntryLabels(subject?.suppressedStatuses ?? []))];
 		const subjectCritical =
@@ -1489,26 +1492,39 @@ export function _getTooltip(ac5eConfig = {}) {
 		const subjectMidiDisadvantage = suppressSeparateMidiAbilityTooltip ? [] : [...new Set((subject?.midiDisadvantage ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
 		const midiAdvantageSet = new Set(subjectMidiAdvantage.map(normalizeTooltipLabel));
 		const midiDisadvantageSet = new Set(subjectMidiDisadvantage.map(normalizeTooltipLabel));
+		const calculatedSubjectAdvantageModes = [...mapEntryLabels(filterOptinEntries(subject?.advantage ?? [])), ...([...subject?.advantageNames] ?? [])].filter((label) => !midiAdvantageSet.has(normalizeTooltipLabel(label)));
+		const calculatedSubjectDisadvantageModes = [...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter(
+			(label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)),
+		);
+		const calculatedSubjectNoAdvantage = mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? []));
+		const calculatedSubjectNoDisadvantage = mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? []));
+		if (enforcedD20Mode) {
+			hiddenResolvedD20TooltipEntries +=
+				calculatedSubjectAdvantageModes.length +
+				calculatedSubjectDisadvantageModes.length +
+				calculatedSubjectNoAdvantage.length +
+				calculatedSubjectNoDisadvantage.length;
+		}
 		const subjectAdvantageModes =
-			suppressD20Calculated ?
+			suppressResolvedD20Buckets ?
 				explicitOverride?.action === 'advantage' && explicitOverrideBucketLabel ?
 					[explicitOverrideBucketLabel]
 				:	[]
-			:	[...mapEntryLabels(filterOptinEntries(subject?.advantage ?? [])), ...([...subject?.advantageNames] ?? [])].filter((label) => !midiAdvantageSet.has(normalizeTooltipLabel(label)));
+			:	calculatedSubjectAdvantageModes;
 		const subjectDisadvantageModes =
-			suppressD20Calculated ?
+			suppressResolvedD20Buckets ?
 				explicitOverride?.action === 'disadvantage' && explicitOverrideBucketLabel ?
 					[explicitOverrideBucketLabel]
 				:	[]
-			:	[...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter((label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)));
+			:	calculatedSubjectDisadvantageModes;
 		const subjectNormalModes =
-			suppressD20Calculated ?
+			suppressResolvedD20Buckets ?
 				explicitOverride?.action === 'normal' && explicitOverrideBucketLabel ?
 					[explicitOverrideBucketLabel]
 				:	[]
 			:	[];
-		const subjectNoAdvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? []));
-		const subjectNoDisadvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? []));
+		const subjectNoAdvantage = suppressResolvedD20Buckets ? [] : calculatedSubjectNoAdvantage;
+		const subjectNoDisadvantage = suppressResolvedD20Buckets ? [] : calculatedSubjectNoDisadvantage;
 		const subjectFail = mapEntryLabels(filterOptinEntries(subject?.fail ?? []));
 		const subjectRangeNotes = [...new Set(mapEntryLabels(subject?.rangeNotes ?? []))];
 		const subjectMidiFail = suppressSeparateMidiAbilityTooltip ? [] : [...new Set((subject?.midiFail ?? []).map((entry) => String(entry ?? '').trim()).filter(Boolean))];
@@ -1543,10 +1559,21 @@ export function _getTooltip(ac5eConfig = {}) {
 		const opponentSuppressedStatuses = [...new Set(mapEntryLabels(opponent?.suppressedStatuses ?? []))];
 		const opponentCritical = suppressDamageCalculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.critical ?? []));
 		const opponentNoCritical = suppressDamageCalculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noCritical ?? []));
-		const opponentAdvantageModes = suppressD20Calculated ? [] : [...mapEntryLabels(filterOptinEntries(opponent?.advantage ?? [])), ...([...opponent?.advantageNames] ?? [])];
-		const opponentDisadvantageModes = suppressD20Calculated ? [] : [...mapEntryLabels(filterOptinEntries(opponent?.disadvantage ?? [])), ...([...opponent?.disadvantageNames] ?? [])];
-		const opponentNoAdvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noAdvantage ?? []));
-		const opponentNoDisadvantage = suppressD20Calculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noDisadvantage ?? []));
+		const calculatedOpponentAdvantageModes = [...mapEntryLabels(filterOptinEntries(opponent?.advantage ?? [])), ...([...opponent?.advantageNames] ?? [])];
+		const calculatedOpponentDisadvantageModes = [...mapEntryLabels(filterOptinEntries(opponent?.disadvantage ?? [])), ...([...opponent?.disadvantageNames] ?? [])];
+		const calculatedOpponentNoAdvantage = mapEntryLabels(filterOptinEntries(opponent?.noAdvantage ?? []));
+		const calculatedOpponentNoDisadvantage = mapEntryLabels(filterOptinEntries(opponent?.noDisadvantage ?? []));
+		if (enforcedD20Mode) {
+			hiddenResolvedD20TooltipEntries +=
+				calculatedOpponentAdvantageModes.length +
+				calculatedOpponentDisadvantageModes.length +
+				calculatedOpponentNoAdvantage.length +
+				calculatedOpponentNoDisadvantage.length;
+		}
+		const opponentAdvantageModes = suppressResolvedD20Buckets ? [] : calculatedOpponentAdvantageModes;
+		const opponentDisadvantageModes = suppressResolvedD20Buckets ? [] : calculatedOpponentDisadvantageModes;
+		const opponentNoAdvantage = suppressResolvedD20Buckets ? [] : calculatedOpponentNoAdvantage;
+		const opponentNoDisadvantage = suppressResolvedD20Buckets ? [] : calculatedOpponentNoDisadvantage;
 		const opponentFail = mapEntryLabels(filterOptinEntries(opponent?.fail ?? []));
 		const opponentFumble = mapEntryLabels(filterOptinEntries(opponent?.fumble ?? []));
 		const opponentSuccess = mapEntryLabels(filterOptinEntries(opponent?.success ?? []));
@@ -1571,11 +1598,19 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponentExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponentExtraDiceLabels.join(', ')}</span>`);
 	}
 	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
-	const infoLabels = [...new Set(mapEntryLabels(infoEntries))];
-	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Info')}: ${infoLabels.join(', ')}</span>`);
-	const enforcedD20Mode = ['advantage', 'disadvantage', 'normal'].includes(ac5eConfig?.enforcedD20Mode) ? ac5eConfig.enforcedD20Mode : null;
 	const enforcedModeEntries = enforcedD20Mode ? infoEntries.filter((entry) => entry?.enforceMode === enforcedD20Mode) : [];
 	const enforcedModeLabels = [...new Set(mapEntryLabels(enforcedModeEntries))];
+	const infoLabels = [
+		...new Set(
+			mapEntryLabels(
+				infoEntries.filter((entry) => {
+					if (!entry || typeof entry !== 'object') return true;
+					return entry?.enforceMode !== enforcedD20Mode;
+				}),
+			),
+		),
+	];
+	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Info')}: ${infoLabels.join(', ')}</span>`);
 	const enforcedModeLabel =
 		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
@@ -1585,6 +1620,12 @@ export function _getTooltip(ac5eConfig = {}) {
 		enforcedModeLabels.length,
 		`<span style="display: block; text-align: left;">Forced Roll Mode (${enforcedModeLabel}): ${enforcedModeLabels.join(', ')}</span>`,
 	);
+	if (enforcedD20Mode) {
+		addTooltip(
+			hiddenResolvedD20TooltipEntries > 0,
+			'<span style="display: block; text-align: left;">Other roll-state modifiers were overridden.</span>',
+		);
+	}
 	//critical threshold
 	if (subject?.criticalThreshold.length || opponent?.criticalThreshold.length) {
 		const combinedEntries = filterOptinEntries([...(subject?.criticalThreshold ?? []), ...(opponent?.criticalThreshold ?? [])]);
@@ -1924,6 +1965,7 @@ function _createMidiTrackerSyncContext(tracker, trackedTypes = []) {
 
 function _collectMidiTrackerCoreLabels(ac5eConfig) {
 	const selected = ac5eConfig?.optinSelected ?? {};
+	const enforcedD20Mode = ['advantage', 'disadvantage', 'normal'].includes(ac5eConfig?.enforcedD20Mode) ? ac5eConfig.enforcedD20Mode : null;
 	const filterOptin = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 	const subject = ac5eConfig?.subject ?? {};
 	const opponent = ac5eConfig?.opponent ?? {};
@@ -1935,15 +1977,28 @@ function _collectMidiTrackerCoreLabels(ac5eConfig) {
 		}
 		return _dedupeMidiTrackerLabels(labels);
 	};
+	const infoEntries = filterOptin([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
+	const enforcedModeEntries = enforcedD20Mode ? infoEntries.filter((entry) => entry?.enforceMode === enforcedD20Mode) : [];
+	const enforcedModeLabels = _dedupeMidiTrackerLabels(_labelsFromMidiTrackerEntries(enforcedModeEntries));
+	const infoLabels = _dedupeMidiTrackerLabels(
+		_labelsFromMidiTrackerEntries(
+			infoEntries.filter((entry) => {
+				if (!entry || typeof entry !== 'object') return true;
+				return entry?.enforceMode !== enforcedD20Mode;
+			}),
+		),
+	);
 	return {
 		filterOptin,
 		subject,
 		opponent,
+		enforcedD20Mode,
+		enforcedModeLabels,
 		advantageLabels: collectLabels('advantage', 'advantage', true),
 		disadvantageLabels: collectLabels('disadvantage', 'disadvantage', true),
 		noAdvantageLabels: collectLabels('noAdvantage'),
 		noDisadvantageLabels: collectLabels('noDisadvantage'),
-		infoLabels: collectLabels('info'),
+		infoLabels,
 	};
 }
 
@@ -2010,6 +2065,16 @@ function _addMidiTrackerCustomAttributionEntries(tracker, trackerContext, prefix
 	}
 }
 
+function _addMidiTrackerStandaloneAttributionEntries(tracker, trackerContext, labels = []) {
+	const cleanedLabels = labels.map((label) => String(label ?? '').trim()).filter(Boolean);
+	if (!cleanedLabels.length) return;
+	for (const [index, label] of cleanedLabels.entries()) {
+		const sourceSuffix = trackerContext.normalizeLabel(label).replace(/[^a-z0-9_-]/g, '-') || 'entry';
+		const source = `${trackerContext.legacySourcePrefix}tooltip:${sourceSuffix}:${index}`;
+		_setMidiTrackerAttribution(tracker, 'AC5E', source, label);
+	}
+}
+
 function _getMidiSelectedAdvantageType(ac5eConfig, config) {
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	const selectedMode = ac5eConfig?.advantageMode ?? config?.rolls?.[0]?.options?.advantageMode ?? config?.options?.advantageMode;
@@ -2047,16 +2112,33 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	clearLegacySet(tracker?.legacyAttribution);
 	clearLegacySet(tracker?.advReminderAttribution);
 
-	const { filterOptin, subject, opponent, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } = _collectMidiTrackerCoreLabels(ac5eConfig);
+	const { filterOptin, subject, opponent, enforcedD20Mode, enforcedModeLabels, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } =
+		_collectMidiTrackerCoreLabels(ac5eConfig);
+	const midiTrackerAdvantageLabels = enforcedD20Mode ? [] : advantageLabels;
+	const midiTrackerDisadvantageLabels = enforcedD20Mode ? [] : disadvantageLabels;
+	const midiTrackerNoAdvantageLabels = enforcedD20Mode ? [] : noAdvantageLabels;
+	const midiTrackerNoDisadvantageLabels = enforcedD20Mode ? [] : noDisadvantageLabels;
+	const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
 	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
-	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', advantageLabels);
-	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', disadvantageLabels);
-	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', noAdvantageLabels);
-	_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', noDisadvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', midiTrackerNoDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'CRIT', criticalLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOCRIT', noCriticalLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels);
+	const enforcedModeLabel =
+		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
+		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
+		: enforcedD20Mode === 'normal' ? _localize('DND5E.Normal')
+		: '';
+	if (enforcedModeLabels.length && enforcedModeLabel) {
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, `Forced Roll Mode (${enforcedModeLabel})`, enforcedModeLabels, { combineLabelList: true });
+	}
+	if (hiddenResolvedD20AttributionEntries > 0) {
+		_addMidiTrackerStandaloneAttributionEntries(tracker, trackerContext, ['Other roll-state modifiers were overridden.']);
+	}
 	_syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config);
 	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
@@ -2112,10 +2194,12 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		tracker,
 		ac5eConfig,
 		extra: {
-			advantageLabels,
-			disadvantageLabels,
-			noAdvantageLabels,
-			noDisadvantageLabels,
+			advantageLabels: midiTrackerAdvantageLabels,
+			disadvantageLabels: midiTrackerDisadvantageLabels,
+			noAdvantageLabels: midiTrackerNoAdvantageLabels,
+			noDisadvantageLabels: midiTrackerNoDisadvantageLabels,
+			enforcedD20Mode,
+			enforcedModeLabels,
 			targetADCDisplayLabels,
 		},
 	});
@@ -2279,18 +2363,35 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		clearLegacySet(tracker?.legacyAttribution);
 		clearLegacySet(tracker?.advReminderAttribution);
 
-		const { filterOptin, subject, opponent, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } = _collectMidiTrackerCoreLabels(ac5eConfig);
+		const { filterOptin, subject, opponent, enforcedD20Mode, enforcedModeLabels, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } =
+			_collectMidiTrackerCoreLabels(ac5eConfig);
+		const midiTrackerAdvantageLabels = enforcedD20Mode ? [] : advantageLabels;
+		const midiTrackerDisadvantageLabels = enforcedD20Mode ? [] : disadvantageLabels;
+		const midiTrackerNoAdvantageLabels = enforcedD20Mode ? [] : noAdvantageLabels;
+		const midiTrackerNoDisadvantageLabels = enforcedD20Mode ? [] : noDisadvantageLabels;
+		const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 		const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 		const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
 		const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 		const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
-		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', advantageLabels);
-		_addMidiTrackerEntries(tracker, trackerContext, 'DIS', disadvantageLabels);
-		_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', noAdvantageLabels);
-		_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', noDisadvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
+		_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', midiTrackerNoDisadvantageLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels, { combineLabelList: true });
+		const enforcedModeLabel =
+			enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
+			: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
+			: enforcedD20Mode === 'normal' ? _localize('DND5E.Normal')
+			: '';
+		if (enforcedModeLabels.length && enforcedModeLabel) {
+			_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, `Forced Roll Mode (${enforcedModeLabel})`, enforcedModeLabels, { combineLabelList: true });
+		}
+		if (hiddenResolvedD20AttributionEntries > 0) {
+			_addMidiTrackerStandaloneAttributionEntries(tracker, trackerContext, ['Other roll-state modifiers were overridden.']);
+		}
 		_syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config);
 		const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
 		const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));

@@ -2,6 +2,8 @@ import {
 	_ac5eSafeEval,
 	_activeModule,
 	_dispositionCheck,
+	_entryMatchesTransientState,
+	_filterOptinEntries,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
 	_getEffectOriginToken,
@@ -1710,6 +1712,64 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		sameUnnamed.forEach((e) => updateIndexLabel(e));
 		updateIndexLabel(entry);
 	};
+	const resolveForcedD20Mode = (entries = []) => {
+		const normalizedEntries = Array.isArray(entries) ? entries : [];
+		let winner = null;
+		for (const entry of normalizedEntries) {
+			const enforceMode = entry?.enforceMode;
+			if (!enforceMode) continue;
+			const priority = Number(entry?.priority);
+			const sortPriority = Number.isFinite(priority) ? priority : 0;
+			if (!winner || sortPriority >= winner.priority) winner = { mode: enforceMode, priority: sortPriority };
+		}
+		return winner?.mode ?? null;
+	};
+	const countEntries = (entries = []) => (Array.isArray(entries) ? entries.length : 0);
+	const getValidFlagsBySideAndMode = (actorType, mode) =>
+		_filterOptinEntries(
+			validFlags.filter((entry) => entry?.actorType === actorType && entry?.mode === mode),
+			ac5eConfig?.optinSelected,
+		);
+	const getTransientRollStateFromValidFlags = () => {
+		const subjectAdvantage = [..._filterOptinEntries(ac5eConfig?.subject?.advantage ?? [], ac5eConfig?.optinSelected), ...getValidFlagsBySideAndMode('subject', 'advantage')];
+		const opponentAdvantage = [..._filterOptinEntries(ac5eConfig?.opponent?.advantage ?? [], ac5eConfig?.optinSelected), ...getValidFlagsBySideAndMode('opponent', 'advantage')];
+		const subjectDisadvantage = [
+			..._filterOptinEntries(ac5eConfig?.subject?.disadvantage ?? [], ac5eConfig?.optinSelected),
+			...getValidFlagsBySideAndMode('subject', 'disadvantage'),
+		];
+		const opponentDisadvantage = [
+			..._filterOptinEntries(ac5eConfig?.opponent?.disadvantage ?? [], ac5eConfig?.optinSelected),
+			...getValidFlagsBySideAndMode('opponent', 'disadvantage'),
+		];
+		const hasAdvantageSources =
+			Boolean(subjectAdvantage.length || opponentAdvantage.length) ||
+			Boolean(countEntries(ac5eConfig?.subject?.advantageNames) || countEntries(ac5eConfig?.opponent?.advantageNames));
+		const hasDisadvantageSources =
+			Boolean(subjectDisadvantage.length || opponentDisadvantage.length) ||
+			Boolean(countEntries(ac5eConfig?.subject?.disadvantageNames) || countEntries(ac5eConfig?.opponent?.disadvantageNames));
+		return {
+			hasTransitAdvantage: hasAdvantageSources,
+			hasTransitDisadvantage: hasDisadvantageSources,
+		};
+	};
+	const getEnforcedD20ModeFromValidFlags = () => {
+		if (hook === 'damage') return null;
+		const transientRollState = getTransientRollStateFromValidFlags();
+		const infoEntries = _filterOptinEntries(
+			[
+				..._filterOptinEntries(ac5eConfig?.subject?.info ?? [], ac5eConfig?.optinSelected),
+				..._filterOptinEntries(ac5eConfig?.opponent?.info ?? [], ac5eConfig?.optinSelected),
+				...getValidFlagsBySideAndMode('subject', 'info'),
+				...getValidFlagsBySideAndMode('opponent', 'info'),
+			],
+			ac5eConfig?.optinSelected,
+		).filter((entry) => entry && typeof entry === 'object' && _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
+		return resolveForcedD20Mode(infoEntries);
+	};
+	const isSuppressedByEnforcedD20Mode = (entry, enforcedD20Mode) => {
+		if (!enforcedD20Mode || hook === 'damage') return false;
+		return ['advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage'].includes(String(entry?.mode ?? ''));
+	};
 
 	const updateArrays = {
 		activityUpdates: [],
@@ -2164,11 +2224,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const validEffectUpdatesGM = [];
 	const validItemUpdates = [];
 	const validItemUpdatesGM = [];
+	const enforcedD20Mode = getEnforcedD20ModeFromValidFlags();
 
 	for (const entry of validFlags) {
 		let { actorType, evaluation, mode, name, bonus, modifier, set, threshold, isAura, optin } = entry;
 		if (mode.includes('skill') || mode.includes('tool')) mode = 'check';
 		if (evaluation) {
+			const suppressQueuedUses = isSuppressedByEnforcedD20Mode(entry, enforcedD20Mode);
 			const entryBaseId = `${entry.effectUuid ?? ''}:${entry.changeIndex}:${hook}`;
 			const matchesQueuedUpdate = (queued) => {
 				if (!queued) return false;
@@ -2181,7 +2243,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			};
 			const pendingForEntry = updateArrays.pendingUses?.filter(matchesQueuedUpdate);
 			const pendingModeFamily = _getPendingUseModeFamily(mode, hook);
-			if (pendingForEntry?.length) {
+			if (!suppressQueuedUses && pendingForEntry?.length) {
 				if (ac5e?.debug?.auraCadenceOptins && entry?.isAura && entry?.optin) {
 					console.warn('AC5E aura pending uses matched to entry', {
 						entryId: entry.id,
@@ -2207,27 +2269,32 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					});
 				}
 			}
-			for (const queued of updateArrays.activityUpdates.filter(matchesQueuedUpdate)) validActivityUpdates.push(queued.context ?? queued);
-			for (const queued of updateArrays.activityUpdatesGM.filter(matchesQueuedUpdate)) validActivityUpdatesGM.push(queued.context ?? queued);
-			for (const queued of updateArrays.actorUpdates.filter(matchesQueuedUpdate)) validActorUpdates.push(queued.context ?? queued);
-			for (const queued of updateArrays.actorUpdatesGM.filter(matchesQueuedUpdate)) validActorUpdatesGM.push(queued.context ?? queued);
-			for (const queued of updateArrays.effectDeletions.filter(matchesQueuedUpdate)) {
-				const uuid = queued?.uuid ?? queued?.context?.uuid;
-				if (typeof uuid === 'string' && uuid.length) validEffectDeletions.push(uuid);
+			if (!suppressQueuedUses) {
+				for (const queued of updateArrays.activityUpdates.filter(matchesQueuedUpdate)) validActivityUpdates.push(queued.context ?? queued);
+				for (const queued of updateArrays.activityUpdatesGM.filter(matchesQueuedUpdate)) validActivityUpdatesGM.push(queued.context ?? queued);
+				for (const queued of updateArrays.actorUpdates.filter(matchesQueuedUpdate)) validActorUpdates.push(queued.context ?? queued);
+				for (const queued of updateArrays.actorUpdatesGM.filter(matchesQueuedUpdate)) validActorUpdatesGM.push(queued.context ?? queued);
+				for (const queued of updateArrays.effectDeletions.filter(matchesQueuedUpdate)) {
+					const uuid = queued?.uuid ?? queued?.context?.uuid;
+					if (typeof uuid === 'string' && uuid.length) validEffectDeletions.push(uuid);
+				}
+				for (const queued of updateArrays.effectDeletionsGM.filter(matchesQueuedUpdate)) {
+					const uuid = queued?.uuid ?? queued?.context?.uuid;
+					if (typeof uuid === 'string' && uuid.length) validEffectDeletionsGM.push(uuid);
+				}
+				for (const queued of updateArrays.effectUpdates.filter(matchesQueuedUpdate)) validEffectUpdates.push(queued.context ?? queued);
+				for (const queued of updateArrays.effectUpdatesGM.filter(matchesQueuedUpdate)) validEffectUpdatesGM.push(queued.context ?? queued);
+				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
+				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-			for (const queued of updateArrays.effectDeletionsGM.filter(matchesQueuedUpdate)) {
-				const uuid = queued?.uuid ?? queued?.context?.uuid;
-				if (typeof uuid === 'string' && uuid.length) validEffectDeletionsGM.push(uuid);
-			}
-			for (const queued of updateArrays.effectUpdates.filter(matchesQueuedUpdate)) validEffectUpdates.push(queued.context ?? queued);
-			for (const queued of updateArrays.effectUpdatesGM.filter(matchesQueuedUpdate)) validEffectUpdatesGM.push(queued.context ?? queued);
-			for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
-			for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			if (['bonus', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
-				const preserveEntryObject = (mode === 'fail' && Boolean(entry?.description)) || Boolean(entry?.chance?.enabled);
+				const preserveEntryObject =
+					(mode === 'fail' && Boolean(entry?.description)) ||
+					(mode === 'info' && Boolean(entry?.enforceMode)) ||
+					Boolean(entry?.chance?.enabled);
 				ac5eConfig[actorType][mode].push(
 					preserveEntryObject ? entry
 					: isAura || hasDecoratedLabel ? entry.label

@@ -1,3 +1,10 @@
+## 13.5250.17.1
+
+- Fixed `info` entries with `enforceMode=normal/advantage/disadvantage` so they are preserved through AC5E roll processing and correctly force the final d20 roll mode.
+- When `enforceMode` wins, overridden pure d20-state entries no longer consume `once`, cadence, or `usesCount`.
+- Cleaned up enforced-mode attribution so the roll dialog tooltip and MidiQOL attribution tooltip show the forced roll mode and suppress overridden d20-state reasons.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>).
+
 ## 13.5250.17
 
 - Removed MidiQOL delegation from AC5E `canSee()` so AC5E visibility checks no longer perturb Midi's transient attack perception state on follow-up attacks.
