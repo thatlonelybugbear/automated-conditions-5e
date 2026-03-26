@@ -42,8 +42,6 @@ export function forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialo
 	const relevantEntries = getRelevantOptinEntriesForMidiFastForward(ac5eConfig, config, hookType);
 	if (!relevantEntries.length) return false;
 	dialog.configure = true;
-	dialog.options ??= {};
-	dialog.options.configure = true;
 	if (globalThis.ac5e?.debug?.optins) {
 		console.warn('AC5E forced dialog.configure for Midi fast-forward due to relevant optins', {
 			hookType,

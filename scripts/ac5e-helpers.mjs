@@ -2579,7 +2579,7 @@ export function _generateAC5eFlags() {
 	}
 
 	// DAE autocomplete should only expose canonical long-scope keys.
-	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`));
+	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`)); //to-do: clean up (probably not needed anymore)
 }
 
 /**
