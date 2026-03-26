@@ -234,6 +234,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 	const usesCount = definition.usesCount;
 	const update = definition.update;
 	const itemLimited = Boolean(definition.itemLimited);
+	const enforceMode = typeof definition.enforceMode === 'string' ? definition.enforceMode.trim() : definition.enforceMode;
 	const value = definition.value;
 	const bonus = definition.bonus ?? value;
 	const persistent = Boolean(definition.persistent);
@@ -262,6 +263,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 		usesCount,
 		update,
 		itemLimited,
+		enforceMode,
 		bonus,
 		set: definition.set,
 		modifier: definition.modifier,
@@ -304,6 +306,7 @@ function _buildUsageRulesState() {
 			update: entry.update,
 			abilityOverride: entry.abilityOverride,
 			itemLimited: entry.itemLimited,
+			enforceMode: entry.enforceMode,
 			bonus: entry.bonus,
 			set: entry.set,
 			modifier: entry.modifier,
@@ -426,6 +429,7 @@ function listUsageRules() {
 			usesCount: entry.usesCount,
 			update: entry.update,
 			itemLimited: entry.itemLimited,
+			enforceMode: entry.enforceMode,
 			bonus: entry.bonus,
 			set: entry.set,
 			modifier: entry.modifier,
@@ -468,6 +472,7 @@ function showUsageRuleKeys() {
 		update: 'String: allowlisted actor update instruction. Delta is the default, and "=" sets an absolute value. Example: "opponentActor.hp,-5" or "rollingActor.hp,=1".',
 		abilityOverride: 'String: overrides the ability used for attack hooks only. Example: "cha".',
 		itemLimited: 'Boolean: restricts matching to item-originated contexts where applicable.',
+		enforceMode: 'String: for info rules on d20 hooks, forces the final resolved roll mode. Supported values: "advantage", "disadvantage", and "normal".',
 		bonus: 'String|Number: bonus payload for bonus or extraDice-style rules. Alias: value.',
 		set: 'String|Number: set payload used by modes that replace a resolved value.',
 		modifier: 'String|Number: modifier payload used by modifier-style modes.',
