@@ -686,6 +686,7 @@ export function _getDialogConfig({ hookType, useConfig, hookContext }) {
 
 export function _getSafeUseConfig(ac5eConfig) {
 	const options = foundry.utils.duplicate(ac5eConfig?.options ?? {});
+
 	const toDocumentRef = (value) => {
 		if (!value) return null;
 		if (typeof value === 'string' && value.includes('.')) return { id: value.split('.').at(-1), type: undefined, uuid: value };

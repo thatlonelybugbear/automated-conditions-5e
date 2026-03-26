@@ -38,6 +38,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	deps.applyExplicitModeOverride(ac5eConfig, config);
 	deps.applyOptinCriticalToDamageConfig(ac5eConfig, config);
 	deps.captureFrozenDamageBaseline(ac5eConfig, config);
+	deps.applyDamageFormulaStateToConfig?.(ac5eConfig, config);
 	deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	deps.syncTargetsToConfigAndMessage(ac5eConfig, options.targets ?? [], message, deps);
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage:', { ac5eConfig });

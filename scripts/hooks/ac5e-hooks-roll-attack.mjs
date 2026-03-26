@@ -1,6 +1,35 @@
 import { _getDistance, _hasValidTargets, _localize } from '../ac5e-helpers.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 
+function logInitialVisibilityFormulaDebug(stage, ac5eConfig, config, dialog) {
+	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
+	const selectedVisibilityOptins = Object.entries(ac5eConfig?.optinSelected ?? {})
+		.filter(([id, selected]) => selected && String(id).startsWith('ac5e:visibility:'))
+		.map(([id]) => id);
+	const availableVisibilityOptins = [...(ac5eConfig?.subject?.advantage ?? []), ...(ac5eConfig?.subject?.disadvantage ?? []), ...(ac5eConfig?.opponent?.advantage ?? []), ...(ac5eConfig?.opponent?.disadvantage ?? [])]
+		.filter((entry) => entry?.optin && String(entry?.id ?? '').startsWith('ac5e:visibility:'))
+		.map((entry) => ({ id: entry.id, mode: entry.mode, actorType: entry.actorType, target: entry.target }));
+	if (!selectedVisibilityOptins.length && !availableVisibilityOptins.length) return;
+	const payload = {
+		stage,
+		hookType: ac5eConfig?.hookType ?? null,
+		selectedVisibilityOptins,
+		availableVisibilityOptins,
+		configAdvantage: config?.advantage ?? null,
+		configDisadvantage: config?.disadvantage ?? null,
+		dialogAdvantageMode: dialog?.options?.advantageMode ?? null,
+		dialogDefaultButton: dialog?.options?.defaultButton ?? null,
+		roll0AdvantageMode: config?.rolls?.[0]?.options?.advantageMode ?? null,
+		roll0Formula: config?.rolls?.[0]?.formula ?? null,
+		roll0Parts: Array.isArray(config?.rolls?.[0]?.parts) ? config.rolls[0].parts : [],
+	};
+	try {
+		console.warn(`AC5E INITIAL VIS PREROLL DEBUG ${JSON.stringify(payload)}`);
+	} catch {
+		console.warn('AC5E INITIAL VIS PREROLL DEBUG', payload);
+	}
+}
+
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollAttackHook')) console.error('AC5e _preRollAttack', hook, { config, dialog, message });
 	const { subject: { actor: sourceActor, ability } = {}, subject: configActivity, ammunition, attackMode, mastery } = config || {};
@@ -35,6 +64,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	logInitialVisibilityFormulaDebug('afterChecks', ac5eConfig, config, dialog);
 	deps.syncD20AbilityOverrideState(config, ac5eConfig, { activity, options });
 	applyAttackRangeState({ ac5eConfig, activity, sourceToken, singleTargetToken, options, config });
 	applyAttackHeavyState({
@@ -49,8 +79,10 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollAttackHook')) console.warn('AC5E._preRollAttack:', { ac5eConfig });
 	deps.captureFrozenD20Baseline(ac5eConfig, config);
 	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
+	logInitialVisibilityFormulaDebug('afterCalcAdvantageMode', ac5eConfig, config, dialog);
 	deps.applyExplicitModeOverride(ac5eConfig, config);
 	deps.setAC5eProperties(ac5eConfig, config, dialog, message);
+	logInitialVisibilityFormulaDebug('afterSetAC5eProperties', ac5eConfig, config, dialog);
 	deps.syncTargetsToConfigAndMessage(ac5eConfig, options.targets ?? [], message, deps);
 	return ac5eConfig;
 }

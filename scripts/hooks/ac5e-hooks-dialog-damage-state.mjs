@@ -1255,3 +1255,33 @@ export function compareArrays(a, b) {
 	}
 	return { equal: true };
 }
+
+export function applyDamageFormulaStateToConfig(ac5eConfig, config) {
+	if (!ac5eConfig || !config || !Array.isArray(config.rolls)) return false;
+	const frozenDamageBaseline = ac5eConfig?.preAC5eConfig?.frozenDamageBaseline ?? ac5eConfig?.frozenDamageBaseline;
+	const currentCritical = ac5eConfig.isCritical ?? config.isCritical ?? false;
+	ensureDamagePreservedInitialData(ac5eConfig, frozenDamageBaseline, config.rolls, currentCritical);
+	captureBaseCriticalBonusDamage(ac5eConfig, config.rolls);
+	const baseRolls = getNonSyntheticDamageRolls(config.rolls);
+	const baseFormulas =
+		ac5eConfig.preservedInitialData?.formulas ??
+		baseRolls
+			.map((roll) =>
+				typeof roll?.formula === 'string' ? roll.formula
+				: Array.isArray(roll?.parts) && roll.parts.length ? roll.parts.join(' + ')
+				: undefined,
+			)
+			.filter((formula) => typeof formula === 'string' && formula.trim().length);
+	const damageTypesByIndex = baseRolls.map((roll) => {
+		const type = roll?.options?.type;
+		return typeof type === 'string' && type.trim().length ? String(type).toLowerCase() : undefined;
+	});
+	ac5eConfig.options ??= {};
+	ac5eConfig.options.selectedDamageTypesByIndex = damageTypesByIndex;
+	ac5eConfig.options.selectedDamageTypes = damageTypesByIndex.filter(Boolean);
+	applyOrResetFormulaChanges(null, ac5eConfig, 'apply', baseFormulas, damageTypesByIndex);
+	syncAppendedBonusRolls({ config }, ac5eConfig, ac5eConfig.preservedInitialData?.modified ?? baseFormulas);
+	syncDamageRollModifierOptions(ac5eConfig, config.rolls);
+	syncCriticalStaticBonusDamageRollOptions(ac5eConfig, config.rolls);
+	return true;
+}

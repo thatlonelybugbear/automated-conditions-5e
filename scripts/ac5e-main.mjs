@@ -241,6 +241,7 @@ function initializeSandbox() {
 		statusEffects: Object.fromEntries(Object.keys(DND5E.statusEffects).map((k) => [k, false])),
 		weaponMasteries: Object.fromEntries(Object.keys(DND5E.weaponMasteries).map((k) => [k, false])),
 		weaponIds: Object.fromEntries(Object.keys(DND5E.weaponIds).map((k) => [k, false])),
+		weaponTypes: Object.fromEntries(Object.keys(DND5E.weaponTypes).map((k) => [k, false])),
 	});
 	const flatConstants = Object.assign({}, ...Object.values(safeConstants).filter((v) => typeof v === 'object'));
 	foundry.utils.deepFreeze(flatConstants);

@@ -1,7 +1,32 @@
-import { getDialogAc5eConfig } from './ac5e-hooks-dialog-state.mjs';
+import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { doDialogAttackRender, refreshDialogAbilityState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { applyOptinCriticalToDamageConfig, doDialogDamageRender } from './ac5e-hooks-dialog-damage-state.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
+
+function logInitialOptinFormulaDebug(stage, render, ac5eConfig) {
+	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
+	const selectedVisibilityOptins = Object.entries(ac5eConfig?.optinSelected ?? {})
+		.filter(([id, selected]) => selected && String(id).startsWith('ac5e:visibility:'))
+		.map(([id]) => id);
+	if (!selectedVisibilityOptins.length) return;
+	const payload = {
+		stage,
+		hookType: ac5eConfig?.hookType ?? null,
+		selectedVisibilityOptins,
+		optinSelected: ac5eConfig?.optinSelected ?? {},
+		configRoll0Formula: render?.config?.rolls?.[0]?.formula ?? null,
+		configRoll0Parts: Array.isArray(render?.config?.rolls?.[0]?.parts) ? render.config.rolls[0].parts : [],
+		configAdvantageMode: render?.config?.options?.advantageMode ?? render?.config?.advantageMode ?? null,
+		renderRoll0Formula: render?.rolls?.[0]?.formula ?? null,
+		renderRoll0Terms: Array.isArray(render?.rolls?.[0]?.terms) ? render.rolls[0].terms.map((term) => term?.formula ?? String(term)) : [],
+		defaultButton: ac5eConfig?.defaultButton ?? null,
+	};
+	try {
+		console.warn(`AC5E INITIAL OPTIN FORMULA DEBUG ${JSON.stringify(payload)}`);
+	} catch {
+		console.warn('AC5E INITIAL OPTIN FORMULA DEBUG', payload);
+	}
+}
 
 export function renderRollConfigDialogHijack(hook, render, elem, initialConfig, deps) {
 	let getConfigAC5E = initialConfig;
@@ -62,6 +87,9 @@ function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps
 	deps.renderOptionalBonusesRoll(render, elem, getConfigAC5E, deps);
 	const optinSelections = deps.readOptinSelections(elem, getConfigAC5E);
 	deps.setOptinSelections(getConfigAC5E, optinSelections);
+	const selectedVisibilityOptins = Object.entries(getConfigAC5E?.optinSelected ?? {})
+		.filter(([id, selected]) => selected && String(id).startsWith('ac5e:visibility:'))
+		.map(([id]) => id);
 	if (render?.config) {
 		deps.restoreD20ConfigFromFrozenBaseline(getConfigAC5E, render.config);
 		render.config.advantage = undefined;
@@ -71,6 +99,16 @@ function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps
 		const { targetADCEntries } = rebuildOptinTargetADCState(getConfigAC5E, render.config);
 		if (globalThis.ac5e?.debugTargetADC) console.warn('AC5E targetADC: render entries', { hook: getConfigAC5E.hookType, targetADCEntries, optinSelected: getConfigAC5E.optinSelected });
 		applyTargetADCStateToD20Config(getConfigAC5E, render.config, { syncAttackTargets: true });
+		syncDialogAc5eState(render, getConfigAC5E);
+	}
+	if (selectedVisibilityOptins.length && !elem.dataset.ac5eInitialOptinSyncApplied) {
+		elem.dataset.ac5eInitialOptinSyncApplied = 'true';
+		logInitialOptinFormulaDebug('beforeRebuild', render, getConfigAC5E);
+		requestAnimationFrame(() => {
+			render?.rebuild?.();
+			logInitialOptinFormulaDebug('afterRebuildCall', render, getDialogAc5eConfig(render, getConfigAC5E) ?? getConfigAC5E);
+			queueMicrotask(() => logInitialOptinFormulaDebug('afterRebuildMicrotask', render, getDialogAc5eConfig(render, getConfigAC5E) ?? getConfigAC5E));
+		});
 	}
 	return getConfigAC5E;
 }

@@ -233,12 +233,6 @@ export function canSee(source, target, status) {
 	const targetEthereal = target.actor?.statuses.has('ethereal');
 	if (!status && !sourceBlinded && !targetInvisible && !targetEthereal) {
 		validModes = new Set(['basicSight', 'lightPerception']);
-		const lightSources = canvas?.effects?.lightSources;
-		for (const lightSource of lightSources ?? []) {
-			if (!lightSource?.data?.vision || !lightSource?.active || lightSource?.data?.disabled) continue;
-			const result = lightSource.testVisibility?.(config);
-			if (result === true) matchedModes.add(detectionModes.lightPerception?.id);
-		}
 	} else if (status === 'blinded' || sourceBlinded) {
 		validModes = new Set(['blindsight', 'seeAll']);
 	} else if (status === 'invisible' || status === 'ethereal' || targetInvisible || targetEthereal) {

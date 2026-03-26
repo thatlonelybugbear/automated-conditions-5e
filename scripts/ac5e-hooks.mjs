@@ -22,6 +22,7 @@ import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
 import {
 	applyOptinCriticalToDamageConfig,
+	applyDamageFormulaStateToConfig,
 	handleDamageOptinSelectionsChanged,
 } from './hooks/ac5e-hooks-dialog-damage-state.mjs';
 import {
@@ -226,6 +227,7 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		calcAdvantageMode: _calcAdvantageMode,
 		applyExplicitModeOverride,
 		applyOptinCriticalToDamageConfig,
+		applyDamageFormulaStateToConfig,
 		captureFrozenDamageBaseline: _captureFrozenDamageBaseline,
 		setAC5eProperties: _setAC5eProperties,
 		syncTargetsToConfigAndMessage,

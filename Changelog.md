@@ -1,6 +1,10 @@
-## 13.5250.16.3
+## 13.5250.17
 
 - Removed MidiQOL delegation from AC5E `canSee()` so AC5E visibility checks no longer perturb Midi's transient attack perception state on follow-up attacks.
+- Fixed `flags.automated-conditions-5e.damage.bonus` so it also applies on MidiQOL fast-forwarded damage rolls instead of only through the damage dialog path.
+- Fixed the initial d20 roll formula discrepancy when AC5E preselects visibility opt-ins on first render.
+- Fixed `once` attack advantage/disadvantage consumption so automatic one-shot entries are spent on the attack roll attempt, while explicit mode overrides still preserve skipped opt-in entries in the overridden roll-mode family.
+- Updated Czech translation by [Lethrendis](<https://github.com/Lethrendis/>) 🤗
 
 ## 13.5250.16.1
 

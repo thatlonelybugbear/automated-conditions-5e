@@ -183,7 +183,11 @@ function applyPendingUsesIfNeeded(ac5eConfig, rolls) {
 	const explicitOverride = getExplicitModeOverride(ac5eConfig);
 	const pending = ac5eConfig.pendingUses
 		.filter((entry) => !entry.optin || selectedIds.has(entry.id))
-		.filter((entry) => entry?.modeFamily !== explicitOverride?.family || !explicitOverride?.replacesCalculatedMode);
+		.filter((entry) => {
+			if (!entry?.optin) return true;
+			if (!explicitOverride?.replacesCalculatedMode) return true;
+			return entry?.modeFamily !== explicitOverride.family;
+		});
 	if (ac5e?.debug?.auraCadenceOptins) {
 		const auraPending = ac5eConfig.pendingUses.filter((entry) => String(entry?.id ?? '').includes(':aura:'));
 		if (auraPending.length) {
