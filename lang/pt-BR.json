@@ -18,6 +18,10 @@
 	"AC5E.ShowTooltipChatVisibility.Players": "Jogadores",
 	"AC5E.ExpandedConditionsName": "Condições Expandidas AC5e",
 	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
+	"AC5E.VisibilityChecksSetting": {
+    	"Name": "Verificações de Visibilidade",
+    	"Hint": "Quando ativado, o AC5e injeta as opções 'Não Consegue Ver o Alvo' / 'Alvo Não Consegue Ver o Atacante' e permite que essas entradas determinem a vantagem/desvantagem do ataque, em vez de apenas os status Cego/Invisível. As opções são suprimidas quando o MidiQOL já aplica suas regras opcionais de Invisibilidade/Atacante Oculto para evitar motivos duplicados."
+  	},
 	"AC5E.ActivityUse": {
 		"Name": "Testes para Usos de Itens",
 		"Hint": "Permitir, Forçar (cancelar + notificar) ou Avisar (permitir + notificar). Testes: ações enquanto Incapacitado; conjuração enquanto em Fúria, Silenciado ou com Armadura sem proficiência.",
@@ -138,6 +142,8 @@
 	"AC5E.TargetGrantsNoAdvantage": "Sem Vantagem Concedido",
 	"AC5E.TargetGrantsNoCritical": "Sem Críticos Concedido",
 	"AC5E.TargetGrantsNoDisadvantage": "Sem Desvantagem Concedido",
+	"AC5E.CannotSeeTarget": "Não Consegue Ver o Alvo",
+	"AC5E.TargetCannotSeeAttacker": "Alvo Não Consegue Ver o Atacante",
 	"AC5E.Bonus": "Bônus",
 	"AC5E.ExtraDice": "Dado Extra",
 	"AC5E.Success": "Sucesso",
