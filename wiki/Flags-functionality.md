@@ -94,9 +94,9 @@ Replace `MODE` with one of the following:
 - `extraDice` - Adds or multiplies dice count on damage terms.
    - Use `bonus=Number` to add dice count, for example `bonus=2` on `1d8` -> `3d8`.
    - Use `bonus=x2` or `bonus=^2` to multiply dice count, for example `2d12` -> `4d12`.
-   - Add `criticalStatic` to make the extra dice crit-only.
-   - `criticalStatic; bonus=1` adds one extra matching die term only on crit.
-   - `criticalStatic; bonus=x2` adds one extra base copy of the matched dice term on crit, so it scales correctly for both `1dX` and `2dX` formulas.
+   - Add `criticalStatic` to make the extra dice not to be multiplied on a crit.
+   - `criticalStatic; bonus=1` adds one extra matching die term.
+     - `bonus=1` will be multiplied on a crit
 - `diceUpgrade` - Upgrades damage dice step (`d6` -> `d8`) by the provided steps.
 - `diceDowngrade` - Downgrades damage dice step (`d8` -> `d6`) by the provided steps.
 - `range` - Adjusts ranged profile values and ranged-penalty behavior.
