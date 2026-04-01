@@ -69,6 +69,7 @@ export function autoRanged(activity, token, target, options) {
 	const hookType = options?.ac5eConfig?.hookType;
 	const isAttackRangeContext = isAttack && (hookType === 'attack' || hookType === 'use' || !hookType);
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
+	const midiChecks = midiCheckRange && midiCheckRange !== 'none';
 	const { actionType, item, range } = activity || {};
 	if (!range || !token) return {};
 	let { value: short, long, reach } = range;
@@ -79,6 +80,7 @@ export function autoRanged(activity, token, target, options) {
 		: [];
 	const selectedDamageTypes = new Set([options?.defaultDamageType ?? '', ...normalizedDamageTypes].map((t) => String(t ?? '').toLowerCase()).filter(Boolean));
 	const rangeEntries = (() => {
+		if (midiChecks) return [];
 		const ac5eConfig = options?.ac5eConfig;
 		if (!ac5eConfig) return [];
 		const subjectEntries = Array.isArray(ac5eConfig?.subject?.range) ? ac5eConfig.subject.range : [];
@@ -107,9 +109,9 @@ export function autoRanged(activity, token, target, options) {
 		const normalized = String(label ?? '').trim();
 		return normalized || undefined;
 	};
-	let longDisadvantage = settings.autoRangeChecks.has('rangedLongDisadvantage');
+	let longDisadvantage = midiChecks ? false : settings.autoRangeChecks.has('rangedLongDisadvantage');
 	let nearbyFoeDisadvantage = settings.autoRangeChecks.has('rangedNearbyFoes');
-	let outOfRangeFail = settings.autoRangeChecks.has('rangedOoR');
+	let outOfRangeFail = midiChecks ? false : settings.autoRangeChecks.has('rangedOoR');
 	let outOfRangeFailSourceLabel;
 	let outOfRangeFailSourceMode;
 	for (const entry of rangeEntries) {
@@ -150,6 +152,38 @@ export function autoRanged(activity, token, target, options) {
 			outOfRangeFailSourceMode = 'noOutOfRangeFail';
 		}
 	}
+	if (ac5e?.debug?.range && rangeEntries.length) {
+		console.log(
+			'AC5E range.autoRanged',
+			JSON.stringify({
+				activity: activity?.name ?? item?.name ?? activity?.id,
+				actionType,
+				attackMode: options?.attackMode,
+				hookType,
+				distance,
+				baseRange: {
+					short: range?.value,
+					long: range?.long,
+					reach: range?.reach,
+				},
+				entries: rangeEntries.map((entry) => ({
+					label: getRangeEntryLabel(entry),
+					hook: entry?.hook,
+					range: entry?.range ?? {},
+				})),
+				resolvedRange: {
+					short,
+					long,
+					reach,
+					longDisadvantage,
+					nearbyFoeDisadvantage,
+					outOfRangeFail,
+					outOfRangeFailSourceLabel,
+					outOfRangeFailSourceMode,
+				},
+			}),
+		);
+	}
 	const noLongDisadvantage = !longDisadvantage;
 	const flags = token.actor?.flags?.[Constants.MODULE_ID];
 	const spellSniper = flags?.spellSniper || _hasItem(token.actor, 'AC5E.Feats.SpellSniper');
@@ -183,7 +217,6 @@ export function autoRanged(activity, token, target, options) {
 		!crossbowExpert &&
 		!(modernRules && ((isSpell && spellSniper) || (!isSpell && sharpShooter)));
 	let isShort, isLong;
-	const midiChecks = midiCheckRange && midiCheckRange !== 'none';
 	if (midiChecks || (!outOfRangeFail && !longDisadvantage) || (!short && !long) || distance <= short) isShort = true;
 	if (!isShort) {
 		if (longDisadvantage || outOfRangeFail) isLong = distance <= long;
@@ -193,6 +226,26 @@ export function autoRanged(activity, token, target, options) {
 		isShort ? 'short'
 		: isLong ? 'long'
 		: false;
+	if (ac5e?.debug?.range && rangeEntries.length) {
+		console.log(
+			'AC5E range.result',
+			JSON.stringify({
+				activity: activity?.name ?? item?.name ?? activity?.id,
+				actionType,
+				attackMode: options?.attackMode,
+				distance,
+				short,
+				long,
+				reach,
+				inRange,
+				nearbyFoe,
+				longDisadvantage,
+				outOfRangeFail,
+				outOfRangeFailSourceLabel,
+				outOfRangeFailSourceMode,
+			}),
+		);
+	}
 	return {
 		inRange: !!inRange,
 		range: inRange,

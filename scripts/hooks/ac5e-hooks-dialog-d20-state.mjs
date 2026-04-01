@@ -259,13 +259,30 @@ function restoreDialogBaseTarget(dialog, ac5eConfig, deps) {
 function resetDialogAc5eMirrors(dialog, deps) {
 	dialog.config.advantage = undefined;
 	dialog.config.disadvantage = undefined;
+	dialog.config.advantageMode = 0;
+	delete dialog.config.defaultButton;
+	if (dialog.config?.options && typeof dialog.config.options === 'object') {
+		dialog.config.options.advantage = undefined;
+		dialog.config.options.disadvantage = undefined;
+		dialog.config.options.advantageMode = 0;
+		delete dialog.config.options.defaultButton;
+	}
 	const roll0 = deps.getExistingRoll(dialog.config, 0);
 	const roll0Options = deps.getExistingRollOptions(dialog.config, 0);
 	delete dialog.config?.[deps.Constants.MODULE_ID];
 	if (dialog.config?.options && typeof dialog.config.options === 'object') delete dialog.config.options[deps.Constants.MODULE_ID];
 	if (roll0 && typeof roll0 === 'object') delete roll0[deps.Constants.MODULE_ID];
 	if (roll0Options && typeof roll0Options === 'object') delete roll0Options[deps.Constants.MODULE_ID];
+	if (roll0?.options && typeof roll0.options === 'object') {
+		roll0.options.advantage = undefined;
+		roll0.options.disadvantage = undefined;
+		roll0.options.advantageMode = 0;
+		delete roll0.options.defaultButton;
+	}
 	if (roll0Options) roll0Options.advantageMode = 0;
+	if (roll0Options) roll0Options.advantage = undefined;
+	if (roll0Options) roll0Options.disadvantage = undefined;
+	if (roll0Options) delete roll0Options.defaultButton;
 	if (roll0) roll0.parts = [];
 	if (roll0Options) roll0Options.maximum = null;
 	if (roll0Options) roll0Options.minimum = null;

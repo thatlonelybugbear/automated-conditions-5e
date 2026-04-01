@@ -1600,7 +1600,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const parseRangeToggle = ({ expression, evaluationData, effect, isAura, debug }) => {
 		if (expression === undefined || expression === null) return undefined;
 		const raw = String(expression).trim();
-		if (!raw.length) return true;
+		if (!raw.length) return undefined;
 		const direct = parseBooleanValue(raw);
 		if (direct !== undefined) return direct;
 		const replacement = bonusReplacements(raw, evaluationData, isAura, effect);
@@ -1669,9 +1669,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (noNearbyFoeDisadvantage === undefined && (hasStandaloneRangeKeyword(value, 'nonearbyfoedisadvantage') || hasStandaloneRangeKeyword(value, 'nonearbyfoes'))) noNearbyFoeDisadvantage = true;
 		if (nearbyFoeDisadvantage === undefined && typeof noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !noNearbyFoeDisadvantage;
 		if (typeof nearbyFoeDisadvantage === 'boolean') rangeData.nearbyFoeDisadvantage = nearbyFoeDisadvantage;
-		if (typeof nearbyFoeDisadvantage === 'boolean') rangeData.nearbyFoes = nearbyFoeDisadvantage;
 		if (typeof noNearbyFoeDisadvantage === 'boolean') rangeData.noNearbyFoeDisadvantage = noNearbyFoeDisadvantage;
-		if (typeof noNearbyFoeDisadvantage === 'boolean') rangeData.noNearbyFoes = noNearbyFoeDisadvantage;
 
 		let fail = parseRangeToggle({ expression: failRaw, evaluationData, effect, isAura, debug });
 		let noFail = parseRangeToggle({ expression: noFailRaw, evaluationData, effect, isAura, debug });
@@ -1679,10 +1677,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (noFail === undefined && (explicitKey === 'nofail' || explicitKey === 'nooutofrangefail')) noFail = true;
 		if (noFail === undefined && (hasStandaloneRangeKeyword(value, 'nofail') || hasStandaloneRangeKeyword(value, 'nooutofrangefail'))) noFail = true;
 		if (fail === undefined && typeof noFail === 'boolean') fail = !noFail;
-		if (typeof fail === 'boolean') rangeData.fail = fail;
 		if (typeof fail === 'boolean') rangeData.outOfRangeFail = fail;
-		if (typeof noFail === 'boolean') rangeData.noFail = noFail;
 		if (typeof noFail === 'boolean') rangeData.noOutOfRangeFail = noFail;
+		if (ac5e?.debug?.range && Object.keys(rangeData).length) {
+			console.log(
+				'AC5E range.parse',
+				JSON.stringify({
+					key,
+					value,
+					effect: effect?.name ?? effect?.id ?? effect?.uuid,
+					rangeData,
+				}),
+			);
+		}
 		return rangeData;
 	};
 	const buildEntryLabel = (baseLabel, customName) => {
