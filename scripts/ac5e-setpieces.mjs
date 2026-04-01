@@ -3504,12 +3504,14 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 	if (isStaticFormula) return expression;
 	const effectSpellLevel = Number(foundry.utils.getProperty(effect, 'flags.dnd5e.spellLevel'));
 	const spellLevel = Number.isFinite(effectSpellLevel) ? effectSpellLevel : (evalData.castingLevel ?? 0);
+	const effectScaling = foundry.utils.getProperty(effect, 'flags.dnd5e.scaling');
+	const scalingSource = effectScaling !== undefined ? effectScaling : evalData.scaling;
 	const scalingIncrease =
-		Number.isFinite(evalData.scaling?.increase) ? Number(evalData.scaling.increase)
-		: Number.isFinite(evalData.scaling) ? Number(evalData.scaling)
+		Number.isFinite(scalingSource?.increase) ? Number(scalingSource.increase)
+		: Number.isFinite(scalingSource) ? Number(scalingSource)
 		: 0;
 	const scalingValue =
-		Number.isFinite(evalData.scaling?.value) ? Number(evalData.scaling.value)
+		Number.isFinite(scalingSource?.value) ? Number(scalingSource.value)
 		: scalingIncrease + 1;
 	
 	const staticMap = {
