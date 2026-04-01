@@ -1,6 +1,6 @@
 # Automated Conditions 5e: Roll Flags Guide
 
-Applies to version: `13.5250.17.1`
+Applies to version: `13.5250.18`
 
 AC5e processes Active Effects with relevant module flags. If the effect's condition evaluates to `true`, it alters the relevant roll accordingly.
 
@@ -100,12 +100,19 @@ Replace `MODE` with one of the following:
 - `diceUpgrade` - Upgrades damage dice step (`d6` -> `d8`) by the provided steps.
 - `diceDowngrade` - Downgrades damage dice step (`d8` -> `d6`) by the provided steps.
 - `range` - Adjusts ranged profile values and ranged-penalty behavior.
+   - Use the shared `flags.automated-conditions-5e.range` surface for range automation. Do not use legacy `...attack.range` paths for new flags.
    - You can use `bonus`, `short`, `long`, `reach`.
-   - You can also override ranged checks with booleans/formulas:
+   - Canonical toggle keys for ranged checks are:
       - `longDisadvantage` / `noLongDisadvantage`
       - `nearbyFoeDisadvantage` / `noNearbyFoeDisadvantage`
-      - `fail` / `outOfRangeFail` / `noFail` / `noOutOfRangeFail`
-   - Can be expressed as `flags.automated-conditions-5e.attack.range` or granular keys such as `flags.automated-conditions-5e.range.short`.
+      - `outOfRangeFail` / `noOutOfRangeFail`
+   - Legacy aliases such as `fail`, `noFail`, `nearbyFoes`, and `noNearbyFoes` are still accepted for compatibility, but the canonical names above are preferred.
+   - Example:
+      - `key: flags.automated-conditions-5e.range`
+      - `value: short=120; noLongDisadvantage` will set the short range to 120 and suppress long range disadvantage for the roll.
+      - `value=+20; noLongDisadvantage` will add 20 to the short range and suppress long range disadvantage for the roll.
+   - Granular keys such as `flags.automated-conditions-5e.range.short` are still supported when that shape is more convenient.
+      - Use a direct value or expression there, for example `2` or `(rollingActor.statuses.prone ? +5 : 0)`, not packed `short=...; ...` syntax.
 - Special case `modifyAC` - Adds a numeric or calculated bonus to the AC of actors.
    - Include `bonus=XXX` in the effect value, following the same logic as a normal bonus to be added or subtracted from the default roll's DC.
    - Or include `set=XXX` in the effect value to **set** the AC to the specified value (number or dice roll).
@@ -179,7 +186,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `name=Text`            | Custom label for tooltips/dialog opt-in entry |
 | `description=Text`     | Custom opt-in description/reason text |
 | `oncePerTurn` / `oncePerRound` / `oncePerCombat` | Cadence limits for usage. `cadence=turn|round|combat` aliases are supported. |
-| `noProne` (and similar status keys) | Suppresses a specific status for roll automation while the effect is active |
+| `noProne` (and similar status keys) | Suppresses a specific status for roll automation while the effect is active. Current stable usage is boolean-style only, for example `true`. Conditional expressions and `optin` handling are reserved for later work. |
 
 If multiple same-action-type entries are present on the same effect, AC5e disambiguates labels automatically (for example by appending `#2`).
 

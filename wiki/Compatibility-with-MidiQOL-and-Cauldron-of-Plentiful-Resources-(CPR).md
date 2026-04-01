@@ -32,6 +32,11 @@ For the MidiQOL nearby foes equivalent you can go into settings > Workflow setti
 
 <img width="791" height="80" alt="image" src="https://github.com/user-attachments/assets/6c98163a-ccf2-4cfc-a1cc-2238668871f1" />
 
+Practical note:
+
+- If MidiQOL is handling range checks, AC5E range flags will no longer try to apply their own long-range disadvantage or out-of-range fail logic on top of Midi's result.
+- If you want AC5E range flags such as `short=...`, `reach=...`, or `noLongDisadvantage` to drive the outcome, keep AC5E as the range-check owner.
+
 ## Visibility Checks
 ### AC5e
 AC5E exposes a dedicated `Visibility checks` setting. When enabled, AC5E drives the `Cannot See Target` / `Target Cannot See Attacker` style roll-state logic and related opt-ins.

@@ -1,6 +1,6 @@
 ## Table of Contents
 
-Applies to version: `13.5250.17.1`
+Applies to version: `13.5250.18`
 
 - [Assassinate](#assassinate)
 - [Aura of Protection](#aura-of-protection)
@@ -181,6 +181,13 @@ value: radius=60; enemies; fire; radiant;
 ```
 
 ## New Syntax Examples (v13.5250.5)
+### Range override using the shared `range` flag
+```
+key: flags.automated-conditions-5e.range
+
+value: short=120; noLongDisadvantage
+```
+
 ### Optional attack bonus with cadence and custom text
 ```
 key: flags.automated-conditions-5e.attack.bonus

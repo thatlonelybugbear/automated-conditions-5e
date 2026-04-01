@@ -1,3 +1,17 @@
+## 13.5250.18
+
+- Final D&D5e `5.2.5` compatibility release, barring any serious follow-up bugs.
+- Tightened visibility handling for blinded, invisible, and ethereal interactions so AC5E `canSee()` behaves more consistently.
+- Improved roll-data handling for damage and healing scaling, including better support for effects that rely on prior spell level or scaling state.
+- Cleaned up range flag behavior and documentation:
+  - `range` now has one shared public surface instead of separate `attack.range` variants.
+  - Canonical range toggles are now `longDisadvantage`, `noLongDisadvantage`, `nearbyFoeDisadvantage`, `noNearbyFoeDisadvantage`, `outOfRangeFail`, and `noOutOfRangeFail`.
+  - Legacy aliases such as `fail`, `noFail`, and `nearbyFoes` are still accepted for compatibility.
+  - Current stable exceptions: generic `no<Status>` suppressors such as `noProne` remain boolean-style only for this release (no conditional or `optin` handling), and granular range subkeys such as `flags.automated-conditions-5e.range.short` expect a direct value/expression rather than packed `short=...; ...` conditional syntax.
+- Fixed stale disadvantage state when switching attack modes in the roll dialog, such as changing between one-handed and thrown attacks.
+- Exposed `ac5e.getItem(tokenOrActor, itemIdentifier, options = {})` as a first-match helper matching `ac5e.getItems(...)`.
+- Wiki updates.
+
 ## 13.5250.17.2
 
 - Fixed damage roll modifier opt-ins so they show up correctly in the damage dialog.
