@@ -10,6 +10,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	options.ammunition = ammunition?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
+	if (rolls?.[0]?.data) options.rollData = foundry.utils.duplicate(rolls[0].data);
 	if (Array.isArray(directDamageTargets) && directDamageTargets.length) {
 		options.hook = hook;
 		options.activity = activity;

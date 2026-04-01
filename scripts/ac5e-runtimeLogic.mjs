@@ -35,7 +35,10 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, options 
 	const activity = normalizedOptions?.activity;
 	const item = normalizedOptions?.item;
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
-	const formulaData = rollDataDocument?.getRollData?.();
+	const formulaData =
+		normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ?
+			foundry.utils.duplicate(normalizedOptions.rollData)
+		:	rollDataDocument?.getRollData?.() ?? {};
 	const dataActor =
 		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
 		: opponentToken?.actor === (activity ?? item)?.actor ? 'opponentActor'
@@ -120,6 +123,9 @@ export function _ac5eActorRollData(token, rollData) {
 	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
 	if (!rollData) actorData = actor.getRollData();
 	else actorData = rollData;
+	actorData.flags ??= actor.flags ?? {};
+	actorData.flags['midi-qol'] ??= actor.flags?.['midi-qol'] ?? {};
+	actorData.midiFlags ??= actorData.flags['midi-qol'];
 	actorData.currencyWeight = actor.system.currencyWeight;
 	actorData.effects = actor.appliedEffects;
 	actorData.level = actorData.details?.level || actorData.details?.cr;
@@ -763,7 +769,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 }
 
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
-	const { rollingActor, opponentActor, activityData, itemData } = _buildRollEvaluationData({ subjectToken, opponentToken, options });
+	const { rollingActor, opponentActor, activityData, itemData, formulaData } = _buildRollEvaluationData({ subjectToken, opponentToken, options });
 	const sandbox = {
 		...lazySandbox,
 		_evalConstants: { ...lazySandbox._evalConstants },
@@ -846,6 +852,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
+	sandbox.item.flags ??= item?.flags ?? {};
+	sandbox.item.flags['midi-qol'] ??= item?.flags?.['midi-qol'] ?? {};
+	sandbox.item.midiFlags ??= sandbox.item.flags['midi-qol'];
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
@@ -863,8 +872,16 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (itemData?.type?.value) sandbox._evalConstants[itemData.type.value] = true;
 		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
-		if (ammoProperties?.length && itemData?.properties) ammoProperties.forEach((p) => itemData.properties.add(p));
-		itemData.properties?.filter((p) => (sandbox.itemProperties[p] = true) && (sandbox._evalConstants[p] = true));
+		const itemProperties =
+			itemData?.properties instanceof Set ? new Set(itemData.properties)
+			: Array.isArray(itemData?.properties) ? new Set(itemData.properties)
+			: itemData?.properties && typeof itemData.properties === 'object' ? new Set(Object.entries(itemData.properties).filter(([, enabled]) => enabled).map(([key]) => key))
+			: new Set();
+		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
+		for (const property of itemProperties) {
+			sandbox.itemProperties[property] = true;
+			sandbox._evalConstants[property] = true;
+		}
 	}
 
 	const combat = game.combat;
@@ -894,7 +911,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.castingLevel = sandboxOptions.spellLevel ?? itemData?.level ?? null;
 	sandbox.spellLevel = sandbox.castingLevel;
 	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
-	sandbox.scaling = sandboxOptions?.scaling ?? item?.flags?.dnd5e?.scaling ?? 0;
+	sandbox.scaling = formulaData?.scaling ?? sandboxOptions?.scaling ?? 0;
 	sandbox.d20Total = sandboxOptions?.d20?.d20Total ?? sandboxOptions?.d20?.attackRollTotal;
 	sandbox.d20Result = sandboxOptions?.d20?.d20Result ?? sandboxOptions?.d20?.attackRollD20;
 	sandbox.targetValue = hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC : sandboxOptions?.target;

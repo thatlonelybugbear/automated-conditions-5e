@@ -145,7 +145,10 @@ export async function postUseActivity(usageConfig, results, hook) {
 	if (dnd5eUseFlag) {
 		ac5eConfig.options ??= {};
 		if (dnd5eUseFlag.use?.spellLevel !== undefined) ac5eConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;
-		if (dnd5eUseFlag.scaling !== undefined) ac5eConfig.options.scaling ??= dnd5eUseFlag.scaling;
+		if (Number.isFinite(Number(message.system?.scaling))) {
+			const increase = Number(message.system.scaling);
+			ac5eConfig.options.scaling = { increase, value: increase + 1 };
+		}
 		if (Array.isArray(dnd5eUseFlag.use?.effects)) ac5eConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
 		if (Array.isArray(dnd5eUseFlag.targets)) ac5eConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
 		if (dnd5eUseFlag.activity) ac5eConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);

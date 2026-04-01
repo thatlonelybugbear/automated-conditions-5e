@@ -2749,7 +2749,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
 		const consumptionValue = parsedCount.consume;
 		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
-		const hasOrigin = lowerConsumptionTarget === 'origin' || lowerConsumptionTarget.startsWith('origin.') || lowerConsumptionTarget.endsWith('.origin') || lowerConsumptionTarget.includes('.origin.');
+		const hasOrigin = lowerConsumptionTarget === 'origin';
 		let isNumber;
 		if (!hasOrigin) {
 			const directTargetNumber = Number(consumptionTarget);
@@ -3503,13 +3503,16 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 
 	if (isStaticFormula) return expression;
 	const effectSpellLevel = Number(foundry.utils.getProperty(effect, 'flags.dnd5e.spellLevel'));
-	const effectScaling = Number(foundry.utils.getProperty(effect, 'flags.dnd5e.scaling'));
 	const spellLevel = Number.isFinite(effectSpellLevel) ? effectSpellLevel : (evalData.castingLevel ?? 0);
-	const scaling = Number.isFinite(effectScaling) ? effectScaling : (evalData.scaling ?? 0);
-
+	const scalingIncrease =
+		Number.isFinite(evalData.scaling?.increase) ? Number(evalData.scaling.increase)
+		: Number.isFinite(evalData.scaling) ? Number(evalData.scaling)
+		: 0;
+	const scalingValue =
+		Number.isFinite(evalData.scaling?.value) ? Number(evalData.scaling.value)
+		: scalingIncrease + 1;
+	
 	const staticMap = {
-		'@scaling': scaling,
-		scaling: scaling,
 		'@spellLevel': spellLevel,
 		spellLevel: spellLevel,
 		'@castingLevel': spellLevel,
@@ -3519,6 +3522,11 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 		effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 		stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 	};
+
+	expression = expression.replace(/@scaling\.increase\b/g, scalingIncrease);
+	expression = expression.replace(/\bscaling\.increase\b/g, scalingIncrease);
+	expression = expression.replace(/@scaling\b/g, scalingValue);
+	expression = expression.replace(/\bscaling\b/g, scalingValue);
 
 	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 	expression = expression.replace(pattern, (match) => staticMap[match]);
