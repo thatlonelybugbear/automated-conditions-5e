@@ -230,13 +230,22 @@ export function canSee(source, target, status) {
 
 	const sourceBlinded = source.actor?.statuses.has('blinded');
 	const targetInvisible = target.actor?.statuses.has('invisible');
+	const sourceEthereal = source.actor?.statuses.has('ethereal');
 	const targetEthereal = target.actor?.statuses.has('ethereal');
-	if (!status && !sourceBlinded && !targetInvisible && !targetEthereal) {
+	const crossPlanarEthereal = (status === 'ethereal' || sourceEthereal || targetEthereal) && !(sourceEthereal && targetEthereal);
+	if (!status && !sourceBlinded && !targetInvisible && !crossPlanarEthereal) {
 		validModes = new Set(['basicSight', 'lightPerception']);
-	} else if (status === 'blinded' || sourceBlinded) {
-		validModes = new Set(['blindsight', 'seeAll']);
-	} else if (status === 'invisible' || status === 'ethereal' || targetInvisible || targetEthereal) {
-		validModes = new Set(['blindsight', 'seeAll', 'seeInvisibility']);
+	} else {
+		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll', 'seeInvisibility']);
+		if (status === 'blinded' || sourceBlinded) {
+			validModes = new Set([...validModes].filter((mode) => ['blindsight'].includes(mode)));
+		}
+		if (crossPlanarEthereal) {
+			validModes = new Set([...validModes].filter((mode) => ['seeAll'].includes(mode)));
+		}
+		if (status === 'invisible' || targetInvisible) {
+			validModes = new Set([...validModes].filter((mode) => ['blindsight', 'seeAll', 'seeInvisibility'].includes(mode)));
+		}
 	}
 	try {
 		for (const detectionMode of tokenDetectionModes) {
