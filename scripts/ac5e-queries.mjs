@@ -15,7 +15,8 @@ function _createDeleteTraceTag(source, uuid) {
 }
 
 function _logDeleteTrace(stage, payload = {}) {
-	console.warn('AC5E delete trace', { stage, ...payload });
+	const settings = game.settings.get(Constants.MODULE_ID, Settings.DEBUG);
+	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debugQueries || settings) console.warn('AC5E delete trace', { stage, ...payload });
 }
 
 export async function _doQueries({ validActivityUpdatesGM = [], validActorUpdatesGM = [], validEffectDeletionsGM = [], validEffectUpdatesGM = [], validItemUpdatesGM = [] } = {}) {
