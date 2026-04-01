@@ -1,4 +1,4 @@
-import { _autoArmor, _activeModule, _buildFlagRegistry, _generateAC5eFlags, _getDistance, _getItems, _getItemOrActivity, _getLightLevel, _hasItem, _reindexFlagRegistryActor } from './ac5e-helpers.mjs';
+import { _autoArmor, _activeModule, _buildFlagRegistry, _generateAC5eFlags, _getDistance, _getItems, _getItem, _getItemOrActivity, _getLightLevel, _hasItem, _reindexFlagRegistryActor } from './ac5e-helpers.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _renderHijack, _renderSettings, _rollFunctions } from './ac5e-hooks.mjs';
 import { _migrate } from './ac5e-migrations.mjs';
@@ -253,6 +253,7 @@ function initializeSandbox() {
 		checkCreatureType: _raceOrType,
 		getItemOrActivity: _getItemOrActivity,
 		getItems: _getItems,
+		getItem: _getItem,
 		checkArmor: _autoArmor,
 		checkRanged: autoRanged,
 		hasItem: _hasItem,

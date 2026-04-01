@@ -1064,6 +1064,9 @@ function _resolveActorForItemLookup(source) {
  * @param {object} [options]
  * @param {string} [options.type] - Optional item.type filter.
  * @param {string|string[]} [options.properties] - Optional item.system.properties filter; all requested properties must be present.
+ * @param {boolean} [options.returnIds] - If true, returns matching item ids instead of documents.
+ * @param {boolean} [options.returnUuids] - If true, returns matching item uuids instead of documents.
+ * @param {boolean} [options.returnIdentifiers] - If true, returns matching item identifiers instead of documents.
  * @returns {Array} - Matching item documents.
  */
 export function _getItems(source, itemIdentifier, options = {}) {
@@ -1096,7 +1099,9 @@ export function _getItems(source, itemIdentifier, options = {}) {
 			break;
 		}
 	}
-
+	if (options.returnIdentifiers) return matches.map((item) => item.identifier);
+	if (options.returnUuids) return matches.map((item) => item.uuid);
+	if (options.returnIds) return matches.map((item) => item.id);
 	return matches;
 }
 
