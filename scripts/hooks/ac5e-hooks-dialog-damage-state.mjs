@@ -509,6 +509,18 @@ function getDamageExtremeDieModifier(rollOptionModifierState, sides) {
 	return '';
 }
 
+function getDamageAdvantageModifierToken(hasAdvantage, hasDisadvantage) {
+	if (hasAdvantage && hasDisadvantage) return '';
+	if (hasAdvantage) return 'adv';
+	if (hasDisadvantage) return 'dis';
+	return '';
+}
+
+function stripDamageAdvantageModifierTokens(modifiers = '') {
+	if (typeof modifiers !== 'string' || !modifiers.length) return '';
+	return modifiers.replace(/(?:adv\d*|dis\d*)/gi, '');
+}
+
 function syncDamageRollModifierOptions(ac5eConfig, rolls) {
 	if (!Array.isArray(rolls)) return;
 	const preserved = ac5eConfig?.preservedInitialData ?? {};
@@ -1082,7 +1094,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			modifierValues.includes('dis') ||
 			subjectDisadvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) ||
 			opponentDisadvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes }));
-		return hasAdv ? 'adv' : hasDis ? 'dis' : '';
+		return getDamageAdvantageModifierToken(hasAdv, hasDis);
 	});
 	if (!getConfigAC5E.preservedInitialData) getConfigAC5E.preservedInitialData = buildDamagePreservedInitialData(formulas);
 	const {
@@ -1139,21 +1151,15 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			if (newCount <= 0) return `0d${sides}${existing}`;
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
 			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
-			const diceTerm = `${newCount}d${shiftedSides}${suffix}${extremeModifier}`;
-			let term;
-			if (advDis === 'adv') term = `{${diceTerm},${diceTerm}}kh`;
-			else if (advDis === 'dis') term = `{${diceTerm},${diceTerm}}kl`;
-			else term = diceTerm;
+			const existingSuffix = stripDamageAdvantageModifierTokens(existing);
+			const diceTerm = `${newCount}d${shiftedSides}${suffix}${advDis}${extremeModifier}`;
+			const term = `${diceTerm}${existingSuffix}`;
 			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
 			if (criticalStaticCount > 0) {
-				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${extremeModifier}`;
-				let criticalTerm;
-				if (advDis === 'adv') criticalTerm = `{${criticalDiceTerm},${criticalDiceTerm}}kh`;
-				else if (advDis === 'dis') criticalTerm = `{${criticalDiceTerm},${criticalDiceTerm}}kl`;
-				else criticalTerm = criticalDiceTerm;
-				criticalStaticParts.push(`${criticalTerm}${existing}`);
+				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${advDis}${extremeModifier}`;
+				criticalStaticParts.push(`${criticalDiceTerm}${existingSuffix}`);
 			}
-			return `${term}${existing}`;
+			return term;
 		});
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');
