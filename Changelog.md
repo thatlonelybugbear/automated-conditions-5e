@@ -1,3 +1,8 @@
+## 13.5300.1
+
+- Improved D&D5e 5.3 roll-mode handling so advantage/disadvantage selections stay in sync with native `advantageMode`, including fast-forward keypresses and override keypresses.
+- Initiative advantage/disadvantage attribution now follows the resolved D&D5e 5.3 initiative mode more reliably.
+
 ## 13.5250.18
 
 - Final D&D5e `5.2.5` compatibility release, barring any serious follow-up bugs.

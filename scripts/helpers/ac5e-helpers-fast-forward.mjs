@@ -12,8 +12,28 @@ function _writeFastForwardMode(ac5eConfig, config, roll0) {
 	if (!ac5eConfig || !config) return;
 	const rollOptions = _ensureRoll0Options(config, roll0);
 	if (!rollOptions) return;
-	const resolvedAdvantage = config.advantage;
-	const resolvedDisadvantage = config.disadvantage;
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE ?? {};
+	const explicitAdvantage = config.advantage === true && config.disadvantage !== true;
+	const explicitDisadvantage = config.disadvantage === true && config.advantage !== true;
+	const resolvedMode =
+		explicitAdvantage ? advModes.ADVANTAGE
+		: explicitDisadvantage ? advModes.DISADVANTAGE
+		: typeof ac5eConfig?.advantageMode === 'number' ? ac5eConfig.advantageMode
+		: typeof rollOptions?.advantageMode === 'number' ? rollOptions.advantageMode
+		: typeof config?.advantageMode === 'number' ? config.advantageMode
+		: null;
+	const resolvedAdvantage =
+		typeof resolvedMode === 'number' ?
+			resolvedMode === advModes.ADVANTAGE ? true
+			: resolvedMode === advModes.DISADVANTAGE ? false
+			: true
+		: config.advantage;
+	const resolvedDisadvantage =
+		typeof resolvedMode === 'number' ?
+			resolvedMode === advModes.DISADVANTAGE ? true
+			: resolvedMode === advModes.ADVANTAGE ? false
+			: true
+		: config.disadvantage;
 	const applyResolvedMode = (target) => {
 		if (!target || typeof target !== 'object') return;
 		if (ac5eConfig.defaultButton !== undefined) target.defaultButton = ac5eConfig.defaultButton;
@@ -45,6 +65,7 @@ export function _syncResolvedFastForwardD20Override(ac5eConfig, config, action) 
 	}
 	ac5eConfig.advantageMode = advantageMode;
 	ac5eConfig.defaultButton = normalizedAction;
+	config.advantageMode = advantageMode;
 	config.advantage = advantage;
 	config.disadvantage = disadvantage;
 	if (rollOptions && typeof rollOptions === 'object') {

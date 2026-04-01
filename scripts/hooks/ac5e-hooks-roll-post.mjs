@@ -301,6 +301,7 @@ export function applyExplicitModeOverride(ac5eConfig, config) {
 		config.advantage = true;
 		config.disadvantage = true;
 	}
+	config.advantageMode = advantageMode;
 	ac5eConfig.advantageMode = advantageMode;
 	ac5eConfig.defaultButton = action;
 	if (roll0Options && typeof roll0Options === 'object') {
@@ -357,6 +358,7 @@ function syncResolvedD20ModeState(ac5eConfig, config, rollOptions, action) {
 		advantage = false;
 		disadvantage = true;
 	}
+	config.advantageMode = advantageMode;
 	config.advantage = advantage;
 	config.disadvantage = disadvantage;
 	rollOptions.advantage = advantage;

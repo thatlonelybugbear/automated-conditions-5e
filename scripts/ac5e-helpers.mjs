@@ -1337,6 +1337,7 @@ export function _restoreD20ConfigFromFrozenBaseline(ac5eConfig, config) {
 	}
 	if (Array.isArray(config.parts) || baselineParts.length) config.parts = foundry.utils.duplicate(baselineParts);
 	const buttons = baseline?.buttons ?? {};
+	if (buttons.advantageMode !== undefined && buttons.advantageMode !== null) config.advantageMode = buttons.advantageMode;
 	config.advantage = !!buttons.advantage;
 	config.disadvantage = !!buttons.disadvantage;
 	if (hasRoll0 && buttons.advantageMode !== undefined && buttons.advantageMode !== null) roll0.options.advantageMode = buttons.advantageMode;

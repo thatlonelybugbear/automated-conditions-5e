@@ -97,8 +97,16 @@ function importInitialInitiativeModeAttribution(ac5eConfig, config) {
 	const returnEarly = !preConfig.deferD20KeypressToMidi && preConfig.skipDialogNormal && (preConfig.skipDialogAdvantage || preConfig.skipDialogDisadvantage);
 	const keypressAdvantageSource = !preConfig.deferD20KeypressToMidi && preConfig.skipDialogAdvantage && !returnEarly;
 	const keypressDisadvantageSource = !preConfig.deferD20KeypressToMidi && preConfig.skipDialogDisadvantage && !returnEarly;
-	const incomingAdvantage = preConfig.adv === true || config?.advantage === true;
-	const incomingDisadvantage = preConfig.dis === true || config?.disadvantage === true;
+	const resolvedAdvantageMode =
+		typeof preConfig?.advantageMode === 'number' ? preConfig.advantageMode
+		: typeof config?.advantageMode === 'number' ? config.advantageMode
+		: null;
+	const incomingAdvantage =
+		typeof resolvedAdvantageMode === 'number' ? resolvedAdvantageMode > 0
+		: preConfig.adv === true || config?.advantage === true;
+	const incomingDisadvantage =
+		typeof resolvedAdvantageMode === 'number' ? resolvedAdvantageMode < 0
+		: preConfig.dis === true || config?.disadvantage === true;
 	if (incomingAdvantage && !keypressAdvantageSource) subject.advantageNames.add(getInitiativeSourceLabel());
 	if (incomingDisadvantage && !keypressDisadvantageSource) subject.disadvantageNames.add(getInitiativeSourceLabel());
 }
