@@ -848,13 +848,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activityData?.activation?.type) sandbox._evalConstants[activityData.activation.type] = true;
 	if (activityData?.type) sandbox._evalConstants[activityData.type] = true;
 
-	// Keep exact roll-data fields, but prefer the live item document for document-like state
-	// such as system.properties during damage hook evaluation.
-	sandbox.item = itemData && typeof itemData === 'object' ? foundry.utils.duplicate(itemData) : {};
-	if (item?.system) sandbox.item.system = item.system;
-	if (!sandbox.item.name && item?.name) sandbox.item.name = item.name;
-	if (!sandbox.item.identifier && (item?.identifier || item?.system?.identifier)) sandbox.item.identifier = item.identifier ?? item.system.identifier;
-	if (!sandbox.item.type && item?.type) sandbox.item.type = item.type;
+	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
 	sandbox.item.flags ??= item?.flags ?? {};
@@ -877,12 +871,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (itemData?.type?.value) sandbox._evalConstants[itemData.type.value] = true;
 		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
-		const itemProperties =
-			typeof item?.system?.properties?.keys === 'function' ? new Set(item.system.properties.keys())
-			: itemData?.properties instanceof Set ? new Set(itemData.properties)
-			: Array.isArray(itemData?.properties) ? new Set(itemData.properties)
-			: itemData?.properties && typeof itemData.properties === 'object' ? new Set(Object.entries(itemData.properties).filter(([, enabled]) => enabled).map(([key]) => key))
-			: new Set();
+		const itemProperties = item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
 		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
 		for (const property of itemProperties) {
 			sandbox.itemProperties[property] = true;
