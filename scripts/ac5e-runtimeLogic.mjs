@@ -799,7 +799,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetActor = sandbox.opponentActor;
 	sandbox.targetId = opponentToken?.id;
 
-	// const activityData = evaluationData.activityData;
 	sandbox.activity = activityData;
 	sandbox.ammunition = sandboxOptions.ammunition;
 	sandbox.ammunitionName = sandboxOptions.ammunition?.name;
@@ -848,7 +847,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (activityData?.activation?.type) sandbox._evalConstants[activityData.activation.type] = true;
 	if (activityData?.type) sandbox._evalConstants[activityData.type] = true;
 
-	// const itemData = evaluationData.itemData;
 	sandbox.item = itemData;
 	sandbox.item.uuid = item?.uuid;
 	sandbox.item.id = item?.id;
@@ -872,11 +870,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (itemData?.type?.value) sandbox._evalConstants[itemData.type.value] = true;
 		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
-		const itemProperties =
-			itemData?.properties instanceof Set ? new Set(itemData.properties)
-			: Array.isArray(itemData?.properties) ? new Set(itemData.properties)
-			: itemData?.properties && typeof itemData.properties === 'object' ? new Set(Object.entries(itemData.properties).filter(([, enabled]) => enabled).map(([key]) => key))
-			: new Set();
+		const itemProperties = item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
 		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
 		for (const property of itemProperties) {
 			sandbox.itemProperties[property] = true;
