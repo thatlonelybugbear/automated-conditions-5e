@@ -1,7 +1,11 @@
 ## 13.5300.1
 
+- First starter compatibility release for D&D5e `5.3.0`.
 - Improved D&D5e 5.3 roll-mode handling so advantage/disadvantage selections stay in sync with native `advantageMode`, including fast-forward keypresses and override keypresses.
 - Initiative advantage/disadvantage attribution now follows the resolved D&D5e 5.3 initiative mode more reliably.
+- Fixed chat-message AC5E damage tooltips for native D&D5e 5.3 damage cards by rebinding after the system finishes its own chat render work.
+- Added `sandbox.item.classIdentifier` for condition/evaluation use where a stable class-style identifier is needed during newer 5.3 item roll-data paths.
+- Note: AC5E currently follows native D&D5e 5.3 handling for mixed damage die modifiers such as `adv/dis` with `min/max`; any remaining issues in that exact combination are waiting on the upstream [D&D5e fix](<https://github.com/foundryvtt/dnd5e/issues/6871>).
 
 ## 13.5250.18.1
 
