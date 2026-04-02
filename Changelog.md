@@ -1,6 +1,6 @@
 ## 13.5250.18.1
 
-- Make sure that the sandbox receives item properties.
+- Made sure that the sandbox receives item properties.
 
 ## 13.5250.18
 
