@@ -853,6 +853,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.flags ??= item?.flags ?? {};
 	sandbox.item.flags['midi-qol'] ??= item?.flags?.['midi-qol'] ?? {};
 	sandbox.item.midiFlags ??= sandbox.item.flags['midi-qol'];
+	sandbox.item.classIdentifier = item?.system?.classIdentifier;
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
