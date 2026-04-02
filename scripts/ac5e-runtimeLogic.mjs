@@ -799,7 +799,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetActor = sandbox.opponentActor;
 	sandbox.targetId = opponentToken?.id;
 
-	// const activityData = evaluationData.activityData;
 	sandbox.activity = activityData;
 	sandbox.ammunition = sandboxOptions.ammunition;
 	sandbox.ammunitionName = sandboxOptions.ammunition?.name;
