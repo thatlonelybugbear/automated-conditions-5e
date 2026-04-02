@@ -1,3 +1,7 @@
+## 13.5250.18.1
+
+- Make sure that the sandbox receives item properties.
+
 ## 13.5250.18
 
 - Final D&D5e `5.2.5` compatibility release, barring any serious follow-up bugs.
