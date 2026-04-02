@@ -1400,10 +1400,20 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const getRequiredDamageTypes = (value) => {
 		if (!value) return [];
-		return value
-			.split(';')
-			.map((v) => v.trim().toLowerCase())
-			.filter((v) => v && !v.includes('=') && !v.includes(':') && !blacklist.has(v) && damageTypeSet.has(v));
+		const requiredTypes = new Set();
+		for (const rawPart of String(value).split(';')) {
+			const part = String(rawPart ?? '').trim().toLowerCase();
+			if (!part) continue;
+			if (part.includes('=') || part.includes(':')) continue;
+			const pathMatch = part.match(/^damagetypes\.(.+)$/i);
+			if (pathMatch?.[1]) {
+				const type = pathMatch[1].trim();
+				if (damageTypeSet.has(type)) requiredTypes.add(type);
+				continue;
+			}
+			if (!blacklist.has(part) && damageTypeSet.has(part)) requiredTypes.add(part);
+		}
+		return [...requiredTypes];
 	};
 	const getCustomName = (value) => {
 		if (!value) return undefined;

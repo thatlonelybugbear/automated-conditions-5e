@@ -673,7 +673,6 @@ function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
 		profileKey: getDamageBaselineProfileKey(profile),
 		isCritical: !!config?.isCritical,
 		defaultButton: ac5eConfig?.defaultButton ?? null,
-		parts: Object.freeze(foundry.utils.duplicate(Array.isArray(config?.parts) ? config.parts : [])),
 		damageModifiers: Object.freeze(foundry.utils.duplicate(Array.isArray(ac5eConfig?.damageModifiers) ? ac5eConfig.damageModifiers : [])),
 		rolls: Object.freeze(frozenRolls),
 	});
@@ -735,9 +734,6 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		} else if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
 			delete roll.options.critical.bonusDamage;
 		}
-	}
-	if (Array.isArray(config.parts) || (Array.isArray(baseline?.parts) && baseline.parts.length)) {
-		config.parts = foundry.utils.duplicate(Array.isArray(baseline?.parts) ? baseline.parts : []);
 	}
 	if (baseline?.isCritical !== undefined) config.isCritical = !!baseline.isCritical;
 	if (config?.midiOptions) config.midiOptions.isCritical = !!config.isCritical;
