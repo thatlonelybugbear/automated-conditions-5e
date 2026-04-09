@@ -1,3 +1,7 @@
+## 13.5300.2
+
+- Added `isAoE` helper for Area of Effect activities.
+
 ## 13.5300.1
 
 - First starter compatibility release for D&D5e `5.3.0`.
