@@ -373,7 +373,7 @@ function _createVisibilityTests(target, visionSource) {
 			set(value) {
 				this.point.elevation = value;
 			},
-		}
+		});
 	});
 	if (visionSource) _populateVisibilityLOS(tests, visionSource);
 	return { tests, level };
