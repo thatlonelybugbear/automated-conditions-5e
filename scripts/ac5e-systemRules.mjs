@@ -275,8 +275,8 @@ export function canSee(source, target, status) {
 		if (_canSeeDebugEnabled()) console.warn('AC5e: No valid vision source for canSee check', { source: source?.id, target: target?.id });
 		return false;
 	}
-	const tests = _createVisibilityTests(target, visionSource);
-	const config = { tests, object: target };
+	const { tests, level } = _createVisibilityTests(target, visionSource);
+	const config = { tests, object: target, level };
 
 	const tokenDetectionModes = normalizeDetectionModes(source.document?.detectionModes ?? source.detectionModes);
 	let validModes = new Set();
@@ -358,13 +358,25 @@ function _createVisibilityTests(target, visionSource) {
 		? [[0, 0], [-t, -t], [-t, t], [t, t], [t, -t], [-t, 0], [t, 0], [0, -t], [0, t], [-t2, -t2], [-t2, t2], [t2, t2], [t2, -t2], [-t2, 0], [t2, 0], [0, -t2], [0, t2]]
 		: [[0, 0]];
 	const elevation = target.document?.elevation ?? target.elevation ?? 0;
-	const tests = offsets.map(([dx, dy]) => ({
-		point: new PIXI.Point(targetPoint.x + dx, targetPoint.y + dy),
-		elevation,
-		los: new Map(),
-	}));
+	const tokenInstance = foundry.canvas.placeables.Token;
+	const level = target instanceof tokenInstance ? canvas.scene?.levels?.get(target.document?.level) ?? canvas.level : canvas.level;
+	const tests = offsets.map(([dx, dy]) => {
+		const test = {
+			point:  { x: targetPoint.x + dx, y: targetPoint.y + dy, elevation },
+			level,
+			los: new Map(),
+		};
+		return Object.defineProperty(test, 'elevation', {
+			get() {
+				return this.point.elevation;
+			},
+			set(value) {
+				this.point.elevation = value;
+			},
+		}
+	});
 	if (visionSource) _populateVisibilityLOS(tests, visionSource);
-	return tests;
+	return { tests, level };
 }
 
 function _populateVisibilityLOS(tests, visionSource) {
