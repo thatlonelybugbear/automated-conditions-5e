@@ -13,6 +13,7 @@ import {
 	_getMessageDnd5eFlags,
 	_getTooltip,
 	_setMessageFlagScope,
+	_safeFromUuidSync,
 	_syncMidiAbilityRollModifierTracker,
 	_syncMidiAttackRollModifierTracker,
 	getAlteredTargetValueOrThreshold,
@@ -37,7 +38,7 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, options 
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
 	const formulaData =
 		normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ?
-			foundry.utils.duplicate(normalizedOptions.rollData)
+			_cloneRollDataForEvaluation(normalizedOptions.rollData)
 		:	rollDataDocument?.getRollData?.() ?? {};
 	const dataActor =
 		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
@@ -223,14 +224,14 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	const getLiveTargetAC = (target = {}) => {
 		const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
 		if (tokenUuid) {
-			const tokenDoc = fromUuidSync(tokenUuid);
+			const tokenDoc = _safeFromUuidSync(tokenUuid);
 			const tokenActor = tokenDoc?.actor ?? tokenDoc?.object?.actor;
 			const tokenAC = tokenActor?.system?.attributes?.ac?.value;
 			if (Number.isFinite(Number(tokenAC))) return Number(tokenAC);
 		}
 		const actorUuid = target?.uuid;
 		if (actorUuid) {
-			const actor = fromUuidSync(actorUuid);
+			const actor = _safeFromUuidSync(actorUuid);
 			const actorAC = actor?.system?.attributes?.ac?.value;
 			if (Number.isFinite(Number(actorAC))) return Number(actorAC);
 		}
@@ -728,7 +729,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (ac5eConfig.hookType === 'use') {
 		const safeUseConfig = _getSafeUseConfig(ac5eConfig);
 		const ac5eConfigDialog = { [Constants.MODULE_ID]: safeUseConfig };
-		if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
+		if (config) config[Constants.MODULE_ID] = safeUseConfig;
 		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig.options ?? {}, { merge: false });
 		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) {
 			console.warn('AC5e post runtime._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
@@ -763,7 +764,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 
 	const rollOptionsTarget = _ensureRoll0Options(config);
 	const mergeTarget = rollOptionsTarget ?? config;
-	if (mergeTarget) foundry.utils.mergeObject(mergeTarget, ac5eConfigDialog);
+	if (mergeTarget) mergeTarget[Constants.MODULE_ID] = safeDialogConfig;
 	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, ac5eConfigMessage[Constants.MODULE_ID], { merge: true });
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post runtime._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
@@ -906,7 +907,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.singleTarget = sandboxOptions?.targets?.length === 1 && true;
 	sandbox.castingLevel = sandboxOptions.spellLevel ?? itemData?.level ?? null;
 	sandbox.spellLevel = sandbox.castingLevel;
-	sandbox.baseSpellLevel = fromUuidSync(item?.uuid)?.system?.level;
+	sandbox.baseSpellLevel = item?.system?.level;
 	sandbox.scaling = formulaData?.scaling ?? sandboxOptions?.scaling ?? 0;
 	sandbox.d20Total = sandboxOptions?.d20?.d20Total ?? sandboxOptions?.d20?.attackRollTotal;
 	sandbox.d20Result = sandboxOptions?.d20?.d20Result ?? sandboxOptions?.d20?.attackRollD20;

@@ -1,4 +1,5 @@
 import Constants from '../ac5e-constants.mjs';
+import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import Settings from '../ac5e-settings.mjs';
 
 const settings = new Settings();
@@ -147,7 +148,7 @@ function _testDistanceCollision(pointA, pointB, source, checkCollision) {
 function resolveDistanceToken(token) {
 	const tokenInstance = foundry.canvas.placeables.Token;
 	if (typeof token === 'string') {
-		if (token.includes('.')) token = fromUuidSync(token)?.object;
+		if (token.includes('.')) token = _safeFromUuidSync(token)?.object;
 		else token = canvas.tokens.get(token);
 	}
 	if (token instanceof TokenDocument) token = token.object;

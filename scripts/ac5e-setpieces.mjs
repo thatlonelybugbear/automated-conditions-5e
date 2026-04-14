@@ -3559,7 +3559,7 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 	expression = expression.replace(pattern, (match) => staticMap[match]);
 	if (expression.includes('@item') && effect.origin) {
-		let origin = fromUuidSync(effect?.origin);
+		let origin = _safeFromUuidSync(effect?.origin);
 		if (origin instanceof Item) {
 			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === origin.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === origin.uuid);
 			if (itemIndex >= 0) expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
@@ -3715,7 +3715,7 @@ function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e
 			sum += r;
 		}
 
-		if (debug) diceLogs.push(`${Constants.MODULE_ID} - evalDiceExpression: ${match} → [${rolls.join(', ')}] = ${sum}`);
+		if (debug) diceLogs.push(`${Constants.MODULE_ID} - evalDiceExpression: ${match} -> [${rolls.join(', ')}] = ${sum}`);
 		return String(sum);
 	});
 

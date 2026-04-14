@@ -2994,7 +2994,11 @@ export function _safeFromUuidSync(value, { collection } = {}) {
 
 	// UUID
 	if (typeof value === 'string' && value.includes('.')) {
-		return fromUuidSync(value, { strict: false }) ?? null;
+		try {
+			return fromUuidSync(value, { strict: false }) ?? null;
+		} catch (_err) {
+			return null;
+		}
 	}
 
 	// Plain ID + collection provided

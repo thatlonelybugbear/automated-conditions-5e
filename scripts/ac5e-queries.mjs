@@ -1,5 +1,6 @@
 import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
+import { _safeFromUuidSync } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 const CADENCE_FLAG_KEY = 'cadence';
 
@@ -56,7 +57,7 @@ export async function _setCombatCadenceFlag({ combatUuid, state } = {}) {
 	if (!activeGM) return false;
 	try {
 		if (activeGM.id === game.user?.id) {
-			const combat = fromUuidSync(combatUuid);
+			const combat = _safeFromUuidSync(combatUuid);
 			if (!combat) return false;
 			await combat.update(_buildCadenceFlagReplacement(state), { ac5eCadenceSync: true, diff: false });
 			return true;
@@ -110,7 +111,7 @@ export function _gmEffectDeletions({ validEffectDeletionsGM = [] } = {}) {
 }
 
 async function deletions(uuids = []) {
-	const retrieved = uuids.map((uuid) => ({ uuid, doc: fromUuidSync(uuid) }));
+	const retrieved = uuids.map((uuid) => ({ uuid, doc: _safeFromUuidSync(uuid) }));
 
 	await Promise.all(
 		retrieved.map(async ({ uuid, doc }) => {
@@ -151,7 +152,7 @@ export function _gmDocumentUpdates({ validActivityUpdatesGM, validActorUpdatesGM
 export async function _gmCombatCadenceUpdate({ combatUuid, state } = {}) {
 	if (!game.user?.isGM) return false;
 	if (!combatUuid || !state) return false;
-	const combat = fromUuidSync(combatUuid);
+	const combat = _safeFromUuidSync(combatUuid);
 	if (!combat) return false;
 	try {
 		await combat.update(_buildCadenceFlagReplacement(state), { ac5eCadenceSync: true, diff: false });
@@ -187,7 +188,7 @@ export async function _gmUsageRulesUpdate({ state } = {}) {
 }
 
 async function documentUpdates(entries) {
-	const mapped = entries.map(({ uuid, updates, options }) => ({ uuid, doc: fromUuidSync(uuid), updates, options }));
+	const mapped = entries.map(({ uuid, updates, options }) => ({ uuid, doc: _safeFromUuidSync(uuid), updates, options }));
 	await Promise.all(
 		mapped.map(async ({ uuid, doc, updates, options }) => {
 			if (!doc) {

@@ -5,11 +5,12 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;
-	const directDamageTargets = deps.getAssociatedRollTargets(options?.originatingMessageId, activity?.type);
+	const directDamageTargets = deps.getAssociatedRollTargets(options?.originatingMessageId, activity?.type, messageForTargets, deps);
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
+	if (rolls?.[0]?.data) options.rollData = { ...rolls[0].data };
 	if (Array.isArray(directDamageTargets) && directDamageTargets.length) {
 		options.hook = hook;
 		options.activity = activity;

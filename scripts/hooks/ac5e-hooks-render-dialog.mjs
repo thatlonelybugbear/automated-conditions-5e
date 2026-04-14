@@ -2,6 +2,7 @@ import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-st
 import { doDialogAttackRender, refreshDialogAbilityState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { applyOptinCriticalToDamageConfig, doDialogDamageRender } from './ac5e-hooks-dialog-damage-state.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
+import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 
 function logInitialOptinFormulaDebug(stage, render, ac5eConfig) {
 	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
@@ -141,7 +142,7 @@ function applyDialogTitleOverrides(render, elem, getConfigAC5E) {
 	if (options?.isInitiative) {
 		newTitle = game.i18n.translations.DND5E.InitiativeRoll;
 		const actorUuid = render.rolls?.[0]?.data?.actorUuid ?? render.config?.subject?.uuid;
-		const actor = fromUuidSync(actorUuid);
+		const actor = _safeFromUuidSync(actorUuid);
 		const tokenName = actor?.token?.name ?? actor?.getActiveTokens()?.[0]?.name;
 		const subtitleElement = elem.querySelector('.window-subtitle');
 		if (subtitleElement) {

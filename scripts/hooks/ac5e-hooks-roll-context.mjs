@@ -1,4 +1,5 @@
 import { debugMessageData, resolveMessageDataContext } from './ac5e-hooks-message-data.mjs';
+import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 
 export function getHookMessageData(config, hook, fallbackMessage, deps) {
 	const context = resolveMessageDataContext(config, hook, fallbackMessage, deps) ?? {};
@@ -50,7 +51,7 @@ export function getOpponentTokenForSave(options, activity, subjectToken, deps) {
 	const activityToken = activityActor ? (deps.getTokenFromActor(activityActor) ?? activityActor.getActiveTokens?.()?.[0]) : undefined;
 	if (activityToken && activityToken !== subjectToken) return activityToken;
 	const targetActorUuid = options?.targets?.[0]?.uuid;
-	const targetActor = targetActorUuid ? fromUuidSync(targetActorUuid) : undefined;
+	const targetActor = targetActorUuid ? _safeFromUuidSync(targetActorUuid) : undefined;
 	const targetToken = getSingleTargetToken(options?.targets) ?? targetActor?.getActiveTokens?.()?.[0];
 	if (targetToken && targetToken !== subjectToken) return targetToken;
 	return undefined;
@@ -60,6 +61,6 @@ export function getSingleTargetToken(messageTargets) {
 	if (!Array.isArray(messageTargets) || !messageTargets.length) return undefined;
 	const tokenUuid = messageTargets[0]?.tokenUuid;
 	if (!tokenUuid) return undefined;
-	const tokenDoc = fromUuidSync(tokenUuid);
+	const tokenDoc = _safeFromUuidSync(tokenUuid);
 	return tokenDoc?.object ?? canvas.tokens?.get(tokenDoc?.id);
 }

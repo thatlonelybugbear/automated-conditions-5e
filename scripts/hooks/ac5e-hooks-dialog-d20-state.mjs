@@ -1,4 +1,4 @@
-import { _getActiveAbilityOverride, _getDistance, _getTokenFromActor, _localize } from '../ac5e-helpers.mjs';
+import { _getActiveAbilityOverride, _getDistance, _getTokenFromActor, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { getSubjectTokenIdFromConfig } from './ac5e-hooks-ui-utils.mjs';
@@ -326,6 +326,6 @@ function getSingleTargetToken(messageTargets) {
 	if (!Array.isArray(messageTargets) || !messageTargets.length) return undefined;
 	const tokenUuid = messageTargets[0]?.tokenUuid;
 	if (!tokenUuid) return undefined;
-	const tokenDoc = fromUuidSync(tokenUuid);
+	const tokenDoc = _safeFromUuidSync(tokenUuid);
 	return tokenDoc?.object ?? canvas.tokens?.get(tokenDoc?.id);
 }

@@ -458,7 +458,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (useConfig?.optionsSnapshot && hookContext?.reEval?.options?.length) {
 		const snapshot = useConfig.optionsSnapshot;
 		const currentOptions = pickOptions(options, hookContext.reEval.options);
-		const changedKeys = hookContext.reEval.options.filter((key) => !foundry.utils.objectsEqual(currentOptions[key], snapshot[key]));
+		const changedKeys = hookContext.reEval.options.filter((key) => !foundry.utils.equals(currentOptions[key], snapshot[key]));
 		const changed = _categorizeChangedOptionKeys(changedKeys);
 		const flagReEvalOn = hookContext?.reEval?.flagReEvalOn ?? ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'];
 		const requiresFlagReEvaluation = changedKeys.length > 0 && flagReEvalOn.some((category) => changed?.[category]);
@@ -751,7 +751,17 @@ export function _getSafeUseConfig(ac5eConfig) {
 }
 
 export function _getSafeDialogConfig(ac5eConfig) {
-	const safe = foundry.utils.duplicate(ac5eConfig ?? {});
+	const safe = {
+		...(ac5eConfig ?? {}),
+		options:
+			ac5eConfig?.options && typeof ac5eConfig.options === 'object' ?
+				{ ...ac5eConfig.options }
+			:	ac5eConfig?.options,
+		reEval:
+			ac5eConfig?.reEval && typeof ac5eConfig.reEval === 'object' ?
+				{ ...ac5eConfig.reEval }
+			:	ac5eConfig?.reEval,
+	};
 	if (safe?.options && typeof safe.options === 'object') {
 		delete safe.options.activity;
 		delete safe.options.ammo;

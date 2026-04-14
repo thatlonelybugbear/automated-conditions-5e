@@ -1,4 +1,4 @@
-import { _activeModule, _getMessageDnd5eFlags, _getMessageFlagScope, _resolveUseMessageContext } from '../ac5e-helpers.mjs';
+import { _activeModule, _getMessageDnd5eFlags, _getMessageFlagScope, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _mergeUseOptions } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
@@ -85,7 +85,7 @@ function resolveMessageFromConfig(config, messageConfig, hook, deps) {
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
 	const registryHookMessage = messageId ? dnd5e?.registry?.messages?.get(messageId, hook)?.pop?.() : undefined;
 	const registryAnyMessage = !registryHookMessage && messageId ? dnd5e?.registry?.messages?.get(messageId)?.pop?.() : undefined;
-	const message = registryHookMessage ?? registryAnyMessage ?? (messageId ? game.messages.get(messageId) : undefined) ?? (messageUuid ? fromUuidSync(messageUuid) : undefined) ?? messageConfig;
+	const message = registryHookMessage ?? registryAnyMessage ?? (messageId ? game.messages.get(messageId) : undefined) ?? (messageUuid ? _safeFromUuidSync(messageUuid) : undefined) ?? messageConfig;
 	return { messageId, message, originatingMessageId };
 }
 
@@ -211,7 +211,7 @@ function resolveDocumentFromRef(ref) {
 	const documentCls = foundry?.abstract?.Document;
 	if (documentCls && ref instanceof documentCls) return ref;
 	const uuid = typeof ref === 'string' ? ref : ref?.uuid;
-	if (typeof uuid === 'string' && uuid.includes('.')) return fromUuidSync(uuid) ?? null;
+	if (typeof uuid === 'string' && uuid.includes('.')) return _safeFromUuidSync(uuid);
 	return null;
 }
 
@@ -222,7 +222,7 @@ function resolveActivityFromItem(item, activityRef) {
 	const activityId = typeof activityRef === 'string' ? activityRef : activityRef?.id;
 	const activityUuid = typeof activityRef === 'object' ? activityRef?.uuid : undefined;
 	if (activityUuid) {
-		const direct = fromUuidSync(activityUuid);
+		const direct = _safeFromUuidSync(activityUuid);
 		if (direct) return direct;
 	}
 	if (!activityId) return null;

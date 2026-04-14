@@ -1,5 +1,5 @@
 import Constants from './ac5e-constants.mjs';
-import { _activeModule, _dispositionCheck, _filterOptinEntries, _getDistance, _hasItem, _hasStatuses, _localize } from './ac5e-helpers.mjs';
+import { _activeModule, _dispositionCheck, _filterOptinEntries, _getDistance, _hasItem, _hasStatuses, _localize, _safeFromUuidSync } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 
 const settings = new Settings();
@@ -11,7 +11,7 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 	if (token instanceof TokenDocument) {
 		token = token.object;
 	} else if (!(token instanceof tokenInstance)) {
-		const resolved = fromUuidSync(token);
+		const resolved = _safeFromUuidSync(token);
 		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
 	if (!token) return false;
@@ -342,7 +342,7 @@ function _resolveVisibilityToken(token) {
 	if (token instanceof TokenDocument) return token.object;
 	if (token instanceof tokenInstance) return token;
 	if (typeof token === 'string') {
-		const resolved = fromUuidSync(token);
+		const resolved = _safeFromUuidSync(token);
 		if (resolved?.type === 'Token') return resolved.object;
 		if (resolved instanceof TokenDocument) return resolved.object;
 		return canvas?.tokens?.get?.(token) ?? null;

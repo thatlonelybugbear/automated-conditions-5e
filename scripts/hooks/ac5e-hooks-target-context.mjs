@@ -1,3 +1,5 @@
+import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
+
 export function getMessageTargetsFromFlags(messageLike, deps) {
 	return deps.getMessageDnd5eFlags(messageLike)?.targets ?? [];
 }
@@ -70,7 +72,10 @@ export function syncResolvedTargetsToMessage(message, targets, deps) {
 	}
 }
 
-export function getAssociatedRollTargets(originatingMessageId, activityType) {
+export function getAssociatedRollTargets(originatingMessageId, activityType, messageLike, deps) {
+	const explicitMessage = messageLike?.document ?? messageLike;
+	const directTargets = explicitMessage ? getMessageTargetsFromFlags(explicitMessage, deps) : undefined;
+	if (Array.isArray(directTargets) && directTargets.length) return directTargets;
 	if (!originatingMessageId || !activityType) return undefined;
 	return dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop()?.flags?.dnd5e?.targets;
 }
@@ -80,7 +85,7 @@ export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
 	if (hookType === 'damage') {
 		const damageActivityType = ac5eConfig?.options?.activity?.type ?? config?.subject?.type;
 		const originatingMessageId = ac5eConfig?.options?.originatingMessageId ?? config?.options?.originatingMessageId;
-		const associatedTargets = getAssociatedRollTargets(originatingMessageId, damageActivityType);
+		const associatedTargets = getAssociatedRollTargets(originatingMessageId, damageActivityType, message, deps);
 		if (Array.isArray(associatedTargets) && associatedTargets.length) return associatedTargets;
 	}
 	const flaggedTargets = getMessageTargetsFromFlags(message, deps);
@@ -94,10 +99,11 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 		: Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets
 		: null;
 	if (!resolvedTargets) return;
-	if (ac5eConfig && typeof ac5eConfig === 'object') {
+	if (ac5eConfig && typeof ac5eConfig === 'object' && ac5eConfig.hookType === 'attack') {
 		ac5eConfig.options ??= {};
 		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
+	if (ac5eConfig?.hookType !== 'attack') return;
 	syncResolvedTargetsToMessage(message, resolvedTargets, deps);
 }
 
@@ -109,14 +115,14 @@ function isForcedSentinelAC(value) {
 function getLiveTargetAC(target = {}) {
 	const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
 	if (tokenUuid) {
-		const tokenDoc = fromUuidSync(tokenUuid);
+		const tokenDoc = _safeFromUuidSync(tokenUuid);
 		const tokenActor = tokenDoc?.actor ?? tokenDoc?.object?.actor;
 		const tokenAC = tokenActor?.system?.attributes?.ac?.value;
 		if (Number.isFinite(Number(tokenAC))) return Number(tokenAC);
 	}
 	const actorUuid = target?.uuid;
 	if (actorUuid) {
-		const actor = fromUuidSync(actorUuid);
+		const actor = _safeFromUuidSync(actorUuid);
 		const actorAC = actor?.system?.attributes?.ac?.value;
 		if (Number.isFinite(Number(actorAC))) return Number(actorAC);
 	}
