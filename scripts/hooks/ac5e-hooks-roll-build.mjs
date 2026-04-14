@@ -1,6 +1,6 @@
 import { _entryMatchesTransientState, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _restoreD20ConfigFromFrozenBaseline, debugRollStateMigration, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
-import { applyOptinCriticalToDamageConfig, syncCriticalStaticBonusDamageRollOptions, syncLegacyDamageParts } from './ac5e-hooks-dialog-damage-state.mjs';
+import { applyOptinCriticalToDamageConfig, syncCriticalStaticBonusDamageRollOptions } from './ac5e-hooks-dialog-damage-state.mjs';
 import { setOptinSelections } from './ac5e-hooks-dialog-optins.mjs';
 import { appendPartsToD20Config, collectPreservedExternalD20Parts, getD20ActivePartsSnapshot, refreshAttackAutoRangeState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { getMessageForConfigTargets } from './ac5e-hooks-target-attack.mjs';
@@ -30,7 +30,6 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 		setOptinSelections(ac5eConfig, optins);
 		applyOptinCriticalToDamageConfig(ac5eConfig, rollConfig, formData);
 		syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rollConfig?.rolls);
-		syncLegacyDamageParts(rollConfig);
 		syncRollOptinSelections(ac5eConfig, rollConfig);
 		syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 		debugRollStateMigration('build.damage', { hook: activeHook, config: rollConfig, rolls: rollConfig?.rolls, ac5eConfig, extra: { index, optins } });
