@@ -5,6 +5,19 @@ import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+export function getResolvedD20BooleansFromMode(mode, fallback = {}) {
+	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
+	if (typeof mode === 'number' && advModes) {
+		if (mode === advModes.ADVANTAGE) return { advantage: true, disadvantage: false };
+		if (mode === advModes.DISADVANTAGE) return { advantage: false, disadvantage: true };
+		if (mode === advModes.NORMAL) return { advantage: true, disadvantage: true };
+	}
+	return {
+		advantage: fallback?.advantage === undefined ? undefined : !!fallback.advantage,
+		disadvantage: fallback?.disadvantage === undefined ? undefined : !!fallback.disadvantage,
+	};
+}
+
 function _getUniquePointKey(point = {}) {
 	return `${Math.round(Number(point?.x) || 0)}:${Math.round(Number(point?.y) || 0)}:${Math.round(Number(point?.elevation) || 0)}`;
 }
@@ -184,6 +197,97 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 
 function _debugFlagEnabled(flag, legacyRootFlag = null) {
 	return Boolean(ac5e?.debug?.[flag] ?? (legacyRootFlag ? ac5e?.[legacyRootFlag] : false));
+}
+
+const ROLL_STATE_MIGRATION_CAPTURE_LIMIT = 200;
+const rollStateMigrationCapture = [];
+
+function _cloneForDebug(value) {
+	if (value == null) return value;
+	try {
+		return foundry.utils.duplicate(value);
+	} catch (_error) {
+		return value;
+	}
+}
+
+function _buildRollStateMigrationSnapshot(stage, { hook, config, rolls, ac5eConfig, extra } = {}) {
+	const configRoll0 = config?.rolls?.[0];
+	const roll0 = Array.isArray(rolls) ? rolls[0] : configRoll0;
+	const modeCounts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig, { persist: false });
+	return {
+		timestamp: new Date().toISOString(),
+		stage,
+		hook: hook ?? ac5eConfig?.hookType ?? null,
+		advantageMode: ac5eConfig?.advantageMode ?? roll0?.options?.advantageMode ?? config?.options?.advantageMode ?? null,
+		resolvedButtons: {
+			advantage: roll0?.options?.advantage ?? config?.advantage ?? config?.options?.advantage ?? null,
+			disadvantage: roll0?.options?.disadvantage ?? config?.disadvantage ?? config?.options?.disadvantage ?? null,
+		},
+		modeCounts: modeCounts && typeof modeCounts === 'object' ? _cloneForDebug(modeCounts) : modeCounts,
+		roll0: roll0 ? {
+			formula: roll0?.formula ?? null,
+			parts: _cloneForDebug(Array.isArray(roll0?.parts) ? roll0.parts : []),
+			options: {
+				type: roll0?.options?.type ?? null,
+				advantageMode: roll0?.options?.advantageMode ?? null,
+				advantage: roll0?.options?.advantage ?? null,
+				disadvantage: roll0?.options?.disadvantage ?? null,
+				target: roll0?.options?.target ?? null,
+			},
+		} : null,
+		configShape: {
+			parts: _cloneForDebug(Array.isArray(config?.parts) ? config.parts : []),
+			target: config?.target ?? config?.options?.target ?? null,
+			isCritical: config?.isCritical ?? null,
+			defaultButton: ac5eConfig?.defaultButton ?? config?.options?.defaultButton ?? null,
+		},
+		damageModifiers: _cloneForDebug(Array.isArray(ac5eConfig?.damageModifiers) ? ac5eConfig.damageModifiers : []),
+		extra: _cloneForDebug(extra ?? null),
+	};
+}
+
+function _captureRollStateMigrationSnapshot(snapshot) {
+	rollStateMigrationCapture.push(snapshot);
+	while (rollStateMigrationCapture.length > ROLL_STATE_MIGRATION_CAPTURE_LIMIT) rollStateMigrationCapture.shift();
+}
+
+export function clearRollStateMigrationCapture() {
+	rollStateMigrationCapture.length = 0;
+	return 0;
+}
+
+export function getRollStateMigrationCapture() {
+	return _cloneForDebug(rollStateMigrationCapture);
+}
+
+export function exportRollStateMigrationCapture({ clear = false, space = 2 } = {}) {
+	const payload = {
+		generatedAt: new Date().toISOString(),
+		moduleId: Constants.MODULE_ID,
+		entryCount: rollStateMigrationCapture.length,
+		entries: getRollStateMigrationCapture(),
+	};
+	const json = JSON.stringify(payload, null, Number.isFinite(space) ? space : 2);
+	if (clear) clearRollStateMigrationCapture();
+	return json;
+}
+
+export function downloadRollStateMigrationCapture(filename = null, { clear = false, space = 2 } = {}) {
+	const json = exportRollStateMigrationCapture({ clear, space });
+	const nextFilename = String(filename || `ac5e-roll-state-migration-${Date.now()}.json`).trim();
+	if (typeof saveDataToFile === 'function') saveDataToFile(json, 'application/json', nextFilename);
+	return json;
+}
+
+export function debugRollStateMigration(stage, { hook, config, rolls, ac5eConfig, extra } = {}) {
+	const migrationDebugEnabled = _debugFlagEnabled('rollStateMigration');
+	const shouldLog = Boolean(settings.debug || migrationDebugEnabled);
+	const shouldCapture = Boolean(migrationDebugEnabled || _debugFlagEnabled('rollStateMigrationCapture'));
+	if (!shouldLog && !shouldCapture) return;
+	const snapshot = _buildRollStateMigrationSnapshot(stage, { hook, config, rolls, ac5eConfig, extra });
+	if (shouldCapture) _captureRollStateMigrationSnapshot(snapshot);
+	if (shouldLog) console.warn('AC5E rollStateMigration', snapshot);
 }
 
 function _createFlagRegistryState() {
@@ -1142,6 +1246,55 @@ export function _filterOptinEntries(entries = [], optinSelected = {}) {
 	});
 }
 
+
+function _countModeCollectionEntries(value) {
+	return (
+		typeof value?.size === 'number' ? value.size
+		: Array.isArray(value) ? value.length
+		: typeof value === 'string' ?
+			value.trim() ?
+				1
+			:	0
+		:	0
+	);
+}
+
+export function getRollModeCounts(ac5eConfig = {}, { optinSelected = ac5eConfig?.optinSelected ?? {}, filterOptin = true, persist = true } = {}) {
+	const subject = ac5eConfig?.subject ?? {};
+	const opponent = ac5eConfig?.opponent ?? {};
+	const countEntries = (entries) => (filterOptin ? _filterOptinEntries(entries ?? [], optinSelected).length : _countModeCollectionEntries(entries));
+	const summarizeMode = (entryKey, nameKey = null) => {
+		const subjectEntries = countEntries(subject?.[entryKey] ?? []);
+		const opponentEntries = countEntries(opponent?.[entryKey] ?? []);
+		const subjectNames = nameKey ? _countModeCollectionEntries(subject?.[nameKey]) : 0;
+		const opponentNames = nameKey ? _countModeCollectionEntries(opponent?.[nameKey]) : 0;
+		const total = subjectEntries + opponentEntries + subjectNames + opponentNames;
+		return {
+			subject: subjectEntries + subjectNames,
+			opponent: opponentEntries + opponentNames,
+			subjectEntries,
+			opponentEntries,
+			subjectNames,
+			opponentNames,
+			total,
+			present: total > 0,
+		};
+	};
+	const advantages = summarizeMode('advantage', 'advantageNames');
+	const disadvantages = summarizeMode('disadvantage', 'disadvantageNames');
+	const noAdvantages = summarizeMode('noAdvantage');
+	const noDisadvantages = summarizeMode('noDisadvantage');
+	const counts = {
+		advantages,
+		disadvantages,
+		noAdvantages,
+		noDisadvantages,
+		filterOptin,
+		netMode: (advantages.present ? 1 : 0) - (disadvantages.present ? 1 : 0),
+	};
+	if (persist && ac5eConfig && typeof ac5eConfig === 'object') ac5eConfig.modeCounts = counts;
+	return counts;
+}
 export function _i18nConditions(name) {
 	const str = `EFFECT.DND5E.Status${name}`;
 	if (game.i18n.has(str)) return game.i18n.localize(str);

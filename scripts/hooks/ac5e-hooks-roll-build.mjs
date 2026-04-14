@@ -1,14 +1,14 @@
-import { _entryMatchesTransientState, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _restoreD20ConfigFromFrozenBaseline } from '../ac5e-helpers.mjs';
+import { _entryMatchesTransientState, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _restoreD20ConfigFromFrozenBaseline, debugRollStateMigration, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
-import { applyOptinCriticalToDamageConfig, syncCriticalStaticBonusDamageRollOptions } from './ac5e-hooks-dialog-damage-state.mjs';
+import { applyOptinCriticalToDamageConfig, syncCriticalStaticBonusDamageRollOptions, syncLegacyDamageParts } from './ac5e-hooks-dialog-damage-state.mjs';
 import { setOptinSelections } from './ac5e-hooks-dialog-optins.mjs';
 import { appendPartsToD20Config, collectPreservedExternalD20Parts, getD20ActivePartsSnapshot, refreshAttackAutoRangeState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { getMessageForConfigTargets } from './ac5e-hooks-target-attack.mjs';
 import { getMessageTargetsFromFlags, resolveTargets, syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
-import { applyExplicitModeOverride } from './ac5e-hooks-roll-post.mjs';
+import { applyExplicitModeOverride, mirrorD20ModeState } from './ac5e-hooks-roll-post.mjs';
 import { getBonusEntriesForHook } from './ac5e-hooks-roll-selections.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
-import { getExistingRoll, getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
+import { getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
 
 export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (deps.buildDebug || deps.hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
@@ -30,8 +30,10 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 		setOptinSelections(ac5eConfig, optins);
 		applyOptinCriticalToDamageConfig(ac5eConfig, rollConfig, formData);
 		syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rollConfig?.rolls);
+		syncLegacyDamageParts(rollConfig);
 		syncRollOptinSelections(ac5eConfig, rollConfig);
 		syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
+		debugRollStateMigration('build.damage', { hook: activeHook, config: rollConfig, rolls: rollConfig?.rolls, ac5eConfig, extra: { index, optins } });
 		return true;
 	}
 	if (!ac5eConfig.hookType || !['attack', 'save', 'check'].includes(ac5eConfig.hookType)) return true;
@@ -70,22 +72,11 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 			rollOptionsTarget: rollConfig?.rolls?.[0]?.options?.target,
 			alteredTargetADC: ac5eConfig.alteredTargetADC,
 		});
-	const roll0 = getExistingRoll(rollConfig, 0);
 	const roll0Options = getExistingRollOptions(rollConfig, 0);
 	const nextDefaultButton = ac5eConfig.defaultButton ?? 'normal';
-	ac5eConfig.defaultButton = nextDefaultButton;
-	if (Object.isExtensible(options)) {
-		options.advantage = rollConfig.advantage;
-		options.disadvantage = rollConfig.disadvantage;
-		options.advantageMode = ac5eConfig.advantageMode ?? options.advantageMode;
-		options.defaultButton = nextDefaultButton;
-		rollConfig.options = options;
-	}
-	if (roll0Options && Object.isExtensible(roll0Options)) {
-		roll0.options.advantage = rollConfig.advantage;
-		roll0.options.disadvantage = rollConfig.disadvantage;
-		roll0.options.advantageMode = options.advantageMode;
-	}
+	if (Object.isExtensible(options)) rollConfig.options = options;
+	mirrorD20ModeState(ac5eConfig, rollConfig, { advantageMode: ac5eConfig.advantageMode, defaultButton: nextDefaultButton, rollOptions: roll0Options });
+	getRollModeCounts(ac5eConfig);
 	if (rollConfig?.rolls?.length) {
 		for (const roll of rollConfig.rolls) {
 			if (!roll?.options) continue;
@@ -95,6 +86,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 			roll.options[Constants.MODULE_ID].advantageMode = ac5eConfig.advantageMode;
 			roll.options[Constants.MODULE_ID].hasTransitAdvantage = !!ac5eConfig.hasTransitAdvantage;
 			roll.options[Constants.MODULE_ID].hasTransitDisadvantage = !!ac5eConfig.hasTransitDisadvantage;
+			roll.options[Constants.MODULE_ID].modeCounts = ac5eConfig?.modeCounts ? foundry.utils.duplicate(ac5eConfig.modeCounts) : undefined;
 		}
 	}
 	const entries = getBonusEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
@@ -114,6 +106,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	}
 	appendPartsToD20Config(rollConfig, preservedExternalParts);
 	syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
+	debugRollStateMigration('build.d20', { hook: activeHook, config: rollConfig, rolls: rollConfig?.rolls, ac5eConfig, extra: { index, optins, preservedExternalParts } });
 	return true;
 }
 

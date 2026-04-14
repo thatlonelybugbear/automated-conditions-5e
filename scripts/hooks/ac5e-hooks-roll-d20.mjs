@@ -1,4 +1,4 @@
-import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-forward.mjs';
+import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 
 export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	const { messageForTargets, activity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
@@ -9,22 +9,21 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	const { subject, ability } = config || {};
 	options.ability = ability;
 	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps);
-	const subjectTokenId = subjectToken?.id;
 	let opponentToken = deps.getOpponentTokenForSave(options, activity, subjectToken, deps);
 	if (opponentToken === subjectToken) opponentToken = undefined;
 	if (opponentToken && subjectToken) options.distance = deps.getDistance(opponentToken, subjectToken);
 	deps.logResolvedTargets('save', subjectToken, opponentToken, options);
-	let ac5eConfig = deps.getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options);
-	if (ac5eConfig.returnEarly) {
-		deps.applyExplicitModeOverride(ac5eConfig, config);
-		return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
-	}
-	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
-	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
-	deps.captureFrozenD20Baseline(ac5eConfig, config);
-	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
-	deps.applyExplicitModeOverride(ac5eConfig, config);
-	return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
+	return runAc5eRollPhase({
+		hook,
+		config,
+		dialog,
+		message,
+		subjectToken,
+		opponentToken,
+		options,
+		deps,
+		captureBaseline: deps.captureFrozenD20Baseline,
+	});
 }
 
 export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps) {
@@ -39,19 +38,19 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 	options.ability = ability;
 	deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' }, deps);
 	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps);
-	const subjectTokenId = subjectToken?.id;
 	let opponentToken;
-	let ac5eConfig = deps.getConfig(config, dialog, hook, subjectTokenId, opponentToken?.id, options, reEval);
-	if (ac5eConfig.returnEarly) {
-		deps.applyExplicitModeOverride(ac5eConfig, config);
-		return deps.setAC5eProperties(ac5eConfig, config, dialog, message, options);
-	}
-	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken, opponentToken });
-	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
-	deps.captureFrozenD20Baseline(ac5eConfig, config);
-	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
-	deps.applyExplicitModeOverride(ac5eConfig, config);
-	deps.setAC5eProperties(ac5eConfig, config, dialog, message);
+	const ac5eConfig = runAc5eRollPhase({
+		hook,
+		config,
+		dialog,
+		message,
+		subjectToken,
+		opponentToken,
+		options,
+		reEval,
+		deps,
+		captureBaseline: deps.captureFrozenD20Baseline,
+	});
 	if (deps.hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
 	return ac5eConfig;
 }

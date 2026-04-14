@@ -1,35 +1,6 @@
 import { _getDistance, _hasValidTargets, _localize } from '../ac5e-helpers.mjs';
+import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
-import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-forward.mjs';
-
-function logInitialVisibilityFormulaDebug(stage, ac5eConfig, config, dialog) {
-	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
-	const selectedVisibilityOptins = Object.entries(ac5eConfig?.optinSelected ?? {})
-		.filter(([id, selected]) => selected && String(id).startsWith('ac5e:visibility:'))
-		.map(([id]) => id);
-	const availableVisibilityOptins = [...(ac5eConfig?.subject?.advantage ?? []), ...(ac5eConfig?.subject?.disadvantage ?? []), ...(ac5eConfig?.opponent?.advantage ?? []), ...(ac5eConfig?.opponent?.disadvantage ?? [])]
-		.filter((entry) => entry?.optin && String(entry?.id ?? '').startsWith('ac5e:visibility:'))
-		.map((entry) => ({ id: entry.id, mode: entry.mode, actorType: entry.actorType, target: entry.target }));
-	if (!selectedVisibilityOptins.length && !availableVisibilityOptins.length) return;
-	const payload = {
-		stage,
-		hookType: ac5eConfig?.hookType ?? null,
-		selectedVisibilityOptins,
-		availableVisibilityOptins,
-		configAdvantage: config?.advantage ?? null,
-		configDisadvantage: config?.disadvantage ?? null,
-		dialogAdvantageMode: dialog?.options?.advantageMode ?? null,
-		dialogDefaultButton: dialog?.options?.defaultButton ?? null,
-		roll0AdvantageMode: config?.rolls?.[0]?.options?.advantageMode ?? null,
-		roll0Formula: config?.rolls?.[0]?.formula ?? null,
-		roll0Parts: Array.isArray(config?.rolls?.[0]?.parts) ? config.rolls[0].parts : [],
-	};
-	try {
-		console.warn(`AC5E INITIAL VIS PREROLL DEBUG ${JSON.stringify(payload)}`);
-	} catch {
-		console.warn('AC5E INITIAL VIS PREROLL DEBUG', payload);
-	}
-}
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollAttackHook')) console.error('AC5e _preRollAttack', hook, { config, dialog, message });
@@ -59,33 +30,34 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		logResolvedTargets: deps.logResolvedTargets,
 	});
 	if (invalidTargets && needsTarget !== 'source') return false;
-	let ac5eConfig = deps.getConfig(config, dialog, hook, sourceToken?.id, singleTargetToken?.id, options, reEval);
-	if (ac5eConfig.returnEarly) {
-		deps.applyExplicitModeOverride(ac5eConfig, config);
-		return deps.setAC5eProperties(ac5eConfig, config, dialog, message);
-	}
-	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
-	forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hook);
-	logInitialVisibilityFormulaDebug('afterChecks', ac5eConfig, config, dialog);
-	deps.syncD20AbilityOverrideState(config, ac5eConfig, { activity, options });
-	applyAttackRangeState({ ac5eConfig, activity, sourceToken, singleTargetToken, options, config });
-	applyAttackHeavyState({
-		ac5eConfig,
-		item,
-		actionType,
-		sourceActor,
-		sourceToken,
-		modernRules: deps.settings.dnd5eModernRules,
-		automateHeavy: deps.settings.automateHeavy,
+	const ac5eConfig = runAc5eRollPhase({
+		hook,
+		config,
+		dialog,
+		message,
+		subjectToken: sourceToken,
+		opponentToken: singleTargetToken,
+		options,
+		reEval,
+		deps,
+		applyHookState: ({ ac5eConfig }) => {
+			deps.syncD20AbilityOverrideState(config, ac5eConfig, { activity, options });
+			applyAttackRangeState({ ac5eConfig, activity, sourceToken, singleTargetToken, options, config });
+			applyAttackHeavyState({
+				ac5eConfig,
+				item,
+				actionType,
+				sourceActor,
+				sourceToken,
+				modernRules: deps.settings.dnd5eModernRules,
+				automateHeavy: deps.settings.automateHeavy,
+			});
+			if (deps.hookDebugEnabled('preRollAttackHook')) console.warn('AC5E._preRollAttack:', { ac5eConfig });
+		},
+		captureBaseline: deps.captureFrozenD20Baseline,
+		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
+		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
-	if (deps.hookDebugEnabled('preRollAttackHook')) console.warn('AC5E._preRollAttack:', { ac5eConfig });
-	deps.captureFrozenD20Baseline(ac5eConfig, config);
-	deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
-	logInitialVisibilityFormulaDebug('afterCalcAdvantageMode', ac5eConfig, config, dialog);
-	deps.applyExplicitModeOverride(ac5eConfig, config);
-	deps.setAC5eProperties(ac5eConfig, config, dialog, message);
-	logInitialVisibilityFormulaDebug('afterSetAC5eProperties', ac5eConfig, config, dialog);
-	deps.syncTargetsToConfigAndMessage(ac5eConfig, options.targets ?? [], message, deps);
 	return ac5eConfig;
 }
 
@@ -107,17 +79,14 @@ export function applyAttackRangeState({ ac5eConfig, activity, sourceToken, singl
 	if (!singleTargetToken) return;
 	ac5eConfig.subject.rangeNotes = [];
 	const failLabel = _localize('AC5E.OutOfRange');
-	const nearbyLabel = _localize('AC5E.NearbyFoe');
-	const longLabel = _localize('RangeLong');
 	ac5eConfig.subject.fail = (ac5eConfig.subject.fail ?? []).filter((entry) => {
 		if (entry === failLabel) return false;
 		if (!entry || typeof entry !== 'object') return true;
 		const label = String(entry.label ?? entry.name ?? entry.id ?? '').trim();
 		return label !== failLabel;
 	});
-	ac5eConfig.subject.disadvantage = (ac5eConfig.subject.disadvantage ?? []).filter((entry) => entry !== nearbyLabel && entry !== longLabel);
 	const { nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
-	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(nearbyLabel);
+	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
 	if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
 		ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 	}
@@ -125,7 +94,7 @@ export function applyAttackRangeState({ ac5eConfig, activity, sourceToken, singl
 		ac5eConfig.subject.fail.push(failLabel);
 	}
 	if (range === 'long' && longDisadvantage) {
-		ac5eConfig.subject.disadvantage.push(longLabel);
+		ac5eConfig.subject.disadvantage.push(_localize('RangeLong'));
 	}
 }
 

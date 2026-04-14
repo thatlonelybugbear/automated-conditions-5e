@@ -1,5 +1,6 @@
 import { _activeModule, _getTooltip } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { mirrorD20ModeState } from './ac5e-hooks-roll-post.mjs';
 
 export function postBuildRollConfig(processConfig, config, index) {
 	if (!_activeModule('midi-qol')) return true;
@@ -34,14 +35,6 @@ export function postBuildRollConfig(processConfig, config, index) {
 		: ac5eMode === CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE ? 'advantage'
 		: ac5eMode === CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE ? 'disadvantage'
 		: 'normal';
-	config.options ??= {};
-	config.options.advantage = normalizedAction === 'advantage';
-	config.options.disadvantage = normalizedAction === 'disadvantage';
-	if (ac5eMode !== undefined) config.options.advantageMode = ac5eMode;
-	config.options.defaultButton = normalizedAction;
-	config.options[Constants.MODULE_ID] ??= {};
-	if (ac5eMode !== undefined) config.options[Constants.MODULE_ID].advantageMode = ac5eMode;
-	config.options[Constants.MODULE_ID].defaultButton = normalizedAction;
-	if (explicitOverride !== undefined) config.options[Constants.MODULE_ID].explicitModeOverride = foundry.utils.duplicate(explicitOverride);
+	mirrorD20ModeState(ac5eConfig, config, { action: normalizedAction, advantageMode: ac5eMode, defaultButton: normalizedAction, explicitOverride });
 	return true;
 }

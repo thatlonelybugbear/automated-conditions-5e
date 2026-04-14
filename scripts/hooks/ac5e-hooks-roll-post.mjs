@@ -1,4 +1,4 @@
-import { _activeModule, _filterOptinEntries, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _setMessageFlagScope } from '../ac5e-helpers.mjs';
+import { _activeModule, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
@@ -12,6 +12,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	syncRollReferencesToConfig(rolls, config);
 	const options = config.options ?? {};
 	const ac5eConfig = getPostRollAc5eConfig(rolls, config, dialog);
+	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
 	reconcileResolvedD20Mode(ac5eConfig, config, rolls, message);
 	syncChatRollPayloads(rolls, message, ac5eConfig, deps);
 	normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps);
@@ -25,6 +26,8 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	});
 	syncPostRollTargets(ac5eConfig, config, rolls, message);
 	applyPendingUsesIfNeeded(ac5eConfig, rolls);
+	restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts);
+	debugRollStateMigration('postRoll', { hook, config, rolls, ac5eConfig, extra: { hasMessage: !!message } });
 	return true;
 }
 
@@ -37,19 +40,66 @@ function syncRollReferencesToConfig(rolls, config) {
 		const rollOptions = rolls[index]?.options?.[Constants.MODULE_ID];
 		if (!rollOptions) continue;
 		const configRollOptions = getExistingRollOptions(config, index);
-		if (configRollOptions) configRollOptions[Constants.MODULE_ID] = rollOptions;
+		if (!configRollOptions) continue;
+		const existing = configRollOptions[Constants.MODULE_ID];
+		configRollOptions[Constants.MODULE_ID] = chooseRicherAc5eCandidate(existing, rollOptions) ?? rollOptions;
 	}
+}
+
+function scoreAc5eCandidate(candidate) {
+	if (!candidate || typeof candidate !== 'object') return -1;
+	const counts = candidate?.modeCounts;
+	const hasModeCounts = counts && typeof counts === 'object' && (
+		Number(counts?.advantages?.total ?? 0) > 0 ||
+		Number(counts?.disadvantages?.total ?? 0) > 0 ||
+		Number(counts?.noAdvantages?.total ?? 0) > 0 ||
+		Number(counts?.noDisadvantages?.total ?? 0) > 0
+	);
+	const hasSides = Boolean(candidate?.subject || candidate?.opponent);
+	const hasHook = typeof candidate?.hookType === 'string' && candidate.hookType.trim().length > 0;
+	const hasTooltip = typeof candidate?.chatTooltip === 'string' || candidate?.tooltipObj;
+	const hasOptions = candidate?.options && typeof candidate.options === 'object';
+	const hasPending = Array.isArray(candidate?.pendingUses) || Array.isArray(candidate?.damageModifiers) || Array.isArray(candidate?.extraDice);
+	return (hasModeCounts ? 16 : 0) + (hasSides ? 8 : 0) + (hasOptions ? 4 : 0) + (hasHook ? 2 : 0) + (hasTooltip ? 1 : 0) + (hasPending ? 1 : 0);
+}
+
+function chooseRicherAc5eCandidate(left, right) {
+	if (!left || typeof left !== 'object') return right;
+	if (!right || typeof right !== 'object') return left;
+	return scoreAc5eCandidate(right) > scoreAc5eCandidate(left) ? right : left;
 }
 
 function getPostRollAc5eConfig(rolls, config, dialog) {
 	const options = config?.options ?? {};
-	return (
-		rolls?.[0]?.options?.[Constants.MODULE_ID] ??
-		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
-		options[Constants.MODULE_ID] ??
-		config?.[Constants.MODULE_ID] ??
-		dialog?.config?.options?.[Constants.MODULE_ID]
-	);
+	const candidates = [
+		config?.rolls?.[0]?.options?.[Constants.MODULE_ID],
+		options[Constants.MODULE_ID],
+		config?.[Constants.MODULE_ID],
+		dialog?.config?.options?.[Constants.MODULE_ID],
+		rolls?.[0]?.options?.[Constants.MODULE_ID],
+	].filter((candidate) => candidate && typeof candidate === 'object');
+	if (!candidates.length) return undefined;
+	return candidates.reduce((best, candidate) => chooseRicherAc5eCandidate(best, candidate), candidates[0]);
+}
+
+function restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts) {
+	if (!stableModeCounts || typeof stableModeCounts !== 'object') return;
+	if (ac5eConfig && typeof ac5eConfig === 'object') ac5eConfig.modeCounts = foundry.utils.duplicate(stableModeCounts);
+	if (config?.options?.[Constants.MODULE_ID] && typeof config.options[Constants.MODULE_ID] === 'object') {
+		config.options[Constants.MODULE_ID].modeCounts = foundry.utils.duplicate(stableModeCounts);
+	}
+	if (Array.isArray(config?.rolls)) {
+		for (const roll of config.rolls) {
+			if (!roll?.options?.[Constants.MODULE_ID] || typeof roll.options[Constants.MODULE_ID] !== 'object') continue;
+			roll.options[Constants.MODULE_ID].modeCounts = foundry.utils.duplicate(stableModeCounts);
+		}
+	}
+	if (Array.isArray(rolls)) {
+		for (const roll of rolls) {
+			if (!roll?.options?.[Constants.MODULE_ID] || typeof roll.options[Constants.MODULE_ID] !== 'object') continue;
+			roll.options[Constants.MODULE_ID].modeCounts = foundry.utils.duplicate(stableModeCounts);
+		}
+	}
 }
 
 function reconcileResolvedD20Mode(ac5eConfig, config, rolls, message) {
@@ -58,12 +108,7 @@ function reconcileResolvedD20Mode(ac5eConfig, config, rolls, message) {
 	const proposedAction = getProposedModeOverrideAction(ac5eConfig) || 'normal';
 	const configRoll0Options = getExistingRollOptions(config, 0);
 	const existingExplicitOverride = getExplicitModeOverride(ac5eConfig);
-	syncResolvedD20ModeState(ac5eConfig, config, rolls[0].options, resolvedAction);
-	if (configRoll0Options && typeof configRoll0Options === 'object') {
-		configRoll0Options.advantage = rolls[0].options.advantage;
-		configRoll0Options.disadvantage = rolls[0].options.disadvantage;
-		configRoll0Options.advantageMode = rolls[0].options.advantageMode;
-	}
+	mirrorD20ModeState(ac5eConfig, config, { action: resolvedAction, rollOptions: rolls[0].options });
 	if (resolvedAction !== proposedAction) {
 		const overrideSource = existingExplicitOverride?.replacesCalculatedMode && existingExplicitOverride?.source === 'keypress' ? 'keypress' : 'dialog';
 		const override = setExplicitModeOverride(ac5eConfig, { action: resolvedAction, source: overrideSource, force: true });
@@ -77,12 +122,7 @@ function reconcileResolvedD20Mode(ac5eConfig, config, rolls, message) {
 		clearExplicitModeOverride(ac5eConfig);
 	}
 	_getTooltip(ac5eConfig);
-	if (message && typeof message === 'object') {
-		const messagePayload = { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType };
-		if (Number.isFinite(Number(ac5eConfig?.initialTargetADC))) messagePayload.initialTargetADC = Number(ac5eConfig.initialTargetADC);
-		if (Number.isFinite(Number(ac5eConfig?.alteredTargetADC))) messagePayload.alteredTargetADC = Number(ac5eConfig.alteredTargetADC);
-		_setMessageFlagScope(message, Constants.MODULE_ID, messagePayload, { merge: true });
-	}
+	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, { tooltipObj: ac5eConfig.tooltipObj, hookType: ac5eConfig.hookType }, { merge: true });
 }
 
 function syncChatRollPayloads(rolls, message, ac5eConfig, deps) {
@@ -106,12 +146,12 @@ function syncChatRollPayloads(rolls, message, ac5eConfig, deps) {
 export function buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
 	const hookType = String(ac5eConfig?.hookType ?? '').trim();
 	if (!hookType) return null;
+	const modeCounts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig, { persist: false });
 	const payload = {
 		hookType,
 		chatTooltip: typeof chatTooltip === 'string' ? chatTooltip : String(ac5eConfig?.chatTooltip ?? '').trim(),
 	};
-	if (Number.isFinite(Number(ac5eConfig?.initialTargetADC))) payload.initialTargetADC = Number(ac5eConfig.initialTargetADC);
-	if (Number.isFinite(Number(ac5eConfig?.alteredTargetADC))) payload.alteredTargetADC = Number(ac5eConfig.alteredTargetADC);
+	if (modeCounts && typeof modeCounts === 'object') payload.modeCounts = foundry.utils.duplicate(modeCounts);
 	if (ac5eConfig?.hasTransitAdvantage) payload.hasTransitAdvantage = true;
 	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;
 	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
@@ -124,39 +164,19 @@ function normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps)
 	const currentMode = rolls[0].options.advantageMode;
 	const isNonNormalMode = advModes && (currentMode === advModes.ADVANTAGE || currentMode === advModes.DISADVANTAGE);
 	if (!isNonNormalMode || getExplicitModeOverride(ac5eConfig)?.replacesCalculatedMode) return;
-	const selected = ac5eConfig?.optinSelected ?? {};
-	const subject = ac5eConfig?.subject ?? {};
-	const opponent = ac5eConfig?.opponent ?? {};
-	const hasAdvReasons =
-		_filterOptinEntries(subject?.advantage ?? [], selected).length +
-			_filterOptinEntries(opponent?.advantage ?? [], selected).length +
-			countCollection(subject?.advantageNames) +
-			countCollection(opponent?.advantageNames) >
-		0;
-	const hasDisReasons =
-		_filterOptinEntries(subject?.disadvantage ?? [], selected).length +
-			_filterOptinEntries(opponent?.disadvantage ?? [], selected).length +
-			countCollection(subject?.disadvantageNames) +
-			countCollection(opponent?.disadvantageNames) >
-		0;
+	const modeCounts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig, { persist: false });
+	const hasAdvReasons = modeCounts?.advantages?.present;
+	const hasDisReasons = modeCounts?.disadvantages?.present;
 	const d20Dice = (Array.isArray(rolls[0].dice) ? rolls[0].dice : []).filter((die) => Number(die?.faces) === 20);
 	const hasSingleD20Result = d20Dice.length && d20Dice.every((die) => !Array.isArray(die?.results) || die.results.length <= 1);
 	if (!hasAdvReasons || !hasDisReasons || !hasSingleD20Result) return;
-	rolls[0].options.advantageMode = advModes.NORMAL;
-	rolls[0].options.advantage = true;
-	rolls[0].options.disadvantage = true;
-	const configRoll0Options = getExistingRollOptions(config, 0);
-	if (configRoll0Options && typeof configRoll0Options === 'object') {
-		configRoll0Options.advantageMode = advModes.NORMAL;
-		configRoll0Options.advantage = true;
-		configRoll0Options.disadvantage = true;
-	}
+	mirrorD20ModeState(ac5eConfig, config, { action: 'normal', advantageMode: advModes.NORMAL, defaultButton: 'normal', rollOptions: rolls[0].options });
 	if (options && typeof options === 'object') {
+		options.advantage = config.advantage;
+		options.disadvantage = config.disadvantage;
 		options.advantageMode = advModes.NORMAL;
 		options.defaultButton = 'normal';
 	}
-	ac5eConfig.advantageMode = advModes.NORMAL;
-	ac5eConfig.defaultButton = 'normal';
 	if (deps.hookDebugEnabled('postRollConfigurationHook')) console.warn('AC5E postRollConfiguration normalized non-multi d20 advantageMode', { currentMode, roll: rolls[0] });
 }
 
@@ -190,11 +210,7 @@ function applyPendingUsesIfNeeded(ac5eConfig, rolls) {
 	const explicitOverride = getExplicitModeOverride(ac5eConfig);
 	const pending = ac5eConfig.pendingUses
 		.filter((entry) => !entry.optin || selectedIds.has(entry.id))
-		.filter((entry) => {
-			if (!entry?.optin) return true;
-			if (!explicitOverride?.replacesCalculatedMode) return true;
-			return entry?.modeFamily !== explicitOverride.family;
-		});
+		.filter((entry) => entry?.modeFamily !== explicitOverride?.family || !explicitOverride?.replacesCalculatedMode);
 	if (ac5e?.debug?.auraCadenceOptins) {
 		const auraPending = ac5eConfig.pendingUses.filter((entry) => String(entry?.id ?? '').includes(':aura:'));
 		if (auraPending.length) {
@@ -286,33 +302,9 @@ export function applyExplicitModeOverride(ac5eConfig, config) {
 		}
 		return true;
 	}
-	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
-	if (!advModes) return false;
-	let advantageMode = advModes.NORMAL;
-	if (action === 'advantage') {
-		config.advantage = true;
-		config.disadvantage = false;
-		advantageMode = advModes.ADVANTAGE;
-	} else if (action === 'disadvantage') {
-		config.advantage = false;
-		config.disadvantage = true;
-		advantageMode = advModes.DISADVANTAGE;
-	} else {
-		config.advantage = true;
-		config.disadvantage = true;
-	}
-	config.advantageMode = advantageMode;
-	ac5eConfig.advantageMode = advantageMode;
-	ac5eConfig.defaultButton = action;
-	if (roll0Options && typeof roll0Options === 'object') {
-		roll0Options.advantage = config.advantage;
-		roll0Options.disadvantage = config.disadvantage;
-		roll0Options.advantageMode = advantageMode;
-		roll0Options.defaultButton = action;
-	}
+	const nextState = mirrorD20ModeState(ac5eConfig, config, { action, defaultButton: action, explicitOverride: override, rollOptions: roll0Options });
+	if (!nextState) return false;
 	if (roll0?.options?.[Constants.MODULE_ID] && typeof roll0.options[Constants.MODULE_ID] === 'object') {
-		roll0.options[Constants.MODULE_ID].advantageMode = advantageMode;
-		roll0.options[Constants.MODULE_ID].defaultButton = action;
 		roll0.options[Constants.MODULE_ID].explicitRollDialogOverride = true;
 		roll0.options[Constants.MODULE_ID].explicitModeOverride = override;
 	}
@@ -339,32 +331,64 @@ function clearTooltipCacheForHook(ac5eConfig) {
 	if (ac5eConfig?.tooltipObj && typeof ac5eConfig.tooltipObj === 'object') delete ac5eConfig.tooltipObj[hookType];
 }
 
-function syncResolvedD20ModeState(ac5eConfig, config, rollOptions, action) {
-	if (!config || !rollOptions) return;
+export function mirrorD20ModeState(ac5eConfig, config, { action, advantageMode, defaultButton, explicitOverride, rollOptions } = {}) {
+	if (!config) return null;
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
-	if (!advModes) return;
-	const normalizedAction = String(action ?? 'normal')
-		.trim()
-		.toLowerCase();
-	let advantageMode = advModes.NORMAL;
-	let advantage = true;
-	let disadvantage = true;
-	if (normalizedAction === 'advantage') {
-		advantageMode = advModes.ADVANTAGE;
-		advantage = true;
-		disadvantage = false;
-	} else if (normalizedAction === 'disadvantage') {
-		advantageMode = advModes.DISADVANTAGE;
-		advantage = false;
-		disadvantage = true;
+	if (!advModes) return null;
+	const normalizedAction =
+		typeof action === 'string' && action.trim() ? action.trim().toLowerCase()
+		: typeof advantageMode === 'number' ? getActionFromResolvedD20Mode(advantageMode)
+		: getActionFromResolvedD20Mode(ac5eConfig?.advantageMode);
+	const resolvedMode =
+		typeof advantageMode === 'number' ? advantageMode
+		: normalizedAction === 'advantage' ? advModes.ADVANTAGE
+		: normalizedAction === 'disadvantage' ? advModes.DISADVANTAGE
+		: advModes.NORMAL;
+	const nextDefaultButton =
+		typeof defaultButton === 'string' && defaultButton.trim() ? defaultButton.trim().toLowerCase()
+		: normalizedAction;
+	const resolvedButtons = getResolvedD20BooleansFromMode(resolvedMode, {
+		advantage: config?.advantage,
+		disadvantage: config?.disadvantage,
+	});
+	if (resolvedButtons.advantage !== undefined) config.advantage = resolvedButtons.advantage;
+	if (resolvedButtons.disadvantage !== undefined) config.disadvantage = resolvedButtons.disadvantage;
+	config.options ??= {};
+	config.options.advantage = config.advantage;
+	config.options.disadvantage = config.disadvantage;
+	config.options.advantageMode = resolvedMode;
+	config.options.defaultButton = nextDefaultButton;
+	config.options[Constants.MODULE_ID] ??= {};
+	config.options[Constants.MODULE_ID].advantageMode = resolvedMode;
+	config.options[Constants.MODULE_ID].defaultButton = nextDefaultButton;
+	if (explicitOverride !== undefined) config.options[Constants.MODULE_ID].explicitModeOverride = foundry.utils.duplicate(explicitOverride);
+	const targets = [];
+	if (rollOptions && typeof rollOptions === 'object') targets.push(rollOptions);
+	const configRoll0Options = getExistingRollOptions(config, 0);
+	if (configRoll0Options && configRoll0Options !== rollOptions) targets.push(configRoll0Options);
+	for (const target of targets) {
+		target.advantage = config.advantage;
+		target.disadvantage = config.disadvantage;
+		target.advantageMode = resolvedMode;
+		target.defaultButton = nextDefaultButton;
 	}
-	config.advantageMode = advantageMode;
-	config.advantage = advantage;
-	config.disadvantage = disadvantage;
-	rollOptions.advantage = advantage;
-	rollOptions.disadvantage = disadvantage;
-	rollOptions.advantageMode = advantageMode;
-	ac5eConfig.advantageMode = advantageMode;
+	const roll0 = getExistingRoll(config, 0);
+	if (roll0?.options?.[Constants.MODULE_ID] && typeof roll0.options[Constants.MODULE_ID] === 'object') {
+		roll0.options[Constants.MODULE_ID].advantageMode = resolvedMode;
+		roll0.options[Constants.MODULE_ID].defaultButton = nextDefaultButton;
+		if (explicitOverride !== undefined) roll0.options[Constants.MODULE_ID].explicitModeOverride = explicitOverride;
+	}
+	if (ac5eConfig && typeof ac5eConfig === 'object') {
+		ac5eConfig.advantageMode = resolvedMode;
+		ac5eConfig.defaultButton = nextDefaultButton;
+	}
+	return {
+		action: normalizedAction,
+		advantage: config.advantage,
+		disadvantage: config.disadvantage,
+		advantageMode: resolvedMode,
+		defaultButton: nextDefaultButton,
+	};
 }
 
 function clearExplicitModeOverride(ac5eConfig) {
@@ -373,17 +397,5 @@ function clearExplicitModeOverride(ac5eConfig) {
 	delete ac5eConfig.explicitRollDialogAction;
 	ac5eConfig.explicitRollDialogOverride = false;
 	clearTooltipCacheForHook(ac5eConfig);
-}
-
-function countCollection(value) {
-	return (
-		typeof value?.size === 'number' ? value.size
-		: Array.isArray(value) ? value.length
-		: typeof value === 'string' ?
-			value.trim() ?
-				1
-			:	0
-		:	0
-	);
 }
 
