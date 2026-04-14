@@ -2,7 +2,16 @@ import { ac5eQueue } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 const CADENCE_FLAG_KEY = 'cadence';
-const CADENCE_FLAG_REPLACE_PATH = `flags.${Constants.MODULE_ID}.==${CADENCE_FLAG_KEY}`;
+
+function _buildCadenceFlagReplacement(state) {
+	return {
+		flags: {
+			[Constants.MODULE_ID]: {
+				[CADENCE_FLAG_KEY]: foundry.data.operators.ForcedReplacement.create(state),
+			},
+		},
+	};
+}
 
 function _isMissingDocumentError(err) {
 	const message = String(err?.message ?? err ?? '').toLowerCase();
@@ -49,7 +58,7 @@ export async function _setCombatCadenceFlag({ combatUuid, state } = {}) {
 		if (activeGM.id === game.user?.id) {
 			const combat = fromUuidSync(combatUuid);
 			if (!combat) return false;
-			await combat.update({ [CADENCE_FLAG_REPLACE_PATH]: state }, { ac5eCadenceSync: true, diff: false });
+			await combat.update(_buildCadenceFlagReplacement(state), { ac5eCadenceSync: true, diff: false });
 			return true;
 		}
 		await activeGM.query(Constants.GM_COMBAT_CADENCE_UPDATE, { combatUuid, state });
@@ -145,7 +154,7 @@ export async function _gmCombatCadenceUpdate({ combatUuid, state } = {}) {
 	const combat = fromUuidSync(combatUuid);
 	if (!combat) return false;
 	try {
-		await combat.update({ [CADENCE_FLAG_REPLACE_PATH]: state }, { ac5eCadenceSync: true, diff: false });
+		await combat.update(_buildCadenceFlagReplacement(state), { ac5eCadenceSync: true, diff: false });
 		return true;
 	} catch (err) {
 		console.error(`${Constants.GM_COMBAT_CADENCE_UPDATE} failed for ${combatUuid}:`, err);

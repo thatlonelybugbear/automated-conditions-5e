@@ -31,7 +31,16 @@ const statusEffectsOverrideState = {
 	seq: 1,
 };
 const CADENCE_FLAG_KEY = 'cadence';
-const CADENCE_FLAG_REPLACE_PATH = `flags.${Constants.MODULE_ID}.==${CADENCE_FLAG_KEY}`;
+
+function _buildCadenceFlagReplacement(state) {
+	return {
+		flags: {
+			[Constants.MODULE_ID]: {
+				[CADENCE_FLAG_KEY]: foundry.data.operators.ForcedReplacement.create(state),
+			},
+		},
+	};
+}
 
 function _preserveStandaloneSignedDiceFormula(expression) {
 	if (typeof expression !== 'string') return null;
@@ -319,7 +328,7 @@ export async function _syncCombatCadenceFlags(combat, _update, _options) {
 	if (roundChanged || turnChanged || combatantChanged) state.used.oncePerTurn = {};
 	state.last = { round: nextRound, turn: nextTurn, combatantId: nextCombatantId };
 	state.updatedAt = Date.now();
-	_update[CADENCE_FLAG_REPLACE_PATH] = state;
+	foundry.utils.mergeObject(_update, _buildCadenceFlagReplacement(state));
 	return true;
 }
 
