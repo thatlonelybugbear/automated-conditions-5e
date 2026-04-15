@@ -20,7 +20,7 @@ export let scopeUser, lazySandbox, ac5eQueue, statusEffectsTables;
 export { createTroubleshooterSnapshot, exportTroubleshooterSnapshot, importTroubleshooterSnapshot, lintAc5eFlags } from './ac5e-api.mjs';
 
 let daeFlags;
-const AC5E_LOCAL_BUILD_ID = 'local-delete-race-2026-02-19a';
+const AC5E_LOCAL_BUILD_ID = 'v14.360.15042026';
 
 Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('i18nInit', ac5ei18nInit);
