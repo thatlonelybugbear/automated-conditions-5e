@@ -3103,8 +3103,12 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.abilities.${abilityId}.value`]: newValue } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`system.abilities.${abilityId}.value`]: newValue } } });
 						} else if (attr.includes('hd')) {
-							if (!(consumptionActor instanceof Actor)) return false;
-							const { max, value, classes } = consumptionActor.attributes.hd;
+							const hdActor =
+								consumptionActor instanceof Actor ? consumptionActor
+								: actor;
+							const hdData = hdActor?.system?.attributes?.hd ?? hdActor?.attributes?.hd;
+							const { max, value, classes } = hdData ?? {};
+							if (!(hdActor instanceof Actor) || !hdData?.classes) return false;
 							if (value - consume < 0 || value - consume > max) return false;
 
 							const hdClasses = Array.from(classes)
