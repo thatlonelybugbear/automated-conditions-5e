@@ -750,36 +750,186 @@ export function _getSafeUseConfig(ac5eConfig) {
 	};
 }
 
-export function _getSafeDialogConfig(ac5eConfig) {
-	const safe = {
-		...(ac5eConfig ?? {}),
-		options:
-			ac5eConfig?.options && typeof ac5eConfig.options === 'object' ?
-				{ ...ac5eConfig.options }
-			:	ac5eConfig?.options,
-		reEval:
-			ac5eConfig?.reEval && typeof ac5eConfig.reEval === 'object' ?
-				{ ...ac5eConfig.reEval }
-			:	ac5eConfig?.reEval,
-	};
-	if (safe?.options && typeof safe.options === 'object') {
-		delete safe.options.activity;
-		delete safe.options.ammo;
-		delete safe.options.ammunition;
-		delete safe.options.originatingUseConfig;
-		delete safe.options._ac5eHookChecksCache;
-		for (const key of Object.keys(safe.options)) if (key.startsWith('_')) delete safe.options[key];
+function _getSafeDialogOptions(options = {}) {
+	if (!options || typeof options !== 'object') return {};
+	const safe = pickOptions(options, [
+		'ability',
+		'attackMode',
+		'damageTypes',
+		'defaultDamageType',
+		'distance',
+		'hook',
+		'isInitiative',
+		'mastery',
+		'riderStatuses',
+		'scaling',
+		'selectedDamageTypes',
+		'selectedDamageTypesByIndex',
+		'skill',
+		'spellLevel',
+		'targets',
+		'tool',
+	]);
+	if (Array.isArray(options.targets)) {
+		safe.targets = options.targets.map((target, index) => ({
+			id: target?.id ?? target?._id ?? null,
+			key: target?.key ?? index,
+			uuid: target?.uuid ?? null,
+			tokenUuid: target?.tokenUuid ?? target?.token?.uuid ?? null,
+			name: target?.name ?? '',
+			img: target?.img ?? null,
+			ac: target?.ac,
+		}));
 	}
-	delete safe.originatingUseConfig;
-	delete safe.useConfig;
-	delete safe.useConfigBase;
-	delete safe.hookContext;
-	delete safe.dialogContext;
-	if (safe?.reEval && typeof safe.reEval === 'object') {
-		delete safe.reEval.useConfigSnapshot;
-		delete safe.reEval.currentOptions;
+	if (options.item?.uuid) safe.item = { id: options.item.id ?? options.item._id ?? options.item.uuid.split('.').at(-1), type: options.item.type, uuid: options.item.uuid };
+	return safe;
+}
+
+function _duplicateDialogEntries(entries = []) {
+	return Array.isArray(entries) ? foundry.utils.duplicate(entries) : [];
+}
+
+function _duplicateDialogCollection(entries = []) {
+	if (Array.isArray(entries)) return foundry.utils.duplicate(entries);
+	if (entries instanceof Set) return [...entries];
+	return [];
+}
+
+function _getSafeDialogSide(side = {}) {
+	if (!side || typeof side !== 'object') return {};
+	const safe = {};
+	for (const key of [
+		'abilityOverride',
+		'advantage',
+		'advantageNames',
+		'bonus',
+		'critical',
+		'criticalThreshold',
+		'disadvantage',
+		'disadvantageNames',
+		'extraDice',
+		'fail',
+		'forcedAdvantage',
+		'forcedDisadvantage',
+		'fumbleThreshold',
+		'fumble',
+		'info',
+		'max',
+		'midiAdvantage',
+		'midiDisadvantage',
+		'midiFail',
+		'midiSuccess',
+		'modifiers',
+		'noAdvantage',
+		'noCritical',
+		'noDisadvantage',
+		'range',
+		'rangeNotes',
+		'suppressedStatuses',
+		'success',
+		'targetADC',
+	]) {
+		safe[key] = _duplicateDialogCollection(side[key]);
+	}
+	if (side.check && typeof side.check === 'object') safe.check = foundry.utils.duplicate(side.check);
+	if (side.save && typeof side.save === 'object') safe.save = foundry.utils.duplicate(side.save);
+	if (side.attack && typeof side.attack === 'object') safe.attack = foundry.utils.duplicate(side.attack);
+	return safe;
+}
+
+function _getSafeDialogPreConfig(preConfig = {}) {
+	if (!preConfig || typeof preConfig !== 'object') return {};
+	const safe = {};
+	for (const key of [
+		'activeDamageRollProfileKey',
+		'activeRollProfileKey',
+		'adv',
+		'baseAbility',
+		'baseCritical',
+		'baseRoll0Options',
+		'baseTargetAcByKey',
+		'deferD20KeypressToMidi',
+		'dis',
+		'forceChatTooltip',
+		'frozenD20Baseline',
+		'frozenD20BaselineByProfile',
+		'frozenDamageBaseline',
+		'frozenDamageBaselineByProfile',
+		'hasWorkflowOptions',
+		'midiOptions',
+		'midiOwnsAbilityTooltip',
+		'skipDialogAdvantage',
+		'skipDialogDisadvantage',
+		'skipDialogNormal',
+		'wasCritical',
+	]) {
+		if (preConfig[key] !== undefined) safe[key] = foundry.utils.duplicate(preConfig[key]);
 	}
 	return safe;
+}
+
+function _getSafeDialogReEval(reEval = {}) {
+	if (!reEval || typeof reEval !== 'object') return reEval;
+	const safe = {};
+	for (const key of [
+		'canReuseUseBaseline',
+		'changed',
+		'flagReEvalOn',
+		'initialDamages',
+		'initialFormulas',
+		'initialRolls',
+		'optionKeys',
+		'requiresFlagReEvaluation',
+		'useConfigChangedKeys',
+		'useConfigMatches',
+	]) {
+		if (reEval[key] !== undefined) safe[key] = foundry.utils.duplicate(reEval[key]);
+	}
+	return safe;
+}
+
+export function _getSafeDialogConfig(ac5eConfig) {
+	return {
+		hookType: ac5eConfig?.hookType,
+		tokenId: ac5eConfig?.tokenId,
+		targetId: ac5eConfig?.targetId,
+		roller: ac5eConfig?.roller,
+		hasPlayerOwner: ac5eConfig?.hasPlayerOwner,
+		ownership: ac5eConfig?.ownership,
+		advantageMode: ac5eConfig?.advantageMode ?? null,
+		defaultButton: ac5eConfig?.defaultButton ?? null,
+		hasTransitAdvantage: !!ac5eConfig?.hasTransitAdvantage,
+		hasTransitDisadvantage: !!ac5eConfig?.hasTransitDisadvantage,
+		isCritical: !!ac5eConfig?.isCritical,
+		isFumble: !!ac5eConfig?.isFumble,
+		options: _getSafeDialogOptions(ac5eConfig?.options),
+		reEval: _getSafeDialogReEval(ac5eConfig?.reEval),
+		subject: _getSafeDialogSide(ac5eConfig?.subject),
+		opponent: _getSafeDialogSide(ac5eConfig?.opponent),
+		parts: _duplicateDialogEntries(ac5eConfig?.parts),
+		damageModifiers: _duplicateDialogEntries(ac5eConfig?.damageModifiers),
+		extraDice: _duplicateDialogEntries(ac5eConfig?.extraDice),
+		threshold: _duplicateDialogEntries(ac5eConfig?.threshold),
+		fumbleThreshold: _duplicateDialogEntries(ac5eConfig?.fumbleThreshold),
+		targetADC: _duplicateDialogEntries(ac5eConfig?.targetADC),
+		optinBaseTargetADC: _duplicateDialogEntries(ac5eConfig?.optinBaseTargetADC),
+		optinBaseTargetADCValue: ac5eConfig?.optinBaseTargetADCValue,
+		initialTargetADC: ac5eConfig?.initialTargetADC,
+		alteredTargetADC: ac5eConfig?.alteredTargetADC,
+		alteredCritThreshold: ac5eConfig?.alteredCritThreshold,
+		alteredFumbleThreshold: ac5eConfig?.alteredFumbleThreshold,
+		optinSelected: foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {}),
+		tooltipObj: foundry.utils.duplicate(ac5eConfig?.tooltipObj ?? {}),
+		preAC5eConfig: _getSafeDialogPreConfig(ac5eConfig?.preAC5eConfig),
+		frozenD20Baseline: ac5eConfig?.frozenD20Baseline ? foundry.utils.duplicate(ac5eConfig.frozenD20Baseline) : undefined,
+		frozenDamageBaseline: ac5eConfig?.frozenDamageBaseline ? foundry.utils.duplicate(ac5eConfig.frozenDamageBaseline) : undefined,
+		preservedInitialData: ac5eConfig?.preservedInitialData ? foundry.utils.duplicate(ac5eConfig.preservedInitialData) : undefined,
+		_preservedInitialDataProfileKey: ac5eConfig?._preservedInitialDataProfileKey,
+		damageRollCriticalByIndex: _duplicateDialogEntries(ac5eConfig?.damageRollCriticalByIndex),
+		optinBaseCritical: ac5eConfig?.optinBaseCritical,
+		pendingUses: _duplicateDialogEntries(ac5eConfig?.pendingUses),
+		pendingUsesApplied: !!ac5eConfig?.pendingUsesApplied,
+	};
 }
 
 export function _mergeUseOptions(targetOptions, useOptions) {
