@@ -1365,16 +1365,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const modifyHooks = isModifyAC || isModifyDC;
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
+		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
 		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
 		const cadenceActorType = auraTokenEvaluationData ? 'aura' : (resolvedActorType ?? actorType);
-		if (change.value.toLowerCase().includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
+		if (normalizedChangeValue.includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
-			if (auraTokenEvaluationData.auraTokenId === (isModifyAC ? opponentToken.id : subjectToken.id) && !change.value.toLowerCase().includes('includeself')) return false;
+			if (auraTokenEvaluationData.auraTokenId === (isModifyAC ? opponentToken.id : subjectToken.id) && !normalizedChangeValue.includes('includeself')) return false;
 			if (!friendOrFoe(auraToken, isModifyAC ? opponentToken : subjectToken, change.value)) return false;
 			let radius = getBlacklistedKeysValue('radius', change.value);
 			if (radius) {
@@ -1384,8 +1385,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!radius) return false;
 				const distanceTokenToAuraSource =
 					!isModifyAC ?
-						distanceToSource(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight')
-					:	distanceToTarget(auraToken, change.value.toLowerCase().includes('wallsblock') && 'sight');
+						distanceToSource(auraToken, normalizedChangeValue.includes('wallsblock') && 'sight')
+					:	distanceToTarget(auraToken, normalizedChangeValue.includes('wallsblock') && 'sight');
 				if (distanceTokenToAuraSource <= radius) auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
 				else return false;
 			}
@@ -1426,13 +1427,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const getCustomName = (value) => {
 		if (!value) return undefined;
-		const match = value.match(/(?:^|;)\s*name\s*[:=]\s*([^;]+)/i);
+		const match = String(value).match(/(?:^|;)\s*name\s*[:=]\s*([^;]+)/i);
 		const name = match?.[1]?.trim();
 		return name || undefined;
 	};
 	const getAddTo = (value) => {
 		if (!value) return undefined;
-		const match = value.match(/(?:^|;)\s*addto\s*[:=]\s*([^;]+)/i);
+		const match = String(value).match(/(?:^|;)\s*addto\s*[:=]\s*([^;]+)/i);
 		const raw = match?.[1]?.trim()?.toLowerCase();
 		if (!raw) return undefined;
 		if (raw === 'all') return { mode: 'all', types: [] };
@@ -1446,7 +1447,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const getDescription = (value) => {
 		if (!value) return undefined;
-		const match = value.match(/(?:^|;)\s*description\s*[:=]\s*(?:"([^"]*)"|'([^']*)'|([^;]*))/i);
+		const match = String(value).match(/(?:^|;)\s*description\s*[:=]\s*(?:"([^"]*)"|'([^']*)'|([^;]*))/i);
 		const raw = match?.[1] ?? match?.[2] ?? match?.[3];
 		const description = raw?.trim();
 		return description || undefined;
@@ -1827,7 +1828,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return overrides[entryId] ?? overrides[baseId] ?? null;
 	};
 	const getValuesToEvaluate = ({ value, mode, bonus, effect }) => {
-		let valuesToEvaluate = value
+		let valuesToEvaluate = String(value ?? '')
 			.split(';')
 			.map((v) => v.trim())
 			.filter((v) => {
@@ -1860,7 +1861,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chanceKey: entryId,
 		});
 		const forceOptin = Boolean(usesOverride?.forceOptin);
-		const optin = change.value.toLowerCase().includes('optin') || forceOptin;
+		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
+		const optin = normalizedChangeValue.includes('optin') || forceOptin;
 		const cadence = _extractCadenceFromValue(change.value);
 		const priority = getPriorityValue(change.value);
 		const customName = getCustomName(change.value);
@@ -1945,8 +1947,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			return;
 		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox, isAura, auraToken, sourceActor, sourceNameFallback });
 		if (!entry?.evaluation) return;
-		if (isAura && change.value.toLowerCase().includes('singleaura')) {
-			const wallsBlock = change.value.toLowerCase().includes('wallsblock') && 'sight';
+		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
+		if (isAura && normalizedChangeValue.includes('singleaura')) {
+			const wallsBlock = normalizedChangeValue.includes('wallsblock') && 'sight';
 			const sameAuras = validFlags.filter((existing) => existing.isAura && existing.name === effect.name);
 			if (sameAuras.length) {
 				let shouldAdd = true;
@@ -1984,11 +1987,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		// }
 		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
-		const auraTokenEvaluationData = foundry.utils.mergeObject(
-			evaluationData,
-			{ auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id },
-			{ inplace: false },
-		);
+		const auraTokenEvaluationData = {
+			...evaluationData,
+			auraActor: _ac5eActorRollData(token),
+			isAuraSourceTurn: currentCombatant === token?.id,
+			auraTokenId: token.id,
+		};
 		auraTokenEvaluationData.effectActor = auraTokenEvaluationData.auraActor;
 		processAppliedEffects({
 			effects: token.actor.appliedEffects,
@@ -2187,7 +2191,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(ruleValue) : '';
 		const description = getDescription(ruleValue);
 		const autoDescription = !description && optin ? buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold, enforceMode }) : undefined;
-		let valuesToEvaluate = ruleValue
+		let valuesToEvaluate = String(ruleValue ?? '')
 			.split(';')
 			.map((v) => v.trim())
 			.filter((v) => {
@@ -2492,8 +2496,8 @@ function _buildFinalStandDescription(finalValue) {
 }
 
 function _extractCustomNameFromValue(value) {
-	if (!value || typeof value !== 'string') return undefined;
-	const match = value.match(/(?:^|;)\s*name\s*[:=]\s*([^;]+)/i);
+	if (!value) return undefined;
+	const match = String(value).match(/(?:^|;)\s*name\s*[:=]\s*([^;]+)/i);
 	const parsed = match?.[1]?.trim();
 	return parsed || undefined;
 }
@@ -2730,20 +2734,20 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			if (!Number.isFinite(newMax) || newMax < 0) return false;
 			const newTempmax = newMax - Number(max);
 			if ((parsedUpdate.op === 'set' || Number(consume) < 0) && newMax <= 0) applyFinalStandOverride(_buildFinalStandDescription(newMax));
-			const noConcentration = !(newMax >= Number(value) || change.value.toLowerCase().includes('noconc'));
+			const noConcentration = !(newMax >= Number(value) || String(change.value ?? '').toLowerCase().includes('noconc'));
 			queueActorUpdate({ 'system.attributes.hp.tempmax': newTempmax }, { dnd5e: { concentrationCheck: noConcentration } });
 		} else if (attr.includes('hptemp')) {
 			const current = Number(consumptionActor?.attributes?.hp?.temp);
 			const newTemp = _applyUpdateOperation(current, consume, parsedUpdate.op);
 			if (!Number.isFinite(newTemp) || newTemp < 0) return false;
-			const noConcentration = !(newTemp >= current || change.value.toLowerCase().includes('noconc'));
+			const noConcentration = !(newTemp >= current || String(change.value ?? '').toLowerCase().includes('noconc'));
 			queueActorUpdate({ 'system.attributes.hp.temp': newTemp }, { dnd5e: { concentrationCheck: noConcentration } });
 		} else if (attr.includes('hp')) {
 			const current = Number(consumptionActor?.attributes?.hp?.value);
 			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
 			if (!Number.isFinite(newValue)) return false;
 			if ((parsedUpdate.op === 'set' || Number(consume) < 0) && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
-			const noConcentration = !(newValue >= current || change.value.toLowerCase().includes('noconc'));
+			const noConcentration = !(newValue >= current || String(change.value ?? '').toLowerCase().includes('noconc'));
 			queueActorUpdate({ 'system.attributes.hp.value': newValue }, { dnd5e: { concentrationCheck: noConcentration } });
 		} else if (attr.includes('exhaustion')) {
 			const current = Number(consumptionActor?.attributes?.exhaustion);
@@ -3048,7 +3052,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const newMax = hpMax + newTempmax;
 							if (newMax < 0) return false;
 							if (hasNumericConsume && numericConsume > 0 && newMax <= 0) applyFinalStandOverride(_buildFinalStandDescription(newMax));
-							const noConcentration = !(newMax >= hpValue || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+							const noConcentration = !(newMax >= hpValue || String(change.value ?? '').toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
 							if (isOwner)
 								actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.tempmax': newTempmax }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
@@ -3058,7 +3062,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const hpTemp = Number(temp);
 							const newTemp = hpTemp - consume;
 							if (newTemp < 0) return false;
-							const noConcentration = !(newTemp >= hpTemp || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
+							const noConcentration = !(newTemp >= hpTemp || String(change.value ?? '').toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 						} else if (attr.includes('hp')) {
@@ -3067,7 +3071,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const hpValue = Number(value);
 							const newValue = hpValue - consume;
 							if (hasNumericConsume && numericConsume > 0 && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
-							const noConcentration = !(newValue >= hpValue || change.value.toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
+							const noConcentration = !(newValue >= hpValue || String(change.value ?? '').toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
 							if (isOwner)
 								actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.value': newValue }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
@@ -3843,3 +3847,4 @@ function evalNumericFormulaExpression(expr, { maxDice = 100, maxSides = 1000, de
 		return NaN;
 	}
 }
+

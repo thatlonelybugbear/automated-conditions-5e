@@ -38,7 +38,7 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, options 
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
 	const formulaData =
 		normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ?
-			_cloneRollDataForEvaluation(normalizedOptions.rollData)
+			normalizedOptions.rollData
 		:	rollDataDocument?.getRollData?.() ?? {};
 	const dataActor =
 		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
@@ -123,7 +123,7 @@ export function _ac5eActorRollData(token, rollData) {
 	const actor = token?.actor; // to-do: handle non-token roll data in the future, currently only supports rolls with tokens (e.g. attacks, saves, checks, but not item uses or activities without rolls)
 	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
 	if (!rollData) actorData = actor.getRollData();
-	else actorData = rollData;
+	else actorData = { ...rollData };
 	actorData.flags ??= actor.flags ?? {};
 	actorData.flags['midi-qol'] ??= actor.flags?.['midi-qol'] ?? {};
 	actorData.midiFlags ??= actorData.flags['midi-qol'];
@@ -729,7 +729,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (ac5eConfig.hookType === 'use') {
 		const safeUseConfig = _getSafeUseConfig(ac5eConfig);
 		const ac5eConfigDialog = { [Constants.MODULE_ID]: safeUseConfig };
-		if (config) config[Constants.MODULE_ID] = safeUseConfig;
+		if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
 		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig.options ?? {}, { merge: false });
 		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) {
 			console.warn('AC5e post runtime._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
@@ -764,7 +764,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 
 	const rollOptionsTarget = _ensureRoll0Options(config);
 	const mergeTarget = rollOptionsTarget ?? config;
-	if (mergeTarget) mergeTarget[Constants.MODULE_ID] = safeDialogConfig;
+	if (mergeTarget) foundry.utils.mergeObject(mergeTarget, ac5eConfigDialog);
 	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, ac5eConfigMessage[Constants.MODULE_ID], { merge: true });
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post runtime._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }

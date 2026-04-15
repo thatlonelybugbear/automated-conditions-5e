@@ -10,7 +10,8 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	options.ammunition = ammunition?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
-	if (rolls?.[0]?.data) options.rollData = { ...rolls[0].data };
+	const rollScaling = rolls?.[0]?.data?.scaling;
+	if (rollScaling !== undefined) options.rollData = { scaling: rollScaling };
 	if (Array.isArray(directDamageTargets) && directDamageTargets.length) {
 		options.hook = hook;
 		options.activity = activity;
@@ -50,3 +51,4 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage:', { ac5eConfig });
 	return ac5eConfig;
 }
+
