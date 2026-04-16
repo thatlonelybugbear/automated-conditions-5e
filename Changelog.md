@@ -1,3 +1,7 @@
+## 13.5310.2
+
+- Localized the new opt-in modifier auto-descriptions and added the new source strings to en.json for translators.
+
 ## 13.5310.1
 
 - Added `isAoE` so evaluations can check whether an activity uses an area template.
