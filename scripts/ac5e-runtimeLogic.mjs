@@ -772,7 +772,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 
 	const rollOptionsTarget = _ensureRoll0Options(config);
 	const mergeTarget = rollOptionsTarget ?? config;
-	if (mergeTarget) foundry.utils.mergeObject(mergeTarget, ac5eConfigDialog);
+	if (mergeTarget) mergeTarget[Constants.MODULE_ID] = { ...(mergeTarget[Constants.MODULE_ID] ?? {}), ...safeDialogConfig };
 	if (message && typeof message === 'object') _setMessageFlagScope(message, Constants.MODULE_ID, ac5eConfigMessage[Constants.MODULE_ID], { merge: true });
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post runtime._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
