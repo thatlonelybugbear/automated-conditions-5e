@@ -1,3 +1,9 @@
+## 13.5310.1
+
+- Added `isAoE` so evaluations can check whether an activity uses an area template.
+- Reduced repeated D&D5e compatibility warnings when AC5E rebuilds damage and use dialogs.
+- Kept the damage dialog opt-in flow working while trimming unnecessary deep-copy work behind the scenes.
+
 ## 13.5300.1
 
 - First starter compatibility release for D&D5e `5.3.0`.
