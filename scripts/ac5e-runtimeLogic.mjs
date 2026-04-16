@@ -828,6 +828,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.hasSave = !foundry.utils.isEmpty(activity?.save);
 	sandbox.hasCheck = !foundry.utils.isEmpty(activity?.check);
 	sandbox.isSpell = activity?.isSpell;
+	sandbox.isAoE = activity?.target?.template?.type in CONFIG.DND5E.areaTargetTypes;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
 	sandbox.spellcastingAbility = activity?.spellcastingAbility;
