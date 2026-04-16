@@ -2373,18 +2373,18 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 						const mod = Number(maxMatch[1]);
 						const inplaceMod = ac5eConfig.modifiers.maximum;
 						if (Number.isFinite(mod)) ac5eConfig.modifiers.maximum = !Number.isFinite(inplaceMod) || inplaceMod > mod ? mod : inplaceMod;
-					}
-					const minMatch = normalizedModifier.match(/^min(-?\d+)$/i);
-					if (minMatch) {
-						const mod = Number(minMatch[1]);
-						const inplaceMod = ac5eConfig.modifiers.minimum;
-						if (Number.isFinite(mod)) ac5eConfig.modifiers.minimum = !Number.isFinite(inplaceMod) || inplaceMod < mod ? mod : inplaceMod;
-					}
-					if (/^maximize$/i.test(normalizedModifier)) ac5eConfig.modifiers.maximize = true;
-					else if (/^minimize$/i.test(normalizedModifier)) ac5eConfig.modifiers.minimize = true;
-					else if (_isLiteralModifierSyntax(normalizedModifier, hook)) {
-						ac5eConfig.modifiers.literals ??= [];
-						if (!ac5eConfig.modifiers.literals.includes(normalizedModifier)) ac5eConfig.modifiers.literals.push(normalizedModifier);
+					} else {
+						const minMatch = normalizedModifier.match(/^min(-?\d+)$/i);
+						if (minMatch) {
+							const mod = Number(minMatch[1]);
+							const inplaceMod = ac5eConfig.modifiers.minimum;
+							if (Number.isFinite(mod)) ac5eConfig.modifiers.minimum = !Number.isFinite(inplaceMod) || inplaceMod < mod ? mod : inplaceMod;
+						} else if (/^maximize$/i.test(normalizedModifier)) ac5eConfig.modifiers.maximize = true;
+						else if (/^minimize$/i.test(normalizedModifier)) ac5eConfig.modifiers.minimize = true;
+						else if (_isLiteralModifierSyntax(normalizedModifier, hook)) {
+							ac5eConfig.modifiers.literals ??= [];
+							if (!ac5eConfig.modifiers.literals.includes(normalizedModifier)) ac5eConfig.modifiers.literals.push(normalizedModifier);
+						}
 					}
 				}
 			}
@@ -3784,8 +3784,17 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	if (isModifier) {
 		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect);
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
-		if (typeof trimmedModifier === 'string' && _isLiteralModifierSyntax(trimmedModifier, hook)) modifier = _normalizeLiteralModifierSyntax(trimmedModifier);
-		else modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData, mode: 'formula', debug });
+		if (typeof trimmedModifier === 'string') {
+			const extremeMatch = trimmedModifier.match(/^(min|max)\s*(.+)$/i);
+			if (extremeMatch && !/^(?:maximize|minimize)$/i.test(trimmedModifier)) {
+				let extremeValue = _ac5eSafeEval({ expression: extremeMatch[2], sandbox: evaluationData, mode: 'formula', debug });
+				if (!Number.isFinite(Number(extremeValue))) extremeValue = evalNumericFormulaExpression(extremeValue, { debug });
+				const numericExtremeValue = Number(extremeValue);
+				if (Number.isFinite(numericExtremeValue)) modifier = `${extremeMatch[1].toLowerCase()}${numericExtremeValue}`;
+			}
+			if (modifier === undefined && _isLiteralModifierSyntax(trimmedModifier, hook)) modifier = _normalizeLiteralModifierSyntax(trimmedModifier);
+		}
+		if (modifier === undefined) modifier = _ac5eSafeEval({ expression: replacementModifier, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isThreshold = lowerValue.includes('threshold') && hook === 'attack' ? getBlacklistedKeysValue('threshold', rawValue) : false;
 	if (isThreshold) {
