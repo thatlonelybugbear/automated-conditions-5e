@@ -1453,6 +1453,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const { target } = _parseUpdateSpec(updateRaw);
 		return _normalizeUsesCountTarget(target)?.toLowerCase() || undefined;
 	};
+	const getUsesCountAvailability = ({ usesCount, effect, evaluationData, debug }) => _getUsesCountAvailabilityData({ rawUsesCount: usesCount, effect, evalData: evaluationData, debug });
 	const hasTransitAdvantageKeyword = (value) => {
 		if (!value) return false;
 		return /(?:^|;)\s*(?:hastransitadvantage|convertadvantage)\s*(?:;|$)/i.test(String(value));
@@ -1871,6 +1872,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
+		const usesCount = getBlacklistedKeysValue('usescount', change.value);
+		const usesCountAvailability = getUsesCountAvailability({ usesCount, effect, evaluationData: sandbox, debug });
 		const entry = {
 			id: entryId,
 			name: effect.name,
@@ -1897,8 +1900,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			abilityOverride,
 			requiredDamageTypes,
 			addTo,
+			usesCount,
 			usesCountTarget,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
+			usesCountAvailable: usesCountAvailability.available,
+			usesCountMissing: usesCountAvailability.missing,
 			requiresTransitAdvantage,
 			requiresTransitDisadvantage,
 			changeIndex,
@@ -2190,6 +2196,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug: { usageRuleKey: rule.key } }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: rulePrimaryName, customName: resolvedCustomName, usesOverride: null });
+		const usesCount = getBlacklistedKeysValue('usescount', ruleValue);
+		const usesCountAvailability = getUsesCountAvailability({ usesCount, effect: pseudoEffect, evaluationData, debug: { usageRuleKey: rule.key } });
 		const entry = {
 			id: ruleId,
 			name: rulePrimaryName,
@@ -2216,8 +2224,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			abilityOverride,
 			requiredDamageTypes,
 			addTo,
+			usesCount,
 			usesCountTarget,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
+			usesCountAvailable: usesCountAvailability.available,
+			usesCountMissing: usesCountAvailability.missing,
 			requiresTransitAdvantage,
 			requiresTransitDisadvantage,
 			changeIndex: 0,
@@ -3347,6 +3358,161 @@ export function _applyPendingUses(pendingUses = []) {
 function _asFiniteNumber(value) {
 	const numeric = Number(value);
 	return Number.isFinite(numeric) ? numeric : null;
+}
+
+function _resolveUsesCountConsumeValue(consumptionValue, evalData, debug) {
+	if (!consumptionValue) return 1;
+	const trimmedConsumption = typeof consumptionValue === 'string' ? consumptionValue.trim() : consumptionValue;
+	const directNumber = Number(trimmedConsumption);
+	if (Number.isFinite(directNumber)) return directNumber;
+	if (_looksLikeFormulaExpression(String(trimmedConsumption ?? ''))) {
+		let evaluated = evalDiceExpression(consumptionValue);
+		if (!isNaN(evaluated)) return evaluated;
+		evaluated = _ac5eSafeEval({ expression: consumptionValue, sandbox: evalData, mode: 'formula', debug });
+		if (!isNaN(evaluated)) return evaluated;
+		evaluated = evalDiceExpression(evaluated);
+		if (!isNaN(evaluated)) return evaluated;
+	}
+	return 1;
+}
+
+function _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug) {
+	const directTargetNumber = Number(consumptionTarget);
+	if (Number.isFinite(directTargetNumber)) return directTargetNumber;
+	if (_looksLikeFormulaExpression(consumptionTarget)) {
+		let evaluatedTarget = evalDiceExpression(consumptionTarget);
+		if (!isNaN(evaluatedTarget)) return evaluatedTarget;
+		evaluatedTarget = _ac5eSafeEval({ expression: consumptionTarget, sandbox: evalData, mode: 'formula', debug });
+		const evaluatedTargetNumber = Number(evaluatedTarget);
+		if (Number.isFinite(evaluatedTargetNumber)) return evaluatedTargetNumber;
+		evaluatedTarget = evalDiceExpression(String(evaluatedTarget ?? ''));
+		if (!isNaN(evaluatedTarget)) return evaluatedTarget;
+	}
+	return null;
+}
+
+function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }) {
+	const result = (available = null, missing = null) => ({ available, missing });
+	if (typeof rawUsesCount !== 'string' || !rawUsesCount.trim()) return result();
+	const parsedCount = _parseUsesCountSpec(rawUsesCount);
+	const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
+	if (!consumptionTarget) return result();
+	const lowerConsumptionTarget = consumptionTarget.toLowerCase();
+	const hasOrigin = lowerConsumptionTarget === 'origin';
+	const consume = _resolveUsesCountConsumeValue(parsedCount.consume, evalData, debug);
+	if (!hasOrigin) {
+		const numericTarget = _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug);
+		if (Number.isFinite(numericTarget)) return result(numericTarget, null);
+	}
+	let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
+	if (hasOrigin) {
+		if (!effect?.origin) return result();
+		const parsed = foundry.utils.parseUuid(effect.origin);
+		if (parsed.type === 'ActiveEffect') itemActivityfromUuid = _safeFromUuidSync(effect.origin)?.parent;
+		else if (parsed.type === 'Item') {
+			const item = _safeFromUuidSync(effect.origin);
+			const actorLinked = item?.parent?.protoTypeToken?.actorLink;
+			itemActivityfromUuid = actorLinked ? item : _safeFromUuidSync(effect.parent?.uuid);
+		}
+	}
+	if (itemActivityfromUuid) {
+		const item = itemActivityfromUuid instanceof Item && itemActivityfromUuid;
+		const activity = !item && itemActivityfromUuid?.type !== 'undefined' && itemActivityfromUuid;
+		const { currentUses, currentQuantity, usesMax } = _getUsesState({ item, activity });
+		if (currentUses !== false) return result(currentUses, Number.isFinite(Number(usesMax)) ? Math.max(0, Number(usesMax) - Number(currentUses)) : null);
+		if (currentQuantity !== false) return result(currentQuantity, null);
+		return result();
+	}
+	const actor = effect?.target;
+	if (!(actor instanceof Actor)) return result();
+	if (consumptionTarget.startsWith('Item.')) {
+		const str = consumptionTarget.replace(/[\s,]+$/, '');
+		const activitySeparatorIndex = str.indexOf('.Activity.');
+		const itemID = (activitySeparatorIndex >= 0 ? str.slice(5, activitySeparatorIndex) : str.slice(5)).trim();
+		const activityID = activitySeparatorIndex >= 0 ? str.slice(activitySeparatorIndex + 10).trim() || null : null;
+		if (!itemID) return result();
+		const document = _getItemOrActivity(itemID, activityID, actor);
+		if (!document) return result();
+		let item;
+		let activity;
+		if (document instanceof Item) item = document;
+		else {
+			activity = document;
+			item = activity.item;
+		}
+		const { currentUses, currentQuantity, usesMax } = _getUsesState({ item, activity });
+		if (currentUses !== false) return result(currentUses, Number.isFinite(Number(usesMax)) ? Math.max(0, Number(usesMax) - Number(currentUses)) : null);
+		if (currentQuantity !== false) return result(currentQuantity, null);
+		return result();
+	}
+	const consumptionActor =
+		lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData?.opponentActor
+		: lowerConsumptionTarget.startsWith('auraactor') ? evalData?.auraActor
+		: lowerConsumptionTarget.startsWith('rollingactor') ? evalData?.rollingActor
+		: actor.getRollData();
+	if (!consumptionActor) return result();
+	if (lowerConsumptionTarget.includes('flag')) {
+		const value = lowerConsumptionTarget.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
+		const numericValue = Number(value);
+		return result(Number.isFinite(numericValue) ? numericValue : null, null);
+	}
+	const attr = consumptionTarget.toLowerCase();
+	if (attr.includes('death')) {
+		const type = attr.includes('fail') ? 'attributes.death.failure' : 'attributes.death.success';
+		const valueRaw = foundry.utils.getProperty(consumptionActor, `system.${type}`) ?? foundry.utils.getProperty(consumptionActor, type);
+		const value = Number(valueRaw);
+		if (!Number.isFinite(value)) return result();
+		return result(Number(consume) < 0 ? value : Math.max(0, 3 - value), Number(consume) < 0 ? Math.max(0, 3 - value) : value);
+	}
+	if (attr.includes('hpmax')) {
+		const { tempmax, max, value } = consumptionActor?.attributes?.hp ?? {};
+		if (![tempmax, max, value].every((v) => Number.isFinite(Number(v)))) return result();
+		const totalMax = Number(max) + Number(tempmax);
+		return result(totalMax, Math.max(0, totalMax - Number(value)));
+	}
+	if (attr.includes('hptemp')) {
+		const { temp } = consumptionActor?.attributes?.hp ?? {};
+		const numericTemp = Number(temp);
+		return result(Number.isFinite(numericTemp) ? numericTemp : null, null);
+	}
+	if (attr.includes('hp')) {
+		const { value, max, tempmax } = consumptionActor?.attributes?.hp ?? {};
+		const numericValue = Number(value);
+		const numericMax = Number(max);
+		const numericTempmax = Number(tempmax);
+		return result(Number.isFinite(numericValue) ? numericValue : null, Number.isFinite(numericValue) && Number.isFinite(numericMax) && Number.isFinite(numericTempmax) ? Math.max(0, numericMax + numericTempmax - numericValue) : null);
+	}
+	if (attr.includes('exhaustion')) {
+		const current = Number(consumptionActor?.attributes?.exhaustion);
+		const max = Number(CONFIG?.DND5E?.conditionTypes?.exhaustion?.levels ?? 6);
+		return result(Number.isFinite(current) ? current : null, Number.isFinite(current) && Number.isFinite(max) ? Math.max(0, max - current) : null);
+	}
+	if (attr.includes('inspiration')) {
+		const current = consumptionActor?.attributes?.inspiration ? 1 : 0;
+		return result(current, Math.max(0, 1 - current));
+	}
+	if (attr.includes('abilities.') && attr.endsWith('.value')) {
+		const abilityMatch = attr.match(/(?:^|\.)(?:system\.)?abilities\.([a-z0-9]+)\.value$/);
+		const abilityId = abilityMatch?.[1];
+		if (!abilityId) return result();
+		const valueRaw = foundry.utils.getProperty(consumptionActor, `abilities.${abilityId}.value`) ?? foundry.utils.getProperty(consumptionActor, `system.abilities.${abilityId}.value`);
+		const current = Number(valueRaw);
+		return result(Number.isFinite(current) ? current : null, null);
+	}
+	if (attr.includes('hd')) {
+		const { value, max } = consumptionActor?.attributes?.hd ?? {};
+		const current = Number(value);
+		const numericMax = Number(max);
+		return result(Number.isFinite(current) ? current : null, Number.isFinite(current) && Number.isFinite(numericMax) ? Math.max(0, numericMax - current) : null);
+	}
+	const availableResources = CONFIG.DND5E.consumableResources;
+	const type = availableResources.find((resourcePath) => resourcePath.includes(attr));
+	if (!type) return result();
+	const resource = foundry.utils.getProperty(consumptionActor, type);
+	if (!(resource instanceof Object)) return result();
+	const current = Number(resource.value);
+	const numericMax = Number(resource.max);
+	return result(Number.isFinite(current) ? current : null, Number.isFinite(current) && Number.isFinite(numericMax) ? Math.max(0, numericMax - current) : null);
 }
 
 function _getUsesState({ item, activity }) {

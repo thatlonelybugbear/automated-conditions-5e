@@ -88,6 +88,98 @@ export function setOptinSelections(ac5eConfig, nextSelections) {
 	ac5eConfig.optinSelected = nextSelections ?? {};
 }
 
+function getUsesCountLabelSuffix(entry) {
+	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
+	const parsed = parseUsesCountSpec(rawUsesCount);
+	const rawAmount = parsed.consume || '1';
+	const amount = String(rawAmount).trim();
+	if (!amount) return '';
+	const numericAmount = Number(amount);
+	const isRestore = Number.isFinite(numericAmount) && numericAmount < 0;
+	const displayAmount = isRestore ? String(Math.abs(numericAmount)) : amount;
+	if (isItemUsesCountTarget(parsed.target || entry?.usesCountTarget)) {
+		const unit = getUsesCountUnitLabel(displayAmount, 'use', 'uses');
+		return isRestore ? `(restores ${displayAmount} ${unit})` : `(costs ${displayAmount} ${unit})`;
+	}
+	const target = formatUsesCountType(parsed.target || entry?.usesCountTarget);
+	if (!target) return '';
+	return isRestore ? `(restores ${displayAmount} ${target})` : `(costs ${displayAmount} ${target})`;
+}
+
+function parseUsesCountSpec(rawValue) {
+	if (typeof rawValue !== 'string' || !rawValue.trim()) return { target: '', consume: '' };
+	const parts = splitTopLevelCsv(rawValue);
+	const [target = '', ...consumeParts] = parts;
+	return {
+		target: target.trim(),
+		consume: consumeParts.join(',').trim(),
+	};
+}
+
+function splitTopLevelCsv(value) {
+	const text = String(value ?? '');
+	const parts = [];
+	let depth = 0;
+	let current = '';
+	for (const char of text) {
+		if (char === ',' && depth === 0) {
+			parts.push(current);
+			current = '';
+			continue;
+		}
+		current += char;
+		if (char === '(' || char === '[' || char === '{') depth += 1;
+		else if ((char === ')' || char === ']' || char === '}') && depth > 0) depth -= 1;
+	}
+	parts.push(current);
+	return parts;
+}
+
+function isItemUsesCountTarget(target) {
+	const rawTarget = String(target ?? '').trim();
+	return /^item\./i.test(rawTarget);
+}
+
+function getUsesCountUnitLabel(amount, singular, plural) {
+	const numericAmount = Number(amount);
+	return Number.isFinite(numericAmount) && Math.abs(numericAmount) === 1 ? singular : plural;
+}
+
+function formatUsesCountType(target) {
+	const rawTarget = String(target ?? '').trim();
+	if (!rawTarget) return '';
+	const normalized = rawTarget.toLowerCase();
+	if (normalized === 'hp' || normalized.endsWith('.hp') || normalized.endsWith('attributes.hp.value') || normalized.endsWith('system.attributes.hp.value')) return 'HP';
+	if (['deathsuccess', 'death.success', 'death_success', 'attributes.death.success'].includes(normalized)) return 'death success';
+	if (['deathfail', 'deathfailure', 'death.failure', 'death_fail', 'attributes.death.failure'].includes(normalized)) return 'death fail';
+	if (normalized === 'hd' || normalized === 'hitdice' || normalized === 'hit-dice' || normalized.endsWith('.hd')) return 'HD';
+	return rawTarget.replace(/system\./gi, '').replace(/attributes\./gi, '').replace(/[._]+/g, ' ');
+}
+
+function getUsesCountDescriptionSuffix(entry) {
+	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
+	const parsed = parseUsesCountSpec(rawUsesCount);
+	const rawAmount = parsed.consume || '1';
+	const amount = String(rawAmount).trim();
+	if (!amount) return '';
+	const numericAmount = Number(amount);
+	const isRestore = Number.isFinite(numericAmount) && numericAmount < 0;
+	const displayAmount = isRestore ? String(Math.abs(numericAmount)) : amount;
+	const rawTarget = String(parsed.target || entry?.usesCountTarget || '').trim();
+	if (!rawTarget) return '';
+	const targetLabel = isItemUsesCountTarget(rawTarget)
+		? getUsesCountUnitLabel(displayAmount, 'use', 'uses')
+		: formatUsesCountType(rawTarget);
+	if (!targetLabel) return '';
+	const availableValue = Number(entry?.usesCountAvailable);
+	const missingValue = Number(entry?.usesCountMissing);
+	const stateText =
+		isRestore && Number.isFinite(missingValue) ? ` - missing: ${missingValue}`
+		: !isRestore && Number.isFinite(availableValue) ? ` - available: ${availableValue}`
+		: '';
+	return isRestore ? `(restores: ${displayAmount} ${targetLabel}${stateText})` : `(cost: ${displayAmount} ${targetLabel}${stateText})`;
+}
+
 function getCadenceLabelSuffix(cadence) {
 	const keyMap = {
 		oncePerTurn: 'AC5E.OptinCadence.OncePerTurn',
@@ -156,14 +248,17 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const isUnnamedOptin = isOptinEntry && !rawLabel && !rawName;
 		const baseLabel = rawLabel || rawName || String(entry?.id ?? '');
 		const indexedLabel = isUnnamedOptin && shouldSuffixUnnamedOptins ? `${baseLabel} #${index + 1}` : baseLabel;
+		const usesCountSuffix = isOptinEntry ? getUsesCountLabelSuffix(entry) : '';
 		const cadenceSuffix = isOptinEntry ? getCadenceLabelSuffix(entry?.cadence) : '';
 		const permissionSuffix = getAskPermissionSourceSuffix(entry, askPermission);
-		const fullLabel = permissionSuffix ? `${indexedLabel} (${permissionSuffix})` : indexedLabel;
-		label.textContent = cadenceSuffix ? `${fullLabel} ${cadenceSuffix}` : fullLabel;
-		const description =
+		const detailSuffixes = [usesCountSuffix, permissionSuffix ? `(${permissionSuffix})` : '', cadenceSuffix].filter(Boolean);
+		label.textContent = detailSuffixes.length ? `${indexedLabel} ${detailSuffixes.join(' ')}` : indexedLabel;
+		const baseDescription =
 			typeof entry.description === 'string' ? entry.description.trim()
 			: typeof entry.autoDescription === 'string' ? entry.autoDescription.trim()
 			: '';
+		const usesCountDescription = isOptinEntry ? getUsesCountDescriptionSuffix(entry) : '';
+		const description = [baseDescription, usesCountDescription].filter(Boolean).join(baseDescription && usesCountDescription ? ' ' : '');
 		let descriptionPill = null;
 		if (description) {
 			descriptionPill = document.createElement('i');
