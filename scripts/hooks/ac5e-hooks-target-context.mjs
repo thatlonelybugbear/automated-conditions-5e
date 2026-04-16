@@ -1,10 +1,19 @@
 export function getMessageTargetsFromFlags(messageLike, deps) {
-	return deps.getMessageDnd5eFlags(messageLike)?.targets ?? [];
+	return normalizeTargets(deps.getMessageDnd5eFlags(messageLike)?.targets ?? []);
+}
+
+export function logTargetState(label, payload = {}) {
+	if (!globalThis.ac5e?.debug?.getTargets) return;
+	try {
+		console.warn(`AC5E ${label} ${JSON.stringify(stringifyTargetPayload(payload))}`);
+	} catch {
+		console.warn(`AC5E ${label}`, stringifyTargetPayload(payload));
+	}
 }
 
 export function getTargets({ message } = {}, deps) {
 	const explicitMessage = message?.document ?? message;
-	const preTargets = deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets ?? deps.getMessageDnd5eFlags(explicitMessage)?.targets;
+	const preTargets = getMessageTargetsFromFlags(explicitMessage, deps);
 	if (Array.isArray(preTargets) && preTargets.length) return preTargets;
 	return [];
 }
@@ -25,8 +34,12 @@ export function hydrateTargetACs(targets = [], { allowLiveFallback = true } = {}
 
 export function resolveTargets(message, messageTargets, { hook, activity } = {}, deps) {
 	const freshTargets = getTargets({ message }, deps);
-	if (Array.isArray(freshTargets) && freshTargets.length) return hydrateTargetACs(freshTargets, { allowLiveFallback: false });
-	if (Array.isArray(messageTargets) && messageTargets.length) return hydrateTargetACs(messageTargets, { allowLiveFallback: false });
+	if (Array.isArray(freshTargets) && freshTargets.length) {
+		return hydrateTargetACs(freshTargets, { allowLiveFallback: false });
+	}
+	if (Array.isArray(messageTargets) && messageTargets.length) {
+		return hydrateTargetACs(messageTargets, { allowLiveFallback: false });
+	}
 	if (hook === 'save' && activity?.target?.affects?.type === 'self') {
 		const explicitMessage = message?.document ?? message;
 		const speakerToken = explicitMessage?.speaker?.token ? canvas.tokens.get(explicitMessage.speaker.token) : null;
@@ -56,33 +69,22 @@ export function resolveTargets(message, messageTargets, { hook, activity } = {},
 
 export function syncResolvedTargetsToMessage(message, targets, deps) {
 	if (!message || !Array.isArray(targets)) return;
-	const nextTargets = foundry.utils.duplicate(targets);
-	const currentAc5eFlags = deps.getMessageFlagScope(message, deps.Constants.MODULE_ID);
-	const nextAc5eFlags =
-		currentAc5eFlags && typeof currentAc5eFlags === 'object' ?
-			foundry.utils.mergeObject(foundry.utils.duplicate(currentAc5eFlags), { optionsSnapshot: { targets: foundry.utils.duplicate(nextTargets) } }, { inplace: false })
-		:	{ optionsSnapshot: { targets: foundry.utils.duplicate(nextTargets) } };
+	const nextTargets = foundry.utils.duplicate(normalizeTargets(targets));
 	try {
 		foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', nextTargets);
-		foundry.utils.setProperty(message, `data.flags.${deps.Constants.MODULE_ID}`, nextAc5eFlags);
 	} catch (_err) {
 		// ignore immutable message-like payloads
 	}
 }
 
-export function getAssociatedRollTargets(originatingMessageId, activityType) {
-	if (!originatingMessageId || !activityType) return undefined;
-	return dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop()?.flags?.dnd5e?.targets;
+export function getAssociatedRollTargets(originatingMessageId, activityType, messageLike, deps) {
+	const explicitMessage = messageLike?.document ?? messageLike;
+	const directTargets = explicitMessage ? getMessageTargetsFromFlags(explicitMessage, deps) : undefined;
+	if (Array.isArray(directTargets) && directTargets.length) return directTargets;
+	return undefined;
 }
 
 export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
-	const hookType = ac5eConfig?.hookType;
-	if (hookType === 'damage') {
-		const damageActivityType = ac5eConfig?.options?.activity?.type ?? config?.subject?.type;
-		const originatingMessageId = ac5eConfig?.options?.originatingMessageId ?? config?.options?.originatingMessageId;
-		const associatedTargets = getAssociatedRollTargets(originatingMessageId, damageActivityType);
-		if (Array.isArray(associatedTargets) && associatedTargets.length) return associatedTargets;
-	}
 	const flaggedTargets = getMessageTargetsFromFlags(message, deps);
 	if (Array.isArray(flaggedTargets) && flaggedTargets.length) return flaggedTargets;
 	return Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : [];
@@ -99,6 +101,61 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
 	syncResolvedTargetsToMessage(message, resolvedTargets, deps);
+}
+
+function normalizeTargets(targets = []) {
+	if (!Array.isArray(targets)) return [];
+	return targets
+		.map((target) => normalizeTarget(target))
+		.filter(Boolean);
+}
+
+function stringifyTargetPayload(payload = {}) {
+	const next = { ...payload };
+	if ('messageTargets' in next) next.messageTargets = summarizeTargets(next.messageTargets);
+	if ('optionTargets' in next) next.optionTargets = summarizeTargets(next.optionTargets);
+	if ('liveTargets' in next) next.liveTargets = summarizeTargets(next.liveTargets);
+	return next;
+}
+
+function summarizeTargets(targets = []) {
+	if (!Array.isArray(targets)) return [];
+	return targets.map((target) => {
+		if (!target || typeof target !== 'object') return target;
+		return {
+			name: target.name ?? null,
+			tokenUuid: target.tokenUuid ?? target.token?.uuid ?? target.document?.uuid ?? null,
+			uuid: target.uuid ?? null,
+			ac: Number.isFinite(Number(target.ac)) ? Number(target.ac) : target.ac ?? null,
+		};
+	});
+}
+
+function normalizeTarget(target) {
+	if (!target || typeof target !== 'object') return target;
+	const normalized = foundry.utils.duplicate(target);
+	const explicitTokenUuid = normalized.tokenUuid ?? normalized.token?.uuid ?? normalized.document?.uuid;
+	if (explicitTokenUuid) normalized.tokenUuid = explicitTokenUuid;
+	const resolvedDocument = resolveTargetDocument(normalized);
+	const resolvedTokenUuid =
+		normalized.tokenUuid ??
+		(resolvedDocument instanceof TokenDocument ? resolvedDocument.uuid : resolvedDocument?.document instanceof TokenDocument ? resolvedDocument.document.uuid : null);
+	if (resolvedTokenUuid) normalized.tokenUuid = resolvedTokenUuid;
+	const resolvedActor =
+		resolvedDocument instanceof Actor ? resolvedDocument
+		: resolvedDocument?.actor ?? resolvedDocument?.object?.actor ?? null;
+	if (!normalized.uuid && resolvedActor?.uuid) normalized.uuid = resolvedActor.uuid;
+	if (!normalized.name) normalized.name = resolvedDocument?.name ?? resolvedDocument?.object?.name ?? resolvedActor?.name ?? normalized.name;
+	if (!normalized.img) normalized.img = resolvedDocument?.texture?.src ?? resolvedDocument?.object?.document?.texture?.src ?? resolvedActor?.img ?? normalized.img;
+	return normalized;
+}
+
+function resolveTargetDocument(target = {}) {
+	const tokenUuid = target?.tokenUuid;
+	if (tokenUuid) return fromUuidSync(tokenUuid);
+	const uuid = target?.uuid;
+	if (uuid) return fromUuidSync(uuid);
+	return null;
 }
 
 function isForcedSentinelAC(value) {

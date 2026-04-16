@@ -30,6 +30,15 @@ function _duplicateEvaluationOptions(options) {
 		:	{};
 }
 
+function _cloneRollDataForEvaluation(rollData) {
+	if (!rollData || typeof rollData !== 'object') return rollData ?? {};
+	const cloned = { ...rollData };
+	if (rollData.flags && typeof rollData.flags === 'object') cloned.flags = { ...rollData.flags };
+	if (rollData.item && typeof rollData.item === 'object') cloned.item = { ...rollData.item };
+	if (rollData.activity && typeof rollData.activity === 'object') cloned.activity = { ...rollData.activity };
+	return cloned;
+}
+
 export function _buildRollEvaluationData({ subjectToken, opponentToken, options } = {}) {
 	const normalizedOptions = _duplicateEvaluationOptions(options);
 	const activity = normalizedOptions?.activity;
@@ -37,7 +46,7 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, options 
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
 	const formulaData =
 		normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ?
-			foundry.utils.duplicate(normalizedOptions.rollData)
+			_cloneRollDataForEvaluation(normalizedOptions.rollData)
 		:	rollDataDocument?.getRollData?.() ?? {};
 	const dataActor =
 		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
@@ -942,3 +951,4 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: sandbox });
 	return sandbox;
 }
+

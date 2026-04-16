@@ -751,7 +751,11 @@ export function _getSafeUseConfig(ac5eConfig) {
 }
 
 export function _getSafeDialogConfig(ac5eConfig) {
-	const safe = foundry.utils.duplicate(ac5eConfig ?? {});
+	const safe = {
+		...(ac5eConfig ?? {}),
+		options: ac5eConfig?.options && typeof ac5eConfig.options === 'object' ? { ...ac5eConfig.options } : ac5eConfig?.options,
+		reEval: ac5eConfig?.reEval && typeof ac5eConfig.reEval === 'object' ? { ...ac5eConfig.reEval } : ac5eConfig?.reEval,
+	};
 	if (safe?.options && typeof safe.options === 'object') {
 		delete safe.options.activity;
 		delete safe.options.ammo;

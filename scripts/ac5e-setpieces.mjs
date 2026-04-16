@@ -1975,11 +1975,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		// }
 		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
-		const auraTokenEvaluationData = foundry.utils.mergeObject(
-			evaluationData,
-			{ auraActor: _ac5eActorRollData(token), isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id },
-			{ inplace: false },
-		);
+		const auraTokenEvaluationData = {
+			...evaluationData,
+			auraActor: _ac5eActorRollData(token),
+			isAuraSourceTurn: currentCombatant === token?.id, auraTokenId: token.id,
+		};
 		auraTokenEvaluationData.effectActor = auraTokenEvaluationData.auraActor;
 		processAppliedEffects({
 			effects: token.actor.appliedEffects,
@@ -3834,3 +3834,4 @@ function evalNumericFormulaExpression(expr, { maxDice = 100, maxSides = 1000, de
 		return NaN;
 	}
 }
+
