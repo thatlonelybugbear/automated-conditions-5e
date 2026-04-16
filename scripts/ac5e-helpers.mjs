@@ -5,6 +5,23 @@ import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+export function _cloneUseConfigShallow(useConfig) {
+	if (!useConfig || typeof useConfig !== 'object') return useConfig ?? null;
+	const cloned = { ...useConfig };
+	if (useConfig.options && typeof useConfig.options === 'object') cloned.options = { ...useConfig.options };
+	if (useConfig.bonuses && typeof useConfig.bonuses === 'object') cloned.bonuses = foundry.utils.duplicate(useConfig.bonuses);
+	if (Array.isArray(useConfig.extraDice)) cloned.extraDice = foundry.utils.duplicate(useConfig.extraDice);
+	if (Array.isArray(useConfig.damageModifiers)) cloned.damageModifiers = foundry.utils.duplicate(useConfig.damageModifiers);
+	if (Array.isArray(useConfig.parts)) cloned.parts = foundry.utils.duplicate(useConfig.parts);
+	if (Array.isArray(useConfig.threshold)) cloned.threshold = foundry.utils.duplicate(useConfig.threshold);
+	if (Array.isArray(useConfig.fumbleThreshold)) cloned.fumbleThreshold = foundry.utils.duplicate(useConfig.fumbleThreshold);
+	if (useConfig.subject && typeof useConfig.subject === 'object') cloned.subject = foundry.utils.duplicate(useConfig.subject);
+	if (useConfig.opponent && typeof useConfig.opponent === 'object') cloned.opponent = foundry.utils.duplicate(useConfig.opponent);
+	if (Array.isArray(useConfig.pendingUses)) cloned.pendingUses = foundry.utils.duplicate(useConfig.pendingUses);
+	if (cloned?.options?.originatingUseConfig !== undefined) delete cloned.options.originatingUseConfig;
+	return cloned;
+}
+
 function _getUniquePointKey(point = {}) {
 	return `${Math.round(Number(point?.x) || 0)}:${Math.round(Number(point?.y) || 0)}:${Math.round(Number(point?.elevation) || 0)}`;
 }
@@ -499,8 +516,7 @@ export function _setUseConfigInflightCache({ messageId, originatingMessageId, us
 	const expiresAt = now + USE_CONFIG_INFLIGHT_TTL_MS;
 	const safeIds = new Set([messageId, originatingMessageId].filter(Boolean));
 	if (!safeIds.size) return;
-	const clonedUseConfig = foundry.utils.duplicate(useConfig);
-	if (clonedUseConfig?.options?.originatingUseConfig !== undefined) delete clonedUseConfig.options.originatingUseConfig;
+	const clonedUseConfig = _cloneUseConfigShallow(useConfig);
 	for (const id of safeIds) {
 		useConfigInflightCache.set(id, { useConfig: clonedUseConfig, expiresAt });
 	}
