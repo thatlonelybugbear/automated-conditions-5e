@@ -12,7 +12,7 @@
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-2.4.1-red?style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-3.3.1-red?style=for-the-badge)
 ![Dnd5e System Compatible Version](https://img.shields.io/badge/dnd5e-4.4.4-red?style=for-the-badge)
-![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
+![Dnd5e System Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/v13/module.json&label=dnd5e%20Version&query=$.relationships.systems[0].compatibility.verified&colorB=red&style=for-the-badge)
 
 ## Description
 A Foundry VTT module for the D&D 5e game system that allows status effects and custom AC5e flags to dynamically influence any roll, including attacks, saves, ability checks, and damage. It highlights the correct roll button based on active effects and the 5e ruleset, ensuring rolls are made with the proper advantage, disadvantage, bonuses, or critical damage.
