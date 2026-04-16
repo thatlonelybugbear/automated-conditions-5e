@@ -3,6 +3,9 @@
 - Added `isAoE` so evaluations can check whether an activity uses an area template.
 - Reduced repeated D&D5e compatibility warnings when AC5E rebuilds damage and use dialogs.
 - Kept the damage dialog opt-in flow working while trimming unnecessary deep-copy work behind the scenes.
+- Fixed `usesCount=HD` style lookups so they can read the rolling actor data correctly in newer D&D5e 5.3 paths.
+- Opt-in entries with `usesCount` now show clearer cost/restore details in the roll dialog, including available or missing uses.
+- Roll modifiers such as `modifier=min@abilities.str.value` now resolve correctly before the d20 roll instead of being ignored as unsupported literal modifiers.
 
 ## 13.5300.1
 
