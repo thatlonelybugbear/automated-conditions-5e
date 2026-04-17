@@ -907,6 +907,8 @@ export function _getSafeDialogConfig(ac5eConfig) {
 		subject: _getSafeDialogSide(ac5eConfig?.subject),
 		opponent: _getSafeDialogSide(ac5eConfig?.opponent),
 		parts: _duplicateDialogEntries(ac5eConfig?.parts),
+		modifiers: foundry.utils.duplicate(ac5eConfig?.modifiers ?? {}),
+		effectiveModifiers: foundry.utils.duplicate(ac5eConfig?.effectiveModifiers ?? {}),
 		damageModifiers: _duplicateDialogEntries(ac5eConfig?.damageModifiers),
 		extraDice: _duplicateDialogEntries(ac5eConfig?.extraDice),
 		threshold: _duplicateDialogEntries(ac5eConfig?.threshold),
