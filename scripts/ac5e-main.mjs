@@ -32,7 +32,7 @@ function ac5eRegisterOnInit() {
 	Hooks.on('dae.setFieldData', (fieldData) => {
 		fieldData.AC5E = daeFlags;
 	});
-	scopeUser = game.version > 13 ? 'user' : 'client';
+	scopeUser = 'user';
 	patchApplyDamage();
 	return new Settings().registerSettings();
 }
