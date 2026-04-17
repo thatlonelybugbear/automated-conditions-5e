@@ -1,3 +1,17 @@
+## 14.531.1
+
+- Dropped support for Foundry v13 and D&D5e 5.2.5, with a hard minimum of Foundry v14 and D&D5e 5.3.0.
+  - For users still on Foundry v13 and D&D5e 5.2.5, the last compatible AC5E release is `13.5250.18.1`.
+  - For users still on Foundry v13 and D&D5e 5.3.x, the last compatible AC5E release is `13.5310.3`.
+- Fixed attack rolls so visibility checks no longer drop unrelated AC5E modifiers.
+- Fixed damage rolls so per-roll modifier formulas and roll data resolve correctly on v14.
+- Kept attack visibility handling aligned with D&D5e 5.3.1 and preserved target-facing flags.
+- Removed legacy v13-only compatibility branches for the explicit v14 release.
+
+## 13.5310.3
+
+- Fix for visibility checks when the target token has vision disabled, which caused errors instead of no-op behavior when trying to check vision against an undefined token sight configuration.
+
 ## 13.5300.2
 
 - Added `isAoE` helper for Area of Effect activities.

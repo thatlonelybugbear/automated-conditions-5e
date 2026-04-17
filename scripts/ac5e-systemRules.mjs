@@ -287,7 +287,7 @@ export function canSee(source, target, status) {
 	const targetEthereal = target.actor?.statuses.has('ethereal');
 	const crossPlanarEthereal = (status === 'ethereal' || sourceEthereal || targetEthereal) && !(sourceEthereal && targetEthereal);
 	if (!status && !sourceBlinded && !targetInvisible && !crossPlanarEthereal) {
-		validModes = new Set(['basicSight', 'lightPerception']);
+		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll']);
 	} else {
 		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll', 'seeInvisibility']);
 		if (status === 'blinded' || sourceBlinded) {
@@ -450,7 +450,7 @@ export async function overtimeHazards(combat, update, options, user) {
 	const BURNING_UUID = 'Compendium.dnd-players-handbook.content.JournalEntry.phbAppendixCRule.JournalEntryPage.mPBGM1vguT5IPzxT';
 	const PRONE_UUID = 'Compendium.dnd5e.rules.JournalEntry.w7eitkpD7QQTB6j0.JournalEntryPage.y0TkcdyoZlOTmAFT';
 
-	const TextEditorFn = game.version > '13' ? foundry.applications.ux.TextEditor.implementation : TextEditor;
+	const TextEditorFn = foundry.applications.ux.TextEditor.implementation;
 
 	if (previousActor?.statuses.has('suffocation')) {
 		const maxExhaustion = CONFIG.DND5E.conditionTypes?.exhaustion?.levels ?? 0;

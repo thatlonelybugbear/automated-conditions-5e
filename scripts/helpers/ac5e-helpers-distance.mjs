@@ -528,7 +528,7 @@ function getGridlessSquaresOnPerimeter(t) {
 
 function getSquaresOnPerimeter(t) {
 	const perimeterCenterPoints = {};
-	const clipperPoints = game.version < 13 ? t.shape.toPolygon().toClipperPoints() : t.shape.toClipperPoints();
+	const clipperPoints = t.shape.toClipperPoints();
 	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
 		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
 			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
