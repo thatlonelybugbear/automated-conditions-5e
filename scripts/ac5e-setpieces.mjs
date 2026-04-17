@@ -4026,4 +4026,3 @@ function evalNumericFormulaExpression(expr, { maxDice = 100, maxSides = 1000, de
 		return NaN;
 	}
 }
-

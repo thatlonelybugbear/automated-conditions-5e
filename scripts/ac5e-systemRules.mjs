@@ -287,7 +287,7 @@ export function canSee(source, target, status) {
 	const targetEthereal = target.actor?.statuses.has('ethereal');
 	const crossPlanarEthereal = (status === 'ethereal' || sourceEthereal || targetEthereal) && !(sourceEthereal && targetEthereal);
 	if (!status && !sourceBlinded && !targetInvisible && !crossPlanarEthereal) {
-		validModes = new Set(['basicSight', 'lightPerception']);
+		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll']);
 	} else {
 		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll', 'seeInvisibility']);
 		if (status === 'blinded' || sourceBlinded) {
