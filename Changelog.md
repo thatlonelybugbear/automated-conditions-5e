@@ -1,3 +1,7 @@
+## 13.5310.3
+
+- Fix for visibility checks when the target token has vision disabled, which caused errors instead of no-op behavior when trying to check vision against an undefined token sight configuration.
+
 ## 13.5310.2
 
 - Localized the new opt-in modifier auto-descriptions and added the new source strings to en.json for translators.
