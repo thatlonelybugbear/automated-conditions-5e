@@ -923,7 +923,6 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const rollOptionModifierStateByRoll = damageModifierValuesByRoll.map((values) => getDamageRollOptionModifierState(values));
 	const suffixesByRoll = damageModifierValuesByRoll.map((values) =>
 		values
-			.filter((value) => value !== 'adv' && value !== 'dis')
 			.filter((value) => isDiceTermSuffixDamageModifier(value))
 			.map((value) => normalizeDiceTermModifier(value))
 			.filter(Boolean)
@@ -1085,13 +1084,10 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	});
 	const advDisByRoll = formulas.map((_, index) => {
 		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
-		const modifierValues = damageModifierValuesByRoll[index] ?? [];
 		const hasAdv =
-			modifierValues.includes('adv') ||
 			subjectAdvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) ||
 			opponentAdvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes }));
 		const hasDis =
-			modifierValues.includes('dis') ||
 			subjectDisadvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) ||
 			opponentDisadvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes }));
 		return getDamageAdvantageModifierToken(hasAdv, hasDis);
