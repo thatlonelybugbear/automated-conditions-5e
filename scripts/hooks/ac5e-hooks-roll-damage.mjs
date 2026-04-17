@@ -11,7 +11,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	const rollScaling = rolls?.[0]?.data?.scaling;
-	if (rollScaling !== undefined) options.rollData = { scaling: rollScaling };
+	if (rollScaling !== undefined) options.scaling = rollScaling;
 	if (Array.isArray(directDamageTargets) && directDamageTargets.length) {
 		options.hook = hook;
 		options.activity = activity;
