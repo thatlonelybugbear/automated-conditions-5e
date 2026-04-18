@@ -1,3 +1,8 @@
+## 14.531.2
+
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 ## 14.531.1
 
 - Dropped support for Foundry v13 and D&D5e 5.2.5, with a hard minimum of Foundry v14 and D&D5e 5.3.0.

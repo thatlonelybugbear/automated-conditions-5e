@@ -1557,12 +1557,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'modifiers':
 				if (typeof modifier === 'string') {
 					const minMatch = modifier.match(/^min\s*(-?\d+(?:\.\d+)?)$/i);
-					if (minMatch) return `Sets minimum dice roll result to ${minMatch[1]}`;
+					if (minMatch)
+						return localizeTemplate('AC5E.OptinDescription.SetsMinimumDiceRoll', { value: minMatch[1] }, `Sets minimum dice roll result to ${minMatch[1]}`);
 					const maxMatch = modifier.match(/^max\s*(-?\d+(?:\.\d+)?)$/i);
-					if (maxMatch) return `Sets maximum dice roll result to ${maxMatch[1]}`;
-					return `Applies dice roll modifier (${modifier})`;
+					if (maxMatch)
+						return localizeTemplate('AC5E.OptinDescription.SetsMaximumDiceRoll', { value: maxMatch[1] }, `Sets maximum dice roll result to ${maxMatch[1]}`);
+					return localizeTemplate('AC5E.OptinDescription.AppliesDiceRollModifierWithValue', { value: modifier }, `Applies dice roll modifier (${modifier})`);
 				}
-				return 'Applies dice roll modifier';
+				return localizeText('AC5E.OptinDescription.AppliesDiceRollModifier', 'Applies dice roll modifier');
 			case 'criticalThreshold':
 				if (threshold !== undefined) return localizeTemplate('AC5E.OptinDescription.SetsCriticalThreshold', { value: threshold }, `Sets critical threshold to ${threshold}`);
 				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.SetsCriticalThreshold', { value: set }, `Sets critical threshold to ${set}`);
