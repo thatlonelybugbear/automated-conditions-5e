@@ -108,7 +108,6 @@ You can suppress a status by setting an actor flag like `noProne`.
 
 Example Active Effect change keys:
 - `flags.automated-conditions-5e.noProne` -> `true`
-- `flags.ac5e.noProne` -> `true` (legacy alias)
 
 AC5E tooltips will show the suppressing entry under `Suppressed Statuses`.
 
