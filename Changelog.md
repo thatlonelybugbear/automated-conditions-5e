@@ -3,6 +3,7 @@
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
 - Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 - Added `hasEffects` filter for nearby checks to require or exclude targets based on active effects name matching.
+  - `checkNearby(opponentId, 'ally', 5, { count: true, hasEffects: ['AlliedAC'] });` will return the number of allies within 5 ft of the opponent token, which have an effect named AlliedAC.
 
 ## 13.5310.3
 
