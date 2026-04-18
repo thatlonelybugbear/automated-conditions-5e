@@ -1,3 +1,9 @@
+## 13.5310.4
+
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>).
+- Added `hasEffects` filter for nearby checks to require or exclude targets based on active effects name matching.
+
 ## 13.5310.3
 
 - Fix for visibility checks when the target token has vision disabled, which caused errors instead of no-op behavior when trying to check vision against an undefined token sight configuration.
