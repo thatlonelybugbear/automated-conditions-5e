@@ -2,6 +2,7 @@
 
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
 - Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+- Added `hasEffects` filter for nearby checks to require or exclude targets based on active effects name matching.
 
 ## 14.531.1
 
