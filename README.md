@@ -241,7 +241,7 @@ Snapshot includes:
 ## Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly
 - [X] MidiQOL
-- [X] Ready Set Roll (AC5e tooltips on dual cards is a WIP).
+- [] Ready Set Roll unknown compatibility currently. If the module is updated at some point, I will take another look.
  
 ## Credits
 - Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips) for distance calculations.
