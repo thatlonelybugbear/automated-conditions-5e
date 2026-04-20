@@ -271,6 +271,12 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const messageTargets = Array.isArray(dnd5eFlags?.targets) ? dnd5eFlags.targets : null;
 		return messageTargets ?? [];
 	};
+	const defaultCriticalSuccess = Number(CONFIG?.Dice?.D20Die?.CRITICAL_SUCCESS_TOTAL ?? 20);
+	const defaultCriticalFailure = Number(CONFIG?.Dice?.D20Die?.CRITICAL_FAILURE_TOTAL ?? 1);
+	const getNumericOrFallback = (value, fallback) => {
+		const numericValue = Number(value);
+		return Number.isFinite(numericValue) ? numericValue : fallback;
+	};
 	ac5eConfig.preAC5eConfig ??= {};
 	if (!ac5eConfig.preAC5eConfig.baseRoll0Options) {
 		const targetCollections = hook === 'attack' || hook === 'damage' ? getMutableAttackTargetCollections() : [];
@@ -278,8 +284,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const baselineTarget = liveTargetAcs.length ? Math.min(...liveTargetAcs) : (roll0.options.target ?? config?.target);
 		const currentTarget = roll0.options.target ?? config?.target;
 		ac5eConfig.preAC5eConfig.baseRoll0Options = {
-			criticalSuccess: roll0.options.criticalSuccess,
-			criticalFailure: roll0.options.criticalFailure,
+			criticalSuccess: getNumericOrFallback(roll0.options.criticalSuccess, defaultCriticalSuccess),
+			criticalFailure: getNumericOrFallback(roll0.options.criticalFailure, defaultCriticalFailure),
 			target: isForcedSentinelAC(currentTarget) && Number.isFinite(Number(baselineTarget)) ? baselineTarget : currentTarget,
 		};
 	}
@@ -444,12 +450,20 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			ac5eConfig.initialTargetADCs = {};
 			ac5eConfig.alteredTargetADCs = {};
 			if (ac5eConfig.threshold?.length) {
-				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalSuccess, ac5eConfig.threshold, 'critThreshold');
+				const finalThreshold = getAlteredTargetValueOrThreshold(
+					getNumericOrFallback(roll0.options.criticalSuccess, defaultCriticalSuccess),
+					ac5eConfig.threshold,
+					'critThreshold',
+				);
 				roll0.options.criticalSuccess = finalThreshold;
 				ac5eConfig.alteredCritThreshold = finalThreshold;
 			}
 			if (ac5eConfig.fumbleThreshold?.length) {
-				const finalThreshold = getAlteredTargetValueOrThreshold(roll0.options.criticalFailure, ac5eConfig.fumbleThreshold, 'fumbleThreshold');
+				const finalThreshold = getAlteredTargetValueOrThreshold(
+					getNumericOrFallback(roll0.options.criticalFailure, defaultCriticalFailure),
+					ac5eConfig.fumbleThreshold,
+					'fumbleThreshold',
+				);
 				roll0.options.criticalFailure = finalThreshold;
 				ac5eConfig.alteredFumbleThreshold = finalThreshold;
 			}

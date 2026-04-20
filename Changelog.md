@@ -1,3 +1,7 @@
+## 13.5310.4.1
+
+- Fix for missing attack-roll config criticalFailure, resulting in "undefined" in the tooltip.
+
 ## 13.5310.4
 
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
