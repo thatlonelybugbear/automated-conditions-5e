@@ -40,14 +40,12 @@
 		{
 			"lang": "en",
 			"name": "English",
-			"path": "lang/en.json",
-			"flags": {}
+			"path": "lang/en.json"
 		},
 		{
 			"lang": "fr",
 			"name": "Français",
-			"path": "lang/fr.json",
-			"flags": {}
+			"path": "lang/fr.json"
 		},
 		{
 			"lang": "it",
