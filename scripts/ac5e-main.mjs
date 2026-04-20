@@ -4,7 +4,7 @@ import { _renderHijack, _renderSettings, _rollFunctions } from './ac5e-hooks.mjs
 import { _migrate } from './ac5e-migrations.mjs';
 import { _gmCombatCadenceUpdate, _gmContextKeywordsUpdate, _gmDocumentUpdates, _gmEffectDeletions, _gmUsageRulesUpdate } from './ac5e-queries.mjs';
 import { _initStatusEffectsTables, _syncCombatCadenceFlags } from './ac5e-setpieces.mjs';
-import { autoRanged, canSee, checkNearby, overtimeHazards } from './ac5e-systemRules.mjs';
+import { canSee, checkNearby, checkRanged, overtimeHazards } from './ac5e-systemRules.mjs';
 import {
 	configureAc5eApiRuntime,
 	createAc5eGlobalSpace,
@@ -256,7 +256,7 @@ function initializeSandbox() {
 		getItems: _getItems,
 		getItem: _getItem,
 		checkArmor: _autoArmor,
-		checkRanged: autoRanged,
+		checkRanged,
 		hasItem: _hasItem,
 	});
 	lazySandbox = foundry.utils.deepFreeze({
