@@ -18,7 +18,7 @@ import {
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _setContextKeywordsSetting, _setUsageRulesSetting } from './ac5e-queries.mjs';
 import { clearStatusEffectOverrides, inspectCadenceFlags, listStatusEffectOverrides, registerStatusEffectOverride, removeStatusEffectOverride, resetCadenceFlags } from './ac5e-setpieces.mjs';
-import { autoRanged, canSee, checkNearby } from './ac5e-systemRules.mjs';
+import { autoRanged, canSee, checkNearby, checkRanged } from './ac5e-systemRules.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -1563,7 +1563,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.checkCreatureType = _raceOrType;
 	ac5e.checkDistance = _getDistance;
 	ac5e.checkNearby = checkNearby;
-	ac5e.checkRanged = autoRanged;
+	ac5e.checkRanged = checkRanged;
 	ac5e.checkVisibility = canSee;
 	ac5e.getLightLevel = _getLightLevel;
 	ac5e.debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;

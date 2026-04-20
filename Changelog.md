@@ -1,3 +1,8 @@
+## 14.531.2.2
+
+- Activity range data are checked only if the override parameter is true, otherwise the item's range data are used for range checks.
+- The API `ac5e.checkRanged` call overrides any MidiQOL range checks by default.
+
 ## 14.531.2.1
 
 - Fix for missing v14 attack-roll config criticalFailure

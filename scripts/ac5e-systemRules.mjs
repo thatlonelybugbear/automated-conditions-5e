@@ -70,9 +70,18 @@ export function autoRanged(activity, token, target, options) {
 	const hookType = options?.ac5eConfig?.hookType;
 	const isAttackRangeContext = isAttack && (hookType === 'attack' || hookType === 'use' || !hookType);
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
-	const midiChecks = midiCheckRange && midiCheckRange !== 'none';
-	const { actionType, item, range } = activity || {};
-	if (!range || !token) return {};
+	const allowMidiRangeOverride = options?.allowMidiRangeOverride !== false;
+	const midiChecks = allowMidiRangeOverride && midiCheckRange && midiCheckRange !== 'none';
+	const { actionType, item } = activity || {};
+	if (!token) return {};
+	const resolveBaseRange = () => {
+		const activityRange = activity?.range;
+		if (activityRange?.override !== false) return activityRange;
+		const itemRange = item?.system?.range;
+		return itemRange ?? activityRange;
+	};
+	const range = resolveBaseRange();
+	if (!range) return {};
 	let { value: short, long, reach } = range;
 	const distance = options?.distance ?? (target ? _getDistance(token, target) : undefined);
 	const normalizedDamageTypes =
@@ -258,6 +267,10 @@ export function autoRanged(activity, token, target, options) {
 		outOfRangeFailSourceLabel,
 		outOfRangeFailSourceMode,
 	};
+}
+
+export function checkRanged(activity, token, target, options = {}) {
+	return autoRanged(activity, token, target, { ...options, allowMidiRangeOverride: false });
 }
 
 export function canSee(source, target, status) {
