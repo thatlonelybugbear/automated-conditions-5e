@@ -1,3 +1,7 @@
+## 14.531.2.1
+
+- Fix for missing v14 attack-roll config criticalFailure
+
 ## 14.531.2
 
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
