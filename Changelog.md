@@ -1,3 +1,8 @@
+## 13.5310.4.3
+
+- Version bump to fix AC5E installing a v14 compatible version for users on v13!
+  - If you are on FoundryVTT v13 and the module installed is version `14.531.2.x` or later, uninstall and install again from the Add-on Modules tab in the app.
+
 ## 13.5310.4.2
 
 - Activity range data are checked only if the override parameter is true, otherwise the item's range data are used for range checks.
