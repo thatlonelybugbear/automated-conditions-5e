@@ -85,13 +85,16 @@ export function applyAttackRangeState({ ac5eConfig, activity, sourceToken, singl
 		const label = String(entry.label ?? entry.name ?? entry.id ?? '').trim();
 		return label !== failLabel;
 	});
-	const { nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
+	const { nearbyFoe, inRange, range, longDisadvantage, noLongDisadvantageSourceLabel, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
 	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(_localize('AC5E.NearbyFoe'));
 	if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
 		ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 	}
 	if (outOfRangeFail && !config.workflow?.AoO && !inRange && !ac5eConfig.subject.fail.includes(failLabel)) {
 		ac5eConfig.subject.fail.push(failLabel);
+	}
+	if (range === 'long' && !longDisadvantage && noLongDisadvantageSourceLabel) {
+		ac5eConfig.subject.rangeNotes.push(`${_localize('RangeLong')} suppressed: ${noLongDisadvantageSourceLabel}`);
 	}
 	if (range === 'long' && longDisadvantage) {
 		ac5eConfig.subject.disadvantage.push(_localize('RangeLong'));

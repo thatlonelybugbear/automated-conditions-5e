@@ -62,7 +62,7 @@ export function checkNearby(token, disposition, radius, { count = false, include
 	return findNearby({ token, disposition, radius, hasEffects, hasStatuses, includeToken, includeIncapacitated, lengthTest: count, partyMember });
 }
 
-export function autoRanged(activity, token, target, options) {
+export function autoRanged(activity, token, target, options = {}) {
 	const distanceUnit = canvas.grid.distance;
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
@@ -72,7 +72,12 @@ export function autoRanged(activity, token, target, options) {
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
 	const allowMidiRangeOverride = options?.allowMidiRangeOverride !== false;
 	const midiChecks = allowMidiRangeOverride && midiCheckRange && midiCheckRange !== 'none';
-	const { actionType, item } = activity || {};
+	const actionType = options?.actionType ?? activity?.actionType;
+	const item =
+		activity?.item ??
+		(typeof options?.item === 'string' ? fromUuidSync(options.item)
+		: options?.item instanceof Item ? options.item
+		: null);
 	if (!token) return {};
 	const resolveBaseRange = () => {
 		const activityRange = activity?.range;
@@ -122,6 +127,8 @@ export function autoRanged(activity, token, target, options) {
 	let longDisadvantage = midiChecks ? false : settings.autoRangeChecks.has('rangedLongDisadvantage');
 	let nearbyFoeDisadvantage = settings.autoRangeChecks.has('rangedNearbyFoes');
 	let outOfRangeFail = midiChecks ? false : settings.autoRangeChecks.has('rangedOoR');
+	let noLongDisadvantageSourceLabel;
+	let noLongDisadvantageSourceMode;
 	let outOfRangeFailSourceLabel;
 	let outOfRangeFailSourceMode;
 	for (const entry of rangeEntries) {
@@ -136,7 +143,11 @@ export function autoRanged(activity, token, target, options) {
 			reach = applyRangeComponent(reach, rangeConfig.bonus);
 		}
 		if (typeof rangeConfig.longDisadvantage === 'boolean') longDisadvantage = rangeConfig.longDisadvantage;
-		if (typeof rangeConfig.noLongDisadvantage === 'boolean') longDisadvantage = !rangeConfig.noLongDisadvantage;
+		if (typeof rangeConfig.noLongDisadvantage === 'boolean') {
+			longDisadvantage = !rangeConfig.noLongDisadvantage;
+			noLongDisadvantageSourceLabel = entryLabel;
+			noLongDisadvantageSourceMode = 'noLongDisadvantage';
+		}
 		if (typeof rangeConfig.nearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoeDisadvantage;
 		if (typeof rangeConfig.nearbyFoes === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoes;
 		if (typeof rangeConfig.noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoeDisadvantage;
@@ -185,6 +196,8 @@ export function autoRanged(activity, token, target, options) {
 					short,
 					long,
 					reach,
+					noLongDisadvantageSourceLabel,
+					noLongDisadvantageSourceMode,
 					longDisadvantage,
 					nearbyFoeDisadvantage,
 					outOfRangeFail,
@@ -249,6 +262,8 @@ export function autoRanged(activity, token, target, options) {
 				reach,
 				inRange,
 				nearbyFoe,
+				noLongDisadvantageSourceLabel,
+				noLongDisadvantageSourceMode,
 				longDisadvantage,
 				outOfRangeFail,
 				outOfRangeFailSourceLabel,
@@ -262,6 +277,8 @@ export function autoRanged(activity, token, target, options) {
 		distance,
 		nearbyFoe,
 		noLongDisadvantage,
+		noLongDisadvantageSourceLabel,
+		noLongDisadvantageSourceMode,
 		longDisadvantage,
 		outOfRangeFail,
 		outOfRangeFailSourceLabel,

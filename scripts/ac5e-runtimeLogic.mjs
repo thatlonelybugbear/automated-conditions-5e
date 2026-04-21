@@ -815,6 +815,11 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetId = opponentToken?.id;
 
 	sandbox.activity = activityData;
+	if (activity) {
+		if (!sandbox.activity.id) sandbox.activity.id = activity.id;
+		if (!sandbox.activity.uuid) sandbox.activity.uuid = activity.uuid;
+		if (!sandbox.activity.identifier) sandbox.activity.identifier = activity.identifier;
+	}
 	sandbox.ammunition = sandboxOptions.ammunition;
 	sandbox.ammunitionName = sandboxOptions.ammunition?.name;
 	sandbox.consumptionItemName = {};
