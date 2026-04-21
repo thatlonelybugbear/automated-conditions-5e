@@ -180,10 +180,13 @@ export function refreshAttackAutoRangeState(ac5eConfig, config) {
 	ac5eConfig.subject.rangeNotes = [];
 	const mergedOptions = { ...options, targets, ac5eConfig };
 	mergedOptions.distance = _getDistance(sourceToken, singleTargetToken);
-	const { nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, mergedOptions);
+	const { nearbyFoe, inRange, range, longDisadvantage, noLongDisadvantageSourceLabel, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, mergedOptions);
 	ac5eConfig.options ??= {};
 	ac5eConfig.options.distance = mergedOptions.distance;
 	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(nearbyLabel);
+	if (range === 'long' && !longDisadvantage && noLongDisadvantageSourceLabel) {
+		ac5eConfig.subject.rangeNotes.push(`${longLabel} suppressed: ${noLongDisadvantageSourceLabel}`);
+	}
 	if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
 		ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 	}

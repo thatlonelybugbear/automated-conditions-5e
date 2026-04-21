@@ -86,7 +86,11 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 			const label = String(entry.label ?? entry.name ?? entry.id ?? '').trim();
 			return label !== failLabel;
 		});
-		const { inRange, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
+		const longLabel = _localize('RangeLong');
+		const { inRange, range, longDisadvantage, noLongDisadvantageSourceLabel, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
+		if (range === 'long' && !longDisadvantage && noLongDisadvantageSourceLabel) {
+			ac5eConfig.subject.rangeNotes.push(`${longLabel} suppressed: ${noLongDisadvantageSourceLabel}`);
+		}
 		if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
 			ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 		}
