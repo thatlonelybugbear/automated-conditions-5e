@@ -1,3 +1,9 @@
+## 14.531.3
+
+- Added tooltip attribution when a `range.noLongDisadvantage` rule suppresses long-range disadvantage.
+- Improved range helper context resolution by letting `autoRanged` and related checks fall back from `activity` data to `options.actionType` and `options.item`, including UUID-based item resolution.
+- Backfilled missing `sandbox.activity.id` / `uuid` / `identifier` values when an activity exists, while guarding non-activity roll paths such as initiative, checks, and saves from null activity access.
+
 ## 14.531.2.2
 
 - Activity range data are checked only if the override parameter is true, otherwise the item's range data are used for range checks.
