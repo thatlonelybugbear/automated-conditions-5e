@@ -45,6 +45,14 @@ export default class Settings {
 			default: true,
 			type: Boolean,
 		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS, {
+			name: 'AC5E.ExpandedConditionsName',
+			hint: 'AC5E.ExpandedConditionsHint',
+			scope: 'world',
+			config: true,
+			default: false,
+			type: Boolean,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
 			name: 'AC5E.ShowTooltipsName',
 			hint: 'AC5E.ShowTooltipsHint',
@@ -111,14 +119,6 @@ export default class Settings {
 			config: true,
 			default: 'white',
 			type: String,
-		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS, {
-			name: 'AC5E.ExpandedConditionsName',
-			hint: 'AC5E.ExpandedConditionsHint',
-			scope: 'world',
-			config: true,
-			default: false,
-			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_VISIBILITY_CHECKS, {
 			name: 'AC5E.VisibilityChecksSetting.Name',

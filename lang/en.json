@@ -17,7 +17,7 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Owned",
 	"AC5E.ShowTooltipChatVisibility.Players": "Players",
 	"AC5E.ExpandedConditionsName": "Expanded Conditions",
-	"AC5E.ExpandedConditionsHint": "Enables automation for additional conditions such as Dodging and Hiding.",
+	"AC5E.ExpandedConditionsHint": "Enables automation for additional conditions and combat states such as Dodging, Hiding, Raging spell restrictions, and Underwater Combat.",
 	"AC5E.VisibilityChecksSetting": {
 		"Name": "Visibility Rules",
 		"Hint": "Enables AC5E visibility-based attack rules. AC5E injects the 'Cannot See Target' / 'Target Cannot See Attacker' opt-ins and lets those entries drive the attack's advantage/disadvantage instead of relying only on blinded/invisible statuses. The opt-ins are suppressed when MidiQOL already applies its optional invisibility or hidden-attacker rules to avoid duplicate reasons."

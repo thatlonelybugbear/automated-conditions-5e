@@ -2578,7 +2578,7 @@ function sizeWarnings(targetCount, setting) {
 
 export function _generateAC5eFlags() {
 	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
-	const statusFlagKeys = [...new Set([...Object.keys(CONFIG?.DND5E?.conditionTypes ?? {}), 'bloodied'])].map((statusId) => `no${statusId.charAt(0).toUpperCase()}${statusId.slice(1)}`);
+	const statusFlagKeys = [...new Set([...Object.keys(CONFIG?.DND5E?.conditionTypes ?? {}), 'bloodied'])].map((statusId) => `no${statusId.capitalize()}`);
 	const moduleFlags = new Set([
 		`${moduleFlagScope}.crossbowExpert`,
 		`${moduleFlagScope}.sharpShooter`,
