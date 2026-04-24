@@ -1,3 +1,9 @@
+## 13.5310.6
+
+- Improved visibility handling so AC5E and MidiQOL split responsibility more cleanly for hiding, invisibility, and blinded attack checks.
+- Improved sight checks for tokens with limited or disabled token vision by better using actor senses such as darkvision and truesight.
+- Cleaned up several settings names and descriptions for clarity, and grouped `Expanded Conditions` closer to the main D&D 5e condition rules setting.
+
 ## 13.5310.5
 
 - Added tooltip attribution when a `range.noLongDisadvantage` rule suppresses long-range disadvantage.
