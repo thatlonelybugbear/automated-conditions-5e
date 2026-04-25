@@ -63,6 +63,7 @@ export function checkNearby(token, disposition, radius, { count = false, include
 }
 
 export function autoRanged(activity, token, target, options = {}) {
+	if (typeof activity === 'string') activity = fromUuidSync(activity);
 	const distanceUnit = canvas.grid.distance;
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
@@ -301,36 +302,25 @@ export function canSee(source, target, status) {
 	}
 	const detectionModes = CONFIG.Canvas?.detectionModes ?? {};
 	const matchedModes = new Set();
-	const { visionSource, temporaryVision } = _getVisionSourceForCanSee(source);
+	const { visionSource, temporaryVision, detectionModes: tokenDetectionModes } = _getVisionSourceForCanSee(source);
 	if (!visionSource) {
 		if (_canSeeDebugEnabled()) console.warn('AC5e: No valid vision source for canSee check', { source: source?.id, target: target?.id });
 		return false;
 	}
 	const { tests, level } = _createVisibilityTests(target, visionSource);
 	const config = { tests, object: target, level };
-
-	const tokenDetectionModes = normalizeDetectionModes(source.document?.detectionModes ?? source.detectionModes);
-	let validModes = new Set();
+	const availableModeIds = new Set(tokenDetectionModes.map((mode) => mode?.id).filter(Boolean));
+	let validModes = ['basicSight', 'lightPerception', 'blindsight', 'seeAll', 'seeInvisibility'];
 
 	const sourceBlinded = source.actor?.statuses.has('blinded');
 	const targetInvisible = target.actor?.statuses.has('invisible');
 	const sourceEthereal = source.actor?.statuses.has('ethereal');
 	const targetEthereal = target.actor?.statuses.has('ethereal');
 	const crossPlanarEthereal = (status === 'ethereal' || sourceEthereal || targetEthereal) && !(sourceEthereal && targetEthereal);
-	if (!status && !sourceBlinded && !targetInvisible && !crossPlanarEthereal) {
-		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll']);
-	} else {
-		validModes = new Set(['basicSight', 'lightPerception', 'blindsight', 'seeAll', 'seeInvisibility']);
-		if (status === 'blinded' || sourceBlinded) {
-			validModes = new Set([...validModes].filter((mode) => ['blindsight'].includes(mode)));
-		}
-		if (crossPlanarEthereal) {
-			validModes = new Set([...validModes].filter((mode) => ['seeAll'].includes(mode)));
-		}
-		if (status === 'invisible' || targetInvisible) {
-			validModes = new Set([...validModes].filter((mode) => ['blindsight', 'seeAll', 'seeInvisibility'].includes(mode)));
-		}
-	}
+	if (status === 'blinded' || sourceBlinded) validModes = ['blindsight'];
+	else if (crossPlanarEthereal) validModes = ['seeAll'];
+	else if (status === 'invisible' || targetInvisible) validModes = ['blindsight', 'seeAll', 'seeInvisibility'];
+	validModes = new Set(availableModeIds.size ? validModes.filter((mode) => availableModeIds.has(mode)) : validModes);
 	try {
 		for (const detectionMode of tokenDetectionModes) {
 			if (!detectionMode?.enabled || (!detectionMode?.range && detectionMode?.range !== 0)) continue;
@@ -427,15 +417,17 @@ function _populateVisibilityLOS(tests, visionSource) {
 }
 
 function _getVisionSourceForCanSee(token) {
-	if (token?.vision?.los) return { visionSource: token.vision, temporaryVision: false };
+	const effectiveDetectionModes = _getEffectiveVisibilityDetectionModes(token);
+	if (token?.vision?.los) return { visionSource: token.vision, temporaryVision: false, detectionModes: effectiveDetectionModes };
+	const visionRanges = _getVisibilityRanges(token, effectiveDetectionModes);
 	const sourceId = `${token?.sourceId ?? token?.id ?? 'ac5e-vision'}-ac5e-cansee`;
 	const visionSource = new CONFIG.Canvas.visionSourceClass({ sourceId, object: token });
 	visionSource.initialize({
 		x: token.center.x,
 		y: token.center.y,
 		elevation: token.document?.elevation ?? token.elevation ?? 0,
-		radius: Math.clamp(token.sightRange ?? 0, 0, canvas?.dimensions?.maxR ?? 0),
-		lightRadius: token.lightPerceptionRange ?? 0,
+		radius: Math.clamp(visionRanges.visionRadius, 0, canvas?.dimensions?.maxR ?? 0),
+		lightRadius: visionRanges.lightPerceptionRadius,
 		externalRadius: token.externalRadius,
 		angle: token.document?.sight?.angle ?? 360,
 		contrast: token.document?.sight?.contrast ?? 0,
@@ -453,7 +445,80 @@ function _getVisionSourceForCanSee(token) {
 		visionSource.los = visionSource.shape;
 	}
 	if (visionSource.visionMode) visionSource.visionMode.animated = false;
-	return { visionSource, temporaryVision: true };
+	return { visionSource, temporaryVision: true, detectionModes: effectiveDetectionModes };
+}
+
+function _getEffectiveVisibilityDetectionModes(token) {
+	const tokenDetectionModes = normalizeDetectionModes(token?.document?.detectionModes ?? token?.detectionModes);
+	const actorSenseRanges = _getActorSenseRanges(token?.actor);
+	const mergedModes = new Map();
+
+	for (const mode of tokenDetectionModes) {
+		if (!mode?.id) continue;
+		mergedModes.set(mode.id, { ...mode });
+	}
+
+	const senseModeRanges = new Map([
+		['basicSight', Math.max(actorSenseRanges.darkvision ?? 0, actorSenseRanges.truesight ?? 0)],
+		['blindsight', actorSenseRanges.blindsight ?? 0],
+		['feelTremor', actorSenseRanges.tremorsense ?? 0],
+		['seeInvisibility', Math.max(actorSenseRanges.seeInvisibility ?? 0, actorSenseRanges.truesight ?? 0)],
+		['seeAll', actorSenseRanges.truesight ?? 0],
+	]);
+
+	for (const [id, range] of senseModeRanges) {
+		if (!(range > 0)) continue;
+		const existing = mergedModes.get(id);
+		mergedModes.set(id, {
+			...(existing ?? {}),
+			id,
+			enabled: existing?.enabled ?? true,
+			range: Math.max(Number(existing?.range) || 0, range),
+		});
+	}
+
+	return Array.from(mergedModes.values());
+}
+
+function _getActorSenseRanges(actor) {
+	const senses = actor?.system?.attributes?.senses;
+	const ranges = senses?.ranges ?? senses ?? {};
+	const readRange = (...keys) => {
+		for (const key of keys) {
+			const value = ranges?.[key] ?? senses?.[key];
+			if (Number.isFinite(Number(value))) return Number(value);
+		}
+		return 0;
+	};
+
+	return {
+		blindsight: readRange('blindsight'),
+		darkvision: readRange('darkvision'),
+		tremorsense: readRange('tremorsense'),
+		truesight: readRange('truesight'),
+		seeInvisibility: readRange('seeInvisibility', 'seeinvisibility'),
+	};
+}
+
+function _getVisibilityRanges(token, detectionModes) {
+	const actorSenseRanges = _getActorSenseRanges(token?.actor);
+	const modeRanges = new Map(detectionModes.map((mode) => [mode?.id, Number(mode?.range) || 0]));
+	const visionCandidates = [
+		token?.sightRange ?? 0,
+		modeRanges.get('basicSight') ?? 0,
+		modeRanges.get('seeAll') ?? 0,
+		actorSenseRanges.darkvision ?? 0,
+		actorSenseRanges.truesight ?? 0,
+	];
+	const lightPerceptionCandidates = [
+		token?.lightPerceptionRange ?? 0,
+		modeRanges.get('lightPerception') ?? 0,
+	];
+
+	return {
+		visionRadius: Math.max(...visionCandidates),
+		lightPerceptionRadius: Math.max(...lightPerceptionCandidates),
+	};
 }
 
 function _destroyTemporaryVisionSource(visionSource, temporaryVision) {

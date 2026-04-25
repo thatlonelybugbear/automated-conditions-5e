@@ -476,12 +476,13 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
 			const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
 			const context = buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
-			const actorStatuses = Array.from(actor.statuses ?? []);
+			let actorStatuses = Array.from(actor.statuses ?? []);
 			const raging = actor.appliedEffects.some((effect) => {
 				return ['rage', 'raging'].includes(effect.parent?.identifier) || [_localize('AC5E.Rage'), _localize('AC5E.Raging')].includes(effect.name);
 			});
 			if (raging) actorStatuses.push('raging');
 			if (actor.appliedEffects.some((effect) => effect?.name.includes(_localize('AC5E.Statuses.UnderwaterCombat')))) actorStatuses.push('underwaterCombat');
+			if (options.hook === 'attack') actorStatuses = filterAttackStatusesForMidiVisibility(actorStatuses);
 
 			for (const status of actorStatuses) {
 				const suppressedStatus = getSuppressedStatusData({ actor, statusId: status, type, subjectToken, opponentToken });
@@ -678,22 +679,45 @@ function addDefaultOptinSelection(ac5eConfig, entryId, selected = true) {
 	if (!(entryId in ac5eConfig.optinSelected)) ac5eConfig.optinSelected[entryId] = !!selected;
 }
 
-function midiHandlesVisibilityAttackRules() {
+function midiHandlesInvisibilityAttackRules() {
 	if (!_activeModule('midi-qol')) return false;
 	const midiConfig = globalThis.MidiQOL?.configSettings?.();
 	if (!midiConfig?.optionalRulesEnabled) return false;
 	const optionalRules = midiConfig.optionalRules ?? {};
 	const invisAdvantage = optionalRules.invisAdvantage ?? 'none';
-	const hiddenAdvantage = optionalRules.hiddenAdvantage ?? 'none';
 
-	return hiddenAdvantage !== 'none' || invisAdvantage !== 'none';
+	return invisAdvantage !== 'none';
+}
+
+function filterAttackStatusesForMidiVisibility(actorStatuses) {
+	if (!Array.isArray(actorStatuses) || !actorStatuses.length) return actorStatuses;
+	if (!_activeModule('midi-qol')) return actorStatuses;
+	const midiConfig = globalThis.MidiQOL?.configSettings?.();
+	if (!midiConfig?.optionalRulesEnabled) return actorStatuses;
+	const optionalRules = midiConfig.optionalRules ?? {};
+	const invisAdvantage = optionalRules.invisAdvantage ?? 'none';
+	const hiddenAdvantage = optionalRules.hiddenAdvantage ?? 'none';
+	const blockedStatuses = new Set();
+
+	if (hiddenAdvantage !== 'none') blockedStatuses.add('hiding');
+	if (invisAdvantage !== 'none') {
+		blockedStatuses.add('blinded');
+		blockedStatuses.add('invisible');
+	}
+	if (!blockedStatuses.size) return actorStatuses;
+
+	return actorStatuses.filter((status) => !blockedStatuses.has(status));
 }
 
 function addSyntheticVisibilityAttackOptins(ac5eConfig, subjectToken, opponentToken) {
 	if (ac5eConfig?.hookType !== 'attack' || !settings.visibilityChecks || !subjectToken || !opponentToken) return;
-	if (midiHandlesVisibilityAttackRules()) return;
+	if (midiHandlesInvisibilityAttackRules()) return;
 	const subjectCanSeeTarget = canSee(subjectToken, opponentToken);
 	const targetCanSeeSubject = canSee(opponentToken, subjectToken);
+	const subject = subjectToken.actor;
+	const modernRules = settings.dnd5eModernRules;
+	const opponentAlert2014 = !modernRules && opponentToken.actor?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
+	const hidingAlreadyGrantsAttackAdvantage = settings.expandedConditions && subject?.statuses.has('hiding') && !opponentAlert2014;
 	const syntheticEntries = [];
 
 	if (!subjectCanSeeTarget) {
@@ -713,7 +737,7 @@ function addSyntheticVisibilityAttackOptins(ac5eConfig, subjectToken, opponentTo
 			changeKey: 'ac5e.synthetic.visibility.cannotSeeTarget',
 		});
 	}
-	if (!targetCanSeeSubject) {
+	if (!targetCanSeeSubject && !hidingAlreadyGrantsAttackAdvantage) {
 		syntheticEntries.push({
 			id: `ac5e:visibility:${subjectToken.id}:${opponentToken.id}:target-cannot-see-attacker`,
 			name: _localize('AC5E.TargetCannotSeeAttacker'),
