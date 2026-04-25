@@ -3826,7 +3826,14 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 		const originItem = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target }).originItem;
 		if (originItem instanceof Item) {
 			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === originItem.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === originItem.uuid);
-			if (itemIndex >= 0) expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
+			if (itemIndex >= 0) {
+				foundry.utils.logCompatibilityWarning('AC5E: Using @item to reference an effect origin item is deprecated. Use originItem instead.', {
+					since: '14.532.2',
+					until: '14.600.1',
+					once: true,
+				});
+				expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
+			}
 		}
 	}
 	if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
