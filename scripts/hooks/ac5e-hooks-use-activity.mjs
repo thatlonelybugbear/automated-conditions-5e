@@ -76,7 +76,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 
 	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
-	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type === 'attack';
+	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type !== 'attack';
 	if (shouldCheckPreUseRange) {
 		ac5eConfig.subject.rangeNotes = [];
 		const failLabel = _localize('AC5E.OutOfRange');
