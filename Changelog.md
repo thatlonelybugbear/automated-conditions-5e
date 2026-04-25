@@ -2,6 +2,7 @@
 
 - Improved visibility handling so AC5E and MidiQOL split responsibility more cleanly for hiding, invisibility, and blinded attack checks.
 - Improved sight checks for tokens with limited or disabled token vision by better using actor senses such as darkvision and truesight.
+- Attack activities now handle out-of-range failures during attack roll setup instead of failing early during item use.
 - Cleaned up several settings names and descriptions for clarity, and grouped `Expanded Conditions` closer to the main D&D 5e condition rules setting.
 - Verified for D&D 5e system v5.3.2.
 
