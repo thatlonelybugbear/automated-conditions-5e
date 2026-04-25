@@ -1,3 +1,7 @@
+## 14.532.2
+
+- Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` roll-state behavior.
+
 ## 14.532.1
 
 - Improved visibility handling so AC5E and MidiQOL split responsibility more cleanly for hiding, invisibility, and blinded attack checks.

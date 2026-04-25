@@ -3782,7 +3782,10 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 
 function _normalizeLiteralModifierSyntax(value) {
 	if (typeof value !== 'string') return '';
-	return value.trim().replace(/\s+/g, '');
+	const normalized = value.trim().replace(/\s+/g, '');
+	if (/^max$/i.test(normalized)) return 'maximize';
+	if (/^min$/i.test(normalized)) return 'minimize';
+	return normalized;
 }
 
 function _isLiteralModifierSyntax(value, hook) {
@@ -3830,7 +3833,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
 		if (typeof trimmedModifier === 'string') {
 			const extremeMatch = trimmedModifier.match(/^(min|max)\s*(.+)$/i);
-			if (extremeMatch && !/^(?:maximize|minimize)$/i.test(trimmedModifier)) {
+			if (extremeMatch && !/^(?:max|min|maximize|minimize)$/i.test(trimmedModifier.trim().replace(/\s+/g, ''))) {
 				let extremeValue = _ac5eSafeEval({ expression: extremeMatch[2], sandbox: evaluationData, mode: 'formula', debug });
 				if (!Number.isFinite(Number(extremeValue))) extremeValue = evalNumericFormulaExpression(extremeValue, { debug });
 				const numericExtremeValue = Number(extremeValue);
