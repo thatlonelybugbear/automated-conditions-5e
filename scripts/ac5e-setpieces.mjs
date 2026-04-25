@@ -17,6 +17,7 @@ import {
 	_staticID,
 	_sleep,
 	_safeFromUuidSync,
+	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
@@ -118,6 +119,84 @@ function _usesCountDebugEnabled() {
 function _logUsesCount(stage, payload = {}) {
 	if (!_usesCountDebugEnabled()) return;
 	console.warn('AC5E usesCount', { stage, ...payload });
+}
+
+function _getOriginRollData(document, rollDataKey) {
+	if (!document) return {};
+	const rollData = document.getRollData?.();
+	const data = rollData?.[rollDataKey] ?? rollData ?? {};
+	return {
+		...data,
+		id: data.id ?? document.id,
+		uuid: data.uuid ?? document.uuid,
+		name: data.name ?? document.name,
+		type: data.type ?? document.type,
+		identifier: data.identifier ?? document.identifier,
+		flags: data.flags ?? document.flags,
+	};
+}
+
+function _getOriginItemRollData(item) {
+	const data = _getOriginRollData(item, 'item');
+	if (!item) return data;
+	data.flags ??= item.flags ?? {};
+	data.flags['midi-qol'] ??= item.flags?.['midi-qol'] ?? {};
+	data.midiFlags ??= data.flags['midi-qol'];
+	data.classIdentifier ??= item.system?.classIdentifier;
+	data.hasAttack ??= item.hasAttack;
+	data.hasSave ??= item.system?.hasSave;
+	data.hasSummoning ??= item.system?.hasSummoning;
+	data.hasLimitedUses ??= item.system?.hasLimitedUses;
+	data.isHealing ??= item.system?.isHealing;
+	data.isEnchantment ??= item.system?.isEnchantment;
+	data.transferredEffects ??= item.transferredEffects;
+	return data;
+}
+
+function _getOriginActivityRollData(activity) {
+	const data = _getOriginRollData(activity, 'activity');
+	if (!activity) return data;
+	data.ability ??= activity.ability;
+	data.hasAttack ??= !foundry.utils.isEmpty(activity.attack);
+	data.hasDamage ??= !foundry.utils.isEmpty(activity.damage?.parts);
+	data.hasHealing ??= !foundry.utils.isEmpty(activity.healing);
+	data.hasSave ??= !foundry.utils.isEmpty(activity.save);
+	data.hasCheck ??= !foundry.utils.isEmpty(activity.check);
+	data.isSpell ??= activity.isSpell;
+	data.isAoE ??= activity.target?.template?.type in CONFIG.DND5E.areaTargetTypes;
+	data.isScaledScroll ??= activity.isScaledScroll;
+	data.requiresSpellSlot ??= activity.requiresSpellSlot;
+	data.spellcastingAbility ??= activity.spellcastingAbility;
+	data.messageFlags ??= activity.messageFlags;
+	return data;
+}
+
+function _withEffectOriginEvaluationData(sandbox, effect) {
+	const originContext = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target });
+	const originItem = originContext.originItem;
+	const originActivity = originContext.originActivity;
+	const originItemData = _getOriginItemRollData(originItem);
+	const originActivityData = _getOriginActivityRollData(originActivity);
+	return {
+		...sandbox,
+		originItem: originItemData,
+		originActivity: originActivityData,
+		originItemType: originItem?.type,
+		originItemProperties: _getItemPropertiesMap(originItem),
+	};
+}
+
+function _getItemPropertiesMap(item) {
+	const properties = {};
+	if (item?.system?.properties instanceof Set) {
+		for (const property of item.system.properties) properties[property] = true;
+	}
+	return properties;
+}
+
+function _getEffectOriginItemOrActivity(effect) {
+	const originContext = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target });
+	return originContext.originActivity ?? originContext.originItem ?? null;
 }
 
 async function _safeDeleteByUuid(uuid, { source = 'local' } = {}) {
@@ -1395,7 +1474,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
 		const cadenceActorType = auraTokenEvaluationData ? 'aura' : (resolvedActorType ?? actorType);
-		if (normalizedChangeValue.includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
+		if (normalizedChangeValue.includes('itemlimited') && evalData.originItem?.id !== evalData.item?.id && evalData.originItem?.uuid !== evalData.item?.uuid) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
@@ -1962,6 +2041,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return entry;
 	};
 	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
+		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
 		if (
 			!effectChangesTest({
 				token,
@@ -1970,14 +2050,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				hook,
 				effect,
 				updateArrays,
-				evaluationData: isAura ? undefined : sandbox,
-				auraTokenEvaluationData: isAura ? sandbox : undefined,
+				evaluationData: isAura ? undefined : effectSandbox,
+				auraTokenEvaluationData: isAura ? effectSandbox : undefined,
 				changeIndex,
 				auraTokenUuid: auraToken?.document?.uuid,
 			})
 		)
 			return;
-		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox, isAura, auraToken, sourceActor, sourceNameFallback });
+		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox: effectSandbox, isAura, auraToken, sourceActor, sourceNameFallback });
 		if (!entry?.evaluation) return;
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
 		if (isAura && normalizedChangeValue.includes('singleaura')) {
@@ -2934,22 +3014,12 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		} else {
 			let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
 			if (hasOrigin) {
-				if (!effect.origin) {
+				itemActivityfromUuid = _getEffectOriginItemOrActivity(effect);
+				if (!itemActivityfromUuid) {
 					ui.notifications.error(
 						`You are using 'origin' in effect ${effect.name}, but you have created it directly on the actor and does not have an associated item or activity; Returning false in ac5e.handleUses;`,
 					);
 					return false;
-				} else {
-					const parsed = foundry.utils.parseUuid(effect.origin);
-					if (parsed.type === 'ActiveEffect') {
-						// most of the time that will be an appliedEffect and the origin should be correct and not pointing to game.actors.
-						itemActivityfromUuid = _safeFromUuidSync(effect.origin)?.parent;
-					} else if (parsed.type === 'Item') {
-						const i = _safeFromUuidSync(effect.origin);
-						const actorLinked = i?.parent?.protoTypeToken?.actorLink; //when can "i" be undefined? Origin can be null
-						if (actorLinked) itemActivityfromUuid = i;
-						else itemActivityfromUuid = _safeFromUuidSync(effect.parent.uuid);
-					}
 				}
 			}
 			if (itemActivityfromUuid) {
@@ -3450,14 +3520,8 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	}
 	let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
 	if (hasOrigin) {
-		if (!effect?.origin) return result();
-		const parsed = foundry.utils.parseUuid(effect.origin);
-		if (parsed.type === 'ActiveEffect') itemActivityfromUuid = _safeFromUuidSync(effect.origin)?.parent;
-		else if (parsed.type === 'Item') {
-			const item = _safeFromUuidSync(effect.origin);
-			const actorLinked = item?.parent?.protoTypeToken?.actorLink;
-			itemActivityfromUuid = actorLinked ? item : _safeFromUuidSync(effect.parent?.uuid);
-		}
+		itemActivityfromUuid = _getEffectOriginItemOrActivity(effect);
+		if (!itemActivityfromUuid) return result();
 	}
 	if (itemActivityfromUuid) {
 		const item = itemActivityfromUuid instanceof Item && itemActivityfromUuid;
@@ -3758,17 +3822,11 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 
 	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 	expression = expression.replace(pattern, (match) => staticMap[match]);
-	if (expression.includes('@item') && effect.origin) {
-		let origin = _safeFromUuidSync(effect?.origin);
-		if (origin instanceof Item) {
-			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === origin.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === origin.uuid);
+	if (expression.includes('@item')) {
+		const originItem = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target }).originItem;
+		if (originItem instanceof Item) {
+			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === originItem.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === originItem.uuid);
 			if (itemIndex >= 0) expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
-		} else if (origin instanceof ActiveEffect) {
-			origin = origin.item instanceof Item && origin.item;
-			if (origin) {
-				const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === origin.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === origin.uuid);
-				if (itemIndex >= 0) expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
-			}
 		}
 	}
 	if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');

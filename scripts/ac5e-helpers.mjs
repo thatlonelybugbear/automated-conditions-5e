@@ -2645,13 +2645,12 @@ function _getActionType(activity, returnClassifications = false) {
 export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, id, uuid */) {
 	if (!effect?.origin) return undefined;
 
-	let origin = _safeFromUuidSync(effect.origin);
-	let actor = _resolveActorFromOrigin(origin);
+	const originContext = _resolveEffectOriginContext(effect);
+	let actor = originContext.originActor;
 
 	// Check if origin itself has an origin (chained origin), resolve again
-	if (!actor && origin?.origin) {
-		const deeperOrigin = _safeFromUuidSync(origin.origin);
-		actor = _resolveActorFromOrigin(deeperOrigin);
+	if (!actor && originContext.originEffect?.origin) {
+		actor = _resolveEffectOriginContext(originContext.originEffect).originActor;
 	}
 
 	if (!actor) return undefined;
@@ -2670,8 +2669,125 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 	}
 }
 
+export function _resolveEffectOriginContext(effect, { relative } = {}) {
+	const context = {
+		originItem: null,
+		originActivity: null,
+		originEffect: null,
+		originActor: null,
+		sourceDocument: null,
+	};
+	if (!effect) return context;
+
+	const relativeDocument = relative ?? effect.parent ?? effect.target ?? null;
+	const actor = effect.target instanceof CONFIG.Actor.documentClass ? effect.target : effect.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
+	const flags = effect.flags?.dnd5e ?? {};
+	const flagItem = _resolveEffectFlagItem(flags.item, actor, relativeDocument);
+	const flagActivity = _resolveEffectFlagActivity(flags.activity, flagItem, actor, relativeDocument);
+	const isConcentration = effect.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING);
+	const isEnchantment = effect.type === 'enchantment' || effect.isAppliedEnchantment || effect.flags?.dnd5e?.dependentOn;
+
+	if (flagItem) context.originItem = flagItem;
+	if (flagActivity) {
+		context.originActivity = flagActivity;
+		context.originItem ??= flagActivity.item instanceof CONFIG.Item.documentClass ? flagActivity.item : flagActivity.parent instanceof CONFIG.Item.documentClass ? flagActivity.parent : null;
+	}
+
+	const origin = effect.origin ? _safeFromUuidSync(effect.origin, { relative: relativeDocument }) : null;
+	context.sourceDocument = origin;
+	if (_isItemDocument(origin)) context.originItem ??= origin;
+	else if (_isActivityDocument(origin)) {
+		context.originActivity ??= origin;
+		context.originItem ??= origin.item instanceof CONFIG.Item.documentClass ? origin.item : origin.parent instanceof CONFIG.Item.documentClass ? origin.parent : null;
+	} else if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+		context.originEffect = origin;
+		if (origin.parent instanceof CONFIG.Item.documentClass) context.originItem ??= origin.parent;
+		else if (origin.item instanceof CONFIG.Item.documentClass) context.originItem ??= origin.item;
+		else if (origin.parent instanceof CONFIG.Actor.documentClass) context.originActor ??= origin.parent;
+	}
+
+	if (context.originEffect?.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING)) {
+		const concentrationOrigin = _resolveConcentrationEffectOrigin(context.originEffect, {
+			actor: context.originActor ?? actor,
+			relative: context.originEffect.parent ?? context.originEffect.target ?? relativeDocument,
+		});
+		context.originItem ??= concentrationOrigin.originItem;
+		context.originActivity ??= concentrationOrigin.originActivity;
+		if (context.originActivity) {
+			context.originItem ??=
+				context.originActivity.item instanceof CONFIG.Item.documentClass ? context.originActivity.item
+				: context.originActivity.parent instanceof CONFIG.Item.documentClass ? context.originActivity.parent
+				: null;
+		}
+	}
+
+	if (!context.originActivity && !isConcentration && !isEnchantment) context.originActivity = _findActivityForEffect(context.originItem, effect, context.originEffect);
+
+	context.originActor ??= _resolveActorFromOrigin(context.originActivity) ?? _resolveActorFromOrigin(context.originItem) ?? _resolveActorFromOrigin(context.originEffect) ?? actor;
+	return context;
+}
+
+function _resolveConcentrationEffectOrigin(effect, { actor, relative } = {}) {
+	const flags = effect?.flags?.dnd5e ?? {};
+	const concentrationActor = actor instanceof CONFIG.Actor.documentClass ? actor : effect.target instanceof CONFIG.Actor.documentClass ? effect.target : effect.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
+	const originItem = _resolveEffectFlagItem(flags.item, concentrationActor, relative);
+	const originActivity = _resolveEffectFlagActivity(flags.activity, originItem, concentrationActor, relative);
+	return { originItem, originActivity };
+}
+
+function _resolveEffectFlagItem(itemFlag, actor, relativeDocument) {
+	if (!itemFlag) return null;
+	const uuid = typeof itemFlag === 'string' ? itemFlag : itemFlag.uuid;
+	const id = typeof itemFlag === 'object' ? itemFlag.id : null;
+	let item = uuid ? _safeFromUuidSync(uuid, { relative: relativeDocument }) : null;
+	if (!_isItemDocument(item) && id && actor?.items?.get) item = actor.items.get(id);
+	return _isItemDocument(item) ? item : null;
+}
+
+function _resolveEffectFlagActivity(activityFlag, item, actor, relativeDocument) {
+	if (!activityFlag) return null;
+	const uuid = typeof activityFlag === 'string' ? activityFlag : activityFlag.uuid;
+	const id = typeof activityFlag === 'object' ? activityFlag.id : null;
+	let activity = uuid ? _safeFromUuidSync(uuid, { relative: relativeDocument }) : null;
+	if (!_isActivityDocument(activity) && id && item?.system?.activities?.get) activity = item.system.activities.get(id);
+	if (!_isActivityDocument(activity) && id && actor?.items) {
+		for (const actorItem of actor.items) {
+			activity = actorItem.system?.activities?.get?.(id);
+			if (_isActivityDocument(activity)) break;
+		}
+	}
+	return _isActivityDocument(activity) ? activity : null;
+}
+
+function _findActivityForEffect(item, effect, originEffect) {
+	if (!_isItemDocument(item)) return null;
+	const effectIds = new Set([effect?.id, originEffect?.id, effect?.flags?.dnd5e?.dependentOn].filter(Boolean));
+	if (!effectIds.size) return null;
+	for (const activity of item.system?.activities ?? []) {
+		for (const activityEffect of activity?.effects ?? []) {
+			const id = activityEffect?._id ?? activityEffect?.id;
+			if (effectIds.has(id)) return activity;
+		}
+	}
+	return null;
+}
+
+function _isItemDocument(document) {
+	return document instanceof CONFIG.Item.documentClass;
+}
+
+function _isActivityDocument(document) {
+	return Boolean(
+		document &&
+			!(document instanceof CONFIG.ActiveEffect.documentClass) &&
+			!(document instanceof CONFIG.Item.documentClass) &&
+			(document.uuid?.includes?.('.Activity.') || document.item instanceof CONFIG.Item.documentClass),
+	);
+}
+
 function _resolveActorFromOrigin(origin) {
 	if (!origin) return undefined;
+	if (_isActivityDocument(origin)) return origin.item?.actor ?? origin.parent?.actor;
 
 	// If origin is an ActiveEffect on an Item or Actor
 	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
@@ -2986,7 +3102,7 @@ export function _getTokenFromActor(actor) {
 	return token;
 }
 
-export function _safeFromUuidSync(value, { collection } = {}) {
+export function _safeFromUuidSync(value, { collection, relative } = {}) {
 	if (!value) return null;
 
 	// Already Document
@@ -2995,9 +3111,13 @@ export function _safeFromUuidSync(value, { collection } = {}) {
 	// UUID
 	if (typeof value === 'string' && value.includes('.')) {
 		try {
-			return fromUuidSync(value, { strict: false }) ?? null;
+			return fromUuidSync(value, { strict: false, relative }) ?? null;
 		} catch (_err) {
-			return null;
+			try {
+				return fromUuidSync(value, { strict: false }) ?? null;
+			} catch (_fallbackErr) {
+				return null;
+			}
 		}
 	}
 
