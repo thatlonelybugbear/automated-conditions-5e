@@ -482,7 +482,7 @@ function isFormulaOperatorDamageModifier(value) {
 function isDiceTermSuffixDamageModifier(value) {
 	if (typeof value !== 'string') return false;
 	const normalized = value.trim().replace(/\s+/g, '');
-	if (!normalized || /^(?:maximize|minimize)$/i.test(normalized)) return false;
+	if (!normalized || /^(?:max|min|maximize|minimize)$/i.test(normalized)) return false;
 	if (globalThis.dnd5e?.utils?.isValidDieModifier?.(normalized)) return true;
 	return /^(?:min|max)\s*-?\d+$/i.test(normalized);
 }
@@ -497,8 +497,8 @@ function getDamageRollOptionModifierState(values = []) {
 		.filter((value) => typeof value === 'string')
 		.map((value) => value.trim().toLowerCase().replace(/\s+/g, ''));
 	return {
-		maximize: normalized.includes('maximize'),
-		minimize: normalized.includes('minimize'),
+		maximize: normalized.includes('max') || normalized.includes('maximize'),
+		minimize: normalized.includes('min') || normalized.includes('minimize'),
 	};
 }
 

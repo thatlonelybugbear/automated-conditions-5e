@@ -654,18 +654,18 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	}
 	const isLiteralDieModifier = (value) => {
 		const cleaned = typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, '') : '';
-		if (!cleaned || /^(?:maximize|minimize)$/i.test(cleaned)) return false;
+		if (!cleaned || /^(?:max|min|maximize|minimize)$/i.test(cleaned)) return false;
 		if (globalThis.dnd5e?.utils?.isValidDieModifier?.(cleaned)) return true;
 		return /^(?:min|max)-?\d+$/i.test(cleaned);
 	};
 	const applyModifierConstraint = (modifierConfig, modifierValue) => {
 		if (modifierValue === undefined || modifierValue === null) return;
 		const cleaned = String(modifierValue).trim().toLowerCase().replace(/\s+/g, '');
-		if (cleaned === 'maximize') {
+		if (cleaned === 'max' || cleaned === 'maximize') {
 			modifierConfig.maximize = true;
 			return;
 		}
-		if (cleaned === 'minimize') {
+		if (cleaned === 'min' || cleaned === 'minimize') {
 			modifierConfig.minimize = true;
 			return;
 		}
