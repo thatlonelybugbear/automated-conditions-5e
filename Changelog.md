@@ -1,6 +1,10 @@
 ## 14.532.2
 
 - Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` roll-state behavior.
+- Added `originItem` and `originActivity` evaluation data for Active Effects, making it easier to reference the item or activity that created an effect without relying on the current roll's item.
+- Added `originItemType` and `originItemProperties` helpers for origin-item checks, such as checking whether the origin item is a spell or has a specific property.
+- Improved origin handling for `usesCount=origin`, `itemLimited`, and effect-origin token checks, including better support for activity-applied effects and concentration-linked effects.
+- Deprecated using `@item` to reference an effect's origin item in bonus formulas. Use `originItem` instead; compatibility warnings will be shown when the old origin-item rewrite is used.
 
 ## 14.532.1
 
