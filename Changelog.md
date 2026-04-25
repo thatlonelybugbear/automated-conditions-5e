@@ -1,3 +1,5 @@
+## 14.532.1
+
 ## 14.531.3
 
 - Added tooltip attribution when a `range.noLongDisadvantage` rule suppresses long-range disadvantage.
