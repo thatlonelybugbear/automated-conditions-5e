@@ -2434,7 +2434,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-			if (['bonus', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+			if (['bonus', 'targetADC', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
