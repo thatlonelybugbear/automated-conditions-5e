@@ -1,7 +1,7 @@
 {
 	"AC5E.AutomateStatuses": {
 		"Name": "D&D 5e Condition Rules",
-		"Hint": "Enables AC5E handling for D&D 5e conditions, including advantage, disadvantage, and roll mode changes."
+    "Hint": "Enables AC5E handling for D&D 5e conditions, expanding on the D&D 5e system's built-in advantage mode automation with broader and more precise rule handling, especially for attack rolls."
 	},
 	"AC5E.ShowTooltipsName": "Show AC5E Tooltips",
 	"AC5E.ShowTooltipsHint": "Shows AC5E tooltips in roll dialogs, chat messages, or both, explaining the reasons behind the suggested outcome.",
