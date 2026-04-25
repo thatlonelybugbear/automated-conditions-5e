@@ -1,33 +1,33 @@
 {
 	"AC5E.AutomateStatuses": {
-		"Name": "Automate D&D5E Statuses",
-		"Hint": "When enabled, AC5E will automate dis/advantage and roll mode modifiers based on system statuses."
+		"Name": "D&D 5e Condition Rules",
+		"Hint": "Enables AC5E handling for D&D 5e conditions, expanding on the D&D 5e system's built-in advantage mode automation with broader and more precise rule handling, especially for attack rolls."
 	},
-	"AC5E.ShowTooltipsName": "Show AC5e tooltips",
-	"AC5E.ShowTooltipsHint": "When a relevant option is selected, AC5e will show a helpful tooltip when hovering over the suggested Roll button or a generated message or both, summing up the reasons for that suggestion.",
+	"AC5E.ShowTooltipsName": "Show AC5E Tooltips",
+	"AC5E.ShowTooltipsHint": "Shows AC5E tooltips in roll dialogs, chat messages, or both, explaining the reasons behind the suggested outcome.",
 	"AC5E.ShowToolTipsChoicesBoth": "Roll dialogs and chat messages",
 	"AC5E.ShowToolTipsChoicesDialog": "Only on roll dialogs",
 	"AC5E.ShowToolTipsChoicesChat": "Only on chat messages",
 	"AC5E.ShowToolTipsChoicesNone": "Do not show",
-	"AC5E.ShowModuleNameInTooltipsName": "Show module name in tooltips",
+	"AC5E.ShowModuleNameInTooltipsName": "Show Module Name in Tooltips",
 	"AC5E.ShowTooltipChatVisibility.Name": "Show chat tooltips for",
-	"AC5E.ShowTooltipChatVisibility.Hint": "'All' - all actor rolls, 'None' - no rolls, 'Owned' - owned actors rolls, 'Players' -  player actors rolls; (the GM sees all)",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Choose whose rolls display AC5E chat tooltips. The GM always sees all tooltips.",
 	"AC5E.ShowTooltipChatVisibility.All": "All",
 	"AC5E.ShowTooltipChatVisibility.None": "None",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Owned",
 	"AC5E.ShowTooltipChatVisibility.Players": "Players",
-	"AC5E.ExpandedConditionsName": "Expanded conditions",
-	"AC5E.ExpandedConditionsHint": "When enabled, AC5e will attempt to automate some extra conditions, like Dodging, Hiding.",
+	"AC5E.ExpandedConditionsName": "Expanded Conditions",
+	"AC5E.ExpandedConditionsHint": "Enables automation for additional conditions and combat states such as Dodging, Hiding, Rage spell restrictions, and Underwater Combat.",
 	"AC5E.VisibilityChecksSetting": {
-		"Name": "Visibility checks",
-		"Hint": "When enabled, AC5e injects the 'Cannot See Target' / 'Target Cannot See Attacker' opt-ins and lets those entries drive the attack's advantage/disadvantage instead of only the blinded/invisible statuses. The opt-ins are suppressed when MidiQOL already applies its optional invisibility/hidden attacker rules to avoid duplicate reasons."
+		"Name": "Visibility Rules",
+		"Hint": "Uses AC5E attack visibility rules based on token sight and senses. When enabled, AC5E adds 'Cannot See Target' and 'Target Cannot See Attacker' attack reasons. These reasons are skipped when MidiQOL already applies its invisibility or hidden-attacker rules."
 	},
 	"AC5E.ActivityUse": {
-		"Name": "Item Use Checks",
-		"Hint": "Allow, Enforce (cancel + notify), or Warn (allow + notify). Checks: actions while incapacitated; spellcasting while raging, silenced, or armor non-proficient",
+		"Name": "Item Use Rules",
+		"Hint": "Controls whether AC5E allows, warns, or blocks invalid activity use before the roll. Applies to use-phase checks such as incapacitated actions, spellcasting restrictions, and non-attack out-of-range failures. Attack out-of-range failures are handled later during attack roll configuration using the selected attack mode.",
 		"Choices": {
 			"Off": "Allow",
-			"Enforce": "Enforce",
+			"Enforce": "Block/Fail as Appropriate",
 			"Warn": "Warn"
 		},
 		"Type": {
@@ -50,41 +50,41 @@
 		}
 	},
 	"AC5E.AutoRangeChecks": {
-		"Name": "Automate range checks",
-		"Hint": "Melee diagonal reach: All adjacent squares count as within reach no matter the diagonal rules. Melee out of range: Attacks further than weapon reach fail. Ranged nearby foes: Hostiles adjacent to attacker impose disadvantage on ranged attacks. Ranged long disadvantage: Attacks beyond short range but within long range have disadvantage. Ranged out of range: Attacks beyond long range fail.",
+		"Name": "Range Rules",
+		"Hint": "Enables automated melee and ranged range rules, including melee reach, out-of-range failures, nearby foe disadvantage, and long-range disadvantage. Melee diagonal reach treats all adjacent squares as within reach, overriding diagonal grid distance rules. Out-of-range failures apply when range is validated: non-attack activities at use time, and attack activities during attack roll configuration using the selected attack mode.",
 		"MeleeDiagonals": "Melee diagonal reach",
 		"MeleeOutOfRange": "Melee out of range",
 		"RangedNearbyFoes": "Ranged nearby foes",
 		"RangedLongDisadvantage": "Ranged long disadvantage",
 		"RangedOutOfRange": "Ranged out of range"
 	},
-	"AC5E.AutoExhaustionName": "Exhaustion automation",
-	"AC5E.AutoExhaustionHint": "When enabled, and you are using the Legacy dnd5e rules, AC5e will automatically process the normal 5e Exhaustion condition rules.",
-	"AC5E.AutoEncumbranceName": "Variant encumbrance",
-	"AC5E.AutoEncumbranceHint": "When enabled, AC5e will automatically process the variant 5e Encumbrance rules. The GM must also select in the settings of the Dnd5e system, the Variant (encumbered & heavily encumbered) option, otherwise this will have no effect.",
+	"AC5E.AutoExhaustionName": "Exhaustion Rules",
+	"AC5E.AutoExhaustionHint": "Enables AC5E exhaustion handling when using the Legacy D&D 5e rules.",
+	"AC5E.AutoEncumbranceName": "Variant Encumbrance Rules",
+	"AC5E.AutoEncumbranceHint": "Enables Variant Encumbrance handling in AC5E. The GM must also enable the D&D 5e system's Variant (encumbered & heavily encumbered) option, or this setting will have no effect.",
 	"AC5E.Targeting": {
-		"Name": "Targeting options for attacks",
-		"Hint": "When no or multiple targets are selected for an Attack, choose how AC5e should respond",
+		"Name": "Attack Targeting Rules",
+		"Hint": "Controls how AC5E handles attack rolls when no target or multiple targets are selected.",
 		"Choices": {
-			"Source": "Use only source actor conditions",
+			"Source": "Ignore Target Statuses and Flags",
 			"Enforce": "Cancel roll silently",
 			"Warn": "Cancel roll with warning"
 		},
 		"MultipleTargetsAttack": {
-			"Source": "AC5e: Multiple targets selected. Results may be skewed. Using source actor data only.",
-			"Enforce": "AC5e: Multiple targets selected. Roll cancelled!"
+			"Source": "AC5E: Multiple targets selected. Results may be skewed. Using source actor data only.",
+			"Enforce": "AC5E: Multiple targets selected. Roll cancelled!"
 		},
 		"NoTargetsAttack": {
-			"Source": "AC5e: No targets selected. Advantage/disadvantage may be inaccurate. Using source actor data only.",
-			"Enforce": "AC5e: No targets selected. Roll cancelled!"
+			"Source": "AC5E: No targets selected. Advantage/disadvantage may be inaccurate. Using source actor data only.",
+			"Enforce": "AC5E: No targets selected. Roll cancelled!"
 		}
 	},
-	"AC5E.DebuggingName": "AC5e debug",
-	"AC5E.DebuggingHint": "Just some useful logs for debugging while developing. Probably makes little sense for users to have it on :)",
+	"AC5E.DebuggingName": "AC5E Debug Logging",
+	"AC5E.DebuggingHint": "Enables additional AC5E debug logs intended for development and troubleshooting.",
 	"AC5E.TokenlessActorWarning": {
-		"Hint": "The module doesn't affect currently rolls from actors without a token on the scene!",
-		"Name": "Show tokenless actor warning",
-		"Text": "AC5E warning: The actor you are rolling for, doesn't have a token on the scene. The results can be skewed"
+		"Hint": "Shows a warning when rolling for an actor that has no token on the current scene.",
+		"Name": "Show Tokenless Actor Warning",
+		"Text": "AC5E warning: The actor being rolled does not have a token on the scene. Results may be inaccurate."
 	},
 	"AC5E.Statuses": {
 		"UnderwaterCombat": "Underwater Combat"
@@ -110,20 +110,20 @@
 	"AC5E.NearbyFoe": "Nearby Foe",
 	"AC5E.ButtonColorPicker": {
 		"Enabled": {
-			"Name": "Colorful buttons",
-			"Hint": "Make your roll dialog buttons stand out. Default colors: #288bcc (background), white (text/border). Input user to use game.user.color (best for background). Input false/none/null/0 to turn off any of the available color pickers. Delete any field to fallback to defaults."
+			"Name": "Custom Roll Button Colors",
+			"Hint": "Customize roll dialog button colors. Leave a field blank to use the default. Use 'user' to use game.user.color. Use 'false', 'none', 'null', or '0' to disable an individual color override."
 		},
 		"Background": {
-			"Name": "🎨 Button background color",
-			"Hint": "Delete any string from the input to default to the game.user.color"
+			"Name": "Button Background Color",
+			"Hint": "Leave blank to use game.user.color."
 		},
 		"Border": {
-			"Name": "🖍️ Button border color",
-			"Hint": "Delete any string from the input to default to white"
+			"Name": "Button Border Color",
+			"Hint": "Leave blank to use white."
 		},
 		"Text": {
-			"Name": "🔤 Button text color",
-			"Hint": "Delete any string from the input to default to white"
+			"Name": "Button Text Color",
+			"Hint": "Leave blank to use white."
 		}
 	},
 	"AC5E.AdvantageKeypress": "Advantage keypress",
@@ -214,8 +214,8 @@
 	"AC5E.OptinLegend.Optional": "AC5E",
 	"AC5E.OptinLegend.FromOtherSources": "AC5E From other sources (ask for permission)",
 	"AC5E.EnvironmentalHazards": {
-		"SettingsName": "Environmental Hazards (2024)",
-		"SettingsHint": "Automate Burning and Suffocation conditions, based on the 2024 D&D 5e ruleset",
+		"SettingsName": "Environmental Hazard Rules",
+		"SettingsHint": "Enables automated Burning and Suffocation handling when using the 2024 D&D 5e ruleset.",
 		"BurningHazard": "Burning Hazard",
 		"SuffocatingHazard": "Suffocating"
 	},
@@ -447,15 +447,15 @@
 	"AC5E.Info": "Info",
 	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
 	"AC5E.advantageBehaviorOverride": {
-		"Name": "Override system advantage handling",
+		"Name": "Override System Advantage Handling",
 		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
 	},
 	"AC5E.advantageBehaviorAdvantageFormula": {
-		"Name": "Advantage bonus formula",
+		"Name": "Advantage Bonus Formula",
 		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
 	},
 	"AC5E.advantageBehaviorDisadvantageFormula": {
-		"Name": "Disadvantage penalty formula",
+		"Name": "Disadvantage Penalty Formula",
 		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
 	}
 }
