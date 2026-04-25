@@ -1,5 +1,11 @@
 ## 14.532.1
 
+- Improved visibility handling so AC5E and MidiQOL split responsibility more cleanly for hiding, invisibility, and blinded attack checks.
+- Improved sight checks for tokens with limited or disabled token vision by better using actor senses such as darkvision and truesight.
+- Attack activities now handle out-of-range failures during attack roll setup instead of failing early during item use.
+- Cleaned up several English settings names and descriptions for clarity.
+- Verified for D&D 5e system v5.3.2.
+
 ## 14.531.3
 
 - Added tooltip attribution when a `range.noLongDisadvantage` rule suppresses long-range disadvantage.
