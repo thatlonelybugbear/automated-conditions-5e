@@ -1,3 +1,8 @@
+## 13.5320.2
+
+- Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` roll-state behavior.
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗 
+
 ## 13.5320.1
 
 - Improved visibility handling so AC5E and MidiQOL split responsibility more cleanly for hiding, invisibility, and blinded attack checks.
@@ -28,7 +33,7 @@
 
 ## 13.5310.4
 
-- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 - Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 - Added `hasEffects` filter for nearby checks to require or exclude targets based on active effects name matching.
   - `checkNearby(opponentId, 'ally', 5, { count: true, hasEffects: ['AlliedAC'] });` will return the number of allies within 5 ft of the opponent token, which have an effect named AlliedAC.
