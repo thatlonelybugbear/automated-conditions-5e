@@ -1,3 +1,7 @@
+## 13.5250.18.2
+
+- Final compatibility version for D&D5E v5.2.5, setting a proper maximum.
+
 ## 13.5250.18.1
 
 - Made sure that the sandbox receives item properties.
