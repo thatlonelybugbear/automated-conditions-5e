@@ -1,5 +1,6 @@
 ## 13.5320.2
 
+- Fixed repeated `-999` / `+999` attack-roll sentinel modifiers being added when a forced fail/success attack is re-evaluated after changing roll configuration options.
 - Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` roll-state behavior.
 - Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗 
 

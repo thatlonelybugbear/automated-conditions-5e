@@ -550,7 +550,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.target = ac5eForcedRollTarget;
 				if (config) config.target = ac5eForcedRollTarget;
 				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
 					for (const targets of getMutableAttackTargetCollections()) {
 						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
 					}
@@ -566,7 +565,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.target = -ac5eForcedRollTarget;
 				if (config) config.target = -ac5eForcedRollTarget;
 				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
 					for (const targets of getMutableAttackTargetCollections()) {
 						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
 					}
@@ -810,10 +808,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.canSee = canSee(subjectToken, opponentToken);
 	const hookType = sandboxOptions?.hook;
 	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
-	sandbox.opponentAC =
-		hookUsesTargetAC ?
-			(sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value)
-		:	opponentToken?.actor?.system?.attributes?.ac?.value;
+	const matchedTargetAC =
+		sandboxOptions?.targets?.find?.((target) => target?.tokenUuid && target.tokenUuid === opponentToken?.document?.uuid)?.ac ??
+		sandboxOptions?.targets?.find?.((target) => target?.uuid && target.uuid === opponentToken?.actor?.uuid)?.ac;
+	sandbox.opponentAC = matchedTargetAC ?? opponentToken?.actor?.system?.attributes?.ac?.value;
 	sandbox.opponentId = opponentToken?.id;
 	sandbox.opponentUuid = opponentToken?.document?.uuid;
 	sandbox.opponentActorId = opponentToken?.actor?.id;
