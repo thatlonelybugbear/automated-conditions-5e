@@ -21,8 +21,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	const targetMessage = getMessageForConfigTargets(rollConfig, activeHook, ac5eConfig.options?.activity);
 	if (shouldSyncAttackTargets) {
 		const targetDeps = { Constants, getMessageFlagScope: _getMessageFlagScope, getMessageDnd5eFlags: _getMessageDnd5eFlags };
-		const messageTargets = getMessageTargetsFromFlags(targetMessage, targetDeps);
-		const resolvedTargets = resolveTargets(targetMessage, messageTargets, { hook: activeHook, activity: ac5eConfig.options?.activity }, targetDeps);
+		const resolvedTargets = getCurrentAttackTargets(ac5eConfig, targetMessage, activeHook, targetDeps);
 		syncTargetsToConfigAndMessage(ac5eConfig, resolvedTargets, null, targetDeps);
 	}
 	if (ac5eConfig.hookType === 'damage') {
@@ -115,6 +114,15 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	appendPartsToD20Config(rollConfig, preservedExternalParts);
 	syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 	return true;
+}
+
+function getCurrentAttackTargets(ac5eConfig, targetMessage, hook, targetDeps) {
+	const currentTargets = Array.isArray(ac5eConfig?.currentTargets) ? ac5eConfig.currentTargets : [];
+	if (currentTargets.length) return foundry.utils.duplicate(currentTargets);
+	const optionTargets = Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : [];
+	if (optionTargets.length) return foundry.utils.duplicate(optionTargets);
+	const messageTargets = getMessageTargetsFromFlags(targetMessage, targetDeps);
+	return resolveTargets(targetMessage, messageTargets, { hook, activity: ac5eConfig.options?.activity }, targetDeps);
 }
 
 function getOptinsFromForm(formData) {
