@@ -2016,6 +2016,8 @@ function _collectMidiTrackerCoreLabels(ac5eConfig) {
 		disadvantageLabels: collectLabels('disadvantage', 'disadvantage', true),
 		noAdvantageLabels: collectLabels('noAdvantage'),
 		noDisadvantageLabels: collectLabels('noDisadvantage'),
+		failLabels: collectLabels('fail'),
+		successLabels: collectLabels('success'),
 		infoLabels,
 	};
 }
@@ -2123,14 +2125,14 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	if (typeof tracker.attribution !== 'object') return;
 	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAttackRollModifierTracker');
 	_logMidiTrackerSnapshot('attack.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig });
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
+	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'FAIL', 'SUCCESS', 'CRIT', 'NOCRIT', 'AC5E'];
 	const trackerContext = _createMidiTrackerSyncContext(tracker, trackedTypes);
 	const { clearLegacySet, clearTrackedType, dedupeLabels, labelsFromEntries } = trackerContext;
 	for (const type of trackedTypes) clearTrackedType(type);
 	clearLegacySet(tracker?.legacyAttribution);
 	clearLegacySet(tracker?.advReminderAttribution);
 
-	const { filterOptin, subject, opponent, enforcedD20Mode, enforcedModeLabels, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } =
+	const { filterOptin, subject, opponent, enforcedD20Mode, enforcedModeLabels, advantageLabels, disadvantageLabels, failLabels, successLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } =
 		_collectMidiTrackerCoreLabels(ac5eConfig);
 	const midiTrackerAdvantageLabels = enforcedD20Mode ? [] : advantageLabels;
 	const midiTrackerDisadvantageLabels = enforcedD20Mode ? [] : disadvantageLabels;
@@ -2143,6 +2145,8 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', midiTrackerNoDisadvantageLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'CRIT', criticalLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOCRIT', noCriticalLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels);
@@ -2216,6 +2220,8 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 			disadvantageLabels: midiTrackerDisadvantageLabels,
 			noAdvantageLabels: midiTrackerNoAdvantageLabels,
 			noDisadvantageLabels: midiTrackerNoDisadvantageLabels,
+			failLabels,
+			successLabels,
 			enforcedD20Mode,
 			enforcedModeLabels,
 			targetADCDisplayLabels,

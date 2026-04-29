@@ -98,9 +98,7 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 	if (!resolvedTargets) return;
 	if (ac5eConfig && typeof ac5eConfig === 'object') {
 		ac5eConfig.options ??= {};
-		const nextTargets = foundry.utils.duplicate(resolvedTargets);
-		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(nextTargets);
-		ac5eConfig.currentTargets = nextTargets;
+		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
 	syncResolvedTargetsToMessage(message, resolvedTargets, deps);
 }

@@ -6,6 +6,7 @@ import { getConfigEntriesByModes } from './ac5e-hooks-roll-selections.mjs';
 
 export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 	const hookType = ac5eConfig?.hookType;
+	const isAttackContext = isAttackActivityContext(ac5eConfig, rollConfig);
 	if (ac5eConfig?.tooltipObj && typeof ac5eConfig.tooltipObj === 'object' && hookType) {
 		delete ac5eConfig.tooltipObj[hookType];
 	}
@@ -30,7 +31,7 @@ export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 		ac5eConfig.targetADC = [...new Set(baseTargetADC.concat(selectedValues))];
 		if (selectedValues.length) {
 			const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
-			const type = hookType === 'attack' ? 'acBonus' : 'dcBonus';
+			const type = isAttackContext ? 'acBonus' : 'dcBonus';
 			ac5eConfig.initialTargetADC = baseTarget;
 			ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
 		} else {
@@ -47,13 +48,11 @@ export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 
 export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets = false } = {}) {
 	const options = rollConfig.options ?? (rollConfig.options = {});
-	const hookType = ac5eConfig?.hookType;
-	const isAttackHook = hookType === 'attack';
-	const isAttackLikeHook = isAttackHook || hookType === 'damage';
+	const isAttackContext = isAttackActivityContext(ac5eConfig, rollConfig);
 	const roll0Target = getExistingRoll(rollConfig, 0);
 	if (ac5eConfig.alteredTargetADC !== undefined) {
 		const nextTarget = ac5eConfig.alteredTargetADC;
-		if (isAttackLikeHook) {
+		if (isAttackContext) {
 			rollConfig.target = nextTarget;
 			if (roll0Target) {
 				roll0Target.target = nextTarget;
@@ -64,7 +63,7 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 			options.initialTargetADC = ac5eConfig.initialTargetADC;
 			options.alteredTargetADC = ac5eConfig.alteredTargetADC;
 		}
-		if (isAttackHook && Array.isArray(ac5eConfig.options?.targets)) {
+		if (isAttackContext && Array.isArray(ac5eConfig.options?.targets)) {
 			for (const target of ac5eConfig.options.targets) {
 				if (target && typeof target === 'object') target.ac = nextTarget;
 			}
@@ -72,7 +71,7 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 	} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
 		const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
 		ac5eConfig.optinBaseTargetADCValue = baseTarget;
-		if (isAttackLikeHook) {
+		if (isAttackContext) {
 			rollConfig.target = baseTarget;
 			if (roll0Target) {
 				roll0Target.target = baseTarget;
@@ -83,13 +82,13 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 			options.initialTargetADC = ac5eConfig.initialTargetADC ?? baseTarget;
 			delete options.alteredTargetADC;
 		}
-		if (isAttackHook && Array.isArray(ac5eConfig.options?.targets)) {
+		if (isAttackContext && Array.isArray(ac5eConfig.options?.targets)) {
 			for (const target of ac5eConfig.options.targets) {
 				if (target && typeof target === 'object') target.ac = baseTarget;
 			}
 		}
 	}
-	if (syncAttackTargets && isAttackHook) {
+	if (syncAttackTargets && isAttackContext) {
 		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], null, {
 			Constants,
 			getMessageFlagScope: _getMessageFlagScope,
@@ -113,8 +112,7 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 		return acc;
 	};
 
-	const hookType = ac5eConfig?.hookType;
-	const useTargetAcs = hookType === 'attack' || hookType === 'damage';
+	const useTargetAcs = isAttackActivityContext(ac5eConfig, config);
 	if (useTargetAcs) {
 		const optinBaseTargetADCValue = Number(ac5eConfig?.optinBaseTargetADCValue);
 		if (Number.isFinite(optinBaseTargetADCValue) && !isForcedSentinelAC(optinBaseTargetADCValue)) return optinBaseTargetADCValue;
@@ -130,6 +128,11 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 	if (direct.length) return direct[0];
 
 	return 10;
+}
+
+function isAttackActivityContext(ac5eConfig, rollConfig) {
+	const activity = ac5eConfig?.options?.activity ?? rollConfig?.options?.activity ?? rollConfig?.subject ?? null;
+	return !!activity?.attack || ac5eConfig?.hookType === 'attack';
 }
 
 function getTargetADCEntriesForHook(ac5eConfig, hookType) {
