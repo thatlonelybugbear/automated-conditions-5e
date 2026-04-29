@@ -2,6 +2,22 @@
 
 - Fixed repeated `-999` / `+999` attack-roll sentinel modifiers being added when a forced fail/success attack is re-evaluated after changing roll configuration options.
 - Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` roll-state behavior.
+- Cleaned up the `range` flag surface and parsing model:
+  - Packed range overrides are now authored on `flags.automated-conditions-5e.range.overrides`.
+  - Legacy `flags.automated-conditions-5e.attack.range` remains accepted as a compatibility alias for the packed `range.overrides` shape for now, with compatibility warning bounds from module version `13.5320.2` through `14.600.1`.
+  - Granular leaf keys remain available for `range.short`, `range.long`, `range.reach`, `range.longDisadvantage`, `range.noLongDisadvantage`, `range.nearbyFoeDisadvantage`, `range.noNearbyFoeDisadvantage`, `range.outOfRangeFail`, and `range.noOutOfRangeFail`.
+  - Numeric leaf keys now expect normal AC5E-style `set=` / `bonus=` payloads instead of ad hoc direct-value parsing.
+  - Boolean leaf keys now apply through the normal entry evaluation path, so conditions and keywords such as `itemLimited` behave like other AC5E flags instead of relying on range-specific toggle parsing.
+  - `itemLimited` is now also promoted in the document-flag registry metadata path, not just on direct Active Effect changes.
+- Clarified current range flag scope:
+  - Range entries only affect attack activities.
+  - They apply on the `attack` hook, and also on the `use` hook when the activity being used is an attack activity.
+  - They do not affect save, check, heal, init, or plain damage workflows.
+  - When MidiQOL owns its range-check path, AC5E skips the normal non-Midi range entry aggregation and defers to the Midi integration branch for the actual range handling.
+- Current examples:
+  - `key: flags.automated-conditions-5e.range.short` with `value: set=30; itemLimited; item.name === 'Longbow'` applies only to attack contexts, only when that item is the rolled item, and only when the condition is true.
+  - `key: flags.automated-conditions-5e.range.noNearbyFoeDisadvantage` with `value: itemLimited; item.system.uses.value > 0` suppresses nearby-foe disadvantage only for attack activities where that effect is applicable.
+  - `key: flags.automated-conditions-5e.range.overrides` with `value: short=30; long=120; noNearbyFoeDisadvantage; itemLimited; opponentActor.attributes.hp.pct < 20` applies all listed range overrides together, gated by both `itemLimited` and the trailing condition.
 - Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗 
 
 ## 13.5320.1

@@ -1315,6 +1315,17 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			changeKey: change?.key ?? null,
 		});
 	};
+	const warnCompatibilityAlias = ({ effect, change, changeIndex, alias, canonical }) => {
+		const normalizedAlias = String(alias ?? '').trim();
+		if (!normalizedAlias) return;
+		foundry.utils.logCompatibilityWarning(`AC5E legacy flag alias "${normalizedAlias}" was used. Prefer "${canonical}".`, {
+			since: '13.5320.2',
+			until: '14.600.1',
+			details: `Effect: ${effect?.name ?? effect?.uuid ?? effect?.id ?? 'Unknown'} | Change: ${change?.key ?? normalizedAlias} | Index: ${changeIndex}`,
+			once: true,
+			stack: false,
+		});
+	};
 	const validateFlagKeywords = ({ rawValue, actorName, effect, change, changeIndex, sandbox }) => {
 		if (typeof rawValue !== 'string' || !rawValue.trim()) return;
 		const sandboxIdentifierSet = new Set(
@@ -1622,17 +1633,46 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
 		return undefined;
 	};
-	const parseRangeComponent = ({ expression, evaluationData, effect, isAura, debug }) => {
+	const RANGE_LEAF_KEY_CONFIG = {
+		overrides: { prop: null, type: 'packed' },
+		short: { prop: 'short', type: 'numeric' },
+		long: { prop: 'long', type: 'numeric' },
+		reach: { prop: 'reach', type: 'numeric' },
+		longdisadvantage: { prop: 'longDisadvantage', type: 'toggle' },
+		nolongdisadvantage: { prop: 'noLongDisadvantage', type: 'toggle' },
+		nearbyfoedisadvantage: { prop: 'nearbyFoeDisadvantage', type: 'toggle' },
+		nearbyfoes: { prop: 'nearbyFoeDisadvantage', type: 'toggle' },
+		nonearbyfoedisadvantage: { prop: 'noNearbyFoeDisadvantage', type: 'toggle' },
+		nonearbyfoes: { prop: 'noNearbyFoeDisadvantage', type: 'toggle' },
+		fail: { prop: 'outOfRangeFail', type: 'toggle' },
+		outofrangefail: { prop: 'outOfRangeFail', type: 'toggle' },
+		nofail: { prop: 'noOutOfRangeFail', type: 'toggle' },
+		nooutofrangefail: { prop: 'noOutOfRangeFail', type: 'toggle' },
+	};
+	const splitValueFragments = (value) =>
+		String(value ?? '')
+			.split(';')
+			.map((part) => part.trim())
+			.filter(Boolean);
+	const getRangeLeafConfig = (key) => {
+		const lowerKey = String(key ?? '').toLowerCase();
+		const explicitMatch = lowerKey.match(
+			/\.range\.(overrides|short|long|reach|longdisadvantage|nolongdisadvantage|nearbyfoes|nonearbyfoes|nearbyfoedisadvantage|nonearbyfoedisadvantage|fail|outofrangefail|nofail|nooutofrangefail)$/i,
+		);
+		if (!explicitMatch) return null;
+		return RANGE_LEAF_KEY_CONFIG[explicitMatch[1].toLowerCase()] ?? null;
+	};
+	const parseRangeComponent = ({ expression, evaluationData, effect, isAura, debug, operation = null }) => {
 		if (expression === undefined || expression === null) return undefined;
 		const raw = String(expression).trim();
 		if (!raw.length) return undefined;
-		const operation = /^[+-]/.test(raw) ? 'delta' : 'set';
+		const resolvedOperation = operation || (/^[+-]/.test(raw) ? 'delta' : 'set');
 		const replacement = bonusReplacements(raw, evaluationData, isAura, effect);
 		let evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'formula', debug });
 		if (!Number.isFinite(Number(evaluated))) evaluated = evalDiceExpression(evaluated);
 		const value = Number(evaluated);
 		if (!Number.isFinite(value)) return undefined;
-		return { operation, value };
+		return { operation: resolvedOperation, value };
 	};
 	const parseRangeToggle = ({ expression, evaluationData, effect, isAura, debug }) => {
 		if (expression === undefined || expression === null) return undefined;
@@ -1641,7 +1681,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const direct = parseBooleanValue(raw);
 		if (direct !== undefined) return direct;
 		const replacement = bonusReplacements(raw, evaluationData, isAura, effect);
-		let evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'formula', debug });
+		let evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'condition', debug });
+		const parsedCondition = parseBooleanValue(evaluated);
+		if (typeof evaluated === 'boolean') return evaluated;
+		if (parsedCondition !== undefined) return parsedCondition;
+		evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'formula', debug });
 		if (!Number.isFinite(Number(evaluated))) {
 			evaluated = evalDiceExpression(evaluated);
 		}
@@ -1652,6 +1696,21 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'condition', debug });
 		return parseBooleanValue(evaluated);
 	};
+	const parseRangeLeafNumeric = ({ value, key, evaluationData, effect, isAura, debug }) => {
+		const setRaw = getBlacklistedKeysValue('set', value);
+		if (setRaw) return parseRangeComponent({ expression: setRaw, evaluationData, effect, isAura, debug, operation: 'set' });
+		const bonusRaw = getBlacklistedKeysValue('bonus', value);
+		if (bonusRaw) return parseRangeComponent({ expression: bonusRaw, evaluationData, effect, isAura, debug, operation: 'delta' });
+		return undefined;
+	};
+	const parseRangeLeafToggle = ({ value }) => {
+		for (const fragment of splitValueFragments(value)) {
+			if (parseKeywordFragment(fragment)) continue;
+			const parsedBoolean = parseBooleanValue(fragment);
+			if (parsedBoolean !== undefined) return parsedBoolean;
+		}
+		return true;
+	};
 	const getRangeKeyedValue = (value, ...keys) => {
 		for (const key of keys) {
 			const match = getBlacklistedKeysValue(key, value);
@@ -1661,39 +1720,33 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const hasStandaloneRangeKeyword = (value, keyword) => new RegExp(`(?:^|;)\\s*${keyword}\\s*(?:;|$)`, 'i').test(String(value ?? ''));
 	const parseRangeData = ({ key, value, evaluationData, effect, isAura, debug }) => {
-		const lowerKey = String(key ?? '').toLowerCase();
-		const explicitMatch = lowerKey.match(
-			/\.range\.(short|long|reach|bonus|longdisadvantage|nolongdisadvantage|nearbyfoes|nonearbyfoes|nearbyfoedisadvantage|nonearbyfoedisadvantage|fail|outofrangefail|nofail|nooutofrangefail)$/i,
-		);
-		const explicitValue =
-			String(value ?? '')
-				.split(';')
-				.map((v) => v.trim())
-				.find((v) => v && !v.includes('=') && !v.includes(':')) ??
-			String(value ?? '')
-				.split(';')[0]
-				?.trim() ??
-			'';
+		const explicitConfig = getRangeLeafConfig(key);
 		const rangeData = {};
-		const explicitKey = explicitMatch?.[1] ?? '';
-		const shortRaw = explicitKey === 'short' ? explicitValue : getRangeKeyedValue(value, 'short');
-		const longRaw = explicitKey === 'long' ? explicitValue : getRangeKeyedValue(value, 'long');
-		const reachRaw = explicitKey === 'reach' ? explicitValue : getRangeKeyedValue(value, 'reach');
-		const bonusRaw = explicitKey === 'bonus' ? explicitValue : getRangeKeyedValue(value, 'bonus');
-		const longDisRaw = explicitKey === 'longdisadvantage' ? explicitValue : getRangeKeyedValue(value, 'longDisadvantage');
-		const noLongRaw = explicitKey === 'nolongdisadvantage' ? explicitValue : getRangeKeyedValue(value, 'noLongDisadvantage');
-		const nearbyDisRaw = explicitKey === 'nearbyfoedisadvantage' || explicitKey === 'nearbyfoes' ? explicitValue : getRangeKeyedValue(value, 'nearbyFoeDisadvantage', 'nearbyFoes');
-		const noNearbyDisRaw = explicitKey === 'nonearbyfoedisadvantage' || explicitKey === 'nonearbyfoes' ? explicitValue : getRangeKeyedValue(value, 'noNearbyFoeDisadvantage', 'noNearbyFoes');
-		const failRaw = explicitKey === 'fail' || explicitKey === 'outofrangefail' ? explicitValue : getRangeKeyedValue(value, 'fail', 'outOfRangeFail');
-		const noFailRaw = explicitKey === 'nofail' || explicitKey === 'nooutofrangefail' ? explicitValue : getRangeKeyedValue(value, 'noFail', 'noOutOfRangeFail');
+		if (explicitConfig?.type === 'numeric') {
+			const component = parseRangeLeafNumeric({ value, key, evaluationData, effect, isAura, debug });
+			if (component) rangeData[explicitConfig.prop] = component;
+			return rangeData;
+		}
+		if (explicitConfig?.type === 'toggle') {
+			rangeData[explicitConfig.prop] = parseRangeLeafToggle({ value });
+			return rangeData;
+		}
+		const shortRaw = getRangeKeyedValue(value, 'short');
+		const longRaw = getRangeKeyedValue(value, 'long');
+		const reachRaw = getRangeKeyedValue(value, 'reach');
+		const bonusRaw = getRangeKeyedValue(value, 'bonus');
+		const longDisRaw = getRangeKeyedValue(value, 'longDisadvantage');
+		const noLongRaw = getRangeKeyedValue(value, 'noLongDisadvantage');
+		const nearbyDisRaw = getRangeKeyedValue(value, 'nearbyFoeDisadvantage', 'nearbyFoes');
+		const noNearbyDisRaw = getRangeKeyedValue(value, 'noNearbyFoeDisadvantage', 'noNearbyFoes');
+		const failRaw = getRangeKeyedValue(value, 'fail', 'outOfRangeFail');
+		const noFailRaw = getRangeKeyedValue(value, 'noFail', 'noOutOfRangeFail');
 		if (shortRaw) rangeData.short = parseRangeComponent({ expression: shortRaw, evaluationData, effect, isAura, debug });
 		if (longRaw) rangeData.long = parseRangeComponent({ expression: longRaw, evaluationData, effect, isAura, debug });
 		if (reachRaw) rangeData.reach = parseRangeComponent({ expression: reachRaw, evaluationData, effect, isAura, debug });
-		if (bonusRaw) rangeData.bonus = parseRangeComponent({ expression: bonusRaw, evaluationData, effect, isAura, debug });
+		if (bonusRaw) rangeData.bonus = parseRangeComponent({ expression: bonusRaw, evaluationData, effect, isAura, debug, operation: 'delta' });
 		let longDisadvantage = parseRangeToggle({ expression: longDisRaw, evaluationData, effect, isAura, debug });
 		let noLongDisadvantage = parseRangeToggle({ expression: noLongRaw, evaluationData, effect, isAura, debug });
-		if (longDisadvantage === undefined && explicitKey === 'longdisadvantage') longDisadvantage = true;
-		if (noLongDisadvantage === undefined && explicitKey === 'nolongdisadvantage') noLongDisadvantage = true;
 		if (noLongDisadvantage === undefined && hasStandaloneRangeKeyword(value, 'nolongdisadvantage')) noLongDisadvantage = true;
 		if (longDisadvantage === undefined && typeof noLongDisadvantage === 'boolean') longDisadvantage = !noLongDisadvantage;
 		if (typeof noLongDisadvantage === 'boolean') rangeData.noLongDisadvantage = noLongDisadvantage;
@@ -1701,8 +1754,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 		let nearbyFoeDisadvantage = parseRangeToggle({ expression: nearbyDisRaw, evaluationData, effect, isAura, debug });
 		let noNearbyFoeDisadvantage = parseRangeToggle({ expression: noNearbyDisRaw, evaluationData, effect, isAura, debug });
-		if (nearbyFoeDisadvantage === undefined && (explicitKey === 'nearbyfoedisadvantage' || explicitKey === 'nearbyfoes')) nearbyFoeDisadvantage = true;
-		if (noNearbyFoeDisadvantage === undefined && (explicitKey === 'nonearbyfoedisadvantage' || explicitKey === 'nonearbyfoes')) noNearbyFoeDisadvantage = true;
 		if (noNearbyFoeDisadvantage === undefined && (hasStandaloneRangeKeyword(value, 'nonearbyfoedisadvantage') || hasStandaloneRangeKeyword(value, 'nonearbyfoes'))) noNearbyFoeDisadvantage = true;
 		if (nearbyFoeDisadvantage === undefined && typeof noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !noNearbyFoeDisadvantage;
 		if (typeof nearbyFoeDisadvantage === 'boolean') rangeData.nearbyFoeDisadvantage = nearbyFoeDisadvantage;
@@ -1710,8 +1761,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 		let fail = parseRangeToggle({ expression: failRaw, evaluationData, effect, isAura, debug });
 		let noFail = parseRangeToggle({ expression: noFailRaw, evaluationData, effect, isAura, debug });
-		if (fail === undefined && (explicitKey === 'fail' || explicitKey === 'outofrangefail')) fail = true;
-		if (noFail === undefined && (explicitKey === 'nofail' || explicitKey === 'nooutofrangefail')) noFail = true;
 		if (noFail === undefined && (hasStandaloneRangeKeyword(value, 'nofail') || hasStandaloneRangeKeyword(value, 'nooutofrangefail'))) noFail = true;
 		if (fail === undefined && typeof noFail === 'boolean') fail = !noFail;
 		if (typeof fail === 'boolean') rangeData.outOfRangeFail = fail;
@@ -1862,6 +1911,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
 		if (mode === 'abilityOverride' && hook !== 'attack') return null;
+		if (mode === 'range' && /\.attack\.range$/i.test(String(change?.key ?? ''))) {
+			const canonicalKey = String(change.key).replace(/\.attack\.range$/i, '.range.overrides');
+			warnCompatibilityAlias({
+				effect,
+				change,
+				changeIndex,
+				alias: change.key,
+				canonical: canonicalKey,
+			});
+		}
 		const debug = { effectUuid: effect.uuid, changeKey: change.key };
 		const entryId =
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;

@@ -265,7 +265,7 @@ function _normalizeCadenceToken(value) {
 }
 
 function _extractRuleMetadata(value) {
-	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null };
+	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null, itemLimited: false };
 	const fragments = value
 		.split(/[;|]/)
 		.map((part) => part.trim())
@@ -275,10 +275,15 @@ function _extractRuleMetadata(value) {
 	let addTo = null;
 	let condition = null;
 	let cadence = null;
+	let itemLimited = false;
 	for (const fragment of fragments) {
 		const normalizedFragment = fragment.toLowerCase();
 		if (normalizedFragment === 'optin') {
 			optin = true;
+			continue;
+		}
+		if (normalizedFragment === 'itemlimited') {
+			itemLimited = true;
 			continue;
 		}
 		const fragmentCadence = _normalizeCadenceToken(normalizedFragment);
@@ -301,7 +306,7 @@ function _extractRuleMetadata(value) {
 			if (parsedCadence) cadence = parsedCadence;
 		}
 	}
-	return { optin, priority, addTo, condition, cadence };
+	return { optin, priority, addTo, condition, cadence, itemLimited };
 }
 
 function _getEffectOwnerActor(effect) {
@@ -337,8 +342,11 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 		}
 
 		const last = path[path.length - 1];
-		const mode = FLAG_REGISTRY_MODE_NAMES.has(last) ? last : null;
 		const normalizedPath = path[0] === 'grants' || path[0] === 'aura' ? path.slice(1) : path;
+		const mode =
+			FLAG_REGISTRY_MODE_NAMES.has(last) ? last
+			: last === 'overrides' && normalizedPath[normalizedPath.length - 2] === 'range' ? 'range'
+			: null;
 		const hookType = normalizedPath.find((segment) => FLAG_REGISTRY_HOOK_TYPES.has(segment)) ?? null;
 		if (!mode && !hookType) return;
 
@@ -361,6 +369,7 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 			optin: meta.optin,
 			priority: meta.priority,
 			cadence: meta.cadence,
+			itemLimited: meta.itemLimited,
 			conditions: {
 				expression: meta.condition,
 			},
@@ -2594,9 +2603,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.attack.fumbleThreshold`,
 		`${moduleFlagScope}.grants.attack.fumbleThreshold`,
 		`${moduleFlagScope}.aura.attack.fumbleThreshold`,
-		`${moduleFlagScope}.range`,
-		`${moduleFlagScope}.grants.range`,
-		`${moduleFlagScope}.aura.range`,
+		`${moduleFlagScope}.range.overrides`,
+		`${moduleFlagScope}.grants.range.overrides`,
+		`${moduleFlagScope}.aura.range.overrides`,
 		`${moduleFlagScope}.range.short`,
 		`${moduleFlagScope}.grants.range.short`,
 		`${moduleFlagScope}.aura.range.short`,
