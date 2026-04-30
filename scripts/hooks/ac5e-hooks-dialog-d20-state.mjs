@@ -1,4 +1,5 @@
 import { _getActiveAbilityOverride, _getDistance, _getTokenFromActor, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import Constants from '../ac5e-constants.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { getSubjectTokenIdFromConfig } from './ac5e-hooks-ui-utils.mjs';
@@ -110,8 +111,8 @@ export function doDialogAttackRender(dialog, elem, getConfigAC5E, deps) {
 export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 	if (!dialog?.config || !['attack', 'save', 'check'].includes(ac5eConfig?.hookType)) return false;
 	const preRestoreParts = getD20ActivePartsSnapshot(dialog.config);
+	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, dialog.config);
 	deps.restoreD20ConfigFromFrozenBaseline(ac5eConfig, dialog.config);
-	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts);
 	dialog.config.advantage = undefined;
 	dialog.config.disadvantage = undefined;
 	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, dialog.config);
@@ -132,7 +133,7 @@ export function getD20ActivePartsSnapshot(config) {
 	return foundry.utils.duplicate(source);
 }
 
-export function collectPreservedExternalD20Parts(ac5eConfig, beforeParts = []) {
+export function collectPreservedExternalD20Parts(ac5eConfig, beforeParts = [], config = null) {
 	if (!Array.isArray(beforeParts) || !beforeParts.length) return [];
 	const baselineParts =
 		Array.isArray(ac5eConfig?.frozenD20Baseline?.parts) ? ac5eConfig.frozenD20Baseline.parts
@@ -140,7 +141,8 @@ export function collectPreservedExternalD20Parts(ac5eConfig, beforeParts = []) {
 		: [];
 	const withoutBaseline = subtractPartsByOccurrence(beforeParts, baselineParts);
 	const previousOptinParts = Array.isArray(ac5eConfig?._lastAppliedD20OptinParts) ? ac5eConfig._lastAppliedD20OptinParts : [];
-	return subtractPartsByOccurrence(withoutBaseline, previousOptinParts);
+	const previousInjectedParts = getAppliedD20Parts(config);
+	return subtractPartsByOccurrence(subtractPartsByOccurrence(withoutBaseline, previousOptinParts), previousInjectedParts);
 }
 
 export function appendPartsToD20Config(config, parts = []) {
@@ -180,15 +182,12 @@ export function refreshAttackAutoRangeState(ac5eConfig, config) {
 	ac5eConfig.subject.rangeNotes = [];
 	const mergedOptions = { ...options, targets, ac5eConfig };
 	mergedOptions.distance = _getDistance(sourceToken, singleTargetToken);
-	const { nearbyFoe, inRange, range, longDisadvantage, noLongDisadvantageSourceLabel, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, mergedOptions);
+	const { nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, rangeNotes = [] } = autoRanged(activity, sourceToken, singleTargetToken, mergedOptions);
 	ac5eConfig.options ??= {};
 	ac5eConfig.options.distance = mergedOptions.distance;
 	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(nearbyLabel);
-	if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
-		ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
-	}
+	ac5eConfig.subject.rangeNotes.push(...rangeNotes);
 	if (outOfRangeFail && !config?.workflow?.AoO && !inRange) ac5eConfig.subject.fail.push(failLabel);
-	if (range === 'long' && !longDisadvantage && noLongDisadvantageSourceLabel) ac5eConfig.subject.rangeNotes.push(`${longLabel} suppressed: ${noLongDisadvantageSourceLabel}`);
 	if (range === 'long' && longDisadvantage) ac5eConfig.subject.disadvantage.push(longLabel);
 	if (ac5eConfig?.tooltipObj?.attack) delete ac5eConfig.tooltipObj.attack;
 }
@@ -294,13 +293,15 @@ function subtractPartsByOccurrence(parts = [], toSubtract = []) {
 	if (!Array.isArray(toSubtract) || !toSubtract.length) return [...parts];
 	const subtractionCounts = new Map();
 	for (const part of toSubtract) {
-		subtractionCounts.set(part, (subtractionCounts.get(part) ?? 0) + 1);
+		const key = getPartOccurrenceKey(part);
+		subtractionCounts.set(key, (subtractionCounts.get(key) ?? 0) + 1);
 	}
 	const kept = [];
 	for (const part of parts) {
-		const remaining = subtractionCounts.get(part) ?? 0;
+		const key = getPartOccurrenceKey(part);
+		const remaining = subtractionCounts.get(key) ?? 0;
 		if (remaining > 0) {
-			subtractionCounts.set(part, remaining - 1);
+			subtractionCounts.set(key, remaining - 1);
 			continue;
 		}
 		kept.push(part);
@@ -311,16 +312,29 @@ function subtractPartsByOccurrence(parts = [], toSubtract = []) {
 function appendPartsByOccurrence(targetParts = [], additions = []) {
 	const remaining = new Map();
 	for (const part of targetParts) {
-		remaining.set(part, (remaining.get(part) ?? 0) + 1);
+		const key = getPartOccurrenceKey(part);
+		remaining.set(key, (remaining.get(key) ?? 0) + 1);
 	}
 	for (const part of additions) {
-		const current = remaining.get(part) ?? 0;
+		const key = getPartOccurrenceKey(part);
+		const current = remaining.get(key) ?? 0;
 		if (current > 0) {
-			remaining.set(part, current - 1);
+			remaining.set(key, current - 1);
 			continue;
 		}
 		targetParts.push(part);
 	}
+}
+
+function getAppliedD20Parts(config) {
+	const roll0 = Array.isArray(config?.rolls) && config.rolls[0] && typeof config.rolls[0] === 'object' ? config.rolls[0] : null;
+	const roll0Options = roll0?.options && typeof roll0.options === 'object' ? roll0.options : null;
+	const roll0Ac5eOptions = roll0Options?.[Constants.MODULE_ID] && typeof roll0Options[Constants.MODULE_ID] === 'object' ? roll0Options[Constants.MODULE_ID] : null;
+	return Array.isArray(roll0Ac5eOptions?.appliedParts) ? roll0Ac5eOptions.appliedParts : [];
+}
+
+function getPartOccurrenceKey(part) {
+	return String(part);
 }
 
 function getSingleTargetToken(messageTargets) {

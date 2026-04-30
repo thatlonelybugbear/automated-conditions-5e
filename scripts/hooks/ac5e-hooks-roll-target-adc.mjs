@@ -138,6 +138,11 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 		if (byTargets.length) return Math.min(...byTargets);
 	}
 
+	if (!useTargetAcs) {
+		const preservedBase = collectFinite([ac5eConfig?.optinBaseTargetADCValue, ac5eConfig?.initialTargetADC]);
+		if (preservedBase.length) return preservedBase[0];
+	}
+
 	const direct = collectFinite([ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, config?.target]);
 	if (direct.length) return direct[0];
 

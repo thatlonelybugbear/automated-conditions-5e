@@ -5,6 +5,23 @@ import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+export function _cloneUseConfigShallow(useConfig) {
+	if (!useConfig || typeof useConfig !== 'object') return useConfig ?? null;
+	const cloned = { ...useConfig };
+	if (useConfig.options && typeof useConfig.options === 'object') cloned.options = { ...useConfig.options };
+	if (useConfig.bonuses && typeof useConfig.bonuses === 'object') cloned.bonuses = foundry.utils.duplicate(useConfig.bonuses);
+	if (Array.isArray(useConfig.extraDice)) cloned.extraDice = foundry.utils.duplicate(useConfig.extraDice);
+	if (Array.isArray(useConfig.damageModifiers)) cloned.damageModifiers = foundry.utils.duplicate(useConfig.damageModifiers);
+	if (Array.isArray(useConfig.parts)) cloned.parts = foundry.utils.duplicate(useConfig.parts);
+	if (Array.isArray(useConfig.threshold)) cloned.threshold = foundry.utils.duplicate(useConfig.threshold);
+	if (Array.isArray(useConfig.fumbleThreshold)) cloned.fumbleThreshold = foundry.utils.duplicate(useConfig.fumbleThreshold);
+	if (useConfig.subject && typeof useConfig.subject === 'object') cloned.subject = foundry.utils.duplicate(useConfig.subject);
+	if (useConfig.opponent && typeof useConfig.opponent === 'object') cloned.opponent = foundry.utils.duplicate(useConfig.opponent);
+	if (Array.isArray(useConfig.pendingUses)) cloned.pendingUses = foundry.utils.duplicate(useConfig.pendingUses);
+	if (cloned?.options?.originatingUseConfig !== undefined) delete cloned.options.originatingUseConfig;
+	return cloned;
+}
+
 export function getResolvedD20BooleansFromMode(mode, fallback = {}) {
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	if (typeof mode === 'number' && advModes) {
@@ -352,7 +369,7 @@ function _normalizeCadenceToken(value) {
 }
 
 function _extractRuleMetadata(value) {
-	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null };
+	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null, itemLimited: false };
 	const fragments = value
 		.split(/[;|]/)
 		.map((part) => part.trim())
@@ -362,10 +379,15 @@ function _extractRuleMetadata(value) {
 	let addTo = null;
 	let condition = null;
 	let cadence = null;
+	let itemLimited = false;
 	for (const fragment of fragments) {
 		const normalizedFragment = fragment.toLowerCase();
 		if (normalizedFragment === 'optin') {
 			optin = true;
+			continue;
+		}
+		if (normalizedFragment === 'itemlimited') {
+			itemLimited = true;
 			continue;
 		}
 		const fragmentCadence = _normalizeCadenceToken(normalizedFragment);
@@ -388,7 +410,7 @@ function _extractRuleMetadata(value) {
 			if (parsedCadence) cadence = parsedCadence;
 		}
 	}
-	return { optin, priority, addTo, condition, cadence };
+	return { optin, priority, addTo, condition, cadence, itemLimited };
 }
 
 function _getEffectOwnerActor(effect) {
@@ -448,6 +470,7 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 			optin: meta.optin,
 			priority: meta.priority,
 			cadence: meta.cadence,
+			itemLimited: meta.itemLimited,
 			conditions: {
 				expression: meta.condition,
 			},
@@ -603,8 +626,7 @@ export function _setUseConfigInflightCache({ messageId, originatingMessageId, us
 	const expiresAt = now + USE_CONFIG_INFLIGHT_TTL_MS;
 	const safeIds = new Set([messageId, originatingMessageId].filter(Boolean));
 	if (!safeIds.size) return;
-	const clonedUseConfig = foundry.utils.duplicate(useConfig);
-	if (clonedUseConfig?.options?.originatingUseConfig !== undefined) delete clonedUseConfig.options.originatingUseConfig;
+	const clonedUseConfig = _cloneUseConfigShallow(useConfig);
 	for (const id of safeIds) {
 		useConfigInflightCache.set(id, { useConfig: clonedUseConfig, expiresAt });
 	}
@@ -2260,7 +2282,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	if (typeof tracker.attribution !== 'object') return;
 	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAttackRollModifierTracker');
 	_logMidiTrackerSnapshot('attack.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig });
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
+	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'FAIL', 'SUCCESS', 'AC5E'];
 	const trackerContext = _createMidiTrackerSyncContext(tracker, trackedTypes);
 	const { clearLegacySet, clearTrackedType, dedupeLabels, labelsFromEntries } = trackerContext;
 	for (const type of trackedTypes) clearTrackedType(type);
@@ -2276,13 +2298,19 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
 	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
+	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
+	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+	const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
 	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', midiTrackerNoDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'CRIT', criticalLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOCRIT', noCriticalLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.SpellHeader.Range') || 'Range', rangeNoteLabels);
 	const enforcedModeLabel =
 		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
@@ -2527,6 +2555,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 		const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 		const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+		const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
 		const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 		const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
 		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
@@ -2536,6 +2565,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels, { combineLabelList: true });
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.SpellHeader.Range') || 'Range', rangeNoteLabels, { combineLabelList: true });
 		const enforcedModeLabel =
 			enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 			: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
@@ -2831,6 +2861,7 @@ function sizeWarnings(targetCount, setting) {
 
 export function _generateAC5eFlags() {
 	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
+	const deprecatedGrantsModifyDCKey = new RegExp(`^${moduleFlagScope.replace('.', '\\.')}\\.grants\\.(?:save|concentration|death|check|skill|tool|ACTIONTYPE)\\.modifyDC$`, 'i');
 	const statusFlagKeys = [...new Set([...Object.keys(CONFIG?.DND5E?.conditionTypes ?? {}), 'bloodied'])].map((statusId) => `no${statusId.capitalize()}`);
 	const moduleFlags = new Set([
 		`${moduleFlagScope}.crossbowExpert`,
@@ -2841,9 +2872,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.attack.fumbleThreshold`,
 		`${moduleFlagScope}.grants.attack.fumbleThreshold`,
 		`${moduleFlagScope}.aura.attack.fumbleThreshold`,
-		`${moduleFlagScope}.range`,
-		`${moduleFlagScope}.grants.range`,
-		`${moduleFlagScope}.aura.range`,
+		`${moduleFlagScope}.range.overrides`,
+		`${moduleFlagScope}.grants.range.overrides`,
+		`${moduleFlagScope}.aura.range.overrides`,
 		`${moduleFlagScope}.range.short`,
 		`${moduleFlagScope}.grants.range.short`,
 		`${moduleFlagScope}.aura.range.short`,
@@ -2936,7 +2967,7 @@ export function _generateAC5eFlags() {
 	}
 
 	// DAE autocomplete should only expose canonical long-scope keys.
-	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`)); //to-do: clean up (probably not needed anymore)
+	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`) && !deprecatedGrantsModifyDCKey.test(key)); //to-do: clean up (probably not needed anymore)
 }
 
 /**

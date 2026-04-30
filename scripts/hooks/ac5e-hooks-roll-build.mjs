@@ -39,38 +39,43 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (index !== 0) return true;
 
 	const preRestoreParts = getD20ActivePartsSnapshot(rollConfig);
+	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, rollConfig);
 	_restoreD20ConfigFromFrozenBaseline(ac5eConfig, rollConfig);
-	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts);
 	const optins = getOptinsFromForm(formData);
 	setOptinSelections(ac5eConfig, optins);
 	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, rollConfig);
-	if (ac5e?.debugTargetADC)
-		console.warn('AC5E targetADC: buildRollConfig entries', {
-			hook: ac5eConfig.hookType,
-			subjectTargetADC: ac5eConfig?.subject?.targetADC,
-			opponentTargetADC: ac5eConfig?.opponent?.targetADC,
-			optins,
-		});
-	const { targetADCEntries } = rebuildOptinTargetADCState(ac5eConfig, rollConfig);
-	if (ac5e?.debugTargetADC)
-		console.warn('AC5E targetADC: selected', {
-			targetADCEntries,
-			optinSelected: ac5eConfig.optinSelected,
-			targetADC: ac5eConfig.targetADC,
-		});
+	let targetADCEntries = [];
+	if (ac5eConfig.hookType === 'attack') {
+		if (ac5e?.debugTargetADC)
+			console.warn('AC5E targetADC: buildRollConfig entries', {
+				hook: ac5eConfig.hookType,
+				subjectTargetADC: ac5eConfig?.subject?.targetADC,
+				opponentTargetADC: ac5eConfig?.opponent?.targetADC,
+				optins,
+			});
+		({ targetADCEntries } = rebuildOptinTargetADCState(ac5eConfig, rollConfig));
+		if (ac5e?.debugTargetADC)
+			console.warn('AC5E targetADC: selected', {
+				targetADCEntries,
+				optinSelected: ac5eConfig.optinSelected,
+				targetADC: ac5eConfig.targetADC,
+			});
+	}
 	rollConfig.advantage = undefined;
 	rollConfig.disadvantage = undefined;
 	deps.calcAdvantageMode(ac5eConfig, rollConfig, undefined, undefined, { skipSetProperties: true });
 	applyExplicitModeOverride(ac5eConfig, rollConfig);
-	applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets: true });
-	if (ac5e?.debugTargetADC)
-		console.warn('AC5E targetADC: buildRollConfig target', {
-			hook: ac5eConfig.hookType,
-			configTarget: rollConfig.target,
-			rollTarget: rollConfig?.rolls?.[0]?.target,
-			rollOptionsTarget: rollConfig?.rolls?.[0]?.options?.target,
-			alteredTargetADC: ac5eConfig.alteredTargetADC,
-		});
+	if (ac5eConfig.hookType === 'attack') {
+		applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets: true });
+		if (ac5e?.debugTargetADC)
+			console.warn('AC5E targetADC: buildRollConfig target', {
+				hook: ac5eConfig.hookType,
+				configTarget: rollConfig.target,
+				rollTarget: rollConfig?.rolls?.[0]?.target,
+				rollOptionsTarget: rollConfig?.rolls?.[0]?.options?.target,
+				alteredTargetADC: ac5eConfig.alteredTargetADC,
+			});
+	}
 	const roll0Options = getExistingRollOptions(rollConfig, 0);
 	const nextDefaultButton = ac5eConfig.defaultButton ?? 'normal';
 	if (Object.isExtensible(options)) rollConfig.options = options;

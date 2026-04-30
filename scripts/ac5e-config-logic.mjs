@@ -9,6 +9,7 @@ import {
 	_getMessageDnd5eFlags,
 	_getMidiAbilityAttributionEntries,
 	_getMidiAttackAttributionEntries,
+	_cloneUseConfigShallow,
 	_getUseConfigInflightCacheEntry,
 	_hasItem,
 	_i18nConditions,
@@ -444,8 +445,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const useConfig = _getUseConfig({ options, config });
 	if (useConfig?.options) {
 		_mergeUseOptions(options, useConfig.options);
-		options.originatingUseConfig = foundry.utils.duplicate(useConfig);
-		if (options.originatingUseConfig?.options?.originatingUseConfig !== undefined) delete options.originatingUseConfig.options.originatingUseConfig;
+		options.originatingUseConfig = _cloneUseConfigShallow(useConfig);
 		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig use options', { hookType, merged: useConfig.options });
 	}
 	const { ac5eConfig, actor, midiRoller, roller } = _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval);
@@ -637,15 +637,14 @@ export function _getUseConfig({ options, config } = {}) {
 		if (!useConfig) {
 			const cacheEntry = _getUseConfigInflightCacheEntry([resolvedOriginatingMessageId, messageId]);
 			if (cacheEntry?.useConfig) {
-				useConfig = foundry.utils.duplicate(cacheEntry.useConfig);
+				useConfig = _cloneUseConfigShallow(cacheEntry.useConfig);
 				debugMeta = { ...debugMeta, source: 'inflight-cache', cacheExpiresAt: cacheEntry.expiresAt };
 			}
 		}
 	}
 	if (useConfig) {
 		const dnd5eUseFlag = _getMessageDnd5eFlags(usageMessage) ?? _getMessageDnd5eFlags(originatingMessage);
-		useConfig = foundry.utils.duplicate(useConfig);
-		if (useConfig?.options?.originatingUseConfig !== undefined) delete useConfig.options.originatingUseConfig;
+		useConfig = _cloneUseConfigShallow(useConfig);
 		if (dnd5eUseFlag) {
 			useConfig.options ??= {};
 			if (dnd5eUseFlag.use?.spellLevel !== undefined) useConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;

@@ -38,7 +38,6 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 			else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
 			if (thisTargetElement) thisTargetElement.setAttribute('data-tooltip', tooltip);
 		}
-		void syncMidiRenderedSaveDC({ render, elem, getConfigAC5E, messageFlags });
 		if (deps.hookDebugEnabled('renderHijackHook')) {
 			console.warn('ac5e hijack getTooltip', tooltip);
 			console.warn('ac5e hijack targetElement:', targetElement);
@@ -67,109 +66,4 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	}
 	if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
 	return true;
-}
-
-async function syncMidiRenderedSaveDC({ render, elem, getConfigAC5E, messageFlags } = {}) {
-	try {
-		const ac5eEntries = Array.isArray(getConfigAC5E) ? getConfigAC5E : [getConfigAC5E];
-		const saveConfig =
-			ac5eEntries.find((entry) => ['check', 'save'].includes(entry?.hookType) && hasAlteredTargetADC(entry)) ??
-			(['check', 'save'].includes(messageFlags?.hookType) && hasAlteredTargetADC(messageFlags) ? messageFlags : undefined);
-		const resolvedTargetADC = resolveMidiRenderedTargetADC({ render, elem, saveConfig, messageFlags });
-		if (!resolvedTargetADC) return;
-		const { initialTargetADC, alteredTargetADC } = resolvedTargetADC;
-		if (!Number.isFinite(initialTargetADC) || !Number.isFinite(alteredTargetADC) || initialTargetADC === alteredTargetADC) return;
-		const saveDisplay = elem?.querySelector('.midi-qol-saves-display');
-		if (!saveDisplay) return;
-		const resolvedTargetCount = saveDisplay.querySelectorAll('.midi-qol-save-class').length;
-		const useWildcardMarker = resolvedTargetCount !== 1;
-		const domWasUpdated = patchMidiRenderedSaveDC(saveDisplay, initialTargetADC, alteredTargetADC, useWildcardMarker);
-		if (!domWasUpdated) return;
-		const messageContent = String(render?.content ?? '');
-		if (!messageContent.includes('midi-qol-saveDC')) return;
-		const nextContent =
-			useWildcardMarker ?
-				markMidiSaveDCLabelsModified(messageContent, initialTargetADC)
-			:	replaceMidiSaveDCContent(messageContent, initialTargetADC, alteredTargetADC);
-		if (!nextContent || nextContent === messageContent || typeof render?.update !== 'function') return;
-		await render.update({ content: nextContent });
-	} catch (err) {
-		console.warn('AC5E failed to sync rendered Midi save DC content', err);
-	}
-}
-
-function hasAlteredTargetADC(ac5eConfig) {
-	const initialTargetADC = Number(ac5eConfig?.initialTargetADC);
-	const alteredTargetADC = Number(ac5eConfig?.alteredTargetADC);
-	return Number.isFinite(initialTargetADC) && Number.isFinite(alteredTargetADC) && initialTargetADC !== alteredTargetADC;
-}
-
-function resolveMidiRenderedTargetADC({ render, elem, saveConfig, messageFlags } = {}) {
-	if (hasAlteredTargetADC(saveConfig)) {
-		return {
-			initialTargetADC: Number(saveConfig.initialTargetADC),
-			alteredTargetADC: Number(saveConfig.alteredTargetADC),
-		};
-	}
-	if (hasAlteredTargetADC(messageFlags)) {
-		return {
-			initialTargetADC: Number(messageFlags.initialTargetADC),
-			alteredTargetADC: Number(messageFlags.alteredTargetADC),
-		};
-	}
-	const content = String(render?.content ?? '');
-	const domHints = Array.from(elem?.querySelectorAll?.('[data-tooltip-html]') ?? [])
-		.map((node) => String(node?.getAttribute?.('data-tooltip-html') ?? ''))
-		.filter(Boolean);
-	const regex = buildModifiedDCPattern();
-	for (const source of [...domHints, content]) {
-		const match = regex.exec(source);
-		if (!match) continue;
-		const alteredTargetADC = Number(match[1]);
-		const initialTargetADC = Number(match[2]);
-		if (!Number.isFinite(initialTargetADC) || !Number.isFinite(alteredTargetADC) || initialTargetADC === alteredTargetADC) continue;
-		return { initialTargetADC, alteredTargetADC };
-	}
-	return null;
-}
-
-function buildModifiedDCPattern() {
-	const label = String(game?.i18n?.localize?.('AC5E.ModifyDC') ?? 'Modified DC').trim();
-	const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-	return new RegExp(`${escaped}\\s+(\\d+)\\s*\\((\\d+)\\)`, 'i');
-}
-
-function patchMidiRenderedSaveDC(saveDisplay, initialTargetADC, alteredTargetADC, useWildcardMarker) {
-	if (!saveDisplay) return false;
-	const baseLabel = `DC ${initialTargetADC}`;
-	const nextLabel = useWildcardMarker ? `DC ${initialTargetADC} (*)` : `DC ${alteredTargetADC}`;
-	let didChange = false;
-	for (const label of saveDisplay.querySelectorAll('.midi-qol-saveDC')) {
-		if (label?.textContent?.trim() !== baseLabel) continue;
-		label.textContent = nextLabel;
-		didChange = true;
-	}
-	if (useWildcardMarker) return didChange;
-	for (const total of saveDisplay.querySelectorAll('.midi-qol-save-total[data-tooltip]')) {
-		const tooltip = String(total.getAttribute('data-tooltip') ?? '');
-		const nextTooltip = tooltip.replaceAll(`vs ${baseLabel}`, `vs DC ${alteredTargetADC}`);
-		if (nextTooltip === tooltip) continue;
-		total.setAttribute('data-tooltip', nextTooltip);
-		didChange = true;
-	}
-	return didChange;
-}
-
-function replaceMidiSaveDCContent(content, initialTargetADC, alteredTargetADC) {
-	const baseLabel = `DC ${initialTargetADC}`;
-	const nextLabel = `DC ${alteredTargetADC}`;
-	return String(content ?? '')
-		.replaceAll(`>${baseLabel}<`, `>${nextLabel}<`)
-		.replaceAll(`vs ${baseLabel}`, `vs ${nextLabel}`);
-}
-
-function markMidiSaveDCLabelsModified(content, initialTargetADC) {
-	const baseLabel = `DC ${initialTargetADC}`;
-	const markedLabel = `DC ${initialTargetADC} (*)`;
-	return String(content ?? '').replaceAll(`>${baseLabel}<`, `>${markedLabel}<`);
 }

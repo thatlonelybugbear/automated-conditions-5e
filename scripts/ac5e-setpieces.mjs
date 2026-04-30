@@ -721,7 +721,7 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	if (activity && !_activeModule('midi-qol')) activity.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts); //Cannot set property hasDamage of #<MidiActivityMixin> which has only a getter
+	const hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
@@ -735,6 +735,7 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 		distanceUnit,
 		exhaustionLvl,
 		hook,
+		hasDamage,
 		isConcentration,
 		isDeathSave,
 		isInitiative,
@@ -892,7 +893,7 @@ function buildStatusEffectsTables() {
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: (ctx) => (['str', 'dex'].includes(ctx.ability) ? 'fail' : '') },
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.activity?.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -928,7 +929,7 @@ function buildStatusEffectsTables() {
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.activity?.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 			save: { subject: (ctx) => (['dex', 'str'].includes(ctx.ability) ? 'fail' : '') },
 		}),
 
@@ -1288,6 +1289,60 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const mode = key.includes('.range.') ? 'range' : modeMap.find(([m]) => key.includes(m))?.[1];
 		return { actorType, mode, isAll };
 	};
+	const isLegacyGrantsModifyDCKey = (key) => {
+		const normalizedKey = String(key ?? '').toLowerCase();
+		if (!normalizedKey.includes('.grants.') || !normalizedKey.includes('.modifydc')) return false;
+		return ['.save.', '.concentration.', '.conc.', '.death.', '.check.', '.skill.', '.tool.'].some((token) => normalizedKey.includes(token));
+	};
+	const _negateLegacyBonusExpression = (expression) => {
+		const trimmed = String(expression ?? '').trim();
+		if (!trimmed) return trimmed;
+		if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+			const number = Number(trimmed);
+			if (Number.isFinite(number)) return `${-number}`;
+		}
+		return `-(${trimmed})`;
+	};
+	const _rewriteLegacyGrantsModifyDCChange = (change) => {
+		if (!isLegacyGrantsModifyDCKey(change?.key)) return change;
+		const rawValue = String(change?.value ?? '');
+		const hasSet = /(?:^|;)\s*set\s*[:=]/i.test(rawValue);
+		const hasBonus = /(?:^|;)\s*bonus\s*[:=]/i.test(rawValue);
+		if (hasSet || !hasBonus) {
+			foundry.utils.logCompatibilityWarning(
+				'AC5E: grants.*.modifyDC is deprecated and will be removed for dnd5e v6 compatibility. Use save/check bonus flags directly.',
+				{ since: '14.600.2', until: '15.0.0', once: true },
+			);
+			return change;
+		}
+		const rewrittenKey = String(change.key).replace(/\.grants\./i, '.').replace(/\.modifydc\b/i, '.bonus');
+		const rewrittenValue = rawValue
+			.split(';')
+			.map((fragment) => fragment.trim())
+			.filter(Boolean)
+			.map((fragment) => {
+				const match = fragment.match(/^bonus\s*[:=]\s*(.+)$/i);
+				if (!match) return fragment;
+				return `bonus=${_negateLegacyBonusExpression(match[1])}`;
+			})
+			.join(';');
+		foundry.utils.logCompatibilityWarning(
+			'AC5E: grants.*.modifyDC is deprecated without replacement. It currenly gets rewritten to local bonus handling; update effects before dnd5e v6.',
+			{ since: '14.532.3', until: '14.600.1', once: true },
+		);
+		return { ...change, key: rewrittenKey, value: rewrittenValue };
+	};
+	const warnCompatibilityAlias = ({ effect, change, changeIndex, alias, canonical }) => {
+		const normalizedAlias = String(alias ?? '').trim();
+		if (!normalizedAlias) return;
+		foundry.utils.logCompatibilityWarning(`AC5E legacy flag alias "${normalizedAlias}" was used. Prefer "${canonical}".`, {
+			since: '13.5320.2',
+			until: '14.600.1',
+			details: `Effect: ${effect?.name ?? effect?.uuid ?? effect?.id ?? 'Unknown'} | Change: ${change?.key ?? normalizedAlias} | Index: ${changeIndex}`,
+			once: true,
+			stack: false,
+		});
+	};
 
 	const validFlags = [];
 	const pushUniqueValidFlag = (entry) => {
@@ -1464,7 +1519,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isInit = isInitiative && hook === 'check' && change.key.includes('init');
 		const isDeath = isDeathSave && hook === 'save' && change.key.includes('death');
 		const isModifyAC = change.key.includes('modifyAC') && hook === 'attack';
-		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isSkill || isTool);
+		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(activity?.type);
+		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
 		const modifyHooks = isModifyAC || isModifyDC;
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
@@ -1951,6 +2007,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
 		if (mode === 'abilityOverride' && hook !== 'attack') return null;
+		if (mode === 'range' && /\.attack\.range$/i.test(String(change?.key ?? ''))) {
+			const canonicalKey = String(change.key).replace(/\.attack\.range$/i, '.range.overrides');
+			warnCompatibilityAlias({
+				effect,
+				change,
+				changeIndex,
+				alias: change.key,
+				canonical: canonicalKey,
+			});
+		}
 		const debug = { effectUuid: effect.uuid, changeKey: change.key };
 		const entryId =
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
@@ -2041,11 +2107,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return entry;
 	};
 	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
+		const normalizedChange = _rewriteLegacyGrantsModifyDCChange(change);
 		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
 		if (
 			!effectChangesTest({
 				token,
-				change,
+				change: normalizedChange,
 				actorType,
 				hook,
 				effect,
@@ -2057,9 +2124,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			})
 		)
 			return;
-		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox: effectSandbox, isAura, auraToken, sourceActor, sourceNameFallback });
+		const entry = buildValidFlagEntry({ change: normalizedChange, changeIndex, effect, hook, sandbox: effectSandbox, isAura, auraToken, sourceActor, sourceNameFallback });
 		if (!entry?.evaluation) return;
-		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
+		const normalizedChangeValue = String(normalizedChange.value ?? '').toLowerCase();
 		if (isAura && normalizedChangeValue.includes('singleaura')) {
 			const wallsBlock = normalizedChangeValue.includes('wallsblock') && 'sight';
 			const sameAuras = validFlags.filter((existing) => existing.isAura && existing.name === effect.name);
