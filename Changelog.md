@@ -1,3 +1,9 @@
+## 13.5320.3
+
+- Added support for multi-type inline bonus damage parts such as `bonus=1d4[fire, lightning, thunder]`.
+- When a bonus damage part offers multiple damage types, AC5E now creates a synthetic bonus roll that uses D&D 5e's native damage-type dropdown instead of collapsing the part to a single type.
+- Single-type inline bonus damage parts such as `bonus=1d4[fire]` continue to use the existing behavior.
+
 ## 13.5320.2
 
 - Fixed repeated `-999` / `+999` attack-roll sentinel modifiers being added when a forced fail/success attack is re-evaluated after changing roll configuration options.
