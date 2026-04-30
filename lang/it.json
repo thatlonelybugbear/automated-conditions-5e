@@ -1,17 +1,17 @@
 {
 	"AC5E.AutomateStatuses": {
-		"Name": "Regole delle condizioni D&D 5e",
+		"Name": "Regole Condizioni D&D 5e",
 		"Hint": "Abilita la gestione AC5E delle condizioni di D&D 5e, estendendo l'automazione della modalità vantaggio integrata nel sistema D&D 5e con una gestione delle regole più ampia e precisa, soprattutto per i tiri per colpire."
 	},
 	"AC5E.ShowTooltipsName": "Mostra suggerimenti AC5E",
 	"AC5E.ShowTooltipsHint": "Mostra i suggerimenti AC5E nei dialoghi di tiro, nei messaggi in chat o in entrambi, spiegando i motivi del risultato suggerito.",
-	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi di tiro e messaggi in chat",
-	"AC5E.ShowToolTipsChoicesDialog": "Solo nei dialoghi di tiro",
-	"AC5E.ShowToolTipsChoicesChat": "Solo nei messaggi in chat",
+	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi Tiro e messaggi in chat",
+	"AC5E.ShowToolTipsChoicesDialog": "Solo Dialoghi Tiro",
+	"AC5E.ShowToolTipsChoicesChat": "Solo messaggi in chat",
 	"AC5E.ShowToolTipsChoicesNone": "Non mostrare",
-	"AC5E.ShowModuleNameInTooltipsName": "Mostra il nome del modulo nei suggerimenti",
+	"AC5E.ShowModuleNameInTooltipsName": "Mostra Nome Modulo nei suggerimenti",
 	"AC5E.ShowTooltipChatVisibility.Name": "Mostra suggerimenti in chat per",
-	"AC5E.ShowTooltipChatVisibility.Hint": "Scegli di chi i tiri mostrano i suggerimenti AC5E in chat. Il GM vede sempre tutti i suggerimenti.",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Scegli quali tiri mostrano i suggerimenti AC5E in chat. Il GM vede sempre tutti i suggerimenti.",
 	"AC5E.ShowTooltipChatVisibility.All": "Tutti",
 	"AC5E.ShowTooltipChatVisibility.None": "Nessuno",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Propri",
@@ -58,12 +58,12 @@
 		"RangedLongDisadvantage": "Svantaggio a lunga distanza",
 		"RangedOutOfRange": "Fuori portata a distanza"
 	},
-	"AC5E.AutoExhaustionName": "Regole di esaurimento",
-	"AC5E.AutoExhaustionHint": "Abilita la gestione dell'esaurimento AC5E quando si utilizzano le regole legacy di D&D 5e.",
+	"AC5E.AutoExhaustionName": "Regole Indebolimento",
+	"AC5E.AutoExhaustionHint": "Abilita la gestione dell'Indebolimento AC5E quando si utilizzano le regole legacy di D&D 5e.",
 	"AC5E.AutoEncumbranceName": "Regole di ingombro varianti",
 	"AC5E.AutoEncumbranceHint": "Abilita la gestione dell'ingombro variante in AC5E. Il GM deve anche attivare l'opzione variante del sistema D&D 5e, altrimenti questa impostazione non avrà effetto.",
 	"AC5E.Targeting": {
-		"Name": "Regole di bersagliamento degli attacchi",
+		"Name": "Regole Bersagli Attacchi",
 		"Hint": "Controlla come AC5E gestisce i tiri per colpire quando non è selezionato alcun bersaglio o sono selezionati più bersagli.",
 		"Choices": {
 			"Source": "Ignora stati e flag dei bersagli",
@@ -104,7 +104,7 @@
 	"AC5E.Feats": {
 		"CrossbowExpert": "Esperto di balestre",
 		"Sharpshooter": "Tiratore scelto",
-		"SpellSniper": "Cecchino di incantesimi"
+		"SpellSniper": "Cecchino Magico"
 	},
 	"AC5E.Equipment": "Equipaggiamento",
 	"AC5E.NearbyFoe": "Nemico vicino",
@@ -148,7 +148,7 @@
 	"AC5E.ExtraDice": "Dadi extra",
 	"AC5E.Success": "Successo",
 	"AC5E.AbbreviationAdvantage": "vant",
-	"AC5E.AbbreviationDisadvantage": "sv",
+	"AC5E.AbbreviationDisadvantage": "svant",
 	"AC5E.AbbreviationCritical": "crit",
 	"AC5E.Grants": "concede",
 	"AC5E.Attacker": "Attaccante",
@@ -156,7 +156,7 @@
 	"AC5E.FlagsInitiativeAdv": "Vantaggio del sistema all'iniziativa",
 	"AC5E.FlagsInitiativeDisadv": "Svantaggio del sistema all'iniziativa",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Concede vant",
-	"AC5E.TargetGrantsDisadvantageAbbreviated": "Concede sv",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Concede svant",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Concede crit",
 	"AC5E.TargetGrantsFail": "Concede fallimento",
 	"AC5E.TargetGrantsFumble": "Concede fallimento critico",
@@ -230,7 +230,7 @@
 			"description": "Nessuno svantaggio per attacchi a distanza a lungo raggio o entro 1,5 metri da un nemico"
 		},
 		"flags.automated-condition-5e.spellSniper": {
-			"name": "Cecchino di incantesimi",
+			"name": "Cecchino Magico",
 			"description": "Per le regole 2024, nessuno svantaggio per incantesimi a distanza entro 1,5 metri da un nemico e, se hanno gittata di almeno 3 metri, aggiunge ulteriori 18 metri"
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
