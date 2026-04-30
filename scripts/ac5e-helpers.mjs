@@ -194,6 +194,7 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'range',
 	'success',
 	'extraDice',
+	'typeOverride',
 	'targetADC',
 	'criticalThreshold',
 	'fumbleThreshold',
@@ -685,6 +686,7 @@ function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
 			formula,
 			parts: Object.freeze(foundry.utils.duplicate(parts)),
 			type: roll?.options?.type ?? null,
+			types: Object.freeze(foundry.utils.duplicate(Array.isArray(roll?.options?.types) ? roll.options.types : roll?.options?.types instanceof Set ? [...roll.options.types] : [])),
 			maximum: roll?.options?.maximum ?? null,
 			minimum: roll?.options?.minimum ?? null,
 			maximize: roll?.options?.maximize ?? null,
@@ -715,6 +717,21 @@ export function _captureFrozenDamageBaseline(ac5eConfig, config) {
 	if (!baseline) {
 		baseline = freezeDamageRollSnapshot(rollProfile, config, ac5eConfig);
 		ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile[profileKey] = baseline;
+		if (ac5e?.debug?.damageTypeOverride) {
+			console.warn(
+				`AC5E damage.typeOverride freeze baseline\n${JSON.stringify(
+					Array.isArray(baseline?.rolls) ?
+						baseline.rolls.map((roll, index) => ({
+							index,
+							type: roll?.type ?? null,
+							types: Array.isArray(roll?.types) ? [...roll.types] : [],
+						}))
+					: [],
+					null,
+					2,
+				)}`,
+			);
+		}
 	}
 	ac5eConfig.preAC5eConfig.activeDamageRollProfileKey = profileKey;
 	ac5eConfig.preAC5eConfig.frozenDamageBaseline = baseline;
@@ -743,6 +760,9 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (typeof rollBaseline.formula === 'string') roll.formula = rollBaseline.formula;
 		else if (Array.isArray(roll.parts) && roll.parts.length) roll.formula = roll.parts.join(' + ');
 		if (rollBaseline.type !== undefined && rollBaseline.type !== null) roll.options.type = rollBaseline.type;
+		else if ('type' in roll.options) delete roll.options.type;
+		if (Array.isArray(rollBaseline.types) && rollBaseline.types.length) roll.options.types = foundry.utils.duplicate(rollBaseline.types);
+		else if ('types' in roll.options) delete roll.options.types;
 		if (rollBaseline.maximum !== undefined && rollBaseline.maximum !== null) roll.options.maximum = rollBaseline.maximum;
 		else if ('maximum' in roll.options) delete roll.options.maximum;
 		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
@@ -2640,6 +2660,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.damage.extraDice`,
 		`${moduleFlagScope}.grants.damage.extraDice`,
 		`${moduleFlagScope}.aura.damage.extraDice`,
+		`${moduleFlagScope}.damage.typeOverride`,
+		`${moduleFlagScope}.grants.damage.typeOverride`,
+		`${moduleFlagScope}.aura.damage.typeOverride`,
 		`${moduleFlagScope}.damage.diceUpgrade`,
 		`${moduleFlagScope}.grants.damage.diceUpgrade`,
 		`${moduleFlagScope}.aura.damage.diceUpgrade`,

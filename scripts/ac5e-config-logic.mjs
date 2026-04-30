@@ -338,6 +338,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
+			typeOverride: [],
 			abilityOverride: [],
 			diceUpgrade: [],
 			diceDowngrade: [],
@@ -364,6 +365,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
+			typeOverride: [],
 			abilityOverride: [],
 			diceUpgrade: [],
 			diceDowngrade: [],
@@ -387,6 +389,17 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	if (Array.isArray(originatingUseConfig?.opponent?.info)) ac5eConfig.opponent.info.push(...foundry.utils.duplicate(originatingUseConfig.opponent.info));
 	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
 	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
+	const persistedFrozenDamageBaselineByProfile = persistedAc5eConfig?.preAC5eConfig?.frozenDamageBaselineByProfile;
+	if (persistedFrozenDamageBaselineByProfile && typeof persistedFrozenDamageBaselineByProfile === 'object') {
+		ac5eConfig.preAC5eConfig.frozenDamageBaselineByProfile = foundry.utils.duplicate(persistedFrozenDamageBaselineByProfile);
+	}
+	if (persistedAc5eConfig?.preAC5eConfig?.activeDamageRollProfileKey !== undefined) {
+		ac5eConfig.preAC5eConfig.activeDamageRollProfileKey = persistedAc5eConfig.preAC5eConfig.activeDamageRollProfileKey;
+	}
+	if (persistedAc5eConfig?.preAC5eConfig?.frozenDamageBaseline) {
+		ac5eConfig.preAC5eConfig.frozenDamageBaseline = foundry.utils.duplicate(persistedAc5eConfig.preAC5eConfig.frozenDamageBaseline);
+		ac5eConfig.frozenDamageBaseline = foundry.utils.duplicate(persistedAc5eConfig.preAC5eConfig.frozenDamageBaseline);
+	}
 	const persistedOptinBaseTargetADC = persistedAc5eConfig?.optinBaseTargetADC;
 	if (Array.isArray(persistedOptinBaseTargetADC)) ac5eConfig.optinBaseTargetADC = foundry.utils.duplicate(persistedOptinBaseTargetADC);
 	if (persistedAc5eConfig?.optinBaseTargetADCValue !== undefined) ac5eConfig.optinBaseTargetADCValue = persistedAc5eConfig.optinBaseTargetADCValue;

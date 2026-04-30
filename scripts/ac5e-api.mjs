@@ -169,6 +169,7 @@ function _normalizeUsageRuleMode(mode) {
 		fumblethreshold: 'fumbleThreshold',
 		fumblethres: 'fumbleThreshold',
 		extradice: 'extraDice',
+		typeoverride: 'typeOverride',
 		diceupgrade: 'diceUpgrade',
 		dicedowngrade: 'diceDowngrade',
 		range: 'range',
