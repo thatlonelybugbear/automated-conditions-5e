@@ -16,6 +16,7 @@ Thumbs.db
 worktrees/
 wiki-remote/
 snapshots/
+developmentChangelog.md
 
 # Local release artifacts
 module.zip

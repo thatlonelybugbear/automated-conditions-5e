@@ -8,15 +8,14 @@
   - Granular leaf keys remain available for `range.short`, `range.long`, `range.reach`, `range.longDisadvantage`, `range.noLongDisadvantage`, `range.nearbyFoeDisadvantage`, `range.noNearbyFoeDisadvantage`, `range.outOfRangeFail`, and `range.noOutOfRangeFail`.
   - Numeric leaf keys now expect normal AC5E-style `set=` / `bonus=` payloads instead of ad hoc direct-value parsing.
   - Boolean leaf keys now apply through the normal entry evaluation path, so conditions and keywords such as `itemLimited` behave like other AC5E flags instead of relying on range-specific toggle parsing.
-  - `itemLimited` is now also promoted in the document-flag registry metadata path, not just on direct Active Effect changes.
 - Clarified current range flag scope:
   - Range entries only affect attack activities.
   - They apply on the `attack` hook, and also on the `use` hook when the activity being used is an attack activity.
   - They do not affect save, check, heal, init, or plain damage workflows.
   - When MidiQOL owns its range-check path, AC5E skips the normal non-Midi range entry aggregation and defers to the Midi integration branch for the actual range handling.
 - Current examples:
-  - `key: flags.automated-conditions-5e.range.short` with `value: set=30; itemLimited; item.name === 'Longbow'` applies only to attack contexts, only when that item is the rolled item, and only when the condition is true.
-  - `key: flags.automated-conditions-5e.range.noNearbyFoeDisadvantage` with `value: itemLimited; item.system.uses.value > 0` suppresses nearby-foe disadvantage only for attack activities where that effect is applicable.
+  - `key: flags.automated-conditions-5e.range.short` with `value: set=30; itemLimited; rollingActor.attributes.hp.pct < 25` applies only to attack contexts, only when that item is the rolled item, and only when the extra condition is true.
+  - `key: flags.automated-conditions-5e.range.noNearbyFoeDisadvantage` with `value: itemLimited; item.uses.value > 0` suppresses nearby-foe disadvantage only for attack activities where that effect is applicable.
   - `key: flags.automated-conditions-5e.range.overrides` with `value: short=30; long=120; noNearbyFoeDisadvantage; itemLimited; opponentActor.attributes.hp.pct < 20` applies all listed range overrides together, gated by both `itemLimited` and the trailing condition.
 - Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗 
 
