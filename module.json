@@ -1,81 +1,99 @@
 {
-    "id": "automated-conditions-5e",
-    "title": "Automated Conditions 5e",
-    "description": "A Foundry VTT module that tries to automate some rolling aspects of the common 5e Conditions.",
-    "version": "14.532.1",
-    "authors": [
-        {
-            "name": "thatlonelybugbear",
-            "url": "https://github.com/thatlonelybugbear",
-            "discord": "thatlonelybugbear#4394",
-            "ko-fi": "https://ko-fi.com/thatlonelybugbear",
-            "patreon": "https://www.patreon.com/cw/thatlonelybugbear"
+  "id": "automated-conditions-5e",
+  "title": "Automated Conditions 5e",
+  "description": "A Foundry VTT module that tries to automate some rolling aspects of the common 5e Conditions.",
+  "version": "14.532.1",
+  "authors": [
+    {
+      "name": "thatlonelybugbear",
+      "url": "https://github.com/thatlonelybugbear",
+      "discord": "thatlonelybugbear#4394",
+      "ko-fi": "https://ko-fi.com/thatlonelybugbear",
+      "patreon": "https://www.patreon.com/cw/thatlonelybugbear",
+      "flags": {}
+    }
+  ],
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.360",
+    "maximum": "14"
+  },
+  "esmodules": [
+    "scripts/ac5e-main.mjs"
+  ],
+  "styles": [
+    {
+      "src": "styles/ac5e.css"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5.3.0",
+          "maximum": "6.0",
+          "verified": "5.3.2"
         }
-    ],
-    "compatibility": {
-        "minimum": "14",
-        "verified": "14.360"
+      }
+    ]
+  },
+  "languages": [
+    {
+      "lang": "cs",
+      "name": "Čeština",
+      "path": "lang/cs.json",
+      "flags": {}
     },
-    "esmodules": ["scripts/ac5e-main.mjs"],
-    "relationships": {
-        "systems": [
-            {
-                "id": "dnd5e",
-                "type": "system",
-                "compatibility": {
-                    "minimum": "5.3.0",
-                    "maximum": "6.0",
-                    "verified": "5.3.2"
-                }
-            }
-        ] 
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json",
+      "flags": {}
     },
-    "languages": [
-        {
-            "lang": "cs",
-            "name": "Čeština",
-            "path": "lang/cs.json"
-        },
-        {
-            "lang": "en",
-            "name": "English",
-            "path": "lang/en.json"
-        },
-        {
-          "lang": "fr",
-          "name": "Français",
-          "path": "lang/fr.json"
-        },
-        {
-            "lang": "it",
-            "name": "Italiano",
-            "path": "lang/it.json"
-        },
-        {
-            "lang": "pt-BR",
-            "name": "Português (Brasil)",
-            "path": "lang/pt-BR.json"
-        },
-        {
-            "lang": "ru",
-            "name": "Русский",
-            "path": "lang/ru.json"
-        },
-        {
-            "lang": "pl",
-            "name": "Polski",
-            "path": "lang/pl.json"
-        }
-    ],
-    "flags": {
-        "hotReload": {
-            "paths": ["lang/en.json"]
-        }
+    {
+      "lang": "fr",
+      "name": "Français",
+      "path": "lang/fr.json",
+      "flags": {}
     },
-    "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
-    "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
-    "license": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/LICENSE",
-    "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json",
-    "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v14.532.1/module.zip",
-    "changelog": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/Changelog.md"
+    {
+      "lang": "it",
+      "name": "Italiano",
+      "path": "lang/it.json",
+      "flags": {}
+    },
+    {
+      "lang": "pt-BR",
+      "name": "Português (Brasil)",
+      "path": "lang/pt-BR.json",
+      "flags": {}
+    },
+    {
+      "lang": "ru",
+      "name": "Русский",
+      "path": "lang/ru.json",
+      "flags": {}
+    },
+    {
+      "lang": "pl",
+      "name": "Polski",
+      "path": "lang/pl.json",
+      "flags": {}
+    }
+  ],
+  "flags": {
+    "hotReload": {
+      "paths": [
+        "lang/en.json"
+      ]
+    }
+  },
+  "bugs": "https://github.com/thatlonelybugbear/automated-conditions-5e/issues",
+  "url": "https://github.com/thatlonelybugbear/automated-conditions-5e",
+  "license": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/LICENSE",
+  "manifest": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/latest/download/module.json",
+  "download": "https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v14.532.1/module.zip",
+  "changelog": "https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/main/Changelog.md"
 }

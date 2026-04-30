@@ -1,0 +1,238 @@
+<form class="ac5e-effect-value-editor-form" data-ac5e-effect-value-editor-form>
+	<fieldset class="ac5e-effect-value-editor-fieldset ac5e-effect-value-editor-primary-fieldset">
+		<legend>{{headerLabel}}</legend>
+
+		<header class="ac5e-effect-value-editor-header ac5e-effect-value-editor-inline-meta">
+			<p>
+				<strong>Attribute Key:</strong>
+				<i
+					class="fa-solid fa-circle-question ac5e-effect-value-editor-help"
+					data-tooltip='For AC5E keys and examples, see <a href="https://github.com/thatlonelybugbear/automated-conditions-5e/wiki">the wiki</a>.'
+					data-tooltip-direction="RIGHT"
+					data-locked
+				></i>
+				<span>{{changeKey}}</span>
+			</p>
+		</header>
+
+		{{#if primaryLayout}}
+			<section class="ac5e-effect-value-editor-grid">
+				{{#if primaryLayout.radiusField}}
+					<div class="form-group">
+						<label for="{{primaryLayout.radiusField.inputId}}">{{primaryLayout.radiusField.label}}</label>
+						<div class="form-fields ac5e-effect-value-editor-inline-field">
+							<input id="{{primaryLayout.radiusField.inputId}}" type="text" name="fields.{{primaryLayout.radiusField.name}}" value="{{primaryLayout.radiusField.value}}">
+							<button
+								type="button"
+								class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+								data-ac5e-expand-input="fields.{{primaryLayout.radiusField.name}}"
+								data-ac5e-expand-label="{{primaryLayout.radiusField.label}}"
+								aria-label="Expand {{primaryLayout.radiusField.label}}"
+							></button>
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="{{primaryLayout.conditionField.inputId}}">{{primaryLayout.conditionField.label}}</label>
+						<div class="form-fields ac5e-effect-value-editor-inline-field">
+							<input
+								id="{{primaryLayout.conditionField.inputId}}"
+								type="text"
+								name="conditions"
+								value="{{primaryLayout.conditionField.value}}"
+								placeholder="{{primaryLayout.conditionField.placeholder}}"
+								data-ac5e-condition-input
+							>
+							<button
+								type="button"
+								class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+								data-ac5e-expand-input="conditions"
+								data-ac5e-expand-label="{{primaryLayout.conditionField.label}}"
+								aria-label="Expand {{primaryLayout.conditionField.label}}"
+							></button>
+						</div>
+					</div>
+				{{/if}}
+
+				{{#each primaryLayout.mainFields}}
+					<div class="form-group {{#if fullRow}}stacked ac5e-effect-value-editor-grid-span{{/if}}">
+						<label for="{{inputId}}">{{label}}</label>
+						<div class="form-fields ac5e-effect-value-editor-inline-field">
+							<input id="{{inputId}}" type="text" name="fields.{{name}}" value="{{value}}">
+							{{#if expandable}}
+								<button
+									type="button"
+									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+									data-ac5e-expand-input="fields.{{name}}"
+									data-ac5e-expand-label="{{label}}"
+									aria-label="Expand {{label}}"
+								></button>
+							{{/if}}
+						</div>
+					</div>
+					{{#if inlineToggle}}
+						<div class="form-group ac5e-effect-value-editor-toggle-companion">
+							<label>&nbsp;</label>
+							<div class="form-fields">
+								<label class="ac5e-effect-value-editor-inline-toggle">
+									<input type="checkbox" name="{{inlineToggle.name}}" {{#if inlineToggle.checked}}checked{{/if}}>
+									<span>{{inlineToggle.label}}</span>
+								</label>
+							</div>
+						</div>
+					{{/if}}
+				{{/each}}
+
+				{{#unless primaryLayout.radiusField}}
+				<div class="form-group ac5e-effect-value-editor-grid-span">
+					<label for="{{primaryLayout.conditionField.inputId}}">{{primaryLayout.conditionField.label}}</label>
+					<div class="form-fields ac5e-effect-value-editor-inline-field">
+						<input
+							id="{{primaryLayout.conditionField.inputId}}"
+							type="text"
+							name="conditions"
+							value="{{primaryLayout.conditionField.value}}"
+							placeholder="{{primaryLayout.conditionField.placeholder}}"
+							data-ac5e-condition-input
+						>
+						<button
+							type="button"
+							class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+							data-ac5e-expand-input="conditions"
+							data-ac5e-expand-label="{{primaryLayout.conditionField.label}}"
+							aria-label="Expand {{primaryLayout.conditionField.label}}"
+						></button>
+					</div>
+				</div>
+				{{/unless}}
+			</section>
+		{{/if}}
+	</fieldset>
+
+	<fieldset class="ac5e-effect-value-editor-fieldset">
+		<legend>Toggle Behavior</legend>
+		<div class="ac5e-effect-value-editor-toggle-grid">
+			{{#each toggleBehavior}}
+				<label>
+					<input type="checkbox" name="{{name}}" {{#if checked}}checked{{/if}}>
+					<span>{{label}}</span>
+				</label>
+			{{/each}}
+		</div>
+		{{#if showCadence}}
+			<div class="form-group ac5e-effect-value-editor-fieldset-select">
+				<label for="ac5e-value-cadence-{{changeIndex}}">Cadence</label>
+				<div class="form-fields">
+					<select id="ac5e-value-cadence-{{changeIndex}}" name="ui.cadenceMode">
+						{{#each cadenceOptions}}
+							<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+						{{/each}}
+					</select>
+				</div>
+			</div>
+		{{/if}}
+		{{#if hasOptionalFieldRows}}
+			<section class="ac5e-effect-value-editor-grid">
+				{{#with optionalFieldRows.nameDescription}}
+					{{#if left}}
+						<div class="form-group">
+							<label for="{{left.inputId}}">{{left.label}}</label>
+							<div class="form-fields ac5e-effect-value-editor-inline-field">
+								<input id="{{left.inputId}}" type="text" name="fields.{{left.name}}" value="{{left.value}}">
+								<button
+									type="button"
+									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+									data-ac5e-expand-input="fields.{{left.name}}"
+									data-ac5e-expand-label="{{left.label}}"
+									aria-label="Expand {{left.label}}"
+								></button>
+							</div>
+						</div>
+					{{else}}
+						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
+					{{/if}}
+					{{#if right}}
+						<div class="form-group">
+							<label for="{{right.inputId}}">{{right.label}}</label>
+							<div class="form-fields ac5e-effect-value-editor-inline-field">
+								<input id="{{right.inputId}}" type="text" name="fields.{{right.name}}" value="{{right.value}}">
+								<button
+									type="button"
+									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+									data-ac5e-expand-input="fields.{{right.name}}"
+									data-ac5e-expand-label="{{right.label}}"
+									aria-label="Expand {{right.label}}"
+								></button>
+							</div>
+						</div>
+					{{else}}
+						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
+					{{/if}}
+				{{/with}}
+
+				{{#with optionalFieldRows.usesCount}}
+					{{#if left}}
+						<div class="form-group">
+							<label for="{{left.inputId}}">{{left.label}}</label>
+							<div class="form-fields ac5e-effect-value-editor-inline-field">
+								<input id="{{left.inputId}}" type="text" name="fields.{{left.name}}" value="{{left.value}}">
+								<button
+									type="button"
+									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+									data-ac5e-expand-input="fields.{{left.name}}"
+									data-ac5e-expand-label="{{left.label}}"
+									aria-label="Expand {{left.label}}"
+								></button>
+							</div>
+						</div>
+					{{else}}
+						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
+					{{/if}}
+					{{#if right}}
+						<div class="form-group ac5e-effect-value-editor-toggle-companion">
+							<label>&nbsp;</label>
+							<div class="form-fields">
+								<label class="ac5e-effect-value-editor-inline-toggle">
+									<input type="checkbox" name="{{right.name}}" {{#if right.checked}}checked{{/if}}>
+									<span>{{right.label}}</span>
+								</label>
+							</div>
+						</div>
+					{{else}}
+						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
+					{{/if}}
+				{{/with}}
+			</section>
+		{{/if}}
+	</fieldset>
+
+	{{#if hasAuraBehavior}}
+		<fieldset class="ac5e-effect-value-editor-fieldset">
+			<legend>Aura Behavior</legend>
+			{{#if hasContextToggles}}
+				<div class="ac5e-effect-value-editor-toggle-grid">
+					{{#each contextToggles}}
+						<label>
+							<input type="checkbox" name="toggles.{{name}}" {{#if checked}}checked{{/if}}>
+							<span>{{label}}</span>
+						</label>
+					{{/each}}
+				</div>
+			{{/if}}
+		</fieldset>
+	{{/if}}
+
+	<footer class="ac5e-effect-value-editor-footer">
+		<button type="button" data-action="apply">
+			<i class="fa-solid fa-check"></i>
+			Apply
+		</button>
+		<button type="button" data-action="applyClose">
+			<i class="fa-solid fa-floppy-disk"></i>
+			Apply & Close
+		</button>
+		<button type="button" data-action="cancel">
+			<i class="fa-solid fa-xmark"></i>
+			Cancel
+		</button>
+	</footer>
+</form>

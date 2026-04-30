@@ -31,6 +31,7 @@ export default class Settings {
 	static ADVANTAGE_BEHAVIOR_OVERRIDE = 'advantageBehaviorOverride';
 	static ADVANTAGE_BEHAVIOR_ADV_FORMULA = 'advantageBehaviorAdvantageFormula';
 	static ADVANTAGE_BEHAVIOR_DIS_FORMULA = 'advantageBehaviorDisadvantageFormula';
+	static ENABLE_EXPERIMENTAL_AC5E_UI = 'enableExperimentalAc5eUi';
 
 	registerSettings() {
 		this._registerWorldSettings();
@@ -43,6 +44,14 @@ export default class Settings {
 			scope: 'world',
 			config: true,
 			default: true,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ENABLE_EXPERIMENTAL_AC5E_UI, {
+			name: 'Enable AC5E UI (Experimental)',
+			hint: 'Show the AC5E wand button for the experimental effect value editor.',
+			scope: 'world',
+			config: true,
+			default: false,
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
@@ -342,6 +351,9 @@ export default class Settings {
 			advantageFormula: enabled ? (game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_ADV_FORMULA) ?? '') : '',
 			disadvantageFormula: enabled ? (game.settings.get(Constants.MODULE_ID, Settings.ADVANTAGE_BEHAVIOR_DIS_FORMULA) ?? '') : '',
 		};
+	}
+	get enableExperimentalAc5eUi() {
+		return Boolean(game.settings.get(Constants.MODULE_ID, Settings.ENABLE_EXPERIMENTAL_AC5E_UI));
 	}
 	get buttonColorEnabled() {
 		return game.settings.get(Constants.MODULE_ID, Settings.ColorPicker_Enabled);
