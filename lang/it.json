@@ -215,8 +215,8 @@
 	"AC5E.OptinLegend.FromOtherSources": "AC5E Da altre fonti (chiedere permesso)",
 	"AC5E.EnvironmentalHazards": {
 		"SettingsName": "Regole per pericoli ambientali",
-		"SettingsHint": "Abilita la gestione automatica di Bruciatura e Soffocamento usando il regolamento D&D 5e 2024.",
-		"BurningHazard": "Pericolo da bruciatura",
+		"SettingsHint": "Automatizza le condizioni di In Fiamme e Soffocamento usando il regolamento D&D 5e 2024.",
+		"BurningHazard": "In Fiamme",
 		"SuffocatingHazard": "Soffocamento"
 	},
 	"dae.fieldData.fieldCategories.AC5E": "AC5E",
