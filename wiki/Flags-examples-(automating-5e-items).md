@@ -202,6 +202,32 @@ key: flags.automated-conditions-5e.damage.bonus
 value: bonus=2d6[acid]; addTo=fire;
 ```
 
+### Bonus damage with multiple offered types
+```
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=1d4[fire, lightning, thunder];
+```
+
+### Override a base damage part to a single type
+```
+key: flags.automated-conditions-5e.damage.typeOverride
+
+value: set=fire;
+```
+
+### Override a base damage part to a selected type from multiple options
+```
+key: flags.automated-conditions-5e.damage.typeOverride
+
+value: set=fire, lightning, thunder; addTo=fire;
+```
+
+Notes:
+
+- `damage.typeOverride` currently applies to base/native damage rolls only.
+- Synthetic appended bonus damage rolls created by AC5E are not currently targeted by `damage.typeOverride`.
+
 ### Extra dice multiplier on matching damage types
 ```
 key: flags.automated-conditions-5e.damage.extraDice

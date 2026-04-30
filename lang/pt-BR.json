@@ -269,6 +269,18 @@
 			"name": "Aura para Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
 			"description": "Use bonus=2;radius=10 para aumentar o número de dados rolados para cada denominação em um raio de 10 unidades de distância."
 		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Override the damage type set of base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Grant a damage type override to the opponent's base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "An aura overriding the damage type set of base damage rolls in radius",
+			"description": "Use radius=10;set=fire or radius=10;set=fire,lightning,thunder. addTo=... targets matching base damage parts only."
+		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modificar CA Contra Ataques Sofridos",
 			"description": "Use bonus=5 para adicionar 5 à CA ou set=15 para definir a CA para 15. Você também pode usar roll data, fórmulas de dados e validação de condições."

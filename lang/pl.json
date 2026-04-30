@@ -382,6 +382,18 @@
 			"name": "An aura increasing or decreasing the number of dice rolled for each denomination",
 			"description": "Use bonus=2; radius=10 to increase the number of dice rolled for each denomination in a 10 distance units radius."
 		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Override the damage type set of base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Grant a damage type override to the opponent's base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "An aura overriding the damage type set of base damage rolls in radius",
+			"description": "Use radius=10;set=fire or radius=10;set=fire,lightning,thunder. addTo=... targets matching base damage parts only."
+		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modify the AC of the actor against incoming attacks",
 			"description": "Use bonus=5 to add 5 to AC or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."

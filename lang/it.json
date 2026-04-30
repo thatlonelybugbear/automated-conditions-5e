@@ -269,6 +269,18 @@
 			"name": "Un'aura che aumenta o diminuisce il numero di dadi lanciati per ogni denominazione",
 			"description": "Utilizzare bonus=2; raggio=10 per aumentare il numero di dadi lanciati per ogni denominazione in un raggio di 10 unità di distanza."
 		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Override the damage type set of base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Grant a damage type override to the opponent's base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "An aura overriding the damage type set of base damage rolls in radius",
+			"description": "Use radius=10;set=fire or radius=10;set=fire,lightning,thunder. addTo=... targets matching base damage parts only."
+		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modifica la CA del Personaggio contro gli attacchi in arrivo",
 			"description": "Usa bonus=5 per aggiungere 5 a CA o set=15 per impostare il valore a 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."

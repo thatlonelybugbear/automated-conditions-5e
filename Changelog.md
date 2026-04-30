@@ -1,8 +1,10 @@
 ## 13.5320.3
 
 - Added support for multi-type inline bonus damage parts such as `bonus=1d4[fire, lightning, thunder]`.
-- When a bonus damage part offers multiple damage types, AC5E now creates a synthetic bonus roll that uses D&D 5e's native damage-type dropdown instead of collapsing the part to a single type.
-- Single-type inline bonus damage parts such as `bonus=1d4[fire]` continue to use the existing behavior.
+  - When a bonus damage part offers multiple damage types, AC5E now creates a synthetic bonus roll that uses D&D 5e's native damage-type dropdown instead of collapsing the part to a single type.
+  - Single-type inline bonus damage parts such as `bonus=1d4[fire]` continue to use the existing behavior.
+- Added `damage.typeOverride` AC5E flags. Currently applies to base/native damage rolls only.
+  - Synthetic appended bonus damage rolls are not currently targeted by `damage.typeOverride`.
 
 ## 13.5320.2
 

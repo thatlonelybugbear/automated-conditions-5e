@@ -87,6 +87,7 @@ Replace `MODE` with one of the following:
       - `#` or `opponentActor` - e.g., `##attributes.spell.dc` or `opponentActor.concentration.effects.size`
       - `auraActor` - e.g., `auraActor.attributes.ac.value` for any aura related ones.
    - For damage rolls, `bonus=1d6[fire]` adds 1d6 fire damage, and `bonus=2[necrotic]` adds 2 flat necrotic damage, while `bonus=1d6` adds 1d6 damage of the same type as the relevant damage part, and `bonus=1d6[random]` adds 1d6 damage of a random type every time the roll is evaluated.
+   - Multi-type inline damage is also supported, for example `bonus=1d4[fire, lightning, thunder]`. AC5E creates a synthetic bonus damage part and D&D 5e's native damage-type dropdown chooses which of the offered types that part will use.
 - `modifier`:
    - Adds `max` or `min` modfiers to **d20 rolls**: `modifier=(rollingActor.attributes.hp.pct > 50 ? min15 : max10)` which will roll `1d20min15` when the rolling actor's health is above 50% and `1d20max10` otherwise
    - Adds [Foundry roll modifiers](https://foundryvtt.com/article/dice-modifiers/) to **damage rolls**.
@@ -99,6 +100,11 @@ Replace `MODE` with one of the following:
      - `bonus=1` will be multiplied on a crit
 - `diceUpgrade` - Upgrades damage dice step (`d6` -> `d8`) by the provided steps.
 - `diceDowngrade` - Downgrades damage dice step (`d8` -> `d6`) by the provided steps.
+- `typeOverride` - Replaces the damage type set of matching base/native damage rolls.
+   - Include `set=fire` to force a single type.
+   - Include `set=fire,lightning,thunder` to offer multiple damage types through D&D 5e's native dropdown.
+   - `addTo=...` targeting works the same way as other damage-entry modes.
+   - Current limitation: `damage.typeOverride` applies to base/native damage rolls only, not to synthetic appended bonus damage parts.
 - `range` - Adjusts ranged profile values and ranged-penalty behavior.
    - Use the shared `flags.automated-conditions-5e.range` surface for range automation. Do not use legacy `...attack.range` paths for new flags.
    - You can use `bonus`, `short`, `long`, `reach`.
@@ -345,6 +351,7 @@ If the roll involves a specific action or item, you'll also have access to:
 ### `item`
 - `item.name`, `item.school` (for spells), etc
 - `item.identifier`
+- `item.classIdentifier`
 - `item.properties` or `itemProperties`
 - `item.type` is essentially an object that contains the basic data of the item rolled, for example: `{value: 'martialR', baseItem: 'longbow', label: 'Martial Ranged', identifier: 'Compendium.dnd5e.equipment24.Item.phbwepLongbow000'}`
 - `itemType` is one of the following `equipment`, `feat`, `spell`, `tool`, `weapon` etc (full list in `CONFIG.Item.typeLabels`)

@@ -265,6 +265,18 @@
 			"name": "Aura zvyšující či snížující počet kostek házených pro každou hodnotu",
 			"description": "Aby se zvýšil počet hodů kostkami o 2 všem do 10 stop, použij bonus=2; radius=10"
 		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Override the damage type set of base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Grant a damage type override to the opponent's base damage rolls",
+			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "An aura overriding the damage type set of base damage rolls in radius",
+			"description": "Use radius=10;set=fire or radius=10;set=fire,lightning,thunder. addTo=... targets matching base damage parts only."
+		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Úprava OČ aktéra přicházejícím útokům",
 			"description": "Použij bonus=5 k přidání bonusu 5 k OČ, nebo set=15 k nastavení hodnoty na 15. Můžeš použít i data hodu, vzorce kostek a vyhodnocení podmínky"
