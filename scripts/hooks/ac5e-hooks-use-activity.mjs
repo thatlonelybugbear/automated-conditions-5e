@@ -86,14 +86,8 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 			const label = String(entry.label ?? entry.name ?? entry.id ?? '').trim();
 			return label !== failLabel;
 		});
-		const longLabel = _localize('RangeLong');
-		const { inRange, range, longDisadvantage, noLongDisadvantageSourceLabel, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
-		if (range === 'long' && !longDisadvantage && noLongDisadvantageSourceLabel) {
-			ac5eConfig.subject.rangeNotes.push(`${longLabel} suppressed: ${noLongDisadvantageSourceLabel}`);
-		}
-		if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
-			ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
-		}
+		const { inRange, outOfRangeFail, rangeNotes = [] } = autoRanged(activity, sourceToken, singleTargetToken, { ...options, ac5eConfig });
+		ac5eConfig.subject.rangeNotes.push(...rangeNotes);
 		if (outOfRangeFail && !usageConfig?.workflow?.AoO && !inRange && !ac5eConfig.subject.fail.includes(failLabel)) {
 			ac5eConfig.subject.fail.push(failLabel);
 		}

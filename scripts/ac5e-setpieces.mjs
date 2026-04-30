@@ -1390,8 +1390,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isSkill || isTool);
 		const modifyHooks = isModifyAC || isModifyDC;
 		const isRange = change.key.toLowerCase().includes('.range');
-		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
-		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
+		const isRangeHook = isRange && (hook === 'attack' || hook === 'use');
+		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
@@ -1636,6 +1636,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const RANGE_LEAF_KEY_CONFIG = {
 		overrides: { prop: null, type: 'packed' },
 		short: { prop: 'short', type: 'numeric' },
+		value: { prop: 'short', type: 'numeric' },
 		long: { prop: 'long', type: 'numeric' },
 		reach: { prop: 'reach', type: 'numeric' },
 		longdisadvantage: { prop: 'longDisadvantage', type: 'toggle' },
@@ -1657,7 +1658,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const getRangeLeafConfig = (key) => {
 		const lowerKey = String(key ?? '').toLowerCase();
 		const explicitMatch = lowerKey.match(
-			/\.range\.(overrides|short|long|reach|longdisadvantage|nolongdisadvantage|nearbyfoes|nonearbyfoes|nearbyfoedisadvantage|nonearbyfoedisadvantage|fail|outofrangefail|nofail|nooutofrangefail)$/i,
+			/\.range\.(overrides|short|value|long|reach|longdisadvantage|nolongdisadvantage|nearbyfoes|nonearbyfoes|nearbyfoedisadvantage|nonearbyfoedisadvantage|fail|outofrangefail|nofail|nooutofrangefail)$/i,
 		);
 		if (!explicitMatch) return null;
 		return RANGE_LEAF_KEY_CONFIG[explicitMatch[1].toLowerCase()] ?? null;
@@ -1731,7 +1732,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			rangeData[explicitConfig.prop] = parseRangeLeafToggle({ value });
 			return rangeData;
 		}
-		const shortRaw = getRangeKeyedValue(value, 'short');
+		const shortRaw = getRangeKeyedValue(value, 'short', 'value');
 		const longRaw = getRangeKeyedValue(value, 'long');
 		const reachRaw = getRangeKeyedValue(value, 'reach');
 		const bonusRaw = getRangeKeyedValue(value, 'bonus');

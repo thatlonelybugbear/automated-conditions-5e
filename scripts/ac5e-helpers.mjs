@@ -2150,6 +2150,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
 	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
+	const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
 	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
@@ -2159,6 +2160,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	_addMidiTrackerEntries(tracker, trackerContext, 'CRIT', criticalLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOCRIT', noCriticalLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.SpellHeader.Range') || 'Range', rangeNoteLabels);
 	const enforcedModeLabel =
 		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
@@ -2405,6 +2407,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 		const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 		const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+		const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
 		const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 		const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
 		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
@@ -2414,6 +2417,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels, { combineLabelList: true });
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.SpellHeader.Range') || 'Range', rangeNoteLabels, { combineLabelList: true });
 		const enforcedModeLabel =
 			enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 			: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
