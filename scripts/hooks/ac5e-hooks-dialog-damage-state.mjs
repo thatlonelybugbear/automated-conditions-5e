@@ -41,13 +41,17 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 			dialog.render();
 			return;
 		}
-		const baseRolls = getNonSyntheticDamageRolls(dialog.config.rolls);
+		const currentRolls = Array.isArray(dialog?.config?.rolls) ? dialog.config.rolls : [];
+		const baseRolls = getNonSyntheticDamageRolls(currentRolls);
 		const rollsLength = baseRolls.length;
 		const previousRollCount = getConfigAC5E._lastDamageRollCount ?? rollsLength;
 		const baseFormulas = getConfigAC5E.preservedInitialData?.formulas ?? (getConfigAC5E.isCritical ? baseRolls.map((roll) => roll?.parts?.join(' + ') ?? roll?.formula).filter(Boolean) : undefined);
 		const damageTypesByIndex = getDamageTypesByIndex(dialog, elem);
 		const selectedDamageTypesByIndex = Array.fromRange(rollsLength).map((el) => {
-			const selected = damageTypesByIndex?.[el] ?? elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ?? dialog.config.rolls?.[el]?.options?.type;
+			const selected =
+				damageTypesByIndex?.[el] ??
+				elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ??
+				currentRolls?.[el]?.options?.type;
 			return selected ? String(selected).toLowerCase() : undefined;
 		});
 		const selects = selectedDamageTypesByIndex.filter(Boolean);
@@ -405,10 +409,9 @@ function parseDamageTypeOverrideSet(value) {
 }
 
 function stringifyDamageTypeDebugState(rolls = [], preserved = {}) {
-	const baseRolls = getNonSyntheticDamageRolls(rolls);
 	return JSON.stringify(
 		{
-			rolls: baseRolls.map((roll, index) => ({
+			rolls: getNonSyntheticDamageRolls(rolls).map((roll, index) => ({
 				index,
 				type: roll?.options?.type ?? null,
 				types:
