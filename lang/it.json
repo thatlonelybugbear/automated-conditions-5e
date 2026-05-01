@@ -3,11 +3,15 @@
 		"Name": "Regole Condizioni D&D 5e",
 		"Hint": "Abilita la gestione AC5E delle condizioni di D&D 5e, estendendo l'automazione della modalità vantaggio integrata nel sistema D&D 5e con una gestione delle regole più ampia e precisa, soprattutto per i tiri per colpire."
 	},
+	"AC5E.ExperimentalUi": {
+		"Name": "Abilita AC5E UI (Sperimentale)",
+		"Hint": "Mostra il pulsante della bacchetta AC5E per l'editor sperimentale dei valori degli Effetti Attivi."
+	},
 	"AC5E.ShowTooltipsName": "Mostra suggerimenti AC5E",
 	"AC5E.ShowTooltipsHint": "Mostra i suggerimenti AC5E nei dialoghi di tiro, nei messaggi in chat o in entrambi, spiegando i motivi del risultato suggerito.",
-	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi Tiro e messaggi in chat",
+	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi Tiro e Messaggi Chat",
 	"AC5E.ShowToolTipsChoicesDialog": "Solo Dialoghi Tiro",
-	"AC5E.ShowToolTipsChoicesChat": "Solo messaggi in chat",
+	"AC5E.ShowToolTipsChoicesChat": "Solo Messaggi Chat",
 	"AC5E.ShowToolTipsChoicesNone": "Non mostrare",
 	"AC5E.ShowModuleNameInTooltipsName": "Mostra Nome Modulo nei suggerimenti",
 	"AC5E.ShowTooltipChatVisibility.Name": "Mostra suggerimenti in chat per",
@@ -200,6 +204,8 @@
 	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifica soglia fallimento critico",
 	"AC5E.OptinDescription.AddsExtraDamageDice": "Aggiunge dadi danno extra",
 	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Aggiunge dadi danno extra ({value})",
+	"AC5E.OptinDescription.OverridesDamageType": "Sovrascrive il tipo di danno",
+	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Sovrascrive il tipo di danno ({value})",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta il tipo di dado del danno",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta il tipo di dado del danno ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Riduce il tipo di dado del danno",
@@ -268,6 +274,18 @@
 		"flags.automated-conditions-5e.aura.damage.extraDice": {
 			"name": "Aura che aumenta o riduce il numero di dadi per ogni tipo",
 			"description": "Usa bonus=2; radius=10 per aumentare il numero di dadi in un raggio di 10 unità di distanza."
+		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Sovrascrive il tipo di danno impostato dei tiri di danno base",
+			"description": "Usa set=fire per forzare un solo tipo oppure set=fire,lightning,thunder per offrire più tipi. addTo=... si applica solo alle parti di danno base corrispondenti."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Concede sovrascrittura del tipo di danno ai tiri di danno base dell'avversario",
+			"description": "Usa set=fire per forzare un solo tipo oppure set=fire,lightning,thunder per offrire più tipi. addTo=... si applica solo alle parti di danno base corrispondenti."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "Un'aura che sovrascrive il tipo di danno dei tiri di danno base entro il raggio",
+			"description": "Usa radius=10;set=fire oppure radius=10;set=fire,lightning,thunder. addTo=... si applica solo alle parti di danno base corrispondenti."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modifica la Classe Armatura dell'attore contro gli attacchi in arrivo",
