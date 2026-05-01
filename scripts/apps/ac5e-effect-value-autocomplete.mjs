@@ -102,6 +102,21 @@ export function replaceAutocompletePrefix(input, prefix, replacement) {
 	input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+export function configureAc5eAutocompleteMenu(autocomplete) {
+	const menu = autocomplete?.element;
+	if (!(menu instanceof HTMLElement)) return;
+	menu.classList.add('ac5e-autocomplete-menu');
+	menu.tabIndex = -1;
+	if (menu.dataset.ac5eAutocompleteMenuReady) return;
+	menu.dataset.ac5eAutocompleteMenuReady = 'true';
+	menu.addEventListener('wheel', (event) => {
+		event.stopPropagation();
+		if (menu.scrollHeight > menu.clientHeight) return;
+		event.preventDefault();
+	}, { passive: false });
+	menu.addEventListener('pointerdown', (event) => event.stopPropagation());
+}
+
 function addDocumentRollData(entries, root, document, source, preferredKey) {
 	if (!document?.getRollData) return;
 	const rollData = document.getRollData() ?? {};
@@ -125,10 +140,14 @@ function walkData(entries, root, value, source, depth = 0, seen = new WeakSet())
 	}
 
 	if (!isWalkable(value)) return;
-	for (const [key, child] of Object.entries(value)) {
+	for (const key of Object.keys(value)) {
 		if (!isSafePathKey(key)) continue;
+		const descriptor = Object.getOwnPropertyDescriptor(value, key);
+		if (!descriptor) continue;
 		const path = `${root}.${key}`;
 		addEntry(entries, path, source);
+		if (!Object.hasOwn(descriptor, 'value')) continue;
+		const child = descriptor.value;
 		if (child && typeof child === 'object') walkData(entries, path, child, source, depth + 1, seen);
 	}
 }

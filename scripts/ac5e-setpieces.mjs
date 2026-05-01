@@ -1267,6 +1267,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['nodis', 'noDisadvantage'],
 			['diceupgrade', 'diceUpgrade'],
 			['dicedowngrade', 'diceDowngrade'],
+			['typeoverride', 'typeOverride'],
 			['abilityoverride', 'abilityOverride'],
 			['info', 'info'],
 			['dis', 'disadvantage'],
@@ -1416,6 +1417,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'short',
 		'singleaura',
 		'threshold',
+		'typeoverride',
 		'update',
 		'usescount',
 		'wallsblock',
@@ -1735,6 +1737,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'extraDice':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.AddsExtraDamageDiceWithValue', { value: bonus }, `Adds extra damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.AddsExtraDamageDice', 'Adds extra damage dice');
+			case 'typeOverride':
+				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDamageTypeWithValue', { value: set }, `Overrides damage type (${set})`);
+				return localizeText('AC5E.OptinDescription.OverridesDamageType', 'Overrides damage type');
 			case 'diceUpgrade':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.UpgradesDamageDiceWithValue', { value: bonus }, `Upgrades damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.UpgradesDamageDice', 'Upgrades damage dice');
@@ -2501,7 +2506,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-			if (['bonus', 'targetADC', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+			if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
@@ -3952,12 +3957,13 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 			});
 	}
 	const isSet =
-		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
+		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || mode === 'typeOverride' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
 			getBlacklistedKeysValue('set', rawValue)
 		:	false;
 	if (isSet) {
 		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
-		set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
+		if (mode === 'typeOverride') set = String(replacementBonus ?? '').trim();
+		else set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isModifier = lowerValue.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', rawValue) : false;
 	if (isModifier) {
@@ -4020,7 +4026,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	}
 	if (set !== undefined && set !== '') {
 		if (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack') set = String(evalNumericFormulaExpression(set, { debug }));
-		else set = String(evalDiceExpression(set)); // we need Strings for set
+		else if (mode !== 'typeOverride') set = String(evalDiceExpression(set)); // we need Strings for set
 	}
 	if (ac5e?.debugTargetADC && mode === 'targetADC') console.warn('AC5E targetADC: preEvaluate', { hook, value, bonus, set, threshold, effect: effect?.name });
 	return { bonus, set, modifier, threshold, chance };

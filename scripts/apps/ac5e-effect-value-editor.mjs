@@ -1,4 +1,4 @@
-import { buildEffectValueAutocompleteEntries, getAutocompletePrefix, replaceAutocompletePrefix } from './ac5e-effect-value-autocomplete.mjs';
+import { buildEffectValueAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, replaceAutocompletePrefix } from './ac5e-effect-value-autocomplete.mjs';
 import { collectAc5eEffectValueFormData, mergeAc5eEffectValueFormData, parseAc5eEffectValue, serializeAc5eEffectValue } from './ac5e-effect-value-parser.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -286,6 +286,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			return;
 		}
 		this.autocomplete.activate(input, entries, { prefix });
+		configureAc5eAutocompleteMenu(this.autocomplete);
 	}
 
 	#filterAutocompleteEntries(entries, prefix, limit) {
@@ -446,6 +447,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isAura = normalized.includes('.aura.');
 	const isCriticalThreshold = normalized.endsWith('.criticalthreshold') || normalized.endsWith('.critthreshold');
 	const isFumbleThreshold = normalized.endsWith('.fumblethreshold');
+	const isTypeOverride = normalized.endsWith('.typeoverride');
 	const isModifier = normalized.endsWith('.modifier') || normalized.endsWith('.modifiers') || normalized.includes('.modifier.');
 	const isTargetADC = normalized.endsWith('.modifyac') || normalized.endsWith('.modifydc');
 	const isBonus =
@@ -459,6 +461,7 @@ function getEditorProfile(changeKey, parsed) {
 	const requiredFields = [];
 	const auraFields = [];
 	if (isBonus) requiredFields.push('bonus');
+	if (isTypeOverride) requiredFields.push('set');
 	if (isTargetADC) requiredFields.push('set');
 	if (isModifier) requiredFields.push('modifier');
 	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('bonus', 'set');
@@ -467,6 +470,7 @@ function getEditorProfile(changeKey, parsed) {
 	if (isRange) requiredFields.push('bonus');
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
 	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
+	if (isTypeOverride) requiredFields.push('addTo');
 	if (hasParsedValue(parsed, 'addTo')) requiredFields.push('addTo');
 
 	const contextToggles = [];
@@ -475,7 +479,7 @@ function getEditorProfile(changeKey, parsed) {
 		if (parsed?.toggles?.[toggle] && !contextToggles.includes(toggle)) contextToggles.push(toggle);
 	}
 
-	const supportsSetMode = isTargetADC || isCriticalThreshold || isFumbleThreshold || hasParsedValue(parsed, 'set');
+	const supportsSetMode = !isTypeOverride && (isTargetADC || isCriticalThreshold || isFumbleThreshold || hasParsedValue(parsed, 'set'));
 	const renderedRequiredFields = supportsSetMode ? dedupe(requiredFields).filter((field) => field !== 'set') : dedupe(requiredFields);
 	const renderedContextToggles = dedupe(contextToggles).filter((toggle) => toggle !== 'partialConsume');
 
@@ -598,7 +602,7 @@ function shouldUseSetMode(parsed) {
 }
 
 function getPersistedFieldNames(profile) {
-	const fieldNames = [...profile.requiredFields, ...profile.optionalFields];
+	const fieldNames = [...profile.requiredFields, ...profile.auraFields, ...profile.optionalFields];
 	if (profile.supportsSetMode) fieldNames.push('set');
 	return dedupe(fieldNames);
 }

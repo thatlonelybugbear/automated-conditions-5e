@@ -1,15 +1,16 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
-import { isAc5eChangeKey } from './ac5e-effect-value-autocomplete.mjs';
+import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eChangeKey, replaceAutocompletePrefix } from './ac5e-effect-value-autocomplete.mjs';
 import Settings from '../ac5e-settings.mjs';
 
 export function registerEffectValueEditorHooks() {
-	return Hooks.on('renderActiveEffectConfig', injectEffectValueEditorButtons);
+	return Hooks.on('renderActiveEffectConfig', enhanceActiveEffectConfig);
 }
 
-function injectEffectValueEditorButtons(app, element) {
-	if (!new Settings().enableExperimentalAc5eUi) return;
+function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
+	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
+	if (!new Settings().enableExperimentalAc5eUi) return;
 
 	for (const valueInput of root.querySelectorAll('input[name$=".value"], textarea[name$=".value"]')) {
 		const row = valueInput.closest('li, .form-group, tr, fieldset') ?? valueInput.parentElement;
@@ -17,6 +18,39 @@ function injectEffectValueEditorButtons(app, element) {
 		const keyInput = findKeyInput(row, valueInput);
 		if (!keyInput || !isAc5eChangeKey(keyInput.value)) continue;
 		addEditorButton({ app, row, keyInput, valueInput });
+	}
+}
+
+function initializeKeyAutocomplete(app, root) {
+	const Autocomplete = foundry.applications?.ux?.Autocomplete?.implementation;
+	if (!Autocomplete) return;
+	const entries = buildEffectKeyAutocompleteEntries();
+
+	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
+		if (keyInput.dataset.ac5eKeyAutocompleteReady) continue;
+		keyInput.dataset.ac5eKeyAutocompleteReady = 'true';
+		const autocomplete = new Autocomplete({
+			onSelect: (identifier, _label, { prefix } = {}) => {
+				replaceAutocompletePrefix(keyInput, prefix ?? '', identifier);
+				keyInput.focus();
+			},
+		});
+		const activateAutocomplete = () => {
+			const prefix = getAutocompletePrefix(keyInput);
+			const filteredEntries = prefix
+				? entries.filter((entry) => entry.identifier.toLowerCase().includes(prefix.toLowerCase())).slice(0, 40)
+				: entries.slice(0, 40);
+			if (!filteredEntries.length) {
+				autocomplete.dismiss();
+				return;
+			}
+			autocomplete.activate(keyInput, filteredEntries, { prefix });
+			configureAc5eAutocompleteMenu(autocomplete);
+		};
+		keyInput.addEventListener('focus', activateAutocomplete);
+		keyInput.addEventListener('input', activateAutocomplete);
+		keyInput.addEventListener('blur', () => window.setTimeout(() => autocomplete.dismiss(), 100));
+		app.addEventListener?.('close', () => autocomplete.dismiss(), { once: true });
 	}
 }
 

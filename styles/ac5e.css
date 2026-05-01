@@ -24,6 +24,12 @@
 	overflow-y: auto;
 }
 
+#autocomplete.ac5e-autocomplete-menu {
+	max-height: min(20rem, calc(100vh - 4rem));
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
 .ac5e-effect-value-editor-help {
 	margin-left: 4px;
 }
