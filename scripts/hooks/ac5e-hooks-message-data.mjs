@@ -1,4 +1,4 @@
-import { _activeModule, _getMessageDnd5eFlags, _getMessageFlagScope, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { _activeModule, _cloneUseConfigShallow, _getMessageDnd5eFlags, _getMessageFlagScope, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _mergeUseOptions } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
@@ -179,7 +179,7 @@ function buildMessageOptions({ config, hook, message, triggerMessageId, resolved
 	}
 	if (originatingMessage?.id) options.originatingMessageId = originatingMessage.id;
 	if (originatingMessage?.speaker?.token) options.originatingSpeakerTokenId = originatingMessage.speaker.token;
-	const originatingUseConfig = useConfig ? foundry.utils.duplicate(useConfig) : null;
+	const originatingUseConfig = useConfig ? _cloneUseConfigShallow(useConfig) : null;
 	if (originatingUseConfig) {
 		originatingUseConfig.options ??= {};
 		_mergeUseOptions(options, originatingUseConfig.options);

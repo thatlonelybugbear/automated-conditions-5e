@@ -521,7 +521,14 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			}
 		}
 		if (ac5eConfig.targetADC?.length && hook !== 'attack' && hook !== 'damage') {
-			const initialTargetADC = pickNonSentinelNumber(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.target, roll0?.options?.target) ?? 10;
+			const initialTargetADC =
+				pickNonSentinelNumber(
+					ac5eConfig?.optinBaseTargetADCValue,
+					ac5eConfig?.initialTargetADC,
+					ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target,
+					config?.target,
+					roll0?.options?.target,
+				) ?? 10;
 			const alteredTargetADC = getAlteredTargetValueOrThreshold(initialTargetADC, ac5eConfig.targetADC, 'dcBonus');
 			if (!isNaN(alteredTargetADC)) {
 				ac5eConfig.initialTargetADC = roll0.options.target;
@@ -542,7 +549,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.target = ac5eForcedRollTarget;
 				if (config) config.target = ac5eForcedRollTarget;
 				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
 					for (const targets of getMutableAttackTargetCollections()) {
 						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
 					}
@@ -558,7 +564,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.target = -ac5eForcedRollTarget;
 				if (config) config.target = -ac5eForcedRollTarget;
 				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
 					for (const targets of getMutableAttackTargetCollections()) {
 						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
 					}
@@ -646,18 +651,18 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	}
 	const isLiteralDieModifier = (value) => {
 		const cleaned = typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, '') : '';
-		if (!cleaned || /^(?:maximize|minimize)$/i.test(cleaned)) return false;
+		if (!cleaned || /^(?:max|min|maximize|minimize)$/i.test(cleaned)) return false;
 		if (globalThis.dnd5e?.utils?.isValidDieModifier?.(cleaned)) return true;
 		return /^(?:min|max)-?\d+$/i.test(cleaned);
 	};
 	const applyModifierConstraint = (modifierConfig, modifierValue) => {
 		if (modifierValue === undefined || modifierValue === null) return;
 		const cleaned = String(modifierValue).trim().toLowerCase().replace(/\s+/g, '');
-		if (cleaned === 'maximize') {
+		if (cleaned === 'max' || cleaned === 'maximize') {
 			modifierConfig.maximize = true;
 			return;
 		}
-		if (cleaned === 'minimize') {
+		if (cleaned === 'min' || cleaned === 'minimize') {
 			modifierConfig.minimize = true;
 			return;
 		}
@@ -744,7 +749,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 		const safeUseConfig = _getSafeUseConfig(ac5eConfig);
 		const ac5eConfigDialog = { [Constants.MODULE_ID]: safeUseConfig };
 		if (config) foundry.utils.mergeObject(config, ac5eConfigDialog);
-		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig.options ?? {}, { merge: false });
+		_setMessageFlagScope(message, Constants.MODULE_ID, safeUseConfig, { merge: false });
 		if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) {
 			console.warn('AC5e post runtime._setAC5eProperties for preActivityUse', { ac5eConfig, config, dialog, message });
 		}

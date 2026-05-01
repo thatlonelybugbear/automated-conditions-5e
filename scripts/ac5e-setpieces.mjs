@@ -17,6 +17,7 @@ import {
 	_staticID,
 	_sleep,
 	_safeFromUuidSync,
+	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
@@ -118,6 +119,84 @@ function _usesCountDebugEnabled() {
 function _logUsesCount(stage, payload = {}) {
 	if (!_usesCountDebugEnabled()) return;
 	console.warn('AC5E usesCount', { stage, ...payload });
+}
+
+function _getOriginRollData(document, rollDataKey) {
+	if (!document) return {};
+	const rollData = document.getRollData?.();
+	const data = rollData?.[rollDataKey] ?? rollData ?? {};
+	return {
+		...data,
+		id: data.id ?? document.id,
+		uuid: data.uuid ?? document.uuid,
+		name: data.name ?? document.name,
+		type: data.type ?? document.type,
+		identifier: data.identifier ?? document.identifier,
+		flags: data.flags ?? document.flags,
+	};
+}
+
+function _getOriginItemRollData(item) {
+	const data = _getOriginRollData(item, 'item');
+	if (!item) return data;
+	data.flags ??= item.flags ?? {};
+	data.flags['midi-qol'] ??= item.flags?.['midi-qol'] ?? {};
+	data.midiFlags ??= data.flags['midi-qol'];
+	data.classIdentifier ??= item.system?.classIdentifier;
+	data.hasAttack ??= item.hasAttack;
+	data.hasSave ??= item.system?.hasSave;
+	data.hasSummoning ??= item.system?.hasSummoning;
+	data.hasLimitedUses ??= item.system?.hasLimitedUses;
+	data.isHealing ??= item.system?.isHealing;
+	data.isEnchantment ??= item.system?.isEnchantment;
+	data.transferredEffects ??= item.transferredEffects;
+	return data;
+}
+
+function _getOriginActivityRollData(activity) {
+	const data = _getOriginRollData(activity, 'activity');
+	if (!activity) return data;
+	data.ability ??= activity.ability;
+	data.hasAttack ??= !foundry.utils.isEmpty(activity.attack);
+	data.hasDamage ??= !foundry.utils.isEmpty(activity.damage?.parts);
+	data.hasHealing ??= !foundry.utils.isEmpty(activity.healing);
+	data.hasSave ??= !foundry.utils.isEmpty(activity.save);
+	data.hasCheck ??= !foundry.utils.isEmpty(activity.check);
+	data.isSpell ??= activity.isSpell;
+	data.isAoE ??= activity.target?.template?.type in CONFIG.DND5E.areaTargetTypes;
+	data.isScaledScroll ??= activity.isScaledScroll;
+	data.requiresSpellSlot ??= activity.requiresSpellSlot;
+	data.spellcastingAbility ??= activity.spellcastingAbility;
+	data.messageFlags ??= activity.messageFlags;
+	return data;
+}
+
+function _withEffectOriginEvaluationData(sandbox, effect) {
+	const originContext = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target });
+	const originItem = originContext.originItem;
+	const originActivity = originContext.originActivity;
+	const originItemData = _getOriginItemRollData(originItem);
+	const originActivityData = _getOriginActivityRollData(originActivity);
+	return {
+		...sandbox,
+		originItem: originItemData,
+		originActivity: originActivityData,
+		originItemType: originItem?.type,
+		originItemProperties: _getItemPropertiesMap(originItem),
+	};
+}
+
+function _getItemPropertiesMap(item) {
+	const properties = {};
+	if (item?.system?.properties instanceof Set) {
+		for (const property of item.system.properties) properties[property] = true;
+	}
+	return properties;
+}
+
+function _getEffectOriginItemOrActivity(effect) {
+	const originContext = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target });
+	return originContext.originActivity ?? originContext.originItem ?? null;
 }
 
 async function _safeDeleteByUuid(uuid, { source = 'local' } = {}) {
@@ -642,7 +721,7 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	if (activity && !_activeModule('midi-qol')) activity.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts); //Cannot set property hasDamage of #<MidiActivityMixin> which has only a getter
+	const hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
@@ -656,6 +735,7 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 		distanceUnit,
 		exhaustionLvl,
 		hook,
+		hasDamage,
 		isConcentration,
 		isDeathSave,
 		isInitiative,
@@ -813,7 +893,7 @@ function buildStatusEffectsTables() {
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: (ctx) => (['str', 'dex'].includes(ctx.ability) ? 'fail' : '') },
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.activity?.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -849,7 +929,7 @@ function buildStatusEffectsTables() {
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.activity?.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 			save: { subject: (ctx) => (['dex', 'str'].includes(ctx.ability) ? 'fail' : '') },
 		}),
 
@@ -1187,6 +1267,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['nodis', 'noDisadvantage'],
 			['diceupgrade', 'diceUpgrade'],
 			['dicedowngrade', 'diceDowngrade'],
+			['typeoverride', 'typeOverride'],
 			['abilityoverride', 'abilityOverride'],
 			['info', 'info'],
 			['dis', 'disadvantage'],
@@ -1208,6 +1289,60 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		// Range keys can contain substrings like "bonus" or "fail"; force range mode first.
 		const mode = key.includes('.range.') ? 'range' : modeMap.find(([m]) => key.includes(m))?.[1];
 		return { actorType, mode, isAll };
+	};
+	const isLegacyGrantsModifyDCKey = (key) => {
+		const normalizedKey = String(key ?? '').toLowerCase();
+		if (!normalizedKey.includes('.grants.') || !normalizedKey.includes('.modifydc')) return false;
+		return ['.save.', '.concentration.', '.conc.', '.death.', '.check.', '.skill.', '.tool.'].some((token) => normalizedKey.includes(token));
+	};
+	const _negateLegacyBonusExpression = (expression) => {
+		const trimmed = String(expression ?? '').trim();
+		if (!trimmed) return trimmed;
+		if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+			const number = Number(trimmed);
+			if (Number.isFinite(number)) return `${-number}`;
+		}
+		return `-(${trimmed})`;
+	};
+	const _rewriteLegacyGrantsModifyDCChange = (change) => {
+		if (!isLegacyGrantsModifyDCKey(change?.key)) return change;
+		const rawValue = String(change?.value ?? '');
+		const hasSet = /(?:^|;)\s*set\s*[:=]/i.test(rawValue);
+		const hasBonus = /(?:^|;)\s*bonus\s*[:=]/i.test(rawValue);
+		if (hasSet || !hasBonus) {
+			foundry.utils.logCompatibilityWarning(
+				'AC5E: grants.*.modifyDC is deprecated and will be removed for dnd5e v6 compatibility. Use save/check bonus flags directly.',
+				{ since: '14.600.2', until: '15.0.0', once: true },
+			);
+			return change;
+		}
+		const rewrittenKey = String(change.key).replace(/\.grants\./i, '.').replace(/\.modifydc\b/i, '.bonus');
+		const rewrittenValue = rawValue
+			.split(';')
+			.map((fragment) => fragment.trim())
+			.filter(Boolean)
+			.map((fragment) => {
+				const match = fragment.match(/^bonus\s*[:=]\s*(.+)$/i);
+				if (!match) return fragment;
+				return `bonus=${_negateLegacyBonusExpression(match[1])}`;
+			})
+			.join(';');
+		foundry.utils.logCompatibilityWarning(
+			'AC5E: grants.*.modifyDC is deprecated without replacement. It currenly gets rewritten to local bonus handling; update effects before dnd5e v6.',
+			{ since: '14.532.3', until: '14.600.1', once: true },
+		);
+		return { ...change, key: rewrittenKey, value: rewrittenValue };
+	};
+	const warnCompatibilityAlias = ({ effect, change, changeIndex, alias, canonical }) => {
+		const normalizedAlias = String(alias ?? '').trim();
+		if (!normalizedAlias) return;
+		foundry.utils.logCompatibilityWarning(`AC5E legacy flag alias "${normalizedAlias}" was used. Prefer "${canonical}".`, {
+			since: '13.5320.2',
+			until: '14.600.1',
+			details: `Effect: ${effect?.name ?? effect?.uuid ?? effect?.id ?? 'Unknown'} | Change: ${change?.key ?? normalizedAlias} | Index: ${changeIndex}`,
+			once: true,
+			stack: false,
+		});
 	};
 
 	const validFlags = [];
@@ -1282,6 +1417,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'short',
 		'singleaura',
 		'threshold',
+		'typeoverride',
 		'update',
 		'usescount',
 		'wallsblock',
@@ -1385,7 +1521,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isInit = isInitiative && hook === 'check' && change.key.includes('init');
 		const isDeath = isDeathSave && hook === 'save' && change.key.includes('death');
 		const isModifyAC = change.key.includes('modifyAC') && hook === 'attack';
-		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isSkill || isTool);
+		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(activity?.type);
+		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
 		const modifyHooks = isModifyAC || isModifyDC;
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
@@ -1395,7 +1532,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
 		const cadenceActorType = auraTokenEvaluationData ? 'aura' : (resolvedActorType ?? actorType);
-		if (normalizedChangeValue.includes('itemlimited') && !effect.origin?.includes(evalData.item?.id)) return false;
+		if (normalizedChangeValue.includes('itemlimited') && evalData.originItem?.id !== evalData.item?.id && evalData.originItem?.uuid !== evalData.item?.uuid) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
@@ -1600,6 +1737,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'extraDice':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.AddsExtraDamageDiceWithValue', { value: bonus }, `Adds extra damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.AddsExtraDamageDice', 'Adds extra damage dice');
+			case 'typeOverride':
+				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDamageTypeWithValue', { value: set }, `Overrides damage type (${set})`);
+				return localizeText('AC5E.OptinDescription.OverridesDamageType', 'Overrides damage type');
 			case 'diceUpgrade':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.UpgradesDamageDiceWithValue', { value: bonus }, `Upgrades damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.UpgradesDamageDice', 'Upgrades damage dice');
@@ -1872,6 +2012,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
 		if (mode === 'abilityOverride' && hook !== 'attack') return null;
+		if (mode === 'range' && /\.attack\.range$/i.test(String(change?.key ?? ''))) {
+			const canonicalKey = String(change.key).replace(/\.attack\.range$/i, '.range.overrides');
+			warnCompatibilityAlias({
+				effect,
+				change,
+				changeIndex,
+				alias: change.key,
+				canonical: canonicalKey,
+			});
+		}
 		const debug = { effectUuid: effect.uuid, changeKey: change.key };
 		const entryId =
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
@@ -1962,24 +2112,26 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return entry;
 	};
 	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
+		const normalizedChange = _rewriteLegacyGrantsModifyDCChange(change);
+		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
 		if (
 			!effectChangesTest({
 				token,
-				change,
+				change: normalizedChange,
 				actorType,
 				hook,
 				effect,
 				updateArrays,
-				evaluationData: isAura ? undefined : sandbox,
-				auraTokenEvaluationData: isAura ? sandbox : undefined,
+				evaluationData: isAura ? undefined : effectSandbox,
+				auraTokenEvaluationData: isAura ? effectSandbox : undefined,
 				changeIndex,
 				auraTokenUuid: auraToken?.document?.uuid,
 			})
 		)
 			return;
-		const entry = buildValidFlagEntry({ change, changeIndex, effect, hook, sandbox, isAura, auraToken, sourceActor, sourceNameFallback });
+		const entry = buildValidFlagEntry({ change: normalizedChange, changeIndex, effect, hook, sandbox: effectSandbox, isAura, auraToken, sourceActor, sourceNameFallback });
 		if (!entry?.evaluation) return;
-		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
+		const normalizedChangeValue = String(normalizedChange.value ?? '').toLowerCase();
 		if (isAura && normalizedChangeValue.includes('singleaura')) {
 			const wallsBlock = normalizedChangeValue.includes('wallsblock') && 'sight';
 			const sameAuras = validFlags.filter((existing) => existing.isAura && existing.name === effect.name);
@@ -2354,7 +2506,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-			if (['bonus', 'extraDice', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+			if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'diceUpgrade', 'diceDowngrade', 'range', 'abilityOverride'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
@@ -2934,22 +3086,12 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		} else {
 			let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
 			if (hasOrigin) {
-				if (!effect.origin) {
+				itemActivityfromUuid = _getEffectOriginItemOrActivity(effect);
+				if (!itemActivityfromUuid) {
 					ui.notifications.error(
 						`You are using 'origin' in effect ${effect.name}, but you have created it directly on the actor and does not have an associated item or activity; Returning false in ac5e.handleUses;`,
 					);
 					return false;
-				} else {
-					const parsed = foundry.utils.parseUuid(effect.origin);
-					if (parsed.type === 'ActiveEffect') {
-						// most of the time that will be an appliedEffect and the origin should be correct and not pointing to game.actors.
-						itemActivityfromUuid = _safeFromUuidSync(effect.origin)?.parent;
-					} else if (parsed.type === 'Item') {
-						const i = _safeFromUuidSync(effect.origin);
-						const actorLinked = i?.parent?.protoTypeToken?.actorLink; //when can "i" be undefined? Origin can be null
-						if (actorLinked) itemActivityfromUuid = i;
-						else itemActivityfromUuid = _safeFromUuidSync(effect.parent.uuid);
-					}
 				}
 			}
 			if (itemActivityfromUuid) {
@@ -3450,14 +3592,8 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	}
 	let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
 	if (hasOrigin) {
-		if (!effect?.origin) return result();
-		const parsed = foundry.utils.parseUuid(effect.origin);
-		if (parsed.type === 'ActiveEffect') itemActivityfromUuid = _safeFromUuidSync(effect.origin)?.parent;
-		else if (parsed.type === 'Item') {
-			const item = _safeFromUuidSync(effect.origin);
-			const actorLinked = item?.parent?.protoTypeToken?.actorLink;
-			itemActivityfromUuid = actorLinked ? item : _safeFromUuidSync(effect.parent?.uuid);
-		}
+		itemActivityfromUuid = _getEffectOriginItemOrActivity(effect);
+		if (!itemActivityfromUuid) return result();
 	}
 	if (itemActivityfromUuid) {
 		const item = itemActivityfromUuid instanceof Item && itemActivityfromUuid;
@@ -3758,16 +3894,17 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 
 	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
 	expression = expression.replace(pattern, (match) => staticMap[match]);
-	if (expression.includes('@item') && effect.origin) {
-		let origin = _safeFromUuidSync(effect?.origin);
-		if (origin instanceof Item) {
-			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === origin.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === origin.uuid);
-			if (itemIndex >= 0) expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
-		} else if (origin instanceof ActiveEffect) {
-			origin = origin.item instanceof Item && origin.item;
-			if (origin) {
-				const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === origin.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === origin.uuid);
-				if (itemIndex >= 0) expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
+	if (expression.includes('@item')) {
+		const originItem = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target }).originItem;
+		if (originItem instanceof Item) {
+			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === originItem.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === originItem.uuid);
+			if (itemIndex >= 0) {
+				foundry.utils.logCompatibilityWarning('AC5E: Using @item to reference an effect origin item is deprecated. Use originItem instead.', {
+					since: '14.532.2',
+					until: '14.600.1',
+					once: true,
+				});
+				expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
 			}
 		}
 	}
@@ -3782,7 +3919,10 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 
 function _normalizeLiteralModifierSyntax(value) {
 	if (typeof value !== 'string') return '';
-	return value.trim().replace(/\s+/g, '');
+	const normalized = value.trim().replace(/\s+/g, '');
+	if (/^max$/i.test(normalized)) return 'maximize';
+	if (/^min$/i.test(normalized)) return 'minimize';
+	return normalized;
 }
 
 function _isLiteralModifierSyntax(value, hook) {
@@ -3817,12 +3957,13 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 			});
 	}
 	const isSet =
-		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
+		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || mode === 'typeOverride' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
 			getBlacklistedKeysValue('set', rawValue)
 		:	false;
 	if (isSet) {
 		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
-		set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
+		if (mode === 'typeOverride') set = String(replacementBonus ?? '').trim();
+		else set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isModifier = lowerValue.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', rawValue) : false;
 	if (isModifier) {
@@ -3830,7 +3971,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
 		if (typeof trimmedModifier === 'string') {
 			const extremeMatch = trimmedModifier.match(/^(min|max)\s*(.+)$/i);
-			if (extremeMatch && !/^(?:maximize|minimize)$/i.test(trimmedModifier)) {
+			if (extremeMatch && !/^(?:max|min|maximize|minimize)$/i.test(trimmedModifier.trim().replace(/\s+/g, ''))) {
 				let extremeValue = _ac5eSafeEval({ expression: extremeMatch[2], sandbox: evaluationData, mode: 'formula', debug });
 				if (!Number.isFinite(Number(extremeValue))) extremeValue = evalNumericFormulaExpression(extremeValue, { debug });
 				const numericExtremeValue = Number(extremeValue);
@@ -3885,7 +4026,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	}
 	if (set !== undefined && set !== '') {
 		if (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack') set = String(evalNumericFormulaExpression(set, { debug }));
-		else set = String(evalDiceExpression(set)); // we need Strings for set
+		else if (mode !== 'typeOverride') set = String(evalDiceExpression(set)); // we need Strings for set
 	}
 	if (ac5e?.debugTargetADC && mode === 'targetADC') console.warn('AC5E targetADC: preEvaluate', { hook, value, bonus, set, threshold, effect: effect?.name });
 	return { bonus, set, modifier, threshold, chance };

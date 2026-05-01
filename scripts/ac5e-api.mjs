@@ -13,6 +13,7 @@ import {
 	_isUuidLike,
 	_reindexFlagRegistryActor,
 	_resolveUuidString,
+	_resolveEffectOriginContext,
 	_safeFromUuidSync,
 } from './ac5e-helpers.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
@@ -169,6 +170,7 @@ function _normalizeUsageRuleMode(mode) {
 		fumblethreshold: 'fumbleThreshold',
 		fumblethres: 'fumbleThreshold',
 		extradice: 'extraDice',
+		typeoverride: 'typeOverride',
 		diceupgrade: 'diceUpgrade',
 		dicedowngrade: 'diceDowngrade',
 		range: 'range',
@@ -1571,6 +1573,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.getItems = _getItems;
 	ac5e.getItem = _getItem;
 	ac5e.getItemOrActivity = _getItemOrActivity;
+	ac5e.resolveEffectOriginContext = _resolveEffectOriginContext;
 	ac5e.hasItem = _hasItem;
 	ac5e.logEvaluationData = false;
 	ac5e.debug ??= {

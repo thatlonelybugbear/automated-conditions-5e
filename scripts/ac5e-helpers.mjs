@@ -5,6 +5,23 @@ import Settings from './ac5e-settings.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+export function _cloneUseConfigShallow(useConfig) {
+	if (!useConfig || typeof useConfig !== 'object') return useConfig ?? null;
+	const cloned = { ...useConfig };
+	if (useConfig.options && typeof useConfig.options === 'object') cloned.options = { ...useConfig.options };
+	if (useConfig.bonuses && typeof useConfig.bonuses === 'object') cloned.bonuses = foundry.utils.duplicate(useConfig.bonuses);
+	if (Array.isArray(useConfig.extraDice)) cloned.extraDice = foundry.utils.duplicate(useConfig.extraDice);
+	if (Array.isArray(useConfig.damageModifiers)) cloned.damageModifiers = foundry.utils.duplicate(useConfig.damageModifiers);
+	if (Array.isArray(useConfig.parts)) cloned.parts = foundry.utils.duplicate(useConfig.parts);
+	if (Array.isArray(useConfig.threshold)) cloned.threshold = foundry.utils.duplicate(useConfig.threshold);
+	if (Array.isArray(useConfig.fumbleThreshold)) cloned.fumbleThreshold = foundry.utils.duplicate(useConfig.fumbleThreshold);
+	if (useConfig.subject && typeof useConfig.subject === 'object') cloned.subject = foundry.utils.duplicate(useConfig.subject);
+	if (useConfig.opponent && typeof useConfig.opponent === 'object') cloned.opponent = foundry.utils.duplicate(useConfig.opponent);
+	if (Array.isArray(useConfig.pendingUses)) cloned.pendingUses = foundry.utils.duplicate(useConfig.pendingUses);
+	if (cloned?.options?.originatingUseConfig !== undefined) delete cloned.options.originatingUseConfig;
+	return cloned;
+}
+
 export function getResolvedD20BooleansFromMode(mode, fallback = {}) {
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	if (typeof mode === 'number' && advModes) {
@@ -190,6 +207,7 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'range',
 	'success',
 	'extraDice',
+	'typeOverride',
 	'targetADC',
 	'criticalThreshold',
 	'fumbleThreshold',
@@ -352,7 +370,7 @@ function _normalizeCadenceToken(value) {
 }
 
 function _extractRuleMetadata(value) {
-	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null };
+	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null, itemLimited: false };
 	const fragments = value
 		.split(/[;|]/)
 		.map((part) => part.trim())
@@ -362,10 +380,15 @@ function _extractRuleMetadata(value) {
 	let addTo = null;
 	let condition = null;
 	let cadence = null;
+	let itemLimited = false;
 	for (const fragment of fragments) {
 		const normalizedFragment = fragment.toLowerCase();
 		if (normalizedFragment === 'optin') {
 			optin = true;
+			continue;
+		}
+		if (normalizedFragment === 'itemlimited') {
+			itemLimited = true;
 			continue;
 		}
 		const fragmentCadence = _normalizeCadenceToken(normalizedFragment);
@@ -388,7 +411,7 @@ function _extractRuleMetadata(value) {
 			if (parsedCadence) cadence = parsedCadence;
 		}
 	}
-	return { optin, priority, addTo, condition, cadence };
+	return { optin, priority, addTo, condition, cadence, itemLimited };
 }
 
 function _getEffectOwnerActor(effect) {
@@ -448,6 +471,7 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 			optin: meta.optin,
 			priority: meta.priority,
 			cadence: meta.cadence,
+			itemLimited: meta.itemLimited,
 			conditions: {
 				expression: meta.condition,
 			},
@@ -603,8 +627,7 @@ export function _setUseConfigInflightCache({ messageId, originatingMessageId, us
 	const expiresAt = now + USE_CONFIG_INFLIGHT_TTL_MS;
 	const safeIds = new Set([messageId, originatingMessageId].filter(Boolean));
 	if (!safeIds.size) return;
-	const clonedUseConfig = foundry.utils.duplicate(useConfig);
-	if (clonedUseConfig?.options?.originatingUseConfig !== undefined) delete clonedUseConfig.options.originatingUseConfig;
+	const clonedUseConfig = _cloneUseConfigShallow(useConfig);
 	for (const id of safeIds) {
 		useConfigInflightCache.set(id, { useConfig: clonedUseConfig, expiresAt });
 	}
@@ -764,6 +787,7 @@ function freezeDamageRollSnapshot(profile = {}, config = {}, ac5eConfig = {}) {
 			formula,
 			parts: Object.freeze(foundry.utils.duplicate(parts)),
 			type: roll?.options?.type ?? null,
+			types: Object.freeze(foundry.utils.duplicate(Array.isArray(roll?.options?.types) ? roll.options.types : roll?.options?.types instanceof Set ? [...roll.options.types] : [])),
 			maximum: roll?.options?.maximum ?? null,
 			minimum: roll?.options?.minimum ?? null,
 			maximize: roll?.options?.maximize ?? null,
@@ -822,6 +846,9 @@ export function _restoreDamageConfigFromFrozenBaseline(ac5eConfig, config) {
 		if (typeof rollBaseline.formula === 'string') roll.formula = rollBaseline.formula;
 		else if (Array.isArray(roll.parts) && roll.parts.length) roll.formula = roll.parts.join(' + ');
 		if (rollBaseline.type !== undefined && rollBaseline.type !== null) roll.options.type = rollBaseline.type;
+		else if ('type' in roll.options) delete roll.options.type;
+		if (Array.isArray(rollBaseline.types) && rollBaseline.types.length) roll.options.types = foundry.utils.duplicate(rollBaseline.types);
+		else if ('types' in roll.options) delete roll.options.types;
 		if (rollBaseline.maximum !== undefined && rollBaseline.maximum !== null) roll.options.maximum = rollBaseline.maximum;
 		else if ('maximum' in roll.options) delete roll.options.maximum;
 		if (rollBaseline.minimum !== undefined && rollBaseline.minimum !== null) roll.options.minimum = rollBaseline.minimum;
@@ -2260,7 +2287,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	if (typeof tracker.attribution !== 'object') return;
 	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAttackRollModifierTracker');
 	_logMidiTrackerSnapshot('attack.pre', { hookType: ac5eConfig?.hookType, tracker, ac5eConfig });
-	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'AC5E'];
+	const trackedTypes = ['ADV', 'DIS', 'NOADV', 'NODIS', 'CRIT', 'NOCRIT', 'FAIL', 'SUCCESS', 'AC5E'];
 	const trackerContext = _createMidiTrackerSyncContext(tracker, trackedTypes);
 	const { clearLegacySet, clearTrackedType, dedupeLabels, labelsFromEntries } = trackerContext;
 	for (const type of trackedTypes) clearTrackedType(type);
@@ -2276,13 +2303,19 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 	const criticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.critical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.critical ?? []))));
 	const noCriticalLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.noCritical ?? [])).concat(labelsFromEntries(filterOptin(opponent?.noCritical ?? []))));
+	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
+	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+	const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
 	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NODIS', midiTrackerNoDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'CRIT', criticalLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOCRIT', noCriticalLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
+	_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.SpellHeader.Range') || 'Range', rangeNoteLabels);
 	const enforcedModeLabel =
 		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
@@ -2527,6 +2560,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
 		const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 		const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
+		const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
 		const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
 		const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
 		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
@@ -2536,6 +2570,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		_addMidiTrackerEntries(tracker, trackerContext, 'FAIL', failLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'SUCCESS', successLabels);
 		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Info'), infoLabels, { combineLabelList: true });
+		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.SpellHeader.Range') || 'Range', rangeNoteLabels, { combineLabelList: true });
 		const enforcedModeLabel =
 			enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 			: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
@@ -2645,13 +2680,12 @@ function _getActionType(activity, returnClassifications = false) {
 export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, id, uuid */) {
 	if (!effect?.origin) return undefined;
 
-	let origin = _safeFromUuidSync(effect.origin);
-	let actor = _resolveActorFromOrigin(origin);
+	const originContext = _resolveEffectOriginContext(effect);
+	let actor = originContext.originActor;
 
 	// Check if origin itself has an origin (chained origin), resolve again
-	if (!actor && origin?.origin) {
-		const deeperOrigin = _safeFromUuidSync(origin.origin);
-		actor = _resolveActorFromOrigin(deeperOrigin);
+	if (!actor && originContext.originEffect?.origin) {
+		actor = _resolveEffectOriginContext(originContext.originEffect).originActor;
 	}
 
 	if (!actor) return undefined;
@@ -2670,8 +2704,125 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 	}
 }
 
+export function _resolveEffectOriginContext(effect, { relative } = {}) {
+	const context = {
+		originItem: null,
+		originActivity: null,
+		originEffect: null,
+		originActor: null,
+		sourceDocument: null,
+	};
+	if (!effect) return context;
+
+	const relativeDocument = relative ?? effect.parent ?? effect.target ?? null;
+	const actor = effect.target instanceof CONFIG.Actor.documentClass ? effect.target : effect.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
+	const flags = effect.flags?.dnd5e ?? {};
+	const flagItem = _resolveEffectFlagItem(flags.item, actor, relativeDocument);
+	const flagActivity = _resolveEffectFlagActivity(flags.activity, flagItem, actor, relativeDocument);
+	const isConcentration = effect.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING);
+	const isEnchantment = effect.type === 'enchantment' || effect.isAppliedEnchantment || effect.flags?.dnd5e?.dependentOn;
+
+	if (flagItem) context.originItem = flagItem;
+	if (flagActivity) {
+		context.originActivity = flagActivity;
+		context.originItem ??= flagActivity.item instanceof CONFIG.Item.documentClass ? flagActivity.item : flagActivity.parent instanceof CONFIG.Item.documentClass ? flagActivity.parent : null;
+	}
+
+	const origin = effect.origin ? _safeFromUuidSync(effect.origin, { relative: relativeDocument }) : null;
+	context.sourceDocument = origin;
+	if (_isItemDocument(origin)) context.originItem ??= origin;
+	else if (_isActivityDocument(origin)) {
+		context.originActivity ??= origin;
+		context.originItem ??= origin.item instanceof CONFIG.Item.documentClass ? origin.item : origin.parent instanceof CONFIG.Item.documentClass ? origin.parent : null;
+	} else if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+		context.originEffect = origin;
+		if (origin.parent instanceof CONFIG.Item.documentClass) context.originItem ??= origin.parent;
+		else if (origin.item instanceof CONFIG.Item.documentClass) context.originItem ??= origin.item;
+		else if (origin.parent instanceof CONFIG.Actor.documentClass) context.originActor ??= origin.parent;
+	}
+
+	if (context.originEffect?.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING)) {
+		const concentrationOrigin = _resolveConcentrationEffectOrigin(context.originEffect, {
+			actor: context.originActor ?? actor,
+			relative: context.originEffect.parent ?? context.originEffect.target ?? relativeDocument,
+		});
+		context.originItem ??= concentrationOrigin.originItem;
+		context.originActivity ??= concentrationOrigin.originActivity;
+		if (context.originActivity) {
+			context.originItem ??=
+				context.originActivity.item instanceof CONFIG.Item.documentClass ? context.originActivity.item
+				: context.originActivity.parent instanceof CONFIG.Item.documentClass ? context.originActivity.parent
+				: null;
+		}
+	}
+
+	if (!context.originActivity && !isConcentration && !isEnchantment) context.originActivity = _findActivityForEffect(context.originItem, effect, context.originEffect);
+
+	context.originActor ??= _resolveActorFromOrigin(context.originActivity) ?? _resolveActorFromOrigin(context.originItem) ?? _resolveActorFromOrigin(context.originEffect) ?? actor;
+	return context;
+}
+
+function _resolveConcentrationEffectOrigin(effect, { actor, relative } = {}) {
+	const flags = effect?.flags?.dnd5e ?? {};
+	const concentrationActor = actor instanceof CONFIG.Actor.documentClass ? actor : effect.target instanceof CONFIG.Actor.documentClass ? effect.target : effect.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
+	const originItem = _resolveEffectFlagItem(flags.item, concentrationActor, relative);
+	const originActivity = _resolveEffectFlagActivity(flags.activity, originItem, concentrationActor, relative);
+	return { originItem, originActivity };
+}
+
+function _resolveEffectFlagItem(itemFlag, actor, relativeDocument) {
+	if (!itemFlag) return null;
+	const uuid = typeof itemFlag === 'string' ? itemFlag : itemFlag.uuid;
+	const id = typeof itemFlag === 'object' ? itemFlag.id : null;
+	let item = uuid ? _safeFromUuidSync(uuid, { relative: relativeDocument }) : null;
+	if (!_isItemDocument(item) && id && actor?.items?.get) item = actor.items.get(id);
+	return _isItemDocument(item) ? item : null;
+}
+
+function _resolveEffectFlagActivity(activityFlag, item, actor, relativeDocument) {
+	if (!activityFlag) return null;
+	const uuid = typeof activityFlag === 'string' ? activityFlag : activityFlag.uuid;
+	const id = typeof activityFlag === 'object' ? activityFlag.id : null;
+	let activity = uuid ? _safeFromUuidSync(uuid, { relative: relativeDocument }) : null;
+	if (!_isActivityDocument(activity) && id && item?.system?.activities?.get) activity = item.system.activities.get(id);
+	if (!_isActivityDocument(activity) && id && actor?.items) {
+		for (const actorItem of actor.items) {
+			activity = actorItem.system?.activities?.get?.(id);
+			if (_isActivityDocument(activity)) break;
+		}
+	}
+	return _isActivityDocument(activity) ? activity : null;
+}
+
+function _findActivityForEffect(item, effect, originEffect) {
+	if (!_isItemDocument(item)) return null;
+	const effectIds = new Set([effect?.id, originEffect?.id, effect?.flags?.dnd5e?.dependentOn].filter(Boolean));
+	if (!effectIds.size) return null;
+	for (const activity of item.system?.activities ?? []) {
+		for (const activityEffect of activity?.effects ?? []) {
+			const id = activityEffect?._id ?? activityEffect?.id;
+			if (effectIds.has(id)) return activity;
+		}
+	}
+	return null;
+}
+
+function _isItemDocument(document) {
+	return document instanceof CONFIG.Item.documentClass;
+}
+
+function _isActivityDocument(document) {
+	return Boolean(
+		document &&
+			!(document instanceof CONFIG.ActiveEffect.documentClass) &&
+			!(document instanceof CONFIG.Item.documentClass) &&
+			(document.uuid?.includes?.('.Activity.') || document.item instanceof CONFIG.Item.documentClass),
+	);
+}
+
 function _resolveActorFromOrigin(origin) {
 	if (!origin) return undefined;
+	if (_isActivityDocument(origin)) return origin.item?.actor ?? origin.parent?.actor;
 
 	// If origin is an ActiveEffect on an Item or Actor
 	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
@@ -2715,6 +2866,7 @@ function sizeWarnings(targetCount, setting) {
 
 export function _generateAC5eFlags() {
 	const moduleFlagScope = `flags.${Constants.MODULE_ID}`;
+	const deprecatedGrantsModifyDCKey = new RegExp(`^${moduleFlagScope.replace('.', '\\.')}\\.grants\\.(?:save|concentration|death|check|skill|tool|ACTIONTYPE)\\.modifyDC$`, 'i');
 	const statusFlagKeys = [...new Set([...Object.keys(CONFIG?.DND5E?.conditionTypes ?? {}), 'bloodied'])].map((statusId) => `no${statusId.capitalize()}`);
 	const moduleFlags = new Set([
 		`${moduleFlagScope}.crossbowExpert`,
@@ -2725,9 +2877,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.attack.fumbleThreshold`,
 		`${moduleFlagScope}.grants.attack.fumbleThreshold`,
 		`${moduleFlagScope}.aura.attack.fumbleThreshold`,
-		`${moduleFlagScope}.range`,
-		`${moduleFlagScope}.grants.range`,
-		`${moduleFlagScope}.aura.range`,
+		`${moduleFlagScope}.range.overrides`,
+		`${moduleFlagScope}.grants.range.overrides`,
+		`${moduleFlagScope}.aura.range.overrides`,
 		`${moduleFlagScope}.range.short`,
 		`${moduleFlagScope}.grants.range.short`,
 		`${moduleFlagScope}.aura.range.short`,
@@ -2758,6 +2910,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.damage.extraDice`,
 		`${moduleFlagScope}.grants.damage.extraDice`,
 		`${moduleFlagScope}.aura.damage.extraDice`,
+		`${moduleFlagScope}.damage.typeOverride`,
+		`${moduleFlagScope}.grants.damage.typeOverride`,
+		`${moduleFlagScope}.aura.damage.typeOverride`,
 		`${moduleFlagScope}.damage.diceUpgrade`,
 		`${moduleFlagScope}.grants.damage.diceUpgrade`,
 		`${moduleFlagScope}.aura.damage.diceUpgrade`,
@@ -2820,7 +2975,7 @@ export function _generateAC5eFlags() {
 	}
 
 	// DAE autocomplete should only expose canonical long-scope keys.
-	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`)); //to-do: clean up (probably not needed anymore)
+	return Array.from(moduleFlags).filter((key) => key.startsWith(`${moduleFlagScope}.`) && !deprecatedGrantsModifyDCKey.test(key)); //to-do: clean up (probably not needed anymore)
 }
 
 /**
@@ -2986,7 +3141,7 @@ export function _getTokenFromActor(actor) {
 	return token;
 }
 
-export function _safeFromUuidSync(value, { collection } = {}) {
+export function _safeFromUuidSync(value, { collection, relative } = {}) {
 	if (!value) return null;
 
 	// Already Document
@@ -2995,9 +3150,13 @@ export function _safeFromUuidSync(value, { collection } = {}) {
 	// UUID
 	if (typeof value === 'string' && value.includes('.')) {
 		try {
-			return fromUuidSync(value, { strict: false }) ?? null;
+			return fromUuidSync(value, { strict: false, relative }) ?? null;
 		} catch (_err) {
-			return null;
+			try {
+				return fromUuidSync(value, { strict: false }) ?? null;
+			} catch (_fallbackErr) {
+				return null;
+			}
 		}
 	}
 

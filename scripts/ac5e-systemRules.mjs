@@ -65,15 +65,17 @@ export function checkNearby(token, disposition, radius, { count = false, include
 export function autoRanged(activity, token, target, options = {}) {
 	if (typeof activity === 'string') activity = fromUuidSync(activity);
 	const distanceUnit = canvas.grid.distance;
+	const distanceLabelUnit = canvas.grid.units || '';
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
 	const isAttack = activity.type === 'attack';
-	const hookType = options?.ac5eConfig?.hookType;
-	const isAttackRangeContext = isAttack && (hookType === 'attack' || hookType === 'use' || !hookType);
+	const hookType = options.ac5eConfig?.hookType ?? options?.hook;
+	const isRangeProfileContext = hookType === 'attack' || hookType === 'use' || !hookType;
+	const isAttackRangeContext = isAttack && isRangeProfileContext;
 	const { checkRange: midiCheckRange, nearbyFoe: midiNearbyFoe } = _activeModule('midi-qol') && MidiQOL.configSettings().optionalRulesEnabled ? MidiQOL.configSettings().optionalRules : {};
 	const allowMidiRangeOverride = options?.allowMidiRangeOverride !== false;
 	const midiChecks = allowMidiRangeOverride && midiCheckRange && midiCheckRange !== 'none';
-	const actionType = options?.actionType ?? activity?.actionType;
+	const actionType = options.actionType ?? activity?.getActionType?.(options?.attackMode) ?? activity?.actionType;
 	const item =
 		activity?.item ??
 		(typeof options?.item === 'string' ? fromUuidSync(options.item)
@@ -88,7 +90,12 @@ export function autoRanged(activity, token, target, options = {}) {
 	};
 	const range = resolveBaseRange();
 	if (!range) return {};
-	let { value: short, long, reach } = range;
+	const baseShort = Number.isFinite(Number(range?.value)) ? Number(range.value) : undefined;
+	const baseLong = Number.isFinite(Number(range?.long)) ? Number(range.long) : undefined;
+	const baseReach = Number.isFinite(Number(range?.reach)) ? Number(range.reach) : undefined;
+	let short = baseShort;
+	let long = baseLong;
+	let reach = baseReach;
 	const distance = options?.distance ?? (target ? _getDistance(token, target) : undefined);
 	const normalizedDamageTypes =
 		Array.isArray(options?.damageTypes) ? options.damageTypes
@@ -103,9 +110,12 @@ export function autoRanged(activity, token, target, options = {}) {
 		const opponentEntries = Array.isArray(ac5eConfig?.opponent?.range) ? ac5eConfig.opponent.range : [];
 		return _filterOptinEntries(subjectEntries.concat(opponentEntries), ac5eConfig?.optinSelected).filter((entry) => {
 			if (!entry || typeof entry !== 'object' || entry.mode !== 'range') return false;
-			if (!isAttackRangeContext) return false;
+			if (!isRangeProfileContext) return false;
 			if (entry.hook) {
-				const allowedHooks = hookType === 'use' ? new Set(['attack', 'use']) : new Set(['attack']);
+				const allowedHooks =
+					hookType === 'use' ? new Set(['use'])
+					: hookType === 'attack' ? new Set(['attack'])
+					: new Set(['attack', 'use']);
 				if (!allowedHooks.has(entry.hook)) return false;
 			}
 			const required = Array.isArray(entry.requiredDamageTypes) ? entry.requiredDamageTypes.map((t) => String(t).toLowerCase()) : [];
@@ -125,6 +135,37 @@ export function autoRanged(activity, token, target, options = {}) {
 		const normalized = String(label ?? '').trim();
 		return normalized || undefined;
 	};
+	const formatDistance = (value) => {
+		const numericValue = Number(value);
+		if (!Number.isFinite(numericValue)) return null;
+		return distanceLabelUnit ? `${numericValue} ${distanceLabelUnit}` : String(numericValue);
+	};
+	const formatRangeProfile = ({ short: shortValue, long: longValue, reach: reachValue }) => {
+		const parts = [];
+		const formattedShort = formatDistance(shortValue);
+		const formattedLong = formatDistance(longValue);
+		const formattedReach = formatDistance(reachValue);
+		if (formattedShort && formattedLong) parts.push(`${formattedShort}/${formattedLong}`);
+		else if (formattedShort) parts.push(formattedShort);
+		else if (formattedLong) parts.push(`long ${formattedLong}`);
+		if (formattedReach) parts.push(`reach ${formattedReach}`);
+		return parts.join(', ');
+	};
+	const buildRangeNotes = () => {
+		const notes = [];
+		const baseProfile = formatRangeProfile({ short: baseShort, long: baseLong, reach: baseReach });
+		const resolvedProfile = formatRangeProfile({ short, long, reach });
+		if (resolvedProfile && resolvedProfile !== baseProfile) {
+			const rangeOverrideLabel = profileSourceLabels.size ? [...profileSourceLabels].join(', ') : 'Override';
+			notes.push(baseProfile ? `${rangeOverrideLabel} ${resolvedProfile} (${baseProfile})` : `${rangeOverrideLabel} ${resolvedProfile}`);
+		}
+		if (noLongDisadvantageSourceLabel) notes.push(`Long-range disadvantage disabled: ${noLongDisadvantageSourceLabel}`);
+		if (outOfRangeFailSourceLabel) {
+			if (outOfRangeFail) notes.push(`Out-of-range fail enabled: ${outOfRangeFailSourceLabel}`);
+			else notes.push(`Out-of-range fail disabled: ${outOfRangeFailSourceLabel}`);
+		}
+		return [...new Set(notes)];
+	};
 	let longDisadvantage = midiChecks ? false : settings.autoRangeChecks.has('rangedLongDisadvantage');
 	let nearbyFoeDisadvantage = settings.autoRangeChecks.has('rangedNearbyFoes');
 	let outOfRangeFail = midiChecks ? false : settings.autoRangeChecks.has('rangedOoR');
@@ -132,9 +173,12 @@ export function autoRanged(activity, token, target, options = {}) {
 	let noLongDisadvantageSourceMode;
 	let outOfRangeFailSourceLabel;
 	let outOfRangeFailSourceMode;
+	const profileSourceLabels = new Set();
+	const supportsAttackOnlyRangeEffects = isAttackRangeContext && ['mwak', 'msak', 'rwak', 'rsak'].includes(actionType);
 	for (const entry of rangeEntries) {
 		const rangeConfig = entry?.range ?? {};
 		const entryLabel = getRangeEntryLabel(entry);
+		if ((rangeConfig.short || rangeConfig.long || rangeConfig.reach || rangeConfig.bonus) && entryLabel) profileSourceLabels.add(entryLabel);
 		short = applyRangeComponent(short, rangeConfig.short);
 		long = applyRangeComponent(long, rangeConfig.long);
 		reach = applyRangeComponent(reach, rangeConfig.reach);
@@ -143,16 +187,18 @@ export function autoRanged(activity, token, target, options = {}) {
 			long = applyRangeComponent(long, rangeConfig.bonus);
 			reach = applyRangeComponent(reach, rangeConfig.bonus);
 		}
-		if (typeof rangeConfig.longDisadvantage === 'boolean') longDisadvantage = rangeConfig.longDisadvantage;
-		if (typeof rangeConfig.noLongDisadvantage === 'boolean') {
-			longDisadvantage = !rangeConfig.noLongDisadvantage;
-			noLongDisadvantageSourceLabel = entryLabel;
-			noLongDisadvantageSourceMode = 'noLongDisadvantage';
+		if (supportsAttackOnlyRangeEffects) {
+			if (typeof rangeConfig.longDisadvantage === 'boolean') longDisadvantage = rangeConfig.longDisadvantage;
+			if (typeof rangeConfig.noLongDisadvantage === 'boolean') {
+				longDisadvantage = !rangeConfig.noLongDisadvantage;
+				noLongDisadvantageSourceLabel = entryLabel;
+				noLongDisadvantageSourceMode = 'noLongDisadvantage';
+			}
+			if (typeof rangeConfig.nearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoeDisadvantage;
+			if (typeof rangeConfig.nearbyFoes === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoes;
+			if (typeof rangeConfig.noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoeDisadvantage;
+			if (typeof rangeConfig.noNearbyFoes === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoes;
 		}
-		if (typeof rangeConfig.nearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoeDisadvantage;
-		if (typeof rangeConfig.nearbyFoes === 'boolean') nearbyFoeDisadvantage = rangeConfig.nearbyFoes;
-		if (typeof rangeConfig.noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoeDisadvantage;
-		if (typeof rangeConfig.noNearbyFoes === 'boolean') nearbyFoeDisadvantage = !rangeConfig.noNearbyFoes;
 		if (typeof rangeConfig.fail === 'boolean') {
 			outOfRangeFail = rangeConfig.fail;
 			outOfRangeFailSourceLabel = entryLabel;
@@ -227,6 +273,7 @@ export function autoRanged(activity, token, target, options = {}) {
 			outOfRangeFailSourceLabel: !inReach && outOfRangeFailSourceLabel ? outOfRangeFailSourceLabel : 'meleeOoR',
 			outOfRangeFailSourceMode: !inReach && outOfRangeFailSourceMode ? outOfRangeFailSourceMode : 'meleeOoR',
 			distance,
+			rangeNotes: buildRangeNotes(),
 		};
 	}
 	const sharpShooter = flags?.sharpShooter || _hasItem(token.actor, 'AC5E.Feats.Sharpshooter');
@@ -234,6 +281,7 @@ export function autoRanged(activity, token, target, options = {}) {
 	const crossbowExpert = flags?.crossbowExpert || _hasItem(token.actor, 'AC5E.Feats.CrossbowExpert');
 
 	const nearbyFoe =
+		supportsAttackOnlyRangeEffects &&
 		!midiNearbyFoe &&
 		!['mwak', 'msak'].includes(actionType) &&
 		nearbyFoeDisadvantage &&
@@ -284,6 +332,7 @@ export function autoRanged(activity, token, target, options = {}) {
 		outOfRangeFail,
 		outOfRangeFailSourceLabel,
 		outOfRangeFailSourceMode,
+		rangeNotes: buildRangeNotes(),
 	};
 }
 

@@ -9,8 +9,9 @@ export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 	if (ac5eConfig?.tooltipObj && typeof ac5eConfig.tooltipObj === 'object' && hookType) {
 		delete ac5eConfig.tooltipObj[hookType];
 	}
-	const targetADCEntries = getTargetADCEntriesForHook(ac5eConfig, hookType).filter((entry) => entry.optin);
-	const baseTargetADCEntries = getTargetADCEntriesForHook(ac5eConfig, hookType)
+	const allTargetADCEntries = getTargetADCEntriesForHook(ac5eConfig, hookType);
+	const targetADCEntries = allTargetADCEntries.filter((entry) => entry.optin);
+	const baseTargetADCEntries = allTargetADCEntries
 		.filter((entry) => !entry.optin)
 		.flatMap((entry) => (Array.isArray(entry.values) ? entry.values : []));
 	const hasTargetADCOptins = targetADCEntries.length > 0 || Array.isArray(ac5eConfig?.optinBaseTargetADC);
@@ -27,22 +28,33 @@ export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 			const values = Array.isArray(entry.values) ? entry.values : [];
 			for (const value of values) selectedValues.push(value);
 		}
-		ac5eConfig.targetADC = [...new Set(baseTargetADC.concat(selectedValues))];
-		if (selectedValues.length) {
-			const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
-			const type = hookType === 'attack' ? 'acBonus' : 'dcBonus';
-			ac5eConfig.initialTargetADC = baseTarget;
-			ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, selectedValues, type);
+		const activeValues = baseTargetADC.concat(selectedValues);
+		ac5eConfig.targetADC = [...new Set(activeValues)];
+		if (activeValues.length) {
+			applyAlteredTargetADC(ac5eConfig, rollConfig, activeValues);
 		} else {
 			ac5eConfig.alteredTargetADC = undefined;
 			ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
 		}
 	} else if (Array.isArray(ac5eConfig.optinBaseTargetADC)) {
-		ac5eConfig.targetADC = [...ac5eConfig.optinBaseTargetADC];
-		ac5eConfig.alteredTargetADC = undefined;
-		ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
+		ac5eConfig.targetADC = baseTargetADCEntries.length ? [...baseTargetADCEntries] : [...ac5eConfig.optinBaseTargetADC];
+		if (ac5eConfig.targetADC.length) applyAlteredTargetADC(ac5eConfig, rollConfig, ac5eConfig.targetADC);
+		else {
+			ac5eConfig.alteredTargetADC = undefined;
+			ac5eConfig.initialTargetADC = ac5eConfig.optinBaseTargetADCValue ?? ac5eConfig.initialTargetADC;
+		}
+	} else if (baseTargetADCEntries.length) {
+		ac5eConfig.targetADC = [...baseTargetADCEntries];
+		applyAlteredTargetADC(ac5eConfig, rollConfig, ac5eConfig.targetADC);
 	}
 	return { targetADCEntries, hasTargetADCOptins };
+}
+
+function applyAlteredTargetADC(ac5eConfig, rollConfig, values = []) {
+	const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
+	const type = ac5eConfig?.hookType === 'attack' ? 'acBonus' : 'dcBonus';
+	ac5eConfig.initialTargetADC = baseTarget;
+	ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, values, type);
 }
 
 export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets = false } = {}) {
@@ -124,6 +136,11 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 		if (byPreTargets.length) return Math.min(...byPreTargets);
 		const byTargets = collectFinite((ac5eConfig?.options?.targets ?? []).map((target) => target?.ac));
 		if (byTargets.length) return Math.min(...byTargets);
+	}
+
+	if (!useTargetAcs) {
+		const preservedBase = collectFinite([ac5eConfig?.optinBaseTargetADCValue, ac5eConfig?.initialTargetADC]);
+		if (preservedBase.length) return preservedBase[0];
 	}
 
 	const direct = collectFinite([ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.rolls?.[0]?.options?.target, config?.rolls?.[0]?.target, config?.target]);

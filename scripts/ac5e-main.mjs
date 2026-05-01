@@ -5,6 +5,7 @@ import { _migrate } from './ac5e-migrations.mjs';
 import { _gmCombatCadenceUpdate, _gmContextKeywordsUpdate, _gmDocumentUpdates, _gmEffectDeletions, _gmUsageRulesUpdate } from './ac5e-queries.mjs';
 import { _initStatusEffectsTables, _syncCombatCadenceFlags } from './ac5e-setpieces.mjs';
 import { autoRanged, canSee, checkNearby, checkRanged, overtimeHazards } from './ac5e-systemRules.mjs';
+import { registerEffectValueEditorHooks } from './apps/ac5e-effect-value-sheet-hooks.mjs';
 import {
 	configureAc5eApiRuntime,
 	createAc5eGlobalSpace,
@@ -198,6 +199,7 @@ function registerHooks(settings) {
 	hooksRegistered['updateCombat.hazards'] = Hooks.on('updateCombat', overtimeHazards);
 	hooksRegistered['updateSetting.contextKeywords'] = Hooks.on('updateSetting', onContextKeywordsRegistrySettingUpdate);
 	hooksRegistered['updateSetting.usageRules'] = Hooks.on('updateSetting', onUsageRulesRegistrySettingUpdate);
+	hooksRegistered.renderActiveEffectConfig = registerEffectValueEditorHooks();
 	for (const hookName of ['createActor', 'updateActor', 'deleteActor', 'createItem', 'updateItem', 'deleteItem', 'createActiveEffect', 'updateActiveEffect', 'deleteActiveEffect']) {
 		hooksRegistered[hookName] = Hooks.on(hookName, (document) => _reindexFlagRegistryActor(document));
 	}

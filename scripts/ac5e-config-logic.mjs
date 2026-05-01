@@ -9,6 +9,7 @@ import {
 	_getMessageDnd5eFlags,
 	_getMidiAbilityAttributionEntries,
 	_getMidiAttackAttributionEntries,
+	_cloneUseConfigShallow,
 	_getUseConfigInflightCacheEntry,
 	_hasItem,
 	_i18nConditions,
@@ -325,6 +326,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
+			typeOverride: [],
 			abilityOverride: [],
 			diceUpgrade: [],
 			diceDowngrade: [],
@@ -351,6 +353,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			fumbleThreshold: [],
 			targetADC: [],
 			extraDice: [],
+			typeOverride: [],
 			abilityOverride: [],
 			diceUpgrade: [],
 			diceDowngrade: [],
@@ -444,8 +447,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const useConfig = _getUseConfig({ options, config });
 	if (useConfig?.options) {
 		_mergeUseOptions(options, useConfig.options);
-		options.originatingUseConfig = foundry.utils.duplicate(useConfig);
-		if (options.originatingUseConfig?.options?.originatingUseConfig !== undefined) delete options.originatingUseConfig.options.originatingUseConfig;
+		options.originatingUseConfig = _cloneUseConfigShallow(useConfig);
 		if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getConfig use options', { hookType, merged: useConfig.options });
 	}
 	const { ac5eConfig, actor, midiRoller, roller } = _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval);
@@ -637,15 +639,14 @@ export function _getUseConfig({ options, config } = {}) {
 		if (!useConfig) {
 			const cacheEntry = _getUseConfigInflightCacheEntry([resolvedOriginatingMessageId, messageId]);
 			if (cacheEntry?.useConfig) {
-				useConfig = foundry.utils.duplicate(cacheEntry.useConfig);
+				useConfig = _cloneUseConfigShallow(cacheEntry.useConfig);
 				debugMeta = { ...debugMeta, source: 'inflight-cache', cacheExpiresAt: cacheEntry.expiresAt };
 			}
 		}
 	}
 	if (useConfig) {
 		const dnd5eUseFlag = _getMessageDnd5eFlags(usageMessage) ?? _getMessageDnd5eFlags(originatingMessage);
-		useConfig = foundry.utils.duplicate(useConfig);
-		if (useConfig?.options?.originatingUseConfig !== undefined) delete useConfig.options.originatingUseConfig;
+		useConfig = _cloneUseConfigShallow(useConfig);
 		if (dnd5eUseFlag) {
 			useConfig.options ??= {};
 			if (dnd5eUseFlag.use?.spellLevel !== undefined) useConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;
@@ -889,6 +890,31 @@ function _getSafeDialogReEval(reEval = {}) {
 }
 
 export function _getSafeDialogConfig(ac5eConfig) {
+	if (ac5eConfig?.hookType === 'damage') {
+		const safe = {
+			...(ac5eConfig ?? {}),
+			options: ac5eConfig?.options && typeof ac5eConfig.options === 'object' ? { ...ac5eConfig.options } : ac5eConfig?.options,
+			reEval: ac5eConfig?.reEval && typeof ac5eConfig.reEval === 'object' ? { ...ac5eConfig.reEval } : ac5eConfig?.reEval,
+		};
+		if (safe?.options && typeof safe.options === 'object') {
+			delete safe.options.activity;
+			delete safe.options.ammo;
+			delete safe.options.ammunition;
+			delete safe.options.originatingUseConfig;
+			delete safe.options._ac5eHookChecksCache;
+			for (const key of Object.keys(safe.options)) if (key.startsWith('_')) delete safe.options[key];
+		}
+		delete safe.originatingUseConfig;
+		delete safe.useConfig;
+		delete safe.useConfigBase;
+		delete safe.hookContext;
+		delete safe.dialogContext;
+		if (safe?.reEval && typeof safe.reEval === 'object') {
+			delete safe.reEval.useConfigSnapshot;
+			delete safe.reEval.currentOptions;
+		}
+		return safe;
+	}
 	return {
 		hookType: ac5eConfig?.hookType,
 		tokenId: ac5eConfig?.tokenId,
