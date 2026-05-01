@@ -10,15 +10,10 @@ function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
 	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
+	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableExperimentalAc5eUi) return;
 
-	for (const valueInput of root.querySelectorAll('input[name$=".value"], textarea[name$=".value"]')) {
-		const row = valueInput.closest('li, .form-group, tr, fieldset') ?? valueInput.parentElement;
-		if (!row || row.querySelector('.ac5e-effect-value-editor-button')) continue;
-		const keyInput = findKeyInput(row, valueInput);
-		if (!keyInput || !isAc5eChangeKey(keyInput.value)) continue;
-		addEditorButton({ app, row, keyInput, valueInput });
-	}
+	refreshEditorButtons(app, root);
 }
 
 function initializeKeyAutocomplete(app, root) {
@@ -32,6 +27,7 @@ function initializeKeyAutocomplete(app, root) {
 		const autocomplete = new Autocomplete({
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				replaceAutocompletePrefix(keyInput, prefix ?? '', identifier);
+				refreshEditorButtons(app, root);
 				keyInput.focus();
 			},
 		});
@@ -54,6 +50,33 @@ function initializeKeyAutocomplete(app, root) {
 	}
 }
 
+function initializeEditorButtonSync(app, root) {
+	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
+		if (keyInput.dataset.ac5eEditorButtonSyncReady) continue;
+		keyInput.dataset.ac5eEditorButtonSyncReady = 'true';
+		const refresh = () => refreshEditorButtons(app, root);
+		keyInput.addEventListener('input', refresh);
+		keyInput.addEventListener('change', refresh);
+	}
+}
+
+function refreshEditorButtons(app, root) {
+	for (const valueInput of root.querySelectorAll('input[name$=".value"], textarea[name$=".value"]')) {
+		const row = valueInput.closest('li, .form-group, tr, fieldset') ?? valueInput.parentElement;
+		if (!row) continue;
+		const keyInput = findKeyInput(row, valueInput);
+		if (!keyInput) continue;
+		const existingButton = row.querySelector('.ac5e-effect-value-editor-button');
+		if (!new Settings().enableExperimentalAc5eUi || !isAc5eChangeKey(keyInput.value)) {
+			existingButton?.remove();
+			cleanupValueEditorWrapper(valueInput);
+			continue;
+		}
+		if (existingButton) continue;
+		addEditorButton({ app, row, keyInput, valueInput });
+	}
+}
+
 function addEditorButton({ app, row, keyInput, valueInput }) {
 	const wrapper = ensureValueEditorWrapper(valueInput);
 	const button = document.createElement('button');
@@ -72,6 +95,13 @@ function addEditorButton({ app, row, keyInput, valueInput }) {
 		});
 	});
 	wrapper.append(button);
+}
+
+function cleanupValueEditorWrapper(valueInput) {
+	const wrapper = valueInput.parentElement;
+	if (!wrapper?.classList.contains('ac5e-effect-value-editor-control')) return;
+	if (wrapper.querySelector('.ac5e-effect-value-editor-button')) return;
+	wrapper.replaceWith(valueInput);
 }
 
 function ensureValueEditorWrapper(valueInput) {

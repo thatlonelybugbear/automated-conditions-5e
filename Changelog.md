@@ -5,11 +5,26 @@
   - The editor is behind the **Enable AC5E UI (Experimental)** setting.
 - Added AC5E **Attribute Key autocomplete** even when DAE is not active.
   - AC5E keys can now be suggested directly in the Active Effect sheet without depending on DAE.
+  - When an AC5E key is selected in the sheet, the experimental AC5E editor wand now appears immediately on that change row, including when DAE is providing the autocomplete.
+- Cleaned up the `range` flag surface and runtime behavior.
+  - Packed range overrides are now authored on `flags.automated-conditions-5e.range.overrides`.
+  - Legacy `flags.automated-conditions-5e.attack.range` is still accepted as a compatibility alias for now.
+  - Granular keys such as `range.short`, `range.long`, `range.reach`, `range.noLongDisadvantage`, `range.nearbyFoeDisadvantage`, and `range.outOfRangeFail` remain available.
+  - Numeric range leaf keys now follow the normal AC5E `set=` / `bonus=` value style.
+  - `itemLimited` now works normally on range entries too, so range effects can be tied to the rolled item more reliably.
+- Clarified how range overrides apply during play.
+  - Range profile changes such as short/long/reach and out-of-range fail can affect both `attack` and `use` flows.
+  - Attack-only behaviors such as nearby-foe disadvantage and long-range disadvantage still only affect attack activities.
+  - This means non-attack use activities can now respect AC5E range overrides without inheriting attack-only disadvantage rules.
+- Attack activities now handle out-of-range failure during attack roll setup instead of failing early during item use.
+- Added clearer tooltip attribution for range-based suppressions such as `range.noLongDisadvantage`.
 - Added `damage.typeOverride`, including `grants` and `aura` variants.
   - This lets you override the available type set of **base damage rolls**.
   - Example: `set=fire`
   - Example: `set=acid,thunder`
   - Example: `set=fire,lightning,thunder; addTo=all`
+- Added support for multi-type inline bonus damage parts such as `bonus=1d4[fire, lightning, thunder]`.
+  - When a bonus damage part offers multiple types, AC5E now keeps that as a selectable damage-type choice instead of collapsing it to a single type.
 - Improved the damage dialog handling around damage type overrides so type switching and related rerenders behave more reliably.
 - Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` behavior.
 - Added `originItem` and `originActivity` evaluation data for Active Effects.

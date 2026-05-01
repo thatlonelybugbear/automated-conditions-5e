@@ -38,20 +38,20 @@ export default class Settings {
 	}
 
 	_registerWorldSettings() {
+		game.settings.register(Constants.MODULE_ID, Settings.ENABLE_EXPERIMENTAL_AC5E_UI, {
+			name: 'AC5E.ExperimentalUi.Name',
+			hint: 'AC5E.ExperimentalUi.Hint',
+			scope: 'world',
+			config: true,
+			default: false,
+			type: Boolean,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_STATUSES, {
 			name: 'AC5E.AutomateStatuses.Name',
 			hint: 'AC5E.AutomateStatuses.Hint',
 			scope: 'world',
 			config: true,
 			default: true,
-			type: Boolean,
-		});
-		game.settings.register(Constants.MODULE_ID, Settings.ENABLE_EXPERIMENTAL_AC5E_UI, {
-			name: 'Enable AC5E UI (Experimental)',
-			hint: 'Show the AC5E wand button for the experimental effect value editor.',
-			scope: 'world',
-			config: true,
-			default: false,
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS, {
