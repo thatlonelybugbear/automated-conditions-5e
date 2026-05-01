@@ -1,10 +1,20 @@
 ## 14.532.2
 
-- Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` roll-state behavior.
-- Added `originItem` and `originActivity` evaluation data for Active Effects, making it easier to reference the item or activity that created an effect without relying on the current roll's item.
-  - Added `originItemType` and `originItemProperties` helpers for origin-item checks, such as checking whether the origin item is a spell or has a specific property.
-  - Refactored origin handling for `usesCount=origin`, `itemLimited`, and effect-origin token checks to use the new `originItem` and `originActivity` resolution too.
-  - Deprecated using `@item` to reference an effect's origin item in bonus formulas. Use `originItem` instead; compatibility warnings will be shown when the old origin-item rewrite is used.
+- Added the first experimental pass of the **AC5E Effect Value Editor** for Active Effects.
+  - It can help build common AC5E effect values with a structured UI instead of editing the whole condition string by hand.
+  - The editor is behind the **Enable AC5E UI (Experimental)** setting.
+- Added AC5E **Attribute Key autocomplete** even when DAE is not active.
+  - AC5E keys can now be suggested directly in the Active Effect sheet without depending on DAE.
+- Added `damage.typeOverride`, including `grants` and `aura` variants.
+  - This lets you override the available type set of **base damage rolls**.
+  - Example: `set=fire`
+  - Example: `set=acid,thunder`
+  - Example: `set=fire,lightning,thunder; addTo=all`
+- Improved the damage dialog handling around damage type overrides so type switching and related rerenders behave more reliably.
+- Added `modifier=max` and `modifier=min` shorthand aliases for the existing `modifier=maximize` and `modifier=minimize` behavior.
+- Added `originItem` and `originActivity` evaluation data for Active Effects.
+  - This makes it easier to reference the originating item/activity in conditions and formulas.
+  - `originItemType` and `originItemProperties` are also available for simpler origin-item checks.
 
 ## 14.532.1
 
