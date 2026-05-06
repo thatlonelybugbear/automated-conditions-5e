@@ -87,7 +87,7 @@ function ac5ei18nInit() {
 			.filter((e) => !e.pseudo)
 			.map((e) => e.name.toLowerCase())
 			.concat(['burning', 'suffocation']);
-		CONFIG.statusEffects.forEach((effect) => {
+		Object.values(CONFIG.statusEffects).forEach((effect) => {
 			if (!basic.includes(effect.id)) effect.hud = false;
 		});
 	}
