@@ -9,7 +9,33 @@ export function applyAbilityOverrideToCoreConfig(config, activity, abilityOverri
 		.trim()
 		.toLowerCase();
 	if (!config || !normalizedAbility) return;
-	if (!config.subject || typeof config.subject !== 'object') return;
+	if (typeof config === 'object') {
+		config.ability = normalizedAbility;
+		if (config.options && typeof config.options === 'object') config.options.ability = normalizedAbility;
+	}
+	if (activity && typeof activity === 'object') {
+		try {
+			Object.defineProperty(activity, 'ability', {
+				value: normalizedAbility,
+				configurable: true,
+				writable: true,
+			});
+		} catch (_error) {
+			activity.ability = normalizedAbility;
+		}
+		const activityType = String(activity?.type ?? '')
+			.trim()
+			.toLowerCase();
+		if (activityType === 'attack' && activity.attack && typeof activity.attack === 'object') activity.attack.ability = normalizedAbility;
+		if (activityType === 'check' && activity.check && typeof activity.check === 'object') {
+			activity.check.ability = normalizedAbility;
+			if (activity.check.dc && typeof activity.check.dc === 'object' && activity.check.dc.calculation) activity.check.dc.calculation = normalizedAbility;
+		}
+		if (activityType === 'save' && activity.save?.dc && typeof activity.save.dc === 'object' && activity.save.dc.calculation) {
+			activity.save.dc.calculation = normalizedAbility;
+		}
+	}
+	if (!activity || !config.subject || typeof config.subject !== 'object') return;
 	const activityType = String(activity?.type ?? '')
 		.trim()
 		.toLowerCase();
@@ -21,28 +47,71 @@ export function applyAbilityOverrideToCoreConfig(config, activity, abilityOverri
 }
 
 export function restoreAbilityToBaseline(config, ac5eConfig) {
-	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? '')
+	const baselineState = ac5eConfig?.preAC5eConfig?.abilityOverrideBaseline ?? {};
+	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? baselineState?.activityOwnAbility ?? '')
 		.trim()
 		.toLowerCase();
-	if (!baselineAbility) return;
 	ac5eConfig.options ??= {};
-	ac5eConfig.options.ability = baselineAbility;
-	if (config?.options && typeof config.options === 'object') config.options.ability = baselineAbility;
-	if (!config?.subject || typeof config.subject !== 'object') return;
-	const hookType = String(ac5eConfig?.hookType ?? '')
+	if (baselineAbility) ac5eConfig.options.ability = baselineAbility;
+	else delete ac5eConfig.options.ability;
+	if (config && typeof config === 'object') {
+		if (baselineAbility) config.ability = baselineAbility;
+		else delete config.ability;
+		if (config.options && typeof config.options === 'object') {
+			if (baselineAbility) config.options.ability = baselineAbility;
+			else delete config.options.ability;
+		}
+	}
+	const activity = baselineState?.activity;
+	if (activity && typeof activity === 'object') {
+		if (baselineState.hadOwnActivityAbility) {
+			try {
+				Object.defineProperty(activity, 'ability', {
+					value: baselineState.activityOwnAbility,
+					configurable: true,
+					writable: true,
+				});
+			} catch (_error) {
+				activity.ability = baselineState.activityOwnAbility;
+			}
+		} else delete activity.ability;
+		if (activity.attack && typeof activity.attack === 'object' && baselineState.attackAbility !== undefined) activity.attack.ability = baselineState.attackAbility;
+		if (activity.check && typeof activity.check === 'object') {
+			if (baselineState.checkAbility !== undefined) activity.check.ability = baselineState.checkAbility;
+			if (activity.check.dc && typeof activity.check.dc === 'object' && baselineState.checkDcCalculation !== undefined) activity.check.dc.calculation = baselineState.checkDcCalculation;
+		}
+		if (activity.save?.dc && typeof activity.save.dc === 'object' && baselineState.saveDcCalculation !== undefined) {
+			activity.save.dc.calculation = baselineState.saveDcCalculation;
+		}
+	}
+	if (!activity || !config?.subject || typeof config.subject !== 'object') return;
+	const activityType = String(activity?.type ?? ac5eConfig?.hookType ?? '')
 		.trim()
 		.toLowerCase();
-	if (!hookType) return;
-	config.subject[hookType] ??= {};
-	if (config.subject[hookType] && typeof config.subject[hookType] === 'object') {
-		config.subject[hookType].ability = baselineAbility;
+	if (!activityType) return;
+	config.subject[activityType] ??= {};
+	if (config.subject[activityType] && typeof config.subject[activityType] === 'object') {
+		if (baselineAbility) config.subject[activityType].ability = baselineAbility;
+		else delete config.subject[activityType].ability;
 	}
 }
 
 export function syncD20AbilityOverrideState(config, ac5eConfig, { activity, options } = {}) {
 	ac5eConfig.preAC5eConfig ??= {};
+	const trackedActivity =
+		activity && typeof activity === 'object' && (activity.item || activity.uuid?.includes?.('.Activity.') || activity.parent?.documentName === 'Item') ? activity
+		: null;
+	ac5eConfig.preAC5eConfig.abilityOverrideBaseline ??= {
+		activity: trackedActivity,
+		hadOwnActivityAbility: Boolean(trackedActivity && Object.prototype.hasOwnProperty.call(trackedActivity, 'ability')),
+		activityOwnAbility: trackedActivity?.ability,
+		attackAbility: trackedActivity?.attack?.ability,
+		checkAbility: trackedActivity?.check?.ability,
+		checkDcCalculation: trackedActivity?.check?.dc?.calculation,
+		saveDcCalculation: trackedActivity?.save?.dc?.calculation,
+	};
 	if (!ac5eConfig.preAC5eConfig.baseAbility) {
-		ac5eConfig.preAC5eConfig.baseAbility = String(options?.ability ?? config?.subject?.[activity?.type ?? '']?.ability ?? '')
+		ac5eConfig.preAC5eConfig.baseAbility = String(options?.ability ?? config?.ability ?? trackedActivity?.ability ?? config?.subject?.[trackedActivity?.type ?? '']?.ability ?? '')
 			.trim()
 			.toLowerCase();
 	}
@@ -54,7 +123,7 @@ export function syncD20AbilityOverrideState(config, ac5eConfig, { activity, opti
 	} else if (config) {
 		restoreAbilityToBaseline(config, ac5eConfig);
 	}
-	applyAbilityOverrideToCoreConfig(config, activity ?? { type: ac5eConfig?.hookType }, ac5eConfig?.abilityOverride);
+	applyAbilityOverrideToCoreConfig(config, trackedActivity ?? { type: ac5eConfig?.hookType }, ac5eConfig?.abilityOverride);
 	return ac5eConfig.abilityOverride;
 }
 

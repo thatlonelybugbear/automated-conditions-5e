@@ -191,6 +191,7 @@ const USE_CONFIG_INFLIGHT_TTL_MS = 15000;
 const useConfigInflightCache = new Map();
 const FLAG_REGISTRY_HOOK_TYPES = new Set(['attack', 'damage', 'save', 'check', 'heal', 'init', 'use']);
 const FLAG_REGISTRY_MODE_NAMES = new Set([
+	'abilityOverride',
 	'advantage',
 	'bonus',
 	'critical',
@@ -447,10 +448,13 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 		}
 
 		const last = path[path.length - 1];
-		const mode = FLAG_REGISTRY_MODE_NAMES.has(last) ? last : null;
+		const joinedPath = path.join('.');
+		const isGlobalAbilityOverridePath = /^abilityOverride$/i.test(joinedPath);
+		const mode = FLAG_REGISTRY_MODE_NAMES.has(last) ? last : (isGlobalAbilityOverridePath ? 'abilityOverride' : null);
 		const normalizedPath = path[0] === 'grants' || path[0] === 'aura' ? path.slice(1) : path;
 		const hookType = normalizedPath.find((segment) => FLAG_REGISTRY_HOOK_TYPES.has(segment)) ?? null;
-		if (!mode && !hookType) return;
+		const hookTypes = hookType ? [hookType] : (isGlobalAbilityOverridePath ? ['attack', 'damage', 'check', 'save'] : []);
+		if (!mode && !hookTypes.length) return;
 
 		const meta = _extractRuleMetadata(node);
 		const id = `${sourceType}:${sourceUuid}:${path.join('.')}`;
@@ -463,7 +467,7 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 			effectUuid,
 			parentItemUuid: itemUuid,
 			parentActorUuid: actorUuid,
-			hookTypes: hookType ? [hookType] : [],
+			hookTypes,
 			targetScope: targetScopeFromPath(path),
 			mode: mode ?? 'unknown',
 			addTo: meta.addTo,
@@ -654,6 +658,13 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 		foundry.utils.setProperty(messageLike, `data.flags.${scope}`, nextScope);
 	} catch (_err) {
 		// ignore immutable message-like payloads
+	}
+	if (typeof messageLike?.setFlag !== 'function') {
+		try {
+			foundry.utils.setProperty(messageLike, `flags.${scope}`, nextScope);
+		} catch (_err) {
+			// ignore immutable message-like payloads
+		}
 	}
 }
 
@@ -2907,6 +2918,7 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.range.noOutOfRangeFail`,
 		`${moduleFlagScope}.grants.range.noOutOfRangeFail`,
 		`${moduleFlagScope}.aura.range.noOutOfRangeFail`,
+		`${moduleFlagScope}.abilityOverride`,
 		`${moduleFlagScope}.damage.extraDice`,
 		`${moduleFlagScope}.grants.damage.extraDice`,
 		`${moduleFlagScope}.aura.damage.extraDice`,
@@ -2938,7 +2950,7 @@ export function _generateAC5eFlags() {
 	const noCriticalActionTypes = ['all', 'attack', 'damage'];
 	const actionTypesByMode = {
 		advantage: allModesActionTypes,
-		abilityOverride: ['attack'],
+		abilityOverride: ['attack', 'check', 'damage', 'save'],
 		bonus: allModesActionTypes,
 		critical: allModesActionTypes,
 		disadvantage: allModesActionTypes,

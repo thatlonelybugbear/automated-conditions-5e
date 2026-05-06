@@ -10,6 +10,7 @@ import {
 	getAlteredTargetValueOrThreshold,
 	_hasValidTargets,
 	_localize,
+	_setMessageFlagScope,
 	_setUseConfigInflightCache,
 } from '../ac5e-helpers.mjs';
 import { _getConfig, _getSafeUseConfig } from '../ac5e-config-logic.mjs';
@@ -162,7 +163,12 @@ export async function postUseActivity(usageConfig, results, hook) {
 		originatingMessageId: dnd5eUseFlag?.originatingMessage,
 		useConfig: safeUseConfig,
 	});
-	await message.setFlag(Constants.MODULE_ID, 'use', safeUseConfig);
+	const persistedMessage = typeof message?.setFlag === 'function' ? message : (message?.id ? game.messages?.get?.(message.id) : null);
+	if (typeof persistedMessage?.setFlag === 'function') {
+		await persistedMessage.setFlag(Constants.MODULE_ID, 'use', safeUseConfig);
+	}
+	if (message && typeof message === 'object' && typeof message?.setFlag !== 'function') {
+	}
 	return true;
 }
 

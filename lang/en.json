@@ -277,15 +277,15 @@
 		},
 		"flags.automated-conditions-5e.damage.typeOverride": {
 			"name": "Override the damage type set of base damage rolls",
-			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+			"description": "Use override=fire to force one type or override=fire,lightning,thunder to offer multiple types. set=... is still supported for backwards compatibility. addTo=... targets matching base damage parts only."
 		},
 		"flags.automated-conditions-5e.grants.damage.typeOverride": {
 			"name": "Grant a damage type override to the opponent's base damage rolls",
-			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+			"description": "Use override=fire to force one type or override=fire,lightning,thunder to offer multiple types. set=... is still supported for backwards compatibility. addTo=... targets matching base damage parts only."
 		},
 		"flags.automated-conditions-5e.aura.damage.typeOverride": {
 			"name": "An aura overriding the damage type set of base damage rolls in radius",
-			"description": "Use radius=10;set=fire or radius=10;set=fire,lightning,thunder. addTo=... targets matching base damage parts only."
+			"description": "Use radius=10;override=fire or radius=10;override=fire,lightning,thunder. set=... is still supported for backwards compatibility. addTo=... targets matching base damage parts only."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modify the AC of the actor against incoming attacks",
@@ -350,7 +350,7 @@
 			},
 			"abilityOverride": {
 				"name": "Override the ability used for the roll",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
+				"description": "Use override=cha. abilityOverride=cha and set=cha are still supported for backwards compatibility."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -404,7 +404,7 @@
 			},
 			"abilityOverride": {
 				"name": "Grant an overridden ability to opponent rolls",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
+				"description": "Use override=cha. abilityOverride=cha and set=cha are still supported for backwards compatibility."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -458,7 +458,7 @@
 			},
 			"abilityOverride": {
 				"name": "An aura overriding the ability used for rolls",
-				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
+				"description": "Use radius as usual plus override=cha. abilityOverride=cha and set=cha are still supported for backwards compatibility."
 			}
 		}
 	},

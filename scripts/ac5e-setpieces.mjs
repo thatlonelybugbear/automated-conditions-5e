@@ -1333,6 +1333,34 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		);
 		return { ...change, key: rewrittenKey, value: rewrittenValue };
 	};
+	const _isGlobalAbilityOverrideKey = (key) =>
+		/^flags\.(?:ac5e|automated-conditions-5e)\.abilityoverride$/i.test(String(key ?? '').trim());
+	const _isLegacyAttackAbilityOverrideKey = (key) =>
+		/^flags\.(?:ac5e|automated-conditions-5e)(?:\.(?:grants|aura))?\.attack\.abilityoverride$/i.test(String(key ?? '').trim());
+	const _rewriteAbilityOverrideAliasChange = (change, hook, { effect, changeIndex } = {}) => {
+		const normalizedKey = String(change?.key ?? '').trim();
+		const normalizedHook = String(hook ?? '').trim().toLowerCase();
+		if (!['attack', 'damage', 'check', 'save'].includes(normalizedHook)) return change;
+		if (_isGlobalAbilityOverrideKey(normalizedKey)) {
+			return {
+				...change,
+				key: normalizedKey.replace(/\.abilityoverride$/i, `.${normalizedHook}.abilityOverride`),
+			};
+		}
+		if (!_isLegacyAttackAbilityOverrideKey(normalizedKey)) return change;
+		const canonicalKey = normalizedKey.replace(/\.attack\.abilityoverride$/i, '.abilityOverride');
+		warnCompatibilityAlias({
+			effect,
+			change,
+			changeIndex,
+			alias: normalizedKey,
+			canonical: canonicalKey,
+		});
+		return {
+			...change,
+			key: normalizedKey.replace(/\.attack\.abilityoverride$/i, `.${normalizedHook}.abilityOverride`),
+		};
+	};
 	const warnCompatibilityAlias = ({ effect, change, changeIndex, alias, canonical }) => {
 		const normalizedAlias = String(alias ?? '').trim();
 		if (!normalizedAlias) return;
@@ -1749,15 +1777,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'range':
 				return localizeText('AC5E.OptinDescription.ModifiesAttackRange', 'Modifies attack range behavior');
 			case 'abilityOverride':
-				if (hook !== 'attack') return undefined;
 				if (typeof bonus === 'string' && bonus.trim()) return `Uses ${bonus.trim().toUpperCase()} for ${roll}`;
-				return `Overrides the ability used for ${roll}`;
+				return `Overrides the activity ability used for ${roll}`;
 			default:
 				return undefined;
 		}
 	};
 	const parseAbilityOverride = (rawValue) => {
-		const direct = getBlacklistedKeysValue('abilityoverride', rawValue) || getBlacklistedKeysValue('override', rawValue) || '';
+		const direct = getBlacklistedKeysValue('abilityoverride', rawValue) || getBlacklistedKeysValue('override', rawValue) || getBlacklistedKeysValue('set', rawValue) || '';
 		const normalizedDirect = String(direct ?? '')
 			.trim()
 			.toLowerCase();
@@ -2011,7 +2038,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const buildValidFlagEntry = ({ change, changeIndex, effect, hook, sandbox, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
-		if (mode === 'abilityOverride' && hook !== 'attack') return null;
 		if (mode === 'range' && /\.attack\.range$/i.test(String(change?.key ?? ''))) {
 			const canonicalKey = String(change.key).replace(/\.attack\.range$/i, '.range.overrides');
 			warnCompatibilityAlias({
@@ -2112,7 +2138,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		return entry;
 	};
 	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
-		const normalizedChange = _rewriteLegacyGrantsModifyDCChange(change);
+		const normalizedChange = _rewriteAbilityOverrideAliasChange(_rewriteLegacyGrantsModifyDCChange(change), hook, { effect, changeIndex });
 		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
 		if (
 			!effectChangesTest({
@@ -2254,7 +2280,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (!hookMatches) continue;
 		const mode = String(rule?.mode ?? '').trim();
 		if (!mode) continue;
-		if (mode === 'abilityOverride' && hook !== 'attack') continue;
 		const targetType = String(rule?.target ?? 'subject')
 			.trim()
 			.toLowerCase();
@@ -2291,7 +2316,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (mode === 'range' && standaloneRangeKeywords.has(trimmedBonus.toLowerCase())) fragments.push(trimmedBonus);
 			else fragments.push(`bonus=${rule.bonus}`);
 		}
-		if (rule?.set !== undefined && rule?.set !== null && String(rule.set).trim() !== '') fragments.push(`set=${rule.set}`);
+		if (rule?.set !== undefined && rule?.set !== null && String(rule.set).trim() !== '') {
+			if (mode === 'typeOverride') fragments.push(`override=${rule.set}`);
+			else fragments.push(`set=${rule.set}`);
+		}
 		if (rule?.modifier !== undefined && rule?.modifier !== null && String(rule.modifier).trim() !== '') fragments.push(`modifier=${rule.modifier}`);
 		if (rule?.threshold !== undefined && rule?.threshold !== null && String(rule.threshold).trim() !== '') fragments.push(`threshold=${rule.threshold}`);
 		if (rule?.chance !== undefined && rule?.chance !== null && String(rule.chance).trim() !== '') fragments.push(`chance=${rule.chance}`);
@@ -2301,7 +2329,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 		if (rule?.usesCount !== undefined && rule?.usesCount !== null && String(rule.usesCount).trim() !== '') fragments.push(`usesCount=${rule.usesCount}`);
 		if (rule?.update !== undefined && rule?.update !== null && String(rule.update).trim() !== '') fragments.push(`update=${rule.update}`);
-		if (rule?.abilityOverride !== undefined && rule?.abilityOverride !== null && String(rule.abilityOverride).trim() !== '') fragments.push(`abilityOverride=${rule.abilityOverride}`);
+		if (rule?.abilityOverride !== undefined && rule?.abilityOverride !== null && String(rule.abilityOverride).trim() !== '') fragments.push(`override=${rule.abilityOverride}`);
 		if (rule?.enforceMode !== undefined && rule?.enforceMode !== null && String(rule.enforceMode).trim() !== '') fragments.push(`enforceMode=${rule.enforceMode}`);
 		if (rule?.priority !== undefined && rule?.priority !== null && String(rule.priority).trim() !== '') fragments.push(`priority=${rule.priority}`);
 		if (rule?.itemLimited) fragments.push('itemLimited');
@@ -3964,6 +3992,15 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
 		if (mode === 'typeOverride') set = String(replacementBonus ?? '').trim();
 		else set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
+	}
+	const isOverride =
+		lowerValue.includes('override') && (mode === 'typeOverride' || mode === 'abilityOverride') ?
+			getBlacklistedKeysValue('override', rawValue)
+		:	false;
+	if (isOverride) {
+		const replacementOverride = bonusReplacements(isOverride, evaluationData, isAura, effect);
+		if (mode === 'typeOverride') set = String(replacementOverride ?? '').trim();
+		else if (mode === 'abilityOverride') bonus = String(replacementOverride ?? '').trim().toLowerCase();
 	}
 	const isModifier = lowerValue.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', rawValue) : false;
 	if (isModifier) {

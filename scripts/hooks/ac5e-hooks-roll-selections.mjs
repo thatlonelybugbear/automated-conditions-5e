@@ -16,7 +16,7 @@ export function getConfigEntriesByModes(ac5eConfig, modes, hookType, predicate =
 
 export function getRollNonBonusOptinEntries(ac5eConfig, hookType) {
 	const modes = ['advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'modifiers'];
-	if (hookType === 'attack') modes.push('abilityOverride');
+	if (['attack', 'check', 'save'].includes(hookType)) modes.push('abilityOverride');
 	return getConfigEntriesByModes(ac5eConfig, modes, hookType, (entry) => entry.optin);
 }
 
@@ -35,5 +35,5 @@ export function getSelectedOptinEntries(ac5eConfig, optins, selectedTypes, hookT
 }
 
 export function getAllOptinEntriesForHook(ac5eConfig, hookType) {
-	return getConfigEntriesByModes(ac5eConfig, ['bonus', 'info', 'targetADC', 'range'], hookType, (entry) => entry.optin);
+	return getConfigEntriesByModes(ac5eConfig, ['bonus', 'info', 'targetADC', 'range', 'abilityOverride'], hookType, (entry) => entry.optin);
 }

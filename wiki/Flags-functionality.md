@@ -101,8 +101,9 @@ Replace `MODE` with one of the following:
 - `diceUpgrade` - Upgrades damage dice step (`d6` -> `d8`) by the provided steps.
 - `diceDowngrade` - Downgrades damage dice step (`d8` -> `d6`) by the provided steps.
 - `typeOverride` - Replaces the damage type set of matching base/native damage rolls.
-   - Include `set=fire` to force a single type.
-   - Include `set=fire,lightning,thunder` to offer multiple damage types through D&D 5e's native dropdown.
+   - Include `override=fire` to force a single type.
+   - Include `override=fire,lightning,thunder` to offer multiple damage types through D&D 5e's native dropdown.
+   - `set=...` is still accepted for backwards compatibility.
    - `addTo=...` targeting works the same way as other damage-entry modes.
    - Current limitation: `damage.typeOverride` applies to base/native damage rolls only, not to synthetic appended bonus damage parts.
 - `range` - Adjusts ranged profile values and ranged-penalty behavior.
@@ -191,6 +192,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `chance=Number`        | Applies only when a d100 roll is greater than or equal to the threshold |
 | `name=Text`            | Custom label for tooltips/dialog opt-in entry |
 | `description=Text`     | Custom opt-in description/reason text |
+| `update=ActorAttr, Delta` | Applies an allowlisted actor update instruction. Delta is the default, and `=` sets an absolute value. Example: `update=opponentActor.hp,-5` or `update=rollingActor.hp,=1` |
 | `oncePerTurn` / `oncePerRound` / `oncePerCombat` | Cadence limits for usage. `cadence=turn|round|combat` aliases are supported. |
 | `noProne` (and similar status keys) | Suppresses a specific status for roll automation while the effect is active. Current stable usage is boolean-style only, for example `true`. Conditional expressions and `optin` handling are reserved for later work. |
 

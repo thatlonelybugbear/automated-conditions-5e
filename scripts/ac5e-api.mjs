@@ -216,7 +216,6 @@ function _parseUsageRuleDefinition(definition = {}) {
 	if (!hook) return null;
 	const mode = _normalizeUsageRuleMode(definition.mode);
 	if (!mode) return null;
-	if (mode === 'abilityOverride' && hook !== 'attack') return null;
 	const target = _normalizeUsageRuleTarget(definition.target ?? definition.actorType);
 	if (!target) return null;
 	const cadence = _normalizeUsageRuleCadence(definition.cadence);
@@ -454,7 +453,7 @@ function showUsageRuleKeys() {
 		scope: 'String: application scope. Supported values: "effect" and "universal".',
 		hook: 'String: evaluation hook. Supported values include "*", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
 		target: 'String: which side the rule applies to. Supported values: "subject", "opponent", and "aura". Alias: actorType.',
-		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "info", "abilityOverride" (attack only), "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
+		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "info", "abilityOverride", "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
 		name: 'String: user-facing label shown in tooltips, dialogs, and attribution.',
 		description: 'String: optional explanatory text carried with the rule.',
 		condition: 'String: AC5E-safe expression evaluated against the per-roll sandbox. Alias: expression.',
@@ -472,7 +471,7 @@ function showUsageRuleKeys() {
 		hasTransitDisadvantage: 'Boolean: legacy alias for convertDisadvantage.',
 		usesCount: 'String: uses/counter consumption instruction, for example "death.fail,(isCritical ? 2 : 1)".',
 		update: 'String: allowlisted actor update instruction. Delta is the default, and "=" sets an absolute value. Example: "opponentActor.hp,-5" or "rollingActor.hp,=1".',
-		abilityOverride: 'String: overrides the ability used for attack hooks only. Example: "cha".',
+		abilityOverride: 'String: overrides the effective ability used for the current roll or activity hook. Example: "cha".',
 		itemLimited: 'Boolean: restricts matching to item-originated contexts where applicable.',
 		enforceMode: 'String: for info rules on d20 hooks, forces the final resolved roll mode. Supported values: "advantage", "disadvantage", and "normal".',
 		bonus: 'String|Number: bonus payload for bonus or extraDice-style rules. Alias: value.',

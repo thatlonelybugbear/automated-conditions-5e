@@ -213,20 +213,21 @@ value: bonus=1d4[fire, lightning, thunder];
 ```
 key: flags.automated-conditions-5e.damage.typeOverride
 
-value: set=fire;
+value: override=fire;
 ```
 
 ### Override a base damage part to a selected type from multiple options
 ```
 key: flags.automated-conditions-5e.damage.typeOverride
 
-value: set=fire, lightning, thunder; addTo=fire;
+value: override=fire, lightning, thunder; addTo=fire;
 ```
 
 Notes:
 
 - `damage.typeOverride` currently applies to base/native damage rolls only.
 - Synthetic appended bonus damage rolls created by AC5E are not currently targeted by `damage.typeOverride`.
+- `set=...` is still supported for backwards compatibility, but `override=...` is the preferred syntax.
 
 ### Extra dice multiplier on matching damage types
 ```
@@ -261,6 +262,14 @@ value: bonus=info; usesCount=death.fail,(isCritical ? 2 : 1); partialConsume; na
 key: flags.automated-conditions-5e.use.fail
 
 value: chance=25; rollingActor.effects.some(e => e.name === "Dazed"); description=Reaction disrupted.
+```
+
+### Actor update instruction
+This example will not respect damage types currently, but showcases the idea of an informational entry that applies an actor update instruction on use, which could be used for things like a monster's reactive damage trait that reduces the attacker's HP when triggered.
+```
+key: flags.automated-conditions-5e.grants.damage.info
+
+value: update=rollingActor.hp,-3d6; name=Heated Body; description=A creature that hits it with a melee attack while within 5 feet of it takes 10 (3d6) fire damage;
 ```
 
 ## Enforced Roll Mode
