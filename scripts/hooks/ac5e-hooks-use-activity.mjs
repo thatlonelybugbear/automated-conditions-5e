@@ -168,6 +168,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 		await persistedMessage.setFlag(Constants.MODULE_ID, 'use', safeUseConfig);
 	}
 	if (message && typeof message === 'object' && typeof message?.setFlag !== 'function') {
+		_setMessageFlagScope(message, Constants.MODULE_ID, { use: safeUseConfig }, { merge: true });
 	}
 	return true;
 }
