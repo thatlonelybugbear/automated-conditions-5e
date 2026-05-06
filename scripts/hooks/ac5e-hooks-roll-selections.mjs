@@ -1,8 +1,13 @@
 import { getDamageBonusEntries, getDamageNonBonusOptinEntries } from './ac5e-hooks-dialog-damage-state.mjs';
 
+function shouldHideTargetADCFromRollDialog(_ac5eConfig, hookType) {
+	return ['save', 'check'].includes(hookType);
+}
+
 export function getConfigEntriesByModes(ac5eConfig, modes, hookType, predicate = undefined) {
 	const modeList = Array.isArray(modes) ? modes : [modes];
 	return modeList.flatMap((mode) => {
+		if (mode === 'targetADC' && shouldHideTargetADCFromRollDialog(ac5eConfig, hookType)) return [];
 		const subjectEntries = Array.isArray(ac5eConfig?.subject?.[mode]) ? ac5eConfig.subject[mode] : [];
 		const opponentEntries = Array.isArray(ac5eConfig?.opponent?.[mode]) ? ac5eConfig.opponent[mode] : [];
 		return subjectEntries.concat(opponentEntries).filter((entry) =>

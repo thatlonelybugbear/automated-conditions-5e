@@ -77,7 +77,8 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	_rebuildPreUseTargetADCState(ac5eConfig, activity);
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
-	_wireTargetADCChoiceButtons(activity, ac5eConfig);
+	_ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig);
+	_wireResolvedTargetADCButton(activity, ac5eConfig);
 
 	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
 	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type !== 'attack';
@@ -130,6 +131,13 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	return true;
 }
 
+export function preActivityConsumption(activity, usageConfig, _messageConfig, _hook, deps) {
+	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
+	if (!ac5eConfig) return true;
+	_refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps);
+	return true;
+}
+
 export async function postUseActivity(usageConfig, results, hook) {
 	const message = results?.message;
 	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
@@ -158,6 +166,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 	}
 
 	const safeUseConfig = _getSafeUseConfig(ac5eConfig);
+	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, dnd5eUseFlag?.activity);
 	_setUseConfigInflightCache({
 		messageId: message.id,
 		originatingMessageId: dnd5eUseFlag?.originatingMessage,
@@ -166,11 +175,21 @@ export async function postUseActivity(usageConfig, results, hook) {
 	const persistedMessage = typeof message?.setFlag === 'function' ? message : (message?.id ? game.messages?.get?.(message.id) : null);
 	if (typeof persistedMessage?.setFlag === 'function') {
 		await persistedMessage.setFlag(Constants.MODULE_ID, 'use', safeUseConfig);
+		if (resolvedTargetADCState) await persistedMessage.setFlag(Constants.MODULE_ID, 'resolvedTargetADC', resolvedTargetADCState);
 	}
 	if (message && typeof message === 'object' && typeof message?.setFlag !== 'function') {
-		_setMessageFlagScope(message, Constants.MODULE_ID, { use: safeUseConfig }, { merge: true });
+		_setMessageFlagScope(message, Constants.MODULE_ID, { use: safeUseConfig, resolvedTargetADC: resolvedTargetADCState }, { merge: true });
 	}
 	return true;
+}
+
+export function getTargetADCOptinChoices(ac5eConfig, activity) {
+	const activityType = activity?.type;
+	if (!['save', 'check'].includes(activityType)) return [];
+	const activityData = activity?.[activityType];
+	const baseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
+	if (!Number.isFinite(baseDC)) return [];
+	return _buildTargetADCOptinChoiceList(ac5eConfig, baseDC);
 }
 
 function notifyPreUse(actorName, warning, type) {
@@ -205,48 +224,64 @@ function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
 	return true;
 }
 
-function _wireTargetADCChoiceButtons(activity, ac5eConfig) {
+function _ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
+	const dcChoices = getTargetADCOptinChoices(ac5eConfig, activity);
+	if (!dcChoices.length) return;
+	dialogConfig.configure = true;
+	if (usageConfig?.scaling === false) usageConfig.scaling = 0;
+}
+
+function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
+	const activityType = activity?.type;
+	if (!['save', 'check'].includes(activityType)) return;
+	const activityData = activity?.[activityType];
+	if (!activityData?.dc || typeof activityData.dc !== 'object') return;
+	const preservedInitialDC = Number(ac5eConfig?.initialTargetADC);
+	if (Number.isFinite(preservedInitialDC)) activityData.dc.value = preservedInitialDC;
+	ac5eConfig.alteredTargetADC = undefined;
+	_rebuildPreUseTargetADCState(ac5eConfig, activity);
+	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
+}
+
+function _wireResolvedTargetADCButton(activity, ac5eConfig) {
 	const activityType = activity?.type;
 	if (!['save', 'check'].includes(activityType)) return;
 	const activityData = activity?.[activityType];
 	const baseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
 	if (!Number.isFinite(baseDC)) return;
-	const dcChoices = _buildTargetADCChoiceList(ac5eConfig, baseDC);
-	if (!dcChoices.length) return;
-	if (activity._ac5eTargetADCChoicesWrapped) return;
+	const alteredDC = Number(ac5eConfig?.alteredTargetADC ?? activityData?.dc?.value);
+	const hoverText =
+		Number.isFinite(alteredDC) && alteredDC !== baseDC ? _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC)
+		: '';
+	activity._ac5eResolvedTargetADCState = Number.isFinite(alteredDC) && alteredDC !== baseDC && hoverText ? { alteredDC, baseDC, hoverText } : null;
+	if (activity._ac5eResolvedTargetADCWrapped) return;
 	const originalUsageChatButtons = typeof activity._usageChatButtons === 'function' ? activity._usageChatButtons.bind(activity) : null;
 	if (!originalUsageChatButtons) return;
-	activity._ac5eTargetADCChoicesWrapped = true;
+	activity._ac5eResolvedTargetADCWrapped = true;
 	activity._usageChatButtons = function(message) {
 		const baseButtons = originalUsageChatButtons(message) ?? [];
 		if (!Array.isArray(baseButtons) || !baseButtons.length) return baseButtons;
-		const nextButtons = [];
-		for (const button of baseButtons) {
-			nextButtons.push(button);
+		const resolvedState = this._ac5eResolvedTargetADCState;
+		if (!resolvedState) return baseButtons;
+		return baseButtons.map((button) => {
 			const action = String(button?.dataset?.action ?? '');
-			if (!['rollSave', 'rollCheck'].includes(action)) continue;
-			const currentButtonDC = Number(button?.dataset?.dc);
-			for (const choice of dcChoices) {
-				const choiceDC = Number(choice?.dc);
-				if (!Number.isFinite(choiceDC)) continue;
-				if (Number.isFinite(currentButtonDC) && currentButtonDC === choiceDC) continue;
-				const cloned = foundry.utils.duplicate(button);
-				cloned.dataset ??= {};
-				cloned.dataset.dc = String(choiceDC);
-				cloned.dataset.ac5eDcChoice = 'true';
-				if (choice?.id) cloned.dataset.ac5eDcChoiceId = String(choice.id);
-				const sourceLabel = String(choice?.label ?? '').trim() || `${_localize('AC5E.ModifyDC')} ${choiceDC} (${baseDC})`;
-				const rewrittenLabel = _rewriteTargetADCButtonLabel(button?.label, choiceDC, currentButtonDC);
-				const hoverText = `${sourceLabel} (${_localize('AC5E.ModifyDC')} ${choiceDC} (${baseDC}))`;
-				cloned.label = `<span class="ac5e-dc-choice-label" title="${_escapeHtmlAttribute(hoverText)}">${rewrittenLabel}</span>`;
-				nextButtons.push(cloned);
-			}
-		}
-		return nextButtons;
+			if (!['rollSave', 'rollCheck'].includes(action)) return button;
+			const currentButtonDC = Number(button?.dataset?.dc ?? resolvedState.alteredDC);
+			const nextButton = foundry.utils.duplicate(button);
+			nextButton.dataset ??= {};
+			nextButton.dataset.dc = String(resolvedState.alteredDC);
+			nextButton.dataset.tooltip = resolvedState.hoverText;
+			nextButton.dataset.ac5eTargetAdc = 'true';
+			nextButton.title = resolvedState.hoverText;
+			nextButton.label =
+				`<span class="ac5e-dc-choice-label" title="${_escapeHtmlAttribute(resolvedState.hoverText)}">` +
+				`${_rewriteTargetADCButtonLabel(button?.label, resolvedState.alteredDC, currentButtonDC)}</span>`;
+			return nextButton;
+		});
 	};
 }
 
-function _buildTargetADCChoiceList(ac5eConfig, baseDC) {
+function _buildTargetADCOptinChoiceList(ac5eConfig, baseDC) {
 	const getValues = (entries = []) =>
 		Array.isArray(entries) ?
 			entries
@@ -266,16 +301,8 @@ function _buildTargetADCChoiceList(ac5eConfig, baseDC) {
 		if (seen.has(numericDC)) return;
 		seen.add(numericDC);
 		const normalizedLabel = String(label ?? '').trim() || `${_localize('AC5E.ModifyDC')} ${numericDC} (${baseDC})`;
-		choices.push({ id: id ?? null, label: normalizedLabel, dc: numericDC });
+		choices.push({ id: id ?? null, label: normalizedLabel, dc: numericDC, baseDC });
 	};
-	const alteredTargetADC = Number(ac5eConfig?.alteredTargetADC);
-	if (Number.isFinite(alteredTargetADC)) {
-		addChoice({
-			id: 'ac5e:combined',
-			label: `${_localize('AC5E.ModifyDC')} ${alteredTargetADC} (${baseDC})`,
-			dc: alteredTargetADC,
-		});
-	}
 	for (const entry of allTargetADCEntries) {
 		if (!entry?.optin) continue;
 		const optinValues = Array.isArray(entry.values) ? entry.values : [];
@@ -283,13 +310,46 @@ function _buildTargetADCChoiceList(ac5eConfig, baseDC) {
 		const candidateDC = Number(getAlteredTargetValueOrThreshold(baseDC, [...baseTargetADCValues, ...optinValues], 'dcBonus'));
 		if (!Number.isFinite(candidateDC)) continue;
 		const entryLabel = String(entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
+		const beforeCount = choices.length;
 		addChoice({
 			id: entry?.id ?? null,
 			label: entryLabel || `${_localize('AC5E.ModifyDC')} ${candidateDC} (${baseDC})`,
 			dc: candidateDC,
 		});
+		if (choices.length > beforeCount) {
+			const created = choices.at(-1);
+			if (created) {
+				created.entry = entry;
+				created.displayLabel = entryLabel || created.label;
+				created.description =
+					typeof entry?.description === 'string' && entry.description.trim() ? entry.description.trim()
+					: typeof entry?.autoDescription === 'string' && entry.autoDescription.trim() ? entry.autoDescription.trim()
+					: '';
+			}
+		}
 	}
 	return choices;
+}
+
+function _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC) {
+	const labelEntries = [
+		...(Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : []),
+		...(Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : []),
+	].filter((entry) => entry && typeof entry === 'object');
+	const labels = [...new Set(labelEntries.map((entry) => String(entry?.label ?? entry?.name ?? entry?.id ?? '').trim()).filter(Boolean))];
+	const prefix = `${_localize('AC5E.ModifyDC')} ${alteredDC} (${baseDC})`;
+	return labels.length ? `${prefix}: ${labels.join(', ')}` : prefix;
+}
+
+function _getResolvedTargetADCMessageState(ac5eConfig, activityLike) {
+	const activityType = String(activityLike?.type ?? ac5eConfig?.options?.activity?.type ?? '').toLowerCase();
+	if (!['save', 'check'].includes(activityType)) return null;
+	const baseDC = Number(ac5eConfig?.initialTargetADC);
+	const alteredDC = Number(ac5eConfig?.alteredTargetADC);
+	if (!Number.isFinite(baseDC) || !Number.isFinite(alteredDC) || alteredDC === baseDC) return null;
+	const hoverText = _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC);
+	if (!hoverText) return null;
+	return { baseDC, alteredDC, hoverText, activityType };
 }
 
 function _rebuildPreUseTargetADCState(ac5eConfig, activity) {

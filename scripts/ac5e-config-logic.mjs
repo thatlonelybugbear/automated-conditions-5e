@@ -373,8 +373,11 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	if (Array.isArray(originatingUseConfig?.subject?.fail)) ac5eConfig.subject.fail.push(...foundry.utils.duplicate(originatingUseConfig.subject.fail));
 	if (Array.isArray(originatingUseConfig?.subject?.info)) ac5eConfig.subject.info.push(...foundry.utils.duplicate(originatingUseConfig.subject.info));
 	if (Array.isArray(originatingUseConfig?.subject?.rangeNotes)) ac5eConfig.subject.rangeNotes.push(...foundry.utils.duplicate(originatingUseConfig.subject.rangeNotes));
+	if (Array.isArray(originatingUseConfig?.subject?.targetADC)) ac5eConfig.subject.targetADC.push(...foundry.utils.duplicate(originatingUseConfig.subject.targetADC));
 	if (Array.isArray(originatingUseConfig?.opponent?.fail)) ac5eConfig.opponent.fail.push(...foundry.utils.duplicate(originatingUseConfig.opponent.fail));
 	if (Array.isArray(originatingUseConfig?.opponent?.info)) ac5eConfig.opponent.info.push(...foundry.utils.duplicate(originatingUseConfig.opponent.info));
+	if (Array.isArray(originatingUseConfig?.opponent?.targetADC)) ac5eConfig.opponent.targetADC.push(...foundry.utils.duplicate(originatingUseConfig.opponent.targetADC));
+	if (Array.isArray(originatingUseConfig?.targetADC)) ac5eConfig.targetADC.push(...foundry.utils.duplicate(originatingUseConfig.targetADC));
 	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
 	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
 	const persistedOptinBaseTargetADC = persistedAc5eConfig?.optinBaseTargetADC;
@@ -722,6 +725,30 @@ export function _getSafeUseConfig(ac5eConfig) {
 				values: foundry.utils.duplicate(entry?.values ?? []),
 			}))
 		:	[];
+	const sanitizeTargetADCEntries = (entries = []) =>
+		Array.isArray(entries) ?
+			entries.map((entry) => ({
+				id: entry?.id,
+				label: entry?.label ?? entry?.name,
+				name: entry?.name,
+				description: entry?.description,
+				autoDescription: entry?.autoDescription,
+				effectUuid: entry?.effectUuid,
+				changeIndex: entry?.changeIndex,
+				hook: entry?.hook,
+				mode: entry?.mode,
+				optin: !!entry?.optin,
+				changeKey: entry?.changeKey,
+				sourceActorId: entry?.sourceActorId ?? null,
+				sourceActorName: entry?.sourceActorName ?? '',
+				permissionSourceActorId: entry?.permissionSourceActorId ?? null,
+				permissionSourceActorName: entry?.permissionSourceActorName ?? '',
+				isAura: !!entry?.isAura,
+				cadence: entry?.cadence ?? null,
+				usesCount: entry?.usesCount,
+				values: foundry.utils.duplicate(entry?.values ?? []),
+			}))
+		:	[];
 	return {
 		hookType: ac5eConfig?.hookType,
 		tokenId: ac5eConfig?.tokenId,
@@ -740,8 +767,15 @@ export function _getSafeUseConfig(ac5eConfig) {
 			fail: foundry.utils.duplicate(ac5eConfig?.subject?.fail ?? []),
 			info: foundry.utils.duplicate(ac5eConfig?.subject?.info ?? []),
 			rangeNotes: foundry.utils.duplicate(ac5eConfig?.subject?.rangeNotes ?? []),
+			targetADC: sanitizeTargetADCEntries(ac5eConfig?.subject?.targetADC),
 		},
-		opponent: { fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []), info: foundry.utils.duplicate(ac5eConfig?.opponent?.info ?? []) },
+		opponent: {
+			fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []),
+			info: foundry.utils.duplicate(ac5eConfig?.opponent?.info ?? []),
+			targetADC: sanitizeTargetADCEntries(ac5eConfig?.opponent?.targetADC),
+		},
+		targetADC: foundry.utils.duplicate(ac5eConfig?.targetADC ?? []),
+		optinSelected: foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {}),
 		bonuses: { subject: sanitizeBonuses(ac5eConfig?.subject?.bonus), opponent: sanitizeBonuses(ac5eConfig?.opponent?.bonus) },
 		parts: foundry.utils.duplicate(ac5eConfig?.parts ?? []),
 		damageModifiers: foundry.utils.duplicate(ac5eConfig?.damageModifiers ?? []),

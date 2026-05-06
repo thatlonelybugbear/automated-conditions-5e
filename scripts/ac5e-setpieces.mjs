@@ -1739,6 +1739,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					return localizeTemplate('AC5E.OptinDescription.AppliesRollBonus', { roll, value: formatSignedNumber(bonus) }, `Applies ${formatSignedNumber(bonus)} to ${roll}`);
 				return localizeTemplate('AC5E.OptinDescription.ModifiesRollBonus', { roll }, `Modifies ${roll} bonus`);
 			case 'targetADC':
+				if (['save', 'check'].includes(hook)) {
+					const dcLabel =
+						hook === 'save' ? localizeText('AC5E.OptinDescription.DCLabel.Save', 'save DC')
+						: localizeText('AC5E.OptinDescription.DCLabel.Check', 'check DC');
+					if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.SetsTargetSpecificDC', { dcLabel, value: set }, `Sets ${dcLabel} to ${set}`);
+					if (bonus !== undefined && bonus !== '')
+						return localizeTemplate('AC5E.OptinDescription.ModifiesTargetSpecificDCBy', { dcLabel, value: formatSignedNumber(bonus) }, `Modifies ${dcLabel} by ${formatSignedNumber(bonus)}`);
+					return localizeTemplate('AC5E.OptinDescription.ModifiesTargetSpecificDC', { dcLabel }, `Modifies ${dcLabel}`);
+				}
 				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.SetsTargetAC', { value: set }, `Sets target AC to ${set}`);
 				if (bonus !== undefined && bonus !== '')
 					return localizeTemplate('AC5E.OptinDescription.ModifiesTargetACBy', { value: formatSignedNumber(bonus) }, `Modifies target AC by ${formatSignedNumber(bonus)}`);
@@ -2077,10 +2086,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(change.value);
 		const enforceMode = mode === 'info' ? getEnforceMode(change.value) : undefined;
 		const abilityOverride = mode === 'abilityOverride' ? parseAbilityOverride(change.value) : '';
+		const autoDescriptionHook = hook === 'use' && ['attack', 'check', 'damage', 'save'].includes(activity?.type) ? activity.type : hook;
 		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
 		const autoDescription =
 			!description && (optin || usesOverride?.forceDescription) ?
-				buildAutoDescription({ mode, hook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold, enforceMode })
+				buildAutoDescription({ mode, hook: autoDescriptionHook, bonus: mode === 'abilityOverride' ? abilityOverride : bonus, modifier, set, threshold, enforceMode })
 			:	undefined;
 		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);

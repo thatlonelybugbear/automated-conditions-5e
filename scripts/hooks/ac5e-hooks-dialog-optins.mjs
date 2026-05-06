@@ -300,14 +300,14 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 	});
 }
 
-function getRollingActorIdForOptins(ac5eConfig) {
+export function getRollingActorIdForOptins(ac5eConfig) {
 	const tokenId = ac5eConfig?.tokenId;
 	if (!tokenId) return null;
 	const token = canvas?.tokens?.get(tokenId);
 	return token?.actor?.id ?? null;
 }
 
-function shouldAskPermissionForOptinEntry(entry, ac5eConfig, rollingActorId) {
+export function shouldAskPermissionForOptinEntry(entry, ac5eConfig, rollingActorId) {
 	if (!(entry?.optin || entry?.forceOptin)) return false;
 	const sourceActorId = typeof entry?.sourceActorId === 'string' && entry.sourceActorId ? entry.sourceActorId : null;
 	const permissionSourceActorId = typeof entry?.permissionSourceActorId === 'string' && entry.permissionSourceActorId ? entry.permissionSourceActorId : null;
@@ -327,7 +327,7 @@ function shouldAskPermissionForOptinEntry(entry, ac5eConfig, rollingActorId) {
 	return sourceActorId !== null && sourceActorId !== rollingActorId;
 }
 
-function getAskPermissionSourceSuffix(entry, askPermission) {
+export function getAskPermissionSourceSuffix(entry, askPermission) {
 	if (!askPermission) return '';
 	const permissionSourceName = typeof entry?.permissionSourceActorName === 'string' ? entry.permissionSourceActorName.trim() : '';
 	if (permissionSourceName) return permissionSourceName;

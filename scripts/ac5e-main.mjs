@@ -145,6 +145,7 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.preRollDamage', type: 'damage' },
 		{ id: 'dnd5e.preRollSavingThrow', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
+		{ id: 'dnd5e.preActivityConsumption', type: 'preActivityConsumption' },
 		{ id: 'dnd5e.postUseActivity', type: 'postUse' },
 	];
 	const buildHooks = [
@@ -158,6 +159,8 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
+		{ id: 'renderActivityUsageDialog', type: 'usageDialog' },
+		{ id: 'renderDialog5e', type: 'usageDialog' },
 	];
 
 	for (const hook of actionHooks.concat(renderHooks).concat(foundryHooks).concat(buildHooks)) {

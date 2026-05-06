@@ -56,8 +56,9 @@ import { preConfigureInitiative } from './hooks/ac5e-hooks-roll-initiative.mjs';
 import { postBuildRollConfig } from './hooks/ac5e-hooks-roll-post-build.mjs';
 import { applyExplicitModeOverride, buildChatRollPayload, postRollConfiguration, setExplicitModeOverride } from './hooks/ac5e-hooks-roll-post.mjs';
 import { enforceDefaultButtonFocus, getExistingRoll, getExistingRollOptions } from './hooks/ac5e-hooks-ui-utils.mjs';
-import { postUseActivity, preUseActivity } from './hooks/ac5e-hooks-use-activity.mjs';
+import { postUseActivity, preActivityConsumption, preUseActivity } from './hooks/ac5e-hooks-use-activity.mjs';
 import { renderRollConfigDialogHijack } from './hooks/ac5e-hooks-render-dialog.mjs';
+import { renderActivityUsageDialogHijack } from './hooks/ac5e-hooks-render-usage-activity-dialog.mjs';
 import { getDialogAc5eConfig } from './hooks/ac5e-hooks-dialog-state.mjs';
 import { renderChatMessageHijack } from './hooks/ac5e-hooks-render-chat.mjs';
 import { renderSettings } from './settings/ac5e-settings-render.mjs';
@@ -67,6 +68,7 @@ const _hookDebugEnabled = (flag) => Boolean(settings.debug || globalThis?.[Const
 const rollFunctionDispatch = {
 	use: (hook, [activity, config, dialog, message]) => _preUseActivity(activity, config, dialog, message, hook),
 	postUse: (hook, [, usageConfig, results]) => _postUseActivity(usageConfig, results, hook),
+	preActivityConsumption: (hook, [activity, usageConfig, messageConfig]) => _preActivityConsumption(activity, usageConfig, messageConfig, hook),
 	buildRoll: (hook, [app, config, formData, index]) => _buildRollConfig(app, config, formData, index, hook),
 	postBuildRoll: (hook, [processConfig, config, index]) => _postBuildRollConfig(processConfig, config, index),
 	postRollConfig: (hook, [rolls, config, dialog, message]) => _postRollConfiguration(rolls, config, dialog, message, hook),
@@ -122,6 +124,12 @@ export function _postRollConfiguration(rolls, config, dialog, message, hook) {
 
 export async function _postUseActivity(usageConfig, results, hook) {
 	return postUseActivity(usageConfig, results, hook);
+}
+
+export function _preActivityConsumption(activity, usageConfig, messageConfig, hook) {
+	return preActivityConsumption(activity, usageConfig, messageConfig, hook, {
+		hookDebugEnabled: _hookDebugEnabled,
+	});
 }
 
 // export function _postConsumptionHook(activity, config, dialog, message) {
@@ -281,6 +289,12 @@ export function _renderHijack(hook, render, elem) {
 			hookDebugEnabled: _hookDebugEnabled,
 			activeModule: _activeModule,
 			getD20TooltipOwnership: _getD20TooltipOwnership,
+		});
+	}
+	if (hook === 'usageDialog') {
+		return renderActivityUsageDialogHijack(render, elem, {
+			Constants,
+			settings,
 		});
 	}
 	return true;

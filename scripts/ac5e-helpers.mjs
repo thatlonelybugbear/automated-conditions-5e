@@ -13,10 +13,12 @@ export function _cloneUseConfigShallow(useConfig) {
 	if (Array.isArray(useConfig.extraDice)) cloned.extraDice = foundry.utils.duplicate(useConfig.extraDice);
 	if (Array.isArray(useConfig.damageModifiers)) cloned.damageModifiers = foundry.utils.duplicate(useConfig.damageModifiers);
 	if (Array.isArray(useConfig.parts)) cloned.parts = foundry.utils.duplicate(useConfig.parts);
+	if (Array.isArray(useConfig.targetADC)) cloned.targetADC = foundry.utils.duplicate(useConfig.targetADC);
 	if (Array.isArray(useConfig.threshold)) cloned.threshold = foundry.utils.duplicate(useConfig.threshold);
 	if (Array.isArray(useConfig.fumbleThreshold)) cloned.fumbleThreshold = foundry.utils.duplicate(useConfig.fumbleThreshold);
 	if (useConfig.subject && typeof useConfig.subject === 'object') cloned.subject = foundry.utils.duplicate(useConfig.subject);
 	if (useConfig.opponent && typeof useConfig.opponent === 'object') cloned.opponent = foundry.utils.duplicate(useConfig.opponent);
+	if (useConfig.optinSelected && typeof useConfig.optinSelected === 'object') cloned.optinSelected = foundry.utils.duplicate(useConfig.optinSelected);
 	if (Array.isArray(useConfig.pendingUses)) cloned.pendingUses = foundry.utils.duplicate(useConfig.pendingUses);
 	if (cloned?.options?.originatingUseConfig !== undefined) delete cloned.options.originatingUseConfig;
 	return cloned;

@@ -1,9 +1,8 @@
 export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	let getConfigAC5E = initialConfig;
 	const { hookType, roller } = getConfigAC5E || {};
-	if (hookType === 'use') return true;
-	if (!['both', 'chat'].includes(deps.settings.showTooltips)) return true;
 	const messageFlags = render?.flags?.[deps.Constants.MODULE_ID];
+	if (!['both', 'chat'].includes(deps.settings.showTooltips)) return true;
 	const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
 	const resolvedHookType = hookType ?? messageFlags?.hookType;
 	const resolvedRoller = roller ?? messageFlags?.roller;
@@ -42,6 +41,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 			console.warn('ac5e hijack getTooltip', tooltip);
 			console.warn('ac5e hijack targetElement:', targetElement);
 		}
+		bindUseMessageTargetADCTooltip(elem, messageFlags, deps);
 		return true;
 	}
 	tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[messageFlags.hookType] || '';
@@ -65,5 +65,36 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 		console.warn('ac5e hijack targetElement:', targetElement);
 	}
 	if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
+	bindUseMessageTargetADCTooltip(elem, messageFlags, deps);
 	return true;
+}
+
+function bindUseMessageTargetADCTooltip(elem, messageFlags, deps = {}) {
+	const resolvedTargetADC = messageFlags?.resolvedTargetADC;
+	const hoverText = String(resolvedTargetADC?.hoverText ?? '').trim();
+	if (!hoverText) return true;
+	const tooltip = buildResolvedTargetADCHtmlTooltip(hoverText, deps);
+	const targetButtons = elem.querySelectorAll('button[data-action="rollSave"], button[data-action="rollCheck"], a[data-action="rollSave"], a[data-action="rollCheck"]');
+	if (!targetButtons?.length) return true;
+	for (const button of targetButtons) {
+		button.setAttribute('data-tooltip', tooltip);
+		button.removeAttribute('title');
+	}
+	return true;
+}
+
+function buildResolvedTargetADCHtmlTooltip(hoverText, deps = {}) {
+	const escapedText = escapeTooltipHtml(hoverText);
+	let tooltip = '<div class="ac5e-tooltip-content">';
+	if (deps?.settings?.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
+	tooltip += `<span style="display: block; text-align: left;">${escapedText}</span></div>`;
+	return tooltip;
+}
+
+function escapeTooltipHtml(value) {
+	return String(value ?? '')
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;');
 }
