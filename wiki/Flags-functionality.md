@@ -131,6 +131,9 @@ Replace `MODE` with one of the following:
 - `modifyDC`: Adds a numeric or calculated bonus to the DC of the rolled action
    - Include `bonus=XXX` in the effect value, following the same logic as a normal bonus to be added or subtracted from the default roll's DC.
    - Or include `set=XXX` in the effect value to **set** the DC to the specified value (number or dice roll).
+   - For `save` and `check` activities, AC5E resolves `modifyDC` during activity use so the created chat message shows the final DC directly.
+   - `optin` `modifyDC` entries for `save` and `check` activities are chosen in D&D 5e's normal usage dialog, not later in the save/check roll configuration dialog.
+   - The resulting activity card keeps a single final save/check DC button rather than creating duplicate alternative DC buttons.
    - With MidiQOL save/check cards, AC5E updates the displayed item-card DC after final resolution.
    - If a shared card represents mixed per-target modified DCs, the shared label is marked as `DC X (*)` and the per-target Midi attribution remains the detailed source of truth.
 - `criticalThreshold` - Alters the threshold for critical on d20 attack rolls.

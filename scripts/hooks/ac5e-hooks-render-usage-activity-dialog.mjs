@@ -194,7 +194,7 @@ function buildUsageDialogTooltip(usageConfig, choices = [], ac5eConfig, deps = {
 	const selectedChoices = choices.filter((choice) => selectedIds.has(String(choice?.id ?? '')));
 	let tooltip = '';
 	if (deps?.settings?.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
-	if (!selectedChoices.length) return `${tooltip}<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div>`;
+	if (!selectedChoices.length) return `${tooltip}<div style="text-align:center;"><strong>${localizeWithFallback('AC5E.NoChanges', 'No changes')}</strong></div>`;
 	const labels = [...new Set(selectedChoices.map((choice) => String(choice?.displayLabel ?? choice?.label ?? '').trim()).filter(Boolean))];
 	const entries = [
 		...(Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : []),

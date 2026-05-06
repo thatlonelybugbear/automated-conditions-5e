@@ -301,12 +301,30 @@ key: flags.automated-conditions-5e.save.modifyDC
 value: bonus=2;
 ```
 
+Behavior:
+
+- For save/check activities, AC5E applies the DC change during activity use so the created chat message already shows the resolved DC.
+- This does not create duplicate DC buttons on the chat card. AC5E rewrites the normal save/check button to the final resolved DC.
+
 ### Set save DC to a fixed value when a condition matches
 ```
 key: flags.automated-conditions-5e.save.modifyDC
 
 value: set=17; rollingActor.attributes.hp.pct < 50;
 ```
+
+### Optional save DC increase chosen in the usage dialog
+```
+key: flags.automated-conditions-5e.save.modifyDC
+
+value: bonus=15; optin; isSpell; name=New Effect;
+```
+
+Notes:
+
+- For save/check activities, `optin` `modifyDC` entries are selected in D&D 5e's normal usage dialog.
+- They are not shown again in the later save/check roll configuration dialog.
+- The usage dialog `Cast Spell` button and the final activity-card DC button both show AC5E tooltip attribution for the resolved DC change.
 
 MidiQOL note:
 

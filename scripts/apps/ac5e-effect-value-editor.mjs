@@ -85,7 +85,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		const changeKey = this.draftKey ?? this.keyInput?.value ?? '';
-		const parsed = this.draftData ?? parseAc5eEffectValue(this.#getValueInput()?.value ?? '');
+		const parsed = this.draftData ?? parseAc5eEffectValue(this.#getValueInput()?.value ?? '', { changeKey });
 		const profile = getEditorProfile(changeKey, parsed);
 		const setMode = profile.supportsSetMode && shouldUseSetMode(parsed);
 		const optionalFieldState = resolveOptionalFieldState(parsed, this.uiState);
@@ -179,7 +179,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
 		}
-		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
+		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
 		}
@@ -193,7 +193,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			return;
 		}
 		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
-		const baseData = this.draftData ?? parseAc5eEffectValue(valueInput.value ?? '');
+		const baseData = this.draftData ?? parseAc5eEffectValue(valueInput.value ?? '', { changeKey });
 		const profile = getEditorProfile(changeKey, baseData);
 		const formData = collectAc5eEffectValueFormData(form);
 		const setMode = profile.supportsSetMode && hasCheckedInput(form, 'ui.setMode');
@@ -202,10 +202,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
-		if (profile.supportsSetMode) {
-			formData.fields.bonus = setMode ? '' : formData.fields.bonus;
-			formData.fields.set = setMode ? formData.fields.bonus : '';
-		}
+		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
 			toggleNames: [...profile.commonToggles, ...profile.contextToggles],
@@ -219,7 +216,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.bonus = setMode ? '' : mergedData.fields.bonus;
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
-		const value = serializeAc5eEffectValue(mergedData);
+		const value = serializeAc5eEffectValue(mergedData, { changeKey });
 		valueInput.value = value;
 		valueInput.dispatchEvent(new Event('input', { bubbles: true }));
 		valueInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -371,7 +368,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	#captureDraftState(form) {
 		const valueInput = this.#getValueInput();
 		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
-		const baseData = this.draftData ?? parseAc5eEffectValue(valueInput?.value ?? '');
+		const baseData = this.draftData ?? parseAc5eEffectValue(valueInput?.value ?? '', { changeKey });
 		const profile = getEditorProfile(changeKey, baseData);
 		const formData = collectAc5eEffectValueFormData(form);
 		const setMode = profile.supportsSetMode && hasCheckedInput(form, 'ui.setMode');
@@ -380,10 +377,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
-		if (profile.supportsSetMode) {
-			formData.fields.bonus = setMode ? '' : formData.fields.bonus;
-			formData.fields.set = setMode ? formData.fields.bonus : '';
-		}
+		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
 			toggleNames: [...profile.commonToggles, ...profile.contextToggles],
@@ -461,7 +455,7 @@ function getEditorProfile(changeKey, parsed) {
 	const requiredFields = [];
 	const auraFields = [];
 	if (isBonus) requiredFields.push('bonus');
-	if (isTypeOverride) requiredFields.push('set');
+	if (isTypeOverride) requiredFields.push('override');
 	if (isTargetADC) requiredFields.push('set');
 	if (isModifier) requiredFields.push('modifier');
 	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('bonus', 'set');
@@ -599,6 +593,13 @@ function buildRenderedOptionalField(name, parsed, id) {
 
 function shouldUseSetMode(parsed) {
 	return hasParsedValue(parsed, 'set') && !hasParsedValue(parsed, 'bonus');
+}
+
+function applySetModeToFormData(formData, setMode) {
+	if (!formData?.fields) return;
+	const enteredValue = String(formData.fields.bonus ?? '').trim();
+	formData.fields.set = setMode ? enteredValue : '';
+	formData.fields.bonus = setMode ? '' : enteredValue;
 }
 
 function getPersistedFieldNames(profile) {

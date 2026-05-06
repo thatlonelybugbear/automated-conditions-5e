@@ -1,6 +1,7 @@
 const ASSIGNMENT_FIELDS = [
 	'bonus',
 	'modifier',
+	'override',
 	'set',
 	'radius',
 	'threshold',
@@ -32,7 +33,7 @@ const TOGGLE_LOOKUP = new Map(TOGGLE_FIELDS.map((field) => [field.toLowerCase(),
 
 export { ASSIGNMENT_FIELDS, TOGGLE_FIELDS };
 
-export function parseAc5eEffectValue(value = '') {
+export function parseAc5eEffectValue(value = '', { changeKey = '' } = {}) {
 	const parsed = {
 		fields: Object.fromEntries(ASSIGNMENT_FIELDS.map((field) => [field, ''])),
 		toggles: Object.fromEntries(TOGGLE_FIELDS.map((field) => [field, false])),
@@ -40,11 +41,13 @@ export function parseAc5eEffectValue(value = '') {
 		raw: [],
 	};
 
+	const aliasState = getAssignmentAliasState(changeKey);
 	for (const fragment of splitEffectValueFragments(value)) {
 		const assignment = fragment.match(/^([A-Za-z][\w-]*)\s*=\s*(.*)$/s);
 		if (assignment) {
 			const [, rawKey, rawAssignmentValue] = assignment;
-			const field = ASSIGNMENT_LOOKUP.get(rawKey.toLowerCase());
+			const normalizedKey = rawKey.toLowerCase();
+			const field = resolveAssignmentField(normalizedKey, aliasState);
 			if (rawKey.toLowerCase() === 'condition') {
 				if (rawAssignmentValue.trim()) parsed.conditions.push(rawAssignmentValue.trim());
 				continue;
@@ -73,11 +76,14 @@ export function parseAc5eEffectValue(value = '') {
 	return parsed;
 }
 
-export function serializeAc5eEffectValue({ fields = {}, toggles = {}, conditions = [], raw = [] } = {}) {
+export function serializeAc5eEffectValue({ fields = {}, toggles = {}, conditions = [], raw = [] } = {}, { changeKey = '' } = {}) {
 	const fragments = [];
+	const aliasState = getAssignmentAliasState(changeKey);
 	for (const field of ASSIGNMENT_FIELDS) {
 		const value = String(fields[field] ?? '').trim();
-		if (value) fragments.push(`${field}=${value}`);
+		if (!value) continue;
+		const serializedField = getSerializedFieldName(field, aliasState);
+		fragments.push(`${serializedField}=${value}`);
 	}
 	for (const toggle of TOGGLE_FIELDS) {
 		if (toggles[toggle]) fragments.push(toggle);
@@ -152,4 +158,23 @@ function splitEffectValueFragments(value) {
 		.split(';')
 		.map((fragment) => fragment.trim())
 		.filter(Boolean);
+}
+
+function getAssignmentAliasState(changeKey = '') {
+	const normalized = String(changeKey ?? '').trim().toLowerCase();
+	return {
+		isTypeOverride: normalized.endsWith('.typeoverride'),
+	};
+}
+
+function resolveAssignmentField(normalizedKey, aliasState) {
+	if (aliasState.isTypeOverride) {
+		if (normalizedKey === 'override' || normalizedKey === 'set') return 'override';
+	}
+	return ASSIGNMENT_LOOKUP.get(normalizedKey);
+}
+
+function getSerializedFieldName(field, aliasState) {
+	if (field === 'override' && aliasState.isTypeOverride) return 'override';
+	return field;
 }
