@@ -1648,11 +1648,14 @@ export function _getTooltip(ac5eConfig = {}) {
 			.map((entry) => Number(entry?.ac))
 			.filter((value) => Number.isFinite(value));
 		if (['attack', 'damage'].includes(hookType) && numericBaseTargetAcs.length) return Math.min(...numericBaseTargetAcs);
+		const numericInitialTargetADC = Number(initialTargetADC);
+		// For save/check target DC tooltips, prefer the frozen pre-modification baseline
+		// over the live roll/activity target, which may already include modifyDC changes.
+		if (!['attack', 'damage'].includes(hookType) && Number.isFinite(numericInitialTargetADC)) return numericInitialTargetADC;
 		const numericOptinBaseTargetADC = Number(ac5eConfig?.optinBaseTargetADCValue);
 		if (!['attack', 'damage'].includes(hookType) && Number.isFinite(numericOptinBaseTargetADC)) return numericOptinBaseTargetADC;
 		const numericBaseRollTarget = Number(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target);
 		if (!['attack', 'damage'].includes(hookType) && Number.isFinite(numericBaseRollTarget)) return numericBaseRollTarget;
-		const numericInitialTargetADC = Number(initialTargetADC);
 		if (Number.isFinite(numericInitialTargetADC)) return numericInitialTargetADC;
 		return undefined;
 	};
@@ -2363,12 +2366,11 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const baseTargetADC =
 		(['attack', 'damage'].includes(ac5eConfig?.hookType) && initialTargetAcs.length ? Math.min(...initialTargetAcs) : undefined) ??
 		(['attack', 'damage'].includes(ac5eConfig?.hookType) && baseTargetAcs.length ? Math.min(...baseTargetAcs) : undefined) ??
+		getNumericTarget(ac5eConfig?.initialTargetADC) ??
 		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
 		(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
-		getNumericTarget(ac5eConfig?.initialTargetADC) ??
-		getNumericTarget(config?.target) ??
 		getNumericTarget(config?.rolls?.[0]?.options?.target) ??
-		getNumericTarget(config?.rolls?.[0]?.target) ??
+		getNumericTarget(config?.target) ??
 		10;
 	const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
 	const targetValuePool =
@@ -2605,12 +2607,11 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 			return Number.isFinite(numeric) ? numeric : undefined;
 		};
 		const baseTargetADC =
+			getNumericTarget(ac5eConfig?.initialTargetADC) ??
 			(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.optinBaseTargetADCValue)) ??
 			(['attack', 'damage'].includes(ac5eConfig?.hookType) ? undefined : getNumericTarget(ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target)) ??
-			getNumericTarget(ac5eConfig?.initialTargetADC) ??
-			getNumericTarget(config?.target) ??
 			getNumericTarget(config?.rolls?.[0]?.options?.target) ??
-			getNumericTarget(config?.rolls?.[0]?.target) ??
+			getNumericTarget(config?.target) ??
 			10;
 		const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
 		const targetValuePool =

@@ -1,3 +1,16 @@
+## Unreleased
+
+- Generalized `abilityOverride` so it can be authored as an activity-level AC5E flag instead of only an attack-scoped one.
+  - `flags.automated-conditions-5e.abilityOverride` is now supported.
+  - Legacy `flags.automated-conditions-5e.attack.abilityOverride` is still accepted for compatibility.
+- Standardized override-style value syntax.
+  - `typeOverride` and `abilityOverride` now expose `override=...` as the preferred syntax.
+  - Legacy `set=...` and older override forms are still supported for backwards compatibility.
+- Improved damage bonus roll handling.
+  - `damage.modifier` entries now also apply to synthetic bonus damage rolls created by `damage.bonus`.
+- Fixed AC5E use-flag writes for newer D&D5e activity hook payloads.
+  - When a hook provides a transient message-like object instead of a real `ChatMessage`, AC5E now mirrors the `use` flag onto that payload so same-cycle reads still work.
+
 ## 14.532.2
 
 - Added the first experimental pass of the **AC5E Effect Value Editor** for Active Effects.

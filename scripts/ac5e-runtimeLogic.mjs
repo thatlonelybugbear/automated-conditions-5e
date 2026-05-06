@@ -521,6 +521,16 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			}
 		}
 		if (ac5eConfig.targetADC?.length && hook !== 'attack' && hook !== 'damage') {
+			const skipNonAttackTargetADCReapply =
+				(hook === 'save' || hook === 'check') &&
+				ac5eConfig?.useConfig?.targetADCResolvedAtUse === true;
+			if (skipNonAttackTargetADCReapply) {
+				const resolvedBaseTargetADC = pickNonSentinelNumber(ac5eConfig?.useConfig?.initialTargetADC, ac5eConfig?.initialTargetADC);
+				const resolvedAlteredTargetADC = pickNonSentinelNumber(roll0?.options?.target, config?.target, ac5eConfig?.useConfig?.alteredTargetADC, ac5eConfig?.alteredTargetADC);
+				if (resolvedBaseTargetADC !== undefined) ac5eConfig.initialTargetADC = resolvedBaseTargetADC;
+				if (resolvedAlteredTargetADC !== undefined) ac5eConfig.alteredTargetADC = resolvedAlteredTargetADC;
+				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: skipped non-attack reapply', { hook, initialTargetADC: ac5eConfig.initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
+			} else {
 			const initialTargetADC =
 				pickNonSentinelNumber(
 					ac5eConfig?.optinBaseTargetADCValue,
@@ -539,6 +549,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				ac5eConfig.initialTargetADC = initialTargetADC;
 			}
 			if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: result non-attack', { hook, initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
+			}
 		}
 		const subjectFail = _filterOptinEntries(ac5eConfig.subject.fail, ac5eConfig.optinSelected);
 		const opponentFail = _filterOptinEntries(ac5eConfig.opponent.fail, ac5eConfig.optinSelected);

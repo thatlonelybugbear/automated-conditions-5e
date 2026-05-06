@@ -76,7 +76,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
 	_rebuildPreUseTargetADCState(ac5eConfig, activity);
-	_applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
+	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
 	_wireTargetADCChoiceButtons(activity, ac5eConfig);
 
 	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
