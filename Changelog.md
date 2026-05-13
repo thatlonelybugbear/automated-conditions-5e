@@ -1,3 +1,7 @@
+## 13.5250.18.3
+
+- Fix for initiative Rolls triggering "Max depth exceeded" violations when lots of Active Effects are present on actors.
+
 ## 13.5250.18.2
 
 - Final compatibility version for D&D5E v5.2.5, setting a proper maximum.
