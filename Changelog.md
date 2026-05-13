@@ -1,3 +1,8 @@
+## 13.5330.1
+
+* Fix for initiative Rolls triggering "Max depth exceeded" violations when lots of Active Effects are present on actors.
+* Compatibility bump for system v5.3.3.
+
 ## 13.5320.3
 
 - Added support for multi-type inline bonus damage parts such as `bonus=1d4[fire, lightning, thunder]`.
