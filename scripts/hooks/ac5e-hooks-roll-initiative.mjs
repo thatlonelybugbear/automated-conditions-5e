@@ -14,7 +14,8 @@ export function preConfigureInitiative(subject, rollConfig, hook, deps) {
 	let ac5eConfig = _getConfig(config, {}, hook, subjectToken?.id, undefined, options);
 	if (ac5eConfig.returnEarly) {
 		_getTooltip(ac5eConfig);
-		foundry.utils.mergeObject(rollConfig.options, { [deps.Constants.MODULE_ID]: ac5eConfig });
+		// foundry.utils.mergeObject(rollConfig.options, { [deps.Constants.MODULE_ID]: ac5eConfig });
+		rollConfig.options[deps.Constants.MODULE_ID] = ac5eConfig;
 		return ac5eConfig;
 	}
 
@@ -32,7 +33,8 @@ export function preConfigureInitiative(subject, rollConfig, hook, deps) {
 		: advantageMode > 0 ? 'advantage'
 		: 'disadvantage';
 	_getTooltip(ac5eConfig);
-	foundry.utils.mergeObject(rollConfig.options, { [deps.Constants.MODULE_ID]: ac5eConfig });
+	// foundry.utils.mergeObject(rollConfig.options, { [deps.Constants.MODULE_ID]: ac5eConfig });
+	rollConfig.options[deps.Constants.MODULE_ID] = ac5eConfig;
 	if (deps.hookDebugEnabled('preConfigureInitiativeHook')) console.warn('AC5E._preConfigureInitiative', { ac5eConfig });
 	return ac5eConfig;
 }
