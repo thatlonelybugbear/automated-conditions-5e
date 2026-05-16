@@ -1,3 +1,7 @@
+## 13.5250.18.4
+
+- Refactor has() method in ac5e-parser to simplify property lookup logic and prevent scope leakage.
+
 ## 13.5250.18.3
 
 - Fix for initiative Rolls triggering "Max depth exceeded" violations when lots of Active Effects are present on actors.
