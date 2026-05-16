@@ -36,9 +36,7 @@ function createProxySandbox(sandbox, mode = 'formula') {
 			return mode === 'condition' ? false : undefined;
 		},
 		has(target, prop) {
-			if (BLOCKED.has(prop)) return false;
-			if (target._evalConstants && prop in target._evalConstants) return true;
-			return prop in target || prop in Math;
+			return !BLOCKED.has(prop);
 		},
 	});
 }
