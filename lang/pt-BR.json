@@ -270,16 +270,16 @@
 			"description": "Use bonus=2;radius=10 para aumentar o número de dados rolados para cada denominação em um raio de 10 unidades de distância."
 		},
 		"flags.automated-conditions-5e.damage.typeOverride": {
-			"name": "Override the damage type set of base damage rolls",
-			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+			"name": "Substituir o Conjunto de Tipos de Dano dos Valores de Dano Base",
+			"description": "Use set=fire para forçar um tipo ou set=fire,lightning,thunder para oferecer vários tipos. addTo=... seleciona apenas as partes que correspondem ao dano base."
 		},
 		"flags.automated-conditions-5e.grants.damage.typeOverride": {
-			"name": "Grant a damage type override to the opponent's base damage rolls",
-			"description": "Use set=fire to force one type or set=fire,lightning,thunder to offer multiple types. addTo=... targets matching base damage parts only."
+			"name": "Concede Alteração no Tipo de Dano às Rolagens de Dano Base do Oponente",
+			"description": "Use set=fire para forçar um tipo ou set=fire,lightning,thunder para oferecer vários tipos. addTo=... seleciona apenas as partes que correspondem ao dano base."
 		},
 		"flags.automated-conditions-5e.aura.damage.typeOverride": {
-			"name": "An aura overriding the damage type set of base damage rolls in radius",
-			"description": "Use radius=10;set=fire or radius=10;set=fire,lightning,thunder. addTo=... targets matching base damage parts only."
+			"name": "Aura que Substitui o Conjunto de Tipos de Dano Base em Raio",
+			"description": "Use radius=10;set=fire ou radius=10;set=fire,lightning,thunder. addTo=... seleciona apenas as partes que correspondem ao dano base."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modificar CA Contra Ataques Sofridos",
