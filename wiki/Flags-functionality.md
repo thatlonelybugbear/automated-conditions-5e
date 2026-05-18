@@ -16,6 +16,8 @@ Affects **rolls made by the actor** who has an Active effect with this flag.
 
 Short alias is also accepted: `flags.ac5e.ACTIONTYPE.MODE`.
 
+`d20` is a valid ACTIONTYPE for d20 roll families. It covers attack, check (+initiative), save (+concentration/death), but not damage rolls.
+
 ---
 
 ### `flags.automated-conditions-5e.aura.ACTIONTYPE.MODE`
@@ -50,6 +52,7 @@ Replace `ACTIONTYPE` with a roll type to affect:
 
 #### General Types:
 - `all`
+- `d20`
 - `attack`
 - `check`
 - `damage`

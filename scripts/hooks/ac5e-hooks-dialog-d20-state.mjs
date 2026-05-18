@@ -55,7 +55,7 @@ export function doDialogAttackRender(dialog, elem, getConfigAC5E, deps) {
 }
 
 export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
-	if (!dialog?.config || !['attack', 'save', 'check'].includes(ac5eConfig?.hookType)) return false;
+	if (!dialog?.config || !['attack', 'save', 'check', 'initiative'].includes(ac5eConfig?.hookType)) return false;
 	const preRestoreParts = getD20ActivePartsSnapshot(dialog.config);
 	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, dialog.config);
 	deps.restoreD20ConfigFromFrozenBaseline(ac5eConfig, dialog.config);

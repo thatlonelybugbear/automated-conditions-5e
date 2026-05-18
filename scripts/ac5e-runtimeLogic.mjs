@@ -1040,8 +1040,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.hasDisadvantage = Boolean(sandbox.hasDisadvantage || sandbox.hasTransitDisadvantage);
 	sandbox.isCritical = sandboxOptions?.d20?.isCritical;
 	sandbox.isFumble = sandboxOptions?.d20?.isFumble;
-	globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(sandbox);
-	globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(sandbox);
 
 	if (sandbox.undefined || sandbox['']) {
 		delete sandbox.undefined;

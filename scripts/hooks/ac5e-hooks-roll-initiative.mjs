@@ -22,7 +22,7 @@ export function preConfigureInitiative(subject, rollConfig, hook, deps) {
 			if (subject?.flags?.dnd5e?.initiativeAdv) phaseConfig.subject.advantage.push(_localize('AC5E.FlagsInitiativeAdv'));
 			if (subject?.flags?.dnd5e?.initiativeDisadv) phaseConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv'));
 			clearSuppressedInitiativeModes(phaseConfig);
-			getRollModeCounts(phaseConfig, { filterOptin: false });
+			getRollModeCounts(phaseConfig);
 			const advantageMode = getInitiativeAdvantageMode(phaseConfig);
 			appendInitiativeParts(rollConfig, phaseConfig.parts);
 			applyInitiativeModeToRollOptions(rollConfig.options, advantageMode);
@@ -66,7 +66,7 @@ function clearSuppressedInitiativeModes(ac5eConfig) {
 }
 
 function getInitiativeAdvantageMode(ac5eConfig) {
-	const counts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig, { filterOptin: false });
+	const counts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig);
 	return counts?.netMode ?? 0;
 }
 

@@ -1128,11 +1128,28 @@ function _passesFriendOrFoeFilter({ sourceToken, targetToken, rawValue }) {
 }
 
 function _evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sourceToken, auraToken }) {
-	if (_parseFlagBooleanStrict(rawValue) !== true) return false;
+	const parsedBoolean = _parseFlagBooleanStrict(rawValue);
+	const normalizedRaw = typeof rawValue === 'string' ? rawValue : '';
+	const fragments = normalizedRaw
+		.split(';')
+		.map((entry) => entry.trim())
+		.filter(Boolean);
+	const standaloneKeywords = new Set(['allies', 'enemies', 'includeself', 'singleaura', 'wallsblock']);
+	const keyedKeywords = new Set(['radius', 'priority']);
+	const hasOnlyKeywordFragments = fragments.length > 0
+		&& fragments.every((fragment) => {
+			const lower = fragment.toLowerCase();
+			if (standaloneKeywords.has(lower)) return true;
+			const keyedMatch = lower.match(/^([a-z][a-z0-9_]*)\s*[:=]\s*(.*)$/i);
+			if (!keyedMatch) return false;
+			return keyedKeywords.has(keyedMatch[1]);
+		});
+	if (parsedBoolean === false) return false;
+	if (parsedBoolean !== true && !hasOnlyKeywordFragments) return false;
 	if (scope === 'grants') return _passesFriendOrFoeFilter({ sourceToken, targetToken, rawValue });
 	if (scope !== 'aura') return true;
 	if (!_passesFriendOrFoeFilter({ sourceToken: auraToken ?? sourceToken, targetToken, rawValue })) return false;
-	const normalized = typeof rawValue === 'string' ? rawValue.toLowerCase() : '';
+	const normalized = normalizedRaw.toLowerCase();
 	if (auraToken?.id && targetToken?.id && auraToken.id === targetToken.id && !normalized.includes('includeself')) return false;
 	if (typeof rawValue !== 'string') return true;
 	const radiusRaw = getBlacklistedKeysValue('radius', rawValue);
@@ -1242,7 +1259,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const item = activity?.item;
 
 	//flags.ac5e.<actionType>.<mode>
-	// actionType = all/attack/damage/check/conc/death/init/save/skill/tool
+	// actionType = all/d20/attack/damage/check/conc/death/init/save/skill/tool
 	// in options there are options.isDeathSave options.isInitiative options.isConcentration
 
 	if (settings.debug) console.error('AC5E._ac5eFlags:', { subject, subjectToken, opponent, opponentToken, ac5eConfig, hook, ability, distance, activity, tool, skill, options });
@@ -1518,6 +1535,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isConc = isConcentration && hook === 'save' && change.key.includes('conc');
 		const isInit = isInitiative && hook === 'check' && change.key.includes('init');
 		const isDeath = isDeathSave && hook === 'save' && change.key.includes('death');
+		const isD20 = ['attack', 'check', 'save', 'initiative'].includes(hook) && change.key.includes('d20');
 		const isModifyAC = change.key.includes('modifyAC') && hook === 'attack';
 		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(activity?.type);
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
@@ -1525,7 +1543,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
-		const hasHook = change.key.includes(hook) || isAll || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
+		const hasHook = change.key.includes(hook) || isAll || isD20 || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
@@ -2107,6 +2125,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		const normalizedChange = _rewriteLegacyGrantsModifyDCChange(change);
 		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
+		globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(effectSandbox);
+		globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(effectSandbox);
 		if (
 			!effectChangesTest({
 				token,
@@ -2229,6 +2249,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const hookMatches = (() => {
 			if (!ruleHook || ruleHook === '*' || ruleHook === 'all') return true;
 			if (ruleHook === hook) return true;
+			if (ruleHook === 'd20') return ['attack', 'check', 'save', 'initiative'].includes(hook);
 			if (ruleHook === 'checks' || ruleHook === 'check') return hook === 'check';
 			if (ruleHook === 'saves' || ruleHook === 'save') return hook === 'save';
 			if (ruleHook === 'skills' || ruleHook === 'skill') return hook === 'check' && Boolean(skill);

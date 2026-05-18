@@ -43,6 +43,12 @@ key: flags.automated-conditions-5e.aura.save.bonus
 
 value: bonus=auraActor.abilities.cha.mod; radius=(auraActor.details.level < 18 ? 10 : 30); allies; singleAura; includeSelf
 ```
+## Lantern of Revealing
+```
+key: flags.automated-conditions-5e.aura.noInvisible
+
+value: radius=30
+```
 ## Blood Frenzy
 ```
 key: flags.automated-conditions-5e.attack.advantage

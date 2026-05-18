@@ -76,6 +76,7 @@ function _normalizeUsageRuleHook(hook) {
 	const aliases = {
 		attack: 'attack',
 		bonus: 'bonus',
+		d20: 'd20',
 		damage: 'damage',
 		check: 'check',
 		checks: 'check',
@@ -111,6 +112,8 @@ function _usageRuleHookMatches(ruleHook, currentHook, context = {}) {
 	switch (normalizedRule) {
 		case 'attack':
 			return normalizedCurrent === 'attack';
+		case 'd20':
+			return ['attack', 'check', 'save', 'initiative'].includes(normalizedCurrent);
 		case 'damage':
 			return normalizedCurrent === 'damage';
 		case 'check':
@@ -449,7 +452,7 @@ function showUsageRuleKeys() {
 		key: 'String identifier used to uniquely register, update, remove, and reference the usage rule. Must be a valid JS-style identifier.',
 		persistent: 'Boolean: persists the rule in module settings so it survives reloads and reconnects. Rules using evaluate() cannot be persisted.',
 		scope: 'String: application scope. Supported values: "effect" and "universal".',
-		hook: 'String: evaluation hook. Supported values include "*", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
+		hook: 'String: evaluation hook. Supported values include "*", "all", "d20", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
 		target: 'String: which side the rule applies to. Supported values: "subject", "opponent", and "aura". Alias: actorType.',
 		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "info", "modifiers", "targetADC", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',
 		name: 'String: user-facing label shown in tooltips, dialogs, and attribution.',

@@ -248,7 +248,6 @@ function notifyPreUse(actorName, warning, type) {
 }
 
 function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
-	console.log('AC5E targetADC: preUseActivity initial', { activity, ac5eConfig, deps });
 	const activityType = activity?.type;
 	if (!['save', 'check'].includes(activityType)) return false;
 	const activityData = activity?.[activityType];
@@ -258,7 +257,6 @@ function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
 	let alteredDC = Number(ac5eConfig?.alteredTargetADC);
 	if (!Number.isFinite(alteredDC)) {
 		const targetValues = Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC : [];
-		console.log('AC5E targetADC: preUseActivity potential target ADC values', { activityType, initialDC, targetValues });
 		if (!targetValues.length) return false;
 		const computedAltered = Number(getAlteredTargetValueOrThreshold(initialDC, targetValues, 'dcBonus'));
 		if (!Number.isFinite(computedAltered) || computedAltered === initialDC) return false;

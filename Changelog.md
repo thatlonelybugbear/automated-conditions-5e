@@ -1,3 +1,14 @@
+## 14.533.2
+
+- Added `d20` as a valid AC5E flag and usage-rule hook.
+  - `flags.automated-conditions-5e.d20.advantage`, for example, can now be used to apply AC5E rules and conditions to any d20 roll family, including initiative.
+- Initiative rolls now use the same d20 dialog-state and opt-in handling as attack, save, and check rolls.
+- Added support for target/opponent data during Check activity evaluations, so check hooks can resolve the same target context that save hooks use.
+- Moved `contextKeywords` and `usageRules` sandbox application to the fully mutated effect sandbox, so they can see data like `auraActor`, `effectActor`, and `nonEffectActor`.
+- Added full evaluation of `noStatusID` suppressors like `noProne` and `noInvisible`.
+  - For example, for a Lantern of Revealing implementation `flags.automated-conditions-5e.aura.noInvisible | Custom | radius=30;` now suppresses Invisible for matching tokens in range.
+- Removed some forgotten console logs.
+
 ## 14.533.1
 
 - ***Breaking***: Support for the `abilityOverride` flag has been removed until a more robust implementation can be added in a future release. Any existing `abilityOverride` flags will be ignored in the current release.

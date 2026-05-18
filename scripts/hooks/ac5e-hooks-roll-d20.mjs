@@ -31,14 +31,16 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 	const { messageForTargets, activity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const hookNames = Array.isArray(config?.hookNames) ? config.hookNames : [];
 	options.isInitiative = hookNames.includes('initiativeDialog') || config?.options?.isInitiative === true || config?.rolls?.[0]?.options?.isInitiative === true;
-	if (options.isInitiative) return true;
 	const { subject, ability, tool, skill } = config || {};
 	options.skill = skill;
 	options.tool = tool;
 	options.ability = ability;
 	deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' }, deps);
 	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps);
-	let opponentToken;
+	let opponentToken = deps.getOpponentTokenForSave(options, activity, subjectToken, deps);
+	if (opponentToken === subjectToken) opponentToken = undefined;
+	if (opponentToken && subjectToken) options.distance = deps.getDistance(opponentToken, subjectToken);
+	deps.logResolvedTargets('check', subjectToken, opponentToken, options);
 	const ac5eConfig = runAc5eRollPhase({
 		hook,
 		config,
