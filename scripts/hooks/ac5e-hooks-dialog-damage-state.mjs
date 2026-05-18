@@ -1136,6 +1136,9 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
 	const isOptinEntrySelected = (entry) => Boolean(entry?.forceOptin || (entry?.id && selectedOptinIds.has(entry.id)));
 	const damageBonusEntries = getCollectedDamageEntries(getConfigAC5E, 'bonus', { raw: true }).filter((entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry));
+	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter(
+		(entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry),
+	);
 	const subjectAdvantage = _filterOptinEntries(getConfigAC5E.subject.advantage, getConfigAC5E.optinSelected);
 	const opponentAdvantage = _filterOptinEntries(getConfigAC5E.opponent.advantage, getConfigAC5E.optinSelected);
 	const subjectDisadvantage = _filterOptinEntries(getConfigAC5E.subject.disadvantage, getConfigAC5E.optinSelected);
@@ -1276,8 +1279,17 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const baseEntry = appendedBonusRollsByKey.get(key);
 		const criticalEntry = appendedCriticalBonusRollsByKey.get(key);
 		const entry = baseEntry ?? criticalEntry ?? { type: undefined, types: [], parts: [] };
+		let syntheticRollTypes = Array.isArray(entry.types) ? normalizeDamageTypeList(entry.types) : [];
+		let syntheticRollType = typeof entry.type === 'string' && entry.type.trim() ? String(entry.type).trim().toLowerCase() : syntheticRollTypes[0];
+		for (const typeOverrideEntry of damageTypeOverrideEntries) {
+			if (!shouldApplyDamageEntryToSyntheticRoll(typeOverrideEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes })) continue;
+			const overrideTypes = parseDamageTypeOverrideSet(typeOverrideEntry?.set);
+			if (!overrideTypes.length) continue;
+			syntheticRollTypes = [...overrideTypes];
+			syntheticRollType = overrideTypes.includes(syntheticRollType) ? syntheticRollType : overrideTypes[0];
+		}
 		const modifierValues = damageModifierEntries
-			.filter((modifierEntry) => shouldApplyDamageEntryToSyntheticRoll(modifierEntry, entry.type, entry.types, { selectedTypes: allTypes }))
+			.filter((modifierEntry) => shouldApplyDamageEntryToSyntheticRoll(modifierEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes }))
 			.map((modifierEntry) => modifierEntry.value)
 			.filter((value) => typeof value === 'string');
 		const baseParts = baseEntry?.parts ?? [];
@@ -1291,8 +1303,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		return {
 			formula: displayState.formula,
 			criticalFormula: pureCriticalStaticSynthetic ? '' : criticalFormulaState.formula,
-			type: entry.type,
-			types: Array.isArray(entry.types) ? [...entry.types] : [],
+			type: syntheticRollType,
+			types: [...syntheticRollTypes],
 			maximize: displayState.maximize,
 			minimize: displayState.minimize,
 			modifierSuffix: displayState.modifierSuffix,
@@ -1411,7 +1423,6 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const baseDamageTypesArray = Array.isArray(baseDamageTypesByRoll) ? baseDamageTypesByRoll.map((types) => normalizeDamageTypeList(types)) : originals.map(() => []);
 	const activeDamageTypeArray = Array.isArray(activeDamageTypeByRoll) ? activeDamageTypeByRoll : originals.map(() => undefined);
 	const activeDamageTypesArray = Array.isArray(activeDamageTypesByRoll) ? activeDamageTypesByRoll.map((types) => normalizeDamageTypeList(types)) : originals.map(() => []);
-	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter((entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry));
 	const effectiveDamageTypeStateByRoll = formulas.map((_, index) => {
 		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index) ?? baseDamageTypeArray[index];
 		const baselineTypes = normalizeDamageTypeList(baseDamageTypesArray[index]);
