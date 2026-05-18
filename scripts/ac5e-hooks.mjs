@@ -33,7 +33,6 @@ import {
 } from './hooks/ac5e-hooks-dialog-optins.mjs';
 import {
 	handleD20OptinSelectionsChanged,
-	syncD20AbilityOverrideState,
 } from './hooks/ac5e-hooks-dialog-d20-state.mjs';
 import {
 	getHookMessageData,
@@ -155,7 +154,6 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 		getDistance: _getDistance,
 		getConfig: _getConfig,
 		ac5eChecks: _ac5eChecks,
-		syncD20AbilityOverrideState,
 		captureFrozenD20Baseline: _captureFrozenD20Baseline,
 		calcAdvantageMode: _calcAdvantageMode,
 		applyExplicitModeOverride,
@@ -178,7 +176,6 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 		getTokenFromActor: _getTokenFromActor,
 		getConfig: _getConfig,
 		ac5eChecks: _ac5eChecks,
-		syncD20AbilityOverrideState,
 		captureFrozenD20Baseline: _captureFrozenD20Baseline,
 		calcAdvantageMode: _calcAdvantageMode,
 		applyExplicitModeOverride,
@@ -204,7 +201,6 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		collectActivityDamageTypes: _collectActivityDamageTypes,
 		getConfig: _getConfig,
 		ac5eChecks: _ac5eChecks,
-		syncD20AbilityOverrideState,
 		captureFrozenD20Baseline: _captureFrozenD20Baseline,
 		calcAdvantageMode: _calcAdvantageMode,
 		applyExplicitModeOverride,
@@ -234,7 +230,6 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		getAssociatedRollTargets,
 		getConfig: _getConfig,
 		ac5eChecks: _ac5eChecks,
-		syncD20AbilityOverrideState,
 		calcAdvantageMode: _calcAdvantageMode,
 		applyExplicitModeOverride,
 		applyOptinCriticalToDamageConfig,

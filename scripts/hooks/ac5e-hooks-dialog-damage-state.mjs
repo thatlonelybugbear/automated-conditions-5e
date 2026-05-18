@@ -483,7 +483,7 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	if (Array.isArray(config.rolls)) {
 		const rollCriticalByIndex = [];
 		const allTypes = new Set(
-			config.rolls
+			getNonSyntheticDamageRolls(config.rolls)
 				.map((roll, index) => {
 					const rollType =
 						typeof roll?.options?.type === 'string' && roll.options.type.trim() ?
@@ -527,18 +527,19 @@ export function getSelectedDamageTypesFromDialog(dialog, elem) {
 
 export function getDamageTypesByIndex(dialog, elem) {
 	const types = [];
+	const rolls = Array.isArray(dialog?.config?.rolls) ? dialog.config.rolls : [];
 	const selects = elem?.querySelectorAll?.('select[name^="roll."][name$=".damageType"]') ?? [];
 	selects.forEach((select) => {
 		const name = select?.getAttribute?.('name') ?? '';
 		const match = name.match(/roll\.(\d+)\.damageType/);
 		const index = match ? Number(match[1]) : undefined;
-		if (Number.isInteger(index)) types[index] = select?.value ?? dialog?.config?.rolls?.[index]?.options?.type;
+		if (!Number.isInteger(index)) return;
+		if (isSyntheticBonusRoll(rolls[index])) return;
+		types[index] = select?.value ?? rolls?.[index]?.options?.type;
 	});
-	if (dialog?.config?.rolls?.length) {
-		dialog.config.rolls.forEach((roll, index) => {
-			if (types[index] === undefined && roll?.options?.type) types[index] = roll.options.type;
-		});
-	}
+	getNonSyntheticDamageRolls(rolls).forEach((roll, index) => {
+		if (types[index] === undefined && roll?.options?.type) types[index] = roll.options.type;
+	});
 	return types;
 }
 
@@ -661,9 +662,11 @@ function getDamageAdvantageModifierToken(hasAdvantage, hasDisadvantage) {
 	return '';
 }
 
-function stripDamageAdvantageModifierTokens(modifiers = '') {
-	if (typeof modifiers !== 'string' || !modifiers.length) return '';
-	return modifiers.replace(/(?:adv\d*|dis\d*)/gi, '');
+function addDamageAdvantageModifier(existingModifiers = '', advDis = '') {
+	if (!advDis) return String(existingModifiers ?? '');
+	const existing = String(existingModifiers ?? '');
+	if (/(?:^|[^a-z])(adv|dis)\d*/i.test(existing)) return existing;
+	return `${existing}${advDis}`;
 }
 
 function syncDamageRollModifierOptions(ac5eConfig, rolls) {
@@ -839,7 +842,7 @@ function getCollectedDamageEntries(ac5eConfig, mode, { selectedTypes = undefined
 }
 
 export function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
-	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info', 'abilityOverride'];
+	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info'];
 	return modes.flatMap((mode) => getCollectedDamageEntries(ac5eConfig, mode, { optinOnly: true })).filter((entry) => isDamageEntryEligibleForSelectedTypes(entry, selectedTypes));
 }
 
@@ -981,8 +984,8 @@ function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = ''
 		nextFormula = nextFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
 			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
-			const existingSuffix = stripDamageAdvantageModifierTokens(existing);
-			return `${count}d${shiftedSides}${suffix}${advDis}${extremeModifier}${existingSuffix}`;
+			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
+			return `${count}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
 		});
 		for (const op of formulaOperatorTokens) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 	}
@@ -1006,6 +1009,9 @@ function syncAppendedBonusRolls(dialog, ac5eConfig, formulas = []) {
 		const roll = rolls[index];
 		if (!roll || !formulas[index]) continue;
 		roll.formula = formulas[index];
+		roll.options ??= {};
+		roll.options[Constants.MODULE_ID] ??= {};
+		roll.options[Constants.MODULE_ID].displayFormula = formulas[index];
 		roll.parts = formulas[index]
 			.split('+')
 			.map((part) => part.trim())
@@ -1023,6 +1029,7 @@ function syncAppendedBonusRolls(dialog, ac5eConfig, formulas = []) {
 		delete roll.options.defaultDamageType;
 		delete roll.options.riderStatuses;
 		roll.formula = bonusRoll.formula;
+		if (typeof bonusRoll.formula === 'string' && bonusRoll.formula.trim().length) roll.options[Constants.MODULE_ID].displayFormula = bonusRoll.formula;
 		roll.parts = String(bonusRoll.formula ?? '')
 			.split('+')
 			.map((part) => part.trim())
@@ -1038,7 +1045,10 @@ function syncAppendedBonusRolls(dialog, ac5eConfig, formulas = []) {
 		else if ('maximize' in roll.options) delete roll.options.maximize;
 		if (bonusRoll.minimize) roll.options.minimize = true;
 		else if ('minimize' in roll.options) delete roll.options.minimize;
-		roll.options.isCritical = dialog?.config?.isCritical ?? ac5eConfig?.isCritical ?? false;
+		if (bonusRoll.resolvedCriticalFormula) {
+			roll.options.isCritical = false;
+			delete roll.options.critical;
+		} else if ('isCritical' in roll.options) delete roll.options.isCritical;
 		if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) delete roll.options.critical.bonusDamage;
 		rolls[rollIndex] = roll;
 	}
@@ -1067,6 +1077,7 @@ export function syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rolls) {
 	for (let index = 0; index < rolls.length; index++) {
 		const roll = rolls[index];
 		if (!roll || typeof roll !== 'object') continue;
+		if (isSyntheticBonusRoll(roll)) continue;
 		roll.options ??= {};
 		const foldBaseCriticalIntoFormula = Boolean(activeAdvDisByRoll[index]);
 		const baseBonus = foldBaseCriticalIntoFormula ? '' : normalizeCriticalBonusDamageFormula(baseByRoll[index]);
@@ -1262,25 +1273,33 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	// cases like two separate +1 damage bonuses.
 	const appendedBonusRollTypes = [...new Set([...appendedBonusRollsByKey.keys(), ...appendedCriticalBonusRollsByKey.keys()])];
 	const appendedBonusRolls = appendedBonusRollTypes.map((key) => {
-		const entry = appendedBonusRollsByKey.get(key) ?? appendedCriticalBonusRollsByKey.get(key) ?? { type: undefined, types: [], parts: [] };
+		const baseEntry = appendedBonusRollsByKey.get(key);
+		const criticalEntry = appendedCriticalBonusRollsByKey.get(key);
+		const entry = baseEntry ?? criticalEntry ?? { type: undefined, types: [], parts: [] };
 		const modifierValues = damageModifierEntries
 			.filter((modifierEntry) => shouldApplyDamageEntryToSyntheticRoll(modifierEntry, entry.type, entry.types, { selectedTypes: allTypes }))
 			.map((modifierEntry) => modifierEntry.value)
 			.filter((value) => typeof value === 'string');
-		const baseFormula = entry.parts.length ? entry.parts.join(' + ') : '0';
-		const criticalParts = appendedCriticalBonusRollsByKey.get(key)?.parts ?? [];
+		const baseParts = baseEntry?.parts ?? [];
+		const criticalParts = criticalEntry?.parts ?? [];
+		const baseFormula = baseParts.length ? baseParts.join(' + ') : '0';
 		const baseCriticalFormula = criticalParts.join(' + ');
 		const formulaState = applyDamageFormulaModifiers(baseFormula, modifierValues);
 		const criticalFormulaState = applyDamageFormulaModifiers(baseCriticalFormula, modifierValues);
+		const pureCriticalStaticSynthetic = !baseParts.length && !!criticalParts.length;
+		const displayState = pureCriticalStaticSynthetic ? criticalFormulaState : formulaState;
 		return {
-			formula: formulaState.formula,
-			criticalFormula: criticalFormulaState.formula,
+			formula: displayState.formula,
+			criticalFormula: pureCriticalStaticSynthetic ? '' : criticalFormulaState.formula,
 			type: entry.type,
 			types: Array.isArray(entry.types) ? [...entry.types] : [],
-			maximize: formulaState.maximize,
-			minimize: formulaState.minimize,
-			modifierSuffix: formulaState.modifierSuffix,
-			formulaOperators: [...formulaState.formulaOperators],
+			maximize: displayState.maximize,
+			minimize: displayState.minimize,
+			modifierSuffix: displayState.modifierSuffix,
+			formulaOperators: [...displayState.formulaOperators],
+			criticalMultiplier: pureCriticalStaticSynthetic ? 1 : undefined,
+			isCritical: pureCriticalStaticSynthetic ? false : undefined,
+			resolvedCriticalFormula: pureCriticalStaticSynthetic,
 		};
 	});
 	const extraDiceAdjustments = formulas.map((_, index) => {
@@ -1438,15 +1457,15 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			if (newCount <= 0) return `0d${sides}${existing}`;
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
 			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
-			const existingSuffix = stripDamageAdvantageModifierTokens(existing);
-			const diceTerm = `${newCount}d${shiftedSides}${suffix}${advDis}${extremeModifier}`;
-			const term = `${diceTerm}${existingSuffix}`;
+			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
+			const diceTerm = `${newCount}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
 			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
 			if (criticalStaticCount > 0) {
-				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${advDis}${extremeModifier}`;
-				criticalStaticParts.push(`${criticalDiceTerm}${existingSuffix}`);
+				const criticalAppliedModifiers = addDamageAdvantageModifier(existing, advDis);
+				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${criticalAppliedModifiers}${extremeModifier}`;
+				criticalStaticParts.push(criticalDiceTerm);
 			}
-			return term;
+			return diceTerm;
 		});
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');

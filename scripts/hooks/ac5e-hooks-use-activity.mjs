@@ -78,7 +78,19 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	_rebuildPreUseTargetADCState(ac5eConfig, activity);
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
 	_ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig);
-	_wireResolvedTargetADCButton(activity, ac5eConfig);
+	_wireResolvedTargetADCButton(activity, ac5eConfig, usageConfig);
+	_logUsageDialogDebug('preUseActivity.summary', {
+		activityType: activity?.type ?? null,
+		itemName: item?.name ?? null,
+		configure: dialogConfig?.configure ?? null,
+		scaling: usageConfig?.scaling ?? null,
+		initialTargetADC: ac5eConfig?.initialTargetADC ?? null,
+		alteredTargetADC: ac5eConfig?.alteredTargetADC ?? null,
+		targetADCResolvedAtUse: !!ac5eConfig?.targetADCResolvedAtUse,
+		targetADCEntryCount:
+			(Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC.length : 0) +
+			(Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC.length : 0),
+	});
 
 	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
 	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type !== 'attack';
@@ -192,6 +204,44 @@ export function getTargetADCOptinChoices(ac5eConfig, activity) {
 	return _buildTargetADCOptinChoiceList(ac5eConfig, baseDC);
 }
 
+export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected } = {}) {
+	if (!ac5eConfig || !activity) return { resolvedTargetADC: null, hoverLines: [], hoverText: '' };
+	const tempConfig = foundry.utils.duplicate(ac5eConfig);
+	tempConfig.preAC5eConfig = foundry.utils.duplicate(ac5eConfig?.preAC5eConfig ?? {});
+	tempConfig.options = foundry.utils.duplicate(ac5eConfig?.options ?? {});
+	tempConfig.options.activity = activity;
+	tempConfig.subject = foundry.utils.duplicate(ac5eConfig?.subject ?? {});
+	tempConfig.opponent = foundry.utils.duplicate(ac5eConfig?.opponent ?? {});
+	tempConfig.optinSelected = foundry.utils.duplicate(optinSelected ?? ac5eConfig?.optinSelected ?? {});
+	const activityType = String(activity?.type ?? tempConfig?.options?.activity?.type ?? '').trim().toLowerCase();
+	if (['save', 'check'].includes(activityType)) {
+		const activityData = activity?.[activityType];
+		const originalBaseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
+		tempConfig.initialTargetADC = Number.isFinite(originalBaseDC) ? originalBaseDC : tempConfig.initialTargetADC;
+		tempConfig.alteredTargetADC = undefined;
+		_rebuildPreUseTargetADCState(tempConfig, activity);
+		const targetValues = Array.isArray(tempConfig?.targetADC) ? tempConfig.targetADC : [];
+		if (Number.isFinite(Number(tempConfig?.initialTargetADC)) && targetValues.length) {
+			const computedAltered = Number(getAlteredTargetValueOrThreshold(Number(tempConfig.initialTargetADC), targetValues, 'dcBonus'));
+			if (Number.isFinite(computedAltered) && computedAltered !== Number(tempConfig.initialTargetADC)) {
+				tempConfig.alteredTargetADC = computedAltered;
+			}
+		}
+	}
+	const resolvedTargetADC = _getResolvedTargetADCMessageState(tempConfig, activity);
+	const hoverLines = [String(resolvedTargetADC?.hoverText ?? '').trim()].filter(Boolean);
+	const hoverText = hoverLines.join('\n');
+	_logUsageDialogDebug('getResolvedUseDisplayState', {
+		activityType,
+		optinSelected: tempConfig?.optinSelected ?? {},
+		initialTargetADC: tempConfig?.initialTargetADC ?? null,
+		alteredTargetADC: tempConfig?.alteredTargetADC ?? null,
+		resolvedTargetADC,
+		hoverLines,
+	});
+	return { resolvedTargetADC, hoverLines, hoverText };
+}
+
 function notifyPreUse(actorName, warning, type) {
 	const key = `AC5E.ActivityUse.Type.${type}.${warning}`;
 	return ui.notifications.warn(actorName ? `${actorName} ${_localize(key)}` : _localize(key));
@@ -225,10 +275,25 @@ function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
 }
 
 function _ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
-	const dcChoices = getTargetADCOptinChoices(ac5eConfig, activity);
-	if (!dcChoices.length) return;
+	const hookType = String(_resolvePreUseEvaluationHookType(ac5eConfig, activity) ?? '').toLowerCase();
+	if (!['save', 'check'].includes(hookType)) return;
+	const targetADCEntries = [
+		...(Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : []),
+		...(Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : []),
+	].filter((entry) => entry && typeof entry === 'object');
+	_logUsageDialogDebug('ensureUsageConfigurationDialogForTargetADCOptins', {
+		hookType,
+		targetADCEntryCount: targetADCEntries.length,
+		configureBefore: dialogConfig?.configure ?? null,
+		scalingBefore: usageConfig?.scaling ?? null,
+	});
+	if (!targetADCEntries.length) return;
 	dialogConfig.configure = true;
 	if (usageConfig?.scaling === false) usageConfig.scaling = 0;
+	_logUsageDialogDebug('ensureUsageConfigurationDialogForTargetADCOptins.after', {
+		configureAfter: dialogConfig?.configure ?? null,
+		scalingAfter: usageConfig?.scaling ?? null,
+	});
 }
 
 function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
@@ -243,17 +308,27 @@ function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
 }
 
-function _wireResolvedTargetADCButton(activity, ac5eConfig) {
+function _wireResolvedTargetADCButton(activity, ac5eConfig, usageConfig) {
 	const activityType = activity?.type;
 	if (!['save', 'check'].includes(activityType)) return;
-	const activityData = activity?.[activityType];
-	const baseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
-	if (!Number.isFinite(baseDC)) return;
-	const alteredDC = Number(ac5eConfig?.alteredTargetADC ?? activityData?.dc?.value);
-	const hoverText =
-		Number.isFinite(alteredDC) && alteredDC !== baseDC ? _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC)
-		: '';
-	activity._ac5eResolvedTargetADCState = Number.isFinite(alteredDC) && alteredDC !== baseDC && hoverText ? { alteredDC, baseDC, hoverText } : null;
+	const {
+		resolvedTargetADC: resolvedTargetADCState,
+		hoverText,
+	} = getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected: ac5eConfig?.optinSelected ?? {} });
+	ac5eConfig.resolvedUseButtonState = {
+		resolvedTargetADC: resolvedTargetADCState,
+		hoverText,
+	};
+	usageConfig ??= {};
+	usageConfig[Constants.MODULE_ID] ??= {};
+	usageConfig[Constants.MODULE_ID].resolvedUseButtonState = {
+		resolvedTargetADC: resolvedTargetADCState,
+		hoverText,
+	};
+	activity._ac5eResolvedUseButtonState = {
+		resolvedTargetADC: resolvedTargetADCState,
+		hoverText,
+	};
 	if (activity._ac5eResolvedTargetADCWrapped) return;
 	const originalUsageChatButtons = typeof activity._usageChatButtons === 'function' ? activity._usageChatButtons.bind(activity) : null;
 	if (!originalUsageChatButtons) return;
@@ -261,21 +336,27 @@ function _wireResolvedTargetADCButton(activity, ac5eConfig) {
 	activity._usageChatButtons = function(message) {
 		const baseButtons = originalUsageChatButtons(message) ?? [];
 		if (!Array.isArray(baseButtons) || !baseButtons.length) return baseButtons;
-		const resolvedState = this._ac5eResolvedTargetADCState;
-		if (!resolvedState) return baseButtons;
+		const resolvedState = this._ac5eResolvedUseButtonState;
+		const resolvedTargetADC = resolvedState?.resolvedTargetADC ?? null;
+		const hoverText = String(resolvedState?.hoverText ?? '').trim();
+		if (!resolvedTargetADC && !hoverText) return baseButtons;
 		return baseButtons.map((button) => {
 			const action = String(button?.dataset?.action ?? '');
 			if (!['rollSave', 'rollCheck'].includes(action)) return button;
-			const currentButtonDC = Number(button?.dataset?.dc ?? resolvedState.alteredDC);
 			const nextButton = foundry.utils.duplicate(button);
 			nextButton.dataset ??= {};
-			nextButton.dataset.dc = String(resolvedState.alteredDC);
-			nextButton.dataset.tooltip = resolvedState.hoverText;
-			nextButton.dataset.ac5eTargetAdc = 'true';
-			nextButton.title = resolvedState.hoverText;
-			nextButton.label =
-				`<span class="ac5e-dc-choice-label" title="${_escapeHtmlAttribute(resolvedState.hoverText)}">` +
-				`${_rewriteTargetADCButtonLabel(button?.label, resolvedState.alteredDC, currentButtonDC)}</span>`;
+			if (resolvedTargetADC) {
+				const currentButtonDC = Number(button?.dataset?.dc ?? resolvedTargetADC.alteredDC);
+				nextButton.dataset.dc = String(resolvedTargetADC.alteredDC);
+				nextButton.dataset.ac5eTargetAdc = 'true';
+				nextButton.label =
+					`<span class="ac5e-dc-choice-label" title="${_escapeHtmlAttribute(hoverText || resolvedTargetADC.hoverText)}">` +
+					`${_rewriteTargetADCButtonLabel(button?.label, resolvedTargetADC.alteredDC, currentButtonDC)}</span>`;
+			}
+			if (hoverText) {
+				nextButton.dataset.tooltip = hoverText;
+				nextButton.title = hoverText;
+			}
 			return nextButton;
 		});
 	};
@@ -402,4 +483,13 @@ function _escapeHtmlAttribute(value) {
 		.replaceAll('"', '&quot;')
 		.replaceAll('<', '&lt;')
 		.replaceAll('>', '&gt;');
+}
+
+function _logUsageDialogDebug(stage, payload) {
+	if (!globalThis?.ac5e?.debugUsageDialogTooltip) return;
+	try {
+		console.warn(`AC5E USAGE DIALOG DEBUG ${stage} ${JSON.stringify(payload)}`);
+	} catch (_error) {
+		console.warn(`AC5E USAGE DIALOG DEBUG ${stage}`, payload);
+	}
 }

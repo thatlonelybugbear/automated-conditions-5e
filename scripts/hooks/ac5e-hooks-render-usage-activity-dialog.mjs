@@ -1,7 +1,7 @@
 import Constants from '../ac5e-constants.mjs';
-import { _localize, getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
+import { _buildStandardTooltipFromLines, _localize } from '../ac5e-helpers.mjs';
 import { getAskPermissionSourceSuffix, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
-import { getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
+import { getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
 
 export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	if (!dialog || !elem) return true;
@@ -11,10 +11,20 @@ export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	const activity = dialog.activity;
 	if (!ac5eConfig || !activity) return true;
 
-	const choices = getTargetADCOptinChoices(ac5eConfig, activity);
+	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity)];
 	const root = elem instanceof HTMLElement ? elem : elem?.[0] ?? null;
-	if (!choices.length || !root) {
+	logUsageDialogRenderDebug('renderActivityUsageDialogHijack.entry', {
+		dialogClass: dialog?.constructor?.name ?? null,
+		activityType: activity?.type ?? null,
+		choicesLength: choices.length,
+		hasRoot: !!root,
+		configure: usageConfig?.configure ?? dialog?.config?.configure ?? null,
+		optinSelected: usageConfig?.[Constants.MODULE_ID]?.optinSelected ?? {},
+	});
+	if (!root) return true;
+	if (!choices.length) {
 		removeExistingFieldsets(root);
+		applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps);
 		return true;
 	}
 
@@ -89,7 +99,7 @@ function renderChoiceRows(fieldset, choices, ac5eConfig, { askPermission = false
 		const label = document.createElement('label');
 		label.style.flex = '1 1 auto';
 		label.style.margin = '0';
-		const labelText = String(choice?.displayLabel ?? choice?.label ?? '').trim() || `${localizeWithFallback('AC5E.ModifyDC', 'Modify DC')} ${choice.dc}`;
+		const labelText = getChoiceDisplayLabel(choice);
 		const suffix = getAskPermissionSourceSuffix(choice?.entry, askPermission);
 		label.textContent = suffix ? `${labelText} (${suffix})` : labelText;
 		row.append(label);
@@ -165,56 +175,73 @@ function syncSelectionsToUsageConfig(fieldset, usageConfig, root, choices, ac5eC
 
 function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps = {}) {
 	if (!(root instanceof HTMLElement)) return;
+	const allButtons = root.querySelectorAll('button');
+	for (const button of allButtons) {
+		button.classList.remove('ac5e-button');
+		button.style.backgroundColor = '';
+		button.style.border = '';
+		button.style.color = '';
+		button.removeAttribute('data-tooltip');
+	}
 	const button =
-		root.querySelector('button[type="submit"]') ??
 		root.querySelector('button[data-action="use"]') ??
+		root.querySelector('button[type="submit"]') ??
 		root.querySelector('footer button') ??
 		null;
+	logUsageDialogRenderDebug('applyUsageDialogButtonState.buttonLookup', {
+		buttonFound: !!button,
+		buttonAction: button?.dataset?.action ?? null,
+		buttonText: button?.textContent?.trim?.() ?? null,
+		totalButtons: allButtons?.length ?? 0,
+	});
 	if (!(button instanceof HTMLButtonElement)) return;
 	const tooltip = buildUsageDialogTooltip(usageConfig, choices, ac5eConfig, deps);
-	if (deps?.settings?.buttonColorEnabled) {
+	if (deps?.enforceDefaultButtonFocus) deps.enforceDefaultButtonFocus(root, button);
+	if (tooltip) button.classList.add('ac5e-button');
+	if (deps?.settings?.buttonColorEnabled && tooltip) {
 		if (deps.settings.buttonColorBackground) button.style.backgroundColor = deps.settings.buttonColorBackground;
 		if (deps.settings.buttonColorBorder) button.style.border = `1px solid ${deps.settings.buttonColorBorder}`;
 		if (deps.settings.buttonColorText) button.style.color = deps.settings.buttonColorText;
 	}
-	button.classList.add('ac5e-button');
 	if (tooltip) {
 		button.setAttribute('data-tooltip', tooltip);
-	} else {
-		button.removeAttribute('data-tooltip');
+		if (deps?.hookDebugEnabled?.('renderHijackHook')) {
+			console.warn('ac5e usage getTooltip', tooltip);
+			console.warn('ac5e usage targetElement:', button);
+		}
 	}
+	logUsageDialogRenderDebug('applyUsageDialogButtonState.after', {
+		tooltipLength: typeof tooltip === 'string' ? tooltip.length : 0,
+		hasTooltip: !!tooltip,
+		buttonClassList: Array.from(button.classList ?? []),
+		buttonHasDataTooltip: button.hasAttribute('data-tooltip'),
+		buttonDataTooltipLength: String(button.getAttribute('data-tooltip') ?? '').length,
+	});
 }
 
 function buildUsageDialogTooltip(usageConfig, choices = [], ac5eConfig, deps = {}) {
-	const selectedIds = new Set(
-		Object.entries(usageConfig?.[Constants.MODULE_ID]?.optinSelected ?? {})
-			.filter(([, selected]) => selected)
-			.map(([id]) => id),
-	);
-	const selectedChoices = choices.filter((choice) => selectedIds.has(String(choice?.id ?? '')));
-	let tooltip = '';
-	if (deps?.settings?.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
-	if (!selectedChoices.length) return `${tooltip}<div style="text-align:center;"><strong>${localizeWithFallback('AC5E.NoChanges', 'No changes')}</strong></div>`;
-	const labels = [...new Set(selectedChoices.map((choice) => String(choice?.displayLabel ?? choice?.label ?? '').trim()).filter(Boolean))];
-	const entries = [
-		...(Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : []),
-		...(Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : []),
-	].filter((entry) => entry && typeof entry === 'object');
-	const getValues = (items = []) =>
-		Array.isArray(items) ?
-			items
-				.filter((entry) => entry && typeof entry === 'object')
-				.flatMap((entry) => (Array.isArray(entry.values) ? entry.values : []))
-		:	[];
-	const choice = selectedChoices[0];
-	const baseDC = Number(ac5eConfig?.initialTargetADC ?? choice?.baseDC);
-	const baseValues = getValues(entries.filter((entry) => !entry?.optin));
-	const selectedOptinValues = getValues(entries.filter((entry) => entry?.optin && selectedIds.has(String(entry?.id ?? ''))));
-	const alteredDC = Number(getAlteredTargetValueOrThreshold(baseDC, [...baseValues, ...selectedOptinValues], 'dcBonus'));
-	let prefix = _localize('AC5E.ModifyDC');
-	if (Number.isFinite(alteredDC) && Number.isFinite(baseDC)) prefix += ` ${alteredDC} (${baseDC})`;
-	tooltip += `<span style="display: block; text-align: left;">${prefix}: ${labels.join(', ')}</span>`;
-	return tooltip;
+	const activityLike = ac5eConfig?.options?.activity;
+	const resolvedState = getResolvedUseDisplayState(ac5eConfig, activityLike, {
+		optinSelected: usageConfig?.[Constants.MODULE_ID]?.optinSelected ?? {},
+	});
+	let hoverLines = Array.isArray(resolvedState?.hoverLines) ? resolvedState.hoverLines.filter(Boolean) : [];
+	if (!hoverLines.length) {
+		const fallbackState =
+			usageConfig?.[Constants.MODULE_ID]?.resolvedUseButtonState ??
+			ac5eConfig?.resolvedUseButtonState ??
+			activityLike?._ac5eResolvedUseButtonState;
+		hoverLines = [String(fallbackState?.resolvedTargetADC?.hoverText ?? '').trim()].filter(Boolean);
+		logUsageDialogRenderDebug('buildUsageDialogTooltip.fallbackState', {
+			fallbackState,
+			hoverLines,
+		});
+	}
+	logUsageDialogRenderDebug('buildUsageDialogTooltip.resolvedState', {
+		optinSelected: usageConfig?.[Constants.MODULE_ID]?.optinSelected ?? {},
+		resolvedState,
+		hoverLines,
+	});
+	return _buildStandardTooltipFromLines(hoverLines, { showNameTooltips: !!deps?.settings?.showNameTooltips, noChangesKey: 'AC5E.NoChanges' });
 }
 
 function localizeWithFallback(key, fallback) {
@@ -230,4 +257,19 @@ function groupChoicesForDisplay(choices, ac5eConfig) {
 		grouped[askPermission ? 'permission' : 'main'].push(choice);
 	}
 	return grouped;
+}
+
+function getChoiceDisplayLabel(choice = {}) {
+	const explicit = String(choice?.displayLabel ?? choice?.label ?? '').trim();
+	if (explicit) return explicit;
+	return `${localizeWithFallback('AC5E.ModifyDC', 'Modify DC')} ${choice?.dc ?? ''}`.trim();
+}
+
+function logUsageDialogRenderDebug(stage, payload) {
+	if (!globalThis?.ac5e?.debugUsageDialogTooltip) return;
+	try {
+		console.warn(`AC5E USAGE DIALOG RENDER DEBUG ${stage} ${JSON.stringify(payload)}`);
+	} catch (_error) {
+		console.warn(`AC5E USAGE DIALOG RENDER DEBUG ${stage}`, payload);
+	}
 }

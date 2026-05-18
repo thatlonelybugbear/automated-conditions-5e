@@ -163,6 +163,7 @@ function simplifyFormula(formula = '', removeFlavor = false, debug = {}) {
 		}
 
 		if (formula?.trim() === '') return '';
+		if (hasNativeAdvDisDiceSuffix(formula)) return formula;
 
 		const roll = Roll.create(formula);
 		formula = roll.formula;
@@ -193,7 +194,6 @@ const USE_CONFIG_INFLIGHT_TTL_MS = 15000;
 const useConfigInflightCache = new Map();
 const FLAG_REGISTRY_HOOK_TYPES = new Set(['attack', 'damage', 'save', 'check', 'heal', 'init', 'use']);
 const FLAG_REGISTRY_MODE_NAMES = new Set([
-	'abilityOverride',
 	'advantage',
 	'bonus',
 	'critical',
@@ -451,11 +451,10 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 
 		const last = path[path.length - 1];
 		const joinedPath = path.join('.');
-		const isGlobalAbilityOverridePath = /^abilityOverride$/i.test(joinedPath);
-		const mode = FLAG_REGISTRY_MODE_NAMES.has(last) ? last : (isGlobalAbilityOverridePath ? 'abilityOverride' : null);
+		const mode = FLAG_REGISTRY_MODE_NAMES.has(last) ? last : null;
 		const normalizedPath = path[0] === 'grants' || path[0] === 'aura' ? path.slice(1) : path;
 		const hookType = normalizedPath.find((segment) => FLAG_REGISTRY_HOOK_TYPES.has(segment)) ?? null;
-		const hookTypes = hookType ? [hookType] : (isGlobalAbilityOverridePath ? ['attack', 'damage', 'check', 'save'] : []);
+		const hookTypes = hookType ? [hookType] : [];
 		if (!mode && !hookTypes.length) return;
 
 		const meta = _extractRuleMetadata(node);
@@ -637,6 +636,13 @@ export function _setUseConfigInflightCache({ messageId, originatingMessageId, us
 	for (const id of safeIds) {
 		useConfigInflightCache.set(id, { useConfig: clonedUseConfig, expiresAt });
 	}
+}
+
+function hasNativeAdvDisDiceSuffix(formula = '') {
+	return (
+		typeof formula === 'string' &&
+		/\b\d+d\d+[a-z0-9]*?(?:adv|dis|min\d+|max\d+)[a-z0-9]*\b/i.test(formula)
+	);
 }
 
 export function _getMessageFlagScope(message, scope) {
@@ -1370,20 +1376,6 @@ export function _hasAppliedEffects(actor) {
 	return !!actor?.appliedEffects.length;
 }
 
-function _getActiveAbilityOverrideEntry(ac5eConfig = {}) {
-	const selected = ac5eConfig?.optinSelected ?? {};
-	const filterEntries = (entries = []) => _filterOptinEntries(entries, selected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
-	const entries = [...filterEntries(ac5eConfig?.subject?.abilityOverride ?? []), ...filterEntries(ac5eConfig?.opponent?.abilityOverride ?? [])].filter(
-		(entry) => typeof entry?.abilityOverride === 'string' && entry.abilityOverride.trim(),
-	);
-	return entries.length ? entries[entries.length - 1] : null;
-}
-
-export function _getActiveAbilityOverride(ac5eConfig = {}) {
-	const entry = _getActiveAbilityOverrideEntry(ac5eConfig);
-	return entry ? String(entry.abilityOverride).trim().toLowerCase() : '';
-}
-
 function _getTransientRollState(ac5eConfig = {}, fallback = {}) {
 	const d20 = fallback?.d20 && typeof fallback.d20 === 'object' ? fallback.d20 : fallback;
 	const explicitAdv = d20?.hasTransitAdvantage ?? ac5eConfig?.hasTransitAdvantage ?? ac5eConfig?.transientRollState?.hasTransitAdvantage;
@@ -1451,6 +1443,8 @@ function getD20BaselineProfileKey(profile = {}) {
 
 function freezeRollProfileSnapshot(profile = {}, roll0 = {}, config = {}, ac5eConfig = {}) {
 	const roll0Options = roll0?.options ?? {};
+	const roll0Formula = typeof roll0?.formula === 'string' ? roll0.formula : '';
+	const parsedD20Range = parseD20FormulaRangeModifiers(roll0Formula);
 	const parts =
 		Array.isArray(roll0?.parts) ? roll0.parts
 		: Array.isArray(config?.parts) ? config.parts
@@ -1469,8 +1463,8 @@ function freezeRollProfileSnapshot(profile = {}, roll0 = {}, config = {}, ac5eCo
 		value: roll0Options.target ?? config?.target ?? null,
 		criticalSuccess: roll0Options.criticalSuccess ?? null,
 		criticalFailure: roll0Options.criticalFailure ?? null,
-		maximum: roll0Options.maximum ?? null,
-		minimum: roll0Options.minimum ?? null,
+		maximum: roll0Options.maximum ?? parsedD20Range.maximum ?? null,
+		minimum: roll0Options.minimum ?? parsedD20Range.minimum ?? null,
 		maximize: roll0Options.maximize ?? null,
 		minimize: roll0Options.minimize ?? null,
 	});
@@ -1558,11 +1552,34 @@ export function _restoreD20ConfigFromFrozenBaseline(ac5eConfig, config) {
 	return true;
 }
 
+function parseD20FormulaRangeModifiers(formula = '') {
+	const text = String(formula ?? '').trim();
+	if (!text) return { minimum: undefined, maximum: undefined };
+	const d20Match = text.match(/\b\d*d20([a-z0-9]*)\b/i);
+	if (!d20Match) return { minimum: undefined, maximum: undefined };
+	const suffix = String(d20Match[1] ?? '');
+	const minimumMatch = suffix.match(/min(\d+)/i);
+	const maximumMatch = suffix.match(/max(\d+)/i);
+	const minimum = minimumMatch ? Number(minimumMatch[1]) : undefined;
+	const maximum = maximumMatch ? Number(maximumMatch[1]) : undefined;
+	return {
+		minimum: Number.isFinite(minimum) ? minimum : undefined,
+		maximum: Number.isFinite(maximum) ? maximum : undefined,
+	};
+}
+
 export function _getTooltip(ac5eConfig = {}) {
 	const { hookType, subject, opponent, alteredCritThreshold, alteredFumbleThreshold, alteredTargetADC, initialTargetADC, tooltipObj } = ac5eConfig;
 	let tooltip;
 	const hasOptins = ac5eConfig?.optinSelected && Object.keys(ac5eConfig.optinSelected).length;
-	const bypassTooltipCache = ['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
+	const hasResolvedUseOwnedSaveCheckState =
+		['check', 'save'].includes(hookType) &&
+		!!(
+			ac5eConfig?.preAC5eConfig?.forceChatTooltip ||
+			ac5eConfig?.useConfig?.targetADCResolvedAtUse ||
+			ac5eConfig?.targetADCResolvedAtUse
+		);
+	const bypassTooltipCache = hasResolvedUseOwnedSaveCheckState;
 	if (tooltipObj?.[hookType] && !hasOptins && !bypassTooltipCache) return tooltipObj[hookType];
 	else tooltip = '<div class="ac5e-tooltip-content">';
 	const optinSelected = ac5eConfig?.optinSelected ?? {};
@@ -1616,24 +1633,14 @@ export function _getTooltip(ac5eConfig = {}) {
 				return `${String(label)}${getChanceTooltipSuffix(entry?.chance)}`;
 			})
 			.filter(Boolean);
+	const suppressUseOwnedTargetDCTooltip =
+		['check', 'save'].includes(hookType) &&
+		!!(ac5eConfig?.preAC5eConfig?.forceChatTooltip || ac5eConfig?.useConfig?.targetADCResolvedAtUse || ac5eConfig?.targetADCResolvedAtUse);
 	const normalizeTooltipLabel = (value) =>
 		String(value ?? '')
 			.trim()
 			.replace(/\s+/g, ' ')
 			.toLowerCase();
-	const activeAbilityOverrideEntry = _getActiveAbilityOverrideEntry(ac5eConfig);
-	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? '')
-		.trim()
-		.toUpperCase();
-	const activeAbilityOverrideLabel =
-		typeof activeAbilityOverrideEntry?.label === 'string' && activeAbilityOverrideEntry.label.trim() ? activeAbilityOverrideEntry.label.trim()
-		: typeof activeAbilityOverrideEntry?.name === 'string' && activeAbilityOverrideEntry.name.trim() ? activeAbilityOverrideEntry.name.trim()
-		: '';
-	const activeAbilityOverrideValue = typeof activeAbilityOverrideEntry?.abilityOverride === 'string' ? activeAbilityOverrideEntry.abilityOverride.trim().toUpperCase() : '';
-	const activeAbilityOverrideText =
-		activeAbilityOverrideEntry && activeAbilityOverrideValue ?
-			`Ability: ${baselineAbility || '?'} -> ${activeAbilityOverrideValue}${activeAbilityOverrideLabel ? ` (${activeAbilityOverrideLabel})` : ''}`
-		:	'';
 	if (settings.showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
 	const addTooltip = (condition, text) => {
 		if (condition) {
@@ -1749,7 +1756,6 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectBonusLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subjectBonusLabels.join(', ')}</span>`);
 		const subjectModifierLabels = mapEntryLabels(filterOptinEntries(subject.modifiers));
 		addTooltip(subjectModifierLabels.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subjectModifierLabels.join(', ')}</span>`);
-		addTooltip(Boolean(activeAbilityOverrideText), `<span style="display: block; text-align: left;">${activeAbilityOverrideText}</span>`);
 		const subjectExtraDiceLabels = mapEntryLabels(filterOptinEntries(subject.extraDice));
 		addTooltip(subjectExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.ExtraDice')}: ${subjectExtraDiceLabels.join(', ')}</span>`);
 	}
@@ -1837,9 +1843,9 @@ export function _getTooltip(ac5eConfig = {}) {
 		const translationString = game.i18n.translations.AC5E.Fumble + ' ' + game.i18n.translations.DND5E.Threshold + ' ' + alteredFumbleThreshold;
 		addTooltip(combinedArray.length, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
-	const combinedTargetEntries = filterOptinEntries([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
-	const combinedTargetADC = mapEntryLabels(combinedTargetEntries);
-	if (combinedTargetADC.length) {
+	const combinedTargetEntries = suppressUseOwnedTargetDCTooltip ? [] : filterOptinEntries([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
+	const combinedTargetADC = suppressUseOwnedTargetDCTooltip ? [] : mapEntryLabels(combinedTargetEntries);
+	if (!suppressUseOwnedTargetDCTooltip && combinedTargetADC.length) {
 		let tooltipInitialTargetADC = getPreferredBaseTargetADC();
 		const numericAlteredTargetAcs = Object.values(ac5eConfig?.alteredTargetADCs ?? {})
 			.map((entry) => Number(entry?.ac))
@@ -2568,6 +2574,9 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 
 		const { filterOptin, subject, opponent, enforcedD20Mode, enforcedModeLabels, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } =
 			_collectMidiTrackerCoreLabels(ac5eConfig);
+		const suppressUseOwnedTargetDCAttribution =
+			['check', 'save'].includes(ac5eConfig?.hookType) &&
+			!!(ac5eConfig?.preAC5eConfig?.forceChatTooltip || ac5eConfig?.useConfig?.targetADCResolvedAtUse || ac5eConfig?.targetADCResolvedAtUse);
 		const midiTrackerAdvantageLabels = enforcedD20Mode ? [] : advantageLabels;
 		const midiTrackerDisadvantageLabels = enforcedD20Mode ? [] : disadvantageLabels;
 		const midiTrackerNoAdvantageLabels = enforcedD20Mode ? [] : noAdvantageLabels;
@@ -2576,8 +2585,8 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 		const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 		const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
 		const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
-		const combinedTargetEntries = filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
-		const targetADCLabels = dedupeLabels(labelsFromEntries(combinedTargetEntries));
+		const combinedTargetEntries = suppressUseOwnedTargetDCAttribution ? [] : filterOptin([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
+		const targetADCLabels = suppressUseOwnedTargetDCAttribution ? [] : dedupeLabels(labelsFromEntries(combinedTargetEntries));
 		_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
 		_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
@@ -2615,13 +2624,18 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 			getNumericTarget(config?.rolls?.[0]?.options?.target) ??
 			getNumericTarget(config?.target) ??
 			10;
-		const targetValues = combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
+		const targetValues = suppressUseOwnedTargetDCAttribution ? [] : combinedTargetEntries.flatMap((entry) => (Array.isArray(entry?.values) ? entry.values : []));
 		const targetValuePool =
 			targetValues.length ? targetValues
 			: Array.isArray(ac5eConfig?.targetADC) ? ac5eConfig.targetADC
 			: [];
-		const alteredTargetADC = getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
-		const targetADCDisplayLabels = targetADCLabels.length ? targetADCLabels : dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
+		const alteredTargetADC =
+			suppressUseOwnedTargetDCAttribution ? undefined
+			: getNumericTarget(ac5eConfig?.alteredTargetADC) ?? (targetValuePool.length ? getAlteredTargetValueOrThreshold(baseTargetADC, targetValuePool, 'dcBonus') : undefined);
+		const targetADCDisplayLabels =
+			suppressUseOwnedTargetDCAttribution ? []
+			: targetADCLabels.length ? targetADCLabels
+			: dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
 		const modifyDCPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyDC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
 		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Bonus'), subjectBonusLabels);
 		_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.Modifier'), subjectModifierLabels);
@@ -2716,6 +2730,28 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 		default:
 			return undefined;
 	}
+}
+
+export function _buildStandardTooltipFromLines(lines = [], { showNameTooltips = false, noChangesKey = 'AC5E.NoChanges' } = {}) {
+	let tooltip = '<div class="ac5e-tooltip-content">';
+	if (showNameTooltips) tooltip += '<div style="text-align:center;"><strong>Automated Conditions 5e</strong></div><hr>';
+	const normalizedLines = (Array.isArray(lines) ? lines : [])
+		.map((line) => String(line ?? '').trim())
+		.filter(Boolean);
+	if (!normalizedLines.length) {
+		const noChanges = _localize(noChangesKey);
+		const label = noChanges && noChanges !== noChangesKey ? noChanges : 'No changes';
+		return `${tooltip}<div style="text-align:center;"><strong>${label}</strong></div></div>`;
+	}
+	const escapeHtml = (value) =>
+		String(value ?? '')
+			.replaceAll('&', '&amp;')
+			.replaceAll('<', '&lt;')
+			.replaceAll('>', '&gt;')
+			.replaceAll('"', '&quot;');
+	tooltip += normalizedLines.map((line) => `<span style="display: block; text-align: left;">${escapeHtml(line)}</span>`).join('<br>');
+	tooltip += '</div>';
+	return tooltip;
 }
 
 export function _resolveEffectOriginContext(effect, { relative } = {}) {
@@ -2921,7 +2957,6 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.range.noOutOfRangeFail`,
 		`${moduleFlagScope}.grants.range.noOutOfRangeFail`,
 		`${moduleFlagScope}.aura.range.noOutOfRangeFail`,
-		`${moduleFlagScope}.abilityOverride`,
 		`${moduleFlagScope}.damage.extraDice`,
 		`${moduleFlagScope}.grants.damage.extraDice`,
 		`${moduleFlagScope}.aura.damage.extraDice`,
@@ -2953,7 +2988,6 @@ export function _generateAC5eFlags() {
 	const noCriticalActionTypes = ['all', 'attack', 'damage'];
 	const actionTypesByMode = {
 		advantage: allModesActionTypes,
-		abilityOverride: ['attack', 'check', 'damage', 'save'],
 		bonus: allModesActionTypes,
 		critical: allModesActionTypes,
 		disadvantage: allModesActionTypes,

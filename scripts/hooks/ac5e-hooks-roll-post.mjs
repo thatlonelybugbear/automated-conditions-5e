@@ -14,6 +14,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	const ac5eConfig = getPostRollAc5eConfig(rolls, config, dialog);
 	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
 	reconcileResolvedD20Mode(ac5eConfig, config, rolls, message);
+	applyLiteralD20AdvantageCounts(ac5eConfig, config, rolls);
 	syncChatRollPayloads(rolls, message, ac5eConfig, deps);
 	normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps);
 	syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls, {
@@ -29,6 +30,37 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts);
 	debugRollStateMigration('postRoll', { hook, config, rolls, ac5eConfig, extra: { hasMessage: !!message } });
 	return true;
+}
+
+function applyLiteralD20AdvantageCounts(ac5eConfig, config, rolls) {
+	if (!['attack', 'check', 'save'].includes(ac5eConfig?.hookType)) return;
+	if (!Array.isArray(rolls) || !rolls[0]) return;
+	const effectiveModifiers = ac5eConfig?.effectiveModifiers;
+	const advCount = Number.isFinite(effectiveModifiers?.advantageCount) && effectiveModifiers.advantageCount > 0 ? effectiveModifiers.advantageCount : 0;
+	const disCount = Number.isFinite(effectiveModifiers?.disadvantageCount) && effectiveModifiers.disadvantageCount > 0 ? effectiveModifiers.disadvantageCount : 0;
+	const netAdvantage = advCount - disCount;
+	if (!netAdvantage) return;
+	const absCount = Math.abs(netAdvantage);
+	const tokenBase = netAdvantage > 0 ? 'adv' : 'dis';
+	const literalToken = `${tokenBase}${absCount > 1 ? absCount : ''}`;
+	const rewriteRollD20 = (roll) => {
+		if (!roll || typeof roll !== 'object') return;
+		const d20 = roll?.d20 ?? (Array.isArray(roll?.dice) ? roll.dice.find((die) => Number(die?.faces) === 20) : null);
+		if (!d20 || Number(d20?.faces) !== 20 || !Array.isArray(d20?.modifiers)) return;
+		d20.modifiers = d20.modifiers.filter((modifier) => {
+			const normalized = String(modifier ?? '').toLowerCase();
+			return !(normalized.startsWith('adv') || normalized.startsWith('dis') || normalized === 'kh' || normalized === 'kl');
+		});
+		d20.modifiers.push(literalToken);
+		d20.number = 1;
+		roll.options ??= {};
+		roll.options.advantage = netAdvantage > 0;
+		roll.options.disadvantage = netAdvantage < 0;
+		roll.options.configured = true;
+		roll.resetFormula?.();
+	};
+	rewriteRollD20(rolls[0]);
+	if (Array.isArray(config?.rolls) && config.rolls[0] && config.rolls[0] !== rolls[0]) rewriteRollD20(config.rolls[0]);
 }
 
 function syncRollReferencesToConfig(rolls, config) {
@@ -132,6 +164,7 @@ function syncChatRollPayloads(rolls, message, ac5eConfig, deps) {
 		const rollAc5eConfig = roll.options?.[Constants.MODULE_ID];
 		if (!rollAc5eConfig || typeof rollAc5eConfig !== 'object') continue;
 		const payload = deps.buildChatRollPayload(rollAc5eConfig, {
+			roll,
 			chatTooltip:
 				typeof rollAc5eConfig?.chatTooltip === 'string' && rollAc5eConfig.chatTooltip.trim() ? rollAc5eConfig.chatTooltip
 				: rollAc5eConfig?.hookType && ac5eConfig?.tooltipObj?.[rollAc5eConfig.hookType] ? ac5eConfig.tooltipObj[rollAc5eConfig.hookType]
@@ -143,7 +176,7 @@ function syncChatRollPayloads(rolls, message, ac5eConfig, deps) {
 	}
 }
 
-export function buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
+export function buildChatRollPayload(ac5eConfig, { chatTooltip, roll } = {}) {
 	const hookType = String(ac5eConfig?.hookType ?? '').trim();
 	if (!hookType) return null;
 	const modeCounts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig, { persist: false });
@@ -151,6 +184,12 @@ export function buildChatRollPayload(ac5eConfig, { chatTooltip } = {}) {
 		hookType,
 		chatTooltip: typeof chatTooltip === 'string' ? chatTooltip : String(ac5eConfig?.chatTooltip ?? '').trim(),
 	};
+	const displayFormula =
+		typeof ac5eConfig?.displayFormula === 'string' && ac5eConfig.displayFormula.trim().length ? ac5eConfig.displayFormula.trim()
+		: typeof roll?.options?.[Constants.MODULE_ID]?.displayFormula === 'string' && roll.options[Constants.MODULE_ID].displayFormula.trim().length ? roll.options[Constants.MODULE_ID].displayFormula.trim()
+		: typeof roll?.formula === 'string' && roll.formula.trim().length ? roll.formula.trim()
+		: '';
+	if (displayFormula) payload.displayFormula = displayFormula;
 	if (modeCounts && typeof modeCounts === 'object') payload.modeCounts = foundry.utils.duplicate(modeCounts);
 	if (ac5eConfig?.hasTransitAdvantage) payload.hasTransitAdvantage = true;
 	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;

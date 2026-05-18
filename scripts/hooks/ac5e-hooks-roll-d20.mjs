@@ -22,9 +22,6 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 		opponentToken,
 		options,
 		deps,
-		applyHookState: ({ ac5eConfig }) => {
-			deps.syncD20AbilityOverrideState?.(config, ac5eConfig, { activity, options });
-		},
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
 }
@@ -52,9 +49,6 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 		options,
 		reEval,
 		deps,
-		applyHookState: ({ ac5eConfig: finalizedConfig }) => {
-			deps.syncD20AbilityOverrideState?.(config, finalizedConfig, { activity, options });
-		},
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
 	if (deps.hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });

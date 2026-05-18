@@ -43,7 +43,6 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		reEval,
 		deps,
 		applyHookState: ({ ac5eConfig }) => {
-			deps.syncD20AbilityOverrideState?.(config, ac5eConfig, { activity, options });
 			deps.applyOptinCriticalToDamageConfig(ac5eConfig, config);
 		},
 		captureBaseline: deps.captureFrozenDamageBaseline,

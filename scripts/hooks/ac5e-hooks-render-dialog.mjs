@@ -111,7 +111,40 @@ function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps
 			queueMicrotask(() => logInitialOptinFormulaDebug('afterRebuildMicrotask', render, getDialogAc5eConfig(render, getConfigAC5E) ?? getConfigAC5E));
 		});
 	}
+	applyLiteralD20CountToDialogFormula(render, elem, getConfigAC5E);
 	return getConfigAC5E;
+}
+
+function applyLiteralD20CountToDialogFormula(render, elem, ac5eConfig) {
+	const advCount = ac5eConfig?.effectiveModifiers?.advantageCount;
+	const disCount = ac5eConfig?.effectiveModifiers?.disadvantageCount;
+	const hasAdv = Number.isFinite(advCount) && advCount > 0;
+	const hasDis = Number.isFinite(disCount) && disCount > 0;
+	if (!hasAdv && !hasDis) return;
+	const netAdvantage = (hasAdv ? advCount : 0) - (hasDis ? disCount : 0);
+	if (!netAdvantage) return;
+	const magnitude = Math.abs(netAdvantage);
+	if (magnitude <= 1) return;
+	const token = `${netAdvantage > 0 ? 'adv' : 'dis'}${magnitude}`;
+	const rewriteFormula = (formula) => {
+		if (typeof formula !== 'string' || !formula.trim().length) return formula;
+		return formula.replace(/(\b1d20)(?:\s*)(adv|dis)\d*/gi, `$1${token}`);
+	};
+	const roll0 = render?.config?.rolls?.[0];
+	if (roll0 && typeof roll0 === 'object') {
+		const nextFormula = rewriteFormula(roll0.formula);
+		if (typeof nextFormula === 'string' && nextFormula !== roll0.formula) {
+			roll0.formula = nextFormula;
+			roll0.options ??= {};
+			roll0.options[Constants.MODULE_ID] ??= {};
+			roll0.options[Constants.MODULE_ID].displayFormula = nextFormula;
+		}
+	}
+	const formulaElements = Array.from(elem.querySelectorAll('.formula, .dice-formula'));
+	for (const formulaElement of formulaElements) {
+		const nextText = rewriteFormula(formulaElement?.textContent ?? '');
+		if (typeof nextText === 'string' && nextText.length) formulaElement.textContent = nextText;
+	}
 }
 
 function syncDamageDialogState(render, elem, initialConfig, deps) {

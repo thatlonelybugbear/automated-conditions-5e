@@ -41,7 +41,6 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		reEval,
 		deps,
 		applyHookState: ({ ac5eConfig }) => {
-			deps.syncD20AbilityOverrideState(config, ac5eConfig, { activity, options });
 			applyAttackRangeState({ ac5eConfig, activity, sourceToken, singleTargetToken, options, config });
 			applyAttackHeavyState({
 				ac5eConfig,

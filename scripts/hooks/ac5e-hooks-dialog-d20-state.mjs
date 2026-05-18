@@ -1,131 +1,8 @@
-import { _getActiveAbilityOverride, _getDistance, _getTokenFromActor, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { _getDistance, _getTokenFromActor, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { getSubjectTokenIdFromConfig } from './ac5e-hooks-ui-utils.mjs';
-
-export function applyAbilityOverrideToCoreConfig(config, activity, abilityOverride) {
-	const normalizedAbility = String(abilityOverride ?? '')
-		.trim()
-		.toLowerCase();
-	if (!config || !normalizedAbility) return;
-	if (typeof config === 'object') {
-		config.ability = normalizedAbility;
-		if (config.options && typeof config.options === 'object') config.options.ability = normalizedAbility;
-	}
-	if (activity && typeof activity === 'object') {
-		try {
-			Object.defineProperty(activity, 'ability', {
-				value: normalizedAbility,
-				configurable: true,
-				writable: true,
-			});
-		} catch (_error) {
-			activity.ability = normalizedAbility;
-		}
-		const activityType = String(activity?.type ?? '')
-			.trim()
-			.toLowerCase();
-		if (activityType === 'attack' && activity.attack && typeof activity.attack === 'object') activity.attack.ability = normalizedAbility;
-		if (activityType === 'check' && activity.check && typeof activity.check === 'object') {
-			activity.check.ability = normalizedAbility;
-			if (activity.check.dc && typeof activity.check.dc === 'object' && activity.check.dc.calculation) activity.check.dc.calculation = normalizedAbility;
-		}
-		if (activityType === 'save' && activity.save?.dc && typeof activity.save.dc === 'object' && activity.save.dc.calculation) {
-			activity.save.dc.calculation = normalizedAbility;
-		}
-	}
-	if (!activity || !config.subject || typeof config.subject !== 'object') return;
-	const activityType = String(activity?.type ?? '')
-		.trim()
-		.toLowerCase();
-	if (!activityType) return;
-	config.subject[activityType] ??= {};
-	if (config.subject[activityType] && typeof config.subject[activityType] === 'object') {
-		config.subject[activityType].ability = normalizedAbility;
-	}
-}
-
-export function restoreAbilityToBaseline(config, ac5eConfig) {
-	const baselineState = ac5eConfig?.preAC5eConfig?.abilityOverrideBaseline ?? {};
-	const baselineAbility = String(ac5eConfig?.preAC5eConfig?.baseAbility ?? ac5eConfig?.frozenD20Baseline?.profile?.ability ?? ac5eConfig?.preAC5eConfig?.frozenD20Baseline?.profile?.ability ?? baselineState?.activityOwnAbility ?? '')
-		.trim()
-		.toLowerCase();
-	ac5eConfig.options ??= {};
-	if (baselineAbility) ac5eConfig.options.ability = baselineAbility;
-	else delete ac5eConfig.options.ability;
-	if (config && typeof config === 'object') {
-		if (baselineAbility) config.ability = baselineAbility;
-		else delete config.ability;
-		if (config.options && typeof config.options === 'object') {
-			if (baselineAbility) config.options.ability = baselineAbility;
-			else delete config.options.ability;
-		}
-	}
-	const activity = baselineState?.activity;
-	if (activity && typeof activity === 'object') {
-		if (baselineState.hadOwnActivityAbility) {
-			try {
-				Object.defineProperty(activity, 'ability', {
-					value: baselineState.activityOwnAbility,
-					configurable: true,
-					writable: true,
-				});
-			} catch (_error) {
-				activity.ability = baselineState.activityOwnAbility;
-			}
-		} else delete activity.ability;
-		if (activity.attack && typeof activity.attack === 'object' && baselineState.attackAbility !== undefined) activity.attack.ability = baselineState.attackAbility;
-		if (activity.check && typeof activity.check === 'object') {
-			if (baselineState.checkAbility !== undefined) activity.check.ability = baselineState.checkAbility;
-			if (activity.check.dc && typeof activity.check.dc === 'object' && baselineState.checkDcCalculation !== undefined) activity.check.dc.calculation = baselineState.checkDcCalculation;
-		}
-		if (activity.save?.dc && typeof activity.save.dc === 'object' && baselineState.saveDcCalculation !== undefined) {
-			activity.save.dc.calculation = baselineState.saveDcCalculation;
-		}
-	}
-	if (!activity || !config?.subject || typeof config.subject !== 'object') return;
-	const activityType = String(activity?.type ?? ac5eConfig?.hookType ?? '')
-		.trim()
-		.toLowerCase();
-	if (!activityType) return;
-	config.subject[activityType] ??= {};
-	if (config.subject[activityType] && typeof config.subject[activityType] === 'object') {
-		if (baselineAbility) config.subject[activityType].ability = baselineAbility;
-		else delete config.subject[activityType].ability;
-	}
-}
-
-export function syncD20AbilityOverrideState(config, ac5eConfig, { activity, options } = {}) {
-	ac5eConfig.preAC5eConfig ??= {};
-	const trackedActivity =
-		activity && typeof activity === 'object' && (activity.item || activity.uuid?.includes?.('.Activity.') || activity.parent?.documentName === 'Item') ? activity
-		: null;
-	ac5eConfig.preAC5eConfig.abilityOverrideBaseline ??= {
-		activity: trackedActivity,
-		hadOwnActivityAbility: Boolean(trackedActivity && Object.prototype.hasOwnProperty.call(trackedActivity, 'ability')),
-		activityOwnAbility: trackedActivity?.ability,
-		attackAbility: trackedActivity?.attack?.ability,
-		checkAbility: trackedActivity?.check?.ability,
-		checkDcCalculation: trackedActivity?.check?.dc?.calculation,
-		saveDcCalculation: trackedActivity?.save?.dc?.calculation,
-	};
-	if (!ac5eConfig.preAC5eConfig.baseAbility) {
-		ac5eConfig.preAC5eConfig.baseAbility = String(options?.ability ?? config?.ability ?? trackedActivity?.ability ?? config?.subject?.[trackedActivity?.type ?? '']?.ability ?? '')
-			.trim()
-			.toLowerCase();
-	}
-	ac5eConfig.abilityOverride = _getActiveAbilityOverride(ac5eConfig) || ac5eConfig?.abilityOverride || '';
-	if (ac5eConfig.abilityOverride) {
-		ac5eConfig.options ??= {};
-		ac5eConfig.options.ability = ac5eConfig.abilityOverride;
-		if (options && typeof options === 'object') options.ability = ac5eConfig.abilityOverride;
-	} else if (config) {
-		restoreAbilityToBaseline(config, ac5eConfig);
-	}
-	applyAbilityOverrideToCoreConfig(config, trackedActivity ?? { type: ac5eConfig?.hookType }, ac5eConfig?.abilityOverride);
-	return ac5eConfig.abilityOverride;
-}
 
 export function refreshDialogAbilityState(dialog, ac5eConfig, selectedAbility, deps) {
 	if (!dialog?.config || !selectedAbility || !['check', 'save'].includes(ac5eConfig?.hookType)) return null;
@@ -187,7 +64,6 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, dialog.config);
 	deps.calcAdvantageMode(ac5eConfig, dialog.config, undefined, undefined, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, dialog.config);
-	syncD20AbilityOverrideState(dialog.config, ac5eConfig, { options: dialog.config?.options });
 	appendPartsToD20Config(dialog.config, preservedExternalParts);
 	syncDialogAc5eState(dialog, ac5eConfig);
 	dialog.rebuild();
@@ -352,9 +228,8 @@ function resetDialogAc5eMirrors(dialog, deps) {
 	if (roll0Options) roll0Options.advantage = undefined;
 	if (roll0Options) roll0Options.disadvantage = undefined;
 	if (roll0Options) delete roll0Options.defaultButton;
-	if (roll0) roll0.parts = [];
-	if (roll0Options) roll0Options.maximum = null;
-	if (roll0Options) roll0Options.minimum = null;
+	// Preserve system-provided base d20 composition and min/max constraints (e.g. `1d20min7`).
+	// AC5E opt-in cleanup should remove only AC5E-tracked overlays, not core roll constraints.
 }
 
 function subtractPartsByOccurrence(parts = [], toSubtract = []) {

@@ -343,7 +343,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					textarea.setSelectionRange(cursor, cursor);
 				},
 			});
-			if (typeof result !== 'string') return;
+			if (result === 'cancel' || typeof result !== 'string') return;
 			input.value = result;
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 			input.dispatchEvent(new Event('change', { bubbles: true }));

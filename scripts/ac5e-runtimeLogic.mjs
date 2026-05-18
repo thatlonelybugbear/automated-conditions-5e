@@ -669,6 +669,21 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	const applyModifierConstraint = (modifierConfig, modifierValue) => {
 		if (modifierValue === undefined || modifierValue === null) return;
 		const cleaned = String(modifierValue).trim().toLowerCase().replace(/\s+/g, '');
+		const advMatch = cleaned.match(/^(adv|dis)(\d*)$/i);
+		if (advMatch) {
+			const token = advMatch[1].toLowerCase();
+			const rawCount = advMatch[2];
+			const countValue = rawCount ? Number.parseInt(rawCount, 10) : 1;
+			const count = Number.isFinite(countValue) && countValue > 0 ? countValue : 1;
+			if (token === 'adv') {
+				const current = modifierConfig.advantageCount;
+				modifierConfig.advantageCount = Number.isFinite(current) && current > count ? current : count;
+			} else {
+				const current = modifierConfig.disadvantageCount;
+				modifierConfig.disadvantageCount = Number.isFinite(current) && current > count ? current : count;
+			}
+			return;
+		}
 		if (cleaned === 'max' || cleaned === 'maximize') {
 			modifierConfig.maximize = true;
 			return;
@@ -700,12 +715,34 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		if (!modifierConfig.literals.includes(cleaned)) modifierConfig.literals.push(cleaned);
 	};
 	const effectiveModifiers = foundry.utils.duplicate(ac5eConfig.modifiers ?? {});
+	// Preserve system-provided die constraints (e.g. ability check roll.min/roll.max)
+	// unless AC5E explicitly tightens/overrides them.
+	if (roll0?.options) {
+		if (!Number.isFinite(effectiveModifiers.maximum) && Number.isFinite(roll0.options.maximum)) effectiveModifiers.maximum = Number(roll0.options.maximum);
+		if (!Number.isFinite(effectiveModifiers.minimum) && Number.isFinite(roll0.options.minimum)) effectiveModifiers.minimum = Number(roll0.options.minimum);
+		if (!effectiveModifiers.maximize && roll0.options.maximize) effectiveModifiers.maximize = true;
+		if (!effectiveModifiers.minimize && roll0.options.minimize) effectiveModifiers.minimize = true;
+	}
 	for (const side of ['subject', 'opponent']) {
 		const sideModifiers = _filterOptinEntries(ac5eConfig?.[side]?.modifiers ?? [], ac5eConfig.optinSelected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 		for (const entry of sideModifiers) {
 			if (!entry || typeof entry !== 'object') continue;
 			applyModifierConstraint(effectiveModifiers, entry.modifier);
 		}
+	}
+	if (Array.isArray(effectiveModifiers?.literals) && effectiveModifiers.literals.length) {
+		const retainedLiterals = [];
+		for (const literal of effectiveModifiers.literals) {
+			const normalizedLiteral = typeof literal === 'string' ? literal.trim().toLowerCase().replace(/\s+/g, '') : '';
+			if (!normalizedLiteral) continue;
+			const advMatch = normalizedLiteral.match(/^(adv|dis)(\d*)$/i);
+			if (advMatch) {
+				applyModifierConstraint(effectiveModifiers, normalizedLiteral);
+				continue;
+			}
+			retainedLiterals.push(normalizedLiteral);
+		}
+		effectiveModifiers.literals = retainedLiterals;
 	}
 	ac5eConfig.effectiveModifiers = effectiveModifiers;
 	if (Array.isArray(effectiveModifiers?.literals) && effectiveModifiers.literals.length) {
@@ -717,15 +754,51 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		});
 	}
 	if (roll0?.options) {
+		const d20Faces = Number(roll0?.dice?.[0]?.faces);
+		const dieMax = Number.isFinite(d20Faces) && d20Faces > 0 ? d20Faces : 20;
 		const { maximum, minimum, maximize, minimize } = effectiveModifiers;
-		if (Number.isFinite(maximum)) roll0.options.maximum = maximum;
+		const resolvedMaximum = Number.isFinite(maximum) ? maximum : minimize ? 1 : undefined;
+		const resolvedMinimum = Number.isFinite(minimum) ? minimum : maximize ? dieMax : undefined;
+		if (Number.isFinite(resolvedMaximum)) roll0.options.maximum = resolvedMaximum;
 		else if ('maximum' in roll0.options) delete roll0.options.maximum;
-		if (Number.isFinite(minimum)) roll0.options.minimum = minimum;
+		if (Number.isFinite(resolvedMinimum)) roll0.options.minimum = resolvedMinimum;
 		else if ('minimum' in roll0.options) delete roll0.options.minimum;
-		if (maximize) roll0.options.maximize = true;
-		else if ('maximize' in roll0.options) delete roll0.options.maximize;
-		if (minimize) roll0.options.minimize = true;
-		else if ('minimize' in roll0.options) delete roll0.options.minimize;
+		if ('maximize' in roll0.options) delete roll0.options.maximize;
+		if ('minimize' in roll0.options) delete roll0.options.minimize;
+		const advCount = Number.isFinite(effectiveModifiers.advantageCount) && effectiveModifiers.advantageCount > 0 ? effectiveModifiers.advantageCount : 0;
+		const disCount = Number.isFinite(effectiveModifiers.disadvantageCount) && effectiveModifiers.disadvantageCount > 0 ? effectiveModifiers.disadvantageCount : 0;
+		const netAdvantage = advCount - disCount;
+		const applyLiteralD20AdvantageToken = (roll, net) => {
+			if (!roll || typeof roll !== 'object' || !net) return;
+			const d20 = roll?.d20 ?? (Array.isArray(roll?.dice) ? roll.dice.find((die) => Number(die?.faces) === 20) : null);
+			if (!d20 || Number(d20?.faces) !== 20 || !Array.isArray(d20?.modifiers)) return;
+			const magnitude = Math.abs(net);
+			const token = `${net > 0 ? 'adv' : 'dis'}${magnitude > 1 ? magnitude : ''}`;
+			d20.modifiers = d20.modifiers.filter((modifier) => {
+				const normalized = String(modifier ?? '').toLowerCase();
+				return !(normalized.startsWith('adv') || normalized.startsWith('dis') || normalized === 'kh' || normalized === 'kl');
+			});
+			d20.modifiers.push(token);
+			d20.number = 1;
+			roll.options ??= {};
+			roll.options.configured = true;
+			roll.resetFormula?.();
+		};
+		if (netAdvantage > 0) {
+			roll0.options.advantage = true;
+			roll0.options.disadvantage = false;
+			roll0.options.advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE;
+			localDialog.options.advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE;
+			if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'advantage';
+			applyLiteralD20AdvantageToken(roll0, netAdvantage);
+		} else if (netAdvantage < 0) {
+			roll0.options.advantage = false;
+			roll0.options.disadvantage = true;
+			roll0.options.advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE;
+			localDialog.options.advantageMode = CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE;
+			if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'disadvantage';
+			applyLiteralD20AdvantageToken(roll0, netAdvantage);
+		}
 	}
 	if (!localDialog.options?.defaultButton) localDialog.options.defaultButton = 'normal';
 	ac5eConfig.advantageMode = localDialog.options.advantageMode;
@@ -927,7 +1000,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = sandboxOptions;
 	sandbox.ability = sandboxOptions.ability ? { [sandboxOptions.ability]: true } : {};
-	sandbox.abilityOverride = sandboxOptions.ability ?? '';
 	sandbox.skill = sandboxOptions.skill ? { [sandboxOptions.skill]: true } : {};
 	sandbox.tool = sandboxOptions.tool ? { [sandboxOptions.tool]: true } : {};
 	if (sandboxOptions?.ability) sandbox._evalConstants[sandboxOptions.ability] = true;

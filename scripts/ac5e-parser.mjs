@@ -546,6 +546,7 @@ function simplifyFormula(formula = '', removeFlavor = false, debug) {
 		if (formula?.trim() === '') {
 			return '';
 		}
+		if (hasNativeAdvDisDiceSuffix(formula)) return formula;
 
 		const roll = Roll.create(formula);
 		formula = roll.formula;
@@ -583,6 +584,13 @@ function simplifyFormula(formula = '', removeFlavor = false, debug) {
 		console.warn('AC5E: Unable to simplify formula due to an error, returning 0.', { effect: debug.effectUuid, change: debug.changeKey }, e);
 		return 0;
 	}
+}
+
+function hasNativeAdvDisDiceSuffix(formula = '') {
+	return (
+		typeof formula === 'string' &&
+		/\b\d+d\d+[a-z0-9]*?(?:adv|dis|min\d+|max\d+)[a-z0-9]*\b/i.test(formula)
+	);
 }
 
 // Unquote numeric string literals, optionally followed by one or more [flavor] tags.
