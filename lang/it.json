@@ -1,43 +1,47 @@
 {
 	"AC5E.AutomateStatuses": {
-		"Name": "Automatizza Stati D&D5E",
-		"Hint": "Se abilitato, AC5E automatizzerà i modificatori di svantaggio/vantaggio e modalità tiro in base agli stati del sistema."
+		"Name": "Regole Condizioni D&D 5e",
+		"Hint": "Abilita la gestione AC5E delle condizioni di D&D 5e, estendendo l'automazione della modalità vantaggio integrata nel sistema D&D 5e con una gestione delle regole più ampia e precisa, soprattutto per i tiri per colpire."
 	},
-	"AC5E.ShowTooltipsName": "Mostra Suggerimenti AC5e:",
-	"AC5E.ShowTooltipsHint": "Quando viene selezionata un'opzione pertinente, AC5e mostrerà un suggerimento utile quando si passa con il mouse sul pulsante Roll suggerito o su un messaggio generato o su entrambi, riassumendo le ragioni di quel suggerimento.",
-	"AC5E.ShowToolTipsChoicesBoth": "Finestre Dialogo e Messaggi Chat",
-	"AC5E.ShowToolTipsChoicesDialog": "Solo su Finestre Dialogo",
-	"AC5E.ShowToolTipsChoicesChat": "Solo su Messaggi Chat",
-	"AC5E.ShowToolTipsChoicesNone": "Non Mostrare",
-	"AC5E.ShowModuleNameInTooltipsName": "Mostra nome AC5e nei suggerimenti",
-	"AC5E.ShowTooltipChatVisibility.Name": "Mostra i suggerimenti della chat nei client del giocatore per",
-	"AC5E.ShowTooltipChatVisibility.Hint": "'Tutti' - Tutti i tiri dei Personaggi, 'Nessuno' - Nessun Tiro, 'Proprio' - Tiri proprio personaggio, 'Giocatori' -  Tiri Personaggi dei Giocatori",
+	"AC5E.ExperimentalUi": {
+		"Name": "Abilita AC5E UI (Sperimentale)",
+		"Hint": "Mostra il pulsante della bacchetta AC5E per l'editor sperimentale dei valori degli Effetti Attivi."
+	},
+	"AC5E.ShowTooltipsName": "Mostra suggerimenti AC5E",
+	"AC5E.ShowTooltipsHint": "Mostra i suggerimenti AC5E nei dialoghi di tiro, nei messaggi in chat o in entrambi, spiegando i motivi del risultato suggerito.",
+	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi Tiro e Messaggi Chat",
+	"AC5E.ShowToolTipsChoicesDialog": "Solo Dialoghi Tiro",
+	"AC5E.ShowToolTipsChoicesChat": "Solo Messaggi Chat",
+	"AC5E.ShowToolTipsChoicesNone": "Non mostrare",
+	"AC5E.ShowModuleNameInTooltipsName": "Mostra Nome Modulo nei suggerimenti",
+	"AC5E.ShowTooltipChatVisibility.Name": "Mostra suggerimenti in chat per",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Scegli quali tiri mostrano i suggerimenti AC5E in chat. Il GM vede sempre tutti i suggerimenti.",
 	"AC5E.ShowTooltipChatVisibility.All": "Tutti",
 	"AC5E.ShowTooltipChatVisibility.None": "Nessuno",
-	"AC5E.ShowTooltipChatVisibility.Owned": "Proprio",
+	"AC5E.ShowTooltipChatVisibility.Owned": "Propri",
 	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
-	"AC5E.ExpandedConditionsName": "Condizioni Ampliate AC5e",
-	"AC5E.ExpandedConditionsHint": "Se abilitato, AC5e tenterà di automatizzare alcune condizioni extra, come Schivare, Nascondersi.",
+	"AC5E.ExpandedConditionsName": "Condizioni estese",
+	"AC5E.ExpandedConditionsHint": "Abilita l'automazione per condizioni aggiuntive e stati di combattimento come Schivare, Nascondersi, restrizioni dell'Ira e combattimento subacqueo.",
 	"AC5E.VisibilityChecksSetting": {
-		"Name": "Controlli Visibilità",
-		"Hint": "Quando abilitato, AC5e inserisce le opzioni 'Impossibile vedere Bersaglio' / 'Bersaglio non può vedere Attaccante' e permette a tali voci di determinare il vantaggio/svantaggio dell'attacco, anziché basarsi solo sugli stati di cecità/invisibilità. Le opzioni vengono soppresse quando MidiQOL applica già le sue regole opzionali di invisibilità/attaccante nascosto per evitare duplicazioni."
+		"Name": "Regole di visibilità",
+		"Hint": "Utilizza le regole di visibilità degli attacchi di AC5E basate sulla vista e sui sensi dei token. Quando attivo, AC5E aggiunge le motivazioni 'Non può vedere il bersaglio' e 'Il bersaglio non può vedere l'attaccante'. Queste motivazioni vengono ignorate quando MidiQOL applica già le sue regole su invisibilità o attaccanti nascosti."
 	},
 	"AC5E.ActivityUse": {
-		"Name": "Controlli Utilizzo Elementi",
-		"Hint": "Consenti, Applica (annulla + avvisa) o Avverti (consenti + avvisa). Controlli: azioni mentre si è inabili; lancio di incantesimi mentre si è in preda alla furia, silenziati o non competenti nell'uso dell'armatura",
+		"Name": "Regole di utilizzo oggetti",
+		"Hint": "Controlla se AC5E consente, avvisa o blocca l'uso non valido delle attività prima del tiro. Si applica ai controlli nella fase di utilizzo come incapacità, restrizioni al lancio di incantesimi e fallimenti per distanza non valida. I fallimenti per distanza negli attacchi vengono gestiti successivamente nella configurazione del tiro.",
 		"Choices": {
 			"Off": "Consenti",
-			"Enforce": "Applica",
-			"Warn": "Avverti"
+			"Enforce": "Blocca/Fallisci se appropriato",
+			"Warn": "Avvisa"
 		},
 		"Type": {
 			"Armor": {
-				"Enforce": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi. Incantesimo annullato!",
-				"Warn": "non è competente nell'armatura equipaggiata e non può lanciare incantesimi"
+				"Enforce": "non è competente nell'armatura equipaggiata e secondo le regole non può lanciare incantesimi. Incantesimo annullato!",
+				"Warn": "non è competente nell'armatura equipaggiata e secondo le regole non può lanciare incantesimi."
 			},
 			"Incapacitated": {
-				"Enforce": "è incapacitato e non può lanciare incantesimi. Incantesimo annullato!",
-				"Warn": "è incapacitato e non può lanciare incantesimi."
+				"Enforce": "è incapacitato e non può usare azioni. Azione annullata!",
+				"Warn": "è incapacitato e non può usare azioni."
 			},
 			"Raging": {
 				"Enforce": "è in ira e non può lanciare incantesimi. Incantesimo annullato!",
@@ -50,412 +54,426 @@
 		}
 	},
 	"AC5E.AutoRangeChecks": {
-		"Name": "Automatizza controlli portata",
-		"Hint": "Portata diagonale in mischia: tutti i quadrati adiacenti contano come entro la portata, indipendentemente dalle regole diagonali. Mischia fuori portata: gli attacchi oltre la portata dell'arma falliscono. Nemici vicini a distanza: i nemici adiacenti all'attaccante impongono svantaggio agli attacchi a distanza. Svantaggio a lunga distanza: gli attacchi oltre la breve gittata ma entro la lunga gittata subiscono svantaggio. Fuori portata a distanza: gli attacchi oltre la lunga gittata falliscono.",
-		"MeleeDiagonals": "Portata diagonale in mischia",
-		"MeleeOutOfRange": "Mischia fuori portata",
-		"RangedNearbyFoes": "Nemici a distanza ravvicinata",
-		"RangedLongDisadvantage": "Svantaggio lunga distanza",
-		"RangedOutOfRange": "Fuori portata"
+		"Name": "Regole di portata",
+		"Hint": "Abilita le regole automatiche di portata in mischia e a distanza, inclusi raggio di attacco in mischia, fallimenti per distanza, svantaggio per nemici vicini e svantaggio per lunga distanza. La portata diagonale in mischia considera tutte le caselle adiacenti come raggiungibili, ignorando le regole diagonali della griglia. I fallimenti per distanza si applicano durante la validazione del raggio.",
+		"MeleeDiagonals": "Portata in mischia diagonale",
+		"MeleeOutOfRange": "Fuori portata in mischia",
+		"RangedNearbyFoes": "Nemici vicini a distanza",
+		"RangedLongDisadvantage": "Svantaggio a lunga distanza",
+		"RangedOutOfRange": "Fuori portata a distanza"
 	},
-	"AC5E.AutoExhaustionName": "Automazione Indebolimento",
-	"AC5E.AutoExhaustionHint": "Se abilitato e stai usando le regole DND5E legacy, AC5E elaborerà automaticamente le normali regole delle condizioni di esaurimento 5E.",
-	"AC5E.AutoEncumbranceName": "Variante Ingombro",
-	"AC5E.AutoEncumbranceHint": "Se abilitato, AC5e elaborerà automaticamente le regole di ingombro della variante 5e. Il GM deve anche selezionare nelle impostazioni del sistema Dnd5e, l'opzione Variante (ingombrato e pesantemente ingombrato), altrimenti ciò non avrà alcun effetto.",
+	"AC5E.AutoExhaustionName": "Regole Indebolimento",
+	"AC5E.AutoExhaustionHint": "Abilita la gestione dell'Indebolimento AC5E quando si utilizzano le regole legacy di D&D 5e.",
+	"AC5E.AutoEncumbranceName": "Regole di ingombro varianti",
+	"AC5E.AutoEncumbranceHint": "Abilita la gestione dell'ingombro variante in AC5E. Il GM deve anche attivare l'opzione variante del sistema D&D 5e, altrimenti questa impostazione non avrà effetto.",
 	"AC5E.Targeting": {
-		"Name": "Opzioni di targeting per gli attacchi",
-		"Hint": "Quando nessuno o più bersagli vengono selezionati per un Attacco, Danno o tiro simile, scegli come dovrebbe rispondere AC5E",
+		"Name": "Regole Bersagli Attacchi",
+		"Hint": "Controlla come AC5E gestisce i tiri per colpire quando non è selezionato alcun bersaglio o sono selezionati più bersagli.",
 		"Choices": {
-			"Source": "Usa solo le condizioni del personaggio di origine",
-			"Enforce": "Annulla il tiro silenziosamente",
+			"Source": "Ignora stati e flag dei bersagli",
+			"Enforce": "Annulla il tiro senza messaggio",
 			"Warn": "Annulla il tiro con avviso"
 		},
 		"MultipleTargetsAttack": {
-			"Source": "AC5E: Più bersagli selezionati. I risultati potrebbero essere distorti. Utilizzati solo i dati del personaggio di origine.",
-			"Enforce": "AC5E: Più bersagli selezionati. Tiro annullato!"
+			"Source": "AC5E: selezionati più bersagli. I risultati potrebbero essere alterati. Si utilizzano solo i dati dell'attore sorgente.",
+			"Enforce": "AC5E: selezionati più bersagli. Tiro annullato!"
 		},
 		"NoTargetsAttack": {
-			"Source": "AC5E: Nessun bersaglio selezionato. Il vantaggio/svantaggio può essere impreciso. Utilizzati solo i dati del personaggio di origine.",
-			"Enforce": "AC5E: Nessun bersaglio selezionato. Tiro annullato!"
+			"Source": "AC5E: nessun bersaglio selezionato. Vantaggio/svantaggio potrebbe essere impreciso. Si utilizzano solo i dati dell'attore sorgente.",
+			"Enforce": "AC5E: nessun bersaglio selezionato. Tiro annullato!"
 		}
 	},
-	"AC5E.DebuggingName": "Debug AC5E",
-	"AC5E.DebuggingHint": "Solo alcuni log utili per il debug durante lo sviluppo. Probabilmente non ha molto senso che gli utenti lo usino :)",
+	"AC5E.DebuggingName": "Log di debug AC5E",
+	"AC5E.DebuggingHint": "Abilita log di debug AC5E aggiuntivi per sviluppo e risoluzione dei problemi.",
 	"AC5E.TokenlessActorWarning": {
-		"Hint": "Il modulo non ha effetto sui tiri attuali dei personaggi senza un token sulla scena!",
-		"Name": "Mostra avviso personaggio senza token",
-		"Text": "Avviso AC5E: il personaggio per cui stai tirando non ha un token sulla scena. I risultati possono essere distorti"
+		"Hint": "Mostra un avviso quando si tira per un attore senza un token nella scena corrente.",
+		"Name": "Mostra avviso attore senza token",
+		"Text": "Avviso AC5E: l'attore su cui si effettua il tiro non ha un token nella scena. I risultati potrebbero essere imprecisi."
 	},
 	"AC5E.Statuses": {
-		"UnderwaterCombat": "Combattimento Subacqueo"
+		"UnderwaterCombat": "Combattimento subacqueo"
 	},
-	"AC5E.WarCaster": "Mago da Battaglia",
-	"AC5E.ModifyAC": "CA Modificata",
-	"AC5E.ModifyDC": "CD Modificata",
+	"AC5E.WarCaster": "Incantatore da guerra",
+	"AC5E.ModifyAC": "CA modificata",
+	"AC5E.ModifyDC": "CD modificata",
 	"AC5E.Fail": "Fallito",
-	"AC5E.Alert": "Allerta",
+	"AC5E.Alert": "Avviso",
 	"AC5E.FailLowerCase": "fallito",
-	"AC5E.Fumble": "Fallimento Critico",
+	"AC5E.Fumble": "Fallimento critico",
 	"AC5E.Rage": "Ira",
-	"AC5E.Raging": "In Ira",
-	"AC5E.SubtleSpell": "Incantesimo Celato",
-	"AC5E.OutOfRange": "Fuori Gittata",
+	"AC5E.Raging": "In ira",
+	"AC5E.SubtleSpell": "Incantesimo silenzioso",
+	"AC5E.OutOfRange": "Fuori portata",
 	"AC5E.Item": "Oggetto",
 	"AC5E.Feats": {
-		"CrossbowExpert": "Esperto di Balestre",
-		"Sharpshooter": "Tiratore Scelto",
-		"SpellSniper": "Spell Sniper"
+		"CrossbowExpert": "Esperto di balestre",
+		"Sharpshooter": "Tiratore scelto",
+		"SpellSniper": "Cecchino Magico"
 	},
 	"AC5E.Equipment": "Equipaggiamento",
-	"AC5E.NearbyFoe": "Nemico Vicino",
+	"AC5E.NearbyFoe": "Nemico vicino",
 	"AC5E.ButtonColorPicker": {
 		"Enabled": {
-			"Name": "Pulsanti colorati",
-			"Hint": "Fai risaltare i pulsanti della finestra di dialogo. Colori predefiniti: #288bcc (sfondo), bianco (testo/bordo). Inserisci user per usare game.user.color (ideale per lo sfondo). Inserisci false/none/null/0 per disattivare uno qualsiasi dei selettori di colore disponibili. Elimina qualsiasi campo per tornare ai valori predefiniti."
+			"Name": "Colori personalizzati dei pulsanti di tiro",
+			"Hint": "Personalizza i colori dei pulsanti nei dialoghi di tiro. Lascia vuoto un campo per usare il valore predefinito. Usa 'user' per usare game.user.color. Usa 'false', 'none', 'null' o '0' per disabilitare una singola sovrascrittura del colore."
 		},
 		"Background": {
-			"Name": "🎨 Colore di sfondo del pulsante",
-			"Hint": "Elimina qualsiasi stringa dall'input per utilizzare come predefinito game.user.color"
+			"Name": "Colore di sfondo del pulsante",
+			"Hint": "Lascia vuoto per usare game.user.color."
 		},
 		"Border": {
-			"Name": "🖍️ Colore del bordo del pulsante",
-			"Hint": "Elimina qualsiasi stringa dall'input per renderla predefinita in bianco"
+			"Name": "Colore del bordo del pulsante",
+			"Hint": "Lascia vuoto per usare il bianco."
 		},
 		"Text": {
-			"Name": "🔤 Colore del testo del pulsante",
-			"Hint": "Elimina qualsiasi stringa dall'input per renderla predefinita in bianco"
+			"Name": "Colore del testo del pulsante",
+			"Hint": "Lascia vuoto per usare il bianco."
 		}
 	},
-	"AC5E.AdvantageKeypress": "Tasto Vantaggio",
-	"AC5E.CriticalKeypress": "Tasto Critico",
-	"AC5E.DisadvantageKeypress": "Tasto Svantaggio",
-	"AC5E.NoCriticalKeypress": "Tasto Normale",
-	"AC5E.OverrideAdvantage": "Sovrascrivi Tasto Vantaggio",
-	"AC5E.OverrideCritical": "Sovrascrivi Tasto Critico",
-	"AC5E.OverrideDisadvantage": "Sovrascrivi Tasto Svantaggio",
-	"AC5E.OverrideNoCritical": "Sovrascrivi Tasto Normale",
-	"AC5E.ForcedAdvantage": "Vantaggio forzato del sistema",
-	"AC5E.ForcedDisadvantage": "Svantaggio forzato del sistema",
-	"AC5E.NoAdvantage": "Vantaggio Soppresso",
-	"AC5E.NoCritical": "Critici Soppressi",
-	"AC5E.NoDisadvantage": "Svantaggio Soppresso",
-	"AC5E.TargetGrantsNoAdvantage": "Vantaggio non concesso",
-	"AC5E.TargetGrantsNoCritical": "Critici non concessi",
-	"AC5E.TargetGrantsNoDisadvantage": "Svantaggio non concesso",
-	"AC5E.CannotSeeTarget": "Impossibile vedere Bersaglio",
-	"AC5E.TargetCannotSeeAttacker": "Bersaglio non può vedere Attaccante",
+	"AC5E.AdvantageKeypress": "Tasto vantaggio",
+	"AC5E.CriticalKeypress": "Tasto critico",
+	"AC5E.DisadvantageKeypress": "Tasto svantaggio",
+	"AC5E.NoCriticalKeypress": "Tasto normale",
+	"AC5E.OverrideAdvantage": "Sovrascrivi tasto vantaggio",
+	"AC5E.OverrideCritical": "Sovrascrivi tasto critico",
+	"AC5E.OverrideDisadvantage": "Sovrascrivi tasto svantaggio",
+	"AC5E.OverrideNoCritical": "Sovrascrivi tasto normale",
+	"AC5E.ForcedAdvantage": "Vantaggio forzato dal sistema",
+	"AC5E.ForcedDisadvantage": "Svantaggio forzato dal sistema",
+	"AC5E.NoAdvantage": "Vantaggio annullato",
+	"AC5E.NoCritical": "Critici annullati",
+	"AC5E.NoDisadvantage": "Svantaggio annullato",
+	"AC5E.TargetGrantsNoAdvantage": "Non concede vantaggio",
+	"AC5E.TargetGrantsNoCritical": "Non concede critici",
+	"AC5E.TargetGrantsNoDisadvantage": "Non concede svantaggio",
+	"AC5E.CannotSeeTarget": "Non può vedere il bersaglio",
+	"AC5E.TargetCannotSeeAttacker": "Il bersaglio non può vedere l'attaccante",
 	"AC5E.Bonus": "Bonus",
-	"AC5E.ExtraDice": "Dadi Extra",
+	"AC5E.ExtraDice": "Dadi extra",
 	"AC5E.Success": "Successo",
 	"AC5E.AbbreviationAdvantage": "vant",
 	"AC5E.AbbreviationDisadvantage": "svant",
 	"AC5E.AbbreviationCritical": "crit",
-	"AC5E.Grants": "fornisce",
+	"AC5E.Grants": "concede",
 	"AC5E.Attacker": "Attaccante",
-	"AC5E.Flags": "flags",
-	"AC5E.FlagsInitiativeAdv": "Vantaggio di Sistema su Iniziativa",
-	"AC5E.FlagsInitiativeDisadv": "Svantaggio di Sistema su Iniziativa",
-	"AC5E.TargetGrantsAdvantageAbbreviated": "Fornito vant",
-	"AC5E.TargetGrantsDisadvantageAbbreviated": "Fornito svant",
-	"AC5E.TargetGrantsCriticalAbbreviated": "Fornito crit",
-	"AC5E.TargetGrantsFail": "Fornito Fallimento",
-	"AC5E.TargetGrantsFumble": "Fornito Fallimento Critico",
-	"AC5E.TargetGrantsSuccess": "Fornito Successo",
-	"AC5E.TargetGrantsBonus": "Fornito Bonus",
-	"AC5E.TargetGrantsModifier": "Fornito Modificatore",
-	"AC5E.TargetGrantsExtraDice": "Dadi extra concessi",
-	"AC5E.NoChanges": "Nessun cambiamento",
-	"AC5E.SystemMode": "Modalità di Sistema",
-	"AC5E.OptinDescription.Roll.Attack": "Tiri per colpire",
-	"AC5E.OptinDescription.Roll.Damage": "Tiri danno",
-	"AC5E.OptinDescription.Roll.Check": "checks",
-	"AC5E.OptinDescription.Roll.Save": "Tiri Salvezza",
+	"AC5E.Flags": "flag",
+	"AC5E.FlagsInitiativeAdv": "Vantaggio del sistema all'iniziativa",
+	"AC5E.FlagsInitiativeDisadv": "Svantaggio del sistema all'iniziativa",
+	"AC5E.TargetGrantsAdvantageAbbreviated": "Concede vant",
+	"AC5E.TargetGrantsDisadvantageAbbreviated": "Concede svant",
+	"AC5E.TargetGrantsCriticalAbbreviated": "Concede crit",
+	"AC5E.TargetGrantsFail": "Concede fallimento",
+	"AC5E.TargetGrantsFumble": "Concede fallimento critico",
+	"AC5E.TargetGrantsSuccess": "Concede successo",
+	"AC5E.TargetGrantsBonus": "Concede bonus",
+	"AC5E.TargetGrantsModifier": "Concede modificatore",
+	"AC5E.TargetGrantsExtraDice": "Concede dadi extra",
+	"AC5E.NoChanges": "Nessuna modifica",
+	"AC5E.SystemMode": "Modalità sistema",
+	"AC5E.OptinDescription.Roll.Attack": "tiri per colpire",
+	"AC5E.OptinDescription.Roll.Damage": "tiri danno",
+	"AC5E.OptinDescription.Roll.Check": "prove",
+	"AC5E.OptinDescription.Roll.Save": "tiri salvezza",
 	"AC5E.OptinDescription.Roll.Generic": "tiri",
-	"AC5E.OptinDescription.GrantsAdvantage": "Concede vantaggio su {roll}",
-	"AC5E.OptinDescription.ImposesDisadvantage": "Impone svantaggio su {roll}",
-	"AC5E.OptinDescription.RemovesAdvantage": "Elimina vantaggio su {roll}",
-	"AC5E.OptinDescription.RemovesDisadvantage": "Elimina svantaggio su {roll}",
+	"AC5E.OptinDescription.GrantsAdvantage": "Concede vantaggio a {roll}",
+	"AC5E.OptinDescription.ImposesDisadvantage": "Impone svantaggio a {roll}",
+	"AC5E.OptinDescription.RemovesAdvantage": "Rimuove vantaggio da {roll}",
+	"AC5E.OptinDescription.RemovesDisadvantage": "Rimuove svantaggio da {roll}",
 	"AC5E.OptinDescription.ForcesCritical": "Forza un colpo critico",
 	"AC5E.OptinDescription.PreventsCritical": "Impedisce i colpi critici",
-	"AC5E.OptinDescription.ForcesFailure": "Forza un fallimento automatico su {roll}",
+	"AC5E.OptinDescription.ForcesFailure": "Forza fallimento automatico a {roll}",
 	"AC5E.OptinDescription.ForcesFumble": "Forza un fallimento critico",
-	"AC5E.OptinDescription.ForcesSuccess": "Forza un successo automatico su {roll}",
-	"AC5E.OptinDescription.SetsRollBonus": "Imposta bonus {roll} a {value}",
+	"AC5E.OptinDescription.ForcesSuccess": "Forza successo automatico a {roll}",
+	"AC5E.OptinDescription.SetsRollBonus": "Imposta bonus di {roll} a {value}",
 	"AC5E.OptinDescription.AppliesRollBonus": "Applica {value} a {roll}",
-	"AC5E.OptinDescription.ModifiesRollBonus": "Modifica bonus {roll}",
-	"AC5E.OptinDescription.SetsTargetAC": "Imposta CA del bersaglio a {value}",
-	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifica CA del bersaglio di {value}",
-	"AC5E.OptinDescription.ModifiesTargetAC": "Modifica CA del bersaglio",
+	"AC5E.OptinDescription.ModifiesRollBonus": "Modifica il bonus di {roll}",
+	"AC5E.OptinDescription.SetsTargetAC": "Imposta la CA del bersaglio a {value}",
+	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifica la CA del bersaglio di {value}",
+	"AC5E.OptinDescription.ModifiesTargetAC": "Modifica la CA del bersaglio",
 	"AC5E.OptinDescription.SetsMinimumD20": "Imposta risultato minimo del d20 a {value}",
 	"AC5E.OptinDescription.SetsMaximumD20": "Imposta risultato massimo del d20 a {value}",
 	"AC5E.OptinDescription.AppliesRollModifier": "Applica modificatore al tiro",
 	"AC5E.OptinDescription.AppliesRollModifierWithValue": "Applica modificatore al tiro ({value})",
-	"AC5E.OptinDescription.SetsMinimumDiceRoll": "Imposta risultato minimo del lancio dadi a {value}",
-	"AC5E.OptinDescription.SetsMaximumDiceRoll": "Imposta risultato massimo del lancio dadi a {value}",
-	"AC5E.OptinDescription.AppliesDiceRollModifier": "Applica modificatore del tiro di dado",
-	"AC5E.OptinDescription.AppliesDiceRollModifierWithValue": "Applica modificatore del tiro di dado ({valore})",
-	"AC5E.OptinDescription.SetsCriticalThreshold": "Imposta soglia di critico a {value}",
-	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modifica soglia di critico",
-	"AC5E.OptinDescription.SetsFumbleThreshold": "Imposta soglia di fallimento critico a {value}",
-	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifica soglia di fallimento critico",
-	"AC5E.OptinDescription.AddsExtraDamageDice": "Aggiunge dadi di danno extra",
-	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Aggiunge dadi di danno extra ({value})",
-	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta grado dei dadi di danno",
-	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta grado dei dadi di danno ({value})",
-	"AC5E.OptinDescription.DowngradesDamageDice": "Riduce grado dei dadi di danno",
-	"AC5E.OptinDescription.DowngradesDamageDiceWithValue": "Riduce grado dei dadi di danno ({value})",
-	"AC5E.OptinDescription.ModifiesAttackRange": "Modifica comportamento della portata dell'attacco",
-	"AC5E.OptinDescription.FinalStandDropsTo": "Ultimo sforzo (scende a {value})",
+	"AC5E.OptinDescription.SetsMinimumDiceRoll": "Imposta risultato minimo del tiro a {value}",
+	"AC5E.OptinDescription.SetsMaximumDiceRoll": "Imposta risultato massimo del tiro a {value}",
+	"AC5E.OptinDescription.AppliesDiceRollModifier": "Applica modificatore ai dadi",
+	"AC5E.OptinDescription.AppliesDiceRollModifierWithValue": "Applica modificatore ai dadi ({value})",
+	"AC5E.OptinDescription.SetsCriticalThreshold": "Imposta soglia critico a {value}",
+	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modifica soglia critico",
+	"AC5E.OptinDescription.SetsFumbleThreshold": "Imposta soglia fallimento critico a {value}",
+	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifica soglia fallimento critico",
+	"AC5E.OptinDescription.AddsExtraDamageDice": "Aggiunge dadi danno extra",
+	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Aggiunge dadi danno extra ({value})",
+	"AC5E.OptinDescription.OverridesDamageType": "Sovrascrive il tipo di danno",
+	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Sovrascrive il tipo di danno ({value})",
+	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta il tipo di dado del danno",
+	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta il tipo di dado del danno ({value})",
+	"AC5E.OptinDescription.DowngradesDamageDice": "Riduce il tipo di dado del danno",
+	"AC5E.OptinDescription.DowngradesDamageDiceWithValue": "Riduce il tipo di dado del danno ({value})",
+	"AC5E.OptinDescription.ModifiesAttackRange": "Modifica il comportamento della portata dell'attacco",
+	"AC5E.OptinDescription.FinalStandDropsTo": "Ultima resistenza (scende a {value})",
 	"AC5E.Chance.Triggered": "si attiva",
 	"AC5E.Chance.TriggeredWithRoll": "si attiva (tirato {roll})",
 	"AC5E.OptinCadence.OncePerTurn": "(1/turno)",
 	"AC5E.OptinCadence.OncePerRound": "(1/round)",
 	"AC5E.OptinCadence.OncePerCombat": "(1/combattimento)",
 	"AC5E.OptinLegend.Optional": "AC5E",
-	"AC5E.OptinLegend.FromOtherSources": "AC5E da altre fonti (chiedere il permesso)",
+	"AC5E.OptinLegend.FromOtherSources": "AC5E Da altre fonti (chiedere permesso)",
 	"AC5E.EnvironmentalHazards": {
-		"SettingsName": "Pericoli ambientali (2024)",
-		"SettingsHint": "Automatizza le condizioni di Bruciatura e Soffocamento, in base al regolamento dnd 5e del 2024",
-		"BurningHazard": "Pericolo Ustioni",
+		"SettingsName": "Regole per pericoli ambientali",
+		"SettingsHint": "Automatizza le condizioni di In Fiamme e Soffocamento usando il regolamento D&D 5e 2024.",
+		"BurningHazard": "In Fiamme",
 		"SuffocatingHazard": "Soffocamento"
 	},
 	"dae.fieldData.fieldCategories.AC5E": "AC5E",
 	"dae.AC5E.fieldData": {
 		"flags.automated-condition-5e.crossbowExpert": {
-			"name": "Esperto di Balestre",
-			"description": "Essere entro 1,5 metri da un nemico non impone Svantaggio ai tuoi tiri per colpire con balestre"
+			"name": "Esperto di balestre",
+			"description": "Essere entro 1,5 metri da un nemico non impone svantaggio ai tiri per colpire con balestre"
 		},
 		"flags.automated-condition-5e.sharpShooter": {
-			"name": "Tiratore Scelto",
-			"description": "Nessuno svantaggio quando si usano armi a distanza alla massima gittata o entro 1,5 metri da un nemico"
+			"name": "Tiratore scelto",
+			"description": "Nessuno svantaggio per attacchi a distanza a lungo raggio o entro 1,5 metri da un nemico"
 		},
 		"flags.automated-condition-5e.spellSniper": {
 			"name": "Cecchino Magico",
-			"description": "Per le regole del 2024, nessuno svantaggio nel lanciare incantesimi a distanza entro 5 piedi da un nemico e se hanno una gittata di almeno 10 piedi, aggiunge altri 60 piedi"
+			"description": "Per le regole 2024, nessuno svantaggio per incantesimi a distanza entro 1,5 metri da un nemico e, se hanno gittata di almeno 3 metri, aggiunge ulteriori 18 metri"
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
-			"name": "Modificare la soglia critica degli attacchi",
-			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
+			"name": "Modifica la soglia di critico degli attacchi",
+			"description": "Usa threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
-			"name": "Permetti soglia critica alterata per gli attacchi dell'avversario",
-			"description": "Utilizzare threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
+			"name": "Concede una soglia di critico modificata agli attacchi del nemico",
+			"description": "Usa threshold=-5 per ridurre di 5 o set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
-			"name": "Un'aura che altera la soglia critica degli attacchi nel raggio",
-			"description": "Utilizzare radius=15;threshold=-5 per ridurre di 5 oppure radius=20;set=15 per impostare il valore su 15. È possibile utilizzare anche dati di tiro, formule di dadi e valutare condizioni."
+			"name": "Aura che modifica la soglia di critico degli attacchi nell'area",
+			"description": "Usa radius=15;threshold=-5 per ridurre di 5 o radius=20;set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.attack.fumbleThreshold": {
-			"name": "Modifica soglia di fumble degli attacchi",
-			"description": "Utilizzare threshold=5 per aumentare di 5 oppure set=15 per impostare il valore su 15. È possibile utilizzare anche dati del tiro, formule di dadi e valutare condizioni."
+			"name": "Modifica la soglia di fallimento critico degli attacchi",
+			"description": "Usa threshold=5 per aumentare di 5 o set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
-			"name": "Permetti soglia di fumble alterata per gli attacchi dell'avversario",
-			"description": "Utilizzare threshold=5 per aumentare di 5 oppure set=15 per impostare il valore su 15. È possibile utilizzare anche dati del tiro, formule di dadi e valutare condizioni."
+			"name": "Concede una soglia di fallimento critico modificata agli attacchi del nemico",
+			"description": "Usa threshold=5 per aumentare di 5 o set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
-			"name": "Un'aura che altera la soglia di fumble degli attacchi nel raggio",
-			"description": "Utilizzare radius=15;threshold=5 per aumentare di 5 oppure radius=20;set=15 per impostare il valore su 15. È possibile utilizzare anche dati del tiro, formule di dadi e valutare condizioni."
+			"name": "Aura che modifica la soglia di fallimento critico degli attacchi nell'area",
+			"description": "Usa radius=15;threshold=5 per aumentare di 5 o radius=20;set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.damage.extraDice": {
-			"name": "Aumentare o diminuire il numero di dadi lanciati per ogni denominazione",
-			"description": "Usa bonus=4 per aumentare di 4 il numero di dadi lanciati."
+			"name": "Aumenta o diminuisce il numero di dadi tirati per ogni tipo",
+			"description": "Usa bonus=4 per aumentare il numero di dadi di 4."
 		},
 		"flags.automated-conditions-5e.grants.damage.extraDice": {
-			"name": "Concedi un aumento o una diminuzione al numero di dadi lanciati per ogni denominazione",
-			"description": "Usa bonus=-1 per diminuire di 1 il numero di dadi lanciati"
+			"name": "Concede un aumento o una riduzione del numero di dadi per ogni tipo",
+			"description": "Usa bonus=-1 per ridurre il numero di dadi di 1"
 		},
 		"flags.automated-conditions-5e.aura.damage.extraDice": {
-			"name": "Un'aura che aumenta o diminuisce il numero di dadi lanciati per ogni denominazione",
-			"description": "Utilizzare bonus=2; raggio=10 per aumentare il numero di dadi lanciati per ogni denominazione in un raggio di 10 unità di distanza."
+			"name": "Aura che aumenta o riduce il numero di dadi per ogni tipo",
+			"description": "Usa bonus=2; radius=10 per aumentare il numero di dadi in un raggio di 10 unità di distanza."
+		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Sovrascrive il tipo di danno impostato dei tiri di danno base",
+			"description": "Usa set=fire per forzare un solo tipo oppure set=fire,lightning,thunder per offrire più tipi. addTo=... si applica solo alle parti di danno base corrispondenti."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Concede sovrascrittura del tipo di danno ai tiri di danno base dell'avversario",
+			"description": "Usa set=fire per forzare un solo tipo oppure set=fire,lightning,thunder per offrire più tipi. addTo=... si applica solo alle parti di danno base corrispondenti."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "Un'aura che sovrascrive il tipo di danno dei tiri di danno base entro il raggio",
+			"description": "Usa radius=10;set=fire oppure radius=10;set=fire,lightning,thunder. addTo=... si applica solo alle parti di danno base corrispondenti."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
-			"name": "Modifica la CA del Personaggio contro gli attacchi in arrivo",
-			"description": "Usa bonus=5 per aggiungere 5 a CA o set=15 per impostare il valore a 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
+			"name": "Modifica la Classe Armatura dell'attore contro gli attacchi in arrivo",
+			"description": "Usa bonus=5 per aggiungere 5 alla CA o set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.grant.modifyAC": {
-			"name": "Concedi CA modificato all'avversario dell'attacco",
-			"description": "Usa bonus=-5 per sottrarre 5 dalla CA o set=15 per impostare il valore a 15. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
+			"name": "Concede una CA modificata al bersaglio dell'attacco",
+			"description": "Usa bonus=-5 per sottrarre 5 alla CA o set=15 per impostare il valore a 15. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 		},
 		"flags.automated-conditions-5e.aura.modifyAC": {
-			"name": "Un'aura che modifica la CA dei token rilevanti nel raggio",
-			"description": "Usa raggio=10;bonus=1d4; o raggio=15;imposta=15. Il primo darà un bonus alla CA e il secondo imposterà il valore fornito"
+			"name": "Aura che modifica la CA dei token nell'area",
+			"description": "Usa radius=10;bonus=1d4; oppure radius=15;set=15. Il primo applica un bonus alla CA, il secondo imposta il valore."
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Tiro con vantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
 				"name": "Tiro con bonus",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool. es: bonus=1d4 + 5 - modificatore caratteristica DES del tiratore;"
 			},
 			"critical": {
-				"name": "Tiro è critico (20 naturale o danno critico)",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+				"name": "Tiro critico (20 naturale o danno critico)",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"disadvantage": {
 				"name": "Tiro con svantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "modificatori min e max per i tiri d20, modificatori max e qualsiasi per i tiri di danno",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: modificatore=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+				"name": "modificatori min e max per tiri d20, modificatori per massimo e qualsiasi per i tiri danno",
+				"description": "Sostituisci ACTIONTYPE con uno tra: attack/check/concentration/damage/death/initiative/save/skill/tool. es: modifier=(rollingActor.attributes.hp.pct < 50 ? max8 : min12)"
 			},
 			"modifyDC": {
-				"name": "Modifica la CD delle tue azioni. Funzionerà anche per i controlli di concentrazione e i tiri salvezza sulla morte che effettui.",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 a DC o set=15 per impostarlo sul valore fornito. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
+				"name": "Modifica la CD delle tue azioni. Funziona anche per prove di concentrazione e tiri salvezza contro la morte",
+				"description": "Sostituisci ACTIONTYPE con uno tra: save/conc/death (check/skill/tool sono supportati ma di solito non hanno CD impostata). Usa bonus=5 per aggiungere 5 alla CD o set=15 per impostarla al valore fornito. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
 			},
 			"noAdvantage": {
-				"name": "Sopprimi modalità vantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+				"name": "Annulla la modalità vantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"noCritical": {
-				"name": "Sopprimi Critici",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/danno"
+				"name": "Annulla i critici",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/damage"
 			},
 			"noDisadvantage": {
-				"name": "Sopprimi modalità svantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
+				"name": "Annulla la modalità svantaggio",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"fail": {
-				"name": "Tiri d20 falliscono",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento"
+				"name": "I tiri d20 falliscono",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool"
 			},
 			"fumble": {
-				"name": "Tiri d20 falliscono malamente (1 naturale)",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
+				"name": "I tiri d20 falliscono criticamente (1 naturale)",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"success": {
-				"name": "Tiri d20 riescono",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/TS/abilità/strumento"
+				"name": "I tiri d20 riescono",
+				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/save/skill/tool"
 			},
 			"abilityOverride": {
-				"name": "Sovrascrivi l'abilità utilizzata per il tiro",
-				"description": "Solo attacco. Usa override=cha o abilityOverride=cha."
+				"name": "Sovrascrivi la caratteristica usata per il tiro",
+				"description": "Solo attacchi. Usa override=cha oppure abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
-			"advantage": {
-				"name": "Concede vantaggio ai tiri d20 dell'avversario",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
-			},
-			"bonus": {
-				"name": "Concede bonus ai tiri dell'avversario",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Inserire bonus= seguito da ; come separatore, es: bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
-			},
-			"critical": {
-				"name": "Concede critico (20 naturale o danno) ai tiri dell'avversario",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
-			},
-			"disadvantage": {
-				"name": "Concede svantaggio ai tiri d20 dell'avversario",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
-			},
-			"modifier": {
-				"name": "Concedi modificatori minimi e massimi per i tiri d20, modificatori massimi e qualsiasi per i tiri di danno",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'"
-			},
-			"modifyDC": {
-				"name": "Modifica la CD di un tiro che effettui contro un'azione intrapresa da un altro",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus=5 per aggiungere 5 alla DC o set=15 per impostarla al valore fornito. Puoi usare anche i dati di tiro, le formule dei dadi e valutare le condizioni."
-			},
-			"noAdvantage": {
-				"name": "Non concedere modalità di vantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
-			},
-			"noCritical": {
-				"name": "Non concedere critici",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/danno"
-			},
-			"noDisadvantage": {
-				"name": "Non concedere modalità di svantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento"
-			},
-			"fail": {
-				"name": "Concede fallimento ai tiri d20 dell'avversario",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento"
-			},
-			"fumble": {
-				"name": "Concede fallimento critico (1 naturale) ai tiri d20 dell'avversario",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento"
-			},
-			"success": {
-				"name": "I tiri d20 contro di te o causati da te riescono",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento"
-			},
-			"abilityOverride": {
-				"name": "Concedi caratterisctica sovrascritta ai tiri dell'avversario",
-				"description": "Solo Attacco. Usa override=cha o abilityOverride=cha."
-			}
+		"advantage": {
+			"name": "Concede vantaggio ai tiri d20 del bersaglio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
 		},
-		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
-			"advantage": {
-				"name": "Un’aura che concede vantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Esempio di formato del valore di modifica per un salvataggio ACTIONTYPE: raggio=15;includeSelf;allies;str;cha; concede vantaggio ai tiri salvezza su Forza o Carisma a tutti gli alleati (incluso sé stesso) nel raggio di 15 piedi."
-			},
-			"bonus": {
-				"name": "Un’aura che concede bonus",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Esempio di formato del valore di modifica per l'iniziativa ACTIONTYPE e valore dell'effetto di: raggio=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised tutti entro 20 piedi vedranno i propri tiri ridotti dal modificatore di Carisma dell’attore sorgente se sono sorpresi"
-			},
-			"critical": {
-				"name": "Un’aura che forza i critici (20 naturale o danno critico)",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
-			},
-			"disadvantage": {
-				"name": "Un’aura che concede svantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
-			},
-			"modifier": {
-				"name": "Un'aura che fornisce modificatori minimi e massimi per i tiri d20, modificatori max e qualsiasi per i tiri di danno",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. es: modificatore='min10'; raggio=rollingActor.details.level < 10 ? 15 : 30; modificatore='min10'"
-			},
-			"modifyDC": {
-				"name": "Un'aura che modifica la CD delle azioni intraprese dai token interessati.",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: TS/concentrazione/morte (check/abilità/strumento sono supportati ma solitamente non hanno CD impostata). Usa bonus/set, raggio come al solito"
-			},
-			"noAdvantage": {
-				"name": "Un'aura che sopprime modalità vantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Utilizza raggio come al solito"
-			},
-			"noCritical": {
-				"name": "Un'aura che sopprime critici",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/danno. Utilizza raggio come al solito"
-			},
-			"noDisadvantage": {
-				"name": "Un'aura che sopprime modalità svantaggio",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/danno/morte/initiativa/TS/abilità/strumento. Utilizza raggio come al solito"
-			},
-			"fail": {
-				"name": "Un’aura che forza il fallimento dei tiri d20",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
-			},
-			"fumble": {
-				"name": "Un’aura che forza il fallimento critico dei tiri d20",
-				"description": "Un’aura attorno all’attore che ha l’effetto attivo. Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/initiativa/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
-			},
-			"success": {
-				"name": "Un’aura che forza il successo",
-				"description": "Sostituisci ACTIONTYPE con uno dei seguenti: tutto/attacco/check/concentrazione/morte/TS/abilità/strumento. Modifica formato del valore: raggio=Numero;alleati o nemici o omesso per TUTTI; altre condizioni"
-			},
-			"abilityOverride": {
-				"name": "Un'aura che sovrascrive la caratteristica utilizzata per i tiri",
-				"description": "Solo Attacco. Usa raggio come al solito più override=cha o abilityOverride=cha."
+		"bonus": {
+			"name": "Concede un bonus ai tiri del bersaglio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Inizia con bonus= seguito da un separatore ;, es: bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
+		},
+		"critical": {
+			"name": "Concede critico (20 naturale o danno) ai tiri del bersaglio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"disadvantage": {
+			"name": "Concede svantaggio ai tiri d20 del bersaglio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"modifier": {
+			"name": "Concede modificatori min e max per i tiri d20, e per il danno modificatori per massimo e qualsiasi",
+			"description": "Sostituisci ACTIONTYPE con uno tra: attack/check/concentration/damage/death/initiative/save/skill/tool. es: modifier=min10"
+		},
+		"modifyDC": {
+			"name": "Modifica la CD di un tiro effettuato contro un'azione di un altro",
+			"description": "Sostituisci ACTIONTYPE con uno tra: save/conc/death (check/skill/tool sono supportati ma di solito non hanno CD impostata). Usa bonus=5 per aggiungere 5 alla CD o set=15 per impostarla al valore fornito. Puoi usare dati di tiro, formule di dadi e condizioni valutabili."
+		},
+		"noAdvantage": {
+			"name": "Concede nessuna modalità vantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno tra all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"noCritical": {
+			"name": "Concede nessun critico",
+			"description": "Sostituisci ACTIONTYPE con uno tra all/attack/damage"
+		},
+		"noDisadvantage": {
+			"name": "Concede nessuna modalità svantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno tra all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+		},
+		"fail": {
+			"name": "Concede fallimento ai tiri d20 del bersaglio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool"
+		},
+		"fumble": {
+			"name": "Concede fallimento critico (1 naturale) ai tiri d20 del bersaglio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/initiative/save/skill/tool"
+		},
+		"success": {
+			"name": "I tiri d20 contro o causati da te hanno successo",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool"
+		},
+		"abilityOverride": {
+			"name": "Concede una caratteristica sovrascritta ai tiri del bersaglio",
+			"description": "Solo attacchi. Usa override=cha oppure abilityOverride=cha."
+		}
+	},
+	"flags.automated-conditions-5e.aura.ACTIONTYPE": {
+		"advantage": {
+			"name": "Un'aura che concede vantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Esempio per un save ACTIONTYPE: radius=15;includeSelf;allies;str;cha; concederebbe a tutti gli alleati (incluso il portatore) entro 15 piedi vantaggio ai tiri salvezza di Forza o Carisma."
+		},
+		"bonus": {
+			"name": "Un'aura che concede bonus",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Esempio per initiative ACTIONTYPE: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised Tutti entro 20 piedi avranno i loro tiri ridotti del modificatore di Carisma dell'attore sorgente se sono sorpresi"
+		},
+		"critical": {
+			"name": "Un'aura che impone critico (20 naturale o danno)",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Formato esempio: radius=Numero;alleati o nemici o omettere per TUTTI;altre condizioni"
+		},
+		"disadvantage": {
+		"name": "Un'aura che concede svantaggio",
+		"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Formato valore: radius=Number;alleati o nemici o omettere per TUTTI;altre condizioni"
+		},
+		"modifier": {
+			"name": "Un'aura che concede modificatori min e max per i tiri d20, e per il danno modificatori per massimo e qualsiasi",
+			"description": "Sostituisci ACTIONTYPE con uno tra: attack/check/concentration/damage/death/initiative/save/skill/tool. es: modifier=min10; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10"
+		},
+		"modifyDC": {
+			"name": "Un'aura che modifica la CD delle azioni dei token influenzati",
+			"description": "Sostituisci ACTIONTYPE con uno tra: save/conc/death (check/skill/tool sono supportati ma di solito non hanno CD impostata). Usa bonus/set e radius come di consueto"
+		},
+		"noAdvantage": {
+			"name": "Un'aura che annulla la modalità vantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno tra all/attack/check/concentration/damage/death/initiative/save/skill/tool. Usa radius come di consueto"
+		},
+		"noCritical": {
+			"name": "Un'aura che annulla i critici",
+			"description": "Sostituisci ACTIONTYPE con uno tra all/attack/damage. Usa radius come di consueto"
+		},
+		"noDisadvantage": {
+			"name": "Un'aura che annulla la modalità svantaggio",
+			"description": "Sostituisci ACTIONTYPE con uno tra all/attack/check/concentration/damage/death/initiative/save/skill/tool. Usa radius come di consueto"
+		},
+		"fail": {
+			"name": "Un'aura che forza il fallimento dei tiri d20",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool. Formato valore: radius=Number;alleati o nemici o omettere per TUTTI;altre condizioni"
+		},
+		"fumble": {
+			"name": "Un'aura che forza il fallimento critico dei tiri d20",
+			"description": "Un'aura attorno all'attore che possiede l'effetto. Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/initiative/save/skill/tool. Formato valore: radius=Number;alleati o nemici o omettere per TUTTI;altre condizioni"
+		},
+		"success": {
+			"name": "Un'aura che forza il successo",
+			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool. Formato valore: radius=Number;alleati o nemici o omettere per TUTTI;altre condizioni"
+		},
+		"abilityOverride": {
+			"name": "Un'aura che sovrascrive la caratteristica usata per i tiri",
+			"description": "Solo attacchi. Usa radius come di consueto più override=cha oppure abilityOverride=cha."
 			}
 		}
 	},
 	"AC5E.Info": "Info",
-	"AC5E.OptinDescription.AppliesNonRollEffect": "Applica un effetto non legato al tiro su {roll}",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Applica un effetto non legato ai tiri su {roll}",
 	"AC5E.advantageBehaviorOverride": {
-		"Name": "Sovrascrivi gestione del vantaggio del sistema",
-		"Hint": "Se abilitato, AC5E sopprime il tiro nativo di vantaggio/svantaggio e converte il vantaggio/svantaggio temporaneo nelle formule sottostanti."
+		"Name": "Sovrascrivi la gestione del vantaggio del sistema",
+		"Hint": "Se attivato, AC5E sopprime il vantaggio/svantaggio nativo e converte vantaggio/svantaggio temporaneo nelle formule seguenti."
 	},
 	"AC5E.advantageBehaviorAdvantageFormula": {
-		"Name": "Formula bonus vantaggio",
-		"Hint": "Applicata quando è presente un vantaggio temporaneo e la sovrascrittura è abilitata. Esempio: 3d6kh1 oppure 2."
+		"Name": "Formula del bonus da vantaggio",
+		"Hint": "Applicata quando è presente vantaggio temporaneo e la sovrascrittura è attiva. Esempio: 3d6kh1 o 2."
 	},
 	"AC5E.advantageBehaviorDisadvantageFormula": {
-		"Name": "Formula penalità svantaggio",
-		"Hint": "Applicata quando è presente uno svantaggio temporaneo e la sovrascrittura è abilitata. Esempio: -3d6kh1 oppure -2."
+		"Name": "Formula della penalità da svantaggio",
+		"Hint": "Applicata quando è presente svantaggio temporaneo e la sovrascrittura è attiva. Esempio: -3d6kh1 o -2."
 	}
 }
