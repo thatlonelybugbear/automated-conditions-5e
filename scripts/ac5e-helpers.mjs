@@ -1633,9 +1633,27 @@ export function _getTooltip(ac5eConfig = {}) {
 				return `${String(label)}${getChanceTooltipSuffix(entry?.chance)}`;
 			})
 			.filter(Boolean);
+	const mapTypeOverrideLabels = (entries = []) =>
+		entries
+			.map((entry) => {
+				if (!entry || typeof entry !== 'object') return undefined;
+				const overrideText = String(entry?.set ?? '').trim();
+				const labelText = String(entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
+				const chanceSuffix = getChanceTooltipSuffix(entry?.chance);
+				if (overrideText && labelText) return `${overrideText}: ${labelText}${chanceSuffix}`;
+				if (overrideText) return `${overrideText}${chanceSuffix}`;
+				if (labelText) return `${labelText}${chanceSuffix}`;
+				return undefined;
+			})
+			.filter(Boolean);
+	const isUseOwnedSaveCheckDamageTooltip =
+		hookType === 'damage' &&
+		['save', 'check'].includes(String(ac5eConfig?.options?.activity?.type ?? '').toLowerCase()) &&
+		!!(ac5eConfig?.useConfig?.targetADCResolvedAtUse || ac5eConfig?.targetADCResolvedAtUse || ac5eConfig?.preAC5eConfig?.forceChatTooltip);
 	const suppressUseOwnedTargetDCTooltip =
-		['check', 'save'].includes(hookType) &&
-		!!(ac5eConfig?.preAC5eConfig?.forceChatTooltip || ac5eConfig?.useConfig?.targetADCResolvedAtUse || ac5eConfig?.targetADCResolvedAtUse);
+		(['check', 'save'].includes(hookType) &&
+			!!(ac5eConfig?.preAC5eConfig?.forceChatTooltip || ac5eConfig?.useConfig?.targetADCResolvedAtUse || ac5eConfig?.targetADCResolvedAtUse)) ||
+		isUseOwnedSaveCheckDamageTooltip;
 	const normalizeTooltipLabel = (value) =>
 		String(value ?? '')
 			.trim()
@@ -1758,6 +1776,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectModifierLabels.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subjectModifierLabels.join(', ')}</span>`);
 		const subjectExtraDiceLabels = mapEntryLabels(filterOptinEntries(subject.extraDice));
 		addTooltip(subjectExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.ExtraDice')}: ${subjectExtraDiceLabels.join(', ')}</span>`);
+		const subjectTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(subject.typeOverride)) : [];
+		addTooltip(subjectTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Type Override: ${subjectTypeOverrideLabels.join(', ')}</span>`);
 	}
 	if (opponent) {
 		const opponentSuppressedStatuses = [...new Set(mapEntryLabels(opponent?.suppressedStatuses ?? []))];
@@ -1800,6 +1820,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponentModifierLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsModifier')}: ${opponentModifierLabels.join(', ')}</span>`);
 		const opponentExtraDiceLabels = mapEntryLabels(filterOptinEntries(opponent.extraDice));
 		addTooltip(opponentExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponentExtraDiceLabels.join(', ')}</span>`);
+		const opponentTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(opponent.typeOverride)) : [];
+		addTooltip(opponentTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Target Grants Type Override: ${opponentTypeOverrideLabels.join(', ')}</span>`);
 	}
 	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
 	const enforcedModeEntries = enforcedD20Mode ? infoEntries.filter((entry) => entry?.enforceMode === enforcedD20Mode) : [];

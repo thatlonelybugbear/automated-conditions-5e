@@ -225,6 +225,23 @@ function buildUsageDialogTooltip(usageConfig, choices = [], ac5eConfig, deps = {
 		optinSelected: usageConfig?.[Constants.MODULE_ID]?.optinSelected ?? {},
 	});
 	let hoverLines = Array.isArray(resolvedState?.hoverLines) ? resolvedState.hoverLines.filter(Boolean) : [];
+	const selectedOptinTooltipLines = Array.isArray(choices)
+		? choices
+				.filter((choice) => !!usageConfig?.[Constants.MODULE_ID]?.optinSelected?.[choice?.id])
+				.map((choice) => {
+					const label = String(choice?.displayLabel ?? choice?.label ?? choice?.entry?.label ?? choice?.entry?.name ?? choice?.entry?.id ?? '').trim();
+					const modifiedDC = Number(choice?.dc);
+					const baseDC = Number(choice?.baseDC ?? resolvedState?.resolvedTargetADC?.baseDC ?? ac5eConfig?.initialTargetADC);
+					if (!label) return '';
+					if (!Number.isFinite(modifiedDC) || !Number.isFinite(baseDC)) return label;
+					return `${_localize('AC5E.ModifyDC')} ${modifiedDC} (${baseDC}): ${label}`;
+				})
+				.filter(Boolean)
+		: [];
+	for (const line of selectedOptinTooltipLines) {
+		const normalized = String(line).toLowerCase();
+		if (!hoverLines.some((existing) => String(existing).toLowerCase() === normalized)) hoverLines.push(line);
+	}
 	if (!hoverLines.length) {
 		const fallbackState =
 			usageConfig?.[Constants.MODULE_ID]?.resolvedUseButtonState ??

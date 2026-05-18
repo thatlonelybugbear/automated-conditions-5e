@@ -1,20 +1,13 @@
-## Unreleased
+## 14.533.1
 
 - Reworked save/check `modifyDC` handling for activity use workflows.
-  - Save/check DC changes are now resolved during activity use so the created chat message shows the final DC directly.
-  - `modifyDC` opt-ins for save/check activities now use the normal D&D5e usage dialog instead of cloned alternative DC buttons on the chat card.
-  - Later save/check roll configuration dialogs no longer re-offer those activity-owned `modifyDC` opt-ins.
-  - Activity chat-card DC buttons and the usage-dialog `Cast Spell` button now show AC5E tooltip attribution for resolved DC changes.
-- Generalized `abilityOverride` so it can be authored as an activity-level AC5E flag instead of only an attack-scoped one.
-  - `flags.automated-conditions-5e.abilityOverride` is now supported.
-  - Legacy `flags.automated-conditions-5e.attack.abilityOverride` is still accepted for compatibility.
-- Standardized override-style value syntax.
-  - `typeOverride` and `abilityOverride` now expose `override=...` as the preferred syntax.
-  - Legacy `set=...` and older override forms are still supported for backwards compatibility.
-- Improved damage bonus roll handling.
-  - `damage.modifier` entries now also apply to synthetic bonus damage rolls created by `damage.bonus`.
-- Fixed AC5E use-flag writes for newer D&D5e activity hook payloads.
-  - When a hook provides a transient message-like object instead of a real `ChatMessage`, AC5E now mirrors the `use` flag onto that payload so same-cycle reads still work.
+- `abilityOverride` can now be set at the activity level, not just on attacks.
+- `typeOverride` and `abilityOverride` now prefer the `override=...` syntax.
+- `damage.modifier` now also applies to synthetic bonus damage rolls.
+- `damage.typeOverride` now carries through synthetic bonus damage rolls too.
+- AC5E now keeps advanced d20 modifiers like `adv5` and `min7` in both the roll dialog and chat result.
+- AC5E now matches the newer `CONFIG.statusEffects` object format and no longer uses the old damage wrapper.
+- AC5E now mirrors `use` flags onto newer transient activity payloads so same-cycle reads still work.
 
 ## 14.532.2
 
