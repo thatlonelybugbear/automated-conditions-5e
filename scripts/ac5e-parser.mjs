@@ -36,9 +36,12 @@ function createProxySandbox(sandbox, mode = 'formula') {
 			return mode === 'condition' ? false : undefined;
 		},
 		has(target, prop) {
-			if (BLOCKED.has(prop)) return false;
-			if (target._evalConstants && prop in target._evalConstants) return true;
-			return prop in target || prop in Math;
+			return !BLOCKED.has(prop); // We should always stop lookup at the proxy scope, allowing get() to decide the actual value.
+			// has() no longer is being used to determine whether a variable exist, only whether the lookup may continue outward.
+			// As such the following become redundant.
+			// if (target._evalConstants && prop in target._evalConstants) return true;
+			// return prop in target || prop in Math;
+			// The issue came up when `scroll()` was leaking through scope resolution, by a user assigning "scroll" as a condition in an AC5E effect value.
 		},
 	});
 }
