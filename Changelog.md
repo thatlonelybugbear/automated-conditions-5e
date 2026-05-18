@@ -1,3 +1,7 @@
+## 13.5330.1.2
+
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗 
+
 ## 13.5330.1.1
 
 * Refactor has() method in ac5e-parser simplify property lookup logic and prevent scope leakage.
