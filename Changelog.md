@@ -1,13 +1,16 @@
 ## 14.533.1
 
-- Reworked save/check `modifyDC` handling for activity use workflows.
-- `abilityOverride` can now be set at the activity level, not just on attacks.
-- `typeOverride` and `abilityOverride` now prefer the `override=...` syntax.
+- ***Breaking***: Support for the `abilityOverride` flag has been removed until a more robust implementation can be added in a future release. Any existing `abilityOverride` flags will be ignored in the current release.
+- Reworked save/check `modifyDC` handling for activity use workflows so DC modifications are applied during the initial use flow instead of waiting until the save dialog opens.
+  - This means that the DC shown in the item card will now be the modified DC instead of the base DC.
+- `typeOverride` now prefers the `override=...` syntax.
 - `damage.modifier` now also applies to synthetic bonus damage rolls.
 - `damage.typeOverride` now carries through synthetic bonus damage rolls too.
 - AC5E now keeps advanced d20 modifiers like `adv5` and `min7` in both the roll dialog and chat result.
-- AC5E now matches the newer `CONFIG.statusEffects` object format and no longer uses the old damage wrapper.
-- AC5E now mirrors `use` flags onto newer transient activity payloads so same-cycle reads still work.
+- Refactor has() method in ac5e-parser to simplify property lookup logic and remove redundant checks.
+- Verified for Foundry v14.361.
+- Verified for D&D 5e system v5.3.3.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 
 ## 14.532.2
 
