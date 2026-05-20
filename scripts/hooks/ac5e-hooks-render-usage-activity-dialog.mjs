@@ -1,7 +1,7 @@
 import Constants from '../ac5e-constants.mjs';
 import { _buildStandardTooltipFromLines, _localize } from '../ac5e-helpers.mjs';
 import { getAskPermissionSourceSuffix, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
-import { getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
+import { getAbilityOverrideOptinChoices, getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
 
 export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	if (!dialog || !elem) return true;
@@ -11,7 +11,7 @@ export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	const activity = dialog.activity;
 	if (!ac5eConfig || !activity) return true;
 
-	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity)];
+	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity)];
 	const root = elem instanceof HTMLElement ? elem : elem?.[0] ?? null;
 	logUsageDialogRenderDebug('renderActivityUsageDialogHijack.entry', {
 		dialogClass: dialog?.constructor?.name ?? null,
@@ -24,13 +24,13 @@ export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	if (!root) return true;
 	if (!choices.length) {
 		removeExistingFieldsets(root);
-		applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps);
+		applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps, activity);
 		return true;
 	}
 
 	const groupedChoices = groupChoicesForDisplay(choices, ac5eConfig);
-	renderChoiceFieldsets(root, groupedChoices, ac5eConfig, usageConfig, choices, deps);
-	applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps);
+	renderChoiceFieldsets(root, groupedChoices, ac5eConfig, usageConfig, choices, deps, activity);
+	applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps, activity);
 	return true;
 }
 
@@ -65,7 +65,7 @@ function ensureFieldset(root, className, legendText) {
 	return fieldset;
 }
 
-function renderChoiceFieldsets(root, groupedChoices, ac5eConfig, usageConfig, allChoices, deps = {}) {
+function renderChoiceFieldsets(root, groupedChoices, ac5eConfig, usageConfig, allChoices, deps = {}, activity = null) {
 	const optionalLegend = localizeWithFallback('AC5E.OptinLegend.Optional', 'AC5E');
 	const askPermissionLegend = localizeWithFallback('AC5E.OptinLegend.FromOtherSources', 'AC5E From other sources (ask for permission)');
 	const groups = [
@@ -82,7 +82,7 @@ function renderChoiceFieldsets(root, groupedChoices, ac5eConfig, usageConfig, al
 		fieldset.style.removeProperty('display');
 		fieldset.removeAttribute('aria-hidden');
 		renderChoiceRows(fieldset, group.choices, ac5eConfig, { askPermission: group.key === 'permission' });
-		syncSelectionsToUsageConfig(fieldset, usageConfig, root, allChoices, ac5eConfig, deps);
+		syncSelectionsToUsageConfig(fieldset, usageConfig, root, allChoices, ac5eConfig, deps, activity);
 	}
 }
 
@@ -153,27 +153,35 @@ function renderChoiceRows(fieldset, choices, ac5eConfig, { askPermission = false
 	}
 }
 
-function syncSelectionsToUsageConfig(fieldset, usageConfig, root, choices, ac5eConfig, deps = {}) {
+function syncSelectionsToUsageConfig(fieldset, usageConfig, root, choices, ac5eConfig, deps = {}, activity = null) {
 	usageConfig[Constants.MODULE_ID] ??= {};
 	usageConfig[Constants.MODULE_ID].optinSelected ??= {};
 	for (const input of fieldset.querySelectorAll('input[data-ac5e-usage-optin="true"]')) {
-		const optinId = String(input.dataset.ac5eOptinId ?? '').trim();
+		const optinId = (input.dataset.ac5eOptinId ?? '').trim();
 		if (!optinId) continue;
 		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = !!input.checked;
 	}
 	fieldset.onchange = (event) => {
 		const target = event.target;
 		if (!(target instanceof HTMLInputElement) || target.dataset.ac5eUsageOptin !== 'true') return;
-		const optinId = String(target.dataset.ac5eOptinId ?? '').trim();
+		const optinId = (target.dataset.ac5eOptinId ?? '').trim();
 		if (!optinId) return;
 		usageConfig[Constants.MODULE_ID] ??= {};
 		usageConfig[Constants.MODULE_ID].optinSelected ??= {};
 		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = !!target.checked;
-		applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps);
+		const refreshedChoices =
+			activity ?
+				[...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity)]
+			:	choices;
+		if (activity) {
+			const groupedChoices = groupChoicesForDisplay(refreshedChoices, ac5eConfig);
+			renderChoiceFieldsets(root, groupedChoices, ac5eConfig, usageConfig, refreshedChoices, deps, activity);
+		}
+		applyUsageDialogButtonState(root, usageConfig, refreshedChoices, ac5eConfig, deps, activity);
 	};
 }
 
-function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps = {}) {
+function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps = {}, activity = null) {
 	if (!(root instanceof HTMLElement)) return;
 	const allButtons = root.querySelectorAll('button');
 	for (const button of allButtons) {
@@ -195,7 +203,7 @@ function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, dep
 		totalButtons: allButtons?.length ?? 0,
 	});
 	if (!(button instanceof HTMLButtonElement)) return;
-	const tooltip = buildUsageDialogTooltip(usageConfig, choices, ac5eConfig, deps);
+	const tooltip = buildUsageDialogTooltip(usageConfig, choices, ac5eConfig, deps, activity);
 	if (deps?.enforceDefaultButtonFocus) deps.enforceDefaultButtonFocus(root, button);
 	if (tooltip) button.classList.add('ac5e-button');
 	if (deps?.settings?.buttonColorEnabled && tooltip) {
@@ -215,39 +223,22 @@ function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, dep
 		hasTooltip: !!tooltip,
 		buttonClassList: Array.from(button.classList ?? []),
 		buttonHasDataTooltip: button.hasAttribute('data-tooltip'),
-		buttonDataTooltipLength: String(button.getAttribute('data-tooltip') ?? '').length,
+		buttonDataTooltipLength: (button.getAttribute('data-tooltip') ?? '').length,
 	});
 }
 
-function buildUsageDialogTooltip(usageConfig, choices = [], ac5eConfig, deps = {}) {
-	const activityLike = ac5eConfig?.options?.activity;
+function buildUsageDialogTooltip(usageConfig, choices = [], ac5eConfig, deps = {}, activity = null) {
+	const activityLike = activity ?? ac5eConfig?.options?.activity;
 	const resolvedState = getResolvedUseDisplayState(ac5eConfig, activityLike, {
 		optinSelected: usageConfig?.[Constants.MODULE_ID]?.optinSelected ?? {},
 	});
 	let hoverLines = Array.isArray(resolvedState?.hoverLines) ? resolvedState.hoverLines.filter(Boolean) : [];
-	const selectedOptinTooltipLines = Array.isArray(choices)
-		? choices
-				.filter((choice) => !!usageConfig?.[Constants.MODULE_ID]?.optinSelected?.[choice?.id])
-				.map((choice) => {
-					const label = String(choice?.displayLabel ?? choice?.label ?? choice?.entry?.label ?? choice?.entry?.name ?? choice?.entry?.id ?? '').trim();
-					const modifiedDC = Number(choice?.dc);
-					const baseDC = Number(choice?.baseDC ?? resolvedState?.resolvedTargetADC?.baseDC ?? ac5eConfig?.initialTargetADC);
-					if (!label) return '';
-					if (!Number.isFinite(modifiedDC) || !Number.isFinite(baseDC)) return label;
-					return `${_localize('AC5E.ModifyDC')} ${modifiedDC} (${baseDC}): ${label}`;
-				})
-				.filter(Boolean)
-		: [];
-	for (const line of selectedOptinTooltipLines) {
-		const normalized = String(line).toLowerCase();
-		if (!hoverLines.some((existing) => String(existing).toLowerCase() === normalized)) hoverLines.push(line);
-	}
 	if (!hoverLines.length) {
 		const fallbackState =
 			usageConfig?.[Constants.MODULE_ID]?.resolvedUseButtonState ??
 			ac5eConfig?.resolvedUseButtonState ??
 			activityLike?._ac5eResolvedUseButtonState;
-		hoverLines = [String(fallbackState?.resolvedTargetADC?.hoverText ?? '').trim()].filter(Boolean);
+		hoverLines = [(fallbackState?.resolvedTargetADC?.hoverText ?? '').trim()].filter(Boolean);
 		logUsageDialogRenderDebug('buildUsageDialogTooltip.fallbackState', {
 			fallbackState,
 			hoverLines,
@@ -277,16 +268,11 @@ function groupChoicesForDisplay(choices, ac5eConfig) {
 }
 
 function getChoiceDisplayLabel(choice = {}) {
-	const explicit = String(choice?.displayLabel ?? choice?.label ?? '').trim();
+	const explicit = (choice?.displayLabel ?? choice?.label ?? '').trim();
 	if (explicit) return explicit;
 	return `${localizeWithFallback('AC5E.ModifyDC', 'Modify DC')} ${choice?.dc ?? ''}`.trim();
 }
 
 function logUsageDialogRenderDebug(stage, payload) {
-	if (!globalThis?.ac5e?.debugUsageDialogTooltip) return;
-	try {
-		console.warn(`AC5E USAGE DIALOG RENDER DEBUG ${stage} ${JSON.stringify(payload)}`);
-	} catch (_error) {
-		console.warn(`AC5E USAGE DIALOG RENDER DEBUG ${stage}`, payload);
-	}
+	return;
 }

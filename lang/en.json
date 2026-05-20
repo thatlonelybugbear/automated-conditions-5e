@@ -149,6 +149,7 @@
 	"AC5E.CannotSeeTarget": "Cannot See Target",
 	"AC5E.TargetCannotSeeAttacker": "Target Cannot See Attacker",
 	"AC5E.Bonus": "Bonus",
+	"AC5E.AbilityOverride": "Ability Override",
 	"AC5E.ExtraDice": "Extra dice",
 	"AC5E.Success": "Success",
 	"AC5E.AbbreviationAdvantage": "adv",
@@ -168,6 +169,7 @@
 	"AC5E.TargetGrantsBonus": "Granted bonus",
 	"AC5E.TargetGrantsModifier": "Granted modifier",
 	"AC5E.TargetGrantsExtraDice": "Granted extra dice",
+	"AC5E.TargetGrantsAbilityOverride": "Granted ability override",
 	"AC5E.NoChanges": "No changes",
 	"AC5E.SystemMode": "System mode",
 	"AC5E.OptinDescription.Roll.Attack": "attack rolls",
@@ -211,6 +213,8 @@
 	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Adds extra damage dice ({value})",
 	"AC5E.OptinDescription.OverridesDamageType": "Overrides damage type",
 	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Overrides damage type ({value})",
+	"AC5E.OptinDescription.OverridesDcAbility": "Overrides Save/Check DC ability ({value})",
+	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Overrides Save/Check DC ability",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Upgrades damage dice",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Upgrades damage dice ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Downgrades damage dice",
@@ -304,6 +308,18 @@
 			"name": "An aura modifying the AC of the relevant tokens in radius",
 			"description": "Use radius=10;bonus=1d4; or radius=15;set=15. The former will give a bonus to AC and the latter will set to the value provided"
 		},
+		"flags.automated-conditions-5e.abilityOverride": {
+			"name": "Override Save/Check DC ability",
+			"description": "Overrides the ability used to calculate Save/Check DCs for the activity. Use override=cha. Example: override=(item.type==='spell' ? spellcastingAbility : wis). abilityOverride=... and set=... are still supported."
+		},
+		"flags.automated-conditions-5e.grants.abilityOverride": {
+			"name": "Grant Save/Check DC ability override",
+			"description": "Overrides the affected actor's Save/Check DC ability via grants. Use override=cha. Example: override=(opponentActor?.details?.type?.value==='fiend' ? cha : wis). abilityOverride=... and set=... are still supported."
+		},
+		"flags.automated-conditions-5e.aura.abilityOverride": {
+			"name": "An aura overriding Save/Check DC ability",
+			"description": "Overrides Save/Check DC ability for tokens affected by the aura. Use radius as usual plus override=cha. Example: radius=30;allies;includeSelf;override=wis. abilityOverride=... and set=... are still supported."
+		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Roll with advantage",
@@ -352,10 +368,6 @@
 			"success": {
 				"name": "d20 rolls succeed",
 				"description": "Replace ACTIONTYPE with one of: all/d20/attack/check/concentration/damage/death/save/skill/tool"
-			},
-			"abilityOverride": {
-				"name": "Override the ability used for the roll",
-				"description": "Use override=cha. abilityOverride=cha and set=cha are still supported for backwards compatibility."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -406,10 +418,6 @@
 			"success": {
 				"name": "d20 rolls against or caused by you succeed",
 				"description": "Replace ACTIONTYPE with one of: all/d20/attack/check/concentration/death/save/skill/tool"
-			},
-			"abilityOverride": {
-				"name": "Grant an overridden ability to opponent rolls",
-				"description": "Use override=cha. abilityOverride=cha and set=cha are still supported for backwards compatibility."
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -460,10 +468,6 @@
 			"success": {
 				"name": "An aura forcing success",
 				"description": "Replace ACTIONTYPE with one of: all/d20/attack/check/concentration/death/save/skill/tool. Change value format: radius=Number;allies or enemies or omit for ALL;other conditions"
-			},
-			"abilityOverride": {
-				"name": "An aura overriding the ability used for rolls",
-				"description": "Use radius as usual plus override=cha. abilityOverride=cha and set=cha are still supported for backwards compatibility."
 			}
 		}
 	},

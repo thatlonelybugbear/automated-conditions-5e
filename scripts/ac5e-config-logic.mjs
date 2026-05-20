@@ -325,6 +325,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			criticalThreshold: [],
 			fumbleThreshold: [],
 			targetADC: [],
+			abilityOverride: [],
 			extraDice: [],
 			typeOverride: [],
 			diceUpgrade: [],
@@ -351,6 +352,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			criticalThreshold: [],
 			fumbleThreshold: [],
 			targetADC: [],
+			abilityOverride: [],
 			extraDice: [],
 			typeOverride: [],
 			diceUpgrade: [],
@@ -706,7 +708,7 @@ export function _getSafeUseConfig(ac5eConfig) {
 	delete options.originatingUseConfig;
 	delete options._ac5eHookChecksCache;
 	for (const key of Object.keys(options)) if (key.startsWith('_')) delete options[key];
-	const optionsSnapshot = pickOptions(options, ['ability', 'attackMode', 'skill', 'tool', 'targets', 'distance', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'scaling', 'spellLevel']);
+	const optionsSnapshot = pickOptions(options, ['ability', 'activityAbilityResolved', 'attackMode', 'skill', 'tool', 'targets', 'distance', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'scaling', 'spellLevel']);
 	const sanitizeBonuses = (entries = []) =>
 		Array.isArray(entries) ?
 			entries.map((entry) => ({
@@ -747,6 +749,30 @@ export function _getSafeUseConfig(ac5eConfig) {
 				values: foundry.utils.duplicate(entry?.values ?? []),
 			}))
 		:	[];
+	const sanitizeAbilityOverrideEntries = (entries = []) =>
+		Array.isArray(entries) ?
+			entries.map((entry) => ({
+				id: entry?.id,
+				label: entry?.label ?? entry?.name,
+				name: entry?.name,
+				description: entry?.description,
+				autoDescription: entry?.autoDescription,
+				effectUuid: entry?.effectUuid,
+				changeIndex: entry?.changeIndex,
+				hook: entry?.hook,
+				mode: entry?.mode,
+				optin: !!entry?.optin,
+				changeKey: entry?.changeKey,
+				sourceActorId: entry?.sourceActorId ?? null,
+				sourceActorName: entry?.sourceActorName ?? '',
+				permissionSourceActorId: entry?.permissionSourceActorId ?? null,
+				permissionSourceActorName: entry?.permissionSourceActorName ?? '',
+				isAura: !!entry?.isAura,
+				cadence: entry?.cadence ?? null,
+				usesCount: entry?.usesCount,
+				set: entry?.set,
+			}))
+		:	[];
 	return {
 		hookType: ac5eConfig?.hookType,
 		tokenId: ac5eConfig?.tokenId,
@@ -766,11 +792,13 @@ export function _getSafeUseConfig(ac5eConfig) {
 			info: foundry.utils.duplicate(ac5eConfig?.subject?.info ?? []),
 			rangeNotes: foundry.utils.duplicate(ac5eConfig?.subject?.rangeNotes ?? []),
 			targetADC: sanitizeTargetADCEntries(ac5eConfig?.subject?.targetADC),
+			abilityOverride: sanitizeAbilityOverrideEntries(ac5eConfig?.subject?.abilityOverride),
 		},
 		opponent: {
 			fail: foundry.utils.duplicate(ac5eConfig?.opponent?.fail ?? []),
 			info: foundry.utils.duplicate(ac5eConfig?.opponent?.info ?? []),
 			targetADC: sanitizeTargetADCEntries(ac5eConfig?.opponent?.targetADC),
+			abilityOverride: sanitizeAbilityOverrideEntries(ac5eConfig?.opponent?.abilityOverride),
 		},
 		targetADC: foundry.utils.duplicate(ac5eConfig?.targetADC ?? []),
 		optinSelected: foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {}),
@@ -837,6 +865,7 @@ function _getSafeDialogSide(side = {}) {
 	for (const key of [
 		'advantage',
 		'advantageNames',
+		'abilityOverride',
 		'bonus',
 		'critical',
 		'criticalThreshold',
@@ -995,7 +1024,7 @@ export function _getSafeDialogConfig(ac5eConfig) {
 
 export function _mergeUseOptions(targetOptions, useOptions) {
 	if (!targetOptions || !useOptions) return;
-	const allowlist = ['ability', 'attackMode', 'defaultDamageType', 'damageTypes', 'hook', 'mastery', 'riderStatuses', 'scaling', 'skill', 'spellLevel', 'tool', 'targets', 'useEffects'];
+	const allowlist = ['ability', 'activityAbilityResolved', 'attackMode', 'defaultDamageType', 'damageTypes', 'hook', 'mastery', 'riderStatuses', 'scaling', 'skill', 'spellLevel', 'tool', 'targets', 'useEffects'];
 	const filtered = {};
 	for (const key of allowlist) if (useOptions[key] !== undefined) filtered[key] = useOptions[key];
 	if (!Object.keys(filtered).length) return;

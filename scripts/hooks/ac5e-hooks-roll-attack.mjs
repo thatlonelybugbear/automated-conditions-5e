@@ -7,7 +7,17 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	const { subject: { actor: sourceActor, ability } = {}, subject: configActivity, ammunition, attackMode, mastery } = config || {};
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;
-	options.ability = ability;
+	const resolvedAbilityOverride = _getResolvedUseAbilityOverride({ config, options, moduleId: deps?.Constants?.MODULE_ID });
+	const resolvedAbility = resolvedAbilityOverride || ability;
+	options.ability = resolvedAbility;
+	if (resolvedAbility) config.ability = resolvedAbility;
+	if (resolvedAbility && activity?.attack && typeof activity.attack === 'object') activity.attack.ability = resolvedAbility;
+	if (Array.isArray(config?.rolls)) {
+		for (const roll of config.rolls) {
+			roll.options ??= {};
+			if (resolvedAbility) roll.options.ability = resolvedAbility;
+		}
+	}
 	options.ammo = ammunition;
 	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
@@ -58,6 +68,34 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
 	return ac5eConfig;
+}
+
+function _getResolvedUseAbilityOverride({ config, options, moduleId } = {}) {
+	const candidates = [
+		options?.activityAbilityResolved,
+		options?._abilityOverrideResolvedAtUse,
+		options?.originatingUseConfig?.options?.activityAbilityResolved,
+		options?.originatingUseConfig?.options?._abilityOverrideResolvedAtUse,
+		config?.originatingUseConfig?.options?.activityAbilityResolved,
+		config?.originatingUseConfig?.options?._abilityOverrideResolvedAtUse,
+		config?.useConfig?.options?.activityAbilityResolved,
+		config?.useConfig?.options?._abilityOverrideResolvedAtUse,
+		config?.options?.[moduleId]?.options?.activityAbilityResolved,
+		config?.options?.[moduleId]?.options?._abilityOverrideResolvedAtUse,
+		config?.options?.[moduleId]?.preAC5eConfig?.activityAbilityResolved,
+		config?.options?.[moduleId]?.preAC5eConfig?._abilityOverrideResolvedAtUse,
+		config?.[moduleId]?.options?.activityAbilityResolved,
+		config?.[moduleId]?.options?._abilityOverrideResolvedAtUse,
+		config?.[moduleId]?.preAC5eConfig?.activityAbilityResolved,
+		config?.[moduleId]?.preAC5eConfig?._abilityOverrideResolvedAtUse,
+	];
+	for (const candidate of candidates) {
+		if (typeof candidate !== 'string') continue;
+		const normalized = candidate.trim().toLowerCase();
+		if (!normalized) continue;
+		if (Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, normalized)) return normalized;
+	}
+	return null;
 }
 
 export function resolveAttackRollTargetContext({ hook, config, messageForTargets, activity, options, sourceActor, needsTarget, getSubjectTokenForHook, getSingleTargetToken, logResolvedTargets }) {

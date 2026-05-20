@@ -91,7 +91,7 @@ function applyPreferredDisplayFormulas(render, elem, deps) {
 
 function bindUseMessageTargetADCTooltip(elem, messageFlags, deps = {}) {
 	const resolvedTargetADC = messageFlags?.resolvedTargetADC;
-	const hoverLines = [String(resolvedTargetADC?.hoverText ?? '').trim()].filter(Boolean);
+	const hoverLines = Array.isArray(resolvedTargetADC?.hoverLines) ? resolvedTargetADC.hoverLines.filter(Boolean) : [];
 	if (!hoverLines.length) return true;
 	const tooltip = _buildStandardTooltipFromLines(hoverLines, { showNameTooltips: !!deps?.settings?.showNameTooltips, noChangesKey: 'AC5E.NoChanges' });
 	const targetButtons = elem.querySelectorAll('button[data-action="rollSave"], button[data-action="rollCheck"], a[data-action="rollSave"], a[data-action="rollCheck"]');

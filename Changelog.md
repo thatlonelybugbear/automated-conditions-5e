@@ -7,6 +7,10 @@
 - Moved `contextKeywords` and `usageRules` sandbox application to the fully mutated effect sandbox, so they can see data like `auraActor`, `effectActor`, and `nonEffectActor`.
 - Added full evaluation of `noStatusID` suppressors like `noProne` and `noInvisible`.
   - For example, for a Lantern of Revealing implementation `flags.automated-conditions-5e.aura.noInvisible | Custom | radius=30;` now suppresses Invisible for matching tokens in range.
+- `Grappled` status under modern rules will apply disadvantage to attacks:
+  - If the grappler is not the one being attacked, or
+  - If the grappled status has no associated effect origin.  
+- Reinstate `abilityOverride` flags.
 - Removed some forgotten console logs.
 
 ## 14.533.1

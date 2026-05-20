@@ -939,7 +939,7 @@ function buildStatusEffectsTables() {
 
 		grappled: mkStatus('grappled', _i18nConditions('Grappled'), {
 			attack: {
-				subject: (ctx) => (ctx.modernRules && hasGrappledFromOther(ctx) ? 'disadvantage' : ''),
+				subject: (ctx) => (ctx.modernRules && !isAttackingGrappler(ctx) ? 'disadvantage' : ''),
 			},
 		}),
 
@@ -1004,8 +1004,8 @@ function hasStatusFromOpponent(actor, status, origin) {
 	return actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect, 'token')?.actor.uuid === origin?.uuid);
 }
 
-function hasGrappledFromOther(ctx) {
-	return ctx.subject?.appliedEffects.some((e) => e.statuses.has('grappled') && e.origin && _getEffectOriginToken(e, 'token') !== ctx.opponentToken);
+function isAttackingGrappler(ctx) {
+	return ctx.subject?.appliedEffects.some((effect) => effect.statuses.has('grappled') && effect.origin && _getEffectOriginToken(effect, 'token') === ctx.opponentToken);
 }
 
 function isFrightenedByVisibleSource(ctx) {
@@ -1293,6 +1293,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['crit', 'critical'],
 			['modifyac', 'targetADC'], //we cleared the conflict with "mod" mode by going first
 			['modifydc', 'targetADC'],
+			['abilityoverride', 'abilityOverride'],
 			['mod', 'modifiers'],
 			['bonus', 'bonus'],
 			['fail', 'fail'],
@@ -1538,8 +1539,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isD20 = ['attack', 'check', 'save', 'initiative'].includes(hook) && change.key.includes('d20');
 		const isModifyAC = change.key.includes('modifyAC') && hook === 'attack';
 		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(activity?.type);
+		const isUseActivity = hook === 'use' && !!activity?.type;
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
-		const modifyHooks = isModifyAC || isModifyDC;
+		const isAbilityOverride = change.key.toLowerCase().includes('abilityoverride') && (hook === 'check' || hook === 'save' || isUseActivity || isSkill || isTool);
+		const modifyHooks = isModifyAC || isModifyDC || isAbilityOverride;
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
@@ -1571,13 +1574,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			//isGrants
 			if (actorType === 'aura') return false;
 			if (isModifyAC && actorType !== 'subject') return false;
-			else if (actorType === 'subject' && !(isModifyAC || isModifyDC)) return false;
-			else if (actorType === 'opponent' && isModifyDC) return false;
+			else if (actorType === 'subject' && !(isModifyAC || isModifyDC || isAbilityOverride)) return false;
+			else if (actorType === 'opponent' && (isModifyDC || isAbilityOverride)) return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 		} else {
 			//isSelf
 			if (actorType === 'aura') return false;
-			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC)) return false;
+			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC || isAbilityOverride)) return false;
 			else if (actorType === 'subject' && isModifyAC) return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 		}
@@ -1765,6 +1768,9 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'typeOverride':
 				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDamageTypeWithValue', { value: set }, `Overrides damage type (${set})`);
 				return localizeText('AC5E.OptinDescription.OverridesDamageType', 'Overrides damage type');
+			case 'abilityOverride':
+				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDcAbility', { value: set }, `Overrides Save/Check DC ability (${String(set).toUpperCase()})`);
+				return localizeText('AC5E.OptinDescription.OverridesDcAbilityGeneric', 'Overrides Save/Check DC ability');
 			case 'diceUpgrade':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.UpgradesDamageDiceWithValue', { value: bonus }, `Upgrades damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.UpgradesDamageDice', 'Upgrades damage dice');
@@ -2519,7 +2525,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-		if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+		if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
@@ -3970,18 +3976,20 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 			});
 	}
 	const isSet =
-		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || mode === 'typeOverride' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
+		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || mode === 'typeOverride' || mode === 'abilityOverride' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
 			getBlacklistedKeysValue('set', rawValue)
 		:	false;
 	if (isSet) {
 		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
-		if (mode === 'typeOverride') set = String(replacementBonus ?? '').trim();
+		if (mode === 'typeOverride') set = typeof replacementBonus === 'string' ? replacementBonus.trim() : '';
+		else if (mode === 'abilityOverride') set = typeof replacementBonus === 'string' ? replacementBonus.trim() : '';
 		else set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
-	const isOverride = lowerValue.includes('override') && mode === 'typeOverride' ? getBlacklistedKeysValue('override', rawValue) : false;
+	const isOverride = lowerValue.includes('override') && (mode === 'typeOverride' || mode === 'abilityOverride') ? getBlacklistedKeysValue('override', rawValue) : false;
 	if (isOverride) {
 		const replacementOverride = bonusReplacements(isOverride, evaluationData, isAura, effect);
-		set = String(replacementOverride ?? '').trim();
+		if (mode === 'typeOverride') set = typeof replacementOverride === 'string' ? replacementOverride.trim() : '';
+		else set = typeof replacementOverride === 'string' ? replacementOverride.trim() : '';
 	}
 	const isModifier = lowerValue.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', rawValue) : false;
 	if (isModifier) {
@@ -4044,7 +4052,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	}
 	if (set !== undefined && set !== '') {
 		if (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack') set = String(evalNumericFormulaExpression(set, { debug }));
-		else if (mode !== 'typeOverride') set = String(evalDiceExpression(set)); // we need Strings for set
+		else if (!['typeOverride', 'abilityOverride'].includes(mode)) set = String(evalDiceExpression(set)); // we need Strings for set
 	}
 	if (ac5e?.debugTargetADC && mode === 'targetADC') console.warn('AC5E targetADC: preEvaluate', { hook, value, bonus, set, threshold, effect: effect?.name });
 	return { bonus, set, modifier, threshold, chance };

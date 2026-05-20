@@ -214,6 +214,7 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'targetADC',
 	'criticalThreshold',
 	'fumbleThreshold',
+	'abilityOverride',
 ]);
 
 function _debugFlagEnabled(flag, legacyRootFlag = null) {
@@ -1778,6 +1779,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.ExtraDice')}: ${subjectExtraDiceLabels.join(', ')}</span>`);
 		const subjectTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(subject.typeOverride)) : [];
 		addTooltip(subjectTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Type Override: ${subjectTypeOverrideLabels.join(', ')}</span>`);
+		const subjectAbilityOverrideLabels = mapEntryLabels(filterOptinEntries(subject.abilityOverride));
+		addTooltip(subjectAbilityOverrideLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.AbilityOverride')}: ${subjectAbilityOverrideLabels.join(', ')}</span>`);
 	}
 	if (opponent) {
 		const opponentSuppressedStatuses = [...new Set(mapEntryLabels(opponent?.suppressedStatuses ?? []))];
@@ -1822,6 +1825,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponentExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponentExtraDiceLabels.join(', ')}</span>`);
 		const opponentTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(opponent.typeOverride)) : [];
 		addTooltip(opponentTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Target Grants Type Override: ${opponentTypeOverrideLabels.join(', ')}</span>`);
+		const opponentAbilityOverrideLabels = mapEntryLabels(filterOptinEntries(opponent.abilityOverride));
+		addTooltip(opponentAbilityOverrideLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAbilityOverride')}: ${opponentAbilityOverrideLabels.join(', ')}</span>`);
 	}
 	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
 	const enforcedModeEntries = enforcedD20Mode ? infoEntries.filter((entry) => entry?.enforceMode === enforcedD20Mode) : [];
@@ -2994,6 +2999,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.modifyAC`,
 		`${moduleFlagScope}.grants.modifyAC`,
 		`${moduleFlagScope}.aura.modifyAC`,
+		`${moduleFlagScope}.abilityOverride`,
+		`${moduleFlagScope}.grants.abilityOverride`,
+		`${moduleFlagScope}.aura.abilityOverride`,
 	]);
 	for (const statusFlagKey of statusFlagKeys) {
 		moduleFlags.add(`${moduleFlagScope}.${statusFlagKey}`);

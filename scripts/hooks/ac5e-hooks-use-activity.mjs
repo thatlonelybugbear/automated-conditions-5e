@@ -75,9 +75,11 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	_applyPreUseActivityAbilityOverride(activity, ac5eConfig);
 	_rebuildPreUseTargetADCState(ac5eConfig, activity);
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
 	_ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig);
+	_ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usageConfig, dialogConfig, ac5eConfig);
 	_wireResolvedTargetADCButton(activity, ac5eConfig, usageConfig);
 	_logUsageDialogDebug('preUseActivity.summary', {
 		activityType: activity?.type ?? null,
@@ -146,6 +148,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 export function preActivityConsumption(activity, usageConfig, _messageConfig, _hook, deps) {
 	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
 	if (!ac5eConfig) return true;
+	_applyPreUseActivityAbilityOverride(activity, ac5eConfig);
 	_refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps);
 	return true;
 }
@@ -200,8 +203,37 @@ export function getTargetADCOptinChoices(ac5eConfig, activity) {
 	if (!['save', 'check'].includes(activityType)) return [];
 	const activityData = activity?.[activityType];
 	const baseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
-	if (!Number.isFinite(baseDC)) return [];
+	if (!Number.isFinite(baseDC)) return _buildTargetADCOptinChoiceList(ac5eConfig, NaN);
 	return _buildTargetADCOptinChoiceList(ac5eConfig, baseDC);
+}
+
+export function getAbilityOverrideOptinChoices(ac5eConfig, activity) {
+	const activityType = (activity?.type ?? '').toLowerCase();
+	if (!['attack', 'save', 'check'].includes(activityType)) return [];
+	const entries = [
+		...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+	].filter((entry) => entry && typeof entry === 'object' && !!entry.optin);
+	const choices = [];
+	for (const entry of entries) {
+		const rawValue = typeof entry?.set === 'string' ? entry.set.trim().toLowerCase() : '';
+		if (!rawValue) continue;
+		const validAbility = Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, rawValue) || rawValue === 'spellcasting';
+		if (!validAbility) continue;
+		const baseLabel = (entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
+		const label = baseLabel || `${_localize('AC5E.AbilityOverride')}: ${rawValue}`;
+		choices.push({
+			id: entry?.id ?? null,
+			label,
+			displayLabel: label,
+			description:
+				typeof entry?.description === 'string' && entry.description.trim() ? entry.description.trim()
+				: typeof entry?.autoDescription === 'string' && entry.autoDescription.trim() ? entry.autoDescription.trim()
+				: '',
+			entry,
+		});
+	}
+	return choices;
 }
 
 export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected } = {}) {
@@ -216,8 +248,16 @@ export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected
 	const activityType = String(activity?.type ?? tempConfig?.options?.activity?.type ?? '').trim().toLowerCase();
 	if (['save', 'check'].includes(activityType)) {
 		const activityData = activity?.[activityType];
-		const originalBaseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
-		tempConfig.initialTargetADC = Number.isFinite(originalBaseDC) ? originalBaseDC : tempConfig.initialTargetADC;
+		const resolvedOverrideAbility = _getResolvedWinningAbilityOverride(activity, tempConfig);
+		const resolvedOverrideAbilityKey = (resolvedOverrideAbility?.resolved ?? '').toLowerCase();
+		if (resolvedOverrideAbilityKey) {
+			const sourceActor = activity?.item?.actor;
+			const overrideBaseDC = Number(sourceActor?.system?.abilities?.[resolvedOverrideAbilityKey]?.dc);
+			if (Number.isFinite(overrideBaseDC)) tempConfig.initialTargetADC = overrideBaseDC;
+		} else {
+			const fallbackBaseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
+			if (Number.isFinite(fallbackBaseDC)) tempConfig.initialTargetADC = fallbackBaseDC;
+		}
 		tempConfig.alteredTargetADC = undefined;
 		_rebuildPreUseTargetADCState(tempConfig, activity);
 		const targetValues = Array.isArray(tempConfig?.targetADC) ? tempConfig.targetADC : [];
@@ -229,16 +269,8 @@ export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected
 		}
 	}
 	const resolvedTargetADC = _getResolvedTargetADCMessageState(tempConfig, activity);
-	const hoverLines = [String(resolvedTargetADC?.hoverText ?? '').trim()].filter(Boolean);
+	const hoverLines = Array.isArray(resolvedTargetADC?.hoverLines) ? resolvedTargetADC.hoverLines.filter(Boolean) : [];
 	const hoverText = hoverLines.join('\n');
-	_logUsageDialogDebug('getResolvedUseDisplayState', {
-		activityType,
-		optinSelected: tempConfig?.optinSelected ?? {},
-		initialTargetADC: tempConfig?.initialTargetADC ?? null,
-		alteredTargetADC: tempConfig?.alteredTargetADC ?? null,
-		resolvedTargetADC,
-		hoverLines,
-	});
 	return { resolvedTargetADC, hoverLines, hoverText };
 }
 
@@ -272,6 +304,83 @@ function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
 	return true;
 }
 
+function _applyPreUseActivityAbilityOverride(activity, ac5eConfig) {
+	const activityType = activity?.type;
+	const isSaveOrCheck = ['save', 'check'].includes(activityType);
+	const isAttack = activityType === 'attack';
+	const activityData = isSaveOrCheck ? activity?.[activityType] : null;
+	if (isSaveOrCheck && (!activityData?.dc || typeof activityData.dc !== 'object')) return false;
+	const candidateEntries = _filterOptinEntries(
+		[
+			...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+			...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+		],
+		ac5eConfig?.optinSelected,
+	).filter((entry) => entry && typeof entry === 'object');
+	if (!candidateEntries.length) return false;
+	const resolvedAbilityOverride = _getResolvedWinningAbilityOverride(activity, ac5eConfig, candidateEntries);
+	if (!resolvedAbilityOverride) return false;
+	const sourceActor = activity?.item?.actor;
+	const previousDcCalculation = (activityData?.dc?.calculation ?? '').trim().toLowerCase();
+	const calculation = resolvedAbilityOverride.raw;
+	const resolvedAbility = resolvedAbilityOverride.resolved;
+	const appliedAbility = resolvedAbility || calculation;
+	if (isSaveOrCheck) {
+		activityData.dc.calculation = appliedAbility;
+		if (resolvedAbility && Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, resolvedAbility)) {
+			const nextDc = Number(sourceActor?.system?.abilities?.[resolvedAbility]?.dc);
+			if (Number.isFinite(nextDc)) {
+				activityData.dc.value = nextDc;
+				ac5eConfig.initialTargetADC = nextDc;
+				ac5eConfig.alteredTargetADC = undefined;
+			}
+		}
+	}
+	if (isAttack && activity?.attack && typeof activity.attack === 'object') {
+		activity.attack.ability = appliedAbility;
+	}
+	ac5eConfig.options ??= {};
+	if (resolvedAbility) ac5eConfig.options.ability = resolvedAbility;
+	ac5eConfig.options.activityAbilityResolved = appliedAbility;
+	ac5eConfig.options._abilityOverrideResolvedAtUse = appliedAbility;
+	ac5eConfig.preAC5eConfig ??= {};
+	if (isSaveOrCheck) ac5eConfig.preAC5eConfig.previousActivityDcCalculation = previousDcCalculation || null;
+	ac5eConfig.preAC5eConfig.activityAbilityResolved = appliedAbility;
+	ac5eConfig.preAC5eConfig._abilityOverrideResolvedAtUse = appliedAbility;
+	return true;
+}
+
+function _getResolvedWinningAbilityOverride(activity, ac5eConfig, preFilteredEntries = null) {
+	const entries =
+		Array.isArray(preFilteredEntries) ?
+			preFilteredEntries
+		:	_filterOptinEntries(
+				[
+					...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+					...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+				],
+				ac5eConfig?.optinSelected,
+			).filter((entry) => entry && typeof entry === 'object');
+	let winningEntry = null;
+	for (const entry of entries) {
+		const rawValue = typeof entry?.set === 'string' ? entry.set.trim().toLowerCase() : '';
+		if (!rawValue) continue;
+		const validAbility = Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, rawValue) || rawValue === 'spellcasting';
+		if (!validAbility) continue;
+		const sourceActor = activity?.item?.actor;
+		const resolved =
+			rawValue === 'spellcasting' ?
+				(activity?.spellcastingAbility ?? sourceActor?.system?.attributes?.spellcasting ?? '').trim().toLowerCase()
+			:	rawValue;
+		if (!Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, resolved)) continue;
+		const priority = Number(entry?.priority);
+		const score = Number.isFinite(priority) ? priority : 0;
+		const label = (entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
+		if (!winningEntry || score >= winningEntry.score) winningEntry = { raw: rawValue, resolved, score, label };
+	}
+	return winningEntry;
+}
+
 function _ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
 	const hookType = String(_resolvePreUseEvaluationHookType(ac5eConfig, activity) ?? '').toLowerCase();
 	if (!['save', 'check'].includes(hookType)) return;
@@ -279,19 +388,22 @@ function _ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig
 		...(Array.isArray(ac5eConfig?.subject?.targetADC) ? ac5eConfig.subject.targetADC : []),
 		...(Array.isArray(ac5eConfig?.opponent?.targetADC) ? ac5eConfig.opponent.targetADC : []),
 	].filter((entry) => entry && typeof entry === 'object');
-	_logUsageDialogDebug('ensureUsageConfigurationDialogForTargetADCOptins', {
-		hookType,
-		targetADCEntryCount: targetADCEntries.length,
-		configureBefore: dialogConfig?.configure ?? null,
-		scalingBefore: usageConfig?.scaling ?? null,
-	});
 	if (!targetADCEntries.length) return;
 	dialogConfig.configure = true;
+	usageConfig.configure = true;
 	if (usageConfig?.scaling === false) usageConfig.scaling = 0;
-	_logUsageDialogDebug('ensureUsageConfigurationDialogForTargetADCOptins.after', {
-		configureAfter: dialogConfig?.configure ?? null,
-		scalingAfter: usageConfig?.scaling ?? null,
-	});
+}
+
+function _ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
+	const activityType = String(activity?.type ?? '').toLowerCase();
+	if (!['attack', 'save', 'check'].includes(activityType)) return;
+	const abilityOverrideEntries = [
+		...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+	].filter((entry) => entry && typeof entry === 'object' && !!entry.optin);
+	if (!abilityOverrideEntries.length) return;
+	dialogConfig.configure = true;
+	usageConfig.configure = true;
 }
 
 function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
@@ -299,6 +411,8 @@ function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
 	if (!['save', 'check'].includes(activityType)) return;
 	const activityData = activity?.[activityType];
 	if (!activityData?.dc || typeof activityData.dc !== 'object') return;
+	const recalculatedBaseDC = Number(activityData?.dc?.value);
+	if (Number.isFinite(recalculatedBaseDC)) ac5eConfig.initialTargetADC = recalculatedBaseDC;
 	const preservedInitialDC = Number(ac5eConfig?.initialTargetADC);
 	if (Number.isFinite(preservedInitialDC)) activityData.dc.value = preservedInitialDC;
 	ac5eConfig.alteredTargetADC = undefined;
@@ -375,24 +489,30 @@ function _buildTargetADCOptinChoiceList(ac5eConfig, baseDC) {
 	const seen = new Set();
 	const addChoice = ({ id, label, dc } = {}) => {
 		const numericDC = Number(dc);
-		if (!Number.isFinite(numericDC)) return;
-		if (numericDC === baseDC) return;
+		const hasNumericBaseDC = Number.isFinite(baseDC);
+		if (!Number.isFinite(numericDC)) {
+			const fallbackLabel = (label ?? '').trim();
+			if (!fallbackLabel) return;
+			choices.push({ id: id ?? null, label: fallbackLabel, dc: null, baseDC: hasNumericBaseDC ? baseDC : null });
+			return;
+		}
+		if (hasNumericBaseDC && numericDC === baseDC) return;
 		if (seen.has(numericDC)) return;
 		seen.add(numericDC);
-		const normalizedLabel = String(label ?? '').trim() || `${_localize('AC5E.ModifyDC')} ${numericDC} (${baseDC})`;
-		choices.push({ id: id ?? null, label: normalizedLabel, dc: numericDC, baseDC });
+		const normalizedLabel =
+			(label ?? '').trim() || (hasNumericBaseDC ? `${_localize('AC5E.ModifyDC')} ${numericDC} (${baseDC})` : `${_localize('AC5E.ModifyDC')} ${numericDC}`);
+		choices.push({ id: id ?? null, label: normalizedLabel, dc: numericDC, baseDC: hasNumericBaseDC ? baseDC : null });
 	};
 	for (const entry of allTargetADCEntries) {
 		if (!entry?.optin) continue;
 		const optinValues = Array.isArray(entry.values) ? entry.values : [];
 		if (!optinValues.length) continue;
-		const candidateDC = Number(getAlteredTargetValueOrThreshold(baseDC, [...baseTargetADCValues, ...optinValues], 'dcBonus'));
-		if (!Number.isFinite(candidateDC)) continue;
-		const entryLabel = String(entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
+		const candidateDC = Number.isFinite(baseDC) ? Number(getAlteredTargetValueOrThreshold(baseDC, [...baseTargetADCValues, ...optinValues], 'dcBonus')) : NaN;
+		const entryLabel = (entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
 		const beforeCount = choices.length;
 		addChoice({
 			id: entry?.id ?? null,
-			label: entryLabel || `${_localize('AC5E.ModifyDC')} ${candidateDC} (${baseDC})`,
+			label: entryLabel || (Number.isFinite(candidateDC) && Number.isFinite(baseDC) ? `${_localize('AC5E.ModifyDC')} ${candidateDC} (${baseDC})` : `${_localize('AC5E.ModifyDC')}`),
 			dc: candidateDC,
 		});
 		if (choices.length > beforeCount) {
@@ -420,15 +540,34 @@ function _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC) {
 	return labels.length ? `${prefix}: ${labels.join(', ')}` : prefix;
 }
 
+function _buildResolvedAbilityOverrideHoverText(ac5eConfig, activityLike) {
+	const resolvedOverrideAbility = _getResolvedWinningAbilityOverride(activityLike, ac5eConfig);
+	if (!resolvedOverrideAbility?.resolved) return '';
+	const resolvedAbility = resolvedOverrideAbility.resolved;
+	const abilityLabel = CONFIG?.DND5E?.abilities?.[resolvedAbility]?.label ?? resolvedAbility;
+	const formattedAbility =
+		typeof abilityLabel === 'string' ? abilityLabel.charAt(0).toUpperCase() + abilityLabel.slice(1) : `${abilityLabel ?? ''}`.trim();
+	const sourceLabel = (resolvedOverrideAbility?.label ?? '').trim();
+	return sourceLabel ?
+			`${_localize('AC5E.AbilityOverride')} (${formattedAbility}): ${sourceLabel}`
+		:	`${_localize('AC5E.AbilityOverride')} (${formattedAbility})`;
+}
+
 function _getResolvedTargetADCMessageState(ac5eConfig, activityLike) {
 	const activityType = String(activityLike?.type ?? ac5eConfig?.options?.activity?.type ?? '').toLowerCase();
 	if (!['save', 'check'].includes(activityType)) return null;
 	const baseDC = Number(ac5eConfig?.initialTargetADC);
 	const alteredDC = Number(ac5eConfig?.alteredTargetADC);
-	if (!Number.isFinite(baseDC) || !Number.isFinite(alteredDC) || alteredDC === baseDC) return null;
-	const hoverText = _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC);
-	if (!hoverText) return null;
-	return { baseDC, alteredDC, hoverText, activityType };
+	const hoverLines = [];
+	if (Number.isFinite(baseDC) && Number.isFinite(alteredDC) && alteredDC !== baseDC) {
+		const dcHoverText = _buildResolvedTargetADCHoverText(ac5eConfig, baseDC, alteredDC);
+		if (dcHoverText) hoverLines.push(dcHoverText);
+	}
+	const abilityOverrideHoverText = _buildResolvedAbilityOverrideHoverText(ac5eConfig, activityLike);
+	if (abilityOverrideHoverText) hoverLines.push(abilityOverrideHoverText);
+	if (!hoverLines.length) return null;
+	const hoverText = hoverLines.join('\n');
+	return { baseDC, alteredDC, hoverLines, hoverText, activityType };
 }
 
 function _rebuildPreUseTargetADCState(ac5eConfig, activity) {
@@ -484,10 +623,5 @@ function _escapeHtmlAttribute(value) {
 }
 
 function _logUsageDialogDebug(stage, payload) {
-	if (!globalThis?.ac5e?.debugUsageDialogTooltip) return;
-	try {
-		console.warn(`AC5E USAGE DIALOG DEBUG ${stage} ${JSON.stringify(payload)}`);
-	} catch (_error) {
-		console.warn(`AC5E USAGE DIALOG DEBUG ${stage}`, payload);
-	}
+	return;
 }
