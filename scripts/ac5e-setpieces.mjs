@@ -1810,15 +1810,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const direct = parseBooleanValue(raw);
 		if (direct !== undefined) return direct;
 		const replacement = bonusReplacements(raw, evaluationData, isAura, effect);
-		let evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'formula', debug });
-		if (!Number.isFinite(Number(evaluated))) {
-			evaluated = evalDiceExpression(evaluated);
-		}
+		let evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'condition', debug });
+		const conditionBoolean = parseBooleanValue(evaluated);
+		if (conditionBoolean !== undefined) return conditionBoolean;
+		const conditionNumeric = Number(evaluated);
+		if (Number.isFinite(conditionNumeric)) return conditionNumeric !== 0;
+		evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'formula', debug });
+		if (!Number.isFinite(Number(evaluated))) evaluated = evalDiceExpression(evaluated);
 		const numeric = Number(evaluated);
 		if (Number.isFinite(numeric)) return numeric !== 0;
-		const parsedEvaluated = parseBooleanValue(evaluated);
-		if (parsedEvaluated !== undefined) return parsedEvaluated;
-		evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'condition', debug });
 		return parseBooleanValue(evaluated);
 	};
 	const getRangeKeyedValue = (value, ...keys) => {
