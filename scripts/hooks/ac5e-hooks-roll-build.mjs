@@ -1,4 +1,14 @@
-import { _entryMatchesTransientState, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _restoreD20ConfigFromFrozenBaseline, debugRollStateMigration, getRollModeCounts } from '../ac5e-helpers.mjs';
+import {
+	_entryMatchesTransientState,
+	_getMessageDnd5eFlags,
+	_getMessageFlagScope,
+	_getOptinSelectionScale,
+	_getTooltip,
+	_isOptinSelectionActive,
+	_restoreD20ConfigFromFrozenBaseline,
+	debugRollStateMigration,
+	getRollModeCounts,
+} from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { applyOptinCriticalToDamageConfig, syncCriticalStaticBonusDamageRollOptions } from './ac5e-hooks-dialog-damage-state.mjs';
 import { setOptinSelections } from './ac5e-hooks-dialog-optins.mjs';
@@ -97,13 +107,13 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	}
 	const entries = getBonusEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
 	if (entries.length) {
-		const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
+		const selectedIds = new Set(Object.keys(optins).filter((key) => _isOptinSelectionActive(optins[key])));
 		const partsToAdd = [];
 		for (const entry of entries) {
 			if (!selectedIds.has(entry.id)) continue;
 			if (!_entryMatchesTransientState(entry, ac5eConfig)) continue;
 			const values = Array.isArray(entry.values) ? entry.values : [];
-			for (const value of values) partsToAdd.push(value);
+			for (const value of values) partsToAdd.push(resolveEntryOptinScaleValue(value, entry, optins));
 		}
 		ac5eConfig._lastAppliedD20OptinParts = [...partsToAdd];
 		appendPartsToD20Config(rollConfig, partsToAdd);
@@ -119,12 +129,35 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 function getOptinsFromForm(formData) {
 	const optins = { ...(formData?.object?.ac5eOptins ?? {}) };
 	const raw = formData?.object ?? {};
+	const scales = {};
 	for (const [key, value] of Object.entries(raw)) {
 		if (!key.startsWith('ac5eOptins.')) continue;
 		const id = key.slice('ac5eOptins.'.length);
 		optins[id] = !!value;
 	}
+	for (const [key, value] of Object.entries(raw)) {
+		if (!key.startsWith('ac5eOptinScale.')) continue;
+		const id = key.slice('ac5eOptinScale.'.length);
+		const numericValue = Number(value);
+		if (Number.isFinite(numericValue)) scales[id] = numericValue;
+	}
+	for (const [id, selected] of Object.entries(optins)) {
+		if (!selected) continue;
+		const scale = scales[id];
+		if (!Number.isFinite(scale)) continue;
+		optins[id] = { enabled: true, scale };
+	}
 	return optins;
+}
+
+function resolveEntryOptinScaleValue(rawValue, entry, optins) {
+	if (typeof rawValue !== 'string' || !/(?:\(optinScale\)|\boptinScale\b)/i.test(rawValue)) return rawValue;
+	const selection = optins?.[entry?.id];
+	const scale = _getOptinSelectionScale(selection);
+	if (!Number.isFinite(scale)) return rawValue;
+	return rawValue
+		.replace(/\(optinScale\)/gi, scale)
+		.replace(/\boptinScale\b/gi, scale);
 }
 
 function syncRollOptinSelections(ac5eConfig, rollConfig) {
@@ -251,7 +284,7 @@ function getWinningAbilityOverride(ac5eConfig, hookType) {
 		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
 	].filter((entry) => entry && typeof entry === 'object' && (!entry.hook || entry.hook === hookType) && entry.optin);
 	if (!entries.length) return null;
-	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	let winner = null;
 	for (const entry of entries) {
 		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;

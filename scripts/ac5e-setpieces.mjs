@@ -4,6 +4,7 @@ import {
 	_dispositionCheck,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
+	_getOptinSelectionScale,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
 	_getEffectOriginToken,
@@ -11,6 +12,7 @@ import {
 	_hasAppliedEffects,
 	_hasStatuses,
 	_localize,
+	_isOptinSelectionActive,
 	_i18nConditions,
 	_autoArmor,
 	_autoEncumbrance,
@@ -119,6 +121,13 @@ function _usesCountDebugEnabled() {
 function _logUsesCount(stage, payload = {}) {
 	if (!_usesCountDebugEnabled()) return;
 	console.warn('AC5E usesCount', { stage, ...payload });
+	if (stage === 'scale-selection' || stage === 'parsed') {
+		try {
+			console.warn(`AC5E usesCount.${stage}.json`, JSON.stringify(payload));
+		} catch (_error) {
+			// ignore logging serialization errors
+		}
+	}
 }
 
 function _getOriginRollData(document, rollDataKey) {
@@ -1268,6 +1277,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const distanceToTarget = (token, wallsBlock) => _getDistance(token, opponentToken, false, true, wallsBlock, true);
 
 	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
+	evaluationData.ac5eConfig = ac5eConfig;
+	evaluationData.optinSelected = ac5eConfig?.optinSelected ?? {};
 
 	const getActorAndModeType = (el, includeAuras = false) => {
 		const key = el.key?.toLowerCase() ?? '';
@@ -1558,11 +1569,25 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
+		const isGrantsKey = change.key.includes('grants');
 		const hasHook = change.key.includes(hook) || isAll || isD20 || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
 		const { actorType: resolvedActorType } = getActorAndModeType(change, !!auraTokenEvaluationData);
 		const cadenceActorType = auraTokenEvaluationData ? 'aura' : (resolvedActorType ?? actorType);
+		if (isAbilityOverride && !isGrantsKey && actorType !== 'subject') {
+			if (ac5e?.debug?.abilityOverrideTrace) {
+				console.warn('AC5E TRACE setpieces.effectChangesTest.abilityOverrideRejected', {
+					reason: 'non-grants abilityOverride only allowed from subject effects',
+					hook,
+					changeKey: change.key,
+					changeValue: change.value,
+					actorType,
+					resolvedActorType,
+				});
+			}
+			return false;
+		}
 		if (normalizedChangeValue.includes('itemlimited') && evalData.originItem?.id !== evalData.item?.id && evalData.originItem?.uuid !== evalData.item?.uuid) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
@@ -1592,7 +1617,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		} else {
 			//isSelf
 			if (actorType === 'aura') return false;
-			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC || isAbilityOverride)) return false;
+			else if (actorType === 'opponent' && !(isModifyAC || isModifyDC)) return false;
 			else if (actorType === 'subject' && isModifyAC) return false;
 			if (!friendOrFoe(opponentToken, subjectToken, change.value)) return false;
 		}
@@ -1781,8 +1806,16 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDamageTypeWithValue', { value: set }, `Overrides damage type (${set})`);
 				return localizeText('AC5E.OptinDescription.OverridesDamageType', 'Overrides damage type');
 			case 'abilityOverride':
-				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDcAbility', { value: set }, `Overrides Save/Check DC ability (${String(set).toUpperCase()})`);
-				return localizeText('AC5E.OptinDescription.OverridesDcAbilityGeneric', 'Overrides Save/Check DC ability');
+				if (hook === 'attack' || hook === 'damage') {
+					if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesAttackAbility', { value: set }, `Overrides attack ability (${String(set).toUpperCase()})`);
+					return localizeText('AC5E.OptinDescription.OverridesAttackAbilityGeneric', 'Overrides attack ability');
+				}
+				if (hook === 'save' || hook === 'check') {
+					if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesDcAbility', { value: set }, `Overrides Save/Check DC ability (${String(set).toUpperCase()})`);
+					return localizeText('AC5E.OptinDescription.OverridesDcAbilityGeneric', 'Overrides Save/Check DC ability');
+				}
+				if (set !== undefined) return localizeTemplate('AC5E.OptinDescription.OverridesRollAbility', { value: set }, `Overrides roll ability (${String(set).toUpperCase()})`);
+				return localizeText('AC5E.OptinDescription.OverridesRollAbilityGeneric', 'Overrides roll ability');
 			case 'diceUpgrade':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.UpgradesDamageDiceWithValue', { value: bonus }, `Upgrades damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.UpgradesDamageDice', 'Upgrades damage dice');
@@ -2090,6 +2123,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
 		const usesCount = getBlacklistedKeysValue('usescount', change.value);
+		const parsedUsesCount = _parseUsesCountSpec(usesCount);
+		const scaling = parsedUsesCount.scaling;
 		const usesCountAvailability = getUsesCountAvailability({ usesCount, effect, evaluationData: sandbox, debug });
 		const entry = {
 			id: entryId,
@@ -2117,6 +2152,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			requiredDamageTypes,
 			addTo,
 			usesCount,
+			scaling,
 			usesCountTarget,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
@@ -2420,6 +2456,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug: { usageRuleKey: rule.key } }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: rulePrimaryName, customName: resolvedCustomName, usesOverride: null });
 		const usesCount = getBlacklistedKeysValue('usescount', ruleValue);
+		const parsedUsesCount = _parseUsesCountSpec(usesCount);
+		const scaling = parsedUsesCount.scaling;
 		const usesCountAvailability = getUsesCountAvailability({ usesCount, effect: pseudoEffect, evaluationData, debug: { usageRuleKey: rule.key } });
 		const entry = {
 			id: ruleId,
@@ -2447,6 +2485,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			requiredDamageTypes,
 			addTo,
 			usesCount,
+			scaling,
 			usesCountTarget,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
@@ -2798,12 +2837,46 @@ function _splitTopLevelCsv(input) {
 }
 
 function _parseUsesCountSpec(rawValue) {
-	const [target = '', ...consumeParts] = _splitTopLevelCsv(String(rawValue ?? ''));
+	const [target = '', ...consumeParts] = _splitTopLevelCsv(rawValue ?? '');
 	const consumeRaw = consumeParts.join(',').trim();
+	let consume = _repairLegacyUsesCountConsume(consumeRaw);
+	let scaling = null;
+	let scalingSign = 1;
+	const scalingMatch = consume.match(/^([+-])?\s*(\{[\s\S]*\})$/);
+	if (scalingMatch) {
+		scalingSign = scalingMatch[1] === '-' ? -1 : 1;
+		scaling = _parseScalingSpec(scalingMatch[2]);
+		consume = '';
+	}
 	return {
 		target: target.trim(),
-		consume: _repairLegacyUsesCountConsume(consumeRaw),
+		consume,
+		scaling,
+		scalingSign,
 	};
+}
+
+function _parseScalingSpec(rawValue) {
+	if (typeof rawValue !== 'string') return null;
+	const trimmed = rawValue.trim();
+	if (!trimmed) return null;
+	const cleaned = trimmed.startsWith('{') && trimmed.endsWith('}') ? trimmed.slice(1, -1) : trimmed;
+	const parts = cleaned
+		.split(',')
+		.map((part) => part.trim())
+		.filter(Boolean);
+	const values = {};
+	for (const part of parts) {
+		const match = part.match(/^([a-z]+)\s*[:=]\s*(-?\d+(?:\.\d+)?)$/i);
+		if (!match) continue;
+		values[match[1].toLowerCase()] = Number(match[2]);
+	}
+	const min = Number(values.min);
+	const max = Number(values.max);
+	const step = Number(values.step);
+	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;
+	if (max < min || step <= 0) return null;
+	return { min, max, step };
 }
 
 function _parseUpdateSpec(rawValue) {
@@ -2872,6 +2945,36 @@ function _getPendingUseModeFamily(mode, hook = '') {
 	return '';
 }
 
+function _getOptinSelectionValueById(evalData, entryId, baseId) {
+	const optins =
+		evalData?.ac5eConfig?.optinSelected
+		?? evalData?.optinSelected
+		?? evalData?.options?.[Constants.MODULE_ID]?.optinSelected
+		?? evalData?.rollConfig?.[Constants.MODULE_ID]?.optinSelected
+		?? evalData?.config?.[Constants.MODULE_ID]?.optinSelected
+		?? evalData?.roll?.options?.[Constants.MODULE_ID]?.optinSelected
+		?? null;
+	if (!optins || typeof optins !== 'object') return null;
+	if (entryId in optins) return optins[entryId];
+	if (baseId && baseId in optins) return optins[baseId];
+	const entryIdParts = typeof entryId === 'string' ? entryId.split(':') : [];
+	if (entryIdParts.length >= 4) {
+		const effectKey = entryIdParts[0];
+		const changeIndex = entryIdParts[1];
+		const actorType = entryIdParts[3];
+		for (const [optinId, optinValue] of Object.entries(optins)) {
+			if (typeof optinId !== 'string') continue;
+			const optinParts = optinId.split(':');
+			if (optinParts.length < 4) continue;
+			if (optinParts[0] !== effectKey) continue;
+			if (optinParts[1] !== changeIndex) continue;
+			if (optinParts[3] !== actorType) continue;
+			return optinValue;
+		}
+	}
+	return null;
+}
+
 function handleUses({ actorType, change, effect, evalData, updateArrays, debug, hook, changeIndex, auraTokenUuid }) {
 	const pendingUpdates = {
 		activityUpdates: [],
@@ -2914,7 +3017,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 		else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 	} else if (hasUpdate) {
-		const parsedUpdate = _parseUpdateSpec(hasUpdate);
+		const resolvedUpdateValue = bonusReplacements(hasUpdate, evalData, false, effect, id);
+		const parsedUpdate = _parseUpdateSpec(resolvedUpdateValue);
 		const consumptionTarget = _normalizeUsesCountTarget(parsedUpdate.target);
 		if (!consumptionTarget) return false;
 		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
@@ -2955,6 +3059,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			target: consumptionTarget,
 			consume,
 			raw: hasUpdate,
+			resolvedRaw: resolvedUpdateValue,
 			kind: 'update',
 			updateMode: parsedUpdate.op,
 		});
@@ -3055,6 +3160,29 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					}
 				}
 			}
+		}
+		const shouldResolveScaledConsume = !!parsedCount?.scaling || isOptin;
+		if (shouldResolveScaledConsume) {
+			const optinSelection = _getOptinSelectionValueById(evalData, id, baseId);
+			let selectedScale = null;
+			const scaleSign = Number(parsedCount?.scalingSign) < 0 ? -1 : 1;
+			if (_isOptinSelectionActive(optinSelection)) {
+				selectedScale = _getOptinSelectionScale(optinSelection);
+				if (Number.isFinite(selectedScale)) consume = selectedScale * scaleSign;
+			}
+			_logUsesCount('scale-selection', {
+				effect: effect?.name,
+				hook,
+				actorType,
+				id,
+				baseId,
+				isOptin,
+				hasScaling: !!parsedCount?.scaling,
+				scalingSign: scaleSign,
+				optinSelection: JSON.stringify(optinSelection ?? null),
+				selectedScale,
+				consumeAfterScale: consume,
+			});
 		}
 		_logUsesCount('parsed', {
 			effect: effect?.name,
@@ -3909,7 +4037,7 @@ function getBlacklistedKeysValue(key, values) {
 	return parts ? parts[1].trim() : '';
 }
 
-function bonusReplacements(expression, evalData, isAura, effect) {
+function bonusReplacements(expression, evalData, isAura, effect, entryId = null) {
 	if (typeof expression !== 'string') return expression;
 	// Short-circuit: skip if formula is just plain dice + numbers + brackets (no dynamic content)
 	const isStaticFormula = /^[\d\s+\-*/().\[\]d]+$/i.test(expression) && !expression.includes('@') && !expression.includes('Actor') && !expression.includes('##');
@@ -3938,6 +4066,17 @@ function bonusReplacements(expression, evalData, isAura, effect) {
 		stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 	};
 
+	let selectedOptinScaling = null;
+	if (entryId) {
+		const optinSelection = _getOptinSelectionValueById(evalData, entryId);
+		const optinScale = _getOptinSelectionScale(optinSelection);
+		if (Number.isFinite(optinScale)) selectedOptinScaling = optinScale;
+	}
+	if (selectedOptinScaling !== null) {
+		expression = expression
+			.replace(/\(optinScale\)/gi, selectedOptinScaling)
+			.replace(/\boptinScale\b/gi, selectedOptinScaling);
+	}
 	expression = expression.replace(/@scaling\.increase\b/g, scalingIncrease);
 	expression = expression.replace(/\bscaling\.increase\b/g, scalingIncrease);
 	expression = expression.replace(/@scaling\b/g, scalingValue);
@@ -3996,7 +4135,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 			getBlacklistedKeysValue('bonus', rawValue)
 		:	false;
 	if (isBonus) {
-		const replacementBonus = bonusReplacements(isBonus, evaluationData, isAura, effect);
+		const replacementBonus = bonusReplacements(isBonus, evaluationData, isAura, effect, chanceKey);
 		const preservedSignedDiceBonus = _preserveStandaloneSignedDiceFormula(replacementBonus);
 		bonus =
 			preservedSignedDiceBonus ??
@@ -4012,20 +4151,20 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 			getBlacklistedKeysValue('set', rawValue)
 		:	false;
 	if (isSet) {
-		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect);
+		const replacementBonus = bonusReplacements(isSet, evaluationData, isAura, effect, chanceKey);
 		if (mode === 'typeOverride') set = typeof replacementBonus === 'string' ? replacementBonus.trim() : '';
 		else if (mode === 'abilityOverride') set = typeof replacementBonus === 'string' ? replacementBonus.trim() : '';
 		else set = _ac5eSafeEval({ expression: replacementBonus, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isOverride = lowerValue.includes('override') && (mode === 'typeOverride' || mode === 'abilityOverride') ? getBlacklistedKeysValue('override', rawValue) : false;
 	if (isOverride) {
-		const replacementOverride = bonusReplacements(isOverride, evaluationData, isAura, effect);
+		const replacementOverride = bonusReplacements(isOverride, evaluationData, isAura, effect, chanceKey);
 		if (mode === 'typeOverride') set = typeof replacementOverride === 'string' ? replacementOverride.trim() : '';
 		else set = typeof replacementOverride === 'string' ? replacementOverride.trim() : '';
 	}
 	const isModifier = lowerValue.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', rawValue) : false;
 	if (isModifier) {
-		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect);
+		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect, chanceKey);
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
 		if (typeof trimmedModifier === 'string') {
 			const extremeMatch = trimmedModifier.match(/^(min|max)\s*(.+)$/i);
@@ -4041,12 +4180,12 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	}
 	const isThreshold = lowerValue.includes('threshold') && hook === 'attack' ? getBlacklistedKeysValue('threshold', rawValue) : false;
 	if (isThreshold) {
-		const replacementThreshold = bonusReplacements(isThreshold, evaluationData, isAura, effect);
+		const replacementThreshold = bonusReplacements(isThreshold, evaluationData, isAura, effect, chanceKey);
 		threshold = _ac5eSafeEval({ expression: replacementThreshold, sandbox: evaluationData, mode: 'formula', debug });
 	}
 	const isChance = lowerValue.includes('chance') ? getBlacklistedKeysValue('chance', rawValue) : false;
 	if (isChance !== false && isChance !== '') {
-		const replacementChance = bonusReplacements(isChance, evaluationData, isAura, effect);
+		const replacementChance = bonusReplacements(isChance, evaluationData, isAura, effect, chanceKey);
 		let evaluatedChance = _ac5eSafeEval({ expression: replacementChance, sandbox: evaluationData, mode: 'formula', debug });
 		if (!Number.isFinite(Number(evaluatedChance))) evaluatedChance = evalNumericFormulaExpression(evaluatedChance, { debug });
 		const thresholdChance = Number(evaluatedChance);

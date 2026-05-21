@@ -1,4 +1,4 @@
-import { _localize } from '../ac5e-helpers.mjs';
+import { _getOptinSelectionScale, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
 import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-hooks-roll-selections.mjs';
 
 export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
@@ -11,7 +11,7 @@ export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
 function shouldIncludeAbilityOverrideEntry(entry, ac5eConfig) {
 	if (!entry || ac5eConfig?.hookType !== 'attack') return true;
 	if (entry?.mode !== 'abilityOverride') return true;
-	const isSelected = !!ac5eConfig?.optinSelected?.[entry?.id];
+	const isSelected = _isOptinSelectionActive(ac5eConfig?.optinSelected?.[entry?.id]);
 	if (isSelected) return true;
 	const overrideAbility = String(entry?.set ?? '').trim().toLowerCase();
 	if (!overrideAbility) return true;
@@ -89,7 +89,15 @@ export function readOptinSelections(elem, _ac5eConfig) {
 	const inputs = elem.querySelectorAll('input[data-ac5e-optin="true"]');
 	for (const input of inputs) {
 		const id = input.dataset.ac5eOptinId;
-		if (id) selected[id] = !!input.checked;
+		if (id) selected[id] = input.checked;
+	}
+	const sliders = elem.querySelectorAll('input[data-ac5e-optin-scale="true"]');
+	for (const slider of sliders) {
+		const id = slider.dataset.ac5eOptinId;
+		if (!id || !selected[id]) continue;
+		const scale = Number(slider.value);
+		if (!Number.isFinite(scale)) continue;
+		selected[id] = { enabled: true, scale };
 	}
 	return selected;
 }
@@ -98,7 +106,17 @@ export function setOptinSelections(ac5eConfig, nextSelections) {
 	const previous = ac5eConfig?.optinSelected ?? {};
 	const prevKeys = Object.keys(previous);
 	const nextKeys = Object.keys(nextSelections ?? {});
-	const changed = prevKeys.length !== nextKeys.length || prevKeys.some((key) => previous[key] !== nextSelections[key]);
+	const changed = prevKeys.length !== nextKeys.length || prevKeys.some((key) => {
+		const prevValue = previous[key];
+		const nextValue = nextSelections?.[key];
+		if (prevValue === nextValue) return false;
+		const prevEnabled = _isOptinSelectionActive(prevValue);
+		const nextEnabled = _isOptinSelectionActive(nextValue);
+		if (prevEnabled !== nextEnabled) return true;
+		const prevScale = _getOptinSelectionScale(prevValue);
+		const nextScale = _getOptinSelectionScale(nextValue);
+		return prevScale !== nextScale;
+	});
 	if (changed) {
 		if (ac5eConfig?.tooltipObj && ac5eConfig.hookType) delete ac5eConfig.tooltipObj[ac5eConfig.hookType];
 		ac5eConfig.tooltipObj = ac5eConfig.tooltipObj ?? {};
@@ -108,16 +126,40 @@ export function setOptinSelections(ac5eConfig, nextSelections) {
 	ac5eConfig.optinSelected = nextSelections ?? {};
 }
 
-function updateSingleOptinSelection(ac5eConfig, optinId, checked) {
+function updateSingleOptinSelection(ac5eConfig, optinId, checked, { scaleMin = null } = {}) {
 	if (!ac5eConfig || !optinId) return;
 	const previous = ac5eConfig.optinSelected ?? {};
-	const nextSelections = { ...previous, [optinId]: !!checked };
+	const priorSelection = previous[optinId];
+	const priorScale = _getOptinSelectionScale(priorSelection);
+	const nextScale = Number.isFinite(priorScale) ? priorScale : Number(scaleMin);
+	const nextSelections = {
+		...previous,
+		[optinId]: checked ? (Number.isFinite(nextScale) ? { enabled: true, scale: nextScale } : true) : false,
+	};
+	setOptinSelections(ac5eConfig, nextSelections);
+}
+
+function updateSingleOptinScale(ac5eConfig, optinId, scale) {
+	if (!ac5eConfig || !optinId) return;
+	const numericScale = Number(scale);
+	if (!Number.isFinite(numericScale)) return;
+	const previous = ac5eConfig.optinSelected ?? {};
+	const enabled = _isOptinSelectionActive(previous[optinId]);
+	const nextSelections = { ...previous, [optinId]: { enabled, scale: numericScale } };
 	setOptinSelections(ac5eConfig, nextSelections);
 }
 
 function getUsesCountLabelSuffix(entry) {
 	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
 	const parsed = parseUsesCountSpec(rawUsesCount);
+	if (parsed.scaling) {
+		const target = formatUsesCountType(parsed.target || entry?.usesCountTarget);
+		if (!target) return '';
+		const selectedScale = Number(entry?.selectedScale);
+		const displayScale = Number.isFinite(selectedScale) ? Math.abs(selectedScale) : selectedScale;
+		const consumeText = Number.isFinite(displayScale) ? ` ${displayScale}` : '';
+		return parsed.scalingSign < 0 ? `(restores${consumeText} ${target})` : `(consumes${consumeText} ${target})`;
+	}
 	const rawAmount = parsed.consume || '1';
 	const amount = String(rawAmount).trim();
 	if (!amount) return '';
@@ -134,12 +176,37 @@ function getUsesCountLabelSuffix(entry) {
 }
 
 function parseUsesCountSpec(rawValue) {
-	if (typeof rawValue !== 'string' || !rawValue.trim()) return { target: '', consume: '' };
+	if (typeof rawValue !== 'string' || !rawValue.trim()) return { target: '', consume: '', scaling: null, scalingSign: 1 };
 	const parts = splitTopLevelCsv(rawValue);
 	const [target = '', ...consumeParts] = parts;
+	const consumeRaw = consumeParts.join(',').trim();
+	const scalingData = parseScalingSpecFromUsesCountConsume(consumeRaw);
+	if (scalingData?.scaling) {
+		return {
+			target: target.trim(),
+			consume: '',
+			scaling: scalingData.scaling,
+			scalingSign: scalingData.scalingSign,
+		};
+	}
 	return {
 		target: target.trim(),
-		consume: consumeParts.join(',').trim(),
+		consume: consumeRaw,
+		scaling: null,
+		scalingSign: 1,
+	};
+}
+
+function parseScalingSpecFromUsesCountConsume(consumeRaw) {
+	if (typeof consumeRaw !== 'string') return null;
+	const trimmed = consumeRaw.trim();
+	const match = trimmed.match(/^([+-])?\s*(\{[\s\S]*\})$/);
+	if (!match) return null;
+	const scaling = normalizeScalingConfig(match[2]);
+	if (!scaling) return null;
+	return {
+		scaling,
+		scalingSign: match[1] === '-' ? -1 : 1,
 	};
 }
 
@@ -194,6 +261,20 @@ function formatUsesCountType(target) {
 function getUsesCountDescriptionSuffix(entry) {
 	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
 	const parsed = parseUsesCountSpec(rawUsesCount);
+	if (parsed.scaling) {
+		const target = formatUsesCountType(parsed.target || entry?.usesCountTarget);
+		if (!target) return '';
+		const selectedScale = Number(entry?.selectedScale);
+		const displayScale = Number.isFinite(selectedScale) ? Math.abs(selectedScale) : selectedScale;
+		const consumeText = Number.isFinite(displayScale) ? ` ${displayScale}` : '';
+		const availableValue = Number(entry?.usesCountAvailable);
+		const missingValue = Number(entry?.usesCountMissing);
+		const stateText =
+			parsed.scalingSign < 0 ?
+				Number.isFinite(missingValue) ? ` - missing: ${missingValue}` : ''
+			:	Number.isFinite(availableValue) ? ` - available: ${availableValue}` : '';
+		return parsed.scalingSign < 0 ? `(restores: ${consumeText.trim()} ${target}${stateText})` : `(cost: ${consumeText.trim()} ${target}${stateText})`;
+	}
 	const rawAmount = parsed.consume || '1';
 	const amount = String(rawAmount).trim();
 	if (!amount) return '';
@@ -213,6 +294,16 @@ function getUsesCountDescriptionSuffix(entry) {
 		: !isRestore && Number.isFinite(availableValue) ? ` - available: ${availableValue}`
 		: '';
 	return isRestore ? `(restores: ${displayAmount} ${targetLabel}${stateText})` : `(cost: ${displayAmount} ${targetLabel}${stateText})`;
+}
+
+function resolveOptinScaleDescription(description, entry, ac5eConfig) {
+	if (typeof description !== 'string' || !/(?:\(optinScale\)|\boptinScale\b)/i.test(description)) return description;
+	const selection = ac5eConfig?.optinSelected?.[entry?.id];
+	const selectedScale = _getOptinSelectionScale(selection);
+	if (!Number.isFinite(selectedScale)) return description;
+	return description
+		.replace(/\(optinScale\)/gi, selectedScale)
+		.replace(/\boptinScale\b/gi, selectedScale);
 }
 function getCadenceLabelSuffix(cadence) {
 	const keyMap = {
@@ -249,12 +340,13 @@ function prepareOptinFieldset(fieldset, dialog, elem, ac5eConfig, legendText) {
 
 function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, deps) {
 	fieldset.addEventListener('change', (event) => {
-		if (event.target?.dataset?.ac5eOptin !== 'true') return;
+		if (event.target?.dataset?.ac5eOptin !== 'true' && event.target?.dataset?.ac5eOptinScale !== 'true') return;
 		const activeFieldset = event.currentTarget;
 		const activeDialog = activeFieldset?._ac5eDialog ?? dialog;
 		const activeConfig = activeFieldset?._ac5eConfig ?? ac5eConfig;
 		const input = event.target;
-		updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked);
+		if (input?.dataset?.ac5eOptinScale === 'true') updateSingleOptinScale(activeConfig, input?.dataset?.ac5eOptinId, input?.value);
+		else updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked, { scaleMin: Number(input?.dataset?.ac5eOptinScaleMin) });
 		const hookType = activeConfig?.hookType;
 		if (['attack', 'save', 'check'].includes(hookType)) {
 			deps.handleD20OptinSelectionsChanged?.(activeDialog, activeConfig, deps);
@@ -273,9 +365,15 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 	visibleEntries.forEach((entry, index) => {
 		const isOptinEntry = Boolean(entry?.optin || entry?.forceOptin);
 		if (!isOptinEntry) return;
+		const parsedUsesCount = parseUsesCountSpec(entry?.usesCount);
+		const scaling = getOptinScaling(entry, parsedUsesCount);
+		const selectedScale = _getOptinSelectionScale(ac5eConfig?.optinSelected?.[entry.id]);
+		if (scaling) entry.selectedScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
+		else delete entry.selectedScale;
 		const row = document.createElement('div');
 		row.className = 'form-group';
 		const label = document.createElement('label');
+		label.style.flex = '1 1 auto';
 		const rawLabel = typeof entry?.label === 'string' ? entry.label.trim() : '';
 		const rawName = typeof entry?.name === 'string' ? entry.name.trim() : '';
 		const isUnnamedOptin = isOptinEntry && !rawLabel && !rawName;
@@ -291,7 +389,8 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			: typeof entry.autoDescription === 'string' ? entry.autoDescription.trim()
 			: '';
 		const usesCountDescription = isOptinEntry ? getUsesCountDescriptionSuffix(entry) : '';
-		const description = [baseDescription, usesCountDescription].filter(Boolean).join(baseDescription && usesCountDescription ? ' ' : '');
+		const scaledBaseDescription = resolveOptinScaleDescription(baseDescription, entry, ac5eConfig);
+		const description = [scaledBaseDescription, usesCountDescription].filter(Boolean).join(scaledBaseDescription && usesCountDescription ? ' ' : '');
 		let descriptionPill = null;
 		if (description) {
 			descriptionPill = document.createElement('i');
@@ -322,16 +421,84 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			descriptionPill.style.userSelect = 'none';
 			descriptionPill.style.opacity = '0.95';
 		}
-		const input = document.createElement('input');
-		input.type = 'checkbox';
-		input.name = `ac5eOptins.${entry.id}`;
-		input.dataset.ac5eOptinId = entry.id;
-		input.dataset.ac5eOptin = 'true';
-		input.checked = !!ac5eConfig?.optinSelected?.[entry.id];
-		if (descriptionPill) row.append(label, descriptionPill, input);
-		else row.append(label, input);
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		checkbox.name = `ac5eOptins.${entry.id}`;
+		checkbox.dataset.ac5eOptinId = entry.id;
+		checkbox.dataset.ac5eOptin = 'true';
+		checkbox.checked = _isOptinSelectionActive(ac5eConfig?.optinSelected?.[entry.id]);
+		if (scaling) {
+			checkbox.dataset.ac5eOptinScaleMin = String(scaling.min);
+			const slider = document.createElement('input');
+			slider.type = 'range';
+			slider.name = `ac5eOptinScale.${entry.id}`;
+			slider.dataset.ac5eOptinId = entry.id;
+			slider.dataset.ac5eOptinScale = 'true';
+			slider.min = scaling.min;
+			slider.max = scaling.max;
+			slider.step = scaling.step;
+			const initialScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
+			entry.selectedScale = initialScale;
+			slider.value = String(initialScale);
+			slider.disabled = !checkbox.checked;
+			slider.style.marginInlineStart = 'auto';
+			slider.style.flex = '0 0 7.5rem';
+			checkbox.addEventListener('change', () => {
+				slider.disabled = !checkbox.checked;
+			});
+			const valueLabel = document.createElement('span');
+			valueLabel.className = 'ac5e-optin-scale-value';
+			valueLabel.textContent = slider.value;
+			valueLabel.style.flex = '0 0 auto';
+			slider.addEventListener('input', () => {
+				valueLabel.textContent = slider.value;
+			});
+			if (descriptionPill) row.append(label, descriptionPill, slider, valueLabel, checkbox);
+			else row.append(label, slider, valueLabel, checkbox);
+		} else if (descriptionPill) row.append(label, checkbox, descriptionPill);
+		else row.append(label, checkbox);
 		fieldset.append(row);
 	});
+}
+
+function normalizeScalingConfig(scaling) {
+	if (!scaling) return null;
+	let source = scaling;
+	if (typeof scaling === 'string') {
+		const trimmed = scaling.trim();
+		if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+		source = Object.fromEntries(
+			trimmed
+				.slice(1, -1)
+				.split(',')
+				.map((part) => part.trim())
+				.filter(Boolean)
+				.map((part) => {
+					const [key, value] = part.split(/[:=]/).map((v) => v?.trim());
+					return [key?.toLowerCase(), Number(value)];
+				}),
+		);
+	}
+	if (typeof source !== 'object') return null;
+	const min = Number(source.min);
+	const max = Number(source.max);
+	const step = Number(source.step);
+	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;
+	if (max < min || step <= 0) return null;
+	return { min, max, step };
+}
+
+function getOptinScaling(entry, parsedUsesCount) {
+	const mode = entry?.mode;
+	const modeSupportsScaling =
+		mode === 'bonus' ||
+		mode === 'update' ||
+		mode === 'extraDice' ||
+		mode === 'targetADC' ||
+		mode === 'criticalThreshold' ||
+		mode === 'fumbleThreshold';
+	if (!modeSupportsScaling) return null;
+	return parsedUsesCount?.scaling ?? null;
 }
 
 export function getRollingActorIdForOptins(ac5eConfig) {

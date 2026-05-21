@@ -1,4 +1,4 @@
-import { _filterOptinEntries } from '../ac5e-helpers.mjs';
+import { _filterOptinEntries, _getOptinSelectionScale, _isOptinSelectionActive } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _buildRollEvaluationData } from '../ac5e-runtimeLogic.mjs';
 
@@ -209,6 +209,9 @@ export function handleDamageOptinSelectionsChanged(dialog, ac5eConfig, deps = {}
 	dialog._ac5eOptinReevalInProgress = true;
 	try {
 		if (dialog?.config && deps?.preRollDamage instanceof Function) {
+			// Re-evaluate from the frozen baseline to avoid compounding bonus parts
+			// when opt-in scale sliders change repeatedly.
+			deps.restoreDamageConfigFromFrozenBaseline?.(ac5eConfig, dialog.config);
 			const transientDialog = { options: { window: { title: dialog?.message?.flavor }, isCritical: !!dialog?.config?.isCritical, defaultButton: dialog?.config?.isCritical ? 'critical' : 'normal' } };
 			const reEval = ac5eConfig?.reEval;
 			deps.preRollDamage(dialog.config, transientDialog, dialog.message, 'damage', reEval);
@@ -443,7 +446,7 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	if (!ac5eConfig || !config) return;
 	ac5eConfig.preAC5eConfig ??= {};
 	const optionBaseCritical = config?.options?.[Constants.MODULE_ID]?.baseCritical ?? config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.baseCritical;
-	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	const allCriticalEntries = (ac5eConfig.subject?.critical ?? [])
 		.concat(ac5eConfig.opponent?.critical ?? [])
 		.filter((entry) => entry && typeof entry === 'object')
@@ -798,7 +801,7 @@ function resolveDamageFormulaDataReferences(formula, replacementData) {
 
 function normalizeDamageModifierEntries(ac5eConfig) {
 	const rawEntries = Array.isArray(ac5eConfig?.damageModifiers) ? ac5eConfig.damageModifiers : [];
-	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	return rawEntries
 		.map((entry) => {
 			if (typeof entry === 'string') return { id: undefined, value: entry, optin: false, forceOptin: false, addTo: undefined, requiredDamageTypes: [] };
@@ -862,7 +865,7 @@ function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollInd
 		(entry) => (entry?.optin || entry?.forceOptin) && shouldApplyDamageEntryToRoll(entry, rollIndex, rollType),
 	);
 	if (!entries.length) return { additive: 0, multiplier: 1, criticalStaticAdditive: 0, criticalStaticMultiplier: 1 };
-	const selectedIds = new Set(Object.keys(optins ?? {}).filter((key) => optins[key]));
+	const selectedIds = new Set(Object.keys(optins ?? {}).filter((key) => _isOptinSelectionActive(optins[key])));
 	let additive = 0;
 	let multiplier = 1;
 	let criticalStaticAdditive = 0;
@@ -1144,8 +1147,17 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const damageModifierEntries = normalizeDamageModifierEntries(getConfigAC5E);
 	const formulaOperatorEntries = damageModifierEntries.filter((entry) => isFormulaOperatorDamageModifier(entry.value));
 	const allTypes = new Set(damageTypesByIndex.filter(Boolean).map((type) => String(type).toLowerCase()));
-	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
+	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(getConfigAC5E.optinSelected[key])));
 	const isOptinEntrySelected = (entry) => entry?.forceOptin || (entry?.id && selectedOptinIds.has(entry.id));
+	const resolveEntryOptinScaleValue = (rawValue, entry) => {
+		if (typeof rawValue !== 'string' || !/(?:\(optinScale\)|\boptinScale\b)/i.test(rawValue)) return rawValue;
+		const selection = getConfigAC5E?.optinSelected?.[entry?.id];
+		const scale = _getOptinSelectionScale(selection);
+		if (!Number.isFinite(scale)) return rawValue;
+		return rawValue
+			.replace(/\(optinScale\)/gi, scale)
+			.replace(/\boptinScale\b/gi, scale);
+	};
 	const damageBonusEntries = getCollectedDamageEntries(getConfigAC5E, 'bonus', { raw: true }).filter((entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry));
 	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter(
 		(entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry),
@@ -1216,7 +1228,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const applyExplicitBonusEntry = (entry, values) => {
 		let discoveredNewType = false;
 		const addTo = resolveEntryAddTo(entry);
-		const parts = values.map((value) => String(value ?? '').trim()).filter(Boolean);
+		const parts = values.map((value) => resolveEntryOptinScaleValue(String(value ?? '').trim(), entry)).filter(Boolean);
 		if (!parts.length) return discoveredNewType;
 		if (addTo.mode === 'types') {
 			for (const type of addTo.types) {
@@ -1263,7 +1275,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				continue;
 			}
 			for (const value of values) {
-				const { formula: part, type: inlineDamageType, types: inlineDamageTypes } = extractImplicitBonusDamageType(value);
+				const resolvedValue = resolveEntryOptinScaleValue(value, entry);
+				const { formula: part, type: inlineDamageType, types: inlineDamageTypes } = extractImplicitBonusDamageType(resolvedValue);
 				if (!part) continue;
 				const criticalOnly = isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage;
 				if (inlineDamageTypes.length > 1) {
