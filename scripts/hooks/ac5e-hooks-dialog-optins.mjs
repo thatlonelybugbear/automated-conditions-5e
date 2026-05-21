@@ -163,8 +163,16 @@ function splitTopLevelCsv(value) {
 }
 
 function isItemUsesCountTarget(target) {
-	const rawTarget = String(target ?? '').trim();
-	return /^item\./i.test(rawTarget);
+	if (typeof target !== 'string') return false;
+	const rawTarget = target.trim();
+	if (!rawTarget) return false;
+	if (/^item\./i.test(rawTarget)) return true;
+	if (rawTarget.toLowerCase() === 'origin') return true;
+	const parsed = foundry?.utils?.parseUuid?.(rawTarget);
+	if (!parsed) return false;
+	if (parsed.type === 'Item') return true;
+	if (parsed.type !== 'Activity') return false;
+	return Array.isArray(parsed.embedded) && parsed.embedded.includes('Item');
 }
 
 function getUsesCountUnitLabel(amount, singular, plural) {
