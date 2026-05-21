@@ -56,19 +56,123 @@ export function doDialogAttackRender(dialog, elem, getConfigAC5E, deps) {
 
 export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 	if (!dialog?.config || !['attack', 'save', 'check', 'initiative'].includes(ac5eConfig?.hookType)) return false;
-	const preRestoreParts = getD20ActivePartsSnapshot(dialog.config);
-	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, dialog.config);
-	deps.restoreD20ConfigFromFrozenBaseline(ac5eConfig, dialog.config);
-	dialog.config.advantage = undefined;
-	dialog.config.disadvantage = undefined;
-	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, dialog.config);
-	deps.calcAdvantageMode(ac5eConfig, dialog.config, undefined, undefined, { skipSetProperties: true });
-	deps.applyExplicitModeOverride(ac5eConfig, dialog.config);
-	appendPartsToD20Config(dialog.config, preservedExternalParts);
-	syncDialogAc5eState(dialog, ac5eConfig);
-	dialog.rebuild();
-	dialog.render();
-	return true;
+	if (dialog._ac5eOptinReevalInProgress) return false;
+	dialog._ac5eOptinReevalInProgress = true;
+	try {
+		const preservedOptinSelected = foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {});
+		const preservedBaselineAttackAbility =
+			dialog?._ac5eBaselineAttackAbility ??
+			ac5eConfig?.options?._ac5eBaselineAttackAbility ??
+			ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility ??
+			dialog?.config?.options?.[Constants.MODULE_ID]?.options?._ac5eBaselineAttackAbility;
+		if (preservedBaselineAttackAbility !== undefined) dialog._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+		const preRestoreParts = getD20ActivePartsSnapshot(dialog.config);
+		const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, dialog.config);
+		deps.restoreD20ConfigFromFrozenBaseline(ac5eConfig, dialog.config);
+		dialog.config.advantage = undefined;
+		dialog.config.disadvantage = undefined;
+		let nextConfig = ac5eConfig;
+		if (ac5eConfig.hookType === 'attack') {
+			const resolvedAttackAbility = getSelectedAttackAbilityOverride(ac5eConfig);
+			if (preservedBaselineAttackAbility !== undefined) {
+				ac5eConfig.options ??= {};
+				ac5eConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+				ac5eConfig.preAC5eConfig ??= {};
+				ac5eConfig.preAC5eConfig._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+				dialog.config.options ??= {};
+				dialog.config.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+				dialog.config.options.originatingUseConfig ??= {};
+				dialog.config.options.originatingUseConfig.options ??= {};
+				dialog.config.options.originatingUseConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+				dialog.config.originatingUseConfig ??= {};
+				dialog.config.originatingUseConfig.options ??= {};
+				dialog.config.originatingUseConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+				dialog.config.useConfig ??= {};
+				dialog.config.useConfig.options ??= {};
+				dialog.config.useConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+			}
+			if (resolvedAttackAbility) {
+				dialog.config.ability = resolvedAttackAbility;
+				ac5eConfig.options ??= {};
+				ac5eConfig.options.ability = resolvedAttackAbility;
+				ac5eConfig.options.activityAbilityResolved = resolvedAttackAbility;
+				ac5eConfig.options._abilityOverrideResolvedAtUse = resolvedAttackAbility;
+			} else {
+				const baselineAbility =
+					preservedBaselineAttackAbility ??
+					ac5eConfig?.options?._ac5eBaselineAttackAbility ??
+					ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility;
+				if (baselineAbility !== undefined && baselineAbility !== null) dialog.config.ability = baselineAbility;
+				else dialog.config.ability = '';
+				ac5eConfig.options ??= {};
+				ac5eConfig.options.ability = baselineAbility;
+				delete ac5eConfig.options.activityAbilityResolved;
+				delete ac5eConfig.options._abilityOverrideResolvedAtUse;
+			}
+			const transientDialog = {
+				options: {
+					window: { title: dialog?.message?.flavor },
+					advantageMode: 0,
+					defaultButton: 'normal',
+				},
+			};
+			const rebuiltConfig = deps.preRollAttack(dialog.config, transientDialog, dialog.message, 'attack', ac5eConfig?.reEval);
+			if (rebuiltConfig) {
+				rebuiltConfig.optinSelected = { ...(rebuiltConfig.optinSelected ?? {}), ...preservedOptinSelected };
+				if (preservedBaselineAttackAbility !== undefined) {
+					rebuiltConfig.options ??= {};
+					rebuiltConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+					rebuiltConfig.preAC5eConfig ??= {};
+					rebuiltConfig.preAC5eConfig._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+				}
+				nextConfig = rebuiltConfig;
+			}
+		} else {
+			deps.calcAdvantageMode(ac5eConfig, dialog.config, undefined, undefined, { skipSetProperties: true });
+			deps.applyExplicitModeOverride(ac5eConfig, dialog.config);
+		}
+		appendPartsToD20Config(dialog.config, preservedExternalParts);
+		nextConfig.optinSelected = { ...(nextConfig.optinSelected ?? {}), ...preservedOptinSelected };
+		if (preservedBaselineAttackAbility !== undefined) {
+			nextConfig.options ??= {};
+			nextConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+			nextConfig.preAC5eConfig ??= {};
+			nextConfig.preAC5eConfig._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
+		}
+		syncDialogAc5eState(dialog, nextConfig);
+		dialog.rebuild();
+		dialog.render();
+		return true;
+	} finally {
+		dialog._ac5eOptinReevalInProgress = false;
+	}
+}
+
+function getSelectedAttackAbilityOverride(ac5eConfig) {
+	if (!ac5eConfig) return null;
+	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected?.[key]));
+	const entries = [
+		...(Array.isArray(ac5eConfig.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+		...(Array.isArray(ac5eConfig.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+	].filter((entry) => entry && (!entry.hook || entry.hook === 'attack'));
+	let winner = null;
+	for (const entry of entries) {
+		if (!(entry.optin || entry.forceOptin)) continue;
+		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		let resolved = entry.set?.trim?.()?.toLowerCase?.();
+		if (!resolved) continue;
+		if (resolved === 'spellcasting') {
+			resolved =
+				ac5eConfig?.options?.activity?.spellcastingAbility?.trim?.()?.toLowerCase?.() ??
+				ac5eConfig?.options?.item?.actor?.system?.attributes?.spellcasting?.trim?.()?.toLowerCase?.() ??
+				ac5eConfig?.options?.spellcastingAbility?.trim?.()?.toLowerCase?.() ??
+				'';
+		}
+		if (!resolved || !Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, resolved)) continue;
+		const score = Number.isFinite(entry.priority) ? entry.priority : 0;
+		if (!winner || score >= winner.score) winner = { resolved, score };
+	}
+	return winner?.resolved ?? null;
 }
 
 export function getD20ActivePartsSnapshot(config) {

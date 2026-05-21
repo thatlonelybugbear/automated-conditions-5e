@@ -3,19 +3,61 @@ import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
-	if (deps.hookDebugEnabled('preRollAttackHook')) console.error('AC5e _preRollAttack', hook, { config, dialog, message });
+	if (deps.hookDebugEnabled('preRollAttackHook')) {
+		console.warn(`AC5E TRACE preRollAttack.start ${JSON.stringify({
+			hook,
+			hasConfig: !!config,
+			hasDialog: !!dialog,
+			hasMessage: !!message,
+		})}`);
+	}
 	const { subject: { actor: sourceActor, ability } = {}, subject: configActivity, ammunition, attackMode, mastery } = config || {};
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;
-	const resolvedAbilityOverride = _getResolvedUseAbilityOverride({ config, options, moduleId: deps?.Constants?.MODULE_ID });
-	const resolvedAbility = resolvedAbilityOverride || ability;
-	options.ability = resolvedAbility;
-	if (resolvedAbility) config.ability = resolvedAbility;
-	if (resolvedAbility && activity?.attack && typeof activity.attack === 'object') activity.attack.ability = resolvedAbility;
+	const resolvedAbilityOverride = _getResolvedUseAbilityOverride({
+		config,
+		options,
+		moduleId: deps?.Constants?.MODULE_ID,
+		hookType: hook,
+	});
+	const baselineAbility =
+		options?._ac5eBaselineAttackAbility ??
+		options?.originatingUseConfig?.options?._ac5eBaselineAttackAbility ??
+		config?.originatingUseConfig?.options?._ac5eBaselineAttackAbility ??
+		config?.useConfig?.options?._ac5eBaselineAttackAbility ??
+		config?.subject?.ability ??
+		configActivity?.attack?.ability ??
+		activity?.attack?.ability;
+	const hasBaselineAbility = baselineAbility !== undefined && baselineAbility !== null;
+	const resolvedAbility = resolvedAbilityOverride || (hasBaselineAbility ? baselineAbility : ability);
+	if (options && options._ac5eBaselineAttackAbility === undefined) {
+		const initialBaseline = baselineAbility ?? ability ?? '';
+		options._ac5eBaselineAttackAbility = initialBaseline;
+	}
+	if (resolvedAbilityOverride) {
+		options.ability = resolvedAbilityOverride;
+		config.ability = resolvedAbilityOverride;
+	} else if (options?._ac5eBaselineAttackAbility !== undefined) {
+		const baseline = options._ac5eBaselineAttackAbility;
+		options.ability = baseline;
+		config.ability = baseline;
+		if (configActivity?.attack && typeof configActivity.attack === 'object') configActivity.attack.ability = baseline;
+		if (activity?.attack && typeof activity.attack === 'object') activity.attack.ability = baseline;
+		if (config?.rolls?.[0]?.options) config.rolls[0].options.ability = baseline;
+	}
+	const nextAttackAbility = resolvedAbilityOverride || null;
+	if (nextAttackAbility) {
+		if (configActivity?.attack && typeof configActivity.attack === 'object' && configActivity.attack.ability !== nextAttackAbility) {
+			configActivity.attack.ability = nextAttackAbility;
+		}
+		if (activity?.attack && typeof activity.attack === 'object' && activity.attack.ability !== nextAttackAbility) {
+			activity.attack.ability = nextAttackAbility;
+		}
+	}
 	if (Array.isArray(config?.rolls)) {
 		for (const roll of config.rolls) {
 			roll.options ??= {};
-			if (resolvedAbility) roll.options.ability = resolvedAbility;
+			if (resolvedAbilityOverride) roll.options.ability = resolvedAbilityOverride;
 		}
 	}
 	options.ammo = ammunition;
@@ -61,7 +103,12 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 				modernRules: deps.settings.dnd5eModernRules,
 				automateHeavy: deps.settings.automateHeavy,
 			});
-			if (deps.hookDebugEnabled('preRollAttackHook')) console.warn('AC5E._preRollAttack:', { ac5eConfig });
+			if (deps.hookDebugEnabled('preRollAttackHook')) {
+				console.warn(`AC5E TRACE preRollAttack.done ${JSON.stringify({
+					hookType: ac5eConfig?.hookType ?? null,
+					defaultButton: ac5eConfig?.defaultButton ?? null,
+				})}`);
+			}
 		},
 		captureBaseline: deps.captureFrozenD20Baseline,
 		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
@@ -70,7 +117,10 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	return ac5eConfig;
 }
 
-function _getResolvedUseAbilityOverride({ config, options, moduleId } = {}) {
+function _getResolvedUseAbilityOverride({ config, options, moduleId, hookType } = {}) {
+	const ac5eConfig = config?.options?.[moduleId] ?? config?.[moduleId] ?? null;
+	const optinResolved = _getResolvedOptinAbilityFromAc5eConfig(ac5eConfig, hookType);
+	if (optinResolved) return optinResolved;
 	const candidates = [
 		options?.activityAbilityResolved,
 		options?._abilityOverrideResolvedAtUse,
@@ -96,6 +146,39 @@ function _getResolvedUseAbilityOverride({ config, options, moduleId } = {}) {
 		if (Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, normalized)) return normalized;
 	}
 	return null;
+}
+
+function _getResolvedOptinAbilityFromAc5eConfig(ac5eConfig, hookType) {
+	if (!ac5eConfig || typeof ac5eConfig !== 'object') return null;
+	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((id) => ac5eConfig.optinSelected?.[id]));
+	const entries = [
+		...(Array.isArray(ac5eConfig.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+		...(Array.isArray(ac5eConfig.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+	].filter((entry) => entry && (!entry.hook || entry.hook === hookType));
+	if (!entries.length) return null;
+	let winner = null;
+	for (const entry of entries) {
+		if (entry.optin && !entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		let resolved = entry.set?.trim?.()?.toLowerCase?.();
+		if (!resolved) continue;
+		if (resolved === 'spellcasting') {
+			const spellAbility =
+				ac5eConfig?.options?.activity?.spellcastingAbility
+				?? ac5eConfig?.options?.item?.actor?.system?.attributes?.spellcasting
+				?? ac5eConfig?.options?.spellcastingAbility;
+			resolved = spellAbility?.trim?.()?.toLowerCase?.() ?? '';
+		}
+		if (!_isValidAbilityKey(resolved)) continue;
+		const score = Number.isFinite(entry.priority) ? entry.priority : 0;
+		if (!winner || score >= winner.score) winner = { resolved, score };
+	}
+	return winner?.resolved ?? null;
+}
+
+function _isValidAbilityKey(value) {
+	const key = value?.trim?.()?.toLowerCase?.();
+	if (!key) return false;
+	return Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, key);
 }
 
 export function resolveAttackRollTargetContext({ hook, config, messageForTargets, activity, options, sourceActor, needsTarget, getSubjectTokenForHook, getSingleTargetToken, logResolvedTargets }) {

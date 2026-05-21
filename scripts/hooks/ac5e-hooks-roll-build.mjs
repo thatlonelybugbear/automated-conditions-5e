@@ -28,6 +28,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (ac5eConfig.hookType === 'damage') {
 		const optins = getOptinsFromForm(formData);
 		setOptinSelections(ac5eConfig, optins);
+		applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, activeHook);
 		applyOptinCriticalToDamageConfig(ac5eConfig, rollConfig, formData);
 		syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rollConfig?.rolls);
 		syncRollOptinSelections(ac5eConfig, rollConfig);
@@ -43,6 +44,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	_restoreD20ConfigFromFrozenBaseline(ac5eConfig, rollConfig);
 	const optins = getOptinsFromForm(formData);
 	setOptinSelections(ac5eConfig, optins);
+	applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, activeHook);
 	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, rollConfig);
 	let targetADCEntries = [];
 	if (ac5eConfig.hookType === 'attack') {
@@ -143,5 +145,147 @@ function syncChatTooltipToRollConfigs(ac5eConfig, rollConfig) {
 		roll.options[Constants.MODULE_ID] ??= {};
 		roll.options[Constants.MODULE_ID].chatTooltip = tooltip;
 	}
+}
+
+function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookType) {
+	if (!['attack', 'damage'].includes(hookType)) return;
+	const subjectAttack = rollConfig?.subject?.attack;
+	if (hookType === 'attack' && ac5eConfig?.options) {
+		const existingBaseline =
+			ac5eConfig.options._ac5eBaselineAttackAbility ??
+			ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility;
+		if (existingBaseline !== undefined) {
+			ac5eConfig.options._ac5eBaselineAttackAbility = existingBaseline;
+			ac5eConfig.preAC5eConfig ??= {};
+			ac5eConfig.preAC5eConfig._ac5eBaselineAttackAbility = existingBaseline;
+		}
+	}
+	const resolvedAbility = getWinningAbilityOverride(ac5eConfig, hookType);
+	if (!resolvedAbility) {
+		if (ac5eConfig?.options) {
+			delete ac5eConfig.options.activityAbilityResolved;
+			delete ac5eConfig.options._abilityOverrideResolvedAtUse;
+		}
+		if (ac5eConfig?.preAC5eConfig) {
+			delete ac5eConfig.preAC5eConfig.activityAbilityResolved;
+			delete ac5eConfig.preAC5eConfig._abilityOverrideResolvedAtUse;
+		}
+		if (hookType === 'attack' && subjectAttack && typeof subjectAttack === 'object') {
+			const baseline = ac5eConfig?.options?._ac5eBaselineAttackAbility;
+			const hasBaseline = baseline !== undefined && baseline !== null;
+			if (hasBaseline && subjectAttack.ability !== baseline) {
+				if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
+					console.warn('AC5E TRACE rollBuild.restoreBaselineAttackAbility', {
+						from: subjectAttack.ability,
+						to: baseline,
+						hookType,
+					});
+				}
+				subjectAttack.ability = baseline;
+			}
+			if (hasBaseline) {
+				rollConfig.ability = baseline;
+				const baselineMod = rollConfig?.subject?.actor?.system?.abilities?.[baseline]?.mod;
+				if (Number.isFinite(baselineMod)) {
+					rollConfig.data ??= {};
+					rollConfig.data.mod = baselineMod;
+				} else if (rollConfig?.data && Object.hasOwn(rollConfig.data, 'mod')) {
+					delete rollConfig.data.mod;
+				}
+				const roll0Restore = rollConfig?.rolls?.[0];
+				if (roll0Restore && typeof roll0Restore === 'object') {
+					roll0Restore.options ??= {};
+					roll0Restore.options.ability = baseline;
+					if (Number.isFinite(baselineMod)) {
+						roll0Restore.data ??= {};
+						roll0Restore.data.mod = baselineMod;
+					} else if (roll0Restore?.data && Object.hasOwn(roll0Restore.data, 'mod')) {
+						delete roll0Restore.data.mod;
+					}
+				}
+			}
+		}
+		return;
+	}
+	ac5eConfig.options ??= {};
+	ac5eConfig.options.ability = resolvedAbility;
+	ac5eConfig.options.activityAbilityResolved = resolvedAbility;
+	ac5eConfig.options._abilityOverrideResolvedAtUse = resolvedAbility;
+	ac5eConfig.preAC5eConfig ??= {};
+	ac5eConfig.preAC5eConfig.activityAbilityResolved = resolvedAbility;
+	ac5eConfig.preAC5eConfig._abilityOverrideResolvedAtUse = resolvedAbility;
+	rollConfig.ability = resolvedAbility;
+	if (hookType === 'attack' && subjectAttack && typeof subjectAttack === 'object' && subjectAttack.ability !== resolvedAbility) {
+		subjectAttack.ability = resolvedAbility;
+	}
+	const resolvedMod = rollConfig?.subject?.actor?.system?.abilities?.[resolvedAbility]?.mod;
+	if (Number.isFinite(resolvedMod)) {
+		rollConfig.data ??= {};
+		rollConfig.data.mod = resolvedMod;
+	}
+	const roll0 = rollConfig?.rolls?.[0];
+	if (roll0 && typeof roll0 === 'object') {
+		roll0.options ??= {};
+		roll0.options.ability = resolvedAbility;
+		if (Number.isFinite(resolvedMod)) {
+			roll0.data ??= {};
+			roll0.data.mod = resolvedMod;
+		}
+	}
+}
+
+function getWinningAbilityOverride(ac5eConfig, hookType) {
+	const forcedCandidates = [
+		ac5eConfig?.options?.activityAbilityResolved,
+		ac5eConfig?.options?._abilityOverrideResolvedAtUse,
+		ac5eConfig?.preAC5eConfig?.activityAbilityResolved,
+		ac5eConfig?.preAC5eConfig?._abilityOverrideResolvedAtUse,
+	];
+	for (const candidate of forcedCandidates) {
+		if (!isValidAbilityKey(candidate)) continue;
+		if (globalThis.ac5e?.debug?.abilityOverrideTrace) console.warn('AC5E TRACE rollBuild.getWinningAbilityOverride.forced', { hookType, candidate });
+		return candidate;
+	}
+	const entries = [
+		...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
+		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
+	].filter((entry) => entry && typeof entry === 'object' && (!entry.hook || entry.hook === hookType) && entry.optin);
+	if (!entries.length) return null;
+	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+	let winner = null;
+	for (const entry of entries) {
+		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		const raw = entry?.set?.trim()?.toLowerCase?.();
+		if (!raw) continue;
+		let resolved = raw;
+		if (raw === 'spellcasting') {
+			const actorSpellcasting =
+				ac5eConfig?.options?.activity?.spellcastingAbility
+				?? ac5eConfig?.options?.item?.actor?.system?.attributes?.spellcasting
+				?? ac5eConfig?.options?.spellcastingAbility;
+			resolved = actorSpellcasting?.trim?.()?.toLowerCase?.() ?? '';
+		}
+		if (!isValidAbilityKey(resolved)) continue;
+		const score = Number.isFinite(entry?.priority) ? entry.priority : 0;
+		if (!winner || score >= winner.score) winner = { resolved, score };
+	}
+	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
+		console.warn(`AC5E TRACE rollBuild.getWinningAbilityOverride.optins ${JSON.stringify({
+			hookType,
+			selectedIds: [...selectedIds],
+			candidateCount: entries.length,
+			winner: winner ? { resolved: winner.resolved, score: winner.score } : null,
+		})}`);
+	}
+	if (!winner) return null;
+	const normalized = winner.resolved;
+	if (!isValidAbilityKey(normalized)) return null;
+	return normalized;
+}
+
+function isValidAbilityKey(value) {
+	const normalized = value?.trim?.()?.toLowerCase?.();
+	if (!normalized) return false;
+	return Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, normalized);
 }
 

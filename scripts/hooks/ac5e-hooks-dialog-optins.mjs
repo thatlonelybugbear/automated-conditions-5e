@@ -2,10 +2,30 @@ import { _localize } from '../ac5e-helpers.mjs';
 import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-hooks-roll-selections.mjs';
 
 export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
-	const entries = [...getAllOptinEntriesForHook(ac5eConfig, ac5eConfig.hookType), ...getRollNonBonusOptinEntries(ac5eConfig, ac5eConfig.hookType)].filter((entry) =>
-		Boolean(entry?.optin || entry?.forceOptin),
-	);
+	const entries = [...getAllOptinEntriesForHook(ac5eConfig, ac5eConfig.hookType), ...getRollNonBonusOptinEntries(ac5eConfig, ac5eConfig.hookType)]
+		.filter((entry) => Boolean(entry?.optin || entry?.forceOptin))
+		.filter((entry) => shouldIncludeAbilityOverrideEntry(entry, ac5eConfig));
 	renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps);
+}
+
+function shouldIncludeAbilityOverrideEntry(entry, ac5eConfig) {
+	if (!entry || ac5eConfig?.hookType !== 'attack') return true;
+	if (entry?.mode !== 'abilityOverride') return true;
+	const isSelected = !!ac5eConfig?.optinSelected?.[entry?.id];
+	if (isSelected) return true;
+	const overrideAbility = String(entry?.set ?? '').trim().toLowerCase();
+	if (!overrideAbility) return true;
+	const baselineAbility = String(
+		ac5eConfig?.options?._ac5eBaselineAttackAbility ??
+		ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility ??
+		ac5eConfig?.subject?.attack?.ability ??
+		ac5eConfig?.options?.activity?.attack?.ability ??
+		'',
+	)
+		.trim()
+		.toLowerCase();
+	if (!baselineAbility) return true;
+	return overrideAbility !== baselineAbility;
 }
 
 export function renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps) {
@@ -86,6 +106,13 @@ export function setOptinSelections(ac5eConfig, nextSelections) {
 		ac5eConfig.defaultButton = undefined;
 	}
 	ac5eConfig.optinSelected = nextSelections ?? {};
+}
+
+function updateSingleOptinSelection(ac5eConfig, optinId, checked) {
+	if (!ac5eConfig || !optinId) return;
+	const previous = ac5eConfig.optinSelected ?? {};
+	const nextSelections = { ...previous, [optinId]: !!checked };
+	setOptinSelections(ac5eConfig, nextSelections);
 }
 
 function getUsesCountLabelSuffix(entry) {
@@ -218,9 +245,8 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 		const activeFieldset = event.currentTarget;
 		const activeDialog = activeFieldset?._ac5eDialog ?? dialog;
 		const activeConfig = activeFieldset?._ac5eConfig ?? ac5eConfig;
-		const activeElem = activeFieldset?._ac5eRootElement ?? elem;
-		const nextSelections = readOptinSelections(activeElem, activeConfig);
-		setOptinSelections(activeConfig, nextSelections);
+		const input = event.target;
+		updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked);
 		const hookType = activeConfig?.hookType;
 		if (['attack', 'save', 'check'].includes(hookType)) {
 			deps.handleD20OptinSelectionsChanged?.(activeDialog, activeConfig, deps);
