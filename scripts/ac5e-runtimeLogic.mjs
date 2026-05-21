@@ -969,6 +969,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
 	sandbox.item.hasAttack = item?.hasAttack;
+	sandbox.item.hasProficiency = item?.system?.prof?.hasProficiency;
 	sandbox.item.hasSave = item?.system?.hasSave;
 	sandbox.item.hasSummoning = item?.system?.hasSummoning;
 	sandbox.item.hasLimitedUses = item?.system?.hasLimitedUses;
@@ -1005,6 +1006,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (sandboxOptions?.ability) sandbox._evalConstants[sandboxOptions.ability] = true;
 	if (sandboxOptions?.skill) sandbox._evalConstants[sandboxOptions.skill] = true;
 	if (sandboxOptions?.tool) sandbox._evalConstants[sandboxOptions.tool] = true;
+	const isSkillCheck = sandboxOptions?.hook === 'check' && sandboxOptions?.skill;
+	const isToolCheck = sandboxOptions?.hook === 'check' && sandboxOptions?.tool;
+	sandbox.hasProficiency = sandboxOptions?.hook === 'save' ? rollingActor?.abilities[sandboxOptions.ability]?.proficient > 0 : isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient > 0 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier > 0 : !!sandbox.item?.hasProficiency;
+	sandbox.hasExpertise = isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient === 2 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier === 2 : false;
+	sandbox.hasHalfProficiency = isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient === 0.5 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier === 0.5 : false;
+	sandbox.hasFullProficiency = isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient === 1 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier === 1 : false;
 	sandbox.isConcentration = sandboxOptions?.isConcentration;
 	sandbox.isDeathSave = sandboxOptions?.isDeathSave;
 	sandbox.isInitiative = sandboxOptions?.isInitiative;
