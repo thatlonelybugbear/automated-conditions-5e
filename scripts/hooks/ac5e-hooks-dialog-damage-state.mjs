@@ -203,11 +203,22 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 	}
 }
 
-export function handleDamageOptinSelectionsChanged(dialog, ac5eConfig) {
+export function handleDamageOptinSelectionsChanged(dialog, ac5eConfig, deps = {}) {
 	if (ac5eConfig?.hookType !== 'damage') return false;
+	if (dialog?._ac5eOptinReevalInProgress) return false;
+	dialog._ac5eOptinReevalInProgress = true;
+	try {
+		if (dialog?.config && deps?.preRollDamage instanceof Function) {
+			const transientDialog = { options: { window: { title: dialog?.message?.flavor }, isCritical: !!dialog?.config?.isCritical, defaultButton: dialog?.config?.isCritical ? 'critical' : 'normal' } };
+			const reEval = ac5eConfig?.reEval;
+			deps.preRollDamage(dialog.config, transientDialog, dialog.message, 'damage', reEval);
+		}
 	dialog.rebuild();
 	dialog.render();
 	return true;
+	} finally {
+		dialog._ac5eOptinReevalInProgress = false;
+	}
 }
 
 export function renderOptionalBonusesDamage(dialog, elem, ac5eConfig, deps) {
@@ -220,7 +231,7 @@ export function renderOptionalBonusesDamage(dialog, elem, ac5eConfig, deps) {
 		...getDamageEntriesByMode(ac5eConfig, selectedTypes, 'diceDowngrade'),
 		...getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes),
 	]
-		.filter((entry) => Boolean(entry?.optin || entry?.forceOptin))
+		.filter((entry) => entry?.optin || entry?.forceOptin)
 		.filter((entry, index, arr) => {
 			const id = entry?.id;
 			if (!id) return true;
@@ -274,7 +285,7 @@ function buildDamagePreservedInitialData(formulas) {
 }
 
 function isSyntheticBonusRoll(roll) {
-	return Boolean(roll?.options?.[Constants.MODULE_ID]?.syntheticBonusRoll);
+	return !!roll?.options?.[Constants.MODULE_ID]?.syntheticBonusRoll;
 }
 
 function getNonSyntheticDamageRolls(rolls = []) {
@@ -608,17 +619,17 @@ export function shouldApplyCriticalToRoll(entry, rollIndex, rollType, selectedTy
 }
 
 function isCriticalStaticExtraDiceEntry(entry) {
-	return Boolean(entry?.criticalStatic);
+	return !!entry?.criticalStatic;
 }
 
 function isCriticalStaticBonusEntry(entry) {
-	return entry?.mode === 'bonus' && Boolean(entry?.criticalStatic);
+	return entry?.mode === 'bonus' && !!entry?.criticalStatic;
 }
 
 function isRollCriticalForExtraDice(ac5eConfig, rollIndex) {
 	const byRoll = Array.isArray(ac5eConfig?.damageRollCriticalByIndex) ? ac5eConfig.damageRollCriticalByIndex : [];
 	if (typeof byRoll?.[rollIndex] === 'boolean') return byRoll[rollIndex];
-	return Boolean(ac5eConfig?.isCritical ?? ac5eConfig?.preAC5eConfig?.wasCritical ?? false);
+	return !!(ac5eConfig?.isCritical ?? ac5eConfig?.preAC5eConfig?.wasCritical ?? false);
 }
 
 function isFormulaOperatorDamageModifier(value) {
@@ -842,13 +853,13 @@ function getCollectedDamageEntries(ac5eConfig, mode, { selectedTypes = undefined
 }
 
 export function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
-	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info'];
+	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info', 'abilityOverride'];
 	return modes.flatMap((mode) => getCollectedDamageEntries(ac5eConfig, mode, { optinOnly: true })).filter((entry) => isDamageEntryEligibleForSelectedTypes(entry, selectedTypes));
 }
 
 function getOptinExtraDiceAdjustments(ac5eConfig, selectedTypes, optins, rollIndex, rollType, isCriticalRoll) {
 	const entries = getDamageEntriesByMode(ac5eConfig, selectedTypes, 'extraDice').filter(
-		(entry) => Boolean(entry?.optin || entry?.forceOptin) && shouldApplyDamageEntryToRoll(entry, rollIndex, rollType),
+		(entry) => (entry?.optin || entry?.forceOptin) && shouldApplyDamageEntryToRoll(entry, rollIndex, rollType),
 	);
 	if (!entries.length) return { additive: 0, multiplier: 1, criticalStaticAdditive: 0, criticalStaticMultiplier: 1 };
 	const selectedIds = new Set(Object.keys(optins ?? {}).filter((key) => optins[key]));
@@ -1079,7 +1090,7 @@ export function syncCriticalStaticBonusDamageRollOptions(ac5eConfig, rolls) {
 		if (!roll || typeof roll !== 'object') continue;
 		if (isSyntheticBonusRoll(roll)) continue;
 		roll.options ??= {};
-		const foldBaseCriticalIntoFormula = Boolean(activeAdvDisByRoll[index]);
+		const foldBaseCriticalIntoFormula = !!activeAdvDisByRoll[index];
 		const baseBonus = foldBaseCriticalIntoFormula ? '' : normalizeCriticalBonusDamageFormula(baseByRoll[index]);
 		const ac5eBonus = normalizeCriticalBonusDamageFormula(activeByRoll[index]);
 		const combined = [baseBonus, ac5eBonus].filter(Boolean).join(' + ');
@@ -1134,7 +1145,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const formulaOperatorEntries = damageModifierEntries.filter((entry) => isFormulaOperatorDamageModifier(entry.value));
 	const allTypes = new Set(damageTypesByIndex.filter(Boolean).map((type) => String(type).toLowerCase()));
 	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => getConfigAC5E.optinSelected[key]));
-	const isOptinEntrySelected = (entry) => Boolean(entry?.forceOptin || (entry?.id && selectedOptinIds.has(entry.id)));
+	const isOptinEntrySelected = (entry) => entry?.forceOptin || (entry?.id && selectedOptinIds.has(entry.id));
 	const damageBonusEntries = getCollectedDamageEntries(getConfigAC5E, 'bonus', { raw: true }).filter((entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry));
 	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter(
 		(entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry),
@@ -1168,7 +1179,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const appendedBonusRollsByKey = new Map();
 	const appendedCriticalBonusRollsByKey = new Map();
 	const isCriticalDamageRollAtIndex = (index) => isRollCriticalForExtraDice(getConfigAC5E, index);
-	const isGlobalCriticalDamage = formulas.some((_, index) => isCriticalDamageRollAtIndex(index)) || Boolean(getConfigAC5E?.isCritical ?? getConfigAC5E?.preAC5eConfig?.wasCritical ?? false);
+	const isGlobalCriticalDamage = formulas.some((_, index) => isCriticalDamageRollAtIndex(index)) || !!(getConfigAC5E?.isCritical ?? getConfigAC5E?.preAC5eConfig?.wasCritical ?? false);
 	const getSyntheticBonusRollKey = (types = []) => {
 		const normalizedTypes = types.map((type) => String(type ?? '').trim().toLowerCase()).filter(Boolean);
 		if (!normalizedTypes.length) return '';

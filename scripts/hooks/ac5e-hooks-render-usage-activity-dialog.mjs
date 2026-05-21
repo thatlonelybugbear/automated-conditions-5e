@@ -274,5 +274,10 @@ function getChoiceDisplayLabel(choice = {}) {
 }
 
 function logUsageDialogRenderDebug(stage, payload) {
-	return;
+	if (!globalThis.ac5e?.debug?.abilityOverrideTrace) return;
+	try {
+		console.warn(`AC5E TRACE usageDialog.${stage} ${JSON.stringify(payload)}`);
+	} catch {
+		console.warn(`AC5E TRACE usageDialog.${stage}`, payload);
+	}
 }

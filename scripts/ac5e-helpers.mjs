@@ -145,7 +145,7 @@ function _resolveTokenForLighting(token) {
 		}
 	}
 	if (resolvedToken instanceof TokenDocument) resolvedToken = resolvedToken.object;
-	if (resolvedToken instanceof Actor) resolvedToken = resolvedToken.getActiveTokens?.()[0] ?? _getTokenFromActor(resolvedToken) ?? null;
+	if (_isActorDocument(resolvedToken)) resolvedToken = resolvedToken.getActiveTokens?.()[0] ?? _getTokenFromActor(resolvedToken) ?? null;
 	if (resolvedToken?.document instanceof TokenDocument && resolvedToken?.center) return resolvedToken;
 	return null;
 }
@@ -218,7 +218,7 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 ]);
 
 function _debugFlagEnabled(flag, legacyRootFlag = null) {
-	return Boolean(ac5e?.debug?.[flag] ?? (legacyRootFlag ? ac5e?.[legacyRootFlag] : false));
+	return !!(ac5e?.debug?.[flag] ?? (legacyRootFlag ? ac5e?.[legacyRootFlag] : false));
 }
 
 const ROLL_STATE_MIGRATION_CAPTURE_LIMIT = 200;
@@ -304,8 +304,8 @@ export function downloadRollStateMigrationCapture(filename = null, { clear = fal
 
 export function debugRollStateMigration(stage, { hook, config, rolls, ac5eConfig, extra } = {}) {
 	const migrationDebugEnabled = _debugFlagEnabled('rollStateMigration');
-	const shouldLog = Boolean(settings.debug || migrationDebugEnabled);
-	const shouldCapture = Boolean(migrationDebugEnabled || _debugFlagEnabled('rollStateMigrationCapture'));
+	const shouldLog = !!(settings.debug || migrationDebugEnabled);
+	const shouldCapture = !!(migrationDebugEnabled || _debugFlagEnabled('rollStateMigrationCapture'));
 	if (!shouldLog && !shouldCapture) return;
 	const snapshot = _buildRollStateMigrationSnapshot(stage, { hook, config, rolls, ac5eConfig, extra });
 	if (shouldCapture) _captureRollStateMigrationSnapshot(snapshot);
@@ -724,8 +724,8 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		}
 		if (resolvedTokenA instanceof TokenDocument) resolvedTokenA = resolvedTokenA.object;
 		if (resolvedTokenB instanceof TokenDocument) resolvedTokenB = resolvedTokenB.object;
-		if (resolvedTokenA instanceof Actor) resolvedTokenA = resolvedTokenA.getActiveTokens()[0] ?? null;
-		if (resolvedTokenB instanceof Actor) resolvedTokenB = resolvedTokenB.getActiveTokens()[0] ?? null;
+		if (_isActorDocument(resolvedTokenA)) resolvedTokenA = resolvedTokenA.getActiveTokens()[0] ?? null;
+		if (_isActorDocument(resolvedTokenB)) resolvedTokenB = resolvedTokenB.getActiveTokens()[0] ?? null;
 		const result = MidiQOL.computeDistance(resolvedTokenA, resolvedTokenB);
 		const units = canvas?.grid?.units ?? '';
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: resolvedTokenA?.id, targetId: resolvedTokenB?.id, result, units });
@@ -1096,9 +1096,9 @@ function _itemNameMatches(item, identifier, matcher, options = {}) {
 
 	const slug = name.slugify();
 	if (matcher?.SearchFilter?.testQuery) {
-		return matcher.SearchFilter.testQuery(matcher.rgx, name) || Boolean(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, slug));
+		return matcher.SearchFilter.testQuery(matcher.rgx, name) || !!(matcher.rgxSlug && matcher.SearchFilter.testQuery(matcher.rgxSlug, slug));
 	}
-	return nameLower.includes(matcher?.queryLower ?? '') || Boolean(matcher?.querySlug && slug.toLowerCase().includes(matcher.querySlug));
+	return nameLower.includes(matcher?.queryLower ?? '') || !!(matcher?.querySlug && slug.toLowerCase().includes(matcher.querySlug));
 }
 
 function _itemMatchesLookup(item, identifier, matcher, options = {}) {
@@ -1148,7 +1148,7 @@ function _itemHasProperty(item, property) {
 
 function _itemMatchesLookupStateFilters(item, options = {}) {
 	if (!item) return false;
-	if (options.equipped !== undefined && Boolean(item?.system?.equipped) !== options.equipped) return false;
+	if (options.equipped !== undefined && !!item?.system?.equipped !== options.equipped) return false;
 	if (options.attuned !== undefined && _itemIsAttuned(item) !== options.attuned) return false;
 	if (options.hasUses !== undefined && _itemHasUses(item) !== options.hasUses) return false;
 	if (options.hasQuantity !== undefined && _itemHasQuantity(item) !== options.hasQuantity) return false;
@@ -1160,8 +1160,8 @@ function _resolveActorForItemLookup(source) {
 	if (!source) return null;
 
 	// Actor-like
-	if (source instanceof foundry.abstract.Document && source.documentName === 'Actor') return source;
-	if (source?.document instanceof foundry.abstract.Document && source.document.documentName === 'Actor') return source.document;
+	if (_isActorDocument(source)) return source;
+	if (_isActorDocument(source?.document)) return source.document;
 
 	// Token-like
 	if (source?.actor?.items) return source.actor;
@@ -1178,14 +1178,14 @@ function _resolveActorForItemLookup(source) {
 
 	// tokenId => canvas.scene.tokens.get(tokenId)?.actor
 	const actorFromTokenId = canvas?.scene?.tokens?.get?.(reference)?.actor ?? canvas?.tokens?.get?.(reference)?.actor ?? null;
-	if (actorFromTokenId?.items) return actorFromTokenId;
+	if (_isActorDocument(actorFromTokenId)) return actorFromTokenId;
 
 	// tokenUuid => fromUuidSync(tokenUuid)?.actor
 	const tokenUuidLike = reference.startsWith('Token.') || reference.includes('.Token.');
 	if (tokenUuidLike) {
 		const tokenDocument = _safeFromUuidSync(reference);
 		const actorFromTokenUuid = tokenDocument?.actor ?? null;
-		if (actorFromTokenUuid?.items) return actorFromTokenUuid;
+		if (_isActorDocument(actorFromTokenUuid)) return actorFromTokenUuid;
 	}
 
 	// actorId => game.actors.get(actorId)
@@ -1401,8 +1401,8 @@ function _getTransientRollState(ac5eConfig = {}, fallback = {}) {
 		: defaultButton === 'disadvantage' ? true
 		: false);
 	return {
-		hasTransitAdvantage: Boolean(inferredAdvantage),
-		hasTransitDisadvantage: Boolean(inferredDisadvantage),
+		hasTransitAdvantage: !!inferredAdvantage,
+		hasTransitDisadvantage: !!inferredDisadvantage,
 		advantageMode,
 		defaultButton,
 	};
@@ -1647,6 +1647,27 @@ export function _getTooltip(ac5eConfig = {}) {
 				return undefined;
 			})
 			.filter(Boolean);
+	const mapAbilityOverrideLabels = (entries = []) =>
+		entries
+			.map((entry) => {
+				if (!entry || typeof entry !== 'object') return undefined;
+				const abilityRaw = entry.set;
+				const abilityText =
+					typeof abilityRaw === 'string' ? abilityRaw.trim().toUpperCase()
+					: abilityRaw === undefined || abilityRaw === null ? ''
+					: `${abilityRaw}`.trim().toUpperCase();
+				const labelRaw = entry.label ?? entry.name ?? entry.id;
+				const labelText =
+					typeof labelRaw === 'string' ? labelRaw.trim()
+					: labelRaw === undefined || labelRaw === null ? ''
+					: `${labelRaw}`.trim();
+				const chanceSuffix = getChanceTooltipSuffix(entry?.chance);
+				if (abilityText && labelText) return `(${abilityText}): ${labelText}${chanceSuffix}`;
+				if (abilityText) return `(${abilityText})${chanceSuffix}`;
+				if (labelText) return `${labelText}${chanceSuffix}`;
+				return undefined;
+			})
+			.filter(Boolean);
 	const isUseOwnedSaveCheckDamageTooltip =
 		hookType === 'damage' &&
 		['save', 'check'].includes(String(ac5eConfig?.options?.activity?.type ?? '').toLowerCase()) &&
@@ -1691,7 +1712,7 @@ export function _getTooltip(ac5eConfig = {}) {
 	const suppressD20Calculated = explicitOverride?.family === 'd20';
 	const suppressDamageCalculated = explicitOverride?.family === 'damage';
 	const enforcedD20Mode = ['advantage', 'disadvantage', 'normal'].includes(ac5eConfig?.enforcedD20Mode) ? ac5eConfig.enforcedD20Mode : null;
-	const suppressResolvedD20Buckets = suppressD20Calculated || Boolean(enforcedD20Mode);
+	const suppressResolvedD20Buckets = suppressD20Calculated || !!enforcedD20Mode;
 	const explicitOverrideBucketLabel =
 		explicitOverride?.source === 'dialog' ? 'Roll dialog user input'
 		: explicitOverride?.source === 'keypress' ? 'Override keypress'
@@ -1779,7 +1800,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.ExtraDice')}: ${subjectExtraDiceLabels.join(', ')}</span>`);
 		const subjectTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(subject.typeOverride)) : [];
 		addTooltip(subjectTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Type Override: ${subjectTypeOverrideLabels.join(', ')}</span>`);
-		const subjectAbilityOverrideLabels = mapEntryLabels(filterOptinEntries(subject.abilityOverride));
+		const subjectAbilityOverrideLabels = mapAbilityOverrideLabels(filterOptinEntries(subject.abilityOverride));
 		addTooltip(subjectAbilityOverrideLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.AbilityOverride')}: ${subjectAbilityOverrideLabels.join(', ')}</span>`);
 	}
 	if (opponent) {
@@ -1825,7 +1846,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponentExtraDiceLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsExtraDice')}: ${opponentExtraDiceLabels.join(', ')}</span>`);
 		const opponentTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(opponent.typeOverride)) : [];
 		addTooltip(opponentTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Target Grants Type Override: ${opponentTypeOverrideLabels.join(', ')}</span>`);
-		const opponentAbilityOverrideLabels = mapEntryLabels(filterOptinEntries(opponent.abilityOverride));
+		const opponentAbilityOverrideLabels = mapAbilityOverrideLabels(filterOptinEntries(opponent.abilityOverride));
 		addTooltip(opponentAbilityOverrideLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAbilityOverride')}: ${opponentAbilityOverrideLabels.join(', ')}</span>`);
 	}
 	const infoEntries = filterOptinEntries([...(subject?.info ?? []), ...(opponent?.info ?? [])]);
@@ -2045,7 +2066,7 @@ function _setMidiTrackerAttribution(tracker, type, source, label) {
 const MIDI_TRACKER_DEBUG_MARKER = 'ac5e-midi-tracker-sync-2026-03-05-r1';
 
 function _shouldLogMidiTrackerSync() {
-	return Boolean(settings.debug || _debugFlagEnabled('midiTooltipSync') || _debugFlagEnabled('midiTrackerSync'));
+	return !!(settings.debug || _debugFlagEnabled('midiTooltipSync') || _debugFlagEnabled('midiTrackerSync'));
 }
 
 function _logMidiTrackerBuildMarkerOnce(context = '') {
@@ -2792,7 +2813,7 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 	if (!effect) return context;
 
 	const relativeDocument = relative ?? effect.parent ?? effect.target ?? null;
-	const actor = effect.target instanceof CONFIG.Actor.documentClass ? effect.target : effect.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
+	const actor = _isActorDocument(effect.target) ? effect.target : _isActorDocument(effect.parent) ? effect.parent : null;
 	const flags = effect.flags?.dnd5e ?? {};
 	const flagItem = _resolveEffectFlagItem(flags.item, actor, relativeDocument);
 	const flagActivity = _resolveEffectFlagActivity(flags.activity, flagItem, actor, relativeDocument);
@@ -2802,7 +2823,7 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 	if (flagItem) context.originItem = flagItem;
 	if (flagActivity) {
 		context.originActivity = flagActivity;
-		context.originItem ??= flagActivity.item instanceof CONFIG.Item.documentClass ? flagActivity.item : flagActivity.parent instanceof CONFIG.Item.documentClass ? flagActivity.parent : null;
+		context.originItem ??= _isItemDocument(flagActivity.item) ? flagActivity.item : _isItemDocument(flagActivity.parent) ? flagActivity.parent : null;
 	}
 
 	const origin = effect.origin ? _safeFromUuidSync(effect.origin, { relative: relativeDocument }) : null;
@@ -2810,12 +2831,12 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 	if (_isItemDocument(origin)) context.originItem ??= origin;
 	else if (_isActivityDocument(origin)) {
 		context.originActivity ??= origin;
-		context.originItem ??= origin.item instanceof CONFIG.Item.documentClass ? origin.item : origin.parent instanceof CONFIG.Item.documentClass ? origin.parent : null;
-	} else if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+		context.originItem ??= _isItemDocument(origin.item) ? origin.item : _isItemDocument(origin.parent) ? origin.parent : null;
+	} else if (_isActiveEffectDocument(origin)) {
 		context.originEffect = origin;
-		if (origin.parent instanceof CONFIG.Item.documentClass) context.originItem ??= origin.parent;
-		else if (origin.item instanceof CONFIG.Item.documentClass) context.originItem ??= origin.item;
-		else if (origin.parent instanceof CONFIG.Actor.documentClass) context.originActor ??= origin.parent;
+		if (_isItemDocument(origin.parent)) context.originItem ??= origin.parent;
+		else if (_isItemDocument(origin.item)) context.originItem ??= origin.item;
+		else if (_isActorDocument(origin.parent)) context.originActor ??= origin.parent;
 	}
 
 	if (context.originEffect?.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING)) {
@@ -2827,8 +2848,8 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 		context.originActivity ??= concentrationOrigin.originActivity;
 		if (context.originActivity) {
 			context.originItem ??=
-				context.originActivity.item instanceof CONFIG.Item.documentClass ? context.originActivity.item
-				: context.originActivity.parent instanceof CONFIG.Item.documentClass ? context.originActivity.parent
+				_isItemDocument(context.originActivity.item) ? context.originActivity.item
+				: _isItemDocument(context.originActivity.parent) ? context.originActivity.parent
 				: null;
 		}
 	}
@@ -2841,7 +2862,7 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 
 function _resolveConcentrationEffectOrigin(effect, { actor, relative } = {}) {
 	const flags = effect?.flags?.dnd5e ?? {};
-	const concentrationActor = actor instanceof CONFIG.Actor.documentClass ? actor : effect.target instanceof CONFIG.Actor.documentClass ? effect.target : effect.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
+	const concentrationActor = _isActorDocument(actor) ? actor : _isActorDocument(effect.target) ? effect.target : _isActorDocument(effect.parent) ? effect.parent : null;
 	const originItem = _resolveEffectFlagItem(flags.item, concentrationActor, relative);
 	const originActivity = _resolveEffectFlagActivity(flags.activity, originItem, concentrationActor, relative);
 	return { originItem, originActivity };
@@ -2888,13 +2909,16 @@ function _isItemDocument(document) {
 	return document instanceof CONFIG.Item.documentClass;
 }
 
+function _isActorDocument(document) {
+	return document instanceof CONFIG.Actor.documentClass;
+}
+
+function _isActiveEffectDocument(document) {
+	return document instanceof CONFIG.ActiveEffect.documentClass;
+}
+
 function _isActivityDocument(document) {
-	return Boolean(
-		document &&
-			!(document instanceof CONFIG.ActiveEffect.documentClass) &&
-			!(document instanceof CONFIG.Item.documentClass) &&
-			(document.uuid?.includes?.('.Activity.') || document.item instanceof CONFIG.Item.documentClass),
-	);
+	return !!document && document.documentName === 'Activity';
 }
 
 function _resolveActorFromOrigin(origin) {
@@ -2902,15 +2926,15 @@ function _resolveActorFromOrigin(origin) {
 	if (_isActivityDocument(origin)) return origin.item?.actor ?? origin.parent?.actor;
 
 	// If origin is an ActiveEffect on an Item or Actor
-	if (origin instanceof CONFIG.ActiveEffect.documentClass) {
+	if (_isActiveEffectDocument(origin)) {
 		const parent = origin.parent;
-		if (parent instanceof CONFIG.Item.documentClass) return parent.actor;
-		if (parent instanceof CONFIG.Actor.documentClass) return parent;
+		if (_isItemDocument(parent)) return parent.actor;
+		if (_isActorDocument(parent)) return parent;
 	}
 
 	// If origin is an Item or directly embedded in Actor
-	if (origin.parent instanceof CONFIG.Item.documentClass) return origin.parent.actor;
-	if (origin.parent instanceof CONFIG.Actor.documentClass) return origin.parent;
+	if (_isItemDocument(origin.parent)) return origin.parent.actor;
+	if (_isActorDocument(origin.parent)) return origin.parent;
 
 	return undefined;
 }
@@ -3071,7 +3095,7 @@ export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', de
 	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
 	debug ??= {};
-	const debugLoggingEnabled = Boolean(ac5e?.devModeEnabled || ac5e?.debug.evaluations);
+	const debugLoggingEnabled = !!(ac5e?.devModeEnabled || ac5e?.debug.evaluations);
 	debug.log = debugLoggingEnabled ? console.warn : undefined;
 
 	if (mode === 'condition') return evaluateCondition(expression, sandbox, debug);
@@ -3191,11 +3215,14 @@ export function _getActivityEffectsStatusRiders(activity) {
  * const shield = ac5e.getItemOrActivity("Shield", null, "Bob the Fighter");
  */
 export function _getItemOrActivity(itemID, activityID, actor) {
-	if (actor && !(actor instanceof Actor)) {
-		if (game.actors.getName(actor) instanceof Actor) actor = game.actors.getName(actor);
-		else if (actor.includes('.')) actor = _safeFromUuidSync(actor);
-		else actor = game.actors.get(actor);
-		if (!(actor instanceof Actor)) {
+	if (actor && !_isActorDocument(actor)) {
+		if (typeof actor === 'string') {
+			const actorByName = game.actors.getName(actor);
+			if (_isActorDocument(actorByName)) actor = actorByName;
+			else if (actor.includes('.')) actor = _safeFromUuidSync(actor);
+			else actor = game.actors.get(actor);
+		}
+		if (!_isActorDocument(actor)) {
 			actor = undefined;
 			ui.notifications.warn('ac5e.getItemOrActivity warning: actor parameter provided is not in the right format, which is for linked actors either the Name or the id, and for unlinked the UUID');
 		}

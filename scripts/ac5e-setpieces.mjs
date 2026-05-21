@@ -113,7 +113,7 @@ function _logDeleteTrace(stage, payload = {}) {
 }
 
 function _usesCountDebugEnabled() {
-	return Boolean(settings.debug || ac5e?.debug?.usesCount);
+	return !!(settings.debug || ac5e?.debug?.usesCount);
 }
 
 function _logUsesCount(stage, payload = {}) {
@@ -250,7 +250,7 @@ function _isOncePerRoundBlocked(entry, combat) {
 	const usedAtTurn = _toFiniteNumberOrNull(entry.usedTurn);
 	const currentRound = _toFiniteNumberOrNull(combat.round);
 	const currentTurn = _toFiniteNumberOrNull(combat.turn);
-	if (usedRound === null || currentRound === null) return Boolean(entry);
+	if (usedRound === null || currentRound === null) return !!entry;
 	let unlockTurn = _toFiniteNumberOrNull(entry.turn);
 	const unlockCombatantId = entry?.combatantId ?? null;
 	if (unlockCombatantId) {
@@ -1369,7 +1369,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			return;
 		}
 		if (validFlags.some((existing) => existing?.id === entry.id)) {
-			if (ac5e?.debug.optins) console.warn('AC5E optins: duplicate entry id skipped', { id: entry.id, entry });
+			if (ac5e?.debug?.abilityOverrideTrace) console.warn('AC5E optins: duplicate entry id skipped', { id: entry.id, entry });
 			return;
 		}
 		validFlags.push(entry);
@@ -1541,7 +1541,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(activity?.type);
 		const isUseActivity = hook === 'use' && !!activity?.type;
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
-		const isAbilityOverride = change.key.toLowerCase().includes('abilityoverride') && (hook === 'check' || hook === 'save' || isUseActivity || isSkill || isTool);
+		const isAbilityOverride = change.key.toLowerCase().includes('abilityoverride') && (hook === 'attack' || hook === 'damage' || hook === 'check' || hook === 'save' || isUseActivity || isSkill || isTool);
+		if (ac5e?.debug?.abilityOverrideTrace && change.key.toLowerCase().includes('abilityoverride')) {
+			console.warn('AC5E TRACE setpieces.effectChangesTest.abilityOverrideGate', {
+				hook,
+				activityType: activity?.type ?? null,
+				changeKey: change.key,
+				changeValue: change.value,
+				isUseActivity,
+				isSkill,
+				isTool,
+				isAbilityOverride,
+			});
+		}
 		const modifyHooks = isModifyAC || isModifyDC || isAbilityOverride;
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
@@ -1549,7 +1561,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const hasHook = change.key.includes(hook) || isAll || isD20 || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
-		const { actorType: resolvedActorType } = getActorAndModeType(change, Boolean(auraTokenEvaluationData));
+		const { actorType: resolvedActorType } = getActorAndModeType(change, !!auraTokenEvaluationData);
 		const cadenceActorType = auraTokenEvaluationData ? 'aura' : (resolvedActorType ?? actorType);
 		if (normalizedChangeValue.includes('itemlimited') && evalData.originItem?.id !== evalData.item?.id && evalData.originItem?.uuid !== evalData.item?.uuid) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
@@ -1937,7 +1949,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 		return winner?.mode ?? null;
 	};
-	const countEntries = (entries = []) => (Array.isArray(entries) ? entries.length : 0);
+	const countEntries = (entries) => entries?.length ?? 0;
 	const getValidFlagsBySideAndMode = (actorType, mode) =>
 		_filterOptinEntries(
 			validFlags.filter((entry) => entry?.actorType === actorType && entry?.mode === mode),
@@ -1955,11 +1967,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			...getValidFlagsBySideAndMode('opponent', 'disadvantage'),
 		];
 		const hasAdvantageSources =
-			Boolean(subjectAdvantage.length || opponentAdvantage.length) ||
-			Boolean(countEntries(ac5eConfig?.subject?.advantageNames) || countEntries(ac5eConfig?.opponent?.advantageNames));
+			(subjectAdvantage.length || opponentAdvantage.length) ||
+			countEntries(ac5eConfig?.subject?.advantageNames) || countEntries(ac5eConfig?.opponent?.advantageNames);
 		const hasDisadvantageSources =
-			Boolean(subjectDisadvantage.length || opponentDisadvantage.length) ||
-			Boolean(countEntries(ac5eConfig?.subject?.disadvantageNames) || countEntries(ac5eConfig?.opponent?.disadvantageNames));
+			(subjectDisadvantage.length || opponentDisadvantage.length) ||
+			countEntries(ac5eConfig?.subject?.disadvantageNames) || countEntries(ac5eConfig?.opponent?.disadvantageNames);
 		return {
 			hasTransitAdvantage: hasAdvantageSources,
 			hasTransitDisadvantage: hasDisadvantageSources,
@@ -2055,7 +2067,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chanceCache: chanceRollCache,
 			chanceKey: entryId,
 		});
-		const forceOptin = Boolean(usesOverride?.forceOptin);
+		const forceOptin = !!usesOverride?.forceOptin;
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
 		const optin = normalizedChangeValue.includes('optin') || forceOptin;
 		const cadence = _extractCadenceFromValue(change.value);
@@ -2258,7 +2270,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (ruleHook === 'd20') return ['attack', 'check', 'save', 'initiative'].includes(hook);
 			if (ruleHook === 'checks' || ruleHook === 'check') return hook === 'check';
 			if (ruleHook === 'saves' || ruleHook === 'save') return hook === 'save';
-			if (ruleHook === 'skills' || ruleHook === 'skill') return hook === 'check' && Boolean(skill);
+			if (ruleHook === 'skills' || ruleHook === 'skill') return hook === 'check' && !!skill;
 			if (ruleHook === 'tools' || ruleHook === 'tool') return hook === 'check' && Boolean(tool);
 			if (ruleHook === 'concentration' || ruleHook === 'conc') return hook === 'save' && Boolean(isConcentration);
 			if (ruleHook === 'death' || ruleHook === 'deathsave' || ruleHook === 'death-save') return hook === 'save' && Boolean(isDeathSave);
@@ -2338,7 +2350,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let runtimeConditionOk = true;
 		if (typeof rule?.evaluate === 'function') {
 			try {
-				runtimeConditionOk = Boolean(rule.evaluate(evaluationData, { ac5eConfig, rule, subjectToken, opponentToken }));
+				runtimeConditionOk = !!rule.evaluate(evaluationData, { ac5eConfig, rule, subjectToken, opponentToken });
 			} catch (err) {
 				runtimeConditionOk = false;
 				console.warn(`AC5E usage rule "${rule?.key ?? rulePrimaryName}" evaluate() failed`, err);
@@ -2380,7 +2392,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chanceCache: chanceRollCache,
 			chanceKey: ruleId,
 		});
-		const optin = Boolean(rule?.optin);
+		const optin = !!rule?.optin;
 		const cadence = _extractCadenceFromValue(ruleValue);
 		const priority = getPriorityValue(ruleValue);
 		const valueCustomName = getCustomName(ruleValue);
@@ -2477,7 +2489,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!entry?.isAura && !entry?.auraTokenUuid) return true;
 				const queuedId = String(queued.id ?? '');
 				const auraSuffix = entry?.auraTokenUuid ? `:aura:${entry.auraTokenUuid}` : '';
-				return Boolean(auraSuffix) && queuedId.endsWith(auraSuffix);
+				return !!auraSuffix && queuedId.endsWith(auraSuffix);
 			};
 			const pendingForEntry = updateArrays.pendingUses?.filter(matchesQueuedUpdate);
 			const pendingModeFamily = _getPendingUseModeFamily(mode, hook);
@@ -2528,16 +2540,27 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
-				const hasDecoratedLabel = Boolean(entry?.label && entry.label !== name);
+				const hasDecoratedLabel = !!(entry?.label && entry.label !== name);
 				const preserveEntryObject =
 					(mode === 'fail' && Boolean(entry?.description)) ||
 					(mode === 'info' && Boolean(entry?.enforceMode)) ||
-					Boolean(entry?.chance?.enabled);
+					!!entry?.chance?.enabled;
 				ac5eConfig[actorType][mode].push(
 					preserveEntryObject ? entry
 					: isAura || hasDecoratedLabel ? entry.label
 					: name,
 				); // preserve index/custom labels
+			}
+			if (ac5e?.debug?.abilityOverrideTrace && hook === 'attack' && mode === 'advantage') {
+				console.warn('AC5E TRACE attackAdvantage.entryPushed', {
+					entryId: entry?.id,
+					entryMode: mode,
+					actorType,
+					optin: !!optin,
+					storedAs: optin || ['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode) ? 'entry' : 'labelOrName',
+					changeKey: entry?.changeKey,
+					label: entry?.label,
+				});
 			}
 			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' || mode === 'diceUpgrade' || mode === 'diceDowngrade') {
 				const configMode =
@@ -2688,6 +2711,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			if (clause.startsWith('!') && !clause.includes('&') && !clause.includes('?') && !clause.includes('|')) {
 				clause = clause.slice(1).trim();
 				mult = '!';
+			}
+			const normalizedClause = clause.trim().toLowerCase();
+			if (Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, normalizedClause)) {
+				const abilityBucket = sandbox?.ability;
+				const abilityMatch =
+					(typeof abilityBucket === 'string' && abilityBucket === normalizedClause) ||
+					(typeof abilityBucket === 'object' && abilityBucket && abilityBucket[normalizedClause] === true) ||
+					(sandbox?._evalConstants?.[normalizedClause] === true);
+				return mult ? !abilityMatch : abilityMatch;
 			}
 			const clauseSandbox = { ...sandbox, _evalConstants: { ...mergedConstants } };
 			const result = _ac5eSafeEval({ expression: clause, sandbox: clauseSandbox, mode: 'condition', debug });
@@ -2863,7 +2895,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 	const hasCount = getBlacklistedKeysValue('usescount', change.value);
 	const hasUpdate = getBlacklistedKeysValue('update', change.value);
 	const cadence = _extractCadenceFromValue(change.value);
-	const hasCadence = Boolean(cadence);
+	const hasCadence = !!cadence;
 	const isOnce = keywordValues.some((use) => use === 'once');
 	let isOptin = keywordValues.some((use) => use === 'optin');
 	const partialConsume = keywordValues.some((use) => use === 'partialconsume');
@@ -2906,7 +2938,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				forceDescription: true,
 				labelSuffix: finalStandLabel,
 				labelName: customName ?? undefined,
-				preferCustomName: Boolean(customName),
+				preferCustomName: !!customName,
 			});
 			isOptin = true;
 		};
@@ -3220,7 +3252,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 								forceDescription: true,
 								labelSuffix: finalStandLabel,
 								labelName: customName ?? undefined,
-								preferCustomName: Boolean(customName),
+								preferCustomName: !!customName,
 							});
 							isOptin = true;
 						};
@@ -3717,8 +3749,8 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 function _getUsesState({ item, activity }) {
 	const itemUsesMax = item ? _asFiniteNumber(item?.system?.uses?.max) : null;
 	const activityUsesMax = activity ? _asFiniteNumber(activity?.uses?.max) : null;
-	const hasItemUses = Boolean(item) && itemUsesMax !== null && itemUsesMax > 0;
-	const hasActivityUses = Boolean(activity) && activityUsesMax !== null && activityUsesMax > 0;
+	const hasItemUses = !!item && itemUsesMax !== null && itemUsesMax > 0;
+	const hasActivityUses = !!activity && activityUsesMax !== null && activityUsesMax > 0;
 	let currentUses = false;
 	let usesSource = null;
 	if (hasActivityUses) {
@@ -3811,10 +3843,10 @@ function updateUsesCount({
 	const hasUses = currentUses !== false;
 	const hasQuantity = currentQuantity !== false;
 	const usesDocumentOwner =
-		usesSource === 'activity' ? Boolean(activity?.isOwner)
-		: usesSource === 'item' ? Boolean(item?.isOwner)
+		usesSource === 'activity' ? !!activity?.isOwner
+		: usesSource === 'item' ? !!item?.isOwner
 		: false;
-	const quantityDocumentOwner = Boolean(item?.isOwner);
+	const quantityDocumentOwner = !!item?.isOwner;
 	const appliedUsesConsume = hasUses && partialConsume && consume > 0 ? Math.min(consume, currentUses) : consume;
 	const appliedQuantityConsume = hasQuantity && partialConsume && consume > 0 ? Math.min(consume, currentQuantity) : consume;
 	const newUses = hasUses ? currentUses - appliedUsesConsume : null;
@@ -4025,7 +4057,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 					enabled: true,
 					threshold: thresholdChance,
 					rolled: Number(cachedChance.rolled),
-					triggered: Boolean(cachedChance.triggered),
+					triggered: !!cachedChance.triggered,
 				};
 			} else {
 				const rolled = Math.floor(Math.random() * 100) + 1;

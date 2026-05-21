@@ -40,9 +40,17 @@ export function forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialo
 	if (!dialog || typeof dialog !== 'object') return false;
 	if (dialog.configure !== false) return false;
 	const relevantEntries = getRelevantOptinEntriesForMidiFastForward(ac5eConfig, config, hookType);
+	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
+		console.warn('AC5E TRACE midiFastForward.forceDialogConfigure.check', {
+			hookType,
+			dialogConfigure: dialog?.configure,
+			relevantEntryCount: relevantEntries.length,
+			entries: relevantEntries.map((entry) => ({ id: entry?.id, mode: entry?.mode, hook: entry?.hook, optin: !!entry?.optin, forceOptin: !!entry?.forceOptin, set: entry?.set, label: entry?.label ?? entry?.name })),
+		});
+	}
 	if (!relevantEntries.length) return false;
 	dialog.configure = true;
-	if (globalThis.ac5e?.debug?.optins) {
+	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
 		console.warn('AC5E forced dialog.configure for Midi fast-forward due to relevant optins', {
 			hookType,
 			optins: relevantEntries.map((entry) => ({ id: entry.id, label: entry.label ?? entry.name, mode: entry.mode })),

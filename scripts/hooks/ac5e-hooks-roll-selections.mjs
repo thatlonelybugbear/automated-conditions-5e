@@ -6,7 +6,7 @@ function shouldHideTargetADCFromRollDialog(_ac5eConfig, hookType) {
 
 export function getConfigEntriesByModes(ac5eConfig, modes, hookType, predicate = undefined) {
 	const modeList = Array.isArray(modes) ? modes : [modes];
-	return modeList.flatMap((mode) => {
+	const entries = modeList.flatMap((mode) => {
 		if (mode === 'targetADC' && shouldHideTargetADCFromRollDialog(ac5eConfig, hookType)) return [];
 		const subjectEntries = Array.isArray(ac5eConfig?.subject?.[mode]) ? ac5eConfig.subject[mode] : [];
 		const opponentEntries = Array.isArray(ac5eConfig?.opponent?.[mode]) ? ac5eConfig.opponent[mode] : [];
@@ -17,11 +17,13 @@ export function getConfigEntriesByModes(ac5eConfig, modes, hookType, predicate =
 			&& (!predicate || predicate(entry, mode))
 		);
 	});
+	return entries;
 }
 
 export function getRollNonBonusOptinEntries(ac5eConfig, hookType) {
 	const modes = ['advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'modifiers'];
-	return getConfigEntriesByModes(ac5eConfig, modes, hookType, (entry) => entry.optin);
+	const entries = getConfigEntriesByModes(ac5eConfig, modes, hookType, (entry) => entry.optin);
+	return entries;
 }
 
 export function getBonusEntriesForHook(ac5eConfig, hookType) {
@@ -39,5 +41,9 @@ export function getSelectedOptinEntries(ac5eConfig, optins, selectedTypes, hookT
 }
 
 export function getAllOptinEntriesForHook(ac5eConfig, hookType) {
-	return getConfigEntriesByModes(ac5eConfig, ['bonus', 'info', 'targetADC', 'range'], hookType, (entry) => entry.optin);
+	const modes =
+		hookType === 'attack' ? ['bonus', 'info', 'targetADC', 'range', 'abilityOverride']
+		: ['bonus', 'info', 'targetADC', 'range'];
+	const entries = getConfigEntriesByModes(ac5eConfig, modes, hookType, (entry) => entry.optin);
+	return entries;
 }
