@@ -38,6 +38,17 @@
 - Added new integration hook: `ac5e.sandboxReady.<effectId>`.
   - Provides the prepared evaluation sandbox plus effect change key and expression value for extension modules.
 - Removed some forgotten console logs.
+- Improved AC5E Active Effect key autocomplete trigger behavior.
+  - Autocomplete now opens when typing explicit AC5E/module scopes (for example `ac5e`, `automated-conditions-5e`) and also when the current typed prefix already matches known AC5E keys (for example `attack.bon`).
+  - Prefix parsing now supports hyphenated segments so module-scoped keys trigger suggestions without requiring extra whitespace/input nudges.
+  - Non-AC5E/system-specific key editing no longer forces AC5E autocomplete suggestions by default.
+  - Re-ranked AC5E Active Effect key autocomplete entries so legacy `ACTIONTYPE` keys are kept for compatibility but listed after specific keys.
+- Improved roll-dialog opt-in row overflow handling for very long labels.
+  - Long opt-in labels are now constrained and truncated more safely to avoid wrapping/overflow regressions in the roll config dialog layout.
+- Improved opt-in description tooltip resolution for `description=effectDescription`.
+  - `effectDescription` now resolves to `effect.description` instead of being treated as a literal string.
+  - Embedded document references in descriptions are enriched asynchronously before tooltip text is applied.
+- Added AC5E stylesheet paths to module hot-reload configuration so CSS/layout tweaks update immediately during development.
 
 ## 14.533.1
 

@@ -1,5 +1,5 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
-import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eChangeKey, replaceAutocompletePrefix } from './ac5e-effect-value-autocomplete.mjs';
+import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eChangeKey, replaceAutocompletePrefix, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
 import Settings from '../ac5e-settings.mjs';
 
 export function registerEffectValueEditorHooks() {
@@ -33,9 +33,15 @@ function initializeKeyAutocomplete(app, root) {
 		});
 		const activateAutocomplete = () => {
 			const prefix = getAutocompletePrefix(keyInput);
+			const normalizedPrefix = prefix.toLowerCase();
 			const filteredEntries = prefix
-				? entries.filter((entry) => entry.identifier.toLowerCase().includes(prefix.toLowerCase())).slice(0, 40)
+				? entries.filter((entry) => entry.identifier.toLowerCase().includes(normalizedPrefix)).slice(0, 40)
 				: entries.slice(0, 40);
+			const hasPrefixMatch = Boolean(prefix) && filteredEntries.length > 0;
+			if (!hasPrefixMatch && !shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
+				autocomplete.dismiss();
+				return;
+			}
 			if (!filteredEntries.length) {
 				autocomplete.dismiss();
 				return;

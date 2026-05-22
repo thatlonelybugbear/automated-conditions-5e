@@ -83,13 +83,27 @@ export function buildEffectKeyAutocompleteEntries(currentKey) {
 	const entries = new Map();
 	for (const key of _generateAC5eFlags()) addEntry(entries, key, 'AC5E flag');
 	if (isAc5eChangeKey(currentKey)) addEntry(entries, currentKey, 'Current key');
-	return Array.from(entries.values()).sort((a, b) => a.identifier.localeCompare(b.identifier));
+	return Array.from(entries.values()).sort(compareAutocompleteEntries);
+}
+
+function compareAutocompleteEntries(a, b) {
+	const aLegacyActionType = isLegacyActionTypeKey(a?.identifier);
+	const bLegacyActionType = isLegacyActionTypeKey(b?.identifier);
+	if (aLegacyActionType !== bLegacyActionType) return aLegacyActionType ? 1 : -1;
+	const left = typeof a?.identifier === 'string' ? a.identifier : '';
+	const right = typeof b?.identifier === 'string' ? b.identifier : '';
+	return left.localeCompare(right);
+}
+
+function isLegacyActionTypeKey(identifier) {
+	if (typeof identifier !== 'string') return false;
+	return /\.ACTIONTYPE\./i.test(identifier);
 }
 
 export function getAutocompletePrefix(input) {
 	const cursor = input.selectionStart ?? input.value.length;
 	const beforeCursor = input.value.slice(0, cursor);
-	return beforeCursor.match(/[A-Za-z_$][\w$]*(?:\.(?:[A-Za-z_$][\w$]*|\d+))*\.?$/)?.[0] ?? '';
+	return beforeCursor.match(/[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*\.?$/)?.[0] ?? '';
 }
 
 export function replaceAutocompletePrefix(input, prefix, replacement) {
@@ -189,4 +203,12 @@ function getItemParent(effect) {
 export function isAc5eChangeKey(changeKey) {
 	const normalized = String(changeKey ?? '').trim().toLowerCase();
 	return normalized.startsWith('flags.ac5e.') || normalized.startsWith(`flags.${Constants.MODULE_ID}.`);
+}
+
+export function shouldTriggerAc5eKeyAutocomplete(changeKey) {
+	if (typeof changeKey !== 'string') return false;
+	const normalized = changeKey.trim().toLowerCase();
+	if (!normalized) return false;
+	if (isAc5eChangeKey(normalized)) return true;
+	return normalized.includes('ac5e') || normalized.includes('automated-');
 }

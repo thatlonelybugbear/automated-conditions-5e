@@ -2834,7 +2834,7 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 	const flagItem = _resolveEffectFlagItem(flags.item, actor, relativeDocument);
 	const flagActivity = _resolveEffectFlagActivity(flags.activity, flagItem, actor, relativeDocument);
 	const isConcentration = effect.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING);
-	const isEnchantment = effect.type === 'enchantment' || effect.isAppliedEnchantment || effect.flags?.dnd5e?.dependentOn;
+	const isEnchantment = effect.type === 'enchantment';
 
 	if (flagItem) context.originItem = flagItem;
 	if (flagActivity) {

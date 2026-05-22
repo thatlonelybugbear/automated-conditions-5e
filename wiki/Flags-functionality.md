@@ -217,6 +217,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `chance=Number`        | Applies only when a d100 roll is greater than or equal to the threshold |
 | `name=Text`            | Custom label for tooltips/dialog opt-in entry |
 | `description=Text`     | Custom opt-in description/reason text |
+| `description=effectDescription` | Uses the Active Effect's own description as the opt-in tooltip text |
 | `update=ActorAttr, Delta` | Applies an allowlisted actor update instruction. Delta is the default, and `=` sets an absolute value. Example: `update=opponentActor.hp,-5` or `update=rollingActor.hp,=1` |
 | `oncePerTurn` / `oncePerRound` / `oncePerCombat` | Cadence limits for usage. `cadence=turn|round|combat` aliases are supported. |
 | `noProne` (and similar status keys) | Suppresses a specific status for roll automation while the effect is active. Current stable usage is boolean-style only, for example `true`. Conditional expressions and `optin` handling are reserved for later work. |
@@ -390,6 +391,29 @@ If the roll involves a specific action or item, you'll also have access to:
 All these are accessible directly as paths. For example:
 ```text
 (itemProperties.mgc && itemProperties.fin) || (itemName.Claw && damageTypes.poison)   // true if either an the roll involves a magical finesse weapon, or one named Claw and dealing poison damage
+```
+
+### Effect Origin Data (`originItem` / `originActivity`)
+
+AC5E also exposes origin-side item/activity data for cases where the currently rolled `item` is different from the effect's source context.
+
+- `originItem` - roll-data style object for the effect origin item
+- `originActivity` - roll-data style object for the effect origin activity
+- `originItemType` - origin item's type key
+- `originItemProperties` - origin item properties map, same style as `itemProperties`
+
+Example checks:
+
+```text
+originItemType === 'weapon' && originItemProperties.mgc
+```
+
+```text
+originActivity.hasAttack && damageTypes.fire
+```
+
+```text
+itemLimited && originItem.hasLimitedUses
 ```
 
 ### Damage Types
