@@ -10,7 +10,27 @@
 - `Grappled` status under modern rules will apply disadvantage to attacks:
   - If the grappler is not the one being attacked, or
   - If the grappled status has no associated effect origin.  
-- Reinstate `abilityOverride` flags.
+- Reinstate `abilityOverride` flags. Ability Override opt-ins now behave more reliably in the roll dialog:
+  - Toggling an override on/off now correctly recalculates the attack setup each time.
+  - Related optional entries that depend on the overridden ability (for example `optin;dex`) now appear consistently.
+- Fixed certain `range` boolean-style toggles (such as `noNearbyFoeDisadvantage`) so conditional values are evaluated correctly instead of falling back to `0`.
+- Added new proficiency helpers to the AC5E formula sandbox for saves/skills/tools:
+  - `hasProficiency`, `hasFullProficiency`, `hasHalfProficiency`, and `hasExpertise`.
+- `usesCount` opt-in labels now treat UUID-based item targets as item uses, so tooltips show friendly text like costs/restores uses instead of raw UUID paths.
+- Added scaled opt-ins for roll dialogs.
+  - Opt-ins can now include a slider-driven scale and apply that selected value to matching formulas and consumption.
+  - You can reference the selected slider value directly in formulas via `optinScale`.
+  - You can also use `bonusScale` as the resolved scale value token in formulas.
+  - This works for attack and damage bonus-style entries, including multi-part updates while the dialog is open.
+- Improved roll dialog opt-in layout for scaled entries.
+  - Scaled opt-ins now keep checkbox, slider, and info controls together in a clearer row.
+  - Consumption text updates with the current slider value so players can see the exact cost before rolling.
+- Improved Ability Override labels in optional entries.
+  - Ability override opt-ins now show the overridden ability directly in the label for easier selection.
+- Added `baseValue` formula token support for baseline-aware calculations.
+  - `modifyAC`, `modifyDC`, `criticalThreshold`, and `fumbleThreshold` entries can now reference `baseValue` to use a stable pre-AC5E baseline value.
+- AC5E Effect Value Editor now includes a `Scaling` toggle for `usesCount`.
+  - Enabling it injects the default scaling block format and updates immediately in the editor draft state.
 - Removed some forgotten console logs.
 
 ## 14.533.1

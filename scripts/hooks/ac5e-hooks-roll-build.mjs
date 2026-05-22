@@ -151,13 +151,15 @@ function getOptinsFromForm(formData) {
 }
 
 function resolveEntryOptinScaleValue(rawValue, entry, optins) {
-	if (typeof rawValue !== 'string' || !/(?:\(optinScale\)|\boptinScale\b)/i.test(rawValue)) return rawValue;
+	if (typeof rawValue !== 'string' || !/(?:\(optinScale\)|\boptinScale\b|\(bonusScale\)|\bbonusScale\b)/i.test(rawValue)) return rawValue;
 	const selection = optins?.[entry?.id];
 	const scale = _getOptinSelectionScale(selection);
 	if (!Number.isFinite(scale)) return rawValue;
 	return rawValue
 		.replace(/\(optinScale\)/gi, scale)
-		.replace(/\boptinScale\b/gi, scale);
+		.replace(/\boptinScale\b/gi, scale)
+		.replace(/\(bonusScale\)/gi, scale)
+		.replace(/\bbonusScale\b/gi, scale);
 }
 
 function syncRollOptinSelections(ac5eConfig, rollConfig) {

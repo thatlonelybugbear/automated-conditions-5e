@@ -1150,13 +1150,15 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const selectedOptinIds = new Set(Object.keys(getConfigAC5E.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(getConfigAC5E.optinSelected[key])));
 	const isOptinEntrySelected = (entry) => entry?.forceOptin || (entry?.id && selectedOptinIds.has(entry.id));
 	const resolveEntryOptinScaleValue = (rawValue, entry) => {
-		if (typeof rawValue !== 'string' || !/(?:\(optinScale\)|\boptinScale\b)/i.test(rawValue)) return rawValue;
+		if (typeof rawValue !== 'string' || !/(?:\(optinScale\)|\boptinScale\b|\(bonusScale\)|\bbonusScale\b)/i.test(rawValue)) return rawValue;
 		const selection = getConfigAC5E?.optinSelected?.[entry?.id];
 		const scale = _getOptinSelectionScale(selection);
 		if (!Number.isFinite(scale)) return rawValue;
 		return rawValue
 			.replace(/\(optinScale\)/gi, scale)
-			.replace(/\boptinScale\b/gi, scale);
+			.replace(/\boptinScale\b/gi, scale)
+			.replace(/\(bonusScale\)/gi, scale)
+			.replace(/\bbonusScale\b/gi, scale);
 	};
 	const damageBonusEntries = getCollectedDamageEntries(getConfigAC5E, 'bonus', { raw: true }).filter((entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry));
 	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter(

@@ -7,6 +7,7 @@ import {
 	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
 	_getTokenFromActor,
+	_isOptinSelectionActive,
 	getAlteredTargetValueOrThreshold,
 	_hasValidTargets,
 	_localize,
@@ -596,7 +597,7 @@ function _rebuildPreUseTargetADCState(ac5eConfig, activity) {
 		ac5eConfig.targetADC = [];
 		return;
 	}
-	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	const baseValues = getValues(allTargetADCEntries.filter((entry) => !entry?.optin));
 	const selectedOptinValues = getValues(allTargetADCEntries.filter((entry) => entry?.optin && selectedIds.has(entry.id)));
 	ac5eConfig.targetADC = [...new Set([...baseValues, ...selectedOptinValues])];
@@ -624,11 +625,9 @@ function _rewriteTargetADCButtonLabel(baseLabel, choiceDC, baseDC) {
 }
 
 function _escapeHtmlAttribute(value) {
-	return String(value ?? '')
-		.replaceAll('&', '&amp;')
-		.replaceAll('"', '&quot;')
-		.replaceAll('<', '&lt;')
-		.replaceAll('>', '&gt;');
+	const escapedValue = foundry?.utils?.escapeHTML?.(value);
+	if (typeof escapedValue === 'string') return escapedValue;
+	return String(value ?? '');
 }
 
 function _logUsageDialogDebug(stage, payload) {

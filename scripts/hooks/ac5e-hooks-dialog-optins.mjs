@@ -453,7 +453,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			slider.addEventListener('input', () => {
 				valueLabel.textContent = slider.value;
 			});
-			if (descriptionPill) row.append(label, descriptionPill, slider, valueLabel, checkbox);
+			if (descriptionPill) row.append(label, slider, valueLabel, checkbox, descriptionPill);
 			else row.append(label, slider, valueLabel, checkbox);
 		} else if (descriptionPill) row.append(label, checkbox, descriptionPill);
 		else row.append(label, checkbox);

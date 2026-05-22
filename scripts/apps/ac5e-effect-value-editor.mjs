@@ -8,6 +8,7 @@ const AURA_TOGGLE_FIELDS = ['allies', 'enemies', 'includeSelf', 'singleAura', 'w
 const CONDITIONAL_TOGGLE_FIELDS = ['partialConsume'];
 const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
+const DEFAULT_USESCOUNT_SCALING = '{ min: 1, max: 1, step:1 }';
 
 export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 	static openEditors = new Map();
@@ -179,7 +180,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
 		}
-		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
+		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
 		}
@@ -201,6 +202,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showName = hasCheckedInput(form, 'ui.showName');
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
+		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
@@ -210,6 +212,9 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showName) mergedData.fields.name = '';
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
+		if (showUsesCount) {
+			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, showUsesCountScaling);
+		}
 		if (!String(mergedData.fields.usesCount ?? '').trim()) mergedData.toggles.partialConsume = false;
 		applyCadenceMode(mergedData, cadenceMode);
 		if (profile.supportsSetMode) {
@@ -376,6 +381,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showName = hasCheckedInput(form, 'ui.showName');
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
+		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
@@ -387,6 +393,8 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showUsesCount) {
 			mergedData.fields.usesCount = baseData.fields.usesCount;
 			mergedData.toggles.partialConsume = baseData.toggles.partialConsume;
+		} else {
+			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, showUsesCountScaling);
 		}
 		if (showCadence) applyCadenceMode(mergedData, cadenceMode);
 		else {
@@ -560,6 +568,8 @@ function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLa
 function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 	const nameField = optionalFieldState.name ? buildRenderedOptionalField('name', parsed, id) : null;
 	const descriptionField = optionalFieldState.description ? buildRenderedOptionalField('description', parsed, id) : null;
+	const usesCountValue = parsed.fields.usesCount ?? '';
+	const hasUsesCountScaling = hasUsesCountScalingSpec(usesCountValue);
 	return {
 		nameDescription: {
 			left: nameField ?? (!nameField && descriptionField ? descriptionField : null),
@@ -567,11 +577,18 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 		},
 		usesCount: {
 			left: optionalFieldState.usesCount ? buildRenderedOptionalField('usesCount', parsed, id) : null,
-			right: optionalFieldState.usesCount ? {
-				name: 'toggles.partialConsume',
-				label: 'Partial Consume',
-				checked: Boolean(parsed.toggles.partialConsume),
-			} : null,
+			right: optionalFieldState.usesCount ? [
+				{
+					name: 'toggles.partialConsume',
+					label: 'Partial Consume',
+					checked: Boolean(parsed.toggles.partialConsume),
+				},
+				{
+					name: 'ui.enableUsesCountScaling',
+					label: 'Scaling',
+					checked: hasUsesCountScaling,
+				},
+			] : null,
 		},
 	};
 }
@@ -642,9 +659,25 @@ function getSelectValue(root, name) {
 }
 
 function escapeHtml(value) {
-	return String(value ?? '')
-		.replaceAll('&', '&amp;')
-		.replaceAll('<', '&lt;')
-		.replaceAll('>', '&gt;')
-		.replaceAll('"', '&quot;');
+	const escapedValue = foundry?.utils?.escapeHTML?.(value);
+	if (typeof escapedValue === 'string') return escapedValue;
+	return String(value ?? '');
+}
+
+function hasUsesCountScalingSpec(rawValue) {
+	if (typeof rawValue !== 'string') return false;
+	return /,\s*[+-]?\s*\{[\s\S]*\}\s*$/u.test(rawValue.trim());
+}
+
+function stripUsesCountScaling(rawValue) {
+	if (typeof rawValue !== 'string') return '';
+	return rawValue.replace(/,\s*[+-]?\s*\{[\s\S]*\}\s*$/u, '').trim();
+}
+
+function updateUsesCountScaling(rawValue, enabled) {
+	const current = typeof rawValue === 'string' ? rawValue.trim() : '';
+	if (!current) return '';
+	if (!enabled) return stripUsesCountScaling(current);
+	if (hasUsesCountScalingSpec(current)) return current;
+	return `${current}, ${DEFAULT_USESCOUNT_SCALING}`;
 }

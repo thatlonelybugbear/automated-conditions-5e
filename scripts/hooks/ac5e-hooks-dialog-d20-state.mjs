@@ -1,4 +1,4 @@
-import { _getDistance, _getTokenFromActor, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { _getDistance, _getTokenFromActor, _isOptinSelectionActive, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
@@ -150,7 +150,7 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 
 function getSelectedAttackAbilityOverride(ac5eConfig) {
 	if (!ac5eConfig) return null;
-	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected?.[key]));
+	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected?.[key])));
 	const entries = [
 		...(Array.isArray(ac5eConfig.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
 		...(Array.isArray(ac5eConfig.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),

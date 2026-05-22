@@ -158,6 +158,8 @@ Replace `MODE` with one of the following:
 
 > 💡 For `criticalThreshold`, `fumbleThreshold`, `modifyAC` and `modifyDC` flags, you can use `set=` instead of the normal `threshold` or `bonus`, to **set** the value provided, instead of adding or subtracting from the actor values.
 
+> 💡 For `modifyAC`, `modifyDC`, `criticalThreshold`, and `fumbleThreshold`, formulas can reference `baseValue` as a stable pre-AC5E baseline for that flag evaluation.
+
 ---
 
 
@@ -193,6 +195,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 |                        | The `Number` is optional. If omitted 1 use or relevant value will be consumed by default! |
 | `partialConsume`       | For bounded `usesCount` targets, consume only the remaining available amount instead of failing when the full requested amount would exceed the cap |
 | `optin`                | Shows the flag as an optional checkbox in the relevant roll dialog |
+| `optinScale` / `bonusScale` | Formula tokens for scaled opt-ins. `optinScale` is the selected slider value. `bonusScale` is the resolved scale value (selected slider value when present, otherwise resolved fallback scale). |
 | `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `critical`) |
 | `addTo=fire,cold`      | Targets only matching damage types |
 | `chance=Number`        | Applies only when a d100 roll is greater than or equal to the threshold |
@@ -223,6 +226,10 @@ If multiple same-action-type entries are present on the same effect, AC5e disamb
 > `usesCount=Item.Longsword, Ablaze` will consume one use from an item named `Longsword, Ablaze`
 
 >`bonus=1d6[force]; once; itemLimited; opponentActor.attributes.hp.pct < 50 && opponentActor.statuses.prone`
+
+> `bonus=(optinScale)d6[fire]; usesCount=hp,{min:2,max:8,step:2}; optin` uses the selected slider value directly.
+
+> `bonus=(bonusScale)d6[fire]; usesCount=hp,{min:2,max:8,step:2}; optin` uses the resolved scale value token.
 
 #### Actor Roles in the Sandbox
 

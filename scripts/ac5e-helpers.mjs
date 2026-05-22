@@ -1269,13 +1269,30 @@ export function _hasItem(source, itemIdentifier, options = {}) {
 	return _getItems(source, identifiers, options).length > 0;
 }
 
+export function _isOptinSelectionActive(value) {
+	if (value && typeof value === 'object') {
+		if ('enabled' in value) return !!value.enabled;
+		return true;
+	}
+	return !!value;
+}
+
+export function _getOptinSelectionScale(value) {
+	if (value && typeof value === 'object') {
+		const scale = Number(value.scale);
+		return Number.isFinite(scale) ? scale : null;
+	}
+	return null;
+}
+
 function _getSelectedOptinIds(optinSelected = {}) {
 	const selected = new Set();
 	const visit = (value, key) => {
 		if (!value || typeof value !== 'object') {
-			if (value && key) selected.add(key);
+			if (_isOptinSelectionActive(value) && key) selected.add(key);
 			return;
 		}
+		if (key && _isOptinSelectionActive(value)) selected.add(key);
 		for (const [nestedKey, nestedValue] of Object.entries(value)) {
 			visit(nestedValue, nestedKey);
 		}
@@ -2791,12 +2808,11 @@ export function _buildStandardTooltipFromLines(lines = [], { showNameTooltips = 
 		const label = noChanges && noChanges !== noChangesKey ? noChanges : 'No changes';
 		return `${tooltip}<div style="text-align:center;"><strong>${label}</strong></div></div>`;
 	}
-	const escapeHtml = (value) =>
-		String(value ?? '')
-			.replaceAll('&', '&amp;')
-			.replaceAll('<', '&lt;')
-			.replaceAll('>', '&gt;')
-			.replaceAll('"', '&quot;');
+	const escapeHtml = (value) => {
+		const escapedValue = foundry?.utils?.escapeHTML?.(value);
+		if (typeof escapedValue === 'string') return escapedValue;
+		return String(value ?? '');
+	};
 	tooltip += normalizedLines.map((line) => `<span style="display: block; text-align: left;">${escapeHtml(line)}</span>`).join('<br>');
 	tooltip += '</div>';
 	return tooltip;

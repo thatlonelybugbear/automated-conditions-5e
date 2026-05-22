@@ -1,4 +1,4 @@
-import { _getMessageDnd5eFlags, _getMessageFlagScope, getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
+import { _getMessageDnd5eFlags, _getMessageFlagScope, _isOptinSelectionActive, getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
 import { getExistingRoll } from './ac5e-hooks-ui-utils.mjs';
@@ -19,7 +19,7 @@ export function rebuildOptinTargetADCState(ac5eConfig, rollConfig) {
 		ac5eConfig.optinBaseTargetADCValue = getBaseTargetADCValue(rollConfig, ac5eConfig);
 	}
 	if (targetADCEntries.length) {
-		const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => ac5eConfig.optinSelected[key]));
+		const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 		ac5eConfig.optinBaseTargetADC = [...baseTargetADCEntries];
 		const baseTargetADC = ac5eConfig.optinBaseTargetADC ?? [];
 		const selectedValues = [];

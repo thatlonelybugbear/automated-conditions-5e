@@ -2072,6 +2072,55 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
 		return valuesToEvaluate;
 	};
+	const getNumericCandidates = (...values) =>
+		values
+			.map((value) => Number(value))
+			.filter((value) => Number.isFinite(value));
+	const getStableBaseValueForEntry = ({ mode, hook, sandbox }) => {
+		const ac5eConfig = sandbox?.ac5eConfig ?? {};
+		const preConfig = ac5eConfig?.preAC5eConfig ?? {};
+		const frozenTarget = preConfig?.frozenD20Baseline?.target ?? {};
+		if (mode === 'targetADC') {
+			if (hook === 'attack' || hook === 'damage') {
+				const targetAcs = Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets.map((target) => target?.ac) : [];
+				const candidates = getNumericCandidates(
+					ac5eConfig?.optinBaseTargetADCValue,
+					ac5eConfig?.initialTargetADC,
+					preConfig?.baseRoll0Options?.target,
+					preConfig?.baseConfigTarget,
+					frozenTarget?.value,
+					...targetAcs,
+				);
+				return candidates.length ? Math.min(...candidates) : 10;
+			}
+			const candidates = getNumericCandidates(
+				ac5eConfig?.optinBaseTargetADCValue,
+				ac5eConfig?.initialTargetADC,
+				ac5eConfig?.useConfig?.initialTargetADC,
+				preConfig?.baseRoll0Options?.target,
+				preConfig?.baseConfigTarget,
+				frozenTarget?.value,
+			);
+			return candidates.length ? candidates[0] : 10;
+		}
+		if (mode === 'criticalThreshold') {
+			const candidates = getNumericCandidates(
+				frozenTarget?.criticalSuccess,
+				preConfig?.baseRoll0Options?.criticalSuccess,
+				ac5eConfig?.initialCritThreshold,
+			);
+			return candidates.length ? candidates[0] : 20;
+		}
+		if (mode === 'fumbleThreshold') {
+			const candidates = getNumericCandidates(
+				frozenTarget?.criticalFailure,
+				preConfig?.baseRoll0Options?.criticalFailure,
+				ac5eConfig?.initialFumbleThreshold,
+			);
+			return candidates.length ? candidates[0] : 1;
+		}
+		return undefined;
+	};
 	const buildValidFlagEntry = ({ change, changeIndex, effect, hook, sandbox, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
@@ -2089,12 +2138,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const entryId =
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
+		const scopedSandbox = sandbox && typeof sandbox === 'object' ? { ...sandbox } : sandbox;
+		const baseValue = getStableBaseValueForEntry({ mode, hook, sandbox });
+		if (baseValue !== undefined && scopedSandbox && typeof scopedSandbox === 'object') scopedSandbox.baseValue = baseValue;
 		const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({
 			value: change.value,
 			mode,
 			hook,
 			effect,
-			evaluationData: sandbox,
+			evaluationData: scopedSandbox,
 			isAura,
 			debug,
 			chanceCache: chanceRollCache,
@@ -2120,7 +2172,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				buildAutoDescription({ mode, hook: autoDescriptionHook, bonus, modifier, set, threshold, enforceMode })
 			:	undefined;
 		const valuesToEvaluate = getValuesToEvaluate({ value: change.value, mode, bonus, effect });
-		const evaluation = getMode({ value: valuesToEvaluate, sandbox, debug }) && (!chance?.enabled || chance.triggered);
+		const evaluation = getMode({ value: valuesToEvaluate, sandbox: scopedSandbox, debug }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
 		const usesCount = getBlacklistedKeysValue('usescount', change.value);
 		const parsedUsesCount = _parseUsesCountSpec(usesCount);
@@ -2141,6 +2193,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			modifier,
 			set,
 			threshold,
+			baseValue,
 			chance,
 			evaluation,
 			optin,
@@ -4065,6 +4118,10 @@ function bonusReplacements(expression, evalData, isAura, effect, entryId = null)
 		effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 		stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
 	};
+	if (Number.isFinite(Number(evalData?.baseValue))) {
+		const baseValue = Number(evalData.baseValue);
+		staticMap.baseValue = baseValue;
+	}
 
 	let selectedOptinScaling = null;
 	if (entryId) {
@@ -4072,11 +4129,15 @@ function bonusReplacements(expression, evalData, isAura, effect, entryId = null)
 		const optinScale = _getOptinSelectionScale(optinSelection);
 		if (Number.isFinite(optinScale)) selectedOptinScaling = optinScale;
 	}
+	const resolvedBonusScale = selectedOptinScaling ?? scalingValue;
 	if (selectedOptinScaling !== null) {
 		expression = expression
 			.replace(/\(optinScale\)/gi, selectedOptinScaling)
 			.replace(/\boptinScale\b/gi, selectedOptinScaling);
 	}
+	expression = expression
+		.replace(/\(bonusScale\)/gi, resolvedBonusScale)
+		.replace(/\bbonusScale\b/gi, resolvedBonusScale);
 	expression = expression.replace(/@scaling\.increase\b/g, scalingIncrease);
 	expression = expression.replace(/\bscaling\.increase\b/g, scalingIncrease);
 	expression = expression.replace(/@scaling\b/g, scalingValue);
