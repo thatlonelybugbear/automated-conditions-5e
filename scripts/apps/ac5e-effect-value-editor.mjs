@@ -8,7 +8,7 @@ const AURA_TOGGLE_FIELDS = ['allies', 'enemies', 'includeSelf', 'singleAura', 'w
 const CONDITIONAL_TOGGLE_FIELDS = ['partialConsume'];
 const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
-const DEFAULT_USESCOUNT_SCALING = '{ min: 1, max: 1, step:1 }';
+const DEFAULT_USESCOUNT_SCALING = { min: 1, max: 1, step: 1 };
 
 export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 	static openEditors = new Map();
@@ -180,7 +180,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
 		}
-		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
+		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
 		}
@@ -202,7 +202,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showName = hasCheckedInput(form, 'ui.showName');
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
-		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
+		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
@@ -213,7 +213,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
 		if (showUsesCount) {
-			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, showUsesCountScaling);
+			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, usesCountScalingInputs);
 		}
 		if (!String(mergedData.fields.usesCount ?? '').trim()) mergedData.toggles.partialConsume = false;
 		applyCadenceMode(mergedData, cadenceMode);
@@ -381,7 +381,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showName = hasCheckedInput(form, 'ui.showName');
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
-		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
+		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
@@ -394,7 +394,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.usesCount = baseData.fields.usesCount;
 			mergedData.toggles.partialConsume = baseData.toggles.partialConsume;
 		} else {
-			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, showUsesCountScaling);
+			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, usesCountScalingInputs);
 		}
 		if (showCadence) applyCadenceMode(mergedData, cadenceMode);
 		else {
@@ -569,7 +569,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 	const nameField = optionalFieldState.name ? buildRenderedOptionalField('name', parsed, id) : null;
 	const descriptionField = optionalFieldState.description ? buildRenderedOptionalField('description', parsed, id) : null;
 	const usesCountValue = parsed.fields.usesCount ?? '';
-	const hasUsesCountScaling = hasUsesCountScalingSpec(usesCountValue);
+	const parsedUsesCount = parseUsesCountScalingSpec(usesCountValue);
 	return {
 		nameDescription: {
 			left: nameField ?? (!nameField && descriptionField ? descriptionField : null),
@@ -583,18 +583,14 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 					label: 'Partial Consume',
 					checked: Boolean(parsed.toggles.partialConsume),
 				},
-				{
-					name: 'ui.enableUsesCountScaling',
-					label: 'Scaling',
-					checked: hasUsesCountScaling,
-				},
 			] : null,
+			scaling: optionalFieldState.usesCount ? buildRenderedUsesCountScalingFields(parsedUsesCount?.scaling, id) : null,
 		},
 	};
 }
 
 function hasOptionalFieldRows(rows) {
-	return Boolean(rows?.nameDescription?.left || rows?.nameDescription?.right || rows?.usesCount?.left || rows?.usesCount?.right);
+	return Boolean(rows?.nameDescription?.left || rows?.nameDescription?.right || rows?.usesCount?.left || rows?.usesCount?.right || rows?.usesCount?.scaling);
 }
 
 function buildRenderedOptionalField(name, parsed, id) {
@@ -677,7 +673,98 @@ function stripUsesCountScaling(rawValue) {
 function updateUsesCountScaling(rawValue, enabled) {
 	const current = typeof rawValue === 'string' ? rawValue.trim() : '';
 	if (!current) return '';
-	if (!enabled) return stripUsesCountScaling(current);
-	if (hasUsesCountScalingSpec(current)) return current;
-	return `${current}, ${DEFAULT_USESCOUNT_SCALING}`;
+	const parsed = parseUsesCountScalingSpec(current);
+	const baseValue = parsed.baseValue;
+	if (!baseValue) return '';
+	const normalizedScaling = normalizeScalingConfig(enabled);
+	if (!normalizedScaling) return baseValue;
+	const scalingLiteral = `{ min: ${normalizedScaling.min}, max: ${normalizedScaling.max}, step: ${normalizedScaling.step} }`;
+	return `${baseValue}, ${scalingLiteral}`;
+}
+
+function parseUsesCountScalingSpec(rawValue) {
+	const current = typeof rawValue === 'string' ? rawValue.trim() : '';
+	if (!current) return { baseValue: '', scaling: null };
+	const match = current.match(/^(.*?),\s*[+-]?\s*\{([\s\S]*)\}\s*$/u);
+	if (!match) return { baseValue: current, scaling: null };
+	const baseValue = match[1].trim();
+	const objectSource = match[2] ?? '';
+	const scaling = {
+		min: extractNumericScalingKey(objectSource, 'min'),
+		max: extractNumericScalingKey(objectSource, 'max'),
+		step: extractNumericScalingKey(objectSource, 'step'),
+	};
+	return { baseValue, scaling };
+}
+
+function extractNumericScalingKey(source, key) {
+	if (typeof source !== 'string' || typeof key !== 'string') return '';
+	const match = source.match(new RegExp(`\\b${key}\\s*:\\s*(-?\\d*\\.?\\d+)`, 'i'));
+	return match ? match[1] : '';
+}
+
+function buildRenderedUsesCountScalingFields(scaling, id) {
+	return {
+		max: {
+			name: 'ui.usesCountScaling.max',
+			label: 'Scaling Max',
+			value: scaling?.max ?? '',
+			inputId: `ac5e-value-usesCount-scaling-max-${id}`,
+			placeholder: '1',
+		},
+		min: {
+			name: 'ui.usesCountScaling.min',
+			label: 'Scaling Min',
+			value: scaling?.min ?? '',
+			inputId: `ac5e-value-usesCount-scaling-min-${id}`,
+			placeholder: '1',
+		},
+		step: {
+			name: 'ui.usesCountScaling.step',
+			label: 'Scaling Step',
+			value: scaling?.step ?? '',
+			inputId: `ac5e-value-usesCount-scaling-step-${id}`,
+			placeholder: '1',
+		},
+	};
+}
+
+function getUsesCountScalingInputValues(root) {
+	return {
+		max: getInputValue(root, 'ui.usesCountScaling.max'),
+		min: getInputValue(root, 'ui.usesCountScaling.min'),
+		step: getInputValue(root, 'ui.usesCountScaling.step'),
+	};
+}
+
+function getInputValue(root, name) {
+	if (!root) return '';
+	if (root instanceof HTMLFormElement) {
+		const element = Array.from(root.elements).find((candidate) => candidate.name === name);
+		return element?.value ?? '';
+	}
+	const escapedName = globalThis.CSS?.escape?.(name) ?? name.replaceAll('"', '\\"');
+	return root.querySelector(`[name="${escapedName}"]`)?.value ?? '';
+}
+
+function normalizeScalingConfig(scalingInputs) {
+	if (!scalingInputs || typeof scalingInputs !== 'object') return null;
+	const maxRaw = String(scalingInputs.max ?? '').trim();
+	const minRaw = String(scalingInputs.min ?? '').trim();
+	const stepRaw = String(scalingInputs.step ?? '').trim();
+	if (!maxRaw && !minRaw && !stepRaw) return null;
+	const max = coerceScalingNumber(maxRaw, DEFAULT_USESCOUNT_SCALING.max);
+	const min = coerceScalingNumber(minRaw, DEFAULT_USESCOUNT_SCALING.min);
+	let step = coerceScalingNumber(stepRaw, DEFAULT_USESCOUNT_SCALING.step);
+	if (step <= 0) step = DEFAULT_USESCOUNT_SCALING.step;
+	return {
+		min,
+		max: max < min ? min : max,
+		step,
+	};
+}
+
+function coerceScalingNumber(value, fallback) {
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : fallback;
 }

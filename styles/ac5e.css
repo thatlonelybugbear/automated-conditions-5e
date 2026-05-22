@@ -125,6 +125,25 @@
 	width: 28px;
 }
 
+.ac5e-effect-value-editor-scaling-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	width: 100%;
+}
+
+.ac5e-effect-value-editor-scaling-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.ac5e-effect-value-editor-scaling-field > label {
+	font-size: var(--font-size-12);
+	margin: 0;
+}
+
 .ac5e-effect-value-editor-toggle-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -284,6 +303,10 @@
 @media (max-width: 720px) {
 	.ac5e-effect-value-editor-grid,
 	.ac5e-effect-value-editor-toggle-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.ac5e-effect-value-editor-scaling-grid {
 		grid-template-columns: 1fr;
 	}
 
