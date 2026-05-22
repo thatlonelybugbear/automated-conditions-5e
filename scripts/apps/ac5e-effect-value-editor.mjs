@@ -308,17 +308,69 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const currentValue = input.value ?? '';
 		const escapedLabel = escapeHtml(label);
 		const escapedValue = escapeHtml(currentValue);
+		const assist = buildLambdaAssistData(this.autocompleteEntries);
 		try {
 			const result = await foundry.applications.api.DialogV2.wait({
 				window: {
 					title: `Edit ${label}`,
 				},
 				content: `
-					<form class="ac5e-effect-value-expand-dialog">
-						<div class="form-group stacked">
-							<label for="ac5e-expand-value">${escapedLabel}</label>
-							<div class="form-fields">
-								<textarea id="ac5e-expand-value" name="value" rows="12">${escapedValue}</textarea>
+					<form class="ac5e-effect-value-expand-dialog" data-ac5e-lambda-assist>
+						<div class="ac5e-effect-value-expand-layout">
+							<section class="ac5e-effect-value-expand-main">
+								<div class="form-group stacked">
+									<label for="ac5e-expand-value">${escapedLabel}</label>
+									<div class="form-fields">
+										<textarea id="ac5e-expand-value" name="value" rows="12">${escapedValue}</textarea>
+									</div>
+								</div>
+								<div class="ac5e-effect-value-assist-operators" data-ac5e-assist-operators>
+									${renderAssistButtonGroup(assist.operators, 'ac5e-assist-insert')}
+								</div>
+								<div class="ac5e-effect-value-assist-groups">
+									<div class="form-group stacked">
+										<label for="ac5e-assist-is-entries">is* entries</label>
+										<div class="form-fields">
+											<select id="ac5e-assist-is-entries" data-ac5e-assist-select>
+												${renderAssistOptions(assist.isEntries)}
+											</select>
+											<button type="button" class="icon fa-solid fa-plus" data-ac5e-assist-insert-selected="ac5e-assist-is-entries" aria-label="Insert selected is entry"></button>
+										</div>
+									</div>
+									<div class="form-group stacked">
+										<label for="ac5e-assist-has-entries">has* entries</label>
+										<div class="form-fields">
+											<select id="ac5e-assist-has-entries" data-ac5e-assist-select>
+												${renderAssistOptions(assist.hasEntries)}
+											</select>
+											<button type="button" class="icon fa-solid fa-plus" data-ac5e-assist-insert-selected="ac5e-assist-has-entries" aria-label="Insert selected has entry"></button>
+										</div>
+									</div>
+									<div class="form-group stacked">
+										<label for="ac5e-assist-other-entries">Other sandbox entries</label>
+										<div class="form-fields">
+											<select id="ac5e-assist-other-entries" data-ac5e-assist-select>
+												${renderAssistOptions(assist.otherEntries)}
+											</select>
+											<button type="button" class="icon fa-solid fa-plus" data-ac5e-assist-insert-selected="ac5e-assist-other-entries" aria-label="Insert selected entry"></button>
+										</div>
+									</div>
+								</div>
+							</section>
+							<aside class="ac5e-effect-value-expand-aside">
+								<p class="ac5e-effect-value-assist-title">Lambda Paths</p>
+								<div class="ac5e-effect-value-assist-roots">
+									${renderAssistButtonGroup(assist.entryPoints, 'ac5e-assist-root')}
+								</div>
+								<div class="form-group stacked">
+									<label for="ac5e-assist-paths">Paths</label>
+									<div class="form-fields">
+										<select id="ac5e-assist-paths" data-ac5e-assist-paths size="12">
+											${renderAssistOptions(assist.pathsByRoot[assist.entryPoints[0]?.value] ?? [])}
+										</select>
+									</div>
+								</div>
+								<button type="button" data-ac5e-assist-insert-selected="ac5e-assist-paths">Insert Selected Path</button>
 							</div>
 						</div>
 					</form>
@@ -338,11 +390,12 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					},
 				],
 				position: {
-					width: 540,
+					width: 920,
 				},
 				render: (_event, dialog) => {
 					const textarea = dialog.element.querySelector('textarea[name="value"]');
 					if (!(textarea instanceof HTMLTextAreaElement)) return;
+					prepareLambdaAssist(dialog.element, assist);
 					textarea.focus();
 					const cursor = textarea.value.length;
 					textarea.setSelectionRange(cursor, cursor);
@@ -587,6 +640,92 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 			scaling: optionalFieldState.usesCount ? buildRenderedUsesCountScalingFields(parsedUsesCount?.scaling, id) : null,
 		},
 	};
+}
+
+function buildLambdaAssistData(entries) {
+	const uniqueIdentifiers = dedupe((entries ?? []).map((entry) => entry?.identifier).filter((identifier) => typeof identifier === 'string' && identifier.trim()));
+	const entryPoints = [
+		{ label: 'rollingActor', value: 'rollingActor' },
+		{ label: 'opponentActor', value: 'opponentActor' },
+		{ label: 'auraActor', value: 'auraActor' },
+		{ label: 'effectActor', value: 'effectActor' },
+		{ label: 'nonEffectActor', value: 'nonEffectActor' },
+		{ label: 'item', value: 'item' },
+		{ label: 'activity', value: 'activity' },
+		{ label: 'originItem', value: 'originItem' },
+		{ label: 'originActivity', value: 'originActivity' },
+	];
+	const operators = [
+		{ label: '>', value: ' > ' },
+		{ label: '>=', value: ' >= ' },
+		{ label: '<', value: ' < ' },
+		{ label: '<=', value: ' <= ' },
+		{ label: '==', value: ' == ' },
+		{ label: '&&', value: ' && ' },
+		{ label: '||', value: ' || ' },
+		{ label: 'Ternary', value: '(condition ? trueValue : falseValue)' },
+	];
+	const isEntries = uniqueIdentifiers.filter((identifier) => /^is[A-Z_]/.test(identifier) || identifier.startsWith('is'));
+	const hasEntries = uniqueIdentifiers.filter((identifier) => /^has[A-Z_]/.test(identifier) || identifier.startsWith('has'));
+	const used = new Set([...isEntries, ...hasEntries]);
+	const otherEntries = uniqueIdentifiers.filter((identifier) => !used.has(identifier)).slice(0, 250);
+	const pathsByRoot = Object.fromEntries(entryPoints.map((entry) => [
+		entry.value,
+		uniqueIdentifiers.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`)),
+	]));
+	return { entryPoints, operators, isEntries, hasEntries, otherEntries, pathsByRoot };
+}
+
+function renderAssistButtonGroup(items, dataAttribute) {
+	return (items ?? [])
+		.map((item) => `<button type="button" data-${dataAttribute}="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`)
+		.join('');
+}
+
+function renderAssistOptions(options) {
+	const source = (options ?? []).length ? options : [''];
+	return source
+		.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option || 'No entries')}</option>`)
+		.join('');
+}
+
+function prepareLambdaAssist(root, assist) {
+	if (!(root instanceof HTMLElement)) return;
+	const textarea = root.querySelector('textarea[name="value"]');
+	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
+		button.addEventListener('click', () => insertAtCursor(textarea, button.dataset.ac5eAssistInsert ?? ''));
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-root]')) {
+		button.addEventListener('mouseenter', () => updatePathOptions(root, assist, button.dataset.ac5eAssistRoot ?? ''));
+		button.addEventListener('click', () => updatePathOptions(root, assist, button.dataset.ac5eAssistRoot ?? ''));
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-insert-selected]')) {
+		button.addEventListener('click', () => {
+			const selectId = button.dataset.ac5eAssistInsertSelected ?? '';
+			const select = root.querySelector(`#${globalThis.CSS?.escape?.(selectId) ?? selectId.replaceAll('"', '\\"')}`);
+			if (!(select instanceof HTMLSelectElement)) return;
+			insertAtCursor(textarea, select.value ?? '');
+		});
+	}
+}
+
+function updatePathOptions(root, assist, rootPath) {
+	const select = root.querySelector('[data-ac5e-assist-paths]');
+	if (!(select instanceof HTMLSelectElement)) return;
+	const options = assist?.pathsByRoot?.[rootPath] ?? [];
+	select.innerHTML = renderAssistOptions(options);
+}
+
+function insertAtCursor(input, text) {
+	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+	if (!text) return;
+	const start = input.selectionStart ?? input.value.length;
+	const end = input.selectionEnd ?? input.value.length;
+	input.value = `${input.value.slice(0, start)}${text}${input.value.slice(end)}`;
+	const cursor = start + text.length;
+	input.setSelectionRange(cursor, cursor);
+	input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function hasOptionalFieldRows(rows) {
