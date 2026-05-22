@@ -44,6 +44,22 @@ Affects **rolls made against the actor** (i.e., when the actor is the *target* o
 
 ---
 
+### `flags.automated-conditions-5e.allowEffectApplication`
+
+Controls whether an Active Effect is allowed to be created at application time.
+
+- Evaluated in `preCreateActiveEffect`.
+- If the expression evaluates to `false`, AC5E blocks the effect creation.
+- If it evaluates to `true`, the effect is created normally.
+- On hard evaluation failures, AC5E falls back to system-default behavior (effect creation proceeds).
+
+Current scope notes:
+- This check currently runs only for effect applications that resolve to an origin item context.
+- Activity data is not guaranteed in `preCreateActiveEffect` with current dnd5e payloads and may be `null` in the sandbox.
+- Transfer effects and enchantment-style effects are currently excluded from this gate.
+
+---
+
 ## How to Use
 
 ### Step 1: Choose `ACTIONTYPE`

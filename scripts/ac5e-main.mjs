@@ -29,12 +29,22 @@ Hooks.once('ready', ac5eReady);
 
 function ac5eRegisterOnInit() {
 	registerQueries();
+	registerKeybindings();
 	daeFlags = _generateAC5eFlags();
 	Hooks.on('dae.setFieldData', (fieldData) => {
 		fieldData.AC5E = daeFlags;
 	});
 	scopeUser = 'user';
 	return new Settings().registerSettings();
+}
+
+function registerKeybindings() {
+	game.keybindings.register(Constants.MODULE_ID, 'allowEffectApplicationBypassModifier', {
+		name: 'AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name',
+		hint: 'AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint',
+		editable: [{ key: 'ShiftLeft' }],
+		restricted: true,
+	});
 }
 
 function ac5ei18nInit() {
@@ -110,7 +120,10 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.postBuildRollConfig', type: 'postBuildRoll' },
 		{ id: 'dnd5e.postRollConfiguration', type: 'postRollConfig' },
 	];
-	const foundryHooks = [{ id: 'preCreateItem', type: 'preCreateItem' }];
+	const foundryHooks = [
+		{ id: 'preCreateItem', type: 'preCreateItem' },
+		{ id: 'preCreateActiveEffect', type: 'preCreateActiveEffect' },
+	];
 	const renderHooks = [
 		{ id: 'renderChatMessageHTML', type: 'chat' },
 		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
@@ -145,6 +158,9 @@ function registerHooks(settings) {
 			} else if (hook.id === 'preCreateItem') {
 				const [item, updates] = args;
 				if (settings.debug) console.warn(hook.id, { item, updates });
+			} else if (hook.id === 'preCreateActiveEffect') {
+				const [effect, updates, options, userId] = args;
+				if (settings.debug) console.warn(hook.id, { effect, updates, options, userId });
 			} else {
 				const [config, dialog, message] = args;
 				if (settings.debug) console.warn(hook.id, { config, dialog, message });

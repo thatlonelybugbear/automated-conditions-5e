@@ -215,6 +215,8 @@
 	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Overrides damage type ({value})",
 	"AC5E.OptinDescription.OverridesDcAbility": "Overrides Save/Check DC ability ({value})",
 	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Overrides Save/Check DC ability",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name": "Effect Apply Override Modifier",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint": "GM only. Hold this while clicking Apply Effect to ignore allowEffectApplication checks.",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Upgrades damage dice",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Upgrades damage dice ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Downgrades damage dice",
@@ -319,6 +321,10 @@
 		"flags.automated-conditions-5e.aura.abilityOverride": {
 			"name": "An aura overriding Save/Check DC ability",
 			"description": "Overrides Save/Check DC ability for tokens affected by the aura. Use radius as usual plus override=cha. Example: radius=30;allies;includeSelf;override=wis. abilityOverride=... and set=... are still supported."
+		},
+		"flags.automated-conditions-5e.allowEffectApplication": {
+			"name": "Allow Effect Application",
+			"description": "Evaluates at effect creation time. If this expression resolves to false, AC5E blocks the effect application. On evaluation errors, application proceeds with default system behavior."
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {

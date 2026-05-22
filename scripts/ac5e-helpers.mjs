@@ -2988,6 +2988,7 @@ export function _generateAC5eFlags() {
 	const moduleFlags = new Set([
 		`${moduleFlagScope}.crossbowExpert`,
 		`${moduleFlagScope}.sharpShooter`,
+		`${moduleFlagScope}.allowEffectApplication`,
 		`${moduleFlagScope}.attack.criticalThreshold`,
 		`${moduleFlagScope}.grants.attack.criticalThreshold`,
 		`${moduleFlagScope}.aura.attack.criticalThreshold`,

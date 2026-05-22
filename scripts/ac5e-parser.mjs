@@ -578,10 +578,13 @@ function simplifyFormula(formula = '', removeFlavor = false, debug) {
 		let simplifiedFormula = new Roll(formula).formula;
 		return simplifiedFormula;
 	} catch (e) {
+		const changeValue = debug?.changeValue;
+		const valueSnippet = changeValue === undefined ? undefined : `${changeValue}`;
+		const valueSegment = valueSnippet === undefined ? '' : ` with value: ${valueSnippet}`;
 		ui.notifications.warn(
-			`AC5E: Unable to simplify formula due to an error, returning 0. In effect with UUID: ${debug.effectUuid} for change entry: ${debug.changeKey}. Check your console or let your DM know.`,
+			`AC5E: Unable to simplify formula due to an error, returning 0. In effect with UUID: ${debug.effectUuid} for change entry: ${debug.changeKey}${valueSegment}. Check your console or let your DM know.`,
 		);
-		console.warn('AC5E: Unable to simplify formula due to an error, returning 0.', { effect: debug.effectUuid, change: debug.changeKey }, e);
+		console.warn('AC5E: Unable to simplify formula due to an error, returning 0.', { effect: debug.effectUuid, change: debug.changeKey, value: valueSnippet }, e);
 		return 0;
 	}
 }

@@ -31,6 +31,12 @@
   - `modifyAC`, `modifyDC`, `criticalThreshold`, and `fumbleThreshold` entries can now reference `baseValue` to use a stable pre-AC5E baseline value.
 - AC5E Effect Value Editor now includes a `Scaling` toggle for `usesCount`.
   - Enabling it injects the default scaling block format and updates immediately in the editor draft state.
+- Added `allowEffectApplication` as a new AC5E flag key.
+  - You can now gate effect application at creation time with `flags.automated-conditions-5e.allowEffectApplication`.
+  - If blocked, GMs can bypass once by holding their configured AC5E override key (default is ShiftLeft) while clicking Apply Effect.
+  - This key is now available in both DAE autocomplete and AC5E’s non-DAE Active Effect key autocomplete.
+- Added new integration hook: `ac5e.sandboxReady.<effectId>`.
+  - Provides the prepared evaluation sandbox plus effect change key and expression value for extension modules.
 - Removed some forgotten console logs.
 
 ## 14.533.1
@@ -1838,3 +1844,4 @@ Closes [63](https://github.com/thatlonelybugbear/automated-conditions-5e/issues/
 ## v10.0.0 <hl>
 
 - Initial commit
+
