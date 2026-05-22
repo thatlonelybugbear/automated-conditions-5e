@@ -226,6 +226,31 @@
 	width: auto;
 }
 
+.ac5e-optin-description-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1em;
+	height: 1em;
+	min-width: 1em;
+	max-width: 1em;
+	margin-inline: 0.35em;
+	padding: 0;
+	flex: 0 0 1em;
+	align-self: center;
+	color: currentcolor;
+	border: none;
+	background-color: transparent;
+	font-size: 0.8em;
+	font-weight: 600;
+	line-height: 1;
+	vertical-align: middle;
+	transform: translateY(0.01em);
+	cursor: help;
+	user-select: none;
+	opacity: 0.95;
+}
+
 @media (max-width: 720px) {
 	.ac5e-effect-value-editor-grid,
 	.ac5e-effect-value-editor-toggle-grid {

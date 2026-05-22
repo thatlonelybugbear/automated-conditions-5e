@@ -111,30 +111,6 @@ function renderChoiceRows(fieldset, choices, ac5eConfig, { askPermission = false
 			descriptionPill.classList.add('fa-solid', 'fa-circle-info');
 			descriptionPill.title = description;
 			descriptionPill.setAttribute('role', 'note');
-			descriptionPill.style.display = 'inline-flex';
-			descriptionPill.style.alignItems = 'center';
-			descriptionPill.style.justifyContent = 'center';
-			descriptionPill.style.width = '1em';
-			descriptionPill.style.height = '1em';
-			descriptionPill.style.minWidth = '1em';
-			descriptionPill.style.maxWidth = '1em';
-			descriptionPill.style.marginInline = '0.35em';
-			descriptionPill.style.padding = '0';
-			descriptionPill.style.flex = '0 0 1em';
-			descriptionPill.style.alignSelf = 'center';
-			descriptionPill.style.color = 'currentColor';
-			descriptionPill.style.border = 'none';
-			descriptionPill.style.backgroundColor = 'transparent';
-			descriptionPill.style.fontSize = '0.8em';
-			descriptionPill.style.fontWeight = '600';
-			descriptionPill.style.lineHeight = '1';
-			descriptionPill.style.verticalAlign = 'middle';
-			descriptionPill.style.transform = 'translateY(0.01em)';
-			descriptionPill.style.cursor = 'help';
-			descriptionPill.style.userSelect = 'none';
-			descriptionPill.style.opacity = '0.95';
-			descriptionPill.style.marginLeft = '0';
-			descriptionPill.style.marginRight = '0.1rem';
 			row.append(descriptionPill);
 		}
 
