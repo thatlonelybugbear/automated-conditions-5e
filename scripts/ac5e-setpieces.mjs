@@ -1538,7 +1538,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 
 	const effectChangesTest = ({ change, actorType, hook, effect, updateArrays, auraTokenEvaluationData, evaluationData, changeIndex, auraTokenUuid }) => {
 		const evalData = auraTokenEvaluationData ?? evaluationData ?? {};
-		const debug = { effectUuid: effect.uuid, changeKey: change.key };
+		const debug = { effectUuid: effect.uuid, changeKey: change.key, changeValue: change.value };
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
 		const isAll = change.key.includes('all');
@@ -2134,13 +2134,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				canonical: canonicalKey,
 			});
 		}
-		const debug = { effectUuid: effect.uuid, changeKey: change.key };
+		const debug = { effectUuid: effect.uuid, changeKey: change.key, changeValue: change.value };
 		const entryId =
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
 		const scopedSandbox = sandbox && typeof sandbox === 'object' ? { ...sandbox } : sandbox;
 		const baseValue = getStableBaseValueForEntry({ mode, hook, sandbox });
-		if (baseValue !== undefined && scopedSandbox && typeof scopedSandbox === 'object') scopedSandbox.baseValue = baseValue;
+		if (scopedSandbox && typeof scopedSandbox === 'object') scopedSandbox.baseValue = baseValue === undefined ? 0 : baseValue;
 		const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({
 			value: change.value,
 			mode,
@@ -2234,6 +2234,22 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
 		globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(effectSandbox);
 		globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(effectSandbox);
+		try {
+			Hooks.callAll(`ac5e.sandboxReady.${effect.id}`, {
+				effectSandbox,
+				context: {
+					hook,
+					changeIndex,
+					effect: effect.uuid,
+					isAura,
+					user: game.user.id,
+					changeKey: normalizedChange?.key ?? null,
+					expression: normalizedChange?.value,
+				},
+			});
+		} catch (err) {
+			if (settings.debug || ac5e?.debug?.sandboxReadyTrace) console.warn('AC5E sandboxReady hook failed', err);
+		}
 		if (
 			!effectChangesTest({
 				token,
