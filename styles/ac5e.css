@@ -251,6 +251,36 @@
 	opacity: 0.95;
 }
 
+.ac5e-optin-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 0.4rem;
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.ac5e-optional-bonuses,
+.ac5e-ask-permission-bonuses {
+	min-width: 0;
+	overflow-x: hidden;
+}
+
+.ac5e-optin-row > * {
+	min-width: 0;
+}
+
+.ac5e-optin-row .ac5e-optin-label {
+	display: block;
+	flex: 1 1 0;
+	min-width: 0;
+	max-width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 @media (max-width: 720px) {
 	.ac5e-effect-value-editor-grid,
 	.ac5e-effect-value-editor-toggle-grid {

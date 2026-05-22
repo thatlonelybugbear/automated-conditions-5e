@@ -78,7 +78,9 @@
   "flags": {
     "hotReload": {
       "paths": [
-        "lang/en.json"
+        "lang/en.json",
+        "styles",
+        "styles/ac5e.css"
       ]
     }
   },

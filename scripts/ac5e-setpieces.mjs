@@ -2043,9 +2043,23 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		pendingUses: [],
 		usesOverrides: {},
 	};
-	const resolveDescription = (baseDescription, overrideDescription) => {
-		if (baseDescription) return baseDescription;
-		return overrideDescription;
+	const getEffectDescriptionFallback = (effect) => {
+		const text = typeof effect?.description === 'string' ? effect.description.trim() : '';
+		return text || undefined;
+	};
+	const normalizeDescriptionValue = (value, fallbackDescription) => {
+		if (typeof value !== 'string') return undefined;
+		const trimmed = value.trim();
+		if (!trimmed) return undefined;
+		if (trimmed.toLowerCase() === 'effectdescription') return fallbackDescription;
+		return trimmed;
+	};
+	const resolveDescription = (baseDescription, overrideDescription, fallbackDescription) => {
+		const normalizedBase = normalizeDescriptionValue(baseDescription, fallbackDescription);
+		if (normalizedBase) return normalizedBase;
+		const normalizedOverride = normalizeDescriptionValue(overrideDescription, fallbackDescription);
+		if (normalizedOverride) return normalizedOverride;
+		return fallbackDescription;
 	};
 	const appendLabelSuffix = (baseLabel, suffix) => {
 		if (typeof suffix !== 'string') return baseLabel;
@@ -2166,7 +2180,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(change.value);
 		const enforceMode = mode === 'info' ? getEnforceMode(change.value) : undefined;
 		const autoDescriptionHook = hook === 'use' && ['attack', 'check', 'damage', 'save'].includes(activity?.type) ? activity.type : hook;
-		const description = resolveDescription(getDescription(change.value), usesOverride?.description);
+		const description = resolveDescription(getDescription(change.value), usesOverride?.description, getEffectDescriptionFallback(effect));
 		const autoDescription =
 			!description && (optin || usesOverride?.forceDescription) ?
 				buildAutoDescription({ mode, hook: autoDescriptionHook, bonus, modifier, set, threshold, enforceMode })

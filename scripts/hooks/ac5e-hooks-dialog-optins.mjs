@@ -328,6 +328,42 @@ function localizeWithFallback(key, fallback) {
 	return localized && localized !== key ? localized : fallback;
 }
 
+function hasEmbeddedDocumentReference(text) {
+	return /@Embed\[[^\]]+\]/i.test(String(text ?? ''));
+}
+
+function stripHtmlToPlainText(html) {
+	if (typeof html !== 'string' || !html.trim()) return '';
+	const container = document.createElement('div');
+	container.innerHTML = html;
+	return String(container.textContent ?? '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+async function resolveDescriptionTooltipText(description) {
+	const raw = typeof description === 'string' ? description.trim() : '';
+	if (!raw) return '';
+	if (!hasEmbeddedDocumentReference(raw)) return raw;
+	const enrichHTML = foundry?.applications?.ux?.TextEditor?.implementation?.enrichHTML;
+	if (typeof enrichHTML !== 'function') return raw;
+	try {
+		const enriched = await enrichHTML(raw);
+		return stripHtmlToPlainText(enriched) || raw;
+	} catch {
+		return raw;
+	}
+}
+
+function applyDescriptionPillTooltip(descriptionPill, description) {
+	if (!descriptionPill) return;
+	void resolveDescriptionTooltipText(description).then((tooltipText) => {
+		if (!tooltipText) return;
+		descriptionPill.title = tooltipText;
+		descriptionPill.setAttribute('aria-label', tooltipText);
+	});
+}
+
 function prepareOptinFieldset(fieldset, dialog, elem, ac5eConfig, legendText) {
 	fieldset._ac5eDialog = dialog;
 	fieldset._ac5eConfig = ac5eConfig;
@@ -371,9 +407,10 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		if (scaling) entry.selectedScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
 		else delete entry.selectedScale;
 		const row = document.createElement('div');
-		row.className = 'form-group';
+		row.className = 'form-group ac5e-optin-row';
 		const label = document.createElement('label');
-		label.style.flex = '1 1 auto';
+		label.className = 'ac5e-optin-label';
+		label.style.flex = '1 1 0';
 		const rawLabel = typeof entry?.label === 'string' ? entry.label.trim() : '';
 		const rawName = typeof entry?.name === 'string' ? entry.name.trim() : '';
 		const isUnnamedOptin = isOptinEntry && !rawLabel && !rawName;
@@ -384,6 +421,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const permissionSuffix = getAskPermissionSourceSuffix(entry, askPermission);
 		const detailSuffixes = [usesCountSuffix, permissionSuffix ? `(${permissionSuffix})` : '', cadenceSuffix].filter(Boolean);
 		label.textContent = detailSuffixes.length ? `${indexedLabel} ${detailSuffixes.join(' ')}` : indexedLabel;
+		label.title = label.textContent;
 		const baseDescription =
 			typeof entry.description === 'string' ? entry.description.trim()
 			: typeof entry.autoDescription === 'string' ? entry.autoDescription.trim()
@@ -398,9 +436,12 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			descriptionPill.classList.add('fa-solid', 'fa-circle-info');
 			descriptionPill.title = description;
 			descriptionPill.setAttribute('role', 'note');
+			applyDescriptionPillTooltip(descriptionPill, description);
 		}
 		const checkbox = document.createElement('input');
 		checkbox.type = 'checkbox';
+		checkbox.style.flex = '0 0 auto';
+		checkbox.style.marginInlineStart = 'auto';
 		checkbox.name = `ac5eOptins.${entry.id}`;
 		checkbox.dataset.ac5eOptinId = entry.id;
 		checkbox.dataset.ac5eOptin = 'true';
