@@ -135,7 +135,7 @@ export function _ac5eActorRollData(token, rollData) {
 	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
 	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
 	actorData.type = actor.type;
-	actorData.canMove = Object.values(actor.system?.attributes?.movement || {}).some((v) => typeof v === 'number' && v);
+	actorData.canMove = !!actor.system?.attributes?.movement.max;
 	actorData.token = token;
 	actorData.tokenSize = token.document.width * token.document.height;
 	actorData.tokenElevation = token.document.elevation;
