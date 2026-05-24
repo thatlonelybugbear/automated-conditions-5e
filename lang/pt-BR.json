@@ -1,26 +1,30 @@
 {
 	"AC5E.AutomateStatuses": {
 		"Name": "Automatizar Status do D&D 5E",
-		"Hint": "Quando ativado, o AC5e irá automatizar os modificadores de desvantagem/vantagem e modo de rolagem, com base nos status do sistema."
+		"Hint": "Quando ativado, o AC5E irá automatizar os modificadores de desvantagem/vantagem e modo de rolagem, com base nos status do sistema."
 	},
-	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5e",
-	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5e mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
+	"AC5E.ExperimentalUi": {
+    	"Name": "Ativar Interface do AC5E (Experimental)",
+    	"Hint": "Mostra o botão da varinha AC5E para o editor de valores de Efeito Ativo experimental."
+  	},
+	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5E",
+	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5E mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
 	"AC5E.ShowToolTipsChoicesDialog": "Somente em rolagens",
 	"AC5E.ShowToolTipsChoicesChat": "Somente em chat",
 	"AC5E.ShowToolTipsChoicesNone": "Não exibir",
-	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome AC5e nas Dicas",
+	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome AC5E nas Dicas",
 	"AC5E.ShowTooltipChatVisibility.Name": "Mostrar Dicas de Chat para Jogadores",
 	"AC5E.ShowTooltipChatVisibility.Hint": "'Todas': todas rolagens de atores. 'Nenhuma': nenhuma rolagem. 'Próprias': rolagens de atores próprios. 'Jogadores': rolagens de atores de jogadores.",
 	"AC5E.ShowTooltipChatVisibility.All": "Todas",
 	"AC5E.ShowTooltipChatVisibility.None": "Nenhuma",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Próprias",
 	"AC5E.ShowTooltipChatVisibility.Players": "Jogadores",
-	"AC5E.ExpandedConditionsName": "Condições Expandidas AC5e",
-	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5e tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
+	"AC5E.ExpandedConditionsName": "Condições Expandidas AC5E",
+	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5E tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
 	"AC5E.VisibilityChecksSetting": {
     	"Name": "Verificações de Visibilidade",
-    	"Hint": "Quando ativado, o AC5e injeta as opções 'Não Consegue Ver o Alvo' / 'Alvo Não Consegue Ver o Atacante' e permite que essas entradas determinem a vantagem/desvantagem do ataque, em vez de apenas os status Cego/Invisível. As opções são suprimidas quando o MidiQOL já aplica suas regras opcionais de Invisibilidade/Atacante Oculto para evitar motivos duplicados."
+    	"Hint": "Quando ativado, o AC5E injeta as opções 'Não Consegue Ver o Alvo' / 'Alvo Não Consegue Ver o Atacante' e permite que essas entradas determinem a vantagem/desvantagem do ataque, em vez de apenas os status Cego/Invisível. As opções são suprimidas quando o MidiQOL já aplica suas regras opcionais de Invisibilidade/Atacante Oculto para evitar motivos duplicados."
   	},
 	"AC5E.ActivityUse": {
 		"Name": "Testes para Usos de Itens",
@@ -59,24 +63,24 @@
 		"RangedOutOfRange": "Fora de Alcance à Distância"
 	},
 	"AC5E.AutoExhaustionName": "Automação de Exaustão",
-	"AC5E.AutoExhaustionHint": "Se marcado, AC5e irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
+	"AC5E.AutoExhaustionHint": "Se marcado, AC5E irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
 	"AC5E.AutoEncumbranceName": "Variante Sobrecarga",
-	"AC5E.AutoEncumbranceHint": "Se marcado, AC5e irá processar automaticamente as regras da variante Sobrecarga da 5e. O Mestre também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
+	"AC5E.AutoEncumbranceHint": "Se marcado, AC5E irá processar automaticamente as regras da variante Sobrecarga da 5e. O Mestre também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
 	"AC5E.Targeting": {
 		"Name": "Opções de Alvos para Ataques",
-		"Hint": "Quando nenhum ou vários alvos são selecionados para um Ataque, Dano ou jogada semelhante, escolha como o AC5e deve responder.",
+		"Hint": "Quando nenhum ou vários alvos são selecionados para um Ataque, Dano ou jogada semelhante, escolha como o AC5E deve responder.",
 		"Choices": {
 			"Source": "Usar Apenas Condições do Ator de Origem",
 			"Enforce": "Cancelar Rolagem Silenciosamente",
 			"Warn": "Cancelar Rolagem com Aviso"
 		},
 		"MultipleTargetsAttack": {
-			"Source": "AC5e: Vários alvos selecionados. Os resultados podem ser distorcidos. Usando apenas dados do ator de origem.",
-			"Enforce": "AC5e: Vários alvos selecionados. Rolagem cancelada!"
+			"Source": "AC5E: Vários alvos selecionados. Os resultados podem ser distorcidos. Usando apenas dados do ator de origem.",
+			"Enforce": "AC5E: Vários alvos selecionados. Rolagem cancelada!"
 		},
 		"NoTargetsAttack": {
-			"Source": "AC5e: Nenhum alvo selecionado. A vantagem/desvantagem pode ser imprecisa. Usando apenas dados do ator de origem.",
-			"Enforce": "AC5e: Nenhum alvo selecionado. Rolagem cancelada!"
+			"Source": "AC5E: Nenhum alvo selecionado. A vantagem/desvantagem pode ser imprecisa. Usando apenas dados do ator de origem.",
+			"Enforce": "AC5E: Nenhum alvo selecionado. Rolagem cancelada!"
 		}
 	},
 	"AC5E.DebuggingName": "Debug",
@@ -84,7 +88,7 @@
 	"AC5E.TokenlessActorWarning": {
 		"Hint": "O módulo não afeta rolagens atuais de atores sem um token na cena!",
 		"Name": "Exibir Aviso de Ator sem Token",
-		"Text": "Aviso do AC5e: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
+		"Text": "Aviso do AC5E: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
 	},
 	"AC5E.Statuses": {
 		"UnderwaterCombat": "Combate Submerso"
@@ -186,20 +190,27 @@
 	"AC5E.OptinDescription.SetsTargetAC": "Define a CA alvo para {value}",
 	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifica a CA alvo para {value}",
 	"AC5E.OptinDescription.ModifiesTargetAC": "Modifica a CA do alvo",
+	"AC5E.OptinDescription.DCLabel.Save": "CD da Salv.",
+  	"AC5E.OptinDescription.DCLabel.Check": "CD do Teste",
+  	"AC5E.OptinDescription.SetsTargetSpecificDC": "Define {dcLabel} para {value}",
+  	"AC5E.OptinDescription.ModifiesTargetSpecificDCBy": "Modifica {dcLabel} para {value}",
+  	"AC5E.OptinDescription.ModifiesTargetSpecificDC": "Modifica {dcLabel}",
 	"AC5E.OptinDescription.SetsMinimumD20": "Define o resultado mínimo do d20 como {value}",
 	"AC5E.OptinDescription.SetsMaximumD20": "Define o resultado máximo do d20 como {value}",
 	"AC5E.OptinDescription.AppliesRollModifier": "Aplica modificador de rolagem",
 	"AC5E.OptinDescription.AppliesRollModifierWithValue": "Aplica modificador de rolagem ({value})",
 	"AC5E.OptinDescription.SetsMinimumDiceRoll": "Define o resultado mínimo da rolagem de dados para {value}",
 	"AC5E.OptinDescription.SetsMaximumDiceRoll": "Define o resultado máximo da rolagem de dados para {value}",
-	"AC5E.OptinDescription.AppliesDiceRollModifier": "Applies dice roll modifier",
-	"AC5E.OptinDescription.AppliesDiceRollModifierWithValue": "Applies dice roll modifier ({value})",
+	"AC5E.OptinDescription.AppliesDiceRollModifier": "Aplica modificador de rolagem de dados",
+	"AC5E.OptinDescription.AppliesDiceRollModifierWithValue": "Aplica modificador de rolagem de dados ({value})",
 	"AC5E.OptinDescription.SetsCriticalThreshold": "Define o limite de acerto crítico para {value}",
 	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modifica o limite de acerto crítico",
 	"AC5E.OptinDescription.SetsFumbleThreshold": "Define o limite de erro crítico para {value}",
 	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifica o limite de erro crítico",
 	"AC5E.OptinDescription.AddsExtraDamageDice": "Adiciona dados extras de dano",
 	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Adiciona dados extras de dano ({value})",
+	"AC5E.OptinDescription.OverridesDamageType": "Substitui o tipo de dano",
+  	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Substitui o tipo de dano ({value})",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta dados de dano",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta dados de dano ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Diminui dados de dano",
@@ -219,7 +230,7 @@
 		"BurningHazard": "Burning",
 		"SuffocatingHazard": "Suffocation"
 	},
-	"dae.fieldData.fieldCategories.AC5E": "AC5e",
+	"dae.fieldData.fieldCategories.AC5E": "AC5E",
 	"dae.AC5E.fieldData": {
 		"flags.automated-condition-5e.crossbowExpert": {
 			"name": "Especialista em Bestas",
@@ -268,6 +279,18 @@
 		"flags.automated-conditions-5e.aura.damage.extraDice": {
 			"name": "Aura para Aumentar/Diminuir Número de Dados Rolados para Cada Denominação",
 			"description": "Use bonus=2;radius=10 para aumentar o número de dados rolados para cada denominação em um raio de 10 unidades de distância."
+		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Substituir o Conjunto de Tipos de Dano dos Valores de Dano Base",
+			"description": "Use override=fire para forçar um tipo ou override=fire,lightning,thunder para oferecer vários tipos. set=... ainda é suportado para fins de compatibilidade com versões anteriores. addTo=... seleciona apenas as partes que correspondem ao dano base."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Concede Alteração no Tipo de Dano às Rolagens de Dano Base do Oponente",
+			"description": "Use override=fire para forçar um tipo ou override=fire,lightning,thunder para oferecer vários tipos. set=... ainda é suportado para fins de compatibilidade com versões anteriores. addTo=... seleciona apenas as partes que correspondem ao dano base."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "Aura que Substitui o Conjunto de Tipos de Dano Base em Raio",
+			"description": "Use radius=10;override=fire ou radius=10;override=fire,lightning,thunder. set=... ainda é suportado para fins de compatibilidade com versões anteriores. addTo=... seleciona apenas as partes que correspondem ao dano base."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modificar CA Contra Ataques Sofridos",
@@ -332,7 +355,7 @@
 			},
 			"abilityOverride": {
         		"name": "Substituir o Atributo Usado na Rolagem",
-        		"description": "Apenas ataque. Use override=cha ou abilityOverride=cha."
+        		"description": "Use override=cha. abilityOverride=cha e set=cha ainda são suportados para compatibilidade com versões anteriores."
       		}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -386,7 +409,7 @@
 			},
 			"abilityOverride": {
         		"name": "Conceder Substituição do Atributo Usado na Rolagem do Oponente",
-        		"description": "Apenas ataque. Use override=cha ou abilityOverride=cha."
+        		"description": "Use override=cha. abilityOverride=cha e set=cha ainda são suportados para compatibilidade com versões anteriores."
       		}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -440,7 +463,7 @@
 			},
 			"abilityOverride": {
 				"name": "Aura que Substitui o Atributo Usado na Rolagem",
-				"description": "Apenas ataque. Use radius como de costume, mais override=cha ou abilityOverride=cha."
+				"description": "Use radius como de costume, mais override=cha. abilityOverride=cha e set=cha ainda são suportados para compatibilidade com versões anteriores."
 			}
 		}
 	},
@@ -448,7 +471,7 @@
 	"AC5E.OptinDescription.AppliesNonRollEffect": "Aplica um efeito que não envolve rolagem em {roll}",
 	"AC5E.advantageBehaviorOverride": {
 		"Name": "Substituir Gerenciamento de Vantagem do Sistema",
-		"Hint": "Se ativado, o AC5e suprime a rolagem nativa de vantagem/desvantagem e converte a vantagem/desvantagem transitória nas fórmulas abaixo."
+		"Hint": "Se ativado, o AC5E suprime a rolagem nativa de vantagem/desvantagem e converte a vantagem/desvantagem transitória nas fórmulas abaixo."
 	},
 	"AC5E.advantageBehaviorAdvantageFormula": {
 		"Name": "Fórmula de Bônus de Vantagem",
