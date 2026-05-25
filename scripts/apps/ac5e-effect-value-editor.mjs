@@ -106,26 +106,31 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					name: 'ui.showCadence',
 					label: 'Cadence',
 					checked: optionalFieldState.cadence,
+					hint: getToggleHint('ui.showCadence'),
 				},
 				{
 					name: 'ui.showName',
 					label: 'Name',
 					checked: optionalFieldState.name,
+					hint: getToggleHint('ui.showName'),
 				},
 				{
 					name: 'ui.showDescription',
 					label: 'Description',
 					checked: optionalFieldState.description,
+					hint: getToggleHint('ui.showDescription'),
 				},
 				{
 					name: 'ui.showUsesCount',
 					label: 'Uses Count',
 					checked: optionalFieldState.usesCount,
+					hint: getToggleHint('ui.showUsesCount'),
 				},
 				...profile.commonToggles.filter((name) => !CADENCE_TOGGLE_FIELDS.includes(name)).map((name) => ({
 					name: `toggles.${name}`,
 					label: labelForField(name),
 					checked: Boolean(parsed.toggles[name]),
+					hint: getToggleHint(`toggles.${name}`),
 				})),
 			],
 			showCadence: optionalFieldState.cadence,
@@ -136,6 +141,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				name,
 				label: labelForField(name),
 				checked: Boolean(parsed.toggles[name]),
+				hint: getToggleHint(`toggles.${name}`),
 			})),
 			hasAuraBehavior: profile.isAura && profile.contextToggles.length > 0,
 			hasContextToggles: profile.contextToggles.length > 0,
@@ -180,7 +186,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
 		}
-		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
+		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
 		}
@@ -202,19 +208,21 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showName = hasCheckedInput(form, 'ui.showName');
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
+		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
 		});
 		if (!showName) mergedData.fields.name = '';
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
-		if (showUsesCount) {
-			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, usesCountScalingInputs);
-		}
+		const partialConsumeEnabled = Boolean(mergedData.toggles.partialConsume);
+		const scalingEnabled = showUsesCountScaling && !partialConsumeEnabled;
+		if (showUsesCount) mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, scalingEnabled ? usesCountScalingInputs : null);
+		if (scalingEnabled) mergedData.toggles.partialConsume = false;
 		if (!String(mergedData.fields.usesCount ?? '').trim()) mergedData.toggles.partialConsume = false;
 		applyCadenceMode(mergedData, cadenceMode);
 		if (profile.supportsSetMode) {
@@ -419,6 +427,8 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			name: hasCheckedInput(form, 'ui.showName'),
 			description: hasCheckedInput(form, 'ui.showDescription'),
 			usesCount: hasCheckedInput(form, 'ui.showUsesCount'),
+			usesCountScaling: hasCheckedInput(form, 'ui.enableUsesCountScaling'),
+			partialConsume: hasCheckedInput(form, 'toggles.partialConsume'),
 		};
 		await this.render({ force: true });
 	}
@@ -434,12 +444,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showName = hasCheckedInput(form, 'ui.showName');
 		const showDescription = hasCheckedInput(form, 'ui.showDescription');
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
+		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
 		});
 		if (!showName) mergedData.fields.name = baseData.fields.name;
 		if (!showDescription) mergedData.fields.description = baseData.fields.description;
@@ -447,7 +458,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.usesCount = baseData.fields.usesCount;
 			mergedData.toggles.partialConsume = baseData.toggles.partialConsume;
 		} else {
-			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, usesCountScalingInputs);
+			const partialConsumeEnabled = Boolean(mergedData.toggles.partialConsume);
+			const scalingEnabled = showUsesCountScaling && !partialConsumeEnabled;
+			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, scalingEnabled ? usesCountScalingInputs : null);
+			if (scalingEnabled) mergedData.toggles.partialConsume = false;
 		}
 		if (showCadence) applyCadenceMode(mergedData, cadenceMode);
 		else {
@@ -490,6 +504,27 @@ function findInputByName(name) {
 
 function labelForField(name) {
 	return name.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
+}
+
+function getToggleHint(name) {
+	const hints = {
+		'ui.showCadence': 'Show cadence controls (once, once per turn, round, or combat).',
+		'ui.showName': 'Include a custom display name for this entry.',
+		'ui.showDescription': 'Include a short description for display/tooltip text.',
+		'ui.showUsesCount': 'Enable uses-count configuration for this entry.',
+		'ui.setMode': 'Treat the bonus field as an absolute set value instead of additive bonus.',
+		'ui.enableUsesCountScaling': 'Enable min/max/step scaling inputs for usesCount consume value.',
+		'toggles.optin': 'Show this entry as optional for users to enable per roll.',
+		'toggles.itemLimited': 'Only apply when the originating item/activity matches the limited source context.',
+		'toggles.allies': 'Aura applies to allied tokens.',
+		'toggles.enemies': 'Aura applies to enemy tokens.',
+		'toggles.includeSelf': 'Aura can apply to the source actor as well.',
+		'toggles.singleAura': 'Only allow one active aura source to apply at a time.',
+		'toggles.wallsBlock': 'Walls can block aura reach/pathing.',
+		'toggles.recover': 'Reverse uses consumption and restore the configured amount.',
+		'toggles.partialConsume': 'Allow spending only what is available instead of blocking when short.',
+	};
+	return hints[name] ?? '';
 }
 
 function buildEditorInstanceKey(effect, changeIndex) {
@@ -561,11 +596,15 @@ function resolveCadenceMode(parsed) {
 }
 
 function resolveOptionalFieldState(parsed, uiState = null) {
+	const parsedUsesCountValue = parsed?.fields?.usesCount ?? '';
+	const hasParsedScaling = hasUsesCountScalingSpec(parsedUsesCountValue);
 	return {
 		cadence: uiState?.cadence ?? resolveCadenceMode(parsed) !== '',
 		name: uiState?.name ?? hasParsedValue(parsed, 'name'),
 		description: uiState?.description ?? hasParsedValue(parsed, 'description'),
 		usesCount: uiState?.usesCount ?? (hasParsedValue(parsed, 'usesCount') || Boolean(parsed?.toggles?.partialConsume)),
+		usesCountScaling: uiState?.usesCountScaling ?? hasParsedScaling,
+		partialConsume: uiState?.partialConsume ?? Boolean(parsed?.toggles?.partialConsume),
 	};
 }
 
@@ -586,6 +625,7 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false } = {
 			name: 'ui.setMode',
 			label: 'Set',
 			checked: setMode,
+			hint: getToggleHint('ui.setMode'),
 		} : null,
 		})),
 		...profile.auraFields.map((name) => ({
@@ -623,6 +663,10 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 	const descriptionField = optionalFieldState.description ? buildRenderedOptionalField('description', parsed, id) : null;
 	const usesCountValue = parsed.fields.usesCount ?? '';
 	const parsedUsesCount = parseUsesCountScalingSpec(usesCountValue);
+	const hasUsesCountScaling = optionalFieldState.usesCountScaling ?? hasUsesCountScalingSpec(usesCountValue);
+	const partialConsumeEnabled = optionalFieldState.partialConsume ?? Boolean(parsed.toggles.partialConsume);
+	const showPartialConsume = !hasUsesCountScaling;
+	const showScalingToggle = !partialConsumeEnabled;
 	return {
 		nameDescription: {
 			left: nameField ?? (!nameField && descriptionField ? descriptionField : null),
@@ -631,13 +675,26 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 		usesCount: {
 			left: optionalFieldState.usesCount ? buildRenderedOptionalField('usesCount', parsed, id) : null,
 			right: optionalFieldState.usesCount ? [
+				showScalingToggle ? {
+					name: 'ui.enableUsesCountScaling',
+					label: 'Scaling',
+					checked: hasUsesCountScaling,
+					hint: getToggleHint('ui.enableUsesCountScaling'),
+				} : null,
 				{
-					name: 'toggles.partialConsume',
-					label: 'Partial Consume',
-					checked: Boolean(parsed.toggles.partialConsume),
+					name: 'toggles.recover',
+					label: 'Recover',
+					checked: Boolean(parsed.toggles.recover),
+					hint: getToggleHint('toggles.recover'),
 				},
-			] : null,
-			scaling: optionalFieldState.usesCount ? buildRenderedUsesCountScalingFields(parsedUsesCount?.scaling, id) : null,
+				showPartialConsume ? {
+					name: 'toggles.partialConsume',
+					label: 'Partial',
+					checked: partialConsumeEnabled,
+					hint: getToggleHint('toggles.partialConsume'),
+				} : null,
+			].filter(Boolean) : null,
+			scaling: optionalFieldState.usesCount && hasUsesCountScaling ? buildRenderedUsesCountScalingFields(parsedUsesCount?.scaling, id) : null,
 		},
 	};
 }
@@ -656,13 +713,16 @@ function buildLambdaAssistData(entries) {
 		{ label: 'originActivity', value: 'originActivity' },
 	];
 	const operators = [
+		{ label: 'AND', value: ' && ' },
+		{ label: 'OR', value: ' || ' },
+		{ label: 'NOT', value: '!' },
+		{ label: '==', value: ' == ' },
+		{ label: '!=', value: ' != ' },
 		{ label: '>', value: ' > ' },
 		{ label: '>=', value: ' >= ' },
 		{ label: '<', value: ' < ' },
 		{ label: '<=', value: ' <= ' },
-		{ label: '==', value: ' == ' },
-		{ label: '&&', value: ' && ' },
-		{ label: '||', value: ' || ' },
+		{ label: '(...)', value: ' () ' },
 		{ label: 'Ternary', value: '(condition ? trueValue : falseValue)' },
 	];
 	const isEntries = uniqueIdentifiers.filter((identifier) => /^is[A-Z_]/.test(identifier) || identifier.startsWith('is'));
@@ -693,8 +753,22 @@ function prepareLambdaAssist(root, assist) {
 	if (!(root instanceof HTMLElement)) return;
 	const textarea = root.querySelector('textarea[name="value"]');
 	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	const selectionState = { userMovedCaret: false, start: null, end: null };
+	const rememberSelection = () => {
+		selectionState.userMovedCaret = true;
+		selectionState.start = textarea.selectionStart;
+		selectionState.end = textarea.selectionEnd;
+	};
+	for (const eventName of ['click', 'keyup', 'select', 'mouseup']) {
+		textarea.addEventListener(eventName, rememberSelection);
+	}
+	textarea.addEventListener('keydown', (event) => {
+		if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return;
+		const direction = event.shiftKey ? -1 : 1;
+		if (handleAssistTabNavigation(textarea, selectionState, direction)) event.preventDefault();
+	});
 	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
-		button.addEventListener('click', () => insertAtCursor(textarea, button.dataset.ac5eAssistInsert ?? ''));
+		button.addEventListener('click', () => insertAtCursor(textarea, button.dataset.ac5eAssistInsert ?? '', selectionState));
 	}
 	for (const button of root.querySelectorAll('[data-ac5e-assist-root]')) {
 		button.addEventListener('mouseenter', () => updatePathOptions(root, assist, button.dataset.ac5eAssistRoot ?? ''));
@@ -705,7 +779,7 @@ function prepareLambdaAssist(root, assist) {
 			const selectId = button.dataset.ac5eAssistInsertSelected ?? '';
 			const select = root.querySelector(`#${globalThis.CSS?.escape?.(selectId) ?? selectId.replaceAll('"', '\\"')}`);
 			if (!(select instanceof HTMLSelectElement)) return;
-			insertAtCursor(textarea, select.value ?? '');
+			insertAtCursor(textarea, select.value ?? '', selectionState);
 		});
 	}
 }
@@ -717,15 +791,174 @@ function updatePathOptions(root, assist, rootPath) {
 	select.innerHTML = renderAssistOptions(options);
 }
 
-function insertAtCursor(input, text) {
+function insertAtCursor(input, text, selectionState = null) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 	if (!text) return;
-	const start = input.selectionStart ?? input.value.length;
-	const end = input.selectionEnd ?? input.value.length;
-	input.value = `${input.value.slice(0, start)}${text}${input.value.slice(end)}`;
-	const cursor = start + text.length;
-	input.setSelectionRange(cursor, cursor);
+	const insertion = resolveAssistInsertion(text);
+	const hasExplicitSelection = Boolean(selectionState?.userMovedCaret) &&
+		Number.isInteger(selectionState?.start) &&
+		Number.isInteger(selectionState?.end);
+	const start = hasExplicitSelection ? selectionState.start : input.value.length;
+	const end = hasExplicitSelection ? selectionState.end : input.value.length;
+	input.value = `${input.value.slice(0, start)}${insertion.text}${input.value.slice(end)}`;
+	const selectionStart = start + insertion.selectionStartOffset;
+	const selectionEnd = selectionStart + insertion.selectionLength;
+	input.focus();
+	input.setSelectionRange(selectionStart, selectionEnd);
+	if (selectionState) {
+		selectionState.start = selectionStart;
+		selectionState.end = selectionEnd;
+	}
 	input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function resolveAssistInsertion(text) {
+	const rawText = String(text ?? '');
+	const trimmed = rawText.trim();
+	if (trimmed === '()') {
+		const cursorOffset = rawText.indexOf('(') + 1;
+		return { text: rawText, selectionStartOffset: Math.max(0, cursorOffset), selectionLength: 0 };
+	}
+	const ternaryTemplate = '(condition ? trueValue : falseValue)';
+	if (trimmed === ternaryTemplate) {
+		const conditionToken = 'condition';
+		const tokenOffset = rawText.indexOf(conditionToken);
+		return {
+			text: rawText,
+			selectionStartOffset: Math.max(0, tokenOffset),
+			selectionLength: conditionToken.length,
+		};
+	}
+	return { text: rawText, selectionStartOffset: rawText.length, selectionLength: 0 };
+}
+
+function handleAssistTabNavigation(input, selectionState = null, direction = 1) {
+	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return false;
+	const value = input.value ?? '';
+	const start = Number(input.selectionStart ?? 0);
+	const end = Number(input.selectionEnd ?? start);
+	const targets = collectAssistNavigationTargets(value);
+	if (!targets.length) return false;
+	const currentIndex = findActiveNavigationTargetIndex(targets, start, end);
+	let nextIndex = -1;
+	if (currentIndex >= 0) nextIndex = currentIndex + (direction > 0 ? 1 : -1);
+	else {
+		nextIndex = direction > 0
+			? targets.findIndex((target) => target.start >= end)
+			: findLastIndex(targets, (target) => target.end <= start);
+	}
+	if (nextIndex < 0 || nextIndex >= targets.length) {
+		const activeIndex = currentIndex >= 0 ? currentIndex : findActiveNavigationTargetIndex(targets, start, end);
+		const activeTarget = activeIndex >= 0 ? targets[activeIndex] : null;
+		if (activeTarget && direction > 0) {
+			const enclosing = findEnclosingParenthesisRange(value, activeTarget.end);
+			if (enclosing && activeTarget.end <= enclosing.close + 1) {
+				const next = enclosing.close + 1;
+				input.setSelectionRange(next, next);
+				if (selectionState) {
+					selectionState.start = next;
+					selectionState.end = next;
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+	const target = targets[nextIndex];
+	input.setSelectionRange(target.start, target.end);
+	if (selectionState) {
+		selectionState.start = target.start;
+		selectionState.end = target.end;
+	}
+	return true;
+}
+
+function collectAssistNavigationTargets(value) {
+	const text = String(value ?? '');
+	const targets = [];
+	let index = 0;
+	while (index < text.length) {
+		const char = text[index];
+		if (char === "'" || char === '"' || char === '`') {
+			let end = index + 1;
+			while (end < text.length) {
+				if (text[end] === '\\') {
+					end += 2;
+					continue;
+				}
+				if (text[end] === char) {
+					end++;
+					break;
+				}
+				end++;
+			}
+			targets.push({ start: index, end });
+			index = end;
+			continue;
+		}
+		if (/[A-Za-z_]/.test(char)) {
+			let end = index + 1;
+			while (end < text.length && /[A-Za-z0-9_]/.test(text[end])) end++;
+			targets.push({ start: index, end });
+			index = end;
+			continue;
+		}
+		if (/[0-9]/.test(char)) {
+			let end = index + 1;
+			while (end < text.length && /[0-9.]/.test(text[end])) end++;
+			targets.push({ start: index, end });
+			index = end;
+			continue;
+		}
+		index++;
+	}
+	return targets;
+}
+
+function findActiveNavigationTargetIndex(targets, start, end) {
+	return targets.findIndex((target) => {
+		const fullySelected = start === target.start && end === target.end;
+		const caretInside = start === end && start >= target.start && start <= target.end;
+		const overlapsSelection = start !== end && start < target.end && end > target.start;
+		return fullySelected || caretInside || overlapsSelection;
+	});
+}
+
+function findLastIndex(array, predicate) {
+	for (let index = array.length - 1; index >= 0; index--) {
+		if (predicate(array[index], index)) return index;
+	}
+	return -1;
+}
+
+function findEnclosingParenthesisRange(text, position) {
+	const source = String(text ?? '');
+	const stack = [];
+	let quote = null;
+	for (let index = 0; index < source.length; index++) {
+		const char = source[index];
+		if (quote) {
+			if (char === '\\') {
+				index++;
+				continue;
+			}
+			if (char === quote) quote = null;
+			continue;
+		}
+		if (char === "'" || char === '"' || char === '`') {
+			quote = char;
+			continue;
+		}
+		if (char === '(') {
+			stack.push(index);
+			continue;
+		}
+		if (char !== ')') continue;
+		const open = stack.pop();
+		if (!Number.isInteger(open)) continue;
+		if (open < position && position <= index + 1) return { open, close: index };
+	}
+	return null;
 }
 
 function hasOptionalFieldRows(rows) {
@@ -844,23 +1077,23 @@ function extractNumericScalingKey(source, key) {
 
 function buildRenderedUsesCountScalingFields(scaling, id) {
 	return {
-		max: {
-			name: 'ui.usesCountScaling.max',
-			label: 'Scaling Max',
-			value: scaling?.max ?? '',
-			inputId: `ac5e-value-usesCount-scaling-max-${id}`,
-			placeholder: '1',
-		},
 		min: {
 			name: 'ui.usesCountScaling.min',
-			label: 'Scaling Min',
+			label: 'Min',
 			value: scaling?.min ?? '',
 			inputId: `ac5e-value-usesCount-scaling-min-${id}`,
 			placeholder: '1',
 		},
+		max: {
+			name: 'ui.usesCountScaling.max',
+			label: 'Max',
+			value: scaling?.max ?? '',
+			inputId: `ac5e-value-usesCount-scaling-max-${id}`,
+			placeholder: '1',
+		},
 		step: {
 			name: 'ui.usesCountScaling.step',
-			label: 'Scaling Step',
+			label: 'Step',
 			value: scaling?.step ?? '',
 			inputId: `ac5e-value-usesCount-scaling-step-${id}`,
 			placeholder: '1',
@@ -907,3 +1140,4 @@ function coerceScalingNumber(value, fallback) {
 	const parsed = Number(value);
 	return Number.isFinite(parsed) ? parsed : fallback;
 }
+
