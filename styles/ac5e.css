@@ -242,7 +242,6 @@
 	margin: 0 0 8px;
 }
 
-.ac5e-effect-value-assist-roots,
 .ac5e-effect-value-assist-operators {
 	display: flex;
 	flex-wrap: wrap;
@@ -262,9 +261,99 @@
 	gap: 6px;
 }
 
-.ac5e-effect-value-expand-dialog [data-ac5e-assist-paths] {
-	min-height: 220px;
-	max-height: 320px;
+.ac5e-effect-value-assist-browser {
+	border: 1px solid var(--color-border-light-primary);
+	border-radius: 4px;
+	min-height: 280px;
+	max-height: 360px;
+	min-width: 280px;
+	overflow: auto;
+	padding: 6px;
+}
+
+.ac5e-effect-value-assist-stage {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 260px;
+}
+
+.ac5e-effect-value-assist-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.ac5e-effect-value-assist-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--color-bg);
+	padding-bottom: 4px;
+}
+
+.ac5e-effect-value-inline-autocomplete {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 320px;
+	max-height: 220px;
+	overflow: auto;
+	border: 1px solid var(--color-border-light-primary);
+	border-radius: 4px;
+	background: var(--color-bg);
+	box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+	padding: 2px;
+	z-index: 120;
+}
+
+.ac5e-effect-value-inline-autocomplete-item {
+	display: block;
+	width: 100%;
+	text-align: left;
+	background: transparent;
+	border: 0;
+	border-radius: 2px;
+	padding: 6px 8px;
+	line-height: 1.2;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ac5e-effect-value-inline-autocomplete-item.active,
+.ac5e-effect-value-inline-autocomplete-item:focus-visible {
+	outline: 1px solid var(--color-text-primary);
+}
+
+.ac5e-effect-value-assist-current {
+	display: inline-block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 180px;
+}
+
+.ac5e-effect-value-assist-node {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	text-align: left;
+	width: 100%;
+}
+
+.ac5e-effect-value-assist-node.active,
+.ac5e-effect-value-assist-node:focus-visible {
+	outline: 1px solid var(--color-text-primary);
+}
+
+.ac5e-effect-value-assist-empty {
+	margin: 0;
+	opacity: 0.75;
 }
 
 .ac5e-effect-value-editor-footer {

@@ -168,10 +168,16 @@ function walkData(entries, root, value, source, depth = 0, seen = new WeakSet())
 
 function addEntry(entries, identifier, source) {
 	if (!identifier || entries.has(identifier)) return;
+	const suffix = isAc5eOwnedSource(source) ? ` - ${source}` : '';
 	entries.set(identifier, {
 		identifier,
-		label: `${identifier} - ${source}`,
+		label: `${identifier}${suffix}`,
 	});
+}
+
+function isAc5eOwnedSource(source) {
+	if (typeof source !== 'string') return false;
+	return source.toLowerCase().includes('ac5e');
 }
 
 function isWalkable(value) {

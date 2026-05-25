@@ -316,7 +316,9 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const currentValue = input.value ?? '';
 		const escapedLabel = escapeHtml(label);
 		const escapedValue = escapeHtml(currentValue);
-		const assist = buildLambdaAssistData(this.autocompleteEntries);
+		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
+		const assistProfile = getEditorProfile(changeKey, this.draftData ?? null);
+		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura });
 		try {
 			const result = await foundry.applications.api.DialogV2.wait({
 				window: {
@@ -367,20 +369,12 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 							</section>
 							<aside class="ac5e-effect-value-expand-aside">
 								<p class="ac5e-effect-value-assist-title">Lambda Paths</p>
-								<div class="ac5e-effect-value-assist-roots">
-									${renderAssistButtonGroup(assist.entryPoints, 'ac5e-assist-root')}
+								<div class="ac5e-effect-value-assist-browser" data-ac5e-assist-browser>
+									<div class="ac5e-effect-value-assist-stage" data-ac5e-assist-stage></div>
 								</div>
-								<div class="form-group stacked">
-									<label for="ac5e-assist-paths">Paths</label>
-									<div class="form-fields">
-										<select id="ac5e-assist-paths" data-ac5e-assist-paths size="12">
-											${renderAssistOptions(assist.pathsByRoot[assist.entryPoints[0]?.value] ?? [])}
-										</select>
-									</div>
-								</div>
-								<button type="button" data-ac5e-assist-insert-selected="ac5e-assist-paths">Insert Selected Path</button>
-							</div>
+							</aside>
 						</div>
+						<div class="ac5e-effect-value-inline-autocomplete" data-ac5e-inline-autocomplete hidden></div>
 					</form>
 				`,
 				buttons: [
@@ -699,9 +693,9 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 	};
 }
 
-function buildLambdaAssistData(entries) {
+function buildLambdaAssistData(entries, { includeAuraActor = true } = {}) {
 	const uniqueIdentifiers = dedupe((entries ?? []).map((entry) => entry?.identifier).filter((identifier) => typeof identifier === 'string' && identifier.trim()));
-	const entryPoints = [
+	const allEntryPoints = [
 		{ label: 'rollingActor', value: 'rollingActor' },
 		{ label: 'opponentActor', value: 'opponentActor' },
 		{ label: 'auraActor', value: 'auraActor' },
@@ -712,6 +706,7 @@ function buildLambdaAssistData(entries) {
 		{ label: 'originItem', value: 'originItem' },
 		{ label: 'originActivity', value: 'originActivity' },
 	];
+	const entryPoints = includeAuraActor ? allEntryPoints : allEntryPoints.filter((entry) => entry.value !== 'auraActor');
 	const operators = [
 		{ label: 'AND', value: ' && ' },
 		{ label: 'OR', value: ' || ' },
@@ -729,11 +724,29 @@ function buildLambdaAssistData(entries) {
 	const hasEntries = uniqueIdentifiers.filter((identifier) => /^has[A-Z_]/.test(identifier) || identifier.startsWith('has'));
 	const used = new Set([...isEntries, ...hasEntries]);
 	const otherEntries = uniqueIdentifiers.filter((identifier) => !used.has(identifier)).slice(0, 250);
-	const pathsByRoot = Object.fromEntries(entryPoints.map((entry) => [
+	const schemaHintsByRoot = {
+		rollingActor: ['rollingActor.name', 'rollingActor.type', 'rollingActor.id', 'rollingActor.uuid', 'rollingActor.actorId', 'rollingActor.actorType', 'rollingActor.actorUuid', 'rollingActor.tokenId', 'rollingActor.tokenUuid', 'rollingActor.flags'],
+		opponentActor: ['opponentActor.name', 'opponentActor.type', 'opponentActor.id', 'opponentActor.uuid', 'opponentActor.actorId', 'opponentActor.actorType', 'opponentActor.actorUuid', 'opponentActor.tokenId', 'opponentActor.tokenUuid', 'opponentActor.opponentId'],
+		auraActor: ['auraActor.name', 'auraActor.type', 'auraActor.id', 'auraActor.uuid', 'auraActor.actorId', 'auraActor.actorType', 'auraActor.actorUuid', 'auraActor.tokenId'],
+		effectActor: ['effectActor.name', 'effectActor.type', 'effectActor.id', 'effectActor.uuid', 'effectActor.actorId', 'effectActor.actorType', 'effectActor.actorUuid', 'effectActor.tokenId'],
+		nonEffectActor: ['nonEffectActor.name', 'nonEffectActor.type', 'nonEffectActor.id', 'nonEffectActor.uuid', 'nonEffectActor.actorId', 'nonEffectActor.actorType', 'nonEffectActor.actorUuid', 'nonEffectActor.tokenId'],
+		item: ['item.name', 'item.type', 'item.id', 'item.uuid', 'item.itemUuid', 'item.itemType', 'item.itemProperties'],
+		activity: ['activity.name', 'activity.type', 'activity.id', 'activity.uuid'],
+		originItem: ['originItem.name', 'originItem.type', 'originItem.id', 'originItem.uuid'],
+		originActivity: ['originActivity.name', 'originActivity.type', 'originActivity.id', 'originActivity.uuid'],
+	};
+	const pathsByRoot = Object.fromEntries(entryPoints.map((entry) => {
+		const fromEntries = uniqueIdentifiers
+			.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
+			.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`);
+		const hints = schemaHintsByRoot[entry.value] ?? [];
+		return [entry.value, dedupe([...fromEntries, ...hints])];
+	}));
+	const treesByRoot = Object.fromEntries(entryPoints.map((entry) => [
 		entry.value,
-		uniqueIdentifiers.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`)),
+		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? []),
 	]));
-	return { entryPoints, operators, isEntries, hasEntries, otherEntries, pathsByRoot };
+	return { entryPoints, operators, isEntries, hasEntries, otherEntries, pathsByRoot, treesByRoot };
 }
 
 function renderAssistButtonGroup(items, dataAttribute) {
@@ -754,10 +767,13 @@ function prepareLambdaAssist(root, assist) {
 	const textarea = root.querySelector('textarea[name="value"]');
 	if (!(textarea instanceof HTMLTextAreaElement)) return;
 	const selectionState = { userMovedCaret: false, start: null, end: null };
+	const inlineAutocomplete = root.querySelector('[data-ac5e-inline-autocomplete]');
+	if (inlineAutocomplete instanceof HTMLElement) inlineAutocomplete.hidden = true;
 	const rememberSelection = () => {
 		selectionState.userMovedCaret = true;
 		selectionState.start = textarea.selectionStart;
 		selectionState.end = textarea.selectionEnd;
+		selectionState.recentAssistInsert = null;
 	};
 	for (const eventName of ['click', 'keyup', 'select', 'mouseup']) {
 		textarea.addEventListener(eventName, rememberSelection);
@@ -767,28 +783,387 @@ function prepareLambdaAssist(root, assist) {
 		const direction = event.shiftKey ? -1 : 1;
 		if (handleAssistTabNavigation(textarea, selectionState, direction)) event.preventDefault();
 	});
+	const syncFromInput = () => syncAssistBrowserFromInput(root, assist, selectionState, textarea);
+	textarea.addEventListener('input', syncFromInput);
+	textarea.addEventListener('click', syncFromInput);
+	textarea.addEventListener('keyup', (event) => {
+		if (['ArrowUp', 'ArrowDown', 'Enter', 'Escape', 'Tab', 'Shift'].includes(event.key)) return;
+		syncFromInput();
+	});
 	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
 		button.addEventListener('click', () => insertAtCursor(textarea, button.dataset.ac5eAssistInsert ?? '', selectionState));
 	}
-	for (const button of root.querySelectorAll('[data-ac5e-assist-root]')) {
-		button.addEventListener('mouseenter', () => updatePathOptions(root, assist, button.dataset.ac5eAssistRoot ?? ''));
-		button.addEventListener('click', () => updatePathOptions(root, assist, button.dataset.ac5eAssistRoot ?? ''));
+	setAssistActivePath(root, '');
+	root.dataset.ac5eAssistFilter = '';
+	renderAssistStage(root, assist, selectionState, textarea);
+}
+
+function setAssistActivePath(root, path) {
+	root.dataset.ac5eAssistActivePath = path;
+}
+
+function buildAssistPathTree(rootPath, paths) {
+	const root = { label: rootPath, path: rootPath, terminal: true, children: [] };
+	const childrenByPath = new Map();
+	for (const path of paths ?? []) {
+		if (path !== rootPath && !path.startsWith(`${rootPath}.`)) continue;
+		const segments = path === rootPath ? [] : path.split('.').filter((segment, index) => !(index === 0 && segment === rootPath));
+		if (!segments.length) {
+			root.terminal = true;
+			continue;
+		}
+		let branch = root;
+		let currentPath = rootPath;
+		for (const segment of segments) {
+			currentPath = `${currentPath}.${segment}`;
+			let next = childrenByPath.get(currentPath);
+			if (!next) {
+				next = { label: segment, path: currentPath, terminal: false, children: [] };
+				childrenByPath.set(currentPath, next);
+				branch.children.push(next);
+			}
+			branch = next;
+		}
+		branch.terminal = true;
 	}
-	for (const button of root.querySelectorAll('[data-ac5e-assist-insert-selected]')) {
-		button.addEventListener('click', () => {
-			const selectId = button.dataset.ac5eAssistInsertSelected ?? '';
-			const select = root.querySelector(`#${globalThis.CSS?.escape?.(selectId) ?? selectId.replaceAll('"', '\\"')}`);
-			if (!(select instanceof HTMLSelectElement)) return;
-			insertAtCursor(textarea, select.value ?? '', selectionState);
+	return root;
+}
+
+function renderAssistStage(root, assist, selectionState, textarea) {
+	const container = root.querySelector('[data-ac5e-assist-stage]');
+	if (!(container instanceof HTMLElement)) return;
+	const activeRoot = root.dataset.ac5eAssistActiveRoot ?? '';
+	const chain = parseAssistChain(root.dataset.ac5eAssistChain ?? '');
+	if (!activeRoot) {
+		container.innerHTML = renderAssistRootStage(assist?.entryPoints ?? []);
+		for (const button of container.querySelectorAll('[data-ac5e-assist-root]')) {
+			button.addEventListener('click', () => {
+				root.dataset.ac5eAssistActiveRoot = button.dataset.ac5eAssistRoot ?? '';
+				root.dataset.ac5eAssistChain = '[]';
+				root.dataset.ac5eAssistFilter = '';
+				setAssistActivePath(root, '');
+				renderAssistStage(root, assist, selectionState, textarea);
+			});
+		}
+		return;
+	}
+	const tree = assist?.treesByRoot?.[activeRoot];
+	const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
+	const allNodes = parentNode?.children ?? [];
+	const filterText = String(root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
+	const nodes = filterText ? allNodes.filter((node) => String(node?.label ?? '').toLowerCase().startsWith(filterText)) : allNodes;
+	const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
+	container.innerHTML = renderAssistNodeStage(nodes, headerPath, chain.length > 0);
+	const backButton = container.querySelector('[data-ac5e-assist-back]');
+	backButton?.addEventListener('click', () => {
+		const nextChain = chain.slice(0, -1);
+		root.dataset.ac5eAssistChain = JSON.stringify(nextChain);
+		root.dataset.ac5eAssistFilter = '';
+		setAssistActivePath(root, nextChain[nextChain.length - 1] ?? '');
+		renderAssistStage(root, assist, selectionState, textarea);
+	});
+	const rootsButton = container.querySelector('[data-ac5e-assist-roots]');
+	rootsButton?.addEventListener('click', () => {
+		root.dataset.ac5eAssistActiveRoot = '';
+		root.dataset.ac5eAssistChain = '[]';
+		root.dataset.ac5eAssistFilter = '';
+		setAssistActivePath(root, '');
+		renderAssistStage(root, assist, selectionState, textarea);
+	});
+	for (const nodeButton of container.querySelectorAll('[data-ac5e-assist-node]')) {
+		const nodePath = nodeButton.dataset.ac5eAssistNode ?? '';
+		const node = findTreeNodeByPath(tree, nodePath);
+		nodeButton.addEventListener('click', () => {
+			if (!node) return;
+			if (node.children?.length) {
+				root.dataset.ac5eAssistChain = JSON.stringify([...chain, node.path]);
+				root.dataset.ac5eAssistFilter = '';
+				setAssistActivePath(root, '');
+				renderAssistStage(root, assist, selectionState, textarea);
+				return;
+			}
+			setAssistActivePath(root, node.path);
+			for (const button of container.querySelectorAll('[data-ac5e-assist-node]')) button.classList.toggle('active', button.dataset.ac5eAssistNode === node.path);
+		});
+		nodeButton.addEventListener('dblclick', () => {
+			if (!node?.terminal) return;
+			setAssistActivePath(root, node.path);
+			insertAssistPathAtCursor(textarea, node.path, selectionState);
 		});
 	}
 }
 
-function updatePathOptions(root, assist, rootPath) {
-	const select = root.querySelector('[data-ac5e-assist-paths]');
-	if (!(select instanceof HTMLSelectElement)) return;
-	const options = assist?.pathsByRoot?.[rootPath] ?? [];
-	select.innerHTML = renderAssistOptions(options);
+function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
+	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	if (!token) return;
+	const context = resolveAssistInputContext(token, assist);
+	if (!context) return;
+	const nextChain = JSON.stringify(context.chain ?? []);
+	const nextRoot = context.root ?? '';
+	const nextFilter = context.filter ?? '';
+	const changed = root.dataset.ac5eAssistActiveRoot !== nextRoot
+		|| (root.dataset.ac5eAssistChain ?? '[]') !== nextChain
+		|| (root.dataset.ac5eAssistFilter ?? '') !== nextFilter;
+	if (!changed) return;
+	root.dataset.ac5eAssistActiveRoot = nextRoot;
+	root.dataset.ac5eAssistChain = nextChain;
+	root.dataset.ac5eAssistFilter = nextFilter;
+	setAssistActivePath(root, '');
+	renderAssistStage(root, assist, selectionState, textarea);
+}
+
+function resolveAssistInputContext(token, assist) {
+	const normalized = String(token ?? '').trim();
+	if (!normalized) return null;
+	const trailingDot = normalized.endsWith('.');
+	const trimmed = trailingDot ? normalized.slice(0, -1) : normalized;
+	const segments = trimmed.split('.').filter(Boolean);
+	if (!segments.length) return null;
+	const root = segments[0];
+	if (!assist?.treesByRoot?.[root]) return null;
+	const tree = assist.treesByRoot[root];
+	if (trailingDot) {
+		const chain = buildAssistChainForPath(tree, root, trimmed);
+		return { root, chain, filter: '' };
+	}
+	if (segments.length === 1) return { root, chain: [], filter: '' };
+	const parentPath = segments.slice(0, -1).join('.');
+	const filter = segments[segments.length - 1] ?? '';
+	const chain = buildAssistChainForPath(tree, root, parentPath);
+	return { root, chain, filter };
+}
+
+function buildAssistChainForPath(tree, root, path) {
+	const chain = [];
+	const segments = String(path ?? '').split('.').filter(Boolean);
+	let currentPath = root;
+	for (let index = 1; index < segments.length; index += 1) {
+		currentPath = `${currentPath}.${segments[index]}`;
+		if (!findTreeNodeByPath(tree, currentPath)) break;
+		chain.push(currentPath);
+	}
+	return chain;
+}
+
+function parseAssistChain(rawChain) {
+	try {
+		const parsed = JSON.parse(rawChain || '[]');
+		return Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string' && value) : [];
+	} catch (_err) {
+		return [];
+	}
+}
+
+function renderAssistRootStage(entryPoints) {
+	const items = (entryPoints ?? [])
+		.map((entry) => `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-root="${escapeHtml(entry.value)}">${escapeHtml(entry.label)} ></button>`)
+		.join('');
+	const empty = items || '<p class="ac5e-effect-value-assist-empty">No roots available</p>';
+	return `
+		<div class="ac5e-effect-value-assist-toolbar"><span>Root</span></div>
+		<div class="ac5e-effect-value-assist-list">${empty}</div>
+	`;
+}
+
+function renderAssistNodeStage(nodes, headerPath, canGoBack) {
+	const items = (nodes ?? [])
+		.map((node) => {
+		const marker = node.children?.length ? '>' : '';
+		return `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(node.label)} ${marker}</button>`;
+	}).join('');
+	const empty = items || '<p class="ac5e-effect-value-assist-empty">No paths available</p>';
+	return `
+		<div class="ac5e-effect-value-assist-toolbar">
+			<button type="button" data-ac5e-assist-roots>Roots</button>
+			<button type="button" data-ac5e-assist-back ${canGoBack ? '' : 'disabled'}>Back</button>
+			<span class="ac5e-effect-value-assist-current" title="${escapeHtml(headerPath)}">${escapeHtml(headerPath)}</span>
+		</div>
+		<div class="ac5e-effect-value-assist-list">${empty}</div>
+	`;
+}
+
+function buildInlinePathSuggestions(assist) {
+	const values = [];
+	for (const root of assist?.entryPoints ?? []) {
+		const paths = assist?.pathsByRoot?.[root.value] ?? [];
+		for (const path of paths) values.push(path);
+	}
+	return dedupe(values.filter((value) => typeof value === 'string' && value.includes('.')));
+}
+
+function updateInlineAutocomplete(textarea, autocompleteState, selectionState) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	if (!autocompleteState?.container) return;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	if (!token || token.length < 2) {
+		closeInlineAutocomplete(autocompleteState);
+		return;
+	}
+	const filtered = filterInlineSuggestions(autocompleteState.suggestions, token).slice(0, 12);
+	if (!filtered.length) {
+		closeInlineAutocomplete(autocompleteState);
+		return;
+	}
+	autocompleteState.filtered = filtered;
+	autocompleteState.activeIndex = 0;
+	autocompleteState.start = caret - token.length;
+	autocompleteState.end = caret;
+	autocompleteState.open = true;
+	renderInlineAutocomplete(autocompleteState, textarea, selectionState);
+}
+
+function extractAutocompleteToken(text, caret) {
+	const left = String(text ?? '').slice(0, Math.max(0, caret));
+	const match = left.match(/[A-Za-z_][A-Za-z0-9_.]*$/);
+	return match?.[0] ?? '';
+}
+
+function filterInlineSuggestions(suggestions, token) {
+	const normalized = String(token ?? '').trim().toLowerCase();
+	return (suggestions ?? [])
+		.map((value) => ({ value, score: scoreInlineSuggestion(value, normalized) }))
+		.filter((entry) => entry.score > -1)
+		.sort((a, b) => b.score - a.score || a.value.length - b.value.length)
+		.map((entry) => entry.value);
+}
+
+function scoreInlineSuggestion(path, token) {
+	const source = String(path ?? '').toLowerCase();
+	if (!token) return -1;
+	const tokenSegments = token.split('.');
+	const fragment = tokenSegments[tokenSegments.length - 1] ?? '';
+	const base = tokenSegments.slice(0, -1).join('.');
+	if (base && !source.startsWith(`${base}.`) && source !== base) return -1;
+	const nextSegment = getNextPathSegment(source, base);
+	if (base && fragment && nextSegment?.startsWith(fragment)) return 700 - source.length;
+	if (base && !fragment) return 650 - source.length;
+	if (source.startsWith(token)) return 400 - source.length;
+	const lastSegment = nextSegment ?? (source.split('.').at(-1) ?? '');
+	if (lastSegment.startsWith(token)) return 320 - source.length;
+	if (source.includes(`.${token}`)) return 280 - source.length;
+	if (fragment && lastSegment.startsWith(fragment)) return 240 - source.length;
+	let index = 0;
+	let score = 100;
+	for (const char of (fragment || token)) {
+		index = source.indexOf(char, index);
+		if (index < 0) return -1;
+		score += 1;
+		index += 1;
+	}
+	return score;
+}
+
+function getNextPathSegment(path, base) {
+	if (!base) return path.split('.')[0] ?? '';
+	if (path === base) return '';
+	if (!path.startsWith(`${base}.`)) return '';
+	const remainder = path.slice(base.length + 1);
+	return remainder.split('.')[0] ?? '';
+}
+
+function handleInlineAutocompleteKeydown(event, textarea, autocompleteState, selectionState) {
+	if (!autocompleteState?.open) return false;
+	if (event.key === 'ArrowDown') {
+		event.preventDefault();
+		autocompleteState.activeIndex = Math.min(autocompleteState.filtered.length - 1, autocompleteState.activeIndex + 1);
+		renderInlineAutocomplete(autocompleteState, textarea, selectionState);
+		return true;
+	}
+	if (event.key === 'ArrowUp') {
+		event.preventDefault();
+		autocompleteState.activeIndex = Math.max(0, autocompleteState.activeIndex - 1);
+		renderInlineAutocomplete(autocompleteState, textarea, selectionState);
+		return true;
+	}
+	if (event.key === 'Escape') {
+		event.preventDefault();
+		closeInlineAutocomplete(autocompleteState);
+		return true;
+	}
+	if (event.key === 'Enter') {
+		event.preventDefault();
+		const selected = autocompleteState.filtered[autocompleteState.activeIndex];
+		if (selected) applyInlineSuggestion(textarea, selected, autocompleteState, selectionState);
+		closeInlineAutocomplete(autocompleteState);
+		return true;
+	}
+	return false;
+}
+
+function applyInlineSuggestion(textarea, suggestion, autocompleteState, selectionState) {
+	const start = Math.max(0, Number(autocompleteState.start ?? 0));
+	const end = Math.max(start, Number(autocompleteState.end ?? start));
+	const text = String(suggestion ?? '');
+	textarea.value = `${textarea.value.slice(0, start)}${text}${textarea.value.slice(end)}`;
+	const cursor = start + text.length;
+	textarea.focus();
+	textarea.setSelectionRange(cursor, cursor);
+	if (selectionState) {
+		selectionState.start = cursor;
+		selectionState.end = cursor;
+		selectionState.recentAssistInsert = { start, end: cursor, text };
+		selectionState.userMovedCaret = true;
+	}
+	textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function renderInlineAutocomplete(autocompleteState, textarea, selectionState) {
+	const container = autocompleteState?.container;
+	if (!(container instanceof HTMLElement)) return;
+	const items = (autocompleteState.filtered ?? [])
+		.map((item, index) => `<button type="button" class="ac5e-effect-value-inline-autocomplete-item${index === autocompleteState.activeIndex ? ' active' : ''}" data-ac5e-inline-item="${escapeHtml(item)}">${escapeHtml(item)}</button>`)
+		.join('');
+	container.innerHTML = items;
+	container.hidden = !items;
+	positionInlineAutocomplete(container, textarea);
+	for (const button of container.querySelectorAll('[data-ac5e-inline-item]')) {
+		button.addEventListener('mousedown', (event) => {
+			event.preventDefault();
+			const value = button.dataset.ac5eInlineItem ?? '';
+			if (!value) return;
+			applyInlineSuggestion(textarea, value, autocompleteState, selectionState);
+			closeInlineAutocomplete(autocompleteState);
+		});
+	}
+}
+
+function closeInlineAutocomplete(autocompleteState) {
+	const container = autocompleteState?.container;
+	if (!(container instanceof HTMLElement)) return;
+	autocompleteState.open = false;
+	autocompleteState.filtered = [];
+	container.hidden = true;
+	container.innerHTML = '';
+}
+
+function positionInlineAutocomplete(container, textarea) {
+	if (!(container instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
+	const containerParent = container.parentElement;
+	if (!(containerParent instanceof HTMLElement)) return;
+	const areaRect = textarea.getBoundingClientRect();
+	const parentRect = containerParent.getBoundingClientRect();
+	const top = Math.max(0, areaRect.bottom - parentRect.top - 4);
+	const left = Math.max(0, areaRect.left - parentRect.left);
+	const maxWidth = Math.max(220, areaRect.width);
+	container.style.top = `${top}px`;
+	container.style.left = `${left}px`;
+	container.style.width = `${maxWidth}px`;
+}
+
+function findTreeNodeByPath(rootNode, path) {
+	if (!rootNode || !path) return null;
+	if (rootNode.path === path) return rootNode;
+	const queue = [...(rootNode.children ?? [])];
+	while (queue.length) {
+		const node = queue.shift();
+		if (!node) continue;
+		if (node.path === path) return node;
+		if (node.children?.length) queue.push(...node.children);
+	}
+	return null;
 }
 
 function insertAtCursor(input, text, selectionState = null) {
@@ -810,6 +1185,41 @@ function insertAtCursor(input, text, selectionState = null) {
 		selectionState.end = selectionEnd;
 	}
 	input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function insertAssistPathAtCursor(input, path, selectionState = null) {
+	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+	const text = String(path ?? '');
+	if (!text) return;
+	const recent = selectionState?.recentAssistInsert ?? null;
+	const canReplaceRecent =
+		recent &&
+		Number.isInteger(recent.start) &&
+		Number.isInteger(recent.end) &&
+		recent.start >= 0 &&
+		recent.end >= recent.start &&
+		input.value.slice(recent.start, recent.end) === recent.text &&
+		input.selectionStart === input.selectionEnd &&
+		input.selectionStart === recent.end;
+	if (canReplaceRecent) {
+		const start = recent.start;
+		const end = recent.end;
+		input.value = `${input.value.slice(0, start)}${text}${input.value.slice(end)}`;
+		const next = start + text.length;
+		input.focus();
+		input.setSelectionRange(next, next);
+		if (selectionState) {
+			selectionState.start = next;
+			selectionState.end = next;
+			selectionState.recentAssistInsert = { start, end: next, text };
+		}
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		return;
+	}
+	const start = Number(input.selectionStart ?? input.value.length);
+	insertAtCursor(input, text, selectionState);
+	const end = start + text.length;
+	if (selectionState) selectionState.recentAssistInsert = { start, end, text };
 }
 
 function resolveAssistInsertion(text) {
