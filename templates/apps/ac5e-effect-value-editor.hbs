@@ -75,7 +75,7 @@
 							<div class="form-fields">
 								<label class="ac5e-effect-value-editor-inline-toggle">
 									<input type="checkbox" name="{{inlineToggle.name}}" {{#if inlineToggle.checked}}checked{{/if}}>
-									<span>{{inlineToggle.label}}</span>
+									<span title="{{inlineToggle.hint}}">{{inlineToggle.label}}</span>
 								</label>
 							</div>
 						</div>
@@ -112,7 +112,7 @@
 		<legend>Toggle Behavior</legend>
 		<div class="ac5e-effect-value-editor-toggle-grid">
 			{{#each toggleBehavior}}
-				<label>
+				<label title="{{hint}}">
 					<input type="checkbox" name="{{name}}" {{#if checked}}checked{{/if}}>
 					<span>{{label}}</span>
 				</label>
@@ -192,7 +192,7 @@
 							<label>&nbsp;</label>
 							<div class="form-fields">
 								{{#each right}}
-									<label class="ac5e-effect-value-editor-inline-toggle">
+									<label class="ac5e-effect-value-editor-inline-toggle" title="{{hint}}">
 										<input type="checkbox" name="{{name}}" {{#if checked}}checked{{/if}}>
 										<span>{{label}}</span>
 									</label>
@@ -207,12 +207,12 @@
 							<label>Scaling</label>
 							<div class="form-fields ac5e-effect-value-editor-scaling-grid">
 								<div class="ac5e-effect-value-editor-scaling-field">
-									<label for="{{scaling.max.inputId}}">{{scaling.max.label}}</label>
-									<input id="{{scaling.max.inputId}}" type="text" name="{{scaling.max.name}}" value="{{scaling.max.value}}" placeholder="{{scaling.max.placeholder}}">
-								</div>
-								<div class="ac5e-effect-value-editor-scaling-field">
 									<label for="{{scaling.min.inputId}}">{{scaling.min.label}}</label>
 									<input id="{{scaling.min.inputId}}" type="text" name="{{scaling.min.name}}" value="{{scaling.min.value}}" placeholder="{{scaling.min.placeholder}}">
+								</div>
+								<div class="ac5e-effect-value-editor-scaling-field">
+									<label for="{{scaling.max.inputId}}">{{scaling.max.label}}</label>
+									<input id="{{scaling.max.inputId}}" type="text" name="{{scaling.max.name}}" value="{{scaling.max.value}}" placeholder="{{scaling.max.placeholder}}">
 								</div>
 								<div class="ac5e-effect-value-editor-scaling-field">
 									<label for="{{scaling.step.inputId}}">{{scaling.step.label}}</label>
@@ -232,7 +232,7 @@
 			{{#if hasContextToggles}}
 				<div class="ac5e-effect-value-editor-toggle-grid">
 					{{#each contextToggles}}
-						<label>
+						<label title="{{hint}}">
 							<input type="checkbox" name="toggles.{{name}}" {{#if checked}}checked{{/if}}>
 							<span>{{label}}</span>
 						</label>

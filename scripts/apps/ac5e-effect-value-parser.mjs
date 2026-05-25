@@ -25,6 +25,7 @@ const TOGGLE_FIELDS = [
 	'oncePerCombat',
 	'itemLimited',
 	'partialConsume',
+	'recover',
 	'optin',
 ];
 

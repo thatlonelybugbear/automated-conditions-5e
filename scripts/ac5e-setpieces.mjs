@@ -3085,6 +3085,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 	const isOnce = keywordValues.some((use) => use === 'once');
 	let isOptin = keywordValues.some((use) => use === 'optin');
 	const partialConsume = keywordValues.some((use) => use === 'partialconsume');
+	const recover = keywordValues.some((use) => use === 'recover');
 	if (!hasCount && !hasUpdate && !isOnce && !hasCadence) {
 		return true;
 	}
@@ -3112,9 +3113,9 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		if (!(actor instanceof Actor)) return false;
 		const consumptionActor =
 			lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData.opponentActor
-			: lowerConsumptionTarget.startsWith('auraactor') ? evalData.auraActor
-			: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
-			: actor.getRollData();
+				: lowerConsumptionTarget.startsWith('auraactor') ? evalData.auraActor
+					: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
+						: _ac5eActorRollData(actor);
 		const uuid = consumptionActor?.uuid ?? actor.uuid;
 		const attr = consumptionTarget.toLowerCase();
 		const customName = _extractCustomNameFromValue(change.value);
@@ -3244,6 +3245,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				}
 			}
 		}
+		if (recover && Number.isFinite(Number(consume))) consume = -Math.abs(Number(consume));
 		const shouldResolveScaledConsume = !!parsedCount?.scaling || isOptin;
 		if (shouldResolveScaledConsume) {
 			const optinSelection = _getOptinSelectionValueById(evalData, id, baseId);
