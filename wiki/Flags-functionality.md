@@ -377,7 +377,7 @@ If the roll involves a specific action or item, you'll also have access to:
 - `activity.name`
 - `activity.activation.type` — e.g., `action`, `bonus`, `reaction`
 - `activity.actionType` — e.g., `mwak`, `rsak`, `save`
-- `activity.type` — item type (e.g., `spell`, `feat`)
+- `activity.type` — activity type (e.g., `attack`, `check`, `save`, `use` etc.)
 - `activity.damageTypes` — array of damage types involved
 
 ### `item`
