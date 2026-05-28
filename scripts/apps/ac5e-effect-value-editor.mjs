@@ -1,4 +1,38 @@
-import { buildEffectValueAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, replaceAutocompletePrefix } from './ac5e-effect-value-autocomplete.mjs';
+import { buildEffectValueAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, rankEffectValueAutocompleteEntries, replaceAutocompletePrefix, shouldActivateEffectValueAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS } from '../ac5e-runtimeLogic.mjs';
+
+const AC5E_ACTOR_ROOTS = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
+const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([
+	...AC5E_ACTOR_ROOTS.flatMap((root) => AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((suffix) => `${root}.${suffix}`)),
+	'opponentActor.opponentId',
+]);
+const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
+	'item.itemUuid',
+	'item.itemType',
+	'item.itemProperties',
+	'item.actionType',
+	'item.attackMode',
+	'item.mastery',
+	'item.damageTypes',
+	'item.defaultDamageType',
+	'activity.actionType',
+	'activity.damageTypes',
+	'activity.defaultDamageType',
+	'activity.healingTypes',
+	'originItem.actionType',
+	'originItem.attackMode',
+	'originItem.mastery',
+	'originItem.damageTypes',
+	'originItem.defaultDamageType',
+	'originActivity.actionType',
+	'originActivity.damageTypes',
+	'originActivity.defaultDamageType',
+	'originActivity.healingTypes',
+]);
+const AC5E_ADDED_LAMBDA_PATHS = new Set([...AC5E_ACTOR_ADDED_LAMBDA_PATHS, ...AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS]);
+const AC5E_ADDED_LAMBDA_PREFIXES = new Set(
+	AC5E_ACTOR_ROOTS.flatMap((root) => AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((suffix) => `${root}.${suffix}`)),
+);
 import { collectAc5eEffectValueFormData, mergeAc5eEffectValueFormData, parseAc5eEffectValue, serializeAc5eEffectValue } from './ac5e-effect-value-parser.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -9,6 +43,44 @@ const CONDITIONAL_TOGGLE_FIELDS = ['partialConsume'];
 const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
 const DEFAULT_USESCOUNT_SCALING = { min: 1, max: 1, step: 1 };
+const ROOT_IDENTIFIERS = new Set(['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor', 'item', 'activity', 'originItem', 'originActivity']);
+const ROLL_AWARE_ENTRIES = new Set([
+	'hasAdvantage',
+	'hasDisadvantage',
+	'hasTransitAdvantage',
+	'hasTransitDisadvantage',
+	'ability',
+	'skill',
+	'tool',
+	'hasProficiency',
+	'hasExpertise',
+	'hasHalfProficiency',
+	'hasFullProficiency',
+	'isConcentration',
+	'isDeathSave',
+	'isInitiative',
+	'targetValue',
+	'isCritical',
+	'isFumble',
+	'opponentAC',
+	'targetOverAC',
+	'd20Total',
+	'd20Result',
+	'd20ResultOverTarget',
+	'attackRollTotal',
+	'attackRollD20',
+	'attackRollOverAC',
+]);
+const COMPUTED_ROLL_AWARE_ENTRIES = new Set([
+	'opponentAC',
+	'targetOverAC',
+	'd20Total',
+	'd20Result',
+	'd20ResultOverTarget',
+	'attackRollTotal',
+	'attackRollD20',
+	'attackRollOverAC',
+]);
 
 export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 	static openEditors = new Map();
@@ -24,7 +96,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		actions: {
 			apply: AC5EEffectValueEditor.#onApplyAction,
 			applyClose: AC5EEffectValueEditor.#onApplyCloseAction,
-			cancel: AC5EEffectValueEditor.#onCancelAction,
+			reset: AC5EEffectValueEditor.#onResetAction,
 		},
 		position: {
 			width: 680,
@@ -171,16 +243,31 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		return this.#onApply(event, true);
 	}
 
-	static #onCancelAction(event) {
+	static #onResetAction(event) {
 		event.preventDefault();
-		return this.close();
+		const conditionInputs = Array.from(this.element?.querySelectorAll?.('input[name="conditions"], textarea[name="conditions"]') ?? []);
+		for (const input of conditionInputs) {
+			if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) continue;
+			input.value = '';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		const active = document.activeElement;
+		if (active instanceof HTMLElement && this.element?.contains(active)) {
+			active.blur();
+			return;
+		}
+		const conditionInput = this.element?.querySelector?.('input[name="conditions"], textarea[name="conditions"]');
+		if (conditionInput instanceof HTMLElement) conditionInput.blur();
 	}
 
 	#activateUiEnhancements(htmlElement) {
 		for (const input of htmlElement?.querySelectorAll('[data-ac5e-condition-input]:not([data-ac5e-autocomplete-ready])') ?? []) {
 			input.dataset.ac5eAutocompleteReady = 'true';
 			input.addEventListener('input', (event) => this.#onConditionInput(event));
-			input.addEventListener('keyup', (event) => this.#onConditionInput(event));
+			input.addEventListener('blur', () => {
+				if (ui.autocomplete === this.autocomplete) this.autocomplete.dismiss();
+			});
 		}
 		for (const button of htmlElement?.querySelectorAll('[data-ac5e-expand-input]:not([data-ac5e-expand-ready])') ?? []) {
 			button.dataset.ac5eExpandReady = 'true';
@@ -286,22 +373,21 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const input = event.currentTarget;
 		this.activeAutocompleteInput = input;
 		const prefix = getAutocompletePrefix(input);
-		if (prefix.length < 2) {
-			this.autocomplete.dismiss();
+		if (!shouldActivateEffectValueAutocomplete(input, prefix)) {
 			return;
 		}
-		const entries = this.autocompleteEntries.filter((entry) => entry.identifier.toLowerCase().includes(prefix.toLowerCase())).slice(0, 40);
+		const cursor = Number(input.selectionStart ?? input.value.length);
+		const entries = rankEffectValueAutocompleteEntries(this.autocompleteEntries, {
+			inputValue: input.value ?? '',
+			cursor,
+			prefix,
+			limit: 40,
+		});
 		if (!entries.length) {
-			this.autocomplete.dismiss();
 			return;
 		}
 		this.autocomplete.activate(input, entries, { prefix });
 		configureAc5eAutocompleteMenu(this.autocomplete);
-	}
-
-	#filterAutocompleteEntries(entries, prefix, limit) {
-		const normalized = String(prefix ?? '').toLowerCase();
-		return entries.filter((entry) => entry.identifier.toLowerCase().includes(normalized)).slice(0, limit);
 	}
 
 	async #onExpandInput(event) {
@@ -313,16 +399,19 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const input = form?.querySelector?.(`[name="${globalThis.CSS?.escape?.(inputName) ?? inputName.replaceAll('"', '\\"')}"]`);
 		if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 		const label = button?.dataset?.ac5eExpandLabel ?? inputName;
+		const appId = buildExpandEditorAppId(this.instanceKey || this.id || 'editor', inputName);
 		const currentValue = input.value ?? '';
 		const escapedLabel = escapeHtml(label);
 		const escapedValue = escapeHtml(currentValue);
 		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
 		const assistProfile = getEditorProfile(changeKey, this.draftData ?? null);
-		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura });
+		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura, changeKey });
 		try {
 			const result = await foundry.applications.api.DialogV2.wait({
+				id: appId,
 				window: {
 					title: `Edit ${label}`,
+					id: appId,
 				},
 				content: `
 					<form class="ac5e-effect-value-expand-dialog" data-ac5e-lambda-assist>
@@ -334,47 +423,21 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 										<textarea id="ac5e-expand-value" name="value" rows="12">${escapedValue}</textarea>
 									</div>
 								</div>
-								<div class="ac5e-effect-value-assist-operators" data-ac5e-assist-operators>
-									${renderAssistButtonGroup(assist.operators, 'ac5e-assist-insert')}
-								</div>
+								${renderAssistActionFieldset('Operators', assist.operators, 'ac5e-assist-insert', 'button')}
 								<div class="ac5e-effect-value-assist-groups">
-									<div class="form-group stacked">
-										<label for="ac5e-assist-is-entries">is* entries</label>
-										<div class="form-fields">
-											<select id="ac5e-assist-is-entries" data-ac5e-assist-select>
-												${renderAssistOptions(assist.isEntries)}
-											</select>
-											<button type="button" class="icon fa-solid fa-plus" data-ac5e-assist-insert-selected="ac5e-assist-is-entries" aria-label="Insert selected is entry"></button>
-										</div>
-									</div>
-									<div class="form-group stacked">
-										<label for="ac5e-assist-has-entries">has* entries</label>
-										<div class="form-fields">
-											<select id="ac5e-assist-has-entries" data-ac5e-assist-select>
-												${renderAssistOptions(assist.hasEntries)}
-											</select>
-											<button type="button" class="icon fa-solid fa-plus" data-ac5e-assist-insert-selected="ac5e-assist-has-entries" aria-label="Insert selected has entry"></button>
-										</div>
-									</div>
-									<div class="form-group stacked">
-										<label for="ac5e-assist-other-entries">Other sandbox entries</label>
-										<div class="form-fields">
-											<select id="ac5e-assist-other-entries" data-ac5e-assist-select>
-												${renderAssistOptions(assist.otherEntries)}
-											</select>
-											<button type="button" class="icon fa-solid fa-plus" data-ac5e-assist-insert-selected="ac5e-assist-other-entries" aria-label="Insert selected entry"></button>
-										</div>
-									</div>
-								</div>
+									${renderAssistActionFieldset('Actor entries', assist.actorEntryButtons, 'ac5e-assist-root-insert', 'entry', '', true)}
+									${renderAssistActionFieldset('Item/Activity entries', assist.itemActivityEntryButtons, 'ac5e-assist-root-insert', 'entry', '', true)}
+								${assist.rollAwareEntries.length ? renderAssistActionFieldset('Roll-aware entries', assist.rollAwareEntries, 'ac5e-assist-entry', 'entry', 'sandbox', true) : ''}
+								${renderAssistActionFieldset('Sandbox entries', assist.sandboxEntries, 'ac5e-assist-entry', 'entry', 'sandbox', true)}
+							</div>
 							</section>
 							<aside class="ac5e-effect-value-expand-aside">
-								<p class="ac5e-effect-value-assist-title">Lambda Paths</p>
+								<p class="ac5e-effect-value-assist-title">Lambda Paths <small>(* AC5E addition)</small></p>
 								<div class="ac5e-effect-value-assist-browser" data-ac5e-assist-browser>
 									<div class="ac5e-effect-value-assist-stage" data-ac5e-assist-stage></div>
 								</div>
 							</aside>
 						</div>
-						<div class="ac5e-effect-value-inline-autocomplete" data-ac5e-inline-autocomplete hidden></div>
 					</form>
 				`,
 				buttons: [
@@ -386,9 +449,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 						callback: (_event, _button, dialog) => dialog.element.querySelector('textarea[name="value"]')?.value ?? currentValue,
 					},
 					{
-						action: 'cancel',
-						label: 'Cancel',
-						icon: 'fa-solid fa-xmark',
+						action: 'reset',
+						label: 'Reset',
+						icon: 'fa-solid fa-rotate-left',
+						callback: () => '__ac5e_reset__',
 					},
 				],
 				position: {
@@ -397,13 +461,25 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				render: (_event, dialog) => {
 					const textarea = dialog.element.querySelector('textarea[name="value"]');
 					if (!(textarea instanceof HTMLTextAreaElement)) return;
+					const resetButton = dialog.element.querySelector('[data-action="reset"], button[name="reset"]');
+					if (resetButton instanceof HTMLButtonElement) {
+						resetButton.addEventListener('click', (clickEvent) => {
+							clickEvent.preventDefault();
+							clickEvent.stopImmediatePropagation();
+							textarea.value = '';
+							textarea.dispatchEvent(new Event('input', { bubbles: true }));
+							textarea.dispatchEvent(new Event('change', { bubbles: true }));
+							textarea.focus();
+							textarea.setSelectionRange(0, 0);
+						}, { capture: true });
+					}
 					prepareLambdaAssist(dialog.element, assist);
 					textarea.focus();
 					const cursor = textarea.value.length;
 					textarea.setSelectionRange(cursor, cursor);
 				},
 			});
-			if (result === 'cancel' || typeof result !== 'string') return;
+			if (result === '__ac5e_reset__' || typeof result !== 'string') return;
 			input.value = result;
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 			input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -693,20 +769,28 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 	};
 }
 
-function buildLambdaAssistData(entries, { includeAuraActor = true } = {}) {
-	const uniqueIdentifiers = dedupe((entries ?? []).map((entry) => entry?.identifier).filter((identifier) => typeof identifier === 'string' && identifier.trim()));
+function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '' } = {}) {
+	const entryRecords = (entries ?? []).filter((entry) => typeof entry?.identifier === 'string' && entry.identifier.trim());
+	const uniqueIdentifiers = dedupe(entryRecords.map((entry) => entry.identifier));
 	const allEntryPoints = [
 		{ label: 'rollingActor', value: 'rollingActor' },
 		{ label: 'opponentActor', value: 'opponentActor' },
 		{ label: 'auraActor', value: 'auraActor' },
 		{ label: 'effectActor', value: 'effectActor' },
 		{ label: 'nonEffectActor', value: 'nonEffectActor' },
+		{ label: 'effectOriginActor', value: 'effectOriginActor' },
 		{ label: 'item', value: 'item' },
 		{ label: 'activity', value: 'activity' },
 		{ label: 'originItem', value: 'originItem' },
 		{ label: 'originActivity', value: 'originActivity' },
 	];
 	const entryPoints = includeAuraActor ? allEntryPoints : allEntryPoints.filter((entry) => entry.value !== 'auraActor');
+	const actorEntryButtons = entryPoints
+		.filter((entry) => ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'].includes(entry.value))
+		.map((entry) => entry.value);
+	const itemActivityEntryButtons = entryPoints
+		.filter((entry) => ['item', 'activity', 'originItem', 'originActivity'].includes(entry.value))
+		.map((entry) => entry.value);
 	const operators = [
 		{ label: 'AND', value: ' && ' },
 		{ label: 'OR', value: ' || ' },
@@ -720,46 +804,223 @@ function buildLambdaAssistData(entries, { includeAuraActor = true } = {}) {
 		{ label: '(...)', value: ' () ' },
 		{ label: 'Ternary', value: '(condition ? trueValue : falseValue)' },
 	];
-	const isEntries = uniqueIdentifiers.filter((identifier) => /^is[A-Z_]/.test(identifier) || identifier.startsWith('is'));
-	const hasEntries = uniqueIdentifiers.filter((identifier) => /^has[A-Z_]/.test(identifier) || identifier.startsWith('has'));
-	const used = new Set([...isEntries, ...hasEntries]);
-	const otherEntries = uniqueIdentifiers.filter((identifier) => !used.has(identifier)).slice(0, 250);
-	const schemaHintsByRoot = {
-		rollingActor: ['rollingActor.name', 'rollingActor.type', 'rollingActor.id', 'rollingActor.uuid', 'rollingActor.actorId', 'rollingActor.actorType', 'rollingActor.actorUuid', 'rollingActor.tokenId', 'rollingActor.tokenUuid', 'rollingActor.flags'],
-		opponentActor: ['opponentActor.name', 'opponentActor.type', 'opponentActor.id', 'opponentActor.uuid', 'opponentActor.actorId', 'opponentActor.actorType', 'opponentActor.actorUuid', 'opponentActor.tokenId', 'opponentActor.tokenUuid', 'opponentActor.opponentId'],
-		auraActor: ['auraActor.name', 'auraActor.type', 'auraActor.id', 'auraActor.uuid', 'auraActor.actorId', 'auraActor.actorType', 'auraActor.actorUuid', 'auraActor.tokenId'],
-		effectActor: ['effectActor.name', 'effectActor.type', 'effectActor.id', 'effectActor.uuid', 'effectActor.actorId', 'effectActor.actorType', 'effectActor.actorUuid', 'effectActor.tokenId'],
-		nonEffectActor: ['nonEffectActor.name', 'nonEffectActor.type', 'nonEffectActor.id', 'nonEffectActor.uuid', 'nonEffectActor.actorId', 'nonEffectActor.actorType', 'nonEffectActor.actorUuid', 'nonEffectActor.tokenId'],
-		item: ['item.name', 'item.type', 'item.id', 'item.uuid', 'item.itemUuid', 'item.itemType', 'item.itemProperties'],
-		activity: ['activity.name', 'activity.type', 'activity.id', 'activity.uuid'],
-		originItem: ['originItem.name', 'originItem.type', 'originItem.id', 'originItem.uuid'],
-		originActivity: ['originActivity.name', 'originActivity.type', 'originActivity.id', 'originActivity.uuid'],
-	};
+	const sandboxIdentifiers = dedupe(entryRecords
+		.filter((entry) => isSandboxAssistIdentifier(entry))
+		.map((entry) => entry.identifier));
+	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier));
+	const contextualFallbacks = getContextSandboxFallbackEntries(changeKey);
+	const contextualIdentifiers = dedupe([...compatibilityFiltered, ...contextualFallbacks]);
+	const isD20Context = isD20AssistContext(changeKey);
+	const rollAwareEntries = dedupe(contextualIdentifiers.filter((identifier) => ROLL_AWARE_ENTRIES.has(identifier))).sort((a, b) => a.localeCompare(b));
+	const sandboxEntries = dedupe(contextualIdentifiers.filter((identifier) => !ROLL_AWARE_ENTRIES.has(identifier))).sort((a, b) => a.localeCompare(b));
 	const pathsByRoot = Object.fromEntries(entryPoints.map((entry) => {
 		const fromEntries = uniqueIdentifiers
 			.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
 			.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`);
-		const hints = schemaHintsByRoot[entry.value] ?? [];
-		return [entry.value, dedupe([...fromEntries, ...hints])];
+		return [entry.value, dedupe(fromEntries)];
 	}));
+	addAssistFallbackPaths(pathsByRoot);
 	const treesByRoot = Object.fromEntries(entryPoints.map((entry) => [
 		entry.value,
-		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? []),
+		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES),
 	]));
-	return { entryPoints, operators, isEntries, hasEntries, otherEntries, pathsByRoot, treesByRoot };
+	const enumValues = {
+		actorTypes: dedupe([
+			...(Array.isArray(game?.system?.documentTypes?.Actor) ? game.system.documentTypes.Actor : []),
+			...Object.keys(CONFIG?.Actor?.typeLabels ?? {}),
+		].map((value) => String(value ?? '').trim()).filter(Boolean)),
+		creatureTypes: Object.keys(CONFIG?.DND5E?.creatureTypes ?? {}).filter(Boolean),
+		itemTypes: dedupe([
+			...(Array.isArray(game?.system?.documentTypes?.Item) ? game.system.documentTypes.Item : []),
+			...Object.keys(CONFIG?.Item?.typeLabels ?? {}),
+		].map((value) => String(value ?? '').trim()).filter(Boolean)),
+		activityTypes: Object.keys(CONFIG?.DND5E?.activityTypes ?? {}).filter(Boolean),
+		actionTypes: dedupe([
+			...Object.keys(CONFIG?.DND5E?.itemActionTypes ?? {}),
+			...Object.keys(CONFIG?.DND5E?.attackTypes ?? {}),
+		].filter(Boolean)),
+		attackModes: Object.keys(CONFIG?.DND5E?.attackModes ?? {}).filter(Boolean),
+		masteries: Object.keys(CONFIG?.DND5E?.weaponMasteries ?? {}).filter(Boolean),
+		itemProperties: Object.keys(CONFIG?.DND5E?.itemProperties ?? {}).filter(Boolean),
+		abilities: Object.keys(CONFIG?.DND5E?.abilities ?? {}).filter(Boolean),
+		skills: Object.keys(CONFIG?.DND5E?.skills ?? {}).filter(Boolean),
+		tools: Object.keys(CONFIG?.DND5E?.tools ?? {}).filter(Boolean),
+		damageTypes: Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).filter(Boolean),
+		healingTypes: Object.keys(CONFIG?.DND5E?.healingTypes ?? {}).filter(Boolean),
+		baseItems: dedupe([
+			...Object.keys(CONFIG?.DND5E?.weaponIds ?? {}),
+			...Object.keys(CONFIG?.DND5E?.armorIds ?? {}),
+			...Object.keys(CONFIG?.DND5E?.toolIds ?? {}),
+			...Object.keys(CONFIG?.DND5E?.ammoIds ?? {}),
+		].filter(Boolean)),
+	};
+	const contextRollAwareEntries = isD20Context ? filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey) : [];
+	const allEntryButtons = dedupe([...contextRollAwareEntries, ...sandboxEntries]).sort((a, b) => a.localeCompare(b));
+	return { entryPoints, actorEntryButtons, itemActivityEntryButtons, operators, rollAwareEntries: contextRollAwareEntries, sandboxEntries, allEntryButtons, pathsByRoot, treesByRoot, enumValues };
 }
 
-function renderAssistButtonGroup(items, dataAttribute) {
-	return (items ?? [])
-		.map((item) => `<button type="button" data-${dataAttribute}="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`)
-		.join('');
+function isSandboxAssistIdentifier(entry) {
+	const identifier = `${entry?.identifier ?? ''}`.trim();
+	if (!identifier || !/^[A-Za-z_$][\w$]*$/.test(identifier)) return false;
+	if (ROOT_IDENTIFIERS.has(identifier)) return false;
+	const source = `${entry?.source ?? ''}`;
+	if (source === 'DND5E config' || source.startsWith('DND5E ')) return false;
+	return true;
 }
 
-function renderAssistOptions(options) {
-	const source = (options ?? []).length ? options : [''];
-	return source
-		.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option || 'No entries')}</option>`)
+function isLegacyCompatibilityIdentifier(identifier) {
+	return ['targetActor'].includes(`${identifier ?? ''}`.trim());
+}
+
+function isD20AssistContext(changeKey) {
+	const normalized = `${changeKey ?? ''}`.toLowerCase();
+	if (!normalized) return false;
+	const isDamageContext = normalized.includes('damage');
+	return normalized.includes('attack')
+		|| normalized.includes('check')
+		|| normalized.includes('save')
+		|| isDamageContext
+		|| normalized.includes('d20')
+		|| normalized.includes('critical')
+		|| normalized.includes('fumble');
+}
+
+function isNonDamageBonusContext(changeKey) {
+	const normalized = `${changeKey ?? ''}`.toLowerCase();
+	if (!normalized) return false;
+	const isBonus = normalized.includes('.bonus');
+	if (!isBonus) return false;
+	const isDamage = normalized.includes('damage');
+	if (isDamage) return false;
+	return normalized.includes('attack')
+		|| normalized.includes('save')
+		|| normalized.includes('check')
+		|| normalized.includes('skill')
+		|| normalized.includes('tool')
+		|| normalized.includes('d20');
+}
+
+function filterRollAwareEntriesForChangeKey(entries, changeKey) {
+	if (!isNonDamageBonusContext(changeKey)) return entries;
+	return entries.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
+}
+
+function getContextSandboxFallbackEntries(changeKey) {
+	const normalized = `${changeKey ?? ''}`.toLowerCase();
+	if (!normalized) return [];
+	const entries = [];
+	const isRollLike = isD20AssistContext(normalized);
+	if (isRollLike) {
+		entries.push(
+			'ability',
+			'skill',
+			'tool',
+			'hasProficiency',
+			'hasExpertise',
+			'hasHalfProficiency',
+			'hasFullProficiency',
+			'isConcentration',
+			'isDeathSave',
+			'isInitiative',
+			'targetValue',
+		);
+		if (!isNonDamageBonusContext(normalized)) {
+			entries.push(
+				'd20Total',
+				'd20Result',
+				'd20ResultOverTarget',
+				'attackRollTotal',
+				'attackRollD20',
+				'attackRollOverAC',
+			);
+		}
+	}
+	if ((normalized.includes('attack') || normalized.includes('damage')) && !isNonDamageBonusContext(normalized)) {
+		entries.push(
+			'hasAttack',
+			'hasDamage',
+			'hasHealing',
+			'hasSave',
+			'hasCheck',
+			'opponentAC',
+			'targetOverAC',
+		);
+	}
+	return dedupe(entries);
+}
+
+function addAssistFallbackPaths(pathsByRoot) {
+	const actorRoots = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
+	const actorFallbacks = ['abilities', 'skills', 'tools', 'actionType', 'damageTypes'];
+	for (const root of actorRoots) {
+		const paths = pathsByRoot?.[root];
+		if (!Array.isArray(paths)) continue;
+		for (const suffix of actorFallbacks) {
+			const path = `${root}.${suffix}`;
+			if (!paths.includes(path)) paths.push(path);
+		}
+	}
+	for (const root of ['activity', 'originActivity']) {
+		const paths = pathsByRoot?.[root];
+		if (!Array.isArray(paths)) continue;
+		for (const suffix of ['actionType', 'damageTypes', 'healingTypes', 'defaultDamageType', 'activityType', 'identifier', 'uuid']) {
+			const path = `${root}.${suffix}`;
+			if (!paths.includes(path)) paths.push(path);
+		}
+	}
+	for (const root of ['item', 'originItem']) {
+		const paths = pathsByRoot?.[root];
+		if (!Array.isArray(paths)) continue;
+		for (const suffix of ['itemType', 'attackMode', 'mastery', 'itemProperties', 'actionType', 'damageTypes', 'defaultDamageType']) {
+			const path = `${root}.${suffix}`;
+			if (!paths.includes(path)) paths.push(path);
+		}
+	}
+	for (const root of ['item', 'originItem', 'activity', 'originActivity']) {
+		const paths = pathsByRoot?.[root];
+		if (!Array.isArray(paths)) continue;
+		const damageKeys = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
+		const healingKeys = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
+		for (const key of dedupe([...damageKeys, ...healingKeys])) {
+			const path = `${root}.damageTypes.${key}`;
+			if (!paths.includes(path)) paths.push(path);
+		}
+	}
+}
+
+function renderAssistActionFieldset(title, values, dataAttribute, kind = 'button', section = '', compact = false) {
+	const items = (values ?? [])
+		.map((value) => {
+			if (kind === 'button') {
+				const label = `${value?.label ?? value?.value ?? ''}`.trim();
+				const insert = `${value?.value ?? ''}`.trim();
+				if (!label || !insert) return '';
+				return `<button type="button" class="ac5e-effect-value-assist-chip" data-${dataAttribute}="${escapeHtml(insert)}">${escapeHtml(label)}</button>`;
+			}
+			const entry = `${value ?? ''}`.trim();
+			if (!entry) return '';
+			return `<button type="button" class="ac5e-effect-value-assist-chip" data-${dataAttribute}="${escapeHtml(entry)}">${escapeHtml(entry)}</button>`;
+		})
+		.filter(Boolean)
 		.join('');
+	const content = items || '<p class="ac5e-effect-value-assist-empty">No entries</p>';
+	const listAttr = section ? ` data-ac5e-assist-entry-list="${escapeHtml(section)}"` : '';
+	return `
+		<fieldset class="ac5e-effect-value-assist-fieldset${compact ? ' ac5e-effect-value-assist-fieldset-compact' : ''}">
+			<legend>${escapeHtml(title)}</legend>
+			<div class="ac5e-effect-value-assist-chip-list"${listAttr}>
+				${content}
+			</div>
+		</fieldset>
+	`;
+}
+
+function resetAssistBrowserContext(root, assist, selectionState, textarea) {
+	root.dataset.ac5eAssistActiveRoot = '';
+	root.dataset.ac5eAssistChain = '[]';
+	root.dataset.ac5eAssistFilter = '';
+	setAssistActivePath(root, '');
+	renderAssistStage(root, assist, selectionState, textarea);
 }
 
 function prepareLambdaAssist(root, assist) {
@@ -767,8 +1028,6 @@ function prepareLambdaAssist(root, assist) {
 	const textarea = root.querySelector('textarea[name="value"]');
 	if (!(textarea instanceof HTMLTextAreaElement)) return;
 	const selectionState = { userMovedCaret: false, start: null, end: null };
-	const inlineAutocomplete = root.querySelector('[data-ac5e-inline-autocomplete]');
-	if (inlineAutocomplete instanceof HTMLElement) inlineAutocomplete.hidden = true;
 	const rememberSelection = () => {
 		selectionState.userMovedCaret = true;
 		selectionState.start = textarea.selectionStart;
@@ -779,11 +1038,32 @@ function prepareLambdaAssist(root, assist) {
 		textarea.addEventListener(eventName, rememberSelection);
 	}
 	textarea.addEventListener('keydown', (event) => {
-		if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return;
-		const direction = event.shiftKey ? -1 : 1;
-		if (handleAssistTabNavigation(textarea, selectionState, direction)) event.preventDefault();
+		const key = event.key ?? '';
+		if (key === 'Enter') {
+			if (applyFocusedAssistMatch(textarea, root, assist, selectionState)) event.preventDefault();
+			return;
+		}
+		if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowLeft') {
+			const direction = (key === 'ArrowUp' || key === 'ArrowLeft') ? -1 : 1;
+			if (cycleAssistEntryFromInput(textarea, root, assist, direction)) event.preventDefault();
+			return;
+		}
+		if (key !== 'Tab' || event.ctrlKey || event.metaKey) return;
+		const tabDirection = event.shiftKey ? -1 : 1;
+		if (cycleAssistEntryFromInput(textarea, root, assist, tabDirection)) {
+			event.preventDefault();
+			return;
+		}
+		if (applyAssistTabCompletion(textarea, root, assist, selectionState, tabDirection)) {
+			event.preventDefault();
+			return;
+		}
+		if (handleAssistTabNavigation(textarea, selectionState, tabDirection)) event.preventDefault();
 	});
-	const syncFromInput = () => syncAssistBrowserFromInput(root, assist, selectionState, textarea);
+	const syncFromInput = () => {
+		syncAssistBrowserFromInput(root, assist, selectionState, textarea);
+		updateAssistEntryHighlights(root, textarea, assist);
+	};
 	textarea.addEventListener('input', syncFromInput);
 	textarea.addEventListener('click', syncFromInput);
 	textarea.addEventListener('keyup', (event) => {
@@ -793,23 +1073,49 @@ function prepareLambdaAssist(root, assist) {
 	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
 		button.addEventListener('click', () => insertAtCursor(textarea, button.dataset.ac5eAssistInsert ?? '', selectionState));
 	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
+		button.addEventListener('click', () => {
+			const value = (button.dataset.ac5eAssistEntry ?? '').trim();
+			if (!value) return;
+			const insertion = resolveAssistEntryInsertion(value);
+			replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
+		});
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert]')) {
+		button.addEventListener('click', () => {
+			const rootName = (button.dataset.ac5eAssistRootInsert ?? '').trim();
+			if (!rootName) return;
+			replaceTokenAtCursorOrInsert(textarea, `${rootName}.`, selectionState);
+			root.dataset.ac5eAssistActiveRoot = rootName;
+			root.dataset.ac5eAssistChain = '[]';
+			root.dataset.ac5eAssistFilter = '';
+			setAssistActivePath(root, '');
+			renderAssistStage(root, assist, selectionState, textarea);
+		});
+	}
 	setAssistActivePath(root, '');
 	root.dataset.ac5eAssistFilter = '';
 	renderAssistStage(root, assist, selectionState, textarea);
+	updateAssistEntryHighlights(root, textarea, assist);
 }
 
 function setAssistActivePath(root, path) {
 	root.dataset.ac5eAssistActivePath = path;
 }
 
-function buildAssistPathTree(rootPath, paths) {
-	const root = { label: rootPath, path: rootPath, terminal: true, children: [] };
+function buildAssistPathTree(rootPath, paths, ac5eAddedPaths = new Set(), ac5eAddedPrefixes = new Set()) {
+	const root = { label: rootPath, path: rootPath, terminal: true, ac5eAdded: false, ac5eActorAdded: false, ac5eItemAdded: false, children: [] };
 	const childrenByPath = new Map();
 	for (const path of paths ?? []) {
 		if (path !== rootPath && !path.startsWith(`${rootPath}.`)) continue;
 		const segments = path === rootPath ? [] : path.split('.').filter((segment, index) => !(index === 0 && segment === rootPath));
 		if (!segments.length) {
 			root.terminal = true;
+			if (isAc5eAddedPath(path, ac5eAddedPaths, ac5eAddedPrefixes)) {
+				root.ac5eAdded = true;
+				root.ac5eActorAdded = isActorAc5eAddedPath(path);
+				root.ac5eItemAdded = isItemActivityAc5eAddedPath(path);
+			}
 			continue;
 		}
 		let branch = root;
@@ -818,15 +1124,42 @@ function buildAssistPathTree(rootPath, paths) {
 			currentPath = `${currentPath}.${segment}`;
 			let next = childrenByPath.get(currentPath);
 			if (!next) {
-				next = { label: segment, path: currentPath, terminal: false, children: [] };
+				next = { label: segment, path: currentPath, terminal: false, ac5eAdded: false, ac5eActorAdded: false, ac5eItemAdded: false, children: [] };
 				childrenByPath.set(currentPath, next);
 				branch.children.push(next);
+			}
+			if (isAc5eAddedPath(currentPath, ac5eAddedPaths, ac5eAddedPrefixes)) {
+				next.ac5eAdded = true;
+				if (isActorAc5eAddedPath(currentPath)) next.ac5eActorAdded = true;
+				if (isItemActivityAc5eAddedPath(currentPath)) next.ac5eItemAdded = true;
 			}
 			branch = next;
 		}
 		branch.terminal = true;
+		if (isAc5eAddedPath(path, ac5eAddedPaths, ac5eAddedPrefixes)) {
+			branch.ac5eAdded = true;
+			if (isActorAc5eAddedPath(path)) branch.ac5eActorAdded = true;
+			if (isItemActivityAc5eAddedPath(path)) branch.ac5eItemAdded = true;
+		}
 	}
 	return root;
+}
+
+function isAc5eAddedPath(path, ac5eAddedPaths = new Set(), ac5eAddedPrefixes = new Set()) {
+	if (!path) return false;
+	if (ac5eAddedPaths.has(path)) return true;
+	for (const prefix of ac5eAddedPrefixes) {
+		if (path === prefix || path.startsWith(`${prefix}.`) || path.startsWith(prefix)) return true;
+	}
+	return false;
+}
+
+function isActorAc5eAddedPath(path) {
+	return AC5E_ACTOR_ADDED_LAMBDA_PATHS.has(path);
+}
+
+function isItemActivityAc5eAddedPath(path) {
+	return AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS.has(path);
 }
 
 function renderAssistStage(root, assist, selectionState, textarea) {
@@ -835,25 +1168,24 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	const activeRoot = root.dataset.ac5eAssistActiveRoot ?? '';
 	const chain = parseAssistChain(root.dataset.ac5eAssistChain ?? '');
 	if (!activeRoot) {
-		container.innerHTML = renderAssistRootStage(assist?.entryPoints ?? []);
-		for (const button of container.querySelectorAll('[data-ac5e-assist-root]')) {
-			button.addEventListener('click', () => {
-				root.dataset.ac5eAssistActiveRoot = button.dataset.ac5eAssistRoot ?? '';
-				root.dataset.ac5eAssistChain = '[]';
-				root.dataset.ac5eAssistFilter = '';
-				setAssistActivePath(root, '');
-				renderAssistStage(root, assist, selectionState, textarea);
-			});
-		}
+		container.innerHTML = renderAssistIdleStage();
 		return;
 	}
 	const tree = assist?.treesByRoot?.[activeRoot];
 	const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
 	const allNodes = parentNode?.children ?? [];
-	const filterText = String(root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
-	const nodes = filterText ? allNodes.filter((node) => String(node?.label ?? '').toLowerCase().startsWith(filterText)) : allNodes;
+	const filterText = (root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
+	const nodes = filterText ? allNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : allNodes;
 	const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
-	container.innerHTML = renderAssistNodeStage(nodes, headerPath, chain.length > 0);
+	const activePath = root.dataset.ac5eAssistActivePath ?? '';
+	const fallbackPath =
+		nodes.length === 1 ? nodes[0]?.path
+		: filterText ? nodes.find((node) => (node?.label ?? '').toLowerCase() === filterText)?.path
+		: '';
+	const valuePath = activePath || fallbackPath || headerPath || '';
+	root.dataset.ac5eAssistValuePath = valuePath;
+	const valueChoices = nodes.length ? [] : resolveAssistValueChoices(valuePath, assist?.enumValues);
+	container.innerHTML = renderAssistNodeStage(nodes, headerPath, chain.length > 0, valueChoices);
 	const backButton = container.querySelector('[data-ac5e-assist-back]');
 	backButton?.addEventListener('click', () => {
 		const nextChain = chain.slice(0, -1);
@@ -864,11 +1196,7 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	});
 	const rootsButton = container.querySelector('[data-ac5e-assist-roots]');
 	rootsButton?.addEventListener('click', () => {
-		root.dataset.ac5eAssistActiveRoot = '';
-		root.dataset.ac5eAssistChain = '[]';
-		root.dataset.ac5eAssistFilter = '';
-		setAssistActivePath(root, '');
-		renderAssistStage(root, assist, selectionState, textarea);
+		resetAssistBrowserContext(root, assist, selectionState, textarea);
 	});
 	for (const nodeButton of container.querySelectorAll('[data-ac5e-assist-node]')) {
 		const nodePath = nodeButton.dataset.ac5eAssistNode ?? '';
@@ -883,12 +1211,23 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 				return;
 			}
 			setAssistActivePath(root, node.path);
-			for (const button of container.querySelectorAll('[data-ac5e-assist-node]')) button.classList.toggle('active', button.dataset.ac5eAssistNode === node.path);
+			const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
+			replaceTokenAtCursorOrInsert(textarea, `${insertionPath} `, selectionState);
+			resetAssistBrowserContext(root, assist, selectionState, textarea);
 		});
 		nodeButton.addEventListener('dblclick', () => {
 			if (!node?.terminal) return;
 			setAssistActivePath(root, node.path);
-			insertAssistPathAtCursor(textarea, node.path, selectionState);
+			const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
+			replaceTokenAtCursorOrInsert(textarea, `${insertionPath} `, selectionState);
+			resetAssistBrowserContext(root, assist, selectionState, textarea);
+		});
+	}
+	for (const valueButton of container.querySelectorAll('[data-ac5e-assist-value]')) {
+		valueButton.addEventListener('click', () => {
+			const value = valueButton.dataset.ac5eAssistValue ?? '';
+			if (!value) return;
+			insertAssistValueAtCursor(textarea, value, root.dataset.ac5eAssistValuePath ?? '', selectionState);
 		});
 	}
 }
@@ -897,9 +1236,15 @@ function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
 	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
 	const caret = Number(textarea.selectionStart ?? 0);
 	const token = extractAutocompleteToken(textarea.value, caret);
-	if (!token) return;
-	const context = resolveAssistInputContext(token, assist);
-	if (!context) return;
+	if (!token) {
+		if (root.dataset.ac5eAssistActiveRoot) resetAssistBrowserContext(root, assist, selectionState, textarea);
+		return;
+	}
+	const context = resolveAssistInputContext(token, assist, textarea.value, caret, root.dataset.ac5eAssistActiveRoot ?? '');
+	if (!context) {
+		if (root.dataset.ac5eAssistActiveRoot && !token.includes('.')) resetAssistBrowserContext(root, assist, selectionState, textarea);
+		return;
+	}
 	const nextChain = JSON.stringify(context.chain ?? []);
 	const nextRoot = context.root ?? '';
 	const nextFilter = context.filter ?? '';
@@ -914,30 +1259,392 @@ function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
 	renderAssistStage(root, assist, selectionState, textarea);
 }
 
-function resolveAssistInputContext(token, assist) {
-	const normalized = String(token ?? '').trim();
+function resolveAssistInputContext(token, assist, fullText = '', caret = 0, activeRoot = '') {
+	const normalized = (token ?? '').trim();
 	if (!normalized) return null;
 	const trailingDot = normalized.endsWith('.');
 	const trimmed = trailingDot ? normalized.slice(0, -1) : normalized;
 	const segments = trimmed.split('.').filter(Boolean);
 	if (!segments.length) return null;
 	const root = segments[0];
-	if (!assist?.treesByRoot?.[root]) return null;
-	const tree = assist.treesByRoot[root];
-	if (trailingDot) {
-		const chain = buildAssistChainForPath(tree, root, trimmed);
-		return { root, chain, filter: '' };
+	if (assist?.treesByRoot?.[root]) {
+		const tree = assist.treesByRoot[root];
+		if (trailingDot) {
+			const chain = buildAssistChainForPath(tree, root, trimmed);
+			return { root, chain, filter: '' };
+		}
+		if (segments.length === 1) return { root, chain: [], filter: '' };
+		const parentPath = segments.slice(0, -1).join('.');
+		const filter = segments[segments.length - 1] ?? '';
+		const chain = buildAssistChainForPath(tree, root, parentPath);
+		return { root, chain, filter };
 	}
-	if (segments.length === 1) return { root, chain: [], filter: '' };
-	const parentPath = segments.slice(0, -1).join('.');
-	const filter = segments[segments.length - 1] ?? '';
-	const chain = buildAssistChainForPath(tree, root, parentPath);
-	return { root, chain, filter };
+	const enumPathKey = (segments[0] ?? '').trim();
+	const enumPathRoots = {
+		damageTypes: ['item', 'activity', 'originItem', 'originActivity'],
+		defaultDamageType: ['item', 'activity', 'originItem', 'originActivity'],
+		actionType: ['activity', 'originActivity', 'item', 'originItem'],
+		attackMode: ['item', 'originItem'],
+		mastery: ['item', 'originItem'],
+		itemProperties: ['item', 'originItem'],
+	};
+	const candidateRoots = enumPathRoots[enumPathKey];
+	if (!candidateRoots?.length) return null;
+	const inferredRoot = inferAssistRootFromTextContext(fullText, caret, assist, candidateRoots, activeRoot);
+	if (!inferredRoot || !assist?.treesByRoot?.[inferredRoot]) return null;
+	const inferredPath = `${inferredRoot}.${enumPathKey}`;
+	return { root: inferredRoot, chain: [inferredPath], filter: '' };
+}
+
+function inferAssistRootFromTextContext(fullText, caret, assist, candidateRoots, activeRoot = '') {
+	const roots = (candidateRoots ?? []).filter((root) => assist?.treesByRoot?.[root]);
+	if (!roots.length) return '';
+	if (activeRoot && roots.includes(activeRoot)) return activeRoot;
+	const before = `${fullText ?? ''}`.slice(0, Math.max(0, Number(caret ?? 0)));
+	let bestRoot = '';
+	let bestIndex = -1;
+	for (const root of roots) {
+		const pattern = new RegExp(`\\b${root}\\.[A-Za-z_$][\\w$-]*(?:\\.[A-Za-z_$][\\w$-]*)*`, 'g');
+		let match = pattern.exec(before);
+		while (match) {
+			const index = Number(match.index ?? -1);
+			if (index > bestIndex) {
+				bestIndex = index;
+				bestRoot = root;
+			}
+			match = pattern.exec(before);
+		}
+	}
+	return bestRoot || roots[0];
+}
+
+function applyAssistTabCompletion(textarea, root, assist, selectionState, direction = 1) {
+	if (direction > 0 && applyAssistTabRootCompletion(textarea, root, assist, selectionState)) return true;
+	if (direction > 0 && applyAssistTabPathCompletion(textarea, root, assist, selectionState)) return true;
+	return applyAssistTabEntryCompletion(textarea, root, assist, selectionState, direction);
+}
+
+function applyAssistTabRootCompletion(textarea, root, assist, selectionState) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return false;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalized = (token ?? '').trim();
+	if (!normalized || normalized.includes('.')) return false;
+	const roots = (assist?.entryPoints ?? []).map((entry) => (entry?.value ?? '').trim()).filter(Boolean);
+	const matches = roots.filter((entry) => entry.toLowerCase().startsWith(normalized.toLowerCase()));
+	if (!matches.length) return false;
+	const entryMatches = getAssistEntryMatchesInUiOrder(root, normalized);
+	const uniqueMatches = new Set([...matches, ...entryMatches]);
+	if (uniqueMatches.size > 1) return false;
+	const selected = matches[0];
+	replaceTokenAtCursorOrInsert(textarea, `${selected}.`, selectionState);
+	root.dataset.ac5eAssistActiveRoot = selected;
+	root.dataset.ac5eAssistChain = '[]';
+	root.dataset.ac5eAssistFilter = '';
+	setAssistActivePath(root, '');
+	renderAssistStage(root, assist, selectionState, textarea);
+	return true;
+}
+
+function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return false;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalized = (token ?? '').trim();
+	if (normalized && !normalized.includes('.')) {
+		const activeRoot = root.dataset.ac5eAssistActiveRoot ?? '';
+		if (activeRoot && assist?.treesByRoot?.[activeRoot]) {
+			const chain = parseAssistChain(root.dataset.ac5eAssistChain ?? '[]');
+			const tree = assist.treesByRoot[activeRoot];
+			const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
+			const allNodes = parentNode?.children ?? [];
+			const match = allNodes.find((node) => (node?.label ?? '').toLowerCase().startsWith(normalized.toLowerCase()));
+			if (match?.path) {
+				replaceTokenAtCursorOrInsert(textarea, match.path, selectionState);
+				root.dataset.ac5eAssistFilter = '';
+				setAssistActivePath(root, match.path);
+				renderAssistStage(root, assist, selectionState, textarea);
+				return true;
+			}
+		}
+	}
+	if (!token) return false;
+	const context = resolveAssistInputContext(token, assist);
+	if (!context?.root) return false;
+	const tree = assist?.treesByRoot?.[context.root];
+	if (!tree) return false;
+	const chain = Array.isArray(context.chain) ? context.chain : [];
+	const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
+	const allNodes = parentNode?.children ?? [];
+	const filterText = (context.filter ?? '').trim().toLowerCase();
+	const nodes = filterText ? allNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : allNodes;
+	if (!nodes.length) return false;
+	replaceTokenAtCursorOrInsert(textarea, nodes[0].path, selectionState);
+	root.dataset.ac5eAssistActiveRoot = context.root;
+	root.dataset.ac5eAssistChain = JSON.stringify(context.chain ?? []);
+	root.dataset.ac5eAssistFilter = '';
+	setAssistActivePath(root, nodes[0].path);
+	renderAssistStage(root, assist, selectionState, textarea);
+	return true;
+}
+
+function applyAssistTabEntryCompletion(textarea, root, assist, selectionState, direction = 1) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return false;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalized = (token ?? '').trim();
+	if (!normalized || normalized.includes('.')) return false;
+	const matchButtons = getAssistMatchButtonsInUiOrder(root, normalized, token);
+	if (!matchButtons.length) return false;
+	const cycleResult = cycleAssistButtonFocus(root, matchButtons, direction);
+	if (!cycleResult) return false;
+	updateAssistEntryHighlights(root, textarea, assist);
+	return true;
+}
+
+function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = null) {
+	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const rawToken = extractAutocompleteToken(textarea.value, caret);
+	const token = rawToken.toLowerCase();
+	const operatorOnlyMode = shouldIncludeOperatorMatches(rawToken, root, token);
+	const matches = operatorOnlyMode
+		? []
+		: (explicitMatches ?? (token ? getAssistEntryMatchesInUiOrder(root, token) : []));
+	const allMatchButtons = token ? getAssistMatchButtonsInUiOrder(root, token, rawToken) : [];
+	const rootMatchButtons = allMatchButtons.filter((button) => Boolean(button.dataset.ac5eAssistRootInsert));
+	const operatorMatchButtons = allMatchButtons.filter((button) => Boolean(button.dataset.ac5eAssistInsert));
+	const rootMatches = rootMatchButtons.map((button) => normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? '')).filter(Boolean);
+	const entryMatches = matches.map((value) => normalizeAssistMatchKey(value)).filter(Boolean);
+	const operatorMatches = operatorMatchButtons.map((button) => getAssistButtonValue(button)).filter(Boolean);
+	const combined = dedupe([...rootMatches, ...entryMatches, ...operatorMatches]);
+	const single = combined.length === 1 ? combined[0] : '';
+	const focused = normalizeAssistMatchKey(root.dataset.ac5eAssistEntryFocus ?? '');
+	const resolvedFocus = combined.length
+		? (combined.includes(focused) ? focused : combined[0])
+		: '';
+	root.dataset.ac5eAssistEntryFocus = resolvedFocus;
+	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
+		const value = button.dataset.ac5eAssistEntry ?? '';
+		const lower = value.toLowerCase();
+		const matchesToken = operatorOnlyMode ? false : (token ? assistEntryMatchesToken(lower, token) : false);
+		const key = normalizeAssistMatchKey(value);
+		button.classList.toggle('active', matchesToken || (resolvedFocus && key === resolvedFocus));
+		button.classList.toggle('ac5e-effect-value-assist-focused', Boolean(resolvedFocus) && key === resolvedFocus);
+		button.classList.toggle('ac5e-effect-value-assist-single-match', Boolean(single) && key === single);
+		button.hidden = false;
+	}
+	const rootToken = token.includes('.') ? '' : token;
+	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert]')) {
+		const value = normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? '');
+		const starts = operatorOnlyMode ? false : (rootToken ? value.startsWith(rootToken) : false);
+		const isFocused = Boolean(resolvedFocus) && value === resolvedFocus;
+		button.classList.toggle('active', starts || isFocused);
+		button.classList.toggle('ac5e-effect-value-assist-focused', isFocused);
+		button.classList.toggle('ac5e-effect-value-assist-single-match', Boolean(single) && value === single);
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
+		const key = getAssistButtonValue(button);
+		const matchesToken = token ? shouldIncludeOperatorMatches(rawToken, root, token) && operatorMatchesToken(button, rawToken) : false;
+		const isFocused = Boolean(resolvedFocus) && key === resolvedFocus;
+		button.classList.toggle('active', matchesToken || isFocused);
+		button.classList.toggle('ac5e-effect-value-assist-focused', isFocused);
+		button.classList.toggle('ac5e-effect-value-assist-single-match', Boolean(single) && key === single);
+	}
+}
+
+function cycleAssistEntryFocus(root, matches, direction = 1) {
+	if (!Array.isArray(matches) || !matches.length) return null;
+	const buttons = Array.from(root.querySelectorAll('[data-ac5e-assist-entry]')).filter((button) => matches.includes(button.dataset.ac5eAssistEntry ?? ''));
+	if (!buttons.length) return null;
+	const current = root.dataset.ac5eAssistEntryFocus ?? '';
+	let index = buttons.findIndex((button) => (button.dataset.ac5eAssistEntry ?? '') === current);
+	if (index < 0) index = direction < 0 ? buttons.length : -1;
+	index = (index + (direction < 0 ? -1 : 1) + buttons.length) % buttons.length;
+	const target = buttons[index];
+	const selected = target?.dataset.ac5eAssistEntry ?? '';
+	if (selected) root.dataset.ac5eAssistEntryFocus = selected;
+	return { selected };
+}
+
+function cycleAssistEntryFromInput(textarea, root, assist, direction = 1) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return false;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalized = (token ?? '').trim();
+	if (!normalized || normalized.includes('.')) return false;
+	const matchButtons = getAssistMatchButtonsInUiOrder(root, normalized, token);
+	if (!matchButtons.length) return false;
+	const cycled = cycleAssistButtonFocus(root, matchButtons, direction);
+	if (!cycled?.selected) return false;
+	updateAssistEntryHighlights(root, textarea, assist);
+	return true;
+}
+
+function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return false;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalized = (token ?? '').trim();
+	if (!normalized || normalized.includes('.')) return false;
+	const matches = getAssistMatchButtonsInUiOrder(root, normalized, token);
+	if (!matches.length) return false;
+	const focused = normalizeAssistMatchKey(root.dataset.ac5eAssistEntryFocus ?? '');
+	const selectedButton = matches.find((button) => getAssistButtonValue(button) === focused) ?? matches[0];
+	if (!(selectedButton instanceof HTMLElement)) return false;
+	const selectedOperator = `${selectedButton.dataset.ac5eAssistInsert ?? ''}`.trim();
+	if (selectedOperator) {
+		replaceTokenAtCursorOrInsert(textarea, selectedOperator, selectionState);
+		updateAssistEntryHighlights(root, textarea, assist);
+		return true;
+	}
+	const selectedRoot = (selectedButton.dataset.ac5eAssistRootInsert ?? '').trim();
+	if (selectedRoot) {
+		replaceTokenAtCursorOrInsert(textarea, `${selectedRoot}.`, selectionState);
+		root.dataset.ac5eAssistActiveRoot = selectedRoot;
+		root.dataset.ac5eAssistChain = '[]';
+		root.dataset.ac5eAssistFilter = '';
+		setAssistActivePath(root, '');
+		renderAssistStage(root, assist, selectionState, textarea);
+		updateAssistEntryHighlights(root, textarea, assist);
+		return true;
+	}
+	const selected = (selectedButton.dataset.ac5eAssistEntry ?? '').trim();
+	if (!selected) return false;
+	const insertion = resolveAssistEntryInsertion(selected);
+	replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
+	updateAssistEntryHighlights(root, textarea, assist);
+	return true;
+}
+
+function resolveAssistEntryInsertion(entry) {
+	const value = `${entry ?? ''}`.trim();
+	if (!value) return '';
+	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools'].includes(value)) return `${value}.`;
+	return `${value} `;
+}
+
+function applyFocusedAssistRoot(textarea, root, assist, selectionState) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return false;
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalized = (token ?? '').trim();
+	if (!normalized || normalized.includes('.')) return false;
+	const roots = (assist?.entryPoints ?? []).map((entry) => `${entry?.value ?? ''}`.trim()).filter(Boolean);
+	const matches = roots.filter((entry) => entry.toLowerCase().startsWith(normalized.toLowerCase()));
+	if (!matches.length) return false;
+	const selected = matches[0];
+	replaceTokenAtCursorOrInsert(textarea, `${selected}.`, selectionState);
+	root.dataset.ac5eAssistActiveRoot = selected;
+	root.dataset.ac5eAssistChain = '[]';
+	root.dataset.ac5eAssistFilter = '';
+	setAssistActivePath(root, '');
+	renderAssistStage(root, assist, selectionState, textarea);
+	return true;
+}
+
+function assistEntryMatchesToken(entry, token) {
+	const value = `${entry ?? ''}`.toLowerCase();
+	const query = `${token ?? ''}`.toLowerCase().trim();
+	if (!value || !query) return false;
+	return value.includes(query);
+}
+
+function getAssistMatchButtonsInUiOrder(root, token, rawToken = '') {
+	if (!(root instanceof HTMLElement)) return [];
+	const query = `${token ?? ''}`.toLowerCase().trim();
+	if (!query) return [];
+	const buttons = [];
+	if (shouldIncludeOperatorMatches(rawToken, root, query)) {
+		for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
+			if (!operatorMatchesToken(button, rawToken)) continue;
+			buttons.push(button);
+		}
+		return buttons;
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert], [data-ac5e-assist-entry]')) {
+		const value = getAssistButtonValue(button).trim();
+		if (!value) continue;
+		if (!assistEntryMatchesToken(value, query)) continue;
+		buttons.push(button);
+	}
+	return buttons;
+}
+
+function getAssistButtonValue(button) {
+	if (!(button instanceof HTMLElement)) return '';
+	if (button.dataset.ac5eAssistInsert) return `op:${normalizeAssistMatchKey(button.dataset.ac5eAssistInsert ?? '')}`;
+	return normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? button.dataset.ac5eAssistEntry ?? '');
+}
+
+function cycleAssistButtonFocus(root, buttons, direction = 1) {
+	if (!(root instanceof HTMLElement)) return null;
+	if (!Array.isArray(buttons) || !buttons.length) return null;
+	const current = normalizeAssistMatchKey(root.dataset.ac5eAssistEntryFocus ?? '');
+	let index = buttons.findIndex((button) => getAssistButtonValue(button) === current);
+	if (index < 0) index = direction < 0 ? buttons.length : -1;
+	index = (index + (direction < 0 ? -1 : 1) + buttons.length) % buttons.length;
+	const target = buttons[index];
+	const selected = getAssistButtonValue(target);
+	if (selected) root.dataset.ac5eAssistEntryFocus = selected;
+	return { selected };
+}
+
+function normalizeAssistMatchKey(value) {
+	return `${value ?? ''}`.trim().toLowerCase();
+}
+
+function shouldIncludeOperatorMatches(token, root = null, normalizedToken = '') {
+	const raw = `${token ?? ''}`.trim();
+	if (!raw || raw.includes('.')) return false;
+	if (!/[A-Z]/.test(raw)) return false;
+	if (!(root instanceof HTMLElement)) return true;
+	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
+		if (operatorMatchesToken(button, raw)) return true;
+	}
+	return false;
+}
+
+function operatorMatchesToken(button, token) {
+	if (!(button instanceof HTMLElement)) return false;
+	const query = `${token ?? ''}`.trim().toUpperCase();
+	if (!query) return false;
+	const keys = getOperatorShortcutKeys(button);
+	return keys.some((key) => key.startsWith(query));
+}
+
+function getOperatorShortcutKeys(button) {
+	const insert = `${button?.dataset?.ac5eAssistInsert ?? ''}`.trim();
+	if (insert === '&&') return ['A', 'AND'];
+	if (insert === '||') return ['O', 'OR'];
+	if (insert === '!') return ['N', 'NOT'];
+	if (insert === '==') return ['E', 'EQ'];
+	if (insert === '!=') return ['NE', 'D', 'DIFF'];
+	if (insert === '>') return ['M', 'MORE', 'GT'];
+	if (insert === '>=') return ['ME', 'MOREEQ', 'GTE'];
+	if (insert === '<') return ['L', 'LESS', 'LT'];
+	if (insert === '<=') return ['LE', 'LESSEQ', 'LTE'];
+	if (insert === '()') return ['P', 'PAR', 'PAREN'];
+	if (insert === '(condition ? trueValue : falseValue)') return ['T', 'TERNARY'];
+	return [];
+}
+
+function getAssistEntryMatchesInUiOrder(root, token) {
+	if (!(root instanceof HTMLElement)) return [];
+	if (!token) return [];
+	const matches = [];
+	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
+		const value = (button.dataset.ac5eAssistEntry ?? '').trim();
+		if (!value) continue;
+		if (!assistEntryMatchesToken(value, token)) continue;
+		matches.push(value);
+	}
+	return matches;
 }
 
 function buildAssistChainForPath(tree, root, path) {
 	const chain = [];
-	const segments = String(path ?? '').split('.').filter(Boolean);
+	const segments = (path ?? '').split('.').filter(Boolean);
 	let currentPath = root;
 	for (let index = 1; index < segments.length; index += 1) {
 		currentPath = `${currentPath}.${segments[index]}`;
@@ -956,201 +1663,244 @@ function parseAssistChain(rawChain) {
 	}
 }
 
-function renderAssistRootStage(entryPoints) {
-	const items = (entryPoints ?? [])
-		.map((entry) => `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-root="${escapeHtml(entry.value)}">${escapeHtml(entry.label)} ></button>`)
-		.join('');
-	const empty = items || '<p class="ac5e-effect-value-assist-empty">No roots available</p>';
+function renderAssistIdleStage() {
 	return `
 		<div class="ac5e-effect-value-assist-toolbar"><span>Root</span></div>
-		<div class="ac5e-effect-value-assist-list">${empty}</div>
+		<div class="ac5e-effect-value-assist-scroll">
+			<div class="ac5e-effect-value-assist-list"><p class="ac5e-effect-value-assist-empty">Type or select an actor/item root (for example <code>rollingActor.</code>) to browse Lambda Paths.</p></div>
+		</div>
 	`;
 }
 
-function renderAssistNodeStage(nodes, headerPath, canGoBack) {
+function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) {
 	const items = (nodes ?? [])
 		.map((node) => {
 		const marker = node.children?.length ? '>' : '';
-		return `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(node.label)} ${marker}</button>`;
+		const ac5eMarker = node.ac5eActorAdded ? '*' : '';
+		return `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(node.label)}${ac5eMarker ? ` ${ac5eMarker}` : ''} ${marker}</button>`;
 	}).join('');
 	const empty = items || '<p class="ac5e-effect-value-assist-empty">No paths available</p>';
+	const values = (valueChoices ?? [])
+		.map((value) => `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-value="${escapeHtml(`'${value.replaceAll("'", "\\'")}'`)}">${escapeHtml(value)}</button>`)
+		.join('');
+	const valuesSection = values ?
+		`<div class="ac5e-effect-value-assist-toolbar"><span>Values</span></div><div class="ac5e-effect-value-assist-list">${values}</div>`
+		: '';
 	return `
 		<div class="ac5e-effect-value-assist-toolbar">
 			<button type="button" data-ac5e-assist-roots>Roots</button>
 			<button type="button" data-ac5e-assist-back ${canGoBack ? '' : 'disabled'}>Back</button>
 			<span class="ac5e-effect-value-assist-current" title="${escapeHtml(headerPath)}">${escapeHtml(headerPath)}</span>
 		</div>
-		<div class="ac5e-effect-value-assist-list">${empty}</div>
+		<div class="ac5e-effect-value-assist-scroll">
+			<div class="ac5e-effect-value-assist-list">${empty}</div>
+			${valuesSection}
+		</div>
 	`;
 }
 
-function buildInlinePathSuggestions(assist) {
-	const values = [];
-	for (const root of assist?.entryPoints ?? []) {
-		const paths = assist?.pathsByRoot?.[root.value] ?? [];
-		for (const path of paths) values.push(path);
+function resolveAssistValueChoices(path, enumValues) {
+	const sourcePath = `${path ?? ''}`.trim();
+	if (!sourcePath) return [];
+	if (/\.(?:creatureType)$/.test(sourcePath)) return enumValues?.creatureTypes ?? [];
+	if (/\.(?:damageTypes|defaultDamageType)$/.test(sourcePath)) return dedupe([...(enumValues?.damageTypes ?? []), ...(enumValues?.healingTypes ?? [])]);
+	if (/\.(?:healingTypes)$/.test(sourcePath)) return enumValues?.healingTypes ?? [];
+	if (/\.(?:actionType)$/.test(sourcePath)) return enumValues?.actionTypes ?? [];
+	if (/\.(?:activityType)$/.test(sourcePath)) return enumValues?.activityTypes ?? [];
+	if (/\.(?:itemType)$/.test(sourcePath)) return enumValues?.itemTypes ?? [];
+	if (/\.(?:attackMode)$/.test(sourcePath)) return enumValues?.attackModes ?? [];
+	if (/\.(?:mastery)$/.test(sourcePath)) return enumValues?.masteries ?? [];
+	if (/\.(?:itemProperties)$/.test(sourcePath)) return enumValues?.itemProperties ?? [];
+	if (/\.(?:abilities)$/.test(sourcePath)) return enumValues?.abilities ?? [];
+	if (/\.(?:skills)$/.test(sourcePath)) return enumValues?.skills ?? [];
+	if (/\.(?:tools)$/.test(sourcePath)) return enumValues?.tools ?? [];
+	if (/\.(?:type)$/.test(sourcePath)) {
+		if (/^(?:rollingActor|opponentActor|effectActor|nonEffectActor|auraActor)\./.test(sourcePath)) return enumValues?.actorTypes ?? [];
+		if (/^(?:item|originItem)\./.test(sourcePath)) return enumValues?.itemTypes ?? [];
+		if (/^(?:activity|originActivity)\./.test(sourcePath)) return enumValues?.activityTypes ?? [];
 	}
-	return dedupe(values.filter((value) => typeof value === 'string' && value.includes('.')));
+	if (/\.(?:baseItem)$/.test(sourcePath)) return enumValues?.baseItems ?? [];
+	return [];
 }
 
-function updateInlineAutocomplete(textarea, autocompleteState, selectionState) {
-	if (!(textarea instanceof HTMLTextAreaElement)) return;
-	if (!autocompleteState?.container) return;
-	const caret = Number(textarea.selectionStart ?? 0);
-	const token = extractAutocompleteToken(textarea.value, caret);
-	if (!token || token.length < 2) {
-		closeInlineAutocomplete(autocompleteState);
-		return;
+function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState = null) {
+	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+	const path = `${valuePath ?? ''}`.trim();
+	const value = `${quotedValue ?? ''}`.trim();
+	if (!path || !value) return insertAtCursor(input, value, selectionState);
+	if (path.endsWith('.damageTypes') || path.endsWith('.defaultDamageType')) {
+		const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
+		const enumPath = `${path}.${normalizedValue}`;
+		if (tryAppendEnumPathClause(input, enumPath, selectionState)) return;
+		if (tryReplaceTrailingEnumPathToken(input, enumPath, path, selectionState)) return;
+		return insertAtCursor(input, `${enumPath} `, selectionState);
 	}
-	const filtered = filterInlineSuggestions(autocompleteState.suggestions, token).slice(0, 12);
-	if (!filtered.length) {
-		closeInlineAutocomplete(autocompleteState);
-		return;
+	if (tryAppendAssistClauseAfterOperator(input, value, path, selectionState)) return;
+	if (!path.endsWith('.creatureType')) return insertAtCursor(input, value, selectionState);
+	if (tryAppendCreatureTypeIncludesClause(input, value, path, selectionState)) return;
+	if (tryReplaceTrailingPathWithCreatureTypeClause(input, value, path, selectionState)) return;
+	insertAtCursor(input, `${path}.includes(${value})`, selectionState);
+}
+
+function tryAppendEnumPathClause(input, enumPath, selectionState = null) {
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const selectionEnd = Number(input.selectionEnd ?? cursor);
+	if (cursor !== selectionEnd) return false;
+	const before = input.value.slice(0, cursor).trimEnd();
+	const escaped = escapeRegExp(enumPath.replace(/\.[^.]+$/, ''));
+	const match = before.match(new RegExp(`${escaped}\\.[A-Za-z0-9_]+\\s*$`));
+	if (!match) return false;
+	const insertion = ` || ${enumPath}`;
+	input.value = `${input.value.slice(0, cursor)}${insertion}${input.value.slice(cursor)}`;
+	const nextCursor = cursor + insertion.length;
+	input.focus();
+	input.setSelectionRange(nextCursor, nextCursor);
+	if (selectionState) {
+		selectionState.start = nextCursor;
+		selectionState.end = nextCursor;
+		selectionState.userMovedCaret = true;
 	}
-	autocompleteState.filtered = filtered;
-	autocompleteState.activeIndex = 0;
-	autocompleteState.start = caret - token.length;
-	autocompleteState.end = caret;
-	autocompleteState.open = true;
-	renderInlineAutocomplete(autocompleteState, textarea, selectionState);
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	return true;
+}
+
+function tryReplaceTrailingEnumPathToken(input, enumPath, basePath, selectionState = null) {
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const selectionEnd = Number(input.selectionEnd ?? cursor);
+	if (cursor !== selectionEnd) return false;
+	const before = input.value.slice(0, cursor);
+	const trimmedBefore = before.trimEnd();
+	const trailingDot = `${basePath}.`;
+	let replacementStart = -1;
+	if (trimmedBefore.endsWith(trailingDot)) replacementStart = trimmedBefore.length - trailingDot.length;
+	else if (trimmedBefore.endsWith(basePath)) replacementStart = trimmedBefore.length - basePath.length;
+	if (replacementStart < 0) return false;
+	const nextBefore = `${before.slice(0, replacementStart)}${enumPath}`;
+	input.value = `${nextBefore}${input.value.slice(cursor)}`;
+	const nextCursor = nextBefore.length;
+	input.focus();
+	input.setSelectionRange(nextCursor, nextCursor);
+	if (selectionState) {
+		selectionState.start = nextCursor;
+		selectionState.end = nextCursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	return true;
+}
+
+function tryAppendAssistClauseAfterOperator(input, quotedValue, defaultPath, selectionState = null) {
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const selectionEnd = Number(input.selectionEnd ?? cursor);
+	if (cursor !== selectionEnd) return false;
+	const before = input.value.slice(0, cursor);
+	const operatorMatch = before.match(/(\|\||&&)\s*$/);
+	if (!operatorMatch) return false;
+	const operator = operatorMatch[1];
+	const insertion = buildAssistClauseFromContext(before.slice(0, operatorMatch.index), defaultPath, quotedValue);
+	if (!insertion) return false;
+	const nextBefore = before.replace(/(\|\||&&)\s*$/, `${operator} ${insertion}`);
+	input.value = `${nextBefore}${input.value.slice(cursor)}`;
+	const nextCursor = nextBefore.length;
+	input.focus();
+	input.setSelectionRange(nextCursor, nextCursor);
+	if (selectionState) {
+		selectionState.start = nextCursor;
+		selectionState.end = nextCursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	return true;
+}
+
+function buildAssistClauseFromContext(prefix, defaultPath, quotedValue) {
+	const source = `${prefix ?? ''}`.trimEnd();
+	const includesMatch = source.match(/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\.includes\(\s*'(?:\\'|[^'])*'\s*\)\s*$/);
+	if (includesMatch) return `${includesMatch[1]}.includes(${quotedValue})`;
+	const equalityMatch = source.match(/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*(?:==|===|!=|!==)\s*'(?:\\'|[^'])*'\s*$/);
+	if (equalityMatch) return `${equalityMatch[1]} == ${quotedValue}`;
+	const path = `${defaultPath ?? ''}`.trim();
+	if (!path) return '';
+	if (path.endsWith('.creatureType')) return `${path}.includes(${quotedValue})`;
+	return `${path} == ${quotedValue}`;
+}
+
+function tryAppendCreatureTypeIncludesClause(input, quotedValue, path, selectionState = null) {
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const selectionEnd = Number(input.selectionEnd ?? cursor);
+	if (cursor !== selectionEnd) return false;
+	const before = input.value.slice(0, cursor).trimEnd();
+	const escapedPath = escapeRegExp(path);
+	const includesPattern = new RegExp(`${escapedPath}\\.includes\\(\\s*'(?:\\\\'|[^'])*'\\s*\\)\\s*$`);
+	if (!includesPattern.test(before)) return false;
+	const insertion = ` || ${path}.includes(${quotedValue})`;
+	input.value = `${input.value.slice(0, cursor)}${insertion}${input.value.slice(cursor)}`;
+	const nextCursor = cursor + insertion.length;
+	input.focus();
+	input.setSelectionRange(nextCursor, nextCursor);
+	if (selectionState) {
+		selectionState.start = nextCursor;
+		selectionState.end = nextCursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	return true;
+}
+
+function tryReplaceTrailingPathWithCreatureTypeClause(input, quotedValue, path, selectionState = null) {
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const selectionEnd = Number(input.selectionEnd ?? cursor);
+	if (cursor !== selectionEnd) return false;
+	const before = input.value.slice(0, cursor);
+	const trimmedBefore = before.trimEnd();
+	const trailingDot = `${path}.`;
+	let replacementStart = -1;
+	if (trimmedBefore.endsWith(trailingDot)) replacementStart = trimmedBefore.length - trailingDot.length;
+	else if (trimmedBefore.endsWith(path)) replacementStart = trimmedBefore.length - path.length;
+	if (replacementStart < 0) return false;
+	const clause = `${path}.includes(${quotedValue})`;
+	const nextBefore = `${before.slice(0, replacementStart)}${clause}`;
+	input.value = `${nextBefore}${input.value.slice(cursor)}`;
+	const nextCursor = nextBefore.length;
+	input.focus();
+	input.setSelectionRange(nextCursor, nextCursor);
+	if (selectionState) {
+		selectionState.start = nextCursor;
+		selectionState.end = nextCursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	return true;
+}
+
+function resolveAssistNodeInsertionPath(textarea, nodePath) {
+	const path = `${nodePath ?? ''}`.trim();
+	if (!path) return path;
+	const normalizedPath = path.toLowerCase();
+	const isScopedDamageEnum = /^(?:item|activity|originitem|originactivity)\.(?:damagetypes|defaultdamagetype)\.[a-z0-9_]+$/.test(normalizedPath);
+	if (!isScopedDamageEnum) return path;
+	const caret = Number(textarea?.selectionStart ?? textarea?.value?.length ?? 0);
+	const token = extractAutocompleteToken(textarea?.value ?? '', caret).toLowerCase();
+	if (token.startsWith('damagetypes.') || token.startsWith('defaultdamagetype.')) {
+		return path.replace(/^[^.]+\./, '');
+	}
+	return path;
+}
+
+function escapeRegExp(value) {
+	return `${value ?? ''}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildExpandEditorAppId(editorId, inputName) {
+	const normalizedEditorId = `${editorId ?? 'editor'}`.replace(/[^A-Za-z0-9_-]+/g, '-');
+	const normalizedInput = `${inputName ?? 'value'}`.replace(/[^A-Za-z0-9_.-]+/g, '-');
+	return `ac5e-openEditor-${normalizedEditorId}-${normalizedInput}`;
 }
 
 function extractAutocompleteToken(text, caret) {
-	const left = String(text ?? '').slice(0, Math.max(0, caret));
+	const left = `${text ?? ''}`.slice(0, Math.max(0, caret));
 	const match = left.match(/[A-Za-z_][A-Za-z0-9_.]*$/);
 	return match?.[0] ?? '';
-}
-
-function filterInlineSuggestions(suggestions, token) {
-	const normalized = String(token ?? '').trim().toLowerCase();
-	return (suggestions ?? [])
-		.map((value) => ({ value, score: scoreInlineSuggestion(value, normalized) }))
-		.filter((entry) => entry.score > -1)
-		.sort((a, b) => b.score - a.score || a.value.length - b.value.length)
-		.map((entry) => entry.value);
-}
-
-function scoreInlineSuggestion(path, token) {
-	const source = String(path ?? '').toLowerCase();
-	if (!token) return -1;
-	const tokenSegments = token.split('.');
-	const fragment = tokenSegments[tokenSegments.length - 1] ?? '';
-	const base = tokenSegments.slice(0, -1).join('.');
-	if (base && !source.startsWith(`${base}.`) && source !== base) return -1;
-	const nextSegment = getNextPathSegment(source, base);
-	if (base && fragment && nextSegment?.startsWith(fragment)) return 700 - source.length;
-	if (base && !fragment) return 650 - source.length;
-	if (source.startsWith(token)) return 400 - source.length;
-	const lastSegment = nextSegment ?? (source.split('.').at(-1) ?? '');
-	if (lastSegment.startsWith(token)) return 320 - source.length;
-	if (source.includes(`.${token}`)) return 280 - source.length;
-	if (fragment && lastSegment.startsWith(fragment)) return 240 - source.length;
-	let index = 0;
-	let score = 100;
-	for (const char of (fragment || token)) {
-		index = source.indexOf(char, index);
-		if (index < 0) return -1;
-		score += 1;
-		index += 1;
-	}
-	return score;
-}
-
-function getNextPathSegment(path, base) {
-	if (!base) return path.split('.')[0] ?? '';
-	if (path === base) return '';
-	if (!path.startsWith(`${base}.`)) return '';
-	const remainder = path.slice(base.length + 1);
-	return remainder.split('.')[0] ?? '';
-}
-
-function handleInlineAutocompleteKeydown(event, textarea, autocompleteState, selectionState) {
-	if (!autocompleteState?.open) return false;
-	if (event.key === 'ArrowDown') {
-		event.preventDefault();
-		autocompleteState.activeIndex = Math.min(autocompleteState.filtered.length - 1, autocompleteState.activeIndex + 1);
-		renderInlineAutocomplete(autocompleteState, textarea, selectionState);
-		return true;
-	}
-	if (event.key === 'ArrowUp') {
-		event.preventDefault();
-		autocompleteState.activeIndex = Math.max(0, autocompleteState.activeIndex - 1);
-		renderInlineAutocomplete(autocompleteState, textarea, selectionState);
-		return true;
-	}
-	if (event.key === 'Escape') {
-		event.preventDefault();
-		closeInlineAutocomplete(autocompleteState);
-		return true;
-	}
-	if (event.key === 'Enter') {
-		event.preventDefault();
-		const selected = autocompleteState.filtered[autocompleteState.activeIndex];
-		if (selected) applyInlineSuggestion(textarea, selected, autocompleteState, selectionState);
-		closeInlineAutocomplete(autocompleteState);
-		return true;
-	}
-	return false;
-}
-
-function applyInlineSuggestion(textarea, suggestion, autocompleteState, selectionState) {
-	const start = Math.max(0, Number(autocompleteState.start ?? 0));
-	const end = Math.max(start, Number(autocompleteState.end ?? start));
-	const text = String(suggestion ?? '');
-	textarea.value = `${textarea.value.slice(0, start)}${text}${textarea.value.slice(end)}`;
-	const cursor = start + text.length;
-	textarea.focus();
-	textarea.setSelectionRange(cursor, cursor);
-	if (selectionState) {
-		selectionState.start = cursor;
-		selectionState.end = cursor;
-		selectionState.recentAssistInsert = { start, end: cursor, text };
-		selectionState.userMovedCaret = true;
-	}
-	textarea.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-function renderInlineAutocomplete(autocompleteState, textarea, selectionState) {
-	const container = autocompleteState?.container;
-	if (!(container instanceof HTMLElement)) return;
-	const items = (autocompleteState.filtered ?? [])
-		.map((item, index) => `<button type="button" class="ac5e-effect-value-inline-autocomplete-item${index === autocompleteState.activeIndex ? ' active' : ''}" data-ac5e-inline-item="${escapeHtml(item)}">${escapeHtml(item)}</button>`)
-		.join('');
-	container.innerHTML = items;
-	container.hidden = !items;
-	positionInlineAutocomplete(container, textarea);
-	for (const button of container.querySelectorAll('[data-ac5e-inline-item]')) {
-		button.addEventListener('mousedown', (event) => {
-			event.preventDefault();
-			const value = button.dataset.ac5eInlineItem ?? '';
-			if (!value) return;
-			applyInlineSuggestion(textarea, value, autocompleteState, selectionState);
-			closeInlineAutocomplete(autocompleteState);
-		});
-	}
-}
-
-function closeInlineAutocomplete(autocompleteState) {
-	const container = autocompleteState?.container;
-	if (!(container instanceof HTMLElement)) return;
-	autocompleteState.open = false;
-	autocompleteState.filtered = [];
-	container.hidden = true;
-	container.innerHTML = '';
-}
-
-function positionInlineAutocomplete(container, textarea) {
-	if (!(container instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
-	const containerParent = container.parentElement;
-	if (!(containerParent instanceof HTMLElement)) return;
-	const areaRect = textarea.getBoundingClientRect();
-	const parentRect = containerParent.getBoundingClientRect();
-	const top = Math.max(0, areaRect.bottom - parentRect.top - 4);
-	const left = Math.max(0, areaRect.left - parentRect.left);
-	const maxWidth = Math.max(220, areaRect.width);
-	container.style.top = `${top}px`;
-	container.style.left = `${left}px`;
-	container.style.width = `${maxWidth}px`;
 }
 
 function findTreeNodeByPath(rootNode, path) {
@@ -1166,6 +1916,36 @@ function findTreeNodeByPath(rootNode, path) {
 	return null;
 }
 
+function replaceTokenAtCursorOrInsert(input, replacement, selectionState = null) {
+	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+	const text = `${replacement ?? ''}`;
+	if (!text) return;
+	const insertion = resolveAssistInsertion(text);
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const token = extractAutocompleteToken(input.value, cursor);
+	if (!token) {
+		insertAtCursor(input, insertion.text, selectionState);
+		return;
+	}
+	const start = Math.max(0, cursor - token.length);
+	const end = Number(input.selectionEnd ?? cursor);
+	const replacementText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
+	input.value = `${input.value.slice(0, start)}${replacementText}${input.value.slice(end)}`;
+	const nextStart = insertion.selectionLength > 0
+		? start + Math.min(insertion.selectionStartOffset, replacementText.length)
+		: start + replacementText.length;
+	const nextEnd = nextStart + insertion.selectionLength;
+	input.focus();
+	input.setSelectionRange(nextStart, nextEnd);
+	if (selectionState) {
+		selectionState.start = nextStart;
+		selectionState.end = nextEnd;
+		selectionState.userMovedCaret = true;
+		selectionState.recentAssistInsert = { start, end: nextStart + replacementText.length, text: replacementText };
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function insertAtCursor(input, text, selectionState = null) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 	if (!text) return;
@@ -1175,8 +1955,11 @@ function insertAtCursor(input, text, selectionState = null) {
 		Number.isInteger(selectionState?.end);
 	const start = hasExplicitSelection ? selectionState.start : input.value.length;
 	const end = hasExplicitSelection ? selectionState.end : input.value.length;
-	input.value = `${input.value.slice(0, start)}${insertion.text}${input.value.slice(end)}`;
-	const selectionStart = start + insertion.selectionStartOffset;
+	const insertionText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
+	input.value = `${input.value.slice(0, start)}${insertionText}${input.value.slice(end)}`;
+	const selectionStart = insertion.selectionLength > 0
+		? start + Math.min(insertion.selectionStartOffset, insertionText.length)
+		: start + insertionText.length;
 	const selectionEnd = selectionStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(selectionStart, selectionEnd);
@@ -1187,9 +1970,40 @@ function insertAtCursor(input, text, selectionState = null) {
 	input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function normalizeOperatorInsertion(source, start, end, text) {
+	const raw = `${text ?? ''}`;
+	const trimmed = raw.trim();
+	const binaryOperators = new Set(['&&', '||', '==', '!=', '>', '>=', '<', '<=']);
+	const unaryOperators = new Set(['!']);
+	if (!binaryOperators.has(trimmed) && !unaryOperators.has(trimmed)) {
+		return normalizeTokenInsertion(source, start, end, raw);
+	}
+	const before = `${source ?? ''}`.slice(0, Math.max(0, Number(start ?? 0)));
+	const after = `${source ?? ''}`.slice(Math.max(0, Number(end ?? 0)));
+	const prev = before.at(-1) ?? '';
+	const next = after[0] ?? '';
+	const needsLead = Boolean(before.length) && !/\s|[(]/.test(prev);
+	const needsTrail = !next || !/\s|[)\],.:?]/.test(next);
+	return `${needsLead ? ' ' : ''}${trimmed}${needsTrail ? ' ' : ''}`;
+}
+
+function normalizeTokenInsertion(source, start, end, text) {
+	const raw = `${text ?? ''}`;
+	if (!raw) return raw;
+	const before = `${source ?? ''}`.slice(0, Math.max(0, Number(start ?? 0)));
+	const after = `${source ?? ''}`.slice(Math.max(0, Number(end ?? 0)));
+	const prev = before.at(-1) ?? '';
+	const next = after[0] ?? '';
+	const startsWithSpace = /^\s/.test(raw);
+	const endsWithSpace = /\s$/.test(raw);
+	const needsLead = !startsWithSpace && Boolean(before.length) && /[A-Za-z0-9_.)'"]/.test(prev);
+	const needsTrail = !endsWithSpace && Boolean(next) && /[A-Za-z0-9_('"`]/.test(next);
+	return `${needsLead ? ' ' : ''}${raw}${needsTrail ? ' ' : ''}`;
+}
+
 function insertAssistPathAtCursor(input, path, selectionState = null) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
-	const text = String(path ?? '');
+	const text = `${path ?? ''}`;
 	if (!text) return;
 	const recent = selectionState?.recentAssistInsert ?? null;
 	const canReplaceRecent =

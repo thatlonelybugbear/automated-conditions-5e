@@ -22,6 +22,34 @@ import { _getSafeDialogConfig, _getSafeUseConfig } from './ac5e-config-logic.mjs
 
 const settings = new Settings();
 
+export const AC5E_ACTOR_ROLLDATA_ADDED_FIELDS = [
+	'actorId',
+	'actorType',
+	'actorUuid',
+	'uuid',
+	'token',
+	'tokenId',
+	'tokenUuid',
+	'tokenSize',
+	'tokenElevation',
+	'tokenSenses',
+	'currencyWeight',
+	'canMove',
+	'creatureType',
+	'lightLevel',
+	'isTurn',
+	'combatTurn',
+	'hasArmor',
+	'hasShield',
+	'levelCr',
+	'items',
+	'equippedItems',
+	'movementLastSegment',
+	'movementTurn',
+	'midiFlags',
+];
+export const AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS = ['hasArmor'];
+
 function _duplicateEvaluationOptions(options) {
 	return options && typeof options === 'object' ?
 			{
@@ -118,35 +146,46 @@ export function _raceOrType(actor, dataType = 'race') {
 	return data[dataType]?.toLocaleLowerCase();
 }
 
-export function _ac5eActorRollData(token, rollData) {
+export function _ac5eActorRollData(token, rollData, actor, initializing = false) {
 	let actorData;
-	const actor = token?.actor; // to-do: handle non-token roll data in the future, currently only supports rolls with tokens (e.g. attacks, saves, checks, but not item uses or activities without rolls)
-	if (!(actor instanceof CONFIG.Actor.documentClass)) return {};
-	if (!rollData) actorData = actor.getRollData();
+	const resolvedActor =
+		actor instanceof CONFIG.Actor.documentClass ? actor
+		: token?.actor instanceof CONFIG.Actor.documentClass ? token.actor
+		: null;
+	if (!(resolvedActor instanceof CONFIG.Actor.documentClass)) return {};
+	const resolvedToken = token ?? resolvedActor.getActiveTokens?.()?.[0] ?? null;
+	if (initializingData || !rollData) actorData = resolvedActor.getRollData?.();
 	else actorData = { ...rollData };
-	actorData.flags ??= actor.flags ?? {};
-	actorData.flags['midi-qol'] ??= actor.flags?.['midi-qol'] ?? {};
+	actorData ??= {};
+	const actorId = resolvedActor.id ?? null;
+	const actorUuid = resolvedActor.uuid ?? null;
+	actorData.flags ??= resolvedActor.flags ?? {};
+	actorData.flags['midi-qol'] ??= resolvedActor.flags?.['midi-qol'] ?? {};
 	actorData.midiFlags ??= actorData.flags['midi-qol'];
-	actorData.currencyWeight = actor.system.currencyWeight;
-	actorData.effects = actor.appliedEffects;
+	actorData.currencyWeight = resolvedActor.system.currencyWeight;
+	actorData.effects = resolvedActor.appliedEffects;
 	actorData.level = actorData.details?.level || actorData.details?.cr;
 	actorData.levelCr = actorData.level;
 	actorData.hasArmor = !!actorData.attributes?.ac?.equippedArmor;
 	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
 	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
-	actorData.type = actor.type;
-	actorData.canMove = !!actor.system?.attributes?.movement.max;
-	actorData.token = token;
-	actorData.tokenSize = token.document.width * token.document.height;
-	actorData.tokenElevation = token.document.elevation;
-	actorData.tokenSenses = token.document.detectionModes;
-	actorData.tokenUuid = token.document.uuid;
-	actorData.uuid = token.actor.uuid;
+	actorData.type = resolvedActor.type;
+	actorData.canMove = !!resolvedActor.system?.attributes?.movement?.max;
+	actorData.actorId ??= actorId;
+	actorData.actorType ??= resolvedActor.type;
+	actorData.actorUuid ??= actorUuid;
+	actorData.token = resolvedToken ?? null;
+	actorData.tokenId ??= resolvedToken?.id ?? null;
+	actorData.tokenSize = resolvedToken?.document ? resolvedToken.document.width * resolvedToken.document.height : null;
+	actorData.tokenElevation = resolvedToken?.document?.elevation ?? null;
+	actorData.tokenSenses = resolvedToken?.document?.detectionModes ?? null;
+	actorData.tokenUuid = resolvedToken?.document?.uuid ?? null;
+	actorData.uuid = actorUuid;
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
-	actorData.isTurn = active && currentCombatant === token.id;
-	actorData.combatTurn = active ? game.combat.turns.findIndex((combatant) => combatant.tokenId === token.id) : undefined;
-	defineLazyAc5eActorRollDataViews(actorData, actor, token, active);
+	actorData.isTurn = active && !!resolvedToken && currentCombatant === resolvedToken.id;
+	actorData.combatTurn = active && resolvedToken ? game.combat.turns.findIndex((combatant) => combatant.tokenId === resolvedToken.id) : undefined;
+	defineLazyAc5eActorRollDataViews(actorData, resolvedActor, resolvedToken, active);
 	return actorData;
 }
 
@@ -197,17 +236,17 @@ function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
 	defineCachedValue('equippedItems', () => getItemViews().equippedItems);
 	defineCachedValue('creatureType', () => Array.from(new Set(Object.values(_raceOrType(actor, 'all')).filter(Boolean))));
 	defineCachedValue('movementLastSegment', () => {
-		if (!active) return active;
+		if (!active || !token?.document) return active ? false : active;
 		const history = token.document.movementHistory;
 		const movementId = history?.at(-1)?.movementId;
 		if (!movementId) return false;
 		return history.filter((entry) => entry.movementId === movementId).reduce((acc, entry) => (acc += entry.cost ?? 0), 0);
 	});
 	defineCachedValue('movementTurn', () => {
-		if (!active) return active;
+		if (!active || !token?.document) return active ? false : active;
 		return token.document.movementHistory?.reduce((acc, entry) => (acc += entry.cost ?? 0), 0);
 	});
-	defineCachedValue('lightLevel', () => ({ [_getLightLevel(token)]: true }));
+	defineCachedValue('lightLevel', () => (token ? { [_getLightLevel(token)]: true } : {}));
 }
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties = false } = {}) {

@@ -255,10 +255,60 @@
 	gap: 8px;
 }
 
-.ac5e-effect-value-assist-groups .form-fields {
-	display: grid;
-	grid-template-columns: 1fr auto;
+.ac5e-effect-value-assist-fieldset {
+	margin: 0;
+	padding: 6px;
+	border: 1px solid var(--color-border-light-primary);
+	border-radius: 4px;
+}
+
+.ac5e-effect-value-assist-fieldset > legend {
+	padding: 0 6px;
+	font-size: var(--font-size-13);
+	font-weight: 700;
+}
+
+.ac5e-effect-value-assist-chip-list {
+	display: flex;
+	flex-wrap: wrap;
 	gap: 6px;
+}
+
+.ac5e-effect-value-assist-chip {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.ac5e-effect-value-assist-fieldset-compact {
+	padding: 4px;
+}
+
+.ac5e-effect-value-assist-fieldset-compact > legend {
+	font-size: var(--font-size-12);
+	padding: 0 4px;
+}
+
+.ac5e-effect-value-assist-fieldset-compact .ac5e-effect-value-assist-chip-list {
+	gap: 4px;
+}
+
+.ac5e-effect-value-assist-fieldset-compact .ac5e-effect-value-assist-chip {
+	min-height: 24px;
+	padding: 2px 8px;
+	font-size: var(--font-size-12);
+	line-height: 1.1;
+}
+
+.ac5e-effect-value-assist-chip.active {
+	background: var(--dnd5e-color-gold);
+	border-color: var(--dnd5e-color-gold-bright);
+	color: var(--dnd5e-color-black);
+}
+
+.ac5e-effect-value-assist-chip.ac5e-effect-value-assist-focused {
+	background: var(--button-hover-background-color);
+	color: var(--button-hover-text-color);
+	border-color: var(--button-hover-border-color);
 }
 
 .ac5e-effect-value-assist-browser {
@@ -267,8 +317,9 @@
 	min-height: 280px;
 	max-height: 360px;
 	min-width: 280px;
-	overflow: auto;
+	overflow: hidden;
 	padding: 6px;
+	display: flex;
 }
 
 .ac5e-effect-value-assist-stage {
@@ -276,6 +327,16 @@
 	flex-direction: column;
 	gap: 6px;
 	min-height: 260px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.ac5e-effect-value-assist-scroll {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 0;
+	overflow: auto;
 }
 
 .ac5e-effect-value-assist-list {
@@ -289,45 +350,7 @@
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	position: sticky;
-	top: 0;
-	z-index: 2;
-	background: var(--color-bg);
-	padding-bottom: 4px;
-}
-
-.ac5e-effect-value-inline-autocomplete {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 320px;
-	max-height: 220px;
-	overflow: auto;
-	border: 1px solid var(--color-border-light-primary);
-	border-radius: 4px;
-	background: var(--color-bg);
-	box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
-	padding: 2px;
-	z-index: 120;
-}
-
-.ac5e-effect-value-inline-autocomplete-item {
-	display: block;
-	width: 100%;
-	text-align: left;
-	background: transparent;
-	border: 0;
-	border-radius: 2px;
-	padding: 6px 8px;
-	line-height: 1.2;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.ac5e-effect-value-inline-autocomplete-item.active,
-.ac5e-effect-value-inline-autocomplete-item:focus-visible {
-	outline: 1px solid var(--color-text-primary);
+	flex: 0 0 auto;
 }
 
 .ac5e-effect-value-assist-current {
@@ -349,6 +372,14 @@
 .ac5e-effect-value-assist-node.active,
 .ac5e-effect-value-assist-node:focus-visible {
 	outline: 1px solid var(--color-text-primary);
+}
+
+.ac5e-effect-value-assist-node.ac5e-effect-value-assist-single-match {
+	box-shadow: inset 0 0 0 1px var(--color-text-primary);
+}
+
+.ac5e-effect-value-assist-chip.ac5e-effect-value-assist-focused {
+	box-shadow: inset 0 0 0 1px var(--dnd5e-color-gold-bright);
 }
 
 .ac5e-effect-value-assist-empty {

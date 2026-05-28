@@ -35,16 +35,15 @@ function initializeKeyAutocomplete(app, root) {
 			},
 		});
 		const activateAutocomplete = () => {
+			if (!shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
+				autocomplete.dismiss();
+				return;
+			}
 			const prefix = getAutocompletePrefix(keyInput);
 			const normalizedPrefix = prefix.toLowerCase();
 			const filteredEntries = prefix
 				? entries.filter((entry) => entry.identifier.toLowerCase().includes(normalizedPrefix)).slice(0, 40)
 				: entries.slice(0, 40);
-			const hasPrefixMatch = Boolean(prefix) && filteredEntries.length > 0;
-			if (!hasPrefixMatch && !shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
-				autocomplete.dismiss();
-				return;
-			}
 			if (!filteredEntries.length) {
 				autocomplete.dismiss();
 				return;
