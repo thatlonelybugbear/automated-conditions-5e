@@ -1,3 +1,7 @@
+## 14.533.2.1
+
+- Quick fix for AC5E Effect Value editor window dimensions.
+
 ## 14.533.2
 
 - The AC5E Effect Value Editor is now always available, but it can be disabled via a checkbox in the module's settings.
