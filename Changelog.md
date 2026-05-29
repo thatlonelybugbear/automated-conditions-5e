@@ -59,6 +59,11 @@
   - `effectDescription` now resolves to `effect.description` instead of being treated as a literal string.
   - Embedded document references in descriptions are enriched asynchronously before tooltip text is applied.
 - Added AC5E stylesheet paths to module hot-reload configuration so CSS/layout tweaks update immediately during development.
+- Reworked RSReforged compatibility integration to use the new RSReforged post-render hook surface for chat content updates.
+  - AC5E tooltip re-application now runs on RSReforged re-renders for relevant roll actions.
+  - AC5E now forces roll dialog configuration on for RSReforged too, when relevant opt-ins are available while fast-forward is enabled (also applies to Midi-driven rolls).
+- Known issue: in some `isCritical` dialog-toggle scenarios, damage formula text and dice icons can temporarily desync in the roll configuration dialog.
+  - This is tracked for a future fix; no runtime damage formula calculation errors have been detected.
 
 ## 14.533.1
 
