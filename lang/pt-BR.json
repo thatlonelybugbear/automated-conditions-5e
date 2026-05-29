@@ -3,9 +3,9 @@
 		"Name": "Automatizar Status do D&D 5E",
 		"Hint": "Quando ativado, o AC5E irá automatizar os modificadores de desvantagem/vantagem e modo de rolagem, com base nos status do sistema."
 	},
-	"AC5E.ExperimentalUi": {
-    	"Name": "Ativar Interface do AC5E (Experimental)",
-    	"Hint": "Mostra o botão da varinha AC5E para o editor de valores de Efeito Ativo experimental."
+	"AC5E.Ui": {
+    	"Name": "Desabilitar Interface do AC5E",
+    	"Hint": "Desativa o botão da varinha AC5E para o editor de valores de Efeito Ativo."
   	},
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5E",
 	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5E mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
@@ -149,6 +149,7 @@
 	"AC5E.CannotSeeTarget": "Não Consegue Ver o Alvo",
 	"AC5E.TargetCannotSeeAttacker": "Alvo Não Consegue Ver o Atacante",
 	"AC5E.Bonus": "Bônus",
+	"AC5E.AbilityOverride": "Substituição de Atributo",
 	"AC5E.ExtraDice": "Dado Extra",
 	"AC5E.Success": "Sucesso",
 	"AC5E.AbbreviationAdvantage": "vant.",
@@ -168,6 +169,7 @@
 	"AC5E.TargetGrantsBonus": "Bônus Concedido",
 	"AC5E.TargetGrantsModifier": "Modificador Concedido",
 	"AC5E.TargetGrantsExtraDice": "Dado Extra Concendido",
+	"AC5E.TargetGrantsAbilityOverride": "Substituição de Atributo Concedida",
 	"AC5E.NoChanges": "Sem Mudanças",
 	"AC5E.SystemMode": "Modo do Sistema",
 	"AC5E.OptinDescription.Roll.Attack": "jogadas de ataque",
@@ -211,6 +213,10 @@
 	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Adiciona dados extras de dano ({value})",
 	"AC5E.OptinDescription.OverridesDamageType": "Substitui o tipo de dano",
   	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Substitui o tipo de dano ({value})",
+	"AC5E.OptinDescription.OverridesDcAbility": "Substitui o atributo da CD de Salvaguarda/Teste ({value})",
+  	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Substitui o atributo da CD de Salvaguarda/Teste",
+  	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name": "Efeito Aplica Substituição de Modificação",
+  	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint": "Somente para o Mestre. Mantenha esta tecla pressionada ao clicar em Aplicar Efeito para ignorar as verificações de allowEffectApplication.",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta dados de dano",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta dados de dano ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Diminui dados de dano",
@@ -282,15 +288,15 @@
 		},
 		"flags.automated-conditions-5e.damage.typeOverride": {
 			"name": "Substituir o Conjunto de Tipos de Dano dos Valores de Dano Base",
-			"description": "Use override=fire para forçar um tipo ou override=fire,lightning,thunder para oferecer vários tipos. set=... ainda é suportado para fins de compatibilidade com versões anteriores. addTo=... seleciona apenas as partes que correspondem ao dano base."
+			"description": "Use override=fire para forçar um tipo ou override=fire,lightning,thunder para oferecer vários tipos. set=... continua sendo suportado por compatibilidade retroativa. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) ou cláusulas combinadas como addTo=base;!types(force) controlam quais partes do dano são afetadas."
 		},
 		"flags.automated-conditions-5e.grants.damage.typeOverride": {
 			"name": "Concede Alteração no Tipo de Dano às Rolagens de Dano Base do Oponente",
-			"description": "Use override=fire para forçar um tipo ou override=fire,lightning,thunder para oferecer vários tipos. set=... ainda é suportado para fins de compatibilidade com versões anteriores. addTo=... seleciona apenas as partes que correspondem ao dano base."
+			"description": "Use override=fire para forçar um tipo ou override=fire,lightning,thunder para oferecer vários tipos. set=... continua sendo suportado por compatibilidade retroativa. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) ou cláusulas combinadas como addTo=base;!types(force) controlam quais partes do dano são afetadas."
 		},
 		"flags.automated-conditions-5e.aura.damage.typeOverride": {
 			"name": "Aura que Substitui o Conjunto de Tipos de Dano Base em Raio",
-			"description": "Use radius=10;override=fire ou radius=10;override=fire,lightning,thunder. set=... ainda é suportado para fins de compatibilidade com versões anteriores. addTo=... seleciona apenas as partes que correspondem ao dano base."
+			"description": "Use radius=10;override=fire ou radius=10;override=fire,lightning,thunder. set=... continua sendo suportado por compatibilidade retroativa. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) ou cláusulas combinadas como addTo=base;!types(force) controlam quais partes do dano são afetadas."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modificar CA Contra Ataques Sofridos",
@@ -304,76 +310,88 @@
 			"name": "Aura para Modificar CA de Tokens Relevanter em Raio",
 			"description": "Use radius=10;bonus=1d4; ou radius=15;set=15;. O primeiro dará um bônus para a CA e o último definirá o CA para o valor configurado."
 		},
+		"flags.automated-conditions-5e.abilityOverride": {
+      		"name": "Substituir Atributo da CD de Salvaguarda/Teste",
+      		"description": "Substitui o atributo usado para calcular as CDs de Salvaguarda/Teste da atividade. Use override=cha. Exemplo: override=(item.type==='spell' ? spellcastingAbility : wis). abilityOverride=... e set=... continuam sendo suportados."
+    	},
+    	"flags.automated-conditions-5e.grants.abilityOverride": {
+      		"name": "Conceder Substituição do Atributo da CD de Salvaguarda/Teste",
+      		"description": "Substitui o atributo da CD de Salvaguarda/Teste do ator afetado por meio de concessões. Use override=cha. Exemplo: override=(opponentActor?.details?.type?.value==='fiend' ? cha : wis). abilityOverride=... e set=... continuam sendo suportados."
+    	},
+    	"flags.automated-conditions-5e.aura.abilityOverride": {
+      		"name": "Aura que Substitui o Atributo da CD de Salvaguarda/Teste",
+      		"description": "Substitui o atributo da CD de Salvaguarda/Teste dos tokens afetados pela aura. Use radius normalmente junto com override=cha. Exemplo: radius=30;allies;includeSelf;override=wis. abilityOverride=... e set=... continuam sendo suportados."
+    	},
+    	"flags.automated-conditions-5e.allowEffectApplication": {
+      		"name": "Permitir Aplicação de Efeito",
+      		"description": "Avaliado no momento da criação do efeito. Se esta expressão resultar em false, o AC5E bloqueará a aplicação do efeito. Em caso de erros durante a avaliação, a aplicação prosseguirá utilizando o comportamento padrão do sistema."
+    	},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rolar com Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"bonus": {
 				"name": "Rolagem Ganha Bônus",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: bonus=1d4 + 5 - rollingActor.abilities.dex.mod."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: bonus=1d4 + 5 - rollingActor.abilities.dex.mod;."
 			},
 			"critical": {
 				"name": "Rolagem é Crítico (20 nat. ou dano crít.)",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"disadvantage": {
 				"name": "Rolar com Desvantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"modifier": {
 				"name": "Modificar Rolagem de d20 ou Dano com Máx/Min",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=(rollingActor.attributes.hp.pct < 50 ? max8 : min12)."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=(rollingActor.attributes.hp.pct < 50 ? max8 : min12)."
 			},
 			"modifyDC": {
 				"name": "Modificar CD de Ações (também funciona em Concentração e Salvaguardas Contra Morte)",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus=5 para adicionar 5 à CD ou set=15 para definir a CD para o valor configurado. Você também pode usar roll data, fórmulas de dados e validação de condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool/d20 são suportados, mas geralmente não têm CD definida). Use bonus=5 para adicionar 5 à CD ou set=15 para definir a CD para o valor configurado. Você também pode usar roll data, fórmulas de dados e validação de condições."
 			},
 			"noAdvantage": {
 				"name": "Modo Suprimir Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"noCritical": {
 				"name": "Suprimir Críticos",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/damage."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/damage."
 			},
 			"noDisadvantage": {
 				"name": "Modo Suprimir Desvantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"fail": {
 				"name": "Rolagem de d20 Falha",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/death/save/skill/tool."
 			},
 			"fumble": {
 				"name": "Rolagem de d20 Falha Crítica (1 nat.)",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/death/initiative/save/skill/tool."
 			},
 			"success": {
 				"name": "Rolagem de d20 Sucesso",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/save/skill/tool."
-			},
-			"abilityOverride": {
-        		"name": "Substituir o Atributo Usado na Rolagem",
-        		"description": "Use override=cha. abilityOverride=cha e set=cha ainda são suportados para compatibilidade com versões anteriores."
-      		}
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/save/skill/tool."
+			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 			"advantage": {
 				"name": "Conceder Vantagem às Rolagens de d20 do Oponente",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"bonus": {
 				"name": "Conceder Bônus às Rolagens de d20 do Oponente",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com bonus= seguido com um separador ;. Ex: bonus=1d4 + 5 - opponentActor.abilities.dex.mod."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Comece com bonus= seguido com um separador ;. Ex: bonus=1d4 + 5 - opponentActor.abilities.dex.mod."
 			},
 			"critical": {
 				"name": "Conceder Crítico (20 nat. ou dano crít.) às Rolagens do Oponente",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"disadvantage": {
 				"name": "Conceder Desvantagem às Rolagens de d20 do Oponente",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"modifier": {
 				"name": "Conceder Modificar Rolagem de d20 ou Dano do Oponente com Máx/Min",
@@ -381,11 +399,11 @@
 			},
 			"modifyDC": {
 				"name": "Modificar CD de Rolagem Resistida de Ação de Outros",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus=5 para adicionar 5 à CD ou set=15 para definir a CD para o valor configurado. Você também pode usar roll data, fórmulas de dados e validação de condições"
+				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definida). Use bonus=5 para adicionar 5 à CD ou set=15 para definir a CD para o valor configurado. Você também pode usar roll data, fórmulas de dados e validação de condições"
 			},
 			"noAdvantage": {
 				"name": "Conceder Modo Sem Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"noCritical": {
 				"name": "Conceder Modo Sem Críticos",
@@ -393,7 +411,7 @@
 			},
 			"noDisadvantage": {
 				"name": "Conceder Modo Sem Desvantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool."
 			},
 			"fail": {
 				"name": "Conceder Falha às Rolagens de d20 do Oponente",
@@ -406,64 +424,56 @@
 			"success": {
 				"name": "Sucesso às Rolagens de d20 Contra ou Causadas por Você",
 				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool."
-			},
-			"abilityOverride": {
-        		"name": "Conceder Substituição do Atributo Usado na Rolagem do Oponente",
-        		"description": "Use override=cha. abilityOverride=cha e set=cha ainda são suportados para compatibilidade com versões anteriores."
-      		}
+			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "Aura que Dá Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o exemplo do valor do ACTIONTYPE para save e o valor do efeito para: radius=15;includeSelf;allies;str;cha; daria a todos os aliados em um raio de 15 pés (incluindo você mesmo), Vantagem em Salvaguardas de Força e Carisma."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o exemplo do valor do ACTIONTYPE para save e o valor do efeito para: radius=15;includeSelf;allies;str;cha; daria a todos os aliados em um raio de 15 pés (incluindo você mesmo), Vantagem em Salvaguardas de Força e Carisma."
 			},
 			"bonus": {
 				"name": "Aura que Dá Bônus",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o exemplo do valor do ACTIONTYPE para initiative e o valor do efeito para: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised TODOS dentro o alcance de 20 pés terão suas rolagens de iniciativa reduzidas em uma quantidade igual ao modificador de Carisma do ator de origem, caso estejam Surpresos."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o exemplo do valor do ACTIONTYPE para initiative e o valor do efeito para: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised TODOS dentro o alcance de 20 pés terão suas rolagens de iniciativa reduzidas em uma quantidade igual ao modificador de Carisma do ator de origem, caso estejam Surpresos."
 			},
 			"critical": {
 				"name": "Aura Forçando Críticos (20 nat. ou dano)",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"disadvantage": {
 				"name": "Aura que Dá Desvantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"modifier": {
 				"name": "Aura que Modifica Rolagem de d20 ou Dano com Máx/Min",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=min10; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Ex: modifier=min10; radius=(rollingActor.details.level < 10 ? 15 : 30); modifier=min10."
 			},
 			"modifyDC": {
 				"name": "Aura que Modifica CD de Ações de Tokens Afetados",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool são suportados, mas geralmente não têm CD definido). Use bonus/set, radius como de costume."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: save/conc/death (check/skill/tool/d20 são suportados, mas geralmente não têm CD definida). Use bonus/set, radius como de costume."
 			},
 			"noAdvantage": {
 				"name": "Aura que Suprime Modo de Vantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius como de costume."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius como de costume."
 			},
 			"noCritical": {
 				"name": "Aura que Suprime Críticos",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/damage. Use radius como de costume."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/damage. Use radius como de costume."
 			},
 			"noDisadvantage": {
 				"name": "Aura que Suprime Modo de Desvantagem",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
 			},
 			"fail": {
 				"name": "Aura Forçando Falha às Rolagens de d20",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"fumble": {
 				"name": "Aura Forçando Falha Crítica às Rolagens de d20",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/death/initiative/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			},
 			"success": {
 				"name": "Aura Forçando Sucesso",
-				"description": "Substitua ACTIONTYPE por um dos seguintes: all/attack/check/concentration//death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
-			},
-			"abilityOverride": {
-				"name": "Aura que Substitui o Atributo Usado na Rolagem",
-				"description": "Use radius como de costume, mais override=cha. abilityOverride=cha e set=cha ainda são suportados para compatibilidade com versões anteriores."
+				"description": "Substitua ACTIONTYPE por um dos seguintes: all/d20/attack/check/concentration/death/save/skill/tool. Altere o formato do valor: radius=Número;allies ou enemies ou omita para TODOS;outras condições."
 			}
 		}
 	},
