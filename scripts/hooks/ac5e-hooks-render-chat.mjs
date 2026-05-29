@@ -1,6 +1,9 @@
 import { _buildStandardTooltipFromLines } from '../ac5e-helpers.mjs';
 
 export function renderChatMessageHijack(render, elem, initialConfig, deps) {
+	const hasDomApi = typeof elem?.querySelector === 'function';
+	const hasJqueryApi = typeof elem?.find === 'function';
+	if (!hasDomApi && !hasJqueryApi) return true;
 	let getConfigAC5E = initialConfig;
 	const { hookType, roller } = getConfigAC5E || {};
 	const messageFlags = render?.flags?.[deps.Constants.MODULE_ID];
@@ -9,6 +12,14 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
 	const resolvedHookType = hookType ?? messageFlags?.hookType;
 	const resolvedRoller = roller ?? messageFlags?.roller;
+	const useJquery = resolvedRoller === 'RSR' && hasJqueryApi;
+	const queryOne = (selector) => (useJquery ? elem.find(selector)?.[0] ?? null : elem.querySelector(selector));
+	const queryAll = (selector) => (useJquery ? Array.from(elem.find(selector) ?? []) : Array.from(elem.querySelectorAll(selector)));
+	const setTooltip = (node, value) => {
+		if (!node) return;
+		node.setAttribute('data-tooltip', value);
+		node.removeAttribute('title');
+	};
 	if (!game.user.isGM) {
 		if (deps.settings.showChatTooltips === 'none') return true;
 		else if (deps.settings.showChatTooltips === 'players' && !visibilityContext?.hasPlayerOwner) return true;
@@ -31,49 +42,51 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 			let thisTargetElement;
 			if (['check', 'save'].includes(hT) && forceAc5eD20Tooltip) {
 				thisTargetElement =
-					elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ??
-					elem.querySelector('.chat-message header .flavor-text') ??
-					elem.querySelector('.flavor-text') ??
-					elem.querySelector('.midi-qol-saves-display');
-			} else if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = elem.querySelector('.flavor-text') ?? elem.querySelector('.midi-qol-saves-display');
-			else if (['attack'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-attack-roll');
-			else if (['damage'].includes(hT)) thisTargetElement = elem.querySelector('.midi-qol-damage-roll');
-			if (thisTargetElement) thisTargetElement.setAttribute('data-tooltip', tooltip);
+					queryOne('.message-content .dice-roll .dice-result .dice-formula') ??
+					queryOne('.chat-message header .flavor-text') ??
+					queryOne('.flavor-text') ??
+					queryOne('.midi-qol-saves-display');
+			} else if (game.user.targets.size <= 1 && ['check', 'save'].includes(hT)) thisTargetElement = queryOne('.flavor-text') ?? queryOne('.midi-qol-saves-display');
+			else if (['attack'].includes(hT)) thisTargetElement = queryOne('.midi-qol-attack-roll');
+			else if (['damage'].includes(hT)) thisTargetElement = queryOne('.midi-qol-damage-roll');
+			if (thisTargetElement) setTooltip(thisTargetElement, tooltip);
 		}
 		if (deps.hookDebugEnabled('renderHijackHook')) {
 			console.warn('ac5e hijack getTooltip', tooltip);
 			console.warn('ac5e hijack targetElement:', targetElement);
 		}
-		bindUseMessageTargetADCTooltip(elem, messageFlags, deps);
+		bindUseMessageTargetADCTooltip(elem, messageFlags, deps, queryAll, setTooltip);
 		return true;
 	}
 	tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[messageFlags.hookType] || '';
 	if (resolvedRoller === 'Core') {
 		if (tooltip === '') return true;
 		if (['attack', 'damage'].includes(resolvedHookType)) {
-			targetElement = elem.querySelector('.dice-formula');
+			targetElement = queryOne('.dice-formula');
 		} else {
-			targetElement = elem.querySelector('.message-content .dice-roll .dice-result .dice-formula') ?? elem.querySelector('.chat-message header .flavor-text');
+			targetElement = queryOne('.message-content .dice-roll .dice-result .dice-formula') ?? queryOne('.chat-message header .flavor-text');
 		}
 	} else if (resolvedRoller === 'RSR') {
-		if (['check', 'save'].includes(resolvedHookType)) targetElement = elem.querySelector('.flavor-text');
-		else if (['attack'].includes(resolvedHookType)) {
-			targetElement = elem.querySelector('.rsr-section-attack > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
+		if (['check', 'save'].includes(resolvedHookType)) {
+			if (useJquery) elem.find('button[data-action="rollSave"], button[data-action="rollCheck"], a[data-action="rollSave"], a[data-action="rollCheck"]').attr('data-tooltip', tooltip).removeAttr('title');
+			targetElement = queryOne('.flavor-text');
+		} else if (['attack'].includes(resolvedHookType)) {
+			targetElement = queryOne('.rsr-section-attack > .rsr-header > .rsr-title') ?? queryOne('.rsr-title');
 		} else if (['damage'].includes(resolvedHookType)) {
-			targetElement = elem.querySelector('.rsr-section-damage > .rsr-header > .rsr-title') ?? elem.querySelector('.rsr-title');
+			targetElement = queryOne('.rsr-section-damage > .rsr-header > .rsr-title') ?? queryOne('.rsr-title');
 		}
 	}
 	if (deps.hookDebugEnabled('renderHijackHook')) {
 		console.warn('ac5e hijack getTooltip', tooltip);
 		console.warn('ac5e hijack targetElement:', targetElement);
 	}
-	if (targetElement) targetElement.setAttribute('data-tooltip', tooltip);
-	bindUseMessageTargetADCTooltip(elem, messageFlags, deps);
+	if (targetElement) setTooltip(targetElement, tooltip);
+	bindUseMessageTargetADCTooltip(elem, messageFlags, deps, queryAll, setTooltip);
 	return true;
 }
 
 function applyPreferredDisplayFormulas(render, elem, deps) {
-	const formulaElements = Array.from(elem.querySelectorAll('.dice-formula'));
+	const formulaElements = typeof elem?.querySelectorAll === 'function' ? Array.from(elem.querySelectorAll('.dice-formula')) : [];
 	if (!formulaElements.length) return;
 	const displayFormulas = (Array.isArray(render?.rolls) ? render.rolls : []).map((roll) => String(roll?.options?.[deps.Constants.MODULE_ID]?.displayFormula ?? '').trim());
 	if (!displayFormulas.some(Boolean)) return;
@@ -89,16 +102,15 @@ function applyPreferredDisplayFormulas(render, elem, deps) {
 	}
 }
 
-function bindUseMessageTargetADCTooltip(elem, messageFlags, deps = {}) {
+function bindUseMessageTargetADCTooltip(elem, messageFlags, deps = {}, queryAll = () => [], setTooltip = () => {}) {
 	const resolvedTargetADC = messageFlags?.resolvedTargetADC;
 	const hoverLines = Array.isArray(resolvedTargetADC?.hoverLines) ? resolvedTargetADC.hoverLines.filter(Boolean) : [];
 	if (!hoverLines.length) return true;
 	const tooltip = _buildStandardTooltipFromLines(hoverLines, { showNameTooltips: !!deps?.settings?.showNameTooltips, noChangesKey: 'AC5E.NoChanges' });
-	const targetButtons = elem.querySelectorAll('button[data-action="rollSave"], button[data-action="rollCheck"], a[data-action="rollSave"], a[data-action="rollCheck"]');
+	const targetButtons = queryAll('button[data-action="rollSave"], button[data-action="rollCheck"], a[data-action="rollSave"], a[data-action="rollCheck"]');
 	if (!targetButtons?.length) return true;
 	for (const button of targetButtons) {
-		button.setAttribute('data-tooltip', tooltip);
-		button.removeAttribute('title');
+		setTooltip(button, tooltip);
 	}
 	return true;
 }

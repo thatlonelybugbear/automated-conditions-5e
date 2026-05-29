@@ -1,6 +1,7 @@
 import { _getDistance, _hasValidTargets, _localize } from '../ac5e-helpers.mjs';
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
+import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollAttackHook')) {
@@ -114,6 +115,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
 		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
 	return ac5eConfig;
 }
 

@@ -15,7 +15,7 @@ function getSelectedDamageTypes(ac5eConfig, config) {
 		.filter(Boolean);
 }
 
-export function getRelevantOptinEntriesForMidiFastForward(ac5eConfig, config, hookType = ac5eConfig?.hookType) {
+export function getRelevantOptinEntriesForDialogConfigure(ac5eConfig, config, hookType = ac5eConfig?.hookType) {
 	if (!ac5eConfig || !hookType) return [];
 	let entries = [];
 	if (hookType === 'damage') {
@@ -35,25 +35,48 @@ export function getRelevantOptinEntriesForMidiFastForward(ac5eConfig, config, ho
 	return [...deduped.values()];
 }
 
-export function forceDialogConfigureForMidiFastForward(ac5eConfig, config, dialog, hookType = ac5eConfig?.hookType) {
-	if (!_activeModule('midi-qol')) return false;
-	if (!dialog || typeof dialog !== 'object') return false;
-	if (dialog.configure !== false) return false;
-	const relevantEntries = getRelevantOptinEntriesForMidiFastForward(ac5eConfig, config, hookType);
+function _isFastForwardingModuleActive() {
+	return _activeModule('midi-qol') || _activeModule('rsreforged');
+}
+
+export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookType = ac5eConfig?.hookType) {
+	if (!_isFastForwardingModuleActive()) return false;
+	const hasDialogObject = dialog && typeof dialog === 'object';
+	const hasConfigDialogObject = config?.dialog && typeof config.dialog === 'object';
+	if (!hasDialogObject && !hasConfigDialogObject) return false;
+	const currentDialogConfigure = hasDialogObject ? dialog.configure : undefined;
+	const currentConfigDialogConfigure = hasConfigDialogObject ? config.dialog.configure : undefined;
+	const shouldForceConfigure =
+		currentDialogConfigure !== true
+		|| currentConfigDialogConfigure !== true;
+	if (!shouldForceConfigure) return false;
+	const relevantEntries = getRelevantOptinEntriesForDialogConfigure(ac5eConfig, config, hookType);
 	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
-		console.warn('AC5E TRACE midiFastForward.forceDialogConfigure.check', {
+		console.warn('AC5E TRACE dialogConfigure.forceForOptins.check', {
 			hookType,
-			dialogConfigure: dialog?.configure,
+			dialogConfigure: currentDialogConfigure,
+			configDialogConfigure: currentConfigDialogConfigure,
 			relevantEntryCount: relevantEntries.length,
 			entries: relevantEntries.map((entry) => ({ id: entry?.id, mode: entry?.mode, hook: entry?.hook, optin: !!entry?.optin, forceOptin: !!entry?.forceOptin, set: entry?.set, label: entry?.label ?? entry?.name })),
 		});
 	}
 	if (!relevantEntries.length) return false;
-	dialog.configure = true;
+	if (hasDialogObject) {
+		try {
+			dialog.configure = true;
+		} catch (_err) {}
+	}
+	if (hasConfigDialogObject) {
+		try {
+			config.dialog.configure = true;
+		} catch (_err) {}
+	}
 	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
-		console.warn('AC5E forced dialog.configure for Midi fast-forward due to relevant optins', {
+		console.warn('AC5E forced dialog.configure due to relevant optins', {
 			hookType,
 			optins: relevantEntries.map((entry) => ({ id: entry.id, label: entry.label ?? entry.name, mode: entry.mode })),
+			dialogConfigure: hasDialogObject ? dialog.configure : undefined,
+			configDialogConfigure: hasConfigDialogObject ? config.dialog.configure : undefined,
 		});
 	}
 	return true;

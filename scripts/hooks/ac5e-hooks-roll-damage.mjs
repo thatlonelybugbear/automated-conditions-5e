@@ -1,4 +1,5 @@
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
+import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
 
 export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
@@ -61,6 +62,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
 		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
 	if (deps.applyDamageFormulaStateToConfig?.(ac5eConfig, config)) {
 		deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}

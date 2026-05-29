@@ -1,4 +1,5 @@
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
+import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
 
 export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	const { messageForTargets, activity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
@@ -13,7 +14,7 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	if (opponentToken === subjectToken) opponentToken = undefined;
 	if (opponentToken && subjectToken) options.distance = deps.getDistance(opponentToken, subjectToken);
 	deps.logResolvedTargets('save', subjectToken, opponentToken, options);
-	return runAc5eRollPhase({
+	const ac5eConfig = runAc5eRollPhase({
 		hook,
 		config,
 		dialog,
@@ -24,6 +25,8 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 		deps,
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
+	return ac5eConfig;
 }
 
 export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps) {
@@ -53,6 +56,7 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 		deps,
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
 	if (deps.hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
 	return ac5eConfig;
 }
