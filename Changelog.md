@@ -70,6 +70,10 @@
   - In short, `addTo` decides the roll scope (`base`/`bonus`/`all`), while `types(...)` and `!types(...)` filter which damage-type parts inside that scope are eligible.
 - Known issue: in some `isCritical` dialog-toggle scenarios, damage formula text and dice icons can temporarily desync in the roll configuration dialog.
   - This is tracked for a future fix; no runtime damage formula calculation errors have been detected.
+- Verified for Foundry v14.363.
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 
 ## 14.533.1
 
