@@ -418,13 +418,19 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 	});
 }
 
-export function _renderHijack(hook, render, elem) {
+export function _renderHijack(hook, render, elem, ...extraArgs) {
+	const sourceHookId = extraArgs.at(-1);
+	const sourceExtraArgs = sourceHookId ? extraArgs.slice(0, -1) : extraArgs;
+	const [rawRsrType, rawRsrSection] = sourceExtraArgs;
+	const isRsrHook = sourceHookId === 'rsreforged.renderChatMessageContent' || sourceHookId === 'rsreforged.renderRoll';
+	const rsrType = isRsrHook && typeof rawRsrType === 'string' ? rawRsrType : undefined;
+	const rsrSection = isRsrHook ? rawRsrSection : undefined;
 	const getConfigAC5E =
 		hook === 'chat' ?
 			(render.rolls?.[0]?.options?.[Constants.MODULE_ID] ?? render.flags?.[Constants.MODULE_ID])
 		:	getDialogAc5eConfig(render, undefined);
 	if (_hookDebugEnabled('renderHijackHook')) console.warn('AC5E._renderHijack:', { hook, render, elem });
-	if (!getConfigAC5E) return;
+	if (!getConfigAC5E && hook !== 'chat') return;
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
 		return renderRollConfigDialogHijack(hook, render, elem, getConfigAC5E, {
 			Constants,
@@ -460,6 +466,8 @@ export function _renderHijack(hook, render, elem) {
 			hookDebugEnabled: _hookDebugEnabled,
 			activeModule: _activeModule,
 			getD20TooltipOwnership: _getD20TooltipOwnership,
+			rsrType,
+			rsrSection,
 		});
 	}
 	if (hook === 'usageDialog') {

@@ -10,8 +10,11 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	applyPreferredDisplayFormulas(render, elem, deps);
 	if (!['both', 'chat'].includes(deps.settings.showTooltips)) return true;
 	const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
-	const resolvedHookType = hookType ?? messageFlags?.hookType;
-	const resolvedRoller = roller ?? messageFlags?.roller;
+	const resolvedHookType = hookType ?? messageFlags?.hookType ?? deps?.rsrType;
+	const resolvedRoller = roller ?? messageFlags?.roller ?? (deps?.rsrType ? 'RSR' : undefined);
+	const rsrSectionHookType =
+		resolvedRoller === 'RSR' && ['attack', 'damage', 'check', 'save'].includes(deps?.rsrType) ? deps.rsrType : undefined;
+	const effectiveHookType = rsrSectionHookType ?? resolvedHookType;
 	const useJquery = resolvedRoller === 'RSR' && hasJqueryApi;
 	const queryOne = (selector) => (useJquery ? elem.find(selector)?.[0] ?? null : elem.querySelector(selector));
 	const queryAll = (selector) => (useJquery ? Array.from(elem.find(selector) ?? []) : Array.from(elem.querySelectorAll(selector)));
@@ -19,6 +22,16 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 		if (!node) return;
 		node.setAttribute('data-tooltip', value);
 		node.removeAttribute('title');
+		if (deps.hookDebugEnabled('renderHijackHook')) {
+			console.warn(`AC5E TRACE tooltip.apply ${JSON.stringify({
+				roller: resolvedRoller ?? null,
+				hookType: resolvedHookType ?? null,
+				tag: node?.tagName ?? null,
+				className: node?.className ?? null,
+				tooltipLength: typeof value === 'string' ? value.length : 0,
+				hasDataTooltip: node?.hasAttribute?.('data-tooltip') ?? false,
+			})}`);
+		}
 	};
 	if (!game.user.isGM) {
 		if (deps.settings.showChatTooltips === 'none') return true;
@@ -58,22 +71,60 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 		bindUseMessageTargetADCTooltip(elem, messageFlags, deps, queryAll, setTooltip);
 		return true;
 	}
-	tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[messageFlags.hookType] || '';
+	tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[effectiveHookType] || messageFlags?.tooltipObj?.[messageFlags.hookType] || messageFlags?.tooltipObj?.[resolvedHookType] || '';
 	if (resolvedRoller === 'Core') {
 		if (tooltip === '') return true;
-		if (['attack', 'damage'].includes(resolvedHookType)) {
+		if (['attack', 'damage'].includes(effectiveHookType)) {
 			targetElement = queryOne('.dice-formula');
 		} else {
 			targetElement = queryOne('.message-content .dice-roll .dice-result .dice-formula') ?? queryOne('.chat-message header .flavor-text');
 		}
 	} else if (resolvedRoller === 'RSR') {
-		if (['check', 'save'].includes(resolvedHookType)) {
+		if (deps.hookDebugEnabled('renderHijackHook')) {
+			const sectionAttackCount = queryAll('.rsr-section-attack').length;
+			const sectionDamageCount = queryAll('.rsr-section-damage').length;
+			const headerAttackCount = queryAll('.rsr-section-attack > .rsr-header').length;
+			const headerDamageCount = queryAll('.rsr-section-damage > .rsr-header').length;
+			console.warn(`AC5E TRACE renderHijack.RSR.entry ${JSON.stringify({
+				resolvedHookType: effectiveHookType,
+				rsrType: deps?.rsrType ?? null,
+				hasSectionHtml: !!deps?.rsrSection,
+				tooltipLength: typeof tooltip === 'string' ? tooltip.length : 0,
+				sectionAttackCount,
+				sectionDamageCount,
+				headerAttackCount,
+				headerDamageCount,
+				messageId: render?.id ?? render?._id ?? null,
+			})}`);
+		}
+		if (['check', 'save'].includes(effectiveHookType)) {
 			if (useJquery) elem.find('button[data-action="rollSave"], button[data-action="rollCheck"], a[data-action="rollSave"], a[data-action="rollCheck"]').attr('data-tooltip', tooltip).removeAttr('title');
 			targetElement = queryOne('.flavor-text');
-		} else if (['attack'].includes(resolvedHookType)) {
-			targetElement = queryOne('.rsr-section-attack > .rsr-header > .rsr-title') ?? queryOne('.rsr-title');
-		} else if (['damage'].includes(resolvedHookType)) {
-			targetElement = queryOne('.rsr-section-damage > .rsr-header > .rsr-title') ?? queryOne('.rsr-title');
+		} else if (['attack'].includes(effectiveHookType)) {
+			targetElement =
+				deps?.rsrSection?.find?.('.rsr-header')?.[0] ??
+				deps?.rsrSection?.find?.('.rsr-header .rsr-title')?.[0] ??
+				queryOne('.rsr-section-attack > .rsr-header') ??
+				queryOne('.rsr-section-attack > .rsr-header > .rsr-title');
+		} else if (['damage'].includes(effectiveHookType)) {
+			targetElement =
+				deps?.rsrSection?.find?.('.rsr-header')?.[0] ??
+				deps?.rsrSection?.find?.('.rsr-header .rsr-title')?.[0] ??
+				queryOne('.rsr-section-damage > .rsr-header') ??
+				queryOne('.rsr-section-damage > .rsr-header > .rsr-title');
+		}
+		if (deps.hookDebugEnabled('renderHijackHook') && ['attack', 'damage'].includes(effectiveHookType)) {
+			console.warn(`AC5E TRACE renderHijack.RSR.${effectiveHookType} ${JSON.stringify({
+				rsrType: deps?.rsrType ?? null,
+				hasSectionHtml: !!deps?.rsrSection,
+				resolvedHookType: effectiveHookType,
+				tooltipLength: typeof tooltip === 'string' ? tooltip.length : 0,
+				tooltipPreview: typeof tooltip === 'string' ? tooltip.slice(0, 120) : null,
+				targetFound: !!targetElement,
+				targetTag: targetElement?.tagName ?? null,
+				targetClass: targetElement?.className ?? null,
+				messageId: render?.id ?? render?._id ?? null,
+			})}`);
 		}
 	}
 	if (deps.hookDebugEnabled('renderHijackHook')) {

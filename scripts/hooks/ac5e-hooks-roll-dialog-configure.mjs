@@ -7,12 +7,13 @@ function getSelectedDamageTypes(ac5eConfig, config) {
 	if (selectedFromConfig.length) return selectedFromConfig;
 	const selectedByIndex = Array.isArray(ac5eConfig?.options?.selectedDamageTypesByIndex) ? ac5eConfig.options.selectedDamageTypesByIndex.filter(Boolean) : [];
 	if (selectedByIndex.length) return selectedByIndex;
-	return (Array.isArray(config?.rolls) ? config.rolls : [])
+	const selectedFromRolls = (Array.isArray(config?.rolls) ? config.rolls : [])
 		.map((roll) => {
 			const type = roll?.options?.type;
 			return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 		})
 		.filter(Boolean);
+	return selectedFromRolls.length ? selectedFromRolls : undefined;
 }
 
 export function getRelevantOptinEntriesForDialogConfigure(ac5eConfig, config, hookType = ac5eConfig?.hookType) {
@@ -39,7 +40,22 @@ function _isFastForwardingModuleActive() {
 	return _activeModule('midi-qol') || _activeModule('rsreforged');
 }
 
-export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookType = ac5eConfig?.hookType) {
+function _disableRsrQuickRollFastForward(message, config, hookType) {
+	const shouldApply = _activeModule('rsreforged') && ['attack', 'damage'].includes(hookType);
+	if (!shouldApply) return false;
+	let changed = false;
+	const targets = [message, config?.message].filter(Boolean);
+	for (const target of targets) {
+		const scope = target?.flags?.rsreforged;
+		if (!scope || typeof scope !== 'object') continue;
+		if (scope.quickRoll === false) continue;
+		scope.quickRoll = false;
+		changed = true;
+	}
+	return changed;
+}
+
+export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookType = ac5eConfig?.hookType, message = undefined) {
 	if (!_isFastForwardingModuleActive()) return false;
 	const hasDialogObject = dialog && typeof dialog === 'object';
 	const hasConfigDialogObject = config?.dialog && typeof config.dialog === 'object';
@@ -71,12 +87,18 @@ export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookTy
 			config.dialog.configure = true;
 		} catch (_err) {}
 	}
+	const rsrQuickRollDisabled = _disableRsrQuickRollFastForward(message, config, hookType);
 	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
 		console.warn('AC5E forced dialog.configure due to relevant optins', {
 			hookType,
 			optins: relevantEntries.map((entry) => ({ id: entry.id, label: entry.label ?? entry.name, mode: entry.mode })),
 			dialogConfigure: hasDialogObject ? dialog.configure : undefined,
 			configDialogConfigure: hasConfigDialogObject ? config.dialog.configure : undefined,
+			rsrQuickRollDisabled,
+			rsrQuickRollState: {
+				message: message?.flags?.rsreforged?.quickRoll,
+				configMessage: config?.message?.flags?.rsreforged?.quickRoll,
+			},
 		});
 	}
 	return true;

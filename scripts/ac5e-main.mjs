@@ -128,6 +128,7 @@ function registerHooks(settings) {
 		{ id: 'renderChatMessageHTML', type: 'chat' },
 		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
 		{ id: 'rsreforged.renderChatMessageContent', type: 'chat' },
+		{ id: 'rsreforged.renderRoll', type: 'chat' },
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
 		{ id: 'renderActivityUsageDialog', type: 'usageDialog' },
@@ -139,7 +140,7 @@ function registerHooks(settings) {
 			if (renderHooks.some((candidate) => candidate.id === hook.id)) {
 				const [render, element] = args;
 				if (settings.debug) console.warn(hook.id, { render, element });
-				return _renderHijack(hook.type, ...args);
+				return _renderHijack(hook.type, ...args, hook.id);
 			}
 			if (hook.id === 'dnd5e.preUseActivity') {
 				const [activity, config, dialog, message] = args;

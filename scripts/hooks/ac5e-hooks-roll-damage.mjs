@@ -62,7 +62,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
 		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
-	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook, message);
 	if (deps.applyDamageFormulaStateToConfig?.(ac5eConfig, config)) {
 		deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}

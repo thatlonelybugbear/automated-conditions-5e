@@ -25,7 +25,7 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 		deps,
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
-	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook, message);
 	return ac5eConfig;
 }
 
@@ -56,7 +56,7 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 		deps,
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
-	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook);
+	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook, message);
 	if (deps.hookDebugEnabled('preRollAbilityCheckHook')) console.warn('AC5E._preRollAbilityCheck', { ac5eConfig });
 	return ac5eConfig;
 }
