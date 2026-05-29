@@ -15,6 +15,9 @@
 - Initiative rolls now use the same d20 dialog-state and opt-in handling as attack, save, and check rolls.
 - Added support for target/opponent data during Check activity evaluations, so check hooks can resolve the same target context that save hooks use.
 - Moved `contextKeywords` and `usageRules` sandbox application to the fully mutated effect sandbox, so they can see data like `auraActor`, `effectActor`, and `nonEffectActor`.
+- Expanded `ac5e.usageRules` scope handling and naming gates.
+  - `scope` now supports `item`, `effect`, and `actor` targeting (in addition to existing scopes), and `scopedName` can be used to gate a rule to a specific item/effect/actor name within that scope.
+  - Usage-rule evaluation still runs against the fully mutated sandbox, so scope surfaces like `auraActor`, `effectActor`, and `nonEffectActor` are reliably available.
 - Added full evaluation of `noStatusID` suppressors like `noProne` and `noInvisible`.
   - For example, for a Lantern of Revealing implementation `flags.automated-conditions-5e.aura.noInvisible | Custom | radius=30;` now suppresses Invisible for matching tokens in range.
 - `Grappled` status under modern rules will apply disadvantage to attacks:
