@@ -62,8 +62,8 @@
   - `effectDescription` now resolves to `effect.description` instead of being treated as a literal string.
   - Embedded document references in descriptions are enriched asynchronously before tooltip text is applied.
 - Added AC5E stylesheet paths to module hot-reload configuration so CSS/layout tweaks update immediately during development.
-- Reworked RSReforged compatibility integration to use the new RSReforged post-render hook surface for chat content updates.
-  - AC5E tooltip re-application now runs on RSReforged re-renders for relevant roll actions.
+- Reworked RSReforged (v4.6.0+ and treated as Work In Progress) compatibility integration to use the new RSReforged post-render hook surface for chat content updates.
+  - AC5E tooltip re-application now runs on RSReforged re-renders for relevant roll actions (works currently for Ability d20 rolls).
   - AC5E now forces roll dialog configuration on for RSReforged too, when relevant opt-ins are available while fast-forward is enabled (also applies to Midi-driven rolls).
 - Refined `addTo` scope handling in roll-dialog damage processing.
   - Scope guide: `addTo=base` targets only the original/base damage roll parts; `addTo=bonus` targets only appended/synthetic bonus parts; `addTo=all` targets both base and bonus parts.
