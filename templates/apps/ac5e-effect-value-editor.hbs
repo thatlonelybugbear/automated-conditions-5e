@@ -57,17 +57,28 @@
 					<div class="form-group {{#if fullRow}}stacked ac5e-effect-value-editor-grid-span{{/if}}">
 						<label for="{{inputId}}">{{label}}</label>
 						<div class="form-fields ac5e-effect-value-editor-inline-field">
-							<input id="{{inputId}}" type="text" name="fields.{{name}}" value="{{value}}">
-							{{#if expandable}}
-								<button
-									type="button"
-									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
-									data-ac5e-expand-input="fields.{{name}}"
-									data-ac5e-expand-label="{{label}}"
-									aria-label="Expand {{label}}"
-								></button>
+							{{#if hasInlineOverrideEntries}}
+								<input id="{{inputId}}" type="hidden" name="fields.{{name}}" value="{{value}}">
+							{{else}}
+								<input id="{{inputId}}" type="text" name="fields.{{name}}" value="{{value}}">
+								{{#if expandable}}
+									<button
+										type="button"
+										class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+										data-ac5e-expand-input="fields.{{name}}"
+										data-ac5e-expand-label="{{label}}"
+										aria-label="Expand {{label}}"
+									></button>
+								{{/if}}
 							{{/if}}
 						</div>
+						{{#if hasInlineOverrideEntries}}
+							<div class="ac5e-effect-value-assist-chip-list ac5e-effect-value-inline-override-row">
+								{{#each inlineOverrideEntries}}
+									<button type="button" class="ac5e-effect-value-assist-chip{{#if selected}} active{{/if}}" data-ac5e-inline-override="{{value}}">{{label}}</button>
+								{{/each}}
+							</div>
+						{{/if}}
 					</div>
 					{{#if inlineToggle}}
 						<div class="form-group ac5e-effect-value-editor-toggle-companion">

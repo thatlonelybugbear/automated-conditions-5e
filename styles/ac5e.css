@@ -274,6 +274,22 @@
 	gap: 6px;
 }
 
+.ac5e-effect-value-inline-override-row {
+	flex-wrap: wrap;
+	overflow: visible;
+	white-space: normal;
+	padding-bottom: 0;
+}
+
+.ac5e-effect-value-inline-override-row .ac5e-effect-value-assist-chip {
+	max-width: none;
+	width: auto;
+	min-width: max-content;
+	white-space: nowrap;
+	text-overflow: clip;
+	overflow: visible;
+}
+
 .ac5e-effect-value-assist-chip {
 	flex: 0 0 auto;
 	width: auto;

@@ -154,7 +154,7 @@ export function _ac5eActorRollData(token, rollData, actor, initializing = false)
 		: null;
 	if (!(resolvedActor instanceof CONFIG.Actor.documentClass)) return {};
 	const resolvedToken = token ?? resolvedActor.getActiveTokens?.()?.[0] ?? null;
-	if (initializingData || !rollData) actorData = resolvedActor.getRollData?.();
+	if (initializing || !rollData) actorData = resolvedActor.getRollData?.();
 	else actorData = { ...rollData };
 	actorData ??= {};
 	const actorId = resolvedActor.id ?? null;

@@ -20,6 +20,10 @@ const CURATED_AC5E_PATHS = [
 	'damageTypes',
 	'defaultDamageType',
 	'actionType',
+	'actionType.mwak',
+	'actionType.rwak',
+	'actionType.msak',
+	'actionType.rsak',
 	'attackMode',
 	'mastery',
 	'activityName',
@@ -86,7 +90,6 @@ const CONFIG_BOOLEAN_MAP_KEYS = [
 	'creatureTypes',
 	'damageTypes',
 	'healingTypes',
-	'itemActionTypes',
 	'itemProperties',
 	'skills',
 	'spellSchools',
@@ -125,7 +128,14 @@ export function buildEffectKeyAutocompleteEntries(currentKey) {
 	const entries = new Map();
 	for (const key of _generateAC5eFlags()) addEntry(entries, key, 'AC5E flag');
 	if (isAc5eChangeKey(currentKey)) addEntry(entries, currentKey, 'Current key');
-	return Array.from(entries.values()).sort(compareAutocompleteEntries);
+	const built = Array.from(entries.values()).sort(compareAutocompleteEntries);
+	if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
+		console.debug('AC5E | autocomplete.effectKeys | built entries', {
+			total: built.length,
+			currentKey: `${currentKey ?? ''}`,
+		});
+	}
+	return built;
 }
 
 function compareAutocompleteEntries(a, b) {
@@ -306,7 +316,7 @@ function buildBaseCollectedPathsByRoot() {
 }
 
 function materializeCollectedPathsByRoot(pathsByRoot) {
-	return Object.fromEntries(Object.entries(pathsByRoot).map(([root, paths]) => [root, Array.from(paths).sort()]));
+	return Object.fromEntries(Object.entries(pathsByRoot).map(([root, paths]) => [root, sanitizeCollectedPaths(root, Array.from(paths)).sort()]));
 }
 
 async function collectFromSeedActorUuids(pathsByRoot) {
@@ -316,7 +326,7 @@ async function collectFromSeedActorUuids(pathsByRoot) {
 		collectRepresentativeItemsAndActivities(pathsByRoot, actor);
 	}
 	collectedPathCache = materializeCollectedPathsByRoot(pathsByRoot);
-	logSeedCoverage(seededActors);
+	logSeedCoverage(seededActors, collectedPathCache);
 }
 
 async function getSeedActorsFromUuids() {
@@ -368,14 +378,7 @@ function collectRepresentativeItemsAndActivities(pathsByRoot, actor) {
 }
 
 function getRepresentativeItemsFromActor(actor) {
-	const itemTypes = actor?.itemTypes;
-	if (!itemTypes || typeof itemTypes !== 'object') return [];
-	const representatives = [];
-	for (const bucket of Object.values(itemTypes)) {
-		if (!Array.isArray(bucket) || !bucket.length) continue;
-		representatives.push(bucket[0]);
-	}
-	return dedupeByUuid(representatives);
+	return dedupeByUuid(Array.from(actor?.items ?? []));
 }
 
 function collectActivityRollDataFromItem(pathsByRoot, item) {
@@ -399,7 +402,7 @@ function collectActivityRollDataFromItem(pathsByRoot, item) {
 	}
 }
 
-function logSeedCoverage(actors) {
+function logSeedCoverage(actors, collectedPathsByRoot = null) {
 	if (!CONFIG?.debug?.ac5e) return;
 	if (hasLoggedSeedCoverage) return;
 	hasLoggedSeedCoverage = true;
@@ -436,6 +439,7 @@ function logSeedCoverage(actors) {
 		}
 	}
 	const missingActivityTypes = ACTIVITY_TYPES_TO_COLLECT.filter((type) => !activityTypesFound.has(type));
+	const pathCoverage = summarizeCollectedPathCoverage(collectedPathsByRoot);
 	console.log('[AC5E seed coverage]', {
 		actorsLoaded: loadedActors.map((actor) => `${actor?.name ?? ''} (${actor?.type ?? ''})`),
 		representativeItemTypesCount: representativeItemTypes.size,
@@ -445,6 +449,7 @@ function logSeedCoverage(actors) {
 		activityTypesFound: [...activityTypesFound].sort(),
 		missingActivityTypes,
 		activityHits,
+		pathCoverage,
 	});
 }
 
@@ -453,27 +458,33 @@ function collectAc5eRuntimeAdditions(pathsByRoot) {
 		rollingActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `rollingActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `rollingActor.${field}`),
+			'rollingActor.effects',
 		],
 		opponentActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `opponentActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `opponentActor.${field}`),
 			'opponentActor.opponentId',
+			'opponentActor.effects',
 		],
 		auraActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `auraActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `auraActor.${field}`),
+			'auraActor.effects',
 		],
 		effectActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `effectActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `effectActor.${field}`),
+			'effectActor.effects',
 		],
 		nonEffectActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `nonEffectActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `nonEffectActor.${field}`),
+			'nonEffectActor.effects',
 		],
 		effectOriginActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `effectOriginActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `effectOriginActor.${field}`),
+			'effectOriginActor.effects',
 		],
 		item: ['item.itemUuid', 'item.itemType', 'item.itemProperties'],
 		activity: ['activity.activityType', 'activity.identifier', 'activity.uuid', 'activity.damageTypes', 'activity.defaultDamageType', 'activity.healingTypes'],
@@ -568,6 +579,45 @@ function dedupe(values) {
 	return Array.from(new Set(values));
 }
 
+function sanitizeCollectedPaths(root, paths) {
+	if (!Array.isArray(paths) || !paths.length) return [];
+	const nestedEnumBases = [
+		'itemProperties',
+		'originItemProperties',
+		'damageTypes',
+		'defaultDamageType',
+		'actionType',
+		'attackMode',
+		'mastery',
+		'itemType',
+		'activityType',
+	];
+	const forbiddenPrefixes = nestedEnumBases.map((base) => `${root}.${base}.`);
+	return paths.filter((path) => {
+		if (typeof path !== 'string' || !path) return false;
+		if (path === root) return true;
+		for (const prefix of forbiddenPrefixes) {
+			if (path.startsWith(prefix)) return false;
+		}
+		return true;
+	});
+}
+
+function summarizeCollectedPathCoverage(collectedPathsByRoot) {
+	const roots = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor', 'item', 'originItem', 'activity', 'originActivity'];
+	if (!collectedPathsByRoot || typeof collectedPathsByRoot !== 'object') {
+		return { roots, counts: {}, samples: {} };
+	}
+	const counts = {};
+	const samples = {};
+	for (const root of roots) {
+		const paths = Array.isArray(collectedPathsByRoot[root]) ? collectedPathsByRoot[root] : [];
+		counts[root] = paths.length;
+		samples[root] = paths.slice(0, 12);
+	}
+	return { roots, counts, samples };
+}
+
 function getActorDocument(document) {
 	if (document instanceof CONFIG.Actor.documentClass) return document;
 	if (document?.actor instanceof CONFIG.Actor.documentClass) return document.actor;
@@ -591,4 +641,12 @@ export function shouldTriggerAc5eKeyAutocomplete(changeKey) {
 	if (!normalized) return false;
 	if (isAc5eChangeKey(normalized)) return true;
 	return AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => normalized.includes(trigger));
+}
+
+export function isAc5eAutocompleteDebugEnabled(scope = 'editor') {
+	const normalized = `${scope ?? ''}`.trim().toLowerCase();
+	const value = normalized === 'effectkeys'
+		? foundry.utils.getProperty(CONFIG, 'ac5e.debug.autocompletion.effectKeys')
+		: foundry.utils.getProperty(CONFIG, 'ac5e.debug.autocompletion.editor');
+	return value === true;
 }

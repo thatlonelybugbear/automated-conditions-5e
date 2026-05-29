@@ -1,5 +1,5 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
-import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eChangeKey, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eAutocompleteDebugEnabled, isAc5eChangeKey, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
 import Settings from '../ac5e-settings.mjs';
 
 export function registerEffectValueEditorHooks() {
@@ -11,7 +11,7 @@ function enhanceActiveEffectConfig(app, element) {
 	if (!root) return;
 	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
-	if (!new Settings().enableExperimentalAc5eUi) return;
+	if (!new Settings().enableAc5eUi) return;
 
 	refreshEditorButtons(app, root);
 }
@@ -36,6 +36,9 @@ function initializeKeyAutocomplete(app, root) {
 		});
 		const activateAutocomplete = () => {
 			if (!shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
+				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
+					console.debug('AC5E | autocomplete.effectKeys | dismiss (trigger=false)', { value: keyInput.value ?? '' });
+				}
 				autocomplete.dismiss();
 				return;
 			}
@@ -45,8 +48,18 @@ function initializeKeyAutocomplete(app, root) {
 				? entries.filter((entry) => entry.identifier.toLowerCase().includes(normalizedPrefix)).slice(0, 40)
 				: entries.slice(0, 40);
 			if (!filteredEntries.length) {
+				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
+					console.debug('AC5E | autocomplete.effectKeys | dismiss (no entries)', { prefix, value: keyInput.value ?? '' });
+				}
 				autocomplete.dismiss();
 				return;
+			}
+			if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
+				console.debug('AC5E | autocomplete.effectKeys | activate', {
+					prefix,
+					value: keyInput.value ?? '',
+					candidates: filteredEntries.length,
+				});
 			}
 			autocomplete.activate(keyInput, filteredEntries, { prefix });
 			configureAc5eAutocompleteMenu(autocomplete);
@@ -75,7 +88,7 @@ function refreshEditorButtons(app, root) {
 		const keyInput = findKeyInput(row, valueInput);
 		if (!keyInput) continue;
 		const existingButton = row.querySelector('.ac5e-effect-value-editor-button');
-		if (!new Settings().enableExperimentalAc5eUi || !isAc5eChangeKey(keyInput.value)) {
+		if (!new Settings().enableAc5eUi || !isAc5eChangeKey(keyInput.value)) {
 			existingButton?.remove();
 			cleanupValueEditorWrapper(valueInput);
 			continue;
