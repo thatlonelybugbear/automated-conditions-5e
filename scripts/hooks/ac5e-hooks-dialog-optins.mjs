@@ -150,27 +150,32 @@ function updateSingleOptinScale(ac5eConfig, optinId, scale) {
 }
 
 function getUsesCountLabelSuffix(entry) {
-	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
-	const parsed = parseUsesCountSpec(rawUsesCount);
+	const statusUpdateLabel = getStatusUpdateText(entry, { detailed: false });
+	if (statusUpdateLabel) return '(Info)';
+	const counterDisplay = getCounterDisplaySpec(entry);
+	const parsed = counterDisplay.parsed;
+	const hasRecover = !!entry?.recover;
 	if (parsed.scaling) {
-		const target = formatUsesCountType(parsed.target || entry?.usesCountTarget);
+		const target = formatUsesCountType(counterDisplay.target);
 		if (!target) return '';
 		const selectedScale = Number(entry?.selectedScale);
 		const displayScale = Number.isFinite(selectedScale) ? Math.abs(selectedScale) : selectedScale;
 		const consumeText = Number.isFinite(displayScale) ? ` ${displayScale}` : '';
-		return parsed.scalingSign < 0 ? `(restores${consumeText} ${target})` : `(consumes${consumeText} ${target})`;
+		const isRestore = parsed.scalingSign < 0 || hasRecover;
+		return isRestore ? `(restores${consumeText} ${target})` : `(consumes${consumeText} ${target})`;
 	}
-	const rawAmount = parsed.consume || '1';
-	const amount = String(rawAmount).trim();
+	const rawAmount = counterDisplay.amount;
+	if (typeof rawAmount !== 'string') return '';
+	const amount = rawAmount.trim();
 	if (!amount) return '';
 	const numericAmount = Number(amount);
-	const isRestore = Number.isFinite(numericAmount) && numericAmount < 0;
-	const displayAmount = isRestore ? String(Math.abs(numericAmount)) : amount;
-	if (isItemUsesCountTarget(parsed.target || entry?.usesCountTarget)) {
+	const isRestore = hasRecover || (Number.isFinite(numericAmount) && numericAmount < 0);
+	const displayAmount = isRestore ? `${Math.abs(numericAmount)}` : amount;
+	if (isItemUsesCountTarget(counterDisplay.target)) {
 		const unit = getUsesCountUnitLabel(displayAmount, 'use', 'uses');
 		return isRestore ? `(restores ${displayAmount} ${unit})` : `(costs ${displayAmount} ${unit})`;
 	}
-	const target = formatUsesCountType(parsed.target || entry?.usesCountTarget);
+	const target = formatUsesCountType(counterDisplay.target);
 	if (!target) return '';
 	return isRestore ? `(restores ${displayAmount} ${target})` : `(costs ${displayAmount} ${target})`;
 }
@@ -259,29 +264,34 @@ function formatUsesCountType(target) {
 }
 
 function getUsesCountDescriptionSuffix(entry) {
-	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
-	const parsed = parseUsesCountSpec(rawUsesCount);
+	const statusUpdateDescription = getStatusUpdateText(entry, { detailed: false });
+	if (statusUpdateDescription) return `(${statusUpdateDescription})`;
+	const counterDisplay = getCounterDisplaySpec(entry);
+	const parsed = counterDisplay.parsed;
+	const hasRecover = !!entry?.recover;
 	if (parsed.scaling) {
-		const target = formatUsesCountType(parsed.target || entry?.usesCountTarget);
+		const target = formatUsesCountType(counterDisplay.target);
 		if (!target) return '';
 		const selectedScale = Number(entry?.selectedScale);
 		const displayScale = Number.isFinite(selectedScale) ? Math.abs(selectedScale) : selectedScale;
 		const consumeText = Number.isFinite(displayScale) ? ` ${displayScale}` : '';
 		const availableValue = Number(entry?.usesCountAvailable);
 		const missingValue = Number(entry?.usesCountMissing);
+		const isRestore = parsed.scalingSign < 0 || hasRecover;
 		const stateText =
-			parsed.scalingSign < 0 ?
+			isRestore ?
 				Number.isFinite(missingValue) ? ` - missing: ${missingValue}` : ''
 			:	Number.isFinite(availableValue) ? ` - available: ${availableValue}` : '';
-		return parsed.scalingSign < 0 ? `(restores: ${consumeText.trim()} ${target}${stateText})` : `(cost: ${consumeText.trim()} ${target}${stateText})`;
+		return isRestore ? `(restores: ${consumeText.trim()} ${target}${stateText})` : `(cost: ${consumeText.trim()} ${target}${stateText})`;
 	}
-	const rawAmount = parsed.consume || '1';
-	const amount = String(rawAmount).trim();
+	const rawAmount = counterDisplay.amount;
+	if (typeof rawAmount !== 'string') return '';
+	const amount = rawAmount.trim();
 	if (!amount) return '';
 	const numericAmount = Number(amount);
-	const isRestore = Number.isFinite(numericAmount) && numericAmount < 0;
-	const displayAmount = isRestore ? String(Math.abs(numericAmount)) : amount;
-	const rawTarget = String(parsed.target || entry?.usesCountTarget || '').trim();
+	const isRestore = hasRecover || (Number.isFinite(numericAmount) && numericAmount < 0);
+	const displayAmount = isRestore ? `${Math.abs(numericAmount)}` : amount;
+	const rawTarget = typeof counterDisplay.target === 'string' ? counterDisplay.target.trim() : '';
 	if (!rawTarget) return '';
 	const targetLabel = isItemUsesCountTarget(rawTarget)
 		? getUsesCountUnitLabel(displayAmount, 'use', 'uses')
@@ -294,6 +304,62 @@ function getUsesCountDescriptionSuffix(entry) {
 		: !isRestore && Number.isFinite(availableValue) ? ` - available: ${availableValue}`
 		: '';
 	return isRestore ? `(restores: ${displayAmount} ${targetLabel}${stateText})` : `(cost: ${displayAmount} ${targetLabel}${stateText})`;
+}
+
+function getCounterDisplaySpec(entry) {
+	const rawUsesCount = typeof entry?.usesCount === 'string' ? entry.usesCount.trim() : '';
+	const parsedUsesCount = parseUsesCountSpec(rawUsesCount);
+	const usesCountTarget =
+		typeof parsedUsesCount.target === 'string' && parsedUsesCount.target.trim() ? parsedUsesCount.target.trim()
+		: typeof entry?.usesCountTarget === 'string' ? entry.usesCountTarget.trim()
+		: '';
+	if (parsedUsesCount.scaling || rawUsesCount || usesCountTarget) {
+		return {
+			parsed: parsedUsesCount,
+			target: usesCountTarget,
+			amount: parsedUsesCount.consume || '1',
+		};
+	}
+
+	const rawUpdateTarget =
+		typeof entry?.updateTarget === 'string' && entry.updateTarget.trim() ? entry.updateTarget.trim()
+		: typeof entry?.usesCountTarget === 'string' ? entry.usesCountTarget.trim()
+		: '';
+	const rawUpdateValue = typeof entry?.updateValue === 'string' ? entry.updateValue.trim() : '';
+	const updateNumeric = Number(rawUpdateValue);
+	const normalizedUpdateValue =
+		entry?.updateOp === 'set' || !Number.isFinite(updateNumeric) ? rawUpdateValue
+		: `${-updateNumeric}`;
+	return {
+		parsed: { target: rawUpdateTarget, consume: normalizedUpdateValue, scaling: null, scalingSign: 1 },
+		target: rawUpdateTarget,
+		amount: normalizedUpdateValue,
+	};
+}
+
+function getStatusUpdateText(entry, { detailed = false } = {}) {
+	const rawTarget = typeof entry?.updateTarget === 'string' ? entry.updateTarget.trim() : '';
+	if (!rawTarget) return '';
+	const statusMatch = rawTarget.match(/^(rollingactor|opponentactor)(?:\.[^.]+)*\.statuses\.([^.]+)$/i);
+	if (!statusMatch) return '';
+	const actorKey = statusMatch[1]?.toLowerCase();
+	const statusId = `${statusMatch[2] ?? ''}`.trim();
+	if (!statusId) return '';
+	const rawUpdateValue = typeof entry?.updateValue === 'string' ? entry.updateValue.trim() : '';
+	const numericValue = Number(rawUpdateValue);
+	const active = Number.isFinite(numericValue) ? numericValue > 0 : rawUpdateValue !== '-1';
+	const actorLabel = actorKey === 'opponentactor' ? 'opponent actor' : 'rolling actor';
+	const statusLabel = getStatusEffectLabel(statusId);
+	if (!detailed) return active ? `Apply ${statusLabel} to ${actorLabel}` : `Remove ${statusLabel} from ${actorLabel}`;
+	return active ? `Apply ${statusLabel} (${statusId}) to ${actorLabel}` : `Remove ${statusLabel} (${statusId}) from ${actorLabel}`;
+}
+
+function getStatusEffectLabel(statusId) {
+	const normalizedId = `${statusId ?? ''}`.trim();
+	if (!normalizedId) return 'status';
+	const entries = Array.from(CONFIG?.statusEffects ?? []);
+	const match = entries.find((entry) => `${entry?.id ?? ''}`.trim().toLowerCase() === normalizedId.toLowerCase());
+	return `${match?.name ?? normalizedId}`.trim();
 }
 
 function resolveOptinScaleDescription(description, entry, ac5eConfig) {
@@ -426,9 +492,12 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			typeof entry.description === 'string' ? entry.description.trim()
 			: typeof entry.autoDescription === 'string' ? entry.autoDescription.trim()
 			: '';
+		const hasStatusUpdateDescription = Boolean(getStatusUpdateText(entry, { detailed: false }));
 		const usesCountDescription = isOptinEntry ? getUsesCountDescriptionSuffix(entry) : '';
 		const scaledBaseDescription = resolveOptinScaleDescription(baseDescription, entry, ac5eConfig);
-		const description = [scaledBaseDescription, usesCountDescription].filter(Boolean).join(scaledBaseDescription && usesCountDescription ? ' ' : '');
+		const description =
+			hasStatusUpdateDescription ? usesCountDescription
+			: [scaledBaseDescription, usesCountDescription].filter(Boolean).join(scaledBaseDescription && usesCountDescription ? ' ' : '');
 		let descriptionPill = null;
 		if (description) {
 			descriptionPill = document.createElement('i');

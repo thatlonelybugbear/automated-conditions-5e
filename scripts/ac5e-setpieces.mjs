@@ -1452,7 +1452,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	]);
 	const knownKeyedKeywords = new Set([...blacklist, 'condition', 'priority']);
 	const knownBooleanKeywords = new Set(['true', 'false', '0', '1']);
-	const knownStandaloneKeywords = new Set([...blacklist, ...knownBooleanKeywords, 'turn', 'round', 'combat', 'encounter']);
+	const knownStandaloneKeywords = new Set([...blacklist, ...knownBooleanKeywords, 'turn', 'round', 'combat', 'encounter', 'recover']);
 	const damageTypeKeys = Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((k) => k.toLowerCase());
 	const damageTypeSet = new Set(damageTypeKeys);
 	const contextKeywordList = globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.list?.();
@@ -2181,6 +2181,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox: scopedSandbox, debug }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: effect.name, customName, usesOverride, auraName: isAura ? auraToken?.name : undefined });
 		const usesCount = getBlacklistedKeysValue('usescount', change.value);
+		const rawUpdate = getBlacklistedKeysValue('update', change.value);
+		const parsedUpdate = rawUpdate ? _parseUpdateSpec(rawUpdate) : null;
 		const parsedUsesCount = _parseUsesCountSpec(usesCount);
 		const scaling = parsedUsesCount.scaling;
 		const usesCountAvailability = getUsesCountAvailability({ usesCount, effect, evaluationData: sandbox, debug });
@@ -2211,8 +2213,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			requiredDamageTypes,
 			addTo,
 			usesCount,
+			recover: normalizedChangeValue.includes('recover'),
 			scaling,
 			usesCountTarget,
+			updateTarget: parsedUpdate?.target?.trim() || undefined,
+			updateValue: parsedUpdate?.value?.trim() || undefined,
+			updateOp: parsedUpdate?.op || undefined,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
 			usesCountMissing: usesCountAvailability.missing,
@@ -2359,10 +2365,46 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 
 	for (const rule of usageRules) {
-		const ruleScope = String(rule?.scope ?? 'effect')
-			.trim()
-			.toLowerCase();
-		if (ruleScope !== 'universal') continue;
+		const ruleScope = typeof rule?.scope === 'string'
+			? rule.scope.trim().toLowerCase()
+			: 'effect';
+		if (!['universal', 'item', 'actor', 'effect'].includes(ruleScope)) continue;
+		const scopedName = typeof rule?.scopedName === 'string' ? rule.scopedName.trim() : '';
+		if (ruleScope !== 'universal') {
+			const scopedNameLower = scopedName.toLowerCase();
+			if (!scopedNameLower) continue;
+			const itemNames = [
+				activity?.item?.name,
+				item?.name,
+				evaluationData?.item?.name,
+				evaluationData?.originItem?.name,
+			]
+				.filter((value) => typeof value === 'string' && value.trim())
+				.map((value) => value.trim().toLowerCase());
+			const actorNames = [
+				subject?.name,
+				opponent?.name,
+				evaluationData?.rollingActor?.name,
+				evaluationData?.opponentActor?.name,
+				evaluationData?.auraActor?.name,
+				evaluationData?.effectActor?.name,
+				evaluationData?.nonEffectActor?.name,
+				evaluationData?.effectOriginActor?.name,
+			]
+				.filter((value) => typeof value === 'string' && value.trim())
+				.map((value) => value.trim().toLowerCase());
+			const effectNames = [
+				...(Array.isArray(subject?.appliedEffects) ? subject.appliedEffects : []),
+				...(Array.isArray(opponent?.appliedEffects) ? opponent.appliedEffects : []),
+			]
+				.map((entry) => (typeof entry?.name === 'string' ? entry.name.trim().toLowerCase() : ''))
+				.filter(Boolean);
+			const matchesScopedName =
+				ruleScope === 'item' ? itemNames.includes(scopedNameLower)
+				: ruleScope === 'actor' ? actorNames.includes(scopedNameLower)
+				: effectNames.includes(scopedNameLower);
+			if (!matchesScopedName) continue;
+		}
 		const sourceUuid =
 			typeof rule?.effectUuid === 'string' ? rule.effectUuid.trim()
 			: typeof rule?.sourceUuid === 'string' ? rule.sourceUuid.trim()
@@ -2531,6 +2573,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug: { usageRuleKey: rule.key } }) && (!chance?.enabled || chance.triggered);
 		const label = buildResolvedEntryLabel({ effectName: rulePrimaryName, customName: resolvedCustomName, usesOverride: null });
 		const usesCount = getBlacklistedKeysValue('usescount', ruleValue);
+		const rawUpdate = getBlacklistedKeysValue('update', ruleValue);
+		const parsedUpdate = rawUpdate ? _parseUpdateSpec(rawUpdate) : null;
 		const parsedUsesCount = _parseUsesCountSpec(usesCount);
 		const scaling = parsedUsesCount.scaling;
 		const usesCountAvailability = getUsesCountAvailability({ usesCount, effect: pseudoEffect, evaluationData, debug: { usageRuleKey: rule.key } });
@@ -2560,8 +2604,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			requiredDamageTypes,
 			addTo,
 			usesCount,
+			recover: String(ruleValue ?? '').toLowerCase().includes('recover'),
 			scaling,
 			usesCountTarget,
+			updateTarget: parsedUpdate?.target?.trim() || undefined,
+			updateValue: parsedUpdate?.value?.trim() || undefined,
+			updateOp: parsedUpdate?.op || undefined,
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
 			usesCountMissing: usesCountAvailability.missing,
@@ -3011,6 +3059,14 @@ function _applyUpdateOperation(currentValue, amount, mode = 'delta') {
 	return mode === 'set' ? numericAmount : current + numericAmount;
 }
 
+function _resolveUpdateTargetPropertyPath(target = '') {
+	const raw = String(target ?? '').trim();
+	if (!raw) return '';
+	return raw
+		.replace(/^(?:rollingactor|opponentactor|targetactor|auraactor)\./i, '')
+		.replace(/^(?:system\.)?flags\./i, 'flags.');
+}
+
 function _getPendingUseModeFamily(mode, hook = '') {
 	const normalizedMode = String(mode ?? '')
 		.trim()
@@ -3056,6 +3112,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		activityUpdatesGM: [],
 		actorUpdates: [],
 		actorUpdatesGM: [],
+		statusToggles: [],
+		statusTogglesGM: [],
 		effectDeletions: [],
 		effectDeletionsGM: [],
 		effectUpdates: [],
@@ -3063,7 +3121,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		itemUpdates: [],
 		itemUpdatesGM: [],
 	};
-	const { activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM } = pendingUpdates;
+	const { activityUpdates, activityUpdatesGM, actorUpdates, actorUpdatesGM, statusToggles, statusTogglesGM, effectDeletions, effectDeletionsGM, effectUpdates, effectUpdatesGM, itemUpdates, itemUpdatesGM } = pendingUpdates;
 	const isOwner = effect.isOwner;
 	const rawValues = String(change.value ?? '')
 		.split(';')
@@ -3098,9 +3156,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		const consumptionTarget = _normalizeUsesCountTarget(parsedUpdate.target);
 		if (!consumptionTarget) return false;
 		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
-		if (lowerConsumptionTarget.includes('flag') || lowerConsumptionTarget.startsWith('item.') || lowerConsumptionTarget === 'origin' || lowerConsumptionTarget.startsWith('origin.')) return false;
-		const consume = _evaluateCounterExpression(parsedUpdate.value, evalData, debug, null);
-		if (!Number.isFinite(Number(consume))) return false;
+		if (lowerConsumptionTarget.startsWith('item.') || lowerConsumptionTarget === 'origin' || lowerConsumptionTarget.startsWith('origin.')) return false;
 		const actor = effect.target;
 		if (!(actor instanceof Actor)) return false;
 		const consumptionActor =
@@ -3110,6 +3166,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						: _ac5eActorRollData(actor);
 		const uuid = consumptionActor?.uuid ?? actor.uuid;
 		const attr = consumptionTarget.toLowerCase();
+		const consume = _evaluateCounterExpression(parsedUpdate.value, evalData, debug, null);
 		const customName = _extractCustomNameFromValue(change.value);
 		const applyFinalStandOverride = (finalStandLabel) => {
 			if (!finalStandLabel) return;
@@ -3122,10 +3179,17 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			});
 			isOptin = true;
 		};
+		const canUpdateConsumptionActor = !!consumptionActor?.isOwner;
 		const queueActorUpdate = (updates, options) => {
 			const context = options ? { uuid, updates, options } : { uuid, updates };
-			if (isOwner) actorUpdates.push({ name: effect.name, context });
+			if (canUpdateConsumptionActor) actorUpdates.push({ name: effect.name, context });
 			else actorUpdatesGM.push({ name: effect.name, context });
+		};
+		const queueStatusToggle = ({ statusId, active }) => {
+			if (!statusId) return;
+			const context = { uuid, statusId, active: !!active };
+			if (canUpdateConsumptionActor) statusToggles.push({ name: effect.name, context });
+			else statusTogglesGM.push({ name: effect.name, context });
 		};
 		_logUsesCount('parsed', {
 			effect: effect?.name,
@@ -3140,7 +3204,31 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			updateMode: parsedUpdate.op,
 		});
 
-		if (attr.includes('death')) {
+		if (attr.includes('flag')) {
+			const flagPath = _resolveUpdateTargetPropertyPath(consumptionTarget);
+			if (!flagPath.startsWith('flags.')) return false;
+			if (parsedUpdate.op === 'set') {
+				const rawValue = typeof parsedUpdate.value === 'string' ? parsedUpdate.value.trim() : parsedUpdate.value;
+				let nextValue;
+				if (rawValue === '') return false;
+				if (typeof rawValue === 'string' && /^(?:true|false)$/i.test(rawValue)) nextValue = rawValue.toLowerCase() === 'true';
+				else if (rawValue === 'null') nextValue = null;
+				else if (rawValue === 'undefined') nextValue = undefined;
+				else if (Number.isFinite(Number(rawValue))) nextValue = Number(rawValue);
+				else if (typeof rawValue === 'string' && ((rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'"))))
+					nextValue = rawValue.slice(1, -1);
+				else nextValue = rawValue;
+				queueActorUpdate({ [flagPath]: nextValue });
+			} else {
+				if (!Number.isFinite(Number(consume))) return false;
+				const currentRaw = foundry.utils.getProperty(consumptionActor, flagPath);
+				const current = Number(currentRaw);
+				const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
+				if (!Number.isFinite(newValue)) return false;
+				queueActorUpdate({ [flagPath]: newValue });
+			}
+		} else if (attr.includes('death')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const type = attr.includes('fail') ? 'attributes.death.failure' : 'attributes.death.success';
 			const valueRaw = foundry.utils.getProperty(consumptionActor, `system.${type}`) ?? foundry.utils.getProperty(consumptionActor, type);
 			const value = Number(valueRaw);
@@ -3148,6 +3236,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			if (!Number.isFinite(newValue) || newValue < 0 || newValue > 3) return false;
 			queueActorUpdate({ [`system.${type}`]: newValue });
 		} else if (attr.includes('hpmax')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const { tempmax, max, value } = consumptionActor?.attributes?.hp ?? {};
 			if (![tempmax, max, value].every((v) => Number.isFinite(Number(v)))) return false;
 			const effectiveMax = Number(max) + Number(tempmax);
@@ -3158,12 +3247,14 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			const noConcentration = !(newMax >= Number(value) || String(change.value ?? '').toLowerCase().includes('noconc'));
 			queueActorUpdate({ 'system.attributes.hp.tempmax': newTempmax }, { dnd5e: { concentrationCheck: noConcentration } });
 		} else if (attr.includes('hptemp')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const current = Number(consumptionActor?.attributes?.hp?.temp);
 			const newTemp = _applyUpdateOperation(current, consume, parsedUpdate.op);
 			if (!Number.isFinite(newTemp) || newTemp < 0) return false;
 			const noConcentration = !(newTemp >= current || String(change.value ?? '').toLowerCase().includes('noconc'));
 			queueActorUpdate({ 'system.attributes.hp.temp': newTemp }, { dnd5e: { concentrationCheck: noConcentration } });
 		} else if (attr.includes('hp')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const current = Number(consumptionActor?.attributes?.hp?.value);
 			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
 			if (!Number.isFinite(newValue)) return false;
@@ -3171,6 +3262,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			const noConcentration = !(newValue >= current || String(change.value ?? '').toLowerCase().includes('noconc'));
 			queueActorUpdate({ 'system.attributes.hp.value': newValue }, { dnd5e: { concentrationCheck: noConcentration } });
 		} else if (attr.includes('exhaustion')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const current = Number(consumptionActor?.attributes?.exhaustion);
 			const max = CONFIG?.DND5E?.conditionTypes?.exhaustion?.levels ?? 6;
 			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
@@ -3178,11 +3270,13 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			if ((parsedUpdate.op === 'set' || Number(consume) > 0) && Number.isFinite(max) && newValue >= max) applyFinalStandOverride(_buildFinalStandDescription(newValue));
 			queueActorUpdate({ 'system.attributes.exhaustion': newValue });
 		} else if (attr.includes('inspiration')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const current = consumptionActor?.attributes?.inspiration ? 1 : 0;
 			const newValue = _applyUpdateOperation(current, consume, parsedUpdate.op);
 			if (!Number.isFinite(newValue) || newValue < 0 || newValue > 1) return false;
 			queueActorUpdate({ 'system.attributes.inspiration': !!newValue });
 		} else if (attr.includes('abilities.') && attr.endsWith('.value')) {
+			if (!Number.isFinite(Number(consume))) return false;
 			const abilityMatch = attr.match(/(?:^|\.)(?:system\.)?abilities\.([a-z0-9]+)\.value$/);
 			const abilityId = abilityMatch?.[1];
 			if (!abilityId) return false;
@@ -3192,6 +3286,13 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			if (!Number.isFinite(newValue) || newValue < 0) return false;
 			if ((parsedUpdate.op === 'set' || Number(consume) < 0) && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
 			queueActorUpdate({ [`system.abilities.${abilityId}.value`]: newValue });
+		} else if (attr.includes('.statuses.') || attr.startsWith('statuses.')) {
+			if (!Number.isFinite(Number(consume))) return false;
+			const statusMatch = consumptionTarget.match(/(?:^|\.)(?:statuses)\.([^.]+)$/i);
+			const statusId = `${statusMatch?.[1] ?? ''}`.trim();
+			if (!statusId) return false;
+			const active = Number(consume) > 0;
+			queueStatusToggle({ statusId, active });
 		} else {
 			return false;
 		}
@@ -3261,6 +3362,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				consumeAfterScale: consume,
 			});
 		}
+		if (recover && Number.isFinite(Number(consume))) consume = -Math.abs(Number(consume));
 		_logUsesCount('parsed', {
 			effect: effect?.name,
 			hook,
@@ -3685,6 +3787,8 @@ export function _applyPendingUses(pendingUses = []) {
 	const validActivityUpdatesGM = [];
 	const validActorUpdates = [];
 	const validActorUpdatesGM = [];
+	const validStatusToggles = [];
+	const validStatusTogglesGM = [];
 	const validEffectDeletions = [];
 	const validEffectDeletionsGM = [];
 	const validEffectUpdates = [];
@@ -3717,6 +3821,8 @@ export function _applyPendingUses(pendingUses = []) {
 		pushContexts(pending.activityUpdatesGM, validActivityUpdatesGM);
 		pushContexts(pending.actorUpdates, validActorUpdates);
 		pushContexts(pending.actorUpdatesGM, validActorUpdatesGM);
+		pushContexts(pending.statusToggles, validStatusToggles);
+		pushContexts(pending.statusTogglesGM, validStatusTogglesGM);
 		for (const entry of pending.effectDeletions ?? []) {
 			const uuid = getUuid(entry);
 			if (typeof uuid === 'string' && uuid.length) validEffectDeletions.push(uuid);
@@ -3767,6 +3873,16 @@ export function _applyPendingUses(pendingUses = []) {
 					}),
 				);
 				allPromises.push(
+					...validStatusToggles.map((v) => {
+						const uuid = getUuid(v);
+						const statusId = `${v?.statusId ?? ''}`.trim();
+						if (typeof uuid !== 'string' || !statusId) return Promise.resolve(null);
+						const doc = _safeFromUuidSync(uuid);
+						if (!(doc instanceof Actor) || typeof doc.toggleStatusEffect !== 'function') return Promise.resolve(null);
+						return doc.toggleStatusEffect(statusId, { active: !!v?.active });
+					}),
+				);
+				allPromises.push(
 					...validActivityUpdates.map((v) => {
 						const uuid = getUuid(v);
 						const updates = getUpdates(v);
@@ -3793,7 +3909,7 @@ export function _applyPendingUses(pendingUses = []) {
 		.catch((err) => console.error('Queued job failed', err));
 
 	const uniqueEffectDeletionsGM = Array.from(new Set(validEffectDeletionsGM.filter((uuid) => typeof uuid === 'string' && uuid.length)));
-	_doQueries({ validActivityUpdatesGM, validActorUpdatesGM, validEffectDeletionsGM: uniqueEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM });
+	_doQueries({ validActivityUpdatesGM, validActorUpdatesGM, validStatusTogglesGM, validEffectDeletionsGM: uniqueEffectDeletionsGM, validEffectUpdatesGM, validItemUpdatesGM });
 	return queuePromise;
 }
 

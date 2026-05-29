@@ -202,11 +202,13 @@ function _normalizeUsageRuleCadence(value) {
 }
 
 function _normalizeUsageRuleScope(value) {
-	const token = String(value ?? 'effect')
-		.trim()
-		.toLowerCase();
+	const token = typeof value === 'string'
+		? value.trim().toLowerCase()
+		: 'effect';
 	if (!token) return 'effect';
 	if (['effect', 'effectdriven', 'effect-driven', 'keyword'].includes(token)) return 'effect';
+	if (['item', 'activityitem', 'activity-item'].includes(token)) return 'item';
+	if (['actor', 'actors'].includes(token)) return 'actor';
 	if (['universal', 'global'].includes(token)) return 'universal';
 	return null;
 }
@@ -247,6 +249,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 	const effectUuid = typeof definition.effectUuid === 'string' ? definition.effectUuid.trim() : undefined;
 	const sourceUuid = typeof definition.sourceUuid === 'string' ? definition.sourceUuid.trim() : undefined;
 	const documentScope = typeof definition.documentScope === 'string' ? definition.documentScope.trim() : undefined;
+	const scopedName = typeof definition.scopedName === 'string' ? definition.scopedName.trim() : undefined;
 	const scope = _normalizeUsageRuleScope(definition.scope ?? definition.application);
 	if (!scope) return null;
 	return {
@@ -277,6 +280,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 		effectUuid,
 		sourceUuid,
 		documentScope,
+		scopedName,
 		persistent,
 		scope,
 	};
@@ -319,6 +323,7 @@ function _buildUsageRulesState() {
 			effectUuid: entry.effectUuid,
 			sourceUuid: entry.sourceUuid,
 			documentScope: entry.documentScope,
+			scopedName: entry.scopedName,
 			scope: entry.scope,
 		};
 	}
@@ -442,6 +447,7 @@ function listUsageRules() {
 			effectUuid: entry.effectUuid,
 			sourceUuid: entry.sourceUuid,
 			documentScope: entry.documentScope,
+			scopedName: entry.scopedName,
 			scope: entry.scope,
 			source: entry.source ?? 'runtime',
 			updatedAt: entry.updatedAt,
@@ -453,7 +459,8 @@ function showUsageRuleKeys() {
 	return {
 		key: 'String identifier used to uniquely register, update, remove, and reference the usage rule. Must be a valid JS-style identifier.',
 		persistent: 'Boolean: persists the rule in module settings so it survives reloads and reconnects. Rules using evaluate() cannot be persisted.',
-		scope: 'String: application scope. Supported values: "effect" and "universal".',
+		scope: 'String: application scope. Supported values: "effect", "item", "actor", and "universal".',
+		scopedName: 'String: optional name gate for non-universal scopes. Matches effect/item/actor names depending on scope.',
 		hook: 'String: evaluation hook. Supported values include "*", "all", "d20", "attack", "damage", "check", "save", "skill", "tool", "concentration", "death", "initiative", and "bonus".',
 		target: 'String: which side the rule applies to. Supported values: "subject", "opponent", and "aura". Alias: actorType.',
 		mode: 'String: AC5E rule mode such as "advantage", "disadvantage", "bonus", "info", "modifiers", "targetADC", "abilityOverride", "criticalThreshold", "fumbleThreshold", "extraDice", "diceUpgrade", "diceDowngrade", "range", "fail", "success", or "critical".',

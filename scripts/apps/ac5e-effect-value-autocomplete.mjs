@@ -454,36 +454,49 @@ function logSeedCoverage(actors, collectedPathsByRoot = null) {
 }
 
 function collectAc5eRuntimeAdditions(pathsByRoot) {
+	const actorArmorEntries = [
+		'hasArmor',
+		'hasArmorLight',
+		'hasArmorMedium',
+		'hasArmorHeavy',
+		'hasShield',
+	];
 	const additions = {
 		rollingActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `rollingActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `rollingActor.${field}`),
+			...actorArmorEntries.map((field) => `rollingActor.${field}`),
 			'rollingActor.effects',
 		],
 		opponentActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `opponentActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `opponentActor.${field}`),
+			...actorArmorEntries.map((field) => `opponentActor.${field}`),
 			'opponentActor.opponentId',
 			'opponentActor.effects',
 		],
 		auraActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `auraActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `auraActor.${field}`),
+			...actorArmorEntries.map((field) => `auraActor.${field}`),
 			'auraActor.effects',
 		],
 		effectActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `effectActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `effectActor.${field}`),
+			...actorArmorEntries.map((field) => `effectActor.${field}`),
 			'effectActor.effects',
 		],
 		nonEffectActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `nonEffectActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `nonEffectActor.${field}`),
+			...actorArmorEntries.map((field) => `nonEffectActor.${field}`),
 			'nonEffectActor.effects',
 		],
 		effectOriginActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `effectOriginActor.${field}`),
 			...AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((field) => `effectOriginActor.${field}`),
+			...actorArmorEntries.map((field) => `effectOriginActor.${field}`),
 			'effectOriginActor.effects',
 		],
 		item: ['item.itemUuid', 'item.itemType', 'item.itemProperties'],

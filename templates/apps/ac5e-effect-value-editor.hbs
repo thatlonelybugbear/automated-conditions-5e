@@ -270,6 +270,43 @@
 						</div>
 					{{/if}}
 				{{/with}}
+
+				{{#with optionalFieldRows.update}}
+					{{#if left}}
+						<div class="form-group">
+							<label for="{{left.inputId}}">{{left.label}}</label>
+							<div class="form-fields ac5e-effect-value-editor-inline-field">
+								<input id="{{left.inputId}}" type="text" name="fields.{{left.name}}" value="{{left.value}}">
+								<button
+									type="button"
+									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+									data-ac5e-expand-input="fields.{{left.name}}"
+									data-ac5e-expand-label="{{left.label}}"
+									aria-label="Expand {{left.label}}"
+								></button>
+							</div>
+						</div>
+					{{else}}
+						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
+					{{/if}}
+					{{#if right}}
+						<div class="form-group">
+							<label for="{{right.inputId}}">{{right.label}}</label>
+							<div class="form-fields ac5e-effect-value-editor-inline-field">
+								<input id="{{right.inputId}}" type="text" name="fields.{{right.name}}" value="{{right.value}}">
+								<button
+									type="button"
+									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+									data-ac5e-expand-input="fields.{{right.name}}"
+									data-ac5e-expand-label="{{right.label}}"
+									aria-label="Expand {{right.label}}"
+								></button>
+							</div>
+						</div>
+					{{else}}
+						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
+					{{/if}}
+				{{/with}}
 			</section>
 		{{/if}}
 	</fieldset>

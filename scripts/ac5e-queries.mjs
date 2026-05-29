@@ -29,7 +29,14 @@ function _logDeleteTrace(stage, payload = {}) {
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debugQueries || settings) console.warn('AC5E delete trace', { stage, ...payload });
 }
 
-export async function _doQueries({ validActivityUpdatesGM = [], validActorUpdatesGM = [], validEffectDeletionsGM = [], validEffectUpdatesGM = [], validItemUpdatesGM = [] } = {}) {
+export async function _doQueries({
+	validActivityUpdatesGM = [],
+	validActorUpdatesGM = [],
+	validStatusTogglesGM = [],
+	validEffectDeletionsGM = [],
+	validEffectUpdatesGM = [],
+	validItemUpdatesGM = [],
+} = {}) {
 	const activeGM = game.users.activeGM;
 	if (!activeGM) return false;
 	try {
@@ -43,6 +50,9 @@ export async function _doQueries({ validActivityUpdatesGM = [], validActorUpdate
 		}
 		if (validActivityUpdatesGM.length || validActorUpdatesGM.length || validEffectUpdatesGM.length || validItemUpdatesGM.length) {
 			await activeGM.query(Constants.GM_DOCUMENT_UPDATES, { validActivityUpdatesGM, validActorUpdatesGM, validEffectUpdatesGM, validItemUpdatesGM });
+		}
+		if (validStatusTogglesGM.length) {
+			await activeGM.query(Constants.GM_STATUS_TOGGLES, { validStatusTogglesGM });
 		}
 		return true;
 	} catch (err) {
@@ -149,6 +159,22 @@ export function _gmDocumentUpdates({ validActivityUpdatesGM, validActorUpdatesGM
 	return ac5eQueue.add(() => documentUpdates(entries));
 }
 
+export function _gmStatusToggles({ validStatusTogglesGM = [] } = {}) {
+	const entries = [];
+	const seen = new Set();
+	for (const entry of validStatusTogglesGM ?? []) {
+		const uuid = `${entry?.uuid ?? ''}`.trim();
+		const statusId = `${entry?.statusId ?? ''}`.trim();
+		if (!uuid || !statusId) continue;
+		const key = `${uuid}::${statusId}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		entries.push({ uuid, statusId, active: !!entry?.active });
+	}
+	if (!entries.length) return;
+	return ac5eQueue.add(() => statusToggles(entries));
+}
+
 export async function _gmCombatCadenceUpdate({ combatUuid, state } = {}) {
 	if (!game.user?.isGM) return false;
 	if (!combatUuid || !state) return false;
@@ -199,6 +225,22 @@ async function documentUpdates(entries) {
 				else await doc.update(updates);
 			} catch (err) {
 				console.error(`${Constants.GM_DOCUMENT_UPDATES} failed to update ${uuid}:`, err);
+			}
+		}),
+	);
+}
+
+async function statusToggles(entries) {
+	const mapped = entries.map(({ uuid, statusId, active }) => ({ uuid, statusId, active: !!active, doc: _safeFromUuidSync(uuid) }));
+	await Promise.all(
+		mapped.map(async ({ uuid, statusId, active, doc }) => {
+			if (!(doc instanceof Actor) || typeof doc.toggleStatusEffect !== 'function') {
+				return { uuid, status: 'error', error: 'Actor not found' };
+			}
+			try {
+				await doc.toggleStatusEffect(statusId, { active });
+			} catch (err) {
+				console.error(`${Constants.GM_STATUS_TOGGLES} failed to toggle ${statusId} on ${uuid}:`, err);
 			}
 		}),
 	);

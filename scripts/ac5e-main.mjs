@@ -2,7 +2,7 @@ import { _autoArmor, _activeModule, _buildFlagRegistry, _generateAC5eFlags, _get
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _renderHijack, _renderSettings, _rollFunctions } from './ac5e-hooks.mjs';
 import { _migrate } from './ac5e-migrations.mjs';
-import { _gmCombatCadenceUpdate, _gmContextKeywordsUpdate, _gmDocumentUpdates, _gmEffectDeletions, _gmUsageRulesUpdate } from './ac5e-queries.mjs';
+import { _gmCombatCadenceUpdate, _gmContextKeywordsUpdate, _gmDocumentUpdates, _gmEffectDeletions, _gmStatusToggles, _gmUsageRulesUpdate } from './ac5e-queries.mjs';
 import { _initStatusEffectsTables, _syncCombatCadenceFlags } from './ac5e-setpieces.mjs';
 import { autoRanged, canSee, checkNearby, checkRanged, overtimeHazards } from './ac5e-systemRules.mjs';
 import { registerEffectValueEditorHooks } from './apps/ac5e-effect-value-sheet-hooks.mjs';
@@ -256,6 +256,7 @@ function initializeSandbox() {
 function registerQueries() {
 	CONFIG.queries[Constants.MODULE_ID] = {};
 	CONFIG.queries[Constants.GM_DOCUMENT_UPDATES] = _gmDocumentUpdates;
+	CONFIG.queries[Constants.GM_STATUS_TOGGLES] = _gmStatusToggles;
 	CONFIG.queries[Constants.GM_EFFECT_DELETIONS] = _gmEffectDeletions;
 	CONFIG.queries[Constants.GM_COMBAT_CADENCE_UPDATE] = _gmCombatCadenceUpdate;
 	CONFIG.queries[Constants.GM_CONTEXT_KEYWORDS_UPDATE] = _gmContextKeywordsUpdate;

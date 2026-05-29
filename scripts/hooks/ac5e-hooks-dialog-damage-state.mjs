@@ -1370,6 +1370,18 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			for (const value of values) {
 				const resolvedValue = resolveEntryOptinScaleValue(value, entry);
 				const { formula: part, type: inlineDamageType, types: inlineDamageTypes } = extractImplicitBonusDamageType(resolvedValue);
+				if (ac5e?.debug?.damageFormulaTrace)
+					console.warn('AC5E TRACE damage bonus entry resolve', {
+						entryId: entry?.id ?? null,
+						entryLabel: entry?.label ?? entry?.name ?? null,
+						mode: entry?.mode ?? null,
+						rawValue: value,
+						resolvedValue,
+						part,
+						inlineDamageType,
+						inlineDamageTypes,
+						criticalOnly: isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage,
+					});
 				if (!part) continue;
 				const criticalOnly = isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage;
 				if (inlineDamageTypes.length > 1) {
@@ -1422,6 +1434,22 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			: pureCriticalStaticSynthetic ? criticalFormulaState.formula
 			: formulaState.formula;
 		const displayState = pureCriticalStaticSynthetic ? criticalFormulaState : formulaState;
+		if (ac5e?.debug?.damageFormulaTrace)
+			console.warn('AC5E TRACE synthetic bonus roll build', {
+				key,
+				baseParts,
+				criticalParts,
+				baseFormula,
+				baseCriticalFormula,
+				formulaState: formulaState?.formula ?? null,
+				criticalFormulaState: criticalFormulaState?.formula ?? null,
+				resolvedSyntheticFormula,
+				resolvedSyntheticCriticalFormula,
+				pureCriticalStaticSynthetic,
+				modifierValues,
+				syntheticRollType,
+				syntheticRollTypes,
+			});
 		return {
 			formula: resolvedSyntheticFormula,
 			criticalFormula:
@@ -1564,6 +1592,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const extraDiceMultiplier = extraDiceAdjustments[index]?.multiplier ?? 1;
 		const diceStepTotal = diceStepTotals[index] ?? 0;
 		const criticalStaticParts = [];
+		const traceDiceTerms = [];
 		let nextFormula = resolvedFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const baseCount = parseInt(count, 10);
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
@@ -1578,14 +1607,53 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${criticalAppliedModifiers}${extremeModifier}`;
 				criticalStaticParts.push(criticalDiceTerm);
 			}
+			if (ac5e?.debug?.damageFormulaTrace) {
+				traceDiceTerms.push({
+					match,
+					baseCount,
+					newCount,
+					sides,
+					shiftedSides,
+					suffix,
+					advDis,
+					diceStepTotal,
+					extraDiceAdditive,
+					extraDiceMultiplier,
+					extraDiceCriticalStaticAdditive,
+					extraDiceCriticalStaticMultiplier,
+					diceTerm,
+				});
+			}
 			return diceTerm;
 		});
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) criticalBonusDamage = applyFormulaOperatorToAllTerms(criticalBonusDamage, op);
+		if (ac5e?.debug?.damageFormulaTrace)
+			console.warn('AC5E TRACE roll formula build', {
+				index,
+				originalFormula: formula,
+				resolvedFormula,
+				formulaWithOptins,
+				nextFormula,
+				criticalBonusDamage,
+				optinBonusParts,
+				criticalBonusParts: criticalBonusPartsByRoll[index] ?? [],
+				extraDice: extraDiceAdjustments[index] ?? {},
+				diceStepTotal,
+				formulaOperators: formulaOperatorTokensByRoll[index] ?? [],
+				traceDiceTerms,
+			});
 		criticalBonusDamageByRoll[index] = criticalBonusDamage;
 		return nextFormula;
 	});
+	if (ac5e?.debug?.damageFormulaTrace)
+		console.warn('AC5E TRACE damage formula summary', {
+			originals,
+			modified: getConfigAC5E?.preservedInitialData?.modified ?? [],
+			appendedBonusRolls,
+			criticalBonusDamageByRoll,
+		});
 	for (const entry of appendedBonusRolls) criticalBonusDamageByRoll.push(entry.criticalFormula ?? '');
 	const suffixChanged = !areStringArraysEqual(activeModifiersArray, suffixesByRoll);
 	const additiveChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceArray[index] !== adj.additive);

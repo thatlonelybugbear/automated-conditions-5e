@@ -1,5 +1,15 @@
 ## 14.533.2
 
+- The AC5E Effect Value Editor is now always available, but it can be disabled via a checkbox in the module's settings.
+- The effect editor now offers a structured helper for building conditions, bonuses and other common AC5E effect value patterns.
+  - This is a work in progress and user feedback is very welcome to help guide future improvements and prioritization.
+  - The editor is designed to be used alongside the existing raw string editor, so you can switch between them as needed and the structured editor will preserve your raw edits instead of overwriting them.
+  - Common AC5E keywords are suggested as you type in the editor, and also as clickable chips in the structured editor view.
+  - Most common data paths are being sourced from some SRD 5.2 compendium actors during the module's initialization, so a good baseline of suggestions should be available in the editor.
+- `flags.automated-conditions-5e.ACTIONTYPE.update` now supports actor status toggles as direct targets.
+  - You can now target paths like `rollingActor.statuses.<statusId>` or `opponentActor.statuses.<statusId>`.
+  - Use `1` to apply a status and `-1` to remove it.
+  - Status update targets are also included in update-field autocomplete suggestions.
 - Added `d20` as a valid AC5E flag and usage-rule hook.
   - `flags.automated-conditions-5e.d20.advantage`, for example, can now be used to apply AC5E rules and conditions to any d20 roll family, including initiative.
 - Initiative rolls now use the same d20 dialog-state and opt-in handling as attack, save, and check rolls.
