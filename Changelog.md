@@ -6,8 +6,8 @@
   - The editor is designed to be used alongside the existing raw string editor, so you can switch between them as needed and the structured editor will preserve your raw edits instead of overwriting them.
   - Common AC5E keywords are suggested as you type in the editor, and also as clickable chips in the structured editor view.
   - Most common data paths are being sourced from some SRD 5.2 compendium actors during the module's initialization, so a good baseline of suggestions should be available in the editor.
-- `flags.automated-conditions-5e.ACTIONTYPE.update` now supports actor status toggles as direct targets.
-  - You can now target paths like `rollingActor.statuses.<statusId>` or `opponentActor.statuses.<statusId>`.
+- `flags.automated-conditions-5e.ACTIONTYPE.info` now supports actor status toggles as direct targets.
+  - You can now target paths like `update=rollingActor.statuses.<statusId>,1` or `update=opponentActor.statuses.<statusId>,-1`.
   - Use `1` to apply a status and `-1` to remove it.
   - Status update targets are also included in update-field autocomplete suggestions.
 - Added `d20` as a valid AC5E flag and usage-rule hook.
@@ -62,8 +62,8 @@
   - `effectDescription` now resolves to `effect.description` instead of being treated as a literal string.
   - Embedded document references in descriptions are enriched asynchronously before tooltip text is applied.
 - Added AC5E stylesheet paths to module hot-reload configuration so CSS/layout tweaks update immediately during development.
-- Reworked RSReforged compatibility integration to use the new RSReforged post-render hook surface for chat content updates.
-  - AC5E tooltip re-application now runs on RSReforged re-renders for relevant roll actions.
+- Reworked RSReforged (v4.6.0+ and treated as Work In Progress) compatibility integration to use the new RSReforged post-render hook surface for chat content updates.
+  - AC5E tooltip re-application now runs on RSReforged re-renders for relevant roll actions (works currently for Ability d20 rolls).
   - AC5E now forces roll dialog configuration on for RSReforged too, when relevant opt-ins are available while fast-forward is enabled (also applies to Midi-driven rolls).
 - Refined `addTo` scope handling in roll-dialog damage processing.
   - Scope guide: `addTo=base` targets only the original/base damage roll parts; `addTo=bonus` targets only appended/synthetic bonus parts; `addTo=all` targets both base and bonus parts.
