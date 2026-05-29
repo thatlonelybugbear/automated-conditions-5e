@@ -13,8 +13,6 @@ const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
 	'item.actionType',
 	'item.attackMode',
 	'item.mastery',
-	'item.damageTypes',
-	'item.defaultDamageType',
 	'activity.actionType',
 	'activity.damageTypes',
 	'activity.defaultDamageType',
@@ -22,8 +20,6 @@ const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
 	'originItem.actionType',
 	'originItem.attackMode',
 	'originItem.mastery',
-	'originItem.damageTypes',
-	'originItem.defaultDamageType',
 	'originActivity.actionType',
 	'originActivity.damageTypes',
 	'originActivity.defaultDamageType',
@@ -81,6 +77,43 @@ const COMPUTED_ROLL_AWARE_ENTRIES = new Set([
 	'attackRollD20',
 	'attackRollOverAC',
 ]);
+const AC5E_USESCOUNT_BASE_ENTRIES = [
+	'origin',
+	'hp',
+	'hpTemp',
+	'hpMax',
+	'hd',
+	'inspiration',
+	'exhaustion',
+	'death.fail',
+	'death.success',
+	'rollingActor',
+	'opponentActor',
+	'auraActor',
+	'effectActor',
+	'nonEffectActor',
+	'effectOriginActor',
+	'Item.<itemId>',
+	'Item.<itemId>.Activity.<activityId>',
+];
+const AC5E_UPDATE_BASE_ENTRIES = [
+	'item',
+	'activity',
+	'originItem',
+	'originActivity',
+	'rollingActor',
+	'opponentActor',
+	'auraActor',
+	'effectActor',
+	'nonEffectActor',
+	'effectOriginActor',
+	'tokenId',
+	'tokenUuid',
+	'actorId',
+	'actorUuid',
+	'opponentId',
+	'opponentUuid',
+];
 
 export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 	static openEditors = new Map();
@@ -134,10 +167,24 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				const input = this.activeAutocompleteInput;
 				if (!input) return;
-				replaceAutocompletePrefix(input, prefix ?? '', identifier);
+				const replacement = this.#resolveAutocompleteSelectionInsertion(identifier);
+				replaceAutocompletePrefix(input, prefix ?? '', replacement);
 				input.focus();
 			},
 		});
+	}
+
+	#resolveAutocompleteSelectionInsertion(identifier) {
+		const value = `${identifier ?? ''}`.trim();
+		if (!value) return value;
+		if (!/^[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*$/.test(value)) return value;
+		if (value.endsWith('.')) return value;
+		for (const entry of this.autocompleteEntries ?? []) {
+			const candidate = `${entry?.identifier ?? ''}`.trim();
+			if (!candidate || candidate === value) continue;
+			if (candidate.startsWith(`${value}.`)) return `${value}.`;
+		}
+		return value;
 	}
 
 	static open(args = {}, options = {}) {
@@ -166,6 +213,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const primaryLayout = buildPrimaryLayout(profile, parsed, this.id, {
 			setMode,
 			conditionsLabel: 'Condition',
+			changeKey,
 		});
 		return {
 			...context,
@@ -272,6 +320,23 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		for (const button of htmlElement?.querySelectorAll('[data-ac5e-expand-input]:not([data-ac5e-expand-ready])') ?? []) {
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
+		}
+		for (const button of htmlElement?.querySelectorAll('[data-ac5e-inline-override]:not([data-ac5e-inline-override-ready])') ?? []) {
+			button.dataset.ac5eInlineOverrideReady = 'true';
+			button.addEventListener('click', (event) => {
+				event.preventDefault();
+				const target = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+				const value = `${target?.dataset?.ac5eInlineOverride ?? ''}`.trim();
+				if (!value) return;
+				const input = htmlElement?.querySelector?.('input[name="fields.override"]');
+				if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+				input.value = value;
+				input.dispatchEvent(new Event('input', { bubbles: true }));
+				input.dispatchEvent(new Event('change', { bubbles: true }));
+				for (const chip of htmlElement.querySelectorAll('[data-ac5e-inline-override]')) {
+					chip.classList.toggle('active', chip === target);
+				}
+			});
 		}
 		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
@@ -405,7 +470,35 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const escapedValue = escapeHtml(currentValue);
 		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
 		const assistProfile = getEditorProfile(changeKey, this.draftData ?? null);
-		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura, changeKey });
+		const assistScope = resolveAssistScope(inputName, currentValue, changeKey);
+		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura, changeKey, assistScope });
+		const isOverrideScope = assistScope === 'typeOverride' || assistScope === 'abilityOverride';
+		const dialogWidth = isOverrideScope ? 620 : 920;
+		const assistControls = isOverrideScope
+			?	renderAssistActionFieldset(
+					assistScope === 'typeOverride' ? 'Type Override entries' : 'Ability Override entries',
+					assist.scopedEntries,
+					'ac5e-assist-entry',
+					'entry',
+					assistScope,
+					true,
+				)
+			:	`
+					${renderAssistActionFieldset('Operators', assist.operators, 'ac5e-assist-insert', 'button')}
+					<div class="ac5e-effect-value-assist-groups">
+						${renderAssistEntryGroups(assist)}
+					</div>
+				`;
+		const asideMarkup = isOverrideScope
+			?	''
+			:	`
+					<aside class="ac5e-effect-value-expand-aside">
+						<p class="ac5e-effect-value-assist-title">Lambda Paths <small>(* AC5E addition)</small></p>
+						<div class="ac5e-effect-value-assist-browser" data-ac5e-assist-browser>
+							<div class="ac5e-effect-value-assist-stage" data-ac5e-assist-stage></div>
+						</div>
+					</aside>
+				`;
 		try {
 			const result = await foundry.applications.api.DialogV2.wait({
 				id: appId,
@@ -414,7 +507,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					id: appId,
 				},
 				content: `
-					<form class="ac5e-effect-value-expand-dialog" data-ac5e-lambda-assist>
+					<form class="ac5e-effect-value-expand-dialog" data-ac5e-lambda-assist data-ac5e-assist-scope="${escapeHtml(assistScope)}">
 						<div class="ac5e-effect-value-expand-layout">
 							<section class="ac5e-effect-value-expand-main">
 								<div class="form-group stacked">
@@ -423,20 +516,9 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 										<textarea id="ac5e-expand-value" name="value" rows="12">${escapedValue}</textarea>
 									</div>
 								</div>
-								${renderAssistActionFieldset('Operators', assist.operators, 'ac5e-assist-insert', 'button')}
-								<div class="ac5e-effect-value-assist-groups">
-									${renderAssistActionFieldset('Actor entries', assist.actorEntryButtons, 'ac5e-assist-root-insert', 'entry', '', true)}
-									${renderAssistActionFieldset('Item/Activity entries', assist.itemActivityEntryButtons, 'ac5e-assist-root-insert', 'entry', '', true)}
-								${assist.rollAwareEntries.length ? renderAssistActionFieldset('Roll-aware entries', assist.rollAwareEntries, 'ac5e-assist-entry', 'entry', 'sandbox', true) : ''}
-								${renderAssistActionFieldset('Sandbox entries', assist.sandboxEntries, 'ac5e-assist-entry', 'entry', 'sandbox', true)}
-							</div>
+								${assistControls}
 							</section>
-							<aside class="ac5e-effect-value-expand-aside">
-								<p class="ac5e-effect-value-assist-title">Lambda Paths <small>(* AC5E addition)</small></p>
-								<div class="ac5e-effect-value-assist-browser" data-ac5e-assist-browser>
-									<div class="ac5e-effect-value-assist-stage" data-ac5e-assist-stage></div>
-								</div>
-							</aside>
+							${asideMarkup}
 						</div>
 					</form>
 				`,
@@ -456,7 +538,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					},
 				],
 				position: {
-					width: 920,
+					width: dialogWidth,
 				},
 				render: (_event, dialog) => {
 					const textarea = dialog.element.querySelector('textarea[name="value"]');
@@ -607,6 +689,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isAura = normalized.includes('.aura.');
 	const isCriticalThreshold = normalized.endsWith('.criticalthreshold') || normalized.endsWith('.critthreshold');
 	const isFumbleThreshold = normalized.endsWith('.fumblethreshold');
+	const isAbilityOverride = normalized.endsWith('.abilityoverride');
 	const isTypeOverride = normalized.endsWith('.typeoverride');
 	const isModifier = normalized.endsWith('.modifier') || normalized.endsWith('.modifiers') || normalized.includes('.modifier.');
 	const isTargetADC = normalized.endsWith('.modifyac') || normalized.endsWith('.modifydc');
@@ -621,6 +704,7 @@ function getEditorProfile(changeKey, parsed) {
 	const requiredFields = [];
 	const auraFields = [];
 	if (isBonus) requiredFields.push('bonus');
+	if (isAbilityOverride) requiredFields.push('override');
 	if (isTypeOverride) requiredFields.push('override');
 	if (isTargetADC) requiredFields.push('set');
 	if (isModifier) requiredFields.push('modifier');
@@ -682,15 +766,18 @@ function dedupe(values) {
 	return [...new Set(values)];
 }
 
-function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false } = {}) {
+function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, changeKey = '' } = {}) {
+	const inlineOverrideEntries = getInlineOverrideEntries(changeKey, parsed?.fields?.override ?? '');
 	return [
 		...profile.requiredFields.map((name) => ({
 		name,
 		label: profile.supportsSetMode && name === 'bonus' ? 'Bonus / Set' : name === 'bonus' ? 'Bonus' : labelForField(name),
 		value: profile.supportsSetMode && name === 'bonus' ? parsed.fields[setMode ? 'set' : 'bonus'] ?? '' : parsed.fields[name] ?? '',
 		inputId: `ac5e-value-${name}-${id}`,
-		expandable: true,
-		fullRow: false,
+		expandable: name === 'override' && inlineOverrideEntries.length ? false : true,
+		inlineOverrideEntries: name === 'override' ? inlineOverrideEntries : [],
+		hasInlineOverrideEntries: name === 'override' && inlineOverrideEntries.length > 0,
+		fullRow: name === 'override' && inlineOverrideEntries.length > 0,
 		inlineToggle: profile.supportsSetMode && name === 'bonus' ? {
 			name: 'ui.setMode',
 			label: 'Set',
@@ -710,8 +797,8 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false } = {
 	];
 }
 
-function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLabel = 'Condition' } = {}) {
-	const renderedPrimaryFields = buildRenderedPrimaryFields(profile, parsed, id, { setMode });
+function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLabel = 'Condition', changeKey = '' } = {}) {
+	const renderedPrimaryFields = buildRenderedPrimaryFields(profile, parsed, id, { setMode, changeKey });
 	const radiusField = renderedPrimaryFields.find((field) => field.name === 'radius') ?? null;
 	const mainFields = renderedPrimaryFields.filter((field) => field.name !== 'radius');
 	return {
@@ -769,7 +856,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState) {
 	};
 }
 
-function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '' } = {}) {
+function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '', assistScope = 'default' } = {}) {
 	const entryRecords = (entries ?? []).filter((entry) => typeof entry?.identifier === 'string' && entry.identifier.trim());
 	const uniqueIdentifiers = dedupe(entryRecords.map((entry) => entry.identifier));
 	const allEntryPoints = [
@@ -810,9 +897,10 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier));
 	const contextualFallbacks = getContextSandboxFallbackEntries(changeKey);
 	const contextualIdentifiers = dedupe([...compatibilityFiltered, ...contextualFallbacks]);
-	const isD20Context = isD20AssistContext(changeKey);
-	const rollAwareEntries = dedupe(contextualIdentifiers.filter((identifier) => ROLL_AWARE_ENTRIES.has(identifier))).sort((a, b) => a.localeCompare(b));
-	const sandboxEntries = dedupe(contextualIdentifiers.filter((identifier) => !ROLL_AWARE_ENTRIES.has(identifier))).sort((a, b) => a.localeCompare(b));
+	const rollAwareEntries = dedupe(contextualIdentifiers.filter((identifier) => isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
+	const sandboxEntries = dedupe(contextualIdentifiers.filter((identifier) => !isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
+	const actorContextEntries = sandboxEntries.filter((identifier) => classifyContextEntry(identifier) === 'actor');
+	const itemActivityContextEntries = sandboxEntries.filter((identifier) => classifyContextEntry(identifier) === 'item-activity');
 	const pathsByRoot = Object.fromEntries(entryPoints.map((entry) => {
 		const fromEntries = uniqueIdentifiers
 			.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
@@ -820,10 +908,15 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 		return [entry.value, dedupe(fromEntries)];
 	}));
 	addAssistFallbackPaths(pathsByRoot);
+	addEnumAliasRoots(pathsByRoot);
 	const treesByRoot = Object.fromEntries(entryPoints.map((entry) => [
 		entry.value,
 		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES),
 	]));
+	for (const root of ['damageTypes', 'defaultDamageType', 'itemProperties']) {
+		if (!Array.isArray(pathsByRoot[root])) continue;
+		treesByRoot[root] = buildAssistPathTree(root, pathsByRoot[root], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES);
+	}
 	const enumValues = {
 		actorTypes: dedupe([
 			...(Array.isArray(game?.system?.documentTypes?.Actor) ? game.system.documentTypes.Actor : []),
@@ -835,10 +928,7 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 			...Object.keys(CONFIG?.Item?.typeLabels ?? {}),
 		].map((value) => String(value ?? '').trim()).filter(Boolean)),
 		activityTypes: Object.keys(CONFIG?.DND5E?.activityTypes ?? {}).filter(Boolean),
-		actionTypes: dedupe([
-			...Object.keys(CONFIG?.DND5E?.itemActionTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.attackTypes ?? {}),
-		].filter(Boolean)),
+		actionTypes: ['mwak', 'rwak', 'msak', 'rsak'],
 		attackModes: Object.keys(CONFIG?.DND5E?.attackModes ?? {}).filter(Boolean),
 		masteries: Object.keys(CONFIG?.DND5E?.weaponMasteries ?? {}).filter(Boolean),
 		itemProperties: Object.keys(CONFIG?.DND5E?.itemProperties ?? {}).filter(Boolean),
@@ -847,6 +937,7 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 		tools: Object.keys(CONFIG?.DND5E?.tools ?? {}).filter(Boolean),
 		damageTypes: Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).filter(Boolean),
 		healingTypes: Object.keys(CONFIG?.DND5E?.healingTypes ?? {}).filter(Boolean),
+		statuses: getStatusEffectIds(),
 		baseItems: dedupe([
 			...Object.keys(CONFIG?.DND5E?.weaponIds ?? {}),
 			...Object.keys(CONFIG?.DND5E?.armorIds ?? {}),
@@ -854,9 +945,62 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 			...Object.keys(CONFIG?.DND5E?.ammoIds ?? {}),
 		].filter(Boolean)),
 	};
-	const contextRollAwareEntries = isD20Context ? filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey) : [];
-	const allEntryButtons = dedupe([...contextRollAwareEntries, ...sandboxEntries]).sort((a, b) => a.localeCompare(b));
-	return { entryPoints, actorEntryButtons, itemActivityEntryButtons, operators, rollAwareEntries: contextRollAwareEntries, sandboxEntries, allEntryButtons, pathsByRoot, treesByRoot, enumValues };
+	const contextRollAwareEntries = filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey);
+	const scopedEntries = buildScopedAssistEntries(assistScope, entries);
+	const scopedBrowser = scopedEntries.length ? buildScopedBrowserData(scopedEntries) : null;
+	const resolvedEntryPoints = scopedBrowser?.entryPoints ?? entryPoints;
+	const resolvedPathsByRoot = scopedBrowser?.pathsByRoot ?? pathsByRoot;
+	const resolvedTreesByRoot = scopedBrowser?.treesByRoot ?? treesByRoot;
+	const allEntryButtons = scopedEntries.length
+		? [...scopedEntries]
+		: dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries]).sort((a, b) => a.localeCompare(b));
+	return {
+		scope: assistScope,
+		entryPoints: resolvedEntryPoints,
+		actorEntryButtons,
+		itemActivityEntryButtons,
+		actorContextEntries,
+		itemActivityContextEntries,
+		operators,
+		rollAwareEntries: contextRollAwareEntries,
+		scopedEntries,
+		allEntryButtons,
+		pathsByRoot: resolvedPathsByRoot,
+		treesByRoot: resolvedTreesByRoot,
+		enumValues,
+	};
+}
+
+function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
+	const normalized = `${changeKey ?? ''}`.trim().toLowerCase();
+	const currentOverride = `${currentOverrideValue ?? ''}`.trim();
+	if (normalized.endsWith('.abilityoverride')) {
+		const abilitiesConfig = CONFIG?.DND5E?.abilities ?? {};
+		const entries = Object.entries(abilitiesConfig)
+			.map(([value, rawLabel]) => {
+				const labelKey =
+					typeof rawLabel === 'string' ? rawLabel
+					: typeof rawLabel?.label === 'string' ? rawLabel.label
+					: '';
+				const directLabel =
+					typeof rawLabel?.label === 'string' && !rawLabel.label.startsWith('DND5E.')
+						? rawLabel.label
+						: '';
+				const localized = labelKey ? game?.i18n?.localize?.(labelKey) : '';
+				return { value, label: directLabel || localized || value };
+			})
+			.filter((entry) => entry.value)
+			.sort((a, b) => a.label.localeCompare(b.label));
+		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride }));
+	}
+	if (normalized.endsWith('.typeoverride')) {
+		const damage = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
+		const healing = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
+		return dedupe([...damage, ...healing].filter(Boolean))
+			.sort((a, b) => a.localeCompare(b))
+			.map((value) => ({ value, label: value, selected: value === currentOverride }));
+	}
+	return [];
 }
 
 function isSandboxAssistIdentifier(entry) {
@@ -901,18 +1045,36 @@ function isNonDamageBonusContext(changeKey) {
 }
 
 function filterRollAwareEntriesForChangeKey(entries, changeKey) {
-	if (!isNonDamageBonusContext(changeKey)) return entries;
-	return entries.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
+	const normalized = `${changeKey ?? ''}`.toLowerCase();
+	let filtered = entries;
+	if (isNonDamageBonusContext(changeKey)) filtered = filtered.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
+	const isAbilityOverrideOrModifyDC = normalized.endsWith('.abilityoverride') || normalized.endsWith('.modifydc');
+	if (isAbilityOverrideOrModifyDC) {
+		filtered = filtered.filter((entry) => ![
+			'hasAdvantage',
+			'hasDisadvantage',
+			'hasTransitAdvantage',
+			'hasTransitDisadvantage',
+		].includes(entry));
+	}
+	return filtered;
+}
+
+function isConditionEntry(identifier) {
+	const value = `${identifier ?? ''}`.trim();
+	if (!value) return false;
+	if (ROLL_AWARE_ENTRIES.has(value)) return true;
+	if (value === 'damageTypes' || value === 'defaultDamageType') return true;
+	return value.startsWith('is') || value.startsWith('has') || value.startsWith('can');
 }
 
 function getContextSandboxFallbackEntries(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
-	if (!normalized) return [];
-	const entries = [];
+	const entries = ['ability'];
+	if (!normalized) return entries;
 	const isRollLike = isD20AssistContext(normalized);
 	if (isRollLike) {
 		entries.push(
-			'ability',
 			'skill',
 			'tool',
 			'hasProficiency',
@@ -949,14 +1111,145 @@ function getContextSandboxFallbackEntries(changeKey) {
 	return dedupe(entries);
 }
 
+function resolveAssistScope(inputName, currentValue, changeKey = '') {
+	const fieldName = `${inputName ?? ''}`.trim().toLowerCase();
+	if (fieldName === 'fields.usescount') return 'usesCount';
+	const normalizedKey = `${changeKey ?? ''}`.trim().toLowerCase();
+	if (fieldName === 'fields.override') {
+		if (normalizedKey.endsWith('.typeoverride')) return 'typeOverride';
+		if (normalizedKey.endsWith('.abilityoverride')) return 'abilityOverride';
+	}
+	if (fieldName === 'fields.addto') return 'addTo';
+	const raw = `${currentValue ?? ''}`.toLowerCase();
+	if (/(?:^|[;\s])usescount\s*[:=]/.test(raw)) return 'usesCount';
+	if (/(?:^|[;\s])update\s*[:=]/.test(raw)) return 'update';
+	return 'default';
+}
+
+function buildScopedAssistEntries(scope, entries) {
+	if (scope === 'usesCount') return buildUsesCountScopedEntries(entries);
+	if (scope === 'update') return buildUpdateScopedEntries(entries);
+	if (scope === 'typeOverride') return buildTypeOverrideScopedEntries();
+	if (scope === 'abilityOverride') return buildAbilityOverrideScopedEntries();
+	if (scope === 'addTo') return buildAddToScopedEntries();
+	return [];
+}
+
+function buildTypeOverrideScopedEntries() {
+	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
+	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
+	return dedupe([...damageTypes, ...healingTypes].map((entry) => `${entry ?? ''}`.trim()).filter(Boolean)).sort((a, b) => a.localeCompare(b));
+}
+
+function buildAbilityOverrideScopedEntries() {
+	return Object.keys(CONFIG?.DND5E?.abilities ?? {})
+		.map((entry) => `${entry ?? ''}`.trim())
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+}
+
+function buildAddToScopedEntries() {
+	const baseModes = ['base', 'all'];
+	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
+	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
+	const combinedTypes = dedupe([...damageTypes, ...healingTypes].map((entry) => `${entry ?? ''}`.trim()).filter(Boolean)).sort((a, b) => a.localeCompare(b));
+	const multiExamples = buildCommaTypeExamples(combinedTypes);
+	return dedupe([...baseModes, ...combinedTypes, ...multiExamples]).sort((a, b) => a.localeCompare(b));
+}
+
+function buildCommaTypeExamples(values) {
+	const list = values.filter(Boolean);
+	if (list.length < 2) return [];
+	const examples = [];
+	const first = list[0];
+	const second = list[1];
+	if (first && second) examples.push(`${first},${second}`);
+	const physical = list.filter((value) => ['bludgeoning', 'piercing', 'slashing'].includes(value));
+	if (physical.length >= 2) examples.push(physical.slice(0, 2).join(','));
+	const elemental = list.filter((value) => ['acid', 'cold', 'fire', 'lightning', 'thunder'].includes(value));
+	if (elemental.length >= 2) examples.push(elemental.slice(0, 2).join(','));
+	return dedupe(examples);
+}
+
+function buildUsesCountScopedEntries(entries) {
+	const resources = (CONFIG?.DND5E?.consumableResources ?? [])
+		.map((entry) => `${entry ?? ''}`.trim())
+		.filter(Boolean);
+	const abilityValues = Object.keys(CONFIG?.DND5E?.abilities ?? {}).map((ability) => `abilities.${ability}.value`);
+	const collected = collectMatchingIdentifiers(entries, [
+		'rollingActor.',
+		'opponentActor.',
+		'auraActor.',
+		'effectActor.',
+		'nonEffectActor.',
+		'effectOriginActor.',
+		'flags.',
+	]);
+	return dedupe([...AC5E_USESCOUNT_BASE_ENTRIES, ...resources, ...abilityValues, ...collected]).sort((a, b) => a.localeCompare(b));
+}
+
+function buildUpdateScopedEntries(entries) {
+	const resources = (CONFIG?.DND5E?.consumableResources ?? [])
+		.map((entry) => `${entry ?? ''}`.trim())
+		.filter(Boolean);
+	const collected = collectMatchingIdentifiers(entries, [
+		'rollingActor.',
+		'opponentActor.',
+		'auraActor.',
+		'effectActor.',
+		'nonEffectActor.',
+		'effectOriginActor.',
+		'item.',
+		'activity.',
+		'originItem.',
+		'originActivity.',
+	]);
+	return dedupe([...AC5E_UPDATE_BASE_ENTRIES, ...resources, ...collected]).sort((a, b) => a.localeCompare(b));
+}
+
+function collectMatchingIdentifiers(entries, prefixes) {
+	const scoped = [];
+	for (const entry of entries ?? []) {
+		const identifier = `${entry?.identifier ?? ''}`.trim();
+		if (!identifier) continue;
+		if (prefixes.some((prefix) => identifier.startsWith(prefix))) scoped.push(identifier);
+	}
+	return scoped;
+}
+
+function buildScopedBrowserData(scopedEntries) {
+	const groups = new Map();
+	for (const entry of scopedEntries ?? []) {
+		const identifier = `${entry ?? ''}`.trim();
+		if (!identifier) continue;
+		const root = identifier.includes('.') ? identifier.split('.')[0] : 'keywords';
+		if (!groups.has(root)) groups.set(root, new Set([root]));
+		const set = groups.get(root);
+		if (root === 'keywords' && !identifier.includes('.')) set.add(`keywords.${identifier}`);
+		else set.add(identifier);
+	}
+	const entryPoints = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b)).map((root) => ({ label: root, value: root }));
+	const pathsByRoot = Object.fromEntries(Array.from(groups.entries()).map(([root, set]) => [root, Array.from(set).sort((a, b) => a.localeCompare(b))]));
+	const treesByRoot = Object.fromEntries(entryPoints.map((entry) => [
+		entry.value,
+		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES),
+	]));
+	return { entryPoints, pathsByRoot, treesByRoot };
+}
+
 function addAssistFallbackPaths(pathsByRoot) {
 	const actorRoots = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
-	const actorFallbacks = ['abilities', 'skills', 'tools', 'actionType', 'damageTypes'];
+	const actorFallbacks = ['abilities', 'skills', 'tools', 'actionType', 'damageTypes', 'effects', 'statuses'];
+	const statusIds = getStatusEffectIds();
 	for (const root of actorRoots) {
 		const paths = pathsByRoot?.[root];
 		if (!Array.isArray(paths)) continue;
 		for (const suffix of actorFallbacks) {
 			const path = `${root}.${suffix}`;
+			if (!paths.includes(path)) paths.push(path);
+		}
+		for (const id of statusIds) {
+			const path = `${root}.statuses.${id}`;
 			if (!paths.includes(path)) paths.push(path);
 		}
 	}
@@ -971,21 +1264,22 @@ function addAssistFallbackPaths(pathsByRoot) {
 	for (const root of ['item', 'originItem']) {
 		const paths = pathsByRoot?.[root];
 		if (!Array.isArray(paths)) continue;
-		for (const suffix of ['itemType', 'attackMode', 'mastery', 'itemProperties', 'actionType', 'damageTypes', 'defaultDamageType']) {
+		for (const suffix of ['itemType', 'attackMode', 'mastery', 'itemProperties', 'actionType']) {
 			const path = `${root}.${suffix}`;
 			if (!paths.includes(path)) paths.push(path);
 		}
 	}
-	for (const root of ['item', 'originItem', 'activity', 'originActivity']) {
-		const paths = pathsByRoot?.[root];
-		if (!Array.isArray(paths)) continue;
-		const damageKeys = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
-		const healingKeys = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
-		for (const key of dedupe([...damageKeys, ...healingKeys])) {
-			const path = `${root}.damageTypes.${key}`;
-			if (!paths.includes(path)) paths.push(path);
-		}
-	}
+}
+
+function addEnumAliasRoots(pathsByRoot) {
+	if (!pathsByRoot || typeof pathsByRoot !== 'object') return;
+	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
+	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
+	const combinedDamage = dedupe([...damageTypes, ...healingTypes].filter(Boolean)).sort((a, b) => a.localeCompare(b));
+	const itemProps = Object.keys(CONFIG?.DND5E?.itemProperties ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
+	pathsByRoot.damageTypes = ['damageTypes', ...combinedDamage.map((entry) => `damageTypes.${entry}`)];
+	pathsByRoot.defaultDamageType = ['defaultDamageType', ...combinedDamage.map((entry) => `defaultDamageType.${entry}`)];
+	pathsByRoot.itemProperties = ['itemProperties', ...itemProps.map((entry) => `itemProperties.${entry}`)];
 }
 
 function renderAssistActionFieldset(title, values, dataAttribute, kind = 'button', section = '', compact = false) {
@@ -1015,6 +1309,82 @@ function renderAssistActionFieldset(title, values, dataAttribute, kind = 'button
 	`;
 }
 
+function renderAssistCombinedFieldset(title, rootValues, entryValues, section = '', compact = false) {
+	const rootItems = (rootValues ?? [])
+		.map((value) => {
+			const entry = `${value ?? ''}`.trim();
+			if (!entry) return '';
+			return `<button type="button" class="ac5e-effect-value-assist-chip" data-ac5e-assist-root-insert="${escapeHtml(entry)}">${escapeHtml(entry)}</button>`;
+		})
+		.filter(Boolean);
+	const entryItems = (entryValues ?? [])
+		.map((value) => {
+			const entry = `${value ?? ''}`.trim();
+			if (!entry) return '';
+			return `<button type="button" class="ac5e-effect-value-assist-chip" data-ac5e-assist-entry="${escapeHtml(entry)}">${escapeHtml(entry)}</button>`;
+		})
+		.filter(Boolean);
+	const items = [...rootItems, ...entryItems].join('');
+	const content = items || '<p class="ac5e-effect-value-assist-empty">No entries</p>';
+	const listAttr = section ? ` data-ac5e-assist-entry-list="${escapeHtml(section)}"` : '';
+	return `
+		<fieldset class="ac5e-effect-value-assist-fieldset${compact ? ' ac5e-effect-value-assist-fieldset-compact' : ''}">
+			<legend>${escapeHtml(title)}</legend>
+			<div class="ac5e-effect-value-assist-chip-list"${listAttr}>
+				${content}
+			</div>
+		</fieldset>
+	`;
+}
+
+function renderAssistEntryGroups(assist) {
+	if (assist?.scope === 'usesCount') {
+		return renderAssistActionFieldset('UsesCount entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'usesCount', true);
+	}
+	if (assist?.scope === 'update') {
+		return renderAssistActionFieldset('Update entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'update', true);
+	}
+	if (assist?.scope === 'typeOverride') {
+		return renderAssistActionFieldset('Type Override entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'type-override', true);
+	}
+	if (assist?.scope === 'abilityOverride') {
+		return renderAssistActionFieldset('Ability Override entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'ability-override', true);
+	}
+	if (assist?.scope === 'addTo') {
+		return renderAssistActionFieldset('AddTo entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'addto', true);
+	}
+	return `
+		${renderAssistCombinedFieldset('Actor entries', assist.actorEntryButtons, assist.actorContextEntries, 'actor', true)}
+		${renderAssistCombinedFieldset('Item/Activity entries', assist.itemActivityEntryButtons, assist.itemActivityContextEntries, 'item-activity', true)}
+		${renderAssistActionFieldset('Roll-aware entries', assist.rollAwareEntries, 'ac5e-assist-entry', 'entry', 'roll-aware', true)}
+	`;
+}
+
+function classifyContextEntry(identifier) {
+	const value = `${identifier ?? ''}`.trim();
+	if (!value) return 'actor';
+	const actorOnly = [
+		'actorId',
+		'actorUuid',
+		'opponentId',
+		'opponentUuid',
+		'opponentActorId',
+		'opponentActorUuid',
+		'tokenId',
+		'tokenUuid',
+		'isTurn',
+		'isOpponentTurn',
+		'canMove',
+		'canSee',
+		'isSeen',
+	];
+	if (actorOnly.includes(value)) return 'actor';
+	if (value.startsWith('item') || value.startsWith('originItem') || value.startsWith('activity') || value.startsWith('originActivity')) return 'item-activity';
+	const itemActivityKeys = ['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isSpell', 'isCantrip', 'isAoE'];
+	if (itemActivityKeys.includes(value)) return 'item-activity';
+	return 'actor';
+}
+
 function resetAssistBrowserContext(root, assist, selectionState, textarea) {
 	root.dataset.ac5eAssistActiveRoot = '';
 	root.dataset.ac5eAssistChain = '[]';
@@ -1041,11 +1411,6 @@ function prepareLambdaAssist(root, assist) {
 		const key = event.key ?? '';
 		if (key === 'Enter') {
 			if (applyFocusedAssistMatch(textarea, root, assist, selectionState)) event.preventDefault();
-			return;
-		}
-		if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowLeft') {
-			const direction = (key === 'ArrowUp' || key === 'ArrowLeft') ? -1 : 1;
-			if (cycleAssistEntryFromInput(textarea, root, assist, direction)) event.preventDefault();
 			return;
 		}
 		if (key !== 'Tab' || event.ctrlKey || event.metaKey) return;
@@ -1077,6 +1442,11 @@ function prepareLambdaAssist(root, assist) {
 		button.addEventListener('click', () => {
 			const value = (button.dataset.ac5eAssistEntry ?? '').trim();
 			if (!value) return;
+			const assistScope = `${root.dataset.ac5eAssistScope ?? ''}`.trim();
+			if (assistScope === 'typeOverride' || assistScope === 'abilityOverride') {
+				insertDelimitedAssistEntry(textarea, value, selectionState);
+				return;
+			}
 			const insertion = resolveAssistEntryInsertion(value);
 			replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
 		});
@@ -1173,10 +1543,10 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	}
 	const tree = assist?.treesByRoot?.[activeRoot];
 	const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
-	const allNodes = parentNode?.children ?? [];
-	const filterText = (root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
-	const nodes = filterText ? allNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : allNodes;
 	const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
+	const stageNodes = getAssistStageNodes(parentNode, headerPath);
+	const filterText = (root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
+	const nodes = filterText ? stageNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : stageNodes;
 	const activePath = root.dataset.ac5eAssistActivePath ?? '';
 	const fallbackPath =
 		nodes.length === 1 ? nodes[0]?.path
@@ -1200,9 +1570,14 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	});
 	for (const nodeButton of container.querySelectorAll('[data-ac5e-assist-node]')) {
 		const nodePath = nodeButton.dataset.ac5eAssistNode ?? '';
-		const node = findTreeNodeByPath(tree, nodePath);
+		const node = findTreeNodeByPath(tree, nodePath) ?? nodes.find((candidate) => candidate?.path === nodePath) ?? null;
 		nodeButton.addEventListener('click', () => {
 			if (!node) return;
+			if (node.isVirtualArrayMethod) {
+				replaceTokenAtCursorOrInsert(textarea, node.insertion ?? '', selectionState);
+				resetAssistBrowserContext(root, assist, selectionState, textarea);
+				return;
+			}
 			if (node.children?.length) {
 				root.dataset.ac5eAssistChain = JSON.stringify([...chain, node.path]);
 				root.dataset.ac5eAssistFilter = '';
@@ -1212,14 +1587,19 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 			}
 			setAssistActivePath(root, node.path);
 			const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
-			replaceTokenAtCursorOrInsert(textarea, `${insertionPath} `, selectionState);
+			replaceTokenAtCursorOrInsert(textarea, `${insertionPath}${insertionPath.endsWith('.') ? '' : ' '}`, selectionState);
 			resetAssistBrowserContext(root, assist, selectionState, textarea);
 		});
 		nodeButton.addEventListener('dblclick', () => {
 			if (!node?.terminal) return;
+			if (node.isVirtualArrayMethod) {
+				replaceTokenAtCursorOrInsert(textarea, node.insertion ?? '', selectionState);
+				resetAssistBrowserContext(root, assist, selectionState, textarea);
+				return;
+			}
 			setAssistActivePath(root, node.path);
 			const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
-			replaceTokenAtCursorOrInsert(textarea, `${insertionPath} `, selectionState);
+			replaceTokenAtCursorOrInsert(textarea, `${insertionPath}${insertionPath.endsWith('.') ? '' : ' '}`, selectionState);
 			resetAssistBrowserContext(root, assist, selectionState, textarea);
 		});
 	}
@@ -1232,17 +1612,43 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	}
 }
 
+function getAssistStageNodes(parentNode, headerPath) {
+	const allNodes = parentNode?.children ?? [];
+	const hasArrayIndexChild = allNodes.some((node) => isNumericPathSegment(node?.label));
+	const arrayLikePath = isLikelyArrayPath(headerPath);
+	const allVisibleNodes = allNodes.filter((node) => !isNumericPathSegment(node?.label));
+	const arrayMethodNodes = (hasArrayIndexChild || arrayLikePath) ? buildArrayMethodAssistNodes(headerPath) : [];
+	return [...arrayMethodNodes, ...allVisibleNodes];
+}
+
 function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
 	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
 	const caret = Number(textarea.selectionStart ?? 0);
 	const token = extractAutocompleteToken(textarea.value, caret);
+	const normalizedToken = (token ?? '').trim();
 	if (!token) {
 		if (root.dataset.ac5eAssistActiveRoot) resetAssistBrowserContext(root, assist, selectionState, textarea);
 		return;
 	}
 	const context = resolveAssistInputContext(token, assist, textarea.value, caret, root.dataset.ac5eAssistActiveRoot ?? '');
 	if (!context) {
-		if (root.dataset.ac5eAssistActiveRoot && !token.includes('.')) resetAssistBrowserContext(root, assist, selectionState, textarea);
+		if (isEditorAutocompleteDebugEnabled()) {
+			console.debug('AC5E | autocomplete.editor | unresolved context', {
+				token,
+				caret,
+				activeRoot: root.dataset.ac5eAssistActiveRoot ?? '',
+			});
+		}
+		const activeRoot = `${root.dataset.ac5eAssistActiveRoot ?? ''}`.trim();
+		if (activeRoot && !token.includes('.')) {
+			// Keep the current browse context so short tokens like "len" can match staged nodes (e.g. effects -> length).
+			const nextFilter = normalizedToken;
+			if ((root.dataset.ac5eAssistFilter ?? '') !== nextFilter) {
+				root.dataset.ac5eAssistFilter = nextFilter;
+				renderAssistStage(root, assist, selectionState, textarea);
+			}
+			return;
+		}
 		return;
 	}
 	const nextChain = JSON.stringify(context.chain ?? []);
@@ -1251,11 +1657,22 @@ function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
 	const changed = root.dataset.ac5eAssistActiveRoot !== nextRoot
 		|| (root.dataset.ac5eAssistChain ?? '[]') !== nextChain
 		|| (root.dataset.ac5eAssistFilter ?? '') !== nextFilter;
-	if (!changed) return;
+	if (!changed) {
+		if (normalizedToken.endsWith('.')) renderAssistStage(root, assist, selectionState, textarea);
+		return;
+	}
 	root.dataset.ac5eAssistActiveRoot = nextRoot;
 	root.dataset.ac5eAssistChain = nextChain;
 	root.dataset.ac5eAssistFilter = nextFilter;
 	setAssistActivePath(root, '');
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | context', {
+			token,
+			root: nextRoot,
+			chain: context.chain ?? [],
+			filter: nextFilter,
+		});
+	}
 	renderAssistStage(root, assist, selectionState, textarea);
 }
 
@@ -1281,8 +1698,8 @@ function resolveAssistInputContext(token, assist, fullText = '', caret = 0, acti
 	}
 	const enumPathKey = (segments[0] ?? '').trim();
 	const enumPathRoots = {
-		damageTypes: ['item', 'activity', 'originItem', 'originActivity'],
-		defaultDamageType: ['item', 'activity', 'originItem', 'originActivity'],
+		damageTypes: ['activity', 'originActivity'],
+		defaultDamageType: ['activity', 'originActivity'],
 		actionType: ['activity', 'originActivity', 'item', 'originItem'],
 		attackMode: ['item', 'originItem'],
 		mastery: ['item', 'originItem'],
@@ -1357,13 +1774,20 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 			const chain = parseAssistChain(root.dataset.ac5eAssistChain ?? '[]');
 			const tree = assist.treesByRoot[activeRoot];
 			const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
-			const allNodes = parentNode?.children ?? [];
-			const match = allNodes.find((node) => (node?.label ?? '').toLowerCase().startsWith(normalized.toLowerCase()));
+			const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
+			const stageNodes = getAssistStageNodes(parentNode, headerPath);
+			const match = stageNodes.find((node) => (node?.label ?? '').toLowerCase().startsWith(normalized.toLowerCase()));
 			if (match?.path) {
-				replaceTokenAtCursorOrInsert(textarea, match.path, selectionState);
-				root.dataset.ac5eAssistFilter = '';
-				setAssistActivePath(root, match.path);
-				renderAssistStage(root, assist, selectionState, textarea);
+				const insertion = match.isVirtualArrayMethod ? (match.insertion ?? '') : resolveAssistNodeInsertionPath(textarea, match.path);
+				if (isEditorAutocompleteDebugEnabled()) {
+					console.debug('AC5E | autocomplete.editor | tab path match', {
+						token: normalized,
+						matchPath: match.path,
+						insertion,
+					});
+				}
+				replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
+				syncAssistBrowserFromInput(root, assist, selectionState, textarea);
 				return true;
 			}
 		}
@@ -1375,16 +1799,22 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 	if (!tree) return false;
 	const chain = Array.isArray(context.chain) ? context.chain : [];
 	const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
-	const allNodes = parentNode?.children ?? [];
+	const headerPath = chain.length ? chain[chain.length - 1] : context.root;
+	const stageNodes = getAssistStageNodes(parentNode, headerPath);
 	const filterText = (context.filter ?? '').trim().toLowerCase();
-	const nodes = filterText ? allNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : allNodes;
+	const nodes = filterText ? stageNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : stageNodes;
 	if (!nodes.length) return false;
-	replaceTokenAtCursorOrInsert(textarea, nodes[0].path, selectionState);
-	root.dataset.ac5eAssistActiveRoot = context.root;
-	root.dataset.ac5eAssistChain = JSON.stringify(context.chain ?? []);
-	root.dataset.ac5eAssistFilter = '';
-	setAssistActivePath(root, nodes[0].path);
-	renderAssistStage(root, assist, selectionState, textarea);
+	const insertion = nodes[0].isVirtualArrayMethod ? (nodes[0].insertion ?? '') : resolveAssistNodeInsertionPath(textarea, nodes[0].path);
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | tab fallback match', {
+			token,
+			root: context.root,
+			matchPath: nodes[0].path,
+			insertion,
+		});
+	}
+	replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
+	syncAssistBrowserFromInput(root, assist, selectionState, textarea);
 	return true;
 }
 
@@ -1520,8 +1950,44 @@ function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
 function resolveAssistEntryInsertion(entry) {
 	const value = `${entry ?? ''}`.trim();
 	if (!value) return '';
-	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools'].includes(value)) return `${value}.`;
+	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools', 'statuses'].includes(value)) return `${value}.`;
 	return `${value} `;
+}
+
+function insertDelimitedAssistEntry(input, rawValue, selectionState = null) {
+	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+	const value = `${rawValue ?? ''}`.trim();
+	if (!value) return;
+	const current = `${input.value ?? ''}`.trim();
+	if (!current) {
+		input.value = value;
+		const cursor = value.length;
+		input.focus();
+		input.setSelectionRange(cursor, cursor);
+		if (selectionState) {
+			selectionState.start = cursor;
+			selectionState.end = cursor;
+			selectionState.userMovedCaret = true;
+		}
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		return;
+	}
+	const parts = current
+		.split(',')
+		.map((entry) => entry.trim())
+		.filter(Boolean);
+	if (parts.includes(value)) return;
+	const next = `${parts.join(', ')}, ${value}`;
+	input.value = next;
+	const cursor = next.length;
+	input.focus();
+	input.setSelectionRange(cursor, cursor);
+	if (selectionState) {
+		selectionState.start = cursor;
+		selectionState.end = cursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function applyFocusedAssistRoot(textarea, root, assist, selectionState) {
@@ -1562,7 +2028,8 @@ function getAssistMatchButtonsInUiOrder(root, token, rawToken = '') {
 		}
 		return buttons;
 	}
-	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert], [data-ac5e-assist-entry]')) {
+	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert], [data-ac5e-assist-entry], [data-ac5e-assist-insert]')) {
+		if (button.dataset.ac5eAssistInsert && !shouldIncludeOperatorMatches(rawToken, root, query)) continue;
 		const value = getAssistButtonValue(button).trim();
 		if (!value) continue;
 		if (!assistEntryMatchesToken(value, query)) continue;
@@ -1598,6 +2065,8 @@ function shouldIncludeOperatorMatches(token, root = null, normalizedToken = '') 
 	const raw = `${token ?? ''}`.trim();
 	if (!raw || raw.includes('.')) return false;
 	if (!/[A-Z]/.test(raw)) return false;
+	const first = raw[0] ?? '';
+	if (first !== first.toUpperCase()) return false;
 	if (!(root instanceof HTMLElement)) return true;
 	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
 		if (operatorMatchesToken(button, raw)) return true;
@@ -1667,7 +2136,7 @@ function renderAssistIdleStage() {
 	return `
 		<div class="ac5e-effect-value-assist-toolbar"><span>Root</span></div>
 		<div class="ac5e-effect-value-assist-scroll">
-			<div class="ac5e-effect-value-assist-list"><p class="ac5e-effect-value-assist-empty">Type or select an actor/item root (for example <code>rollingActor.</code>) to browse Lambda Paths.</p></div>
+			<div class="ac5e-effect-value-assist-list"><p class="ac5e-effect-value-assist-empty">Type or select a supported root/path to browse available entries.</p></div>
 		</div>
 	`;
 }
@@ -1702,6 +2171,8 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 function resolveAssistValueChoices(path, enumValues) {
 	const sourcePath = `${path ?? ''}`.trim();
 	if (!sourcePath) return [];
+	if (/^(?:damageTypes|defaultDamageType)$/.test(sourcePath)) return dedupe([...(enumValues?.damageTypes ?? []), ...(enumValues?.healingTypes ?? [])]);
+	if (/^(?:itemProperties)$/.test(sourcePath)) return enumValues?.itemProperties ?? [];
 	if (/\.(?:creatureType)$/.test(sourcePath)) return enumValues?.creatureTypes ?? [];
 	if (/\.(?:damageTypes|defaultDamageType)$/.test(sourcePath)) return dedupe([...(enumValues?.damageTypes ?? []), ...(enumValues?.healingTypes ?? [])]);
 	if (/\.(?:healingTypes)$/.test(sourcePath)) return enumValues?.healingTypes ?? [];
@@ -1711,6 +2182,7 @@ function resolveAssistValueChoices(path, enumValues) {
 	if (/\.(?:attackMode)$/.test(sourcePath)) return enumValues?.attackModes ?? [];
 	if (/\.(?:mastery)$/.test(sourcePath)) return enumValues?.masteries ?? [];
 	if (/\.(?:itemProperties)$/.test(sourcePath)) return enumValues?.itemProperties ?? [];
+	if (/\.(?:statuses)$/.test(sourcePath)) return enumValues?.statuses ?? [];
 	if (/\.(?:abilities)$/.test(sourcePath)) return enumValues?.abilities ?? [];
 	if (/\.(?:skills)$/.test(sourcePath)) return enumValues?.skills ?? [];
 	if (/\.(?:tools)$/.test(sourcePath)) return enumValues?.tools ?? [];
@@ -1728,6 +2200,13 @@ function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState
 	const path = `${valuePath ?? ''}`.trim();
 	const value = `${quotedValue ?? ''}`.trim();
 	if (!path || !value) return insertAtCursor(input, value, selectionState);
+	if (path.endsWith('.itemProperties') || path.endsWith('.originItemProperties') || path.endsWith('.actionType')) {
+		const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
+		const enumPath = `${path}.${normalizedValue}`;
+		if (tryAppendEnumPathClause(input, enumPath, selectionState)) return;
+		if (tryReplaceTrailingEnumPathToken(input, enumPath, path, selectionState)) return;
+		return insertAtCursor(input, `${enumPath} `, selectionState);
+	}
 	if (path.endsWith('.damageTypes') || path.endsWith('.defaultDamageType')) {
 		const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 		const enumPath = `${path}.${normalizedValue}`;
@@ -1876,6 +2355,7 @@ function tryReplaceTrailingPathWithCreatureTypeClause(input, quotedValue, path, 
 function resolveAssistNodeInsertionPath(textarea, nodePath) {
 	const path = `${nodePath ?? ''}`.trim();
 	if (!path) return path;
+	if (isExpandableAssistPath(path)) return `${path}.`;
 	const normalizedPath = path.toLowerCase();
 	const isScopedDamageEnum = /^(?:item|activity|originitem|originactivity)\.(?:damagetypes|defaultdamagetype)\.[a-z0-9_]+$/.test(normalizedPath);
 	if (!isScopedDamageEnum) return path;
@@ -2053,7 +2533,79 @@ function resolveAssistInsertion(text) {
 			selectionLength: conditionToken.length,
 		};
 	}
+	const arrayTemplates = [
+		'.some((entry) => condition)',
+		'.filter((entry) => condition)',
+		'.find((entry) => condition)',
+	];
+	for (const template of arrayTemplates) {
+		if (!trimmed.endsWith(template)) continue;
+		const tokenOffset = rawText.indexOf('condition');
+		if (tokenOffset < 0) continue;
+		return {
+			text: rawText,
+			selectionStartOffset: tokenOffset,
+			selectionLength: 'condition'.length,
+		};
+	}
 	return { text: rawText, selectionStartOffset: rawText.length, selectionLength: 0 };
+}
+
+function buildArrayMethodAssistNodes(path) {
+	const base = `${path ?? ''}`.trim();
+	if (!base) return [];
+	return [
+		{ label: 'length', path: `${base}.length`, terminal: true, isVirtualArrayMethod: true, insertion: `${base}.length `, children: [] },
+		{ label: 'some(...)', path: `${base}.some`, terminal: true, isVirtualArrayMethod: true, insertion: `${base}.some((entry) => condition)`, children: [] },
+		{ label: 'filter(...)', path: `${base}.filter`, terminal: true, isVirtualArrayMethod: true, insertion: `${base}.filter((entry) => condition)`, children: [] },
+		{ label: 'find(...)', path: `${base}.find`, terminal: true, isVirtualArrayMethod: true, insertion: `${base}.find((entry) => condition)`, children: [] },
+	];
+}
+
+function isNumericPathSegment(value) {
+	return /^\d+$/.test(`${value ?? ''}`.trim());
+}
+
+function isLikelyArrayPath(path) {
+	const value = `${path ?? ''}`.trim().toLowerCase();
+	if (!value) return false;
+	return /(?:^|\.)(effects|equippeditems|items|appliedeffects|statusesarray)$/.test(value);
+}
+
+function isExpandableAssistPath(path) {
+	const value = `${path ?? ''}`.trim();
+	if (!value) return false;
+	if (/\.\d+$/.test(value)) return false;
+	const last = value.split('.').at(-1)?.toLowerCase() ?? '';
+	if ([
+		'effects',
+		'equippeditems',
+		'abilities',
+		'skills',
+		'tools',
+		'statuses',
+		'damagetypes',
+		'defaultdamagetype',
+		'itemproperties',
+		'actiontype',
+		'activitytype',
+		'attackmode',
+		'mastery',
+		'creaturetype',
+	].includes(last)) return true;
+	return false;
+}
+
+function getStatusEffectIds() {
+	const entries = Array.from(CONFIG?.statusEffects ?? []);
+	const ids = entries
+		.map((entry) => `${entry?.id ?? ''}`.trim())
+		.filter(Boolean);
+	return dedupe(ids).sort((a, b) => a.localeCompare(b));
+}
+
+function isEditorAutocompleteDebugEnabled() {
+	return foundry.utils.getProperty(CONFIG, 'ac5e.debug.autocompletion.editor') === true;
 }
 
 function handleAssistTabNavigation(input, selectionState = null, direction = 1) {
