@@ -31,7 +31,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const damageTypesByIndex = getDamageTypesByIndex(dialog, elem);
 		const selectedDamageTypesByIndex = Array.fromRange(rollsLength).map((el) => {
 			const selected = damageTypesByIndex?.[el] ?? elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ?? currentRolls?.[el]?.options?.type;
-			return selected ? String(selected).toLowerCase() : undefined;
+			return selected ? selected.toLowerCase() : undefined;
 		});
 		const selects = selectedDamageTypesByIndex.filter(Boolean);
 		const domFormulas = Array.from(elem.querySelectorAll('.formula'))
@@ -118,7 +118,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const effectiveBaseRolls = getNonSyntheticDamageRolls(dialog.config.rolls);
 		const effectiveDamageTypesByIndex = effectiveBaseRolls.map((roll) => {
 			const type = roll?.options?.type;
-			return typeof type === 'string' && type.trim().length ? String(type).toLowerCase() : undefined;
+			return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 		});
 		const effectiveSelects = effectiveDamageTypesByIndex.filter(Boolean);
 		const compared = compareArrays(getConfigAC5E.options.selectedDamageTypesByIndex, effectiveDamageTypesByIndex);
@@ -331,8 +331,8 @@ function captureBaseDamageTypeData(ac5eConfig, rolls, baseline) {
 		const liveTypes = normalizeDamageTypeList(roll?.options?.types);
 		const normalizedTypes = baselineTypes.length ? baselineTypes : liveTypes;
 		const normalizedType =
-			typeof baselineRoll?.type === 'string' && baselineRoll.type.trim() ? String(baselineRoll.type).trim().toLowerCase()
-			: typeof roll?.options?.type === 'string' && roll.options.type.trim() ? String(roll.options.type).trim().toLowerCase()
+			typeof baselineRoll?.type === 'string' && baselineRoll.type.trim() ? baselineRoll.type.trim().toLowerCase()
+			: typeof roll?.options?.type === 'string' && roll.options.type.trim() ? roll.options.type.trim().toLowerCase()
 			: normalizedTypes[0];
 		if (!baseTypesByRoll[index]?.length) baseTypesByRoll[index] = normalizedTypes;
 		if (baseTypeByRoll[index] === undefined) baseTypeByRoll[index] = normalizedType;
@@ -366,8 +366,8 @@ function syncDamageRollTypeOverrideOptions(ac5eConfig, rolls) {
 			normalizeDamageTypeList(activeTypesByRoll[index]).length ? normalizeDamageTypeList(activeTypesByRoll[index])
 			: normalizeDamageTypeList(baseTypesByRoll[index]);
 		const resolvedType =
-			typeof activeTypeByRoll[index] === 'string' && activeTypeByRoll[index].trim() ? String(activeTypeByRoll[index]).trim().toLowerCase()
-			: typeof baseTypeByRoll[index] === 'string' && baseTypeByRoll[index].trim() ? String(baseTypeByRoll[index]).trim().toLowerCase()
+			typeof activeTypeByRoll[index] === 'string' && activeTypeByRoll[index].trim() ? activeTypeByRoll[index].trim().toLowerCase()
+			: typeof baseTypeByRoll[index] === 'string' && baseTypeByRoll[index].trim() ? baseTypeByRoll[index].trim().toLowerCase()
 			: resolvedTypes[0];
 		if (resolvedTypes.length) roll.options.types = [...resolvedTypes];
 		else if (Object.hasOwn(roll.options, 'types')) delete roll.options.types;
@@ -377,7 +377,7 @@ function syncDamageRollTypeOverrideOptions(ac5eConfig, rolls) {
 }
 
 function parseDamageTypeOverrideSet(value) {
-	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => String(key).toLowerCase()));
+	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => key.toLowerCase()));
 	return String(value ?? '')
 		.split(',')
 		.map((part) => String(part ?? '').trim().toLowerCase())
@@ -448,27 +448,39 @@ export function ensureDamagePreservedInitialData(ac5eConfig, baseline, currentRo
 export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	if (!ac5eConfig || !config) return;
 	ac5eConfig.preAC5eConfig ??= {};
+	const isAttributionOnlyCriticalEntry = (entry) => {
+		if (typeof entry !== 'string') return false;
+		const normalized = entry.trim().toLowerCase();
+		if (!normalized) return false;
+		// Attribution breadcrumbs (for example "Core flags") should not re-force critical
+		// after optin critical has been toggled off.
+		return normalized === 'core flags' || normalized.endsWith(' flags');
+	};
 	const optionBaseCritical = config?.options?.[Constants.MODULE_ID]?.baseCritical ?? config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.baseCritical;
 	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	const allCriticalEntries = (ac5eConfig.subject?.critical ?? [])
 		.concat(ac5eConfig.opponent?.critical ?? [])
-		.filter((entry) => entry && typeof entry === 'object')
-		.filter((entry) => !entry.optin || selectedIds.has(entry.id));
+		.filter((entry) => {
+			if (entry && typeof entry === 'object') return !entry.optin || selectedIds.has(entry.id);
+			return Boolean(entry);
+		});
 	const globalCriticalEntries = allCriticalEntries.filter((entry) => {
+		if (!entry || typeof entry !== 'object') return true;
 		const addTo = resolveEntryAddTo(entry, 'global');
 		return !addTo.includeTypes.length && !addTo.excludeTypes.length && addTo.parts !== 'bonus';
 	});
 	const localizedCriticalEntries = allCriticalEntries.filter((entry) => {
+		if (!entry || typeof entry !== 'object') return false;
 		const addTo = resolveEntryAddTo(entry, 'global');
 		return addTo.includeTypes.length > 0 || addTo.excludeTypes.length > 0 || addTo.parts === 'bonus';
 	});
-	const hasGlobalCritical = globalCriticalEntries.length > 0;
+	const forcingGlobalCriticalEntries = globalCriticalEntries.filter((entry) => !isAttributionOnlyCriticalEntry(entry));
+	const hasGlobalCritical = forcingGlobalCriticalEntries.length > 0;
 	const wasOptinForced = !!ac5eConfig.optinForcedCritical;
 	const currentCritical = config.isCritical ?? config.midiOptions?.isCritical ?? false;
-	if (!hasGlobalCritical && !wasOptinForced) {
-		ac5eConfig.optinBaseCritical = currentCritical;
-	}
-	const baseCritical = ac5eConfig.optinBaseCritical ?? optionBaseCritical ?? ac5eConfig.preAC5eConfig?.baseCritical ?? ac5eConfig.preAC5eConfig?.wasCritical ?? currentCritical ?? false;
+	const fallbackBaseCritical = optionBaseCritical ?? ac5eConfig.preAC5eConfig?.baseCritical ?? ac5eConfig.preAC5eConfig?.wasCritical ?? false;
+	if (ac5eConfig.optinBaseCritical === undefined) ac5eConfig.optinBaseCritical = fallbackBaseCritical;
+	const baseCritical = ac5eConfig.optinBaseCritical ?? fallbackBaseCritical ?? currentCritical ?? false;
 	if (ac5eConfig.preAC5eConfig?.baseCritical === undefined) {
 		ac5eConfig.preAC5eConfig.baseCritical = baseCritical;
 	}
@@ -569,21 +581,21 @@ export function getDamageTypesByIndex(dialog, elem) {
 export function getRollDamageTypeFromForm(formData, rollConfig, index) {
 	const directKey = `roll.${index}.damageType`;
 	const directValue = formData?.[directKey];
-	if (typeof directValue === 'string' && directValue.trim()) return String(directValue).toLowerCase();
+	if (typeof directValue === 'string' && directValue.trim()) return directValue.toLowerCase();
 	const nestedValue = formData?.roll?.[index]?.damageType;
-	if (typeof nestedValue === 'string' && nestedValue.trim()) return String(nestedValue).toLowerCase();
+	if (typeof nestedValue === 'string' && nestedValue.trim()) return nestedValue.toLowerCase();
 	const configValue = rollConfig?.rolls?.[index]?.options?.type;
-	if (typeof configValue === 'string' && configValue.trim()) return String(configValue).toLowerCase();
+	if (typeof configValue === 'string' && configValue.trim()) return configValue.toLowerCase();
 	return undefined;
 }
 
 export function getDamageRollTypeAtIndex(ac5eConfig, damageTypesByIndex, index) {
 	const directType = damageTypesByIndex?.[index];
-	if (typeof directType === 'string' && directType.trim()) return String(directType).toLowerCase();
+	if (typeof directType === 'string' && directType.trim()) return directType.toLowerCase();
 	const selectedByIndex = ac5eConfig?.options?.selectedDamageTypesByIndex?.[index];
-	if (typeof selectedByIndex === 'string' && selectedByIndex.trim()) return String(selectedByIndex).toLowerCase();
+	if (typeof selectedByIndex === 'string' && selectedByIndex.trim()) return selectedByIndex.toLowerCase();
 	const selectedType = ac5eConfig?.options?.selectedDamageTypes?.[index];
-	if (typeof selectedType === 'string' && selectedType.trim()) return String(selectedType).toLowerCase();
+	if (typeof selectedType === 'string' && selectedType.trim()) return selectedType.toLowerCase();
 	return undefined;
 }
 
@@ -958,7 +970,7 @@ function syncSyntheticDamageDialogFormulaElements(elem, ac5eConfig, baseCount = 
 function extractImplicitBonusDamageType(value) {
 	const raw = String(value ?? '').trim();
 	if (!raw) return { formula: '', type: undefined, types: [] };
-	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => String(key).toLowerCase()));
+	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => key.toLowerCase()));
 	const detectedTypes = [];
 	const formula = raw.replace(/\[([^\]]+)\]/g, (match, inner) => {
 		const normalizedTypes = String(inner ?? '')
@@ -1370,18 +1382,6 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			for (const value of values) {
 				const resolvedValue = resolveEntryOptinScaleValue(value, entry);
 				const { formula: part, type: inlineDamageType, types: inlineDamageTypes } = extractImplicitBonusDamageType(resolvedValue);
-				if (ac5e?.debug?.damageFormulaTrace)
-					console.warn('AC5E TRACE damage bonus entry resolve', {
-						entryId: entry?.id ?? null,
-						entryLabel: entry?.label ?? entry?.name ?? null,
-						mode: entry?.mode ?? null,
-						rawValue: value,
-						resolvedValue,
-						part,
-						inlineDamageType,
-						inlineDamageTypes,
-						criticalOnly: isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage,
-					});
 				if (!part) continue;
 				const criticalOnly = isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage;
 				if (inlineDamageTypes.length > 1) {
@@ -1409,7 +1409,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const criticalEntry = appendedCriticalBonusRollsByKey.get(key);
 		const entry = baseEntry ?? criticalEntry ?? { type: undefined, types: [], parts: [] };
 		let syntheticRollTypes = Array.isArray(entry.types) ? normalizeDamageTypeList(entry.types) : [];
-		let syntheticRollType = typeof entry.type === 'string' && entry.type.trim() ? String(entry.type).trim().toLowerCase() : syntheticRollTypes[0];
+		let syntheticRollType = typeof entry.type === 'string' && entry.type.trim() ? entry.type.trim().toLowerCase() : syntheticRollTypes[0];
 		for (const typeOverrideEntry of damageTypeOverrideEntries) {
 			if (!shouldApplyDamageEntryToSyntheticRoll(typeOverrideEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes })) continue;
 			const overrideTypes = parseDamageTypeOverrideSet(typeOverrideEntry?.set);
@@ -1434,22 +1434,6 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			: pureCriticalStaticSynthetic ? criticalFormulaState.formula
 			: formulaState.formula;
 		const displayState = pureCriticalStaticSynthetic ? criticalFormulaState : formulaState;
-		if (ac5e?.debug?.damageFormulaTrace)
-			console.warn('AC5E TRACE synthetic bonus roll build', {
-				key,
-				baseParts,
-				criticalParts,
-				baseFormula,
-				baseCriticalFormula,
-				formulaState: formulaState?.formula ?? null,
-				criticalFormulaState: criticalFormulaState?.formula ?? null,
-				resolvedSyntheticFormula,
-				resolvedSyntheticCriticalFormula,
-				pureCriticalStaticSynthetic,
-				modifierValues,
-				syntheticRollType,
-				syntheticRollTypes,
-			});
 		return {
 			formula: resolvedSyntheticFormula,
 			criticalFormula:
@@ -1557,7 +1541,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index) ?? baseDamageTypeArray[index];
 		const baselineTypes = normalizeDamageTypeList(baseDamageTypesArray[index]);
 		const baselineType =
-			typeof baseDamageTypeArray[index] === 'string' && baseDamageTypeArray[index].trim() ? String(baseDamageTypeArray[index]).trim().toLowerCase()
+			typeof baseDamageTypeArray[index] === 'string' && baseDamageTypeArray[index].trim() ? baseDamageTypeArray[index].trim().toLowerCase()
 			: baselineTypes[0];
 		let nextTypes = baselineTypes.length ? [...baselineTypes] : [];
 		let nextType = baselineType;
@@ -1592,7 +1576,6 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const extraDiceMultiplier = extraDiceAdjustments[index]?.multiplier ?? 1;
 		const diceStepTotal = diceStepTotals[index] ?? 0;
 		const criticalStaticParts = [];
-		const traceDiceTerms = [];
 		let nextFormula = resolvedFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const baseCount = parseInt(count, 10);
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
@@ -1607,53 +1590,14 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${criticalAppliedModifiers}${extremeModifier}`;
 				criticalStaticParts.push(criticalDiceTerm);
 			}
-			if (ac5e?.debug?.damageFormulaTrace) {
-				traceDiceTerms.push({
-					match,
-					baseCount,
-					newCount,
-					sides,
-					shiftedSides,
-					suffix,
-					advDis,
-					diceStepTotal,
-					extraDiceAdditive,
-					extraDiceMultiplier,
-					extraDiceCriticalStaticAdditive,
-					extraDiceCriticalStaticMultiplier,
-					diceTerm,
-				});
-			}
 			return diceTerm;
 		});
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) criticalBonusDamage = applyFormulaOperatorToAllTerms(criticalBonusDamage, op);
-		if (ac5e?.debug?.damageFormulaTrace)
-			console.warn('AC5E TRACE roll formula build', {
-				index,
-				originalFormula: formula,
-				resolvedFormula,
-				formulaWithOptins,
-				nextFormula,
-				criticalBonusDamage,
-				optinBonusParts,
-				criticalBonusParts: criticalBonusPartsByRoll[index] ?? [],
-				extraDice: extraDiceAdjustments[index] ?? {},
-				diceStepTotal,
-				formulaOperators: formulaOperatorTokensByRoll[index] ?? [],
-				traceDiceTerms,
-			});
 		criticalBonusDamageByRoll[index] = criticalBonusDamage;
 		return nextFormula;
 	});
-	if (ac5e?.debug?.damageFormulaTrace)
-		console.warn('AC5E TRACE damage formula summary', {
-			originals,
-			modified: getConfigAC5E?.preservedInitialData?.modified ?? [],
-			appendedBonusRolls,
-			criticalBonusDamageByRoll,
-		});
 	for (const entry of appendedBonusRolls) criticalBonusDamageByRoll.push(entry.criticalFormula ?? '');
 	const suffixChanged = !areStringArraysEqual(activeModifiersArray, suffixesByRoll);
 	const additiveChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceArray[index] !== adj.additive);
@@ -1778,7 +1722,7 @@ export function applyDamageFormulaStateToConfig(ac5eConfig, config) {
 			.filter((formula) => typeof formula === 'string' && formula.trim().length);
 	const damageTypesByIndex = baseRolls.map((roll) => {
 		const type = roll?.options?.type;
-		return typeof type === 'string' && type.trim().length ? String(type).toLowerCase() : undefined;
+		return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 	});
 	ac5eConfig.options ??= {};
 	applyOrResetFormulaChanges(null, ac5eConfig, 'apply', baseFormulas, damageTypesByIndex);
@@ -1787,7 +1731,7 @@ export function applyDamageFormulaStateToConfig(ac5eConfig, config) {
 	const syncedBaseRolls = getNonSyntheticDamageRolls(config.rolls);
 	const syncedDamageTypesByIndex = syncedBaseRolls.map((roll) => {
 		const type = roll?.options?.type;
-		return typeof type === 'string' && type.trim().length ? String(type).toLowerCase() : undefined;
+		return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 	});
 	ac5eConfig.options.selectedDamageTypesByIndex = syncedDamageTypesByIndex;
 	ac5eConfig.options.selectedDamageTypes = syncedDamageTypesByIndex.filter(Boolean);
