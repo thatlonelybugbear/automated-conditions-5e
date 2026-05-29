@@ -62,6 +62,12 @@
 - Reworked RSReforged compatibility integration to use the new RSReforged post-render hook surface for chat content updates.
   - AC5E tooltip re-application now runs on RSReforged re-renders for relevant roll actions.
   - AC5E now forces roll dialog configuration on for RSReforged too, when relevant opt-ins are available while fast-forward is enabled (also applies to Midi-driven rolls).
+- Refined `addTo` scope handling in roll-dialog damage processing.
+  - Scope guide: `addTo=base` targets only the original/base damage roll parts; `addTo=bonus` targets only appended/synthetic bonus parts; `addTo=all` targets both base and bonus parts.
+  - Default behavior: if no explicit `addTo` scope is set, roll-dialog damage processing treats it as `addTo=base`.
+  - Example: `addTo=base;types(cold);!types(fire)` applies only to base damage parts that are cold and not fire.
+  - Example: `addTo=all;types(radiant)` can target all matching radiant parts, including synthetic/appended damage rolls.  
+  - In short, `addTo` decides the roll scope (`base`/`bonus`/`all`), while `types(...)` and `!types(...)` filter which damage-type parts inside that scope are eligible.
 - Known issue: in some `isCritical` dialog-toggle scenarios, damage formula text and dice icons can temporarily desync in the roll configuration dialog.
   - This is tracked for a future fix; no runtime damage formula calculation errors have been detected.
 
