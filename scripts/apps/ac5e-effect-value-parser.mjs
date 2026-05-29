@@ -7,6 +7,7 @@ const ASSIGNMENT_FIELDS = [
 	'threshold',
 	'chance',
 	'usesCount',
+	'update',
 	'enforceMode',
 	'name',
 	'description',
@@ -44,7 +45,7 @@ export function parseAc5eEffectValue(value = '', { changeKey = '' } = {}) {
 
 	const aliasState = getAssignmentAliasState(changeKey);
 	for (const fragment of splitEffectValueFragments(value)) {
-		const assignment = fragment.match(/^([A-Za-z][\w-]*)\s*=\s*(.*)$/s);
+		const assignment = fragment.match(/^([A-Za-z][\w-]*)\s*[:=]\s*(.*)$/s);
 		if (assignment) {
 			const [, rawKey, rawAssignmentValue] = assignment;
 			const normalizedKey = rawKey.toLowerCase();
@@ -100,7 +101,8 @@ export function collectAc5eEffectValueFormData(form) {
 	const fields = Object.fromEntries(ASSIGNMENT_FIELDS.map((field) => [field, getNamedValue(form, `fields.${field}`)]));
 	const toggles = Object.fromEntries(TOGGLE_FIELDS.map((field) => [field, hasCheckedInput(form, `toggles.${field}`)]));
 	const conditions = splitConditionFragments(getNamedValue(form, 'conditions'));
-	const raw = getNamedValues(form, 'raw').flatMap((value) => splitLines(value));
+	const rawInputs = getNamedInputs(form, 'raw');
+	const raw = rawInputs.length ? rawInputs.map((input) => input.value).flatMap((value) => splitLines(value)) : undefined;
 	return { fields, toggles, conditions, raw };
 }
 
@@ -143,7 +145,7 @@ export function mergeAc5eEffectValueFormData(baseData, formData, { fieldNames = 
 		fields: { ...(baseData?.fields ?? {}) },
 		toggles: { ...(baseData?.toggles ?? {}) },
 		conditions: formData.conditions ?? [],
-		raw: formData.raw ?? [],
+		raw: formData.raw ?? baseData?.raw ?? [],
 	};
 	for (const field of fieldNames) {
 		merged.fields[field] = formData.fields?.[field] ?? '';
