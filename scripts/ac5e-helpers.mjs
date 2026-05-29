@@ -2,6 +2,7 @@ import Constants from './ac5e-constants.mjs';
 import { debugBenchmarkPerimeterGridSpaceCenters, getCachedDistanceCore, getPerimeterCenters } from './helpers/ac5e-helpers-distance.mjs';
 import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
 import Settings from './ac5e-settings.mjs';
+import { _addToAllowsAnySelectedType, _parseAddToSpec, _resolveAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
 
 export const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -1609,22 +1610,12 @@ export function _getTooltip(ac5eConfig = {}) {
 			.filter((value) => typeof value === 'string' && value.trim())
 			.map((value) => String(value).toLowerCase()),
 	);
-	const resolveTooltipEntryAddTo = (entry, defaultMode = 'base') => {
-		if (entry?.addTo?.mode === 'all') return { mode: 'all', types: [] };
-		if (entry?.addTo?.mode === 'base') return { mode: 'base', types: [] };
-		if (entry?.addTo?.mode === 'global') return { mode: 'global', types: [] };
-		if (entry?.addTo?.mode === 'types' && Array.isArray(entry?.addTo?.types) && entry.addTo.types.length)
-			return { mode: 'types', types: entry.addTo.types.map((type) => String(type).toLowerCase()) };
-		return { mode: defaultMode, types: [] };
-	};
 	const isDamageTooltipEntryVisible = (entry) => {
 		if (hookType !== 'damage' || !entry || typeof entry !== 'object') return true;
 		const requiredDamageTypes = Array.isArray(entry?.requiredDamageTypes) ? entry.requiredDamageTypes.map((type) => String(type).toLowerCase()) : [];
 		if (requiredDamageTypes.length && (!selectedDamageTypes.size || !requiredDamageTypes.every((type) => selectedDamageTypes.has(type)))) return false;
-		const addTo = resolveTooltipEntryAddTo(entry);
-		if (addTo.mode !== 'types') return true;
-		if (!selectedDamageTypes.size) return false;
-		return addTo.types.some((type) => selectedDamageTypes.has(type));
+		const addTo = _resolveAddToSpec(entry?.addTo);
+		return _addToAllowsAnySelectedType(addTo, selectedDamageTypes);
 	};
 	const filterOptinEntries = (entries = []) =>
 		_filterOptinEntries(entries, optinSelected)

@@ -21,6 +21,7 @@ import {
 	_safeFromUuidSync,
 	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
+import { _parseAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
 import { _doQueries, _setCombatCadenceFlag } from './ac5e-queries.mjs';
@@ -1651,16 +1652,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const getAddTo = (value) => {
 		if (!value) return undefined;
 		const match = String(value).match(/(?:^|;)\s*addto\s*[:=]\s*([^;]+)/i);
-		const raw = match?.[1]?.trim()?.toLowerCase();
-		if (!raw) return undefined;
-		if (raw === 'all') return { mode: 'all', types: [] };
-		if (raw === 'base') return { mode: 'base', types: [] };
-		if (raw === 'global') return { mode: 'global', types: [] };
-		const types = raw
-			.split(/[,|]/)
-			.map((v) => v.trim())
-			.filter(Boolean);
-		return types.length ? { mode: 'types', types } : undefined;
+		return _parseAddToSpec(match?.[1]);
 	};
 	const getDescription = (value) => {
 		if (!value) return undefined;
@@ -2449,8 +2441,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (rule?.threshold !== undefined && rule?.threshold !== null && String(rule.threshold).trim() !== '') fragments.push(`threshold=${rule.threshold}`);
 		if (rule?.chance !== undefined && rule?.chance !== null && String(rule.chance).trim() !== '') fragments.push(`chance=${rule.chance}`);
 		if (rule?.addTo !== undefined && rule?.addTo !== null) {
-			if (Array.isArray(rule.addTo)) fragments.push(`addTo=${rule.addTo.join(',')}`);
-			else fragments.push(`addTo=${rule.addTo}`);
+			const addTo = _stringifyAddToSpec(rule.addTo);
+			if (addTo) fragments.push(`addTo=${addTo}`);
 		}
 		if (rule?.usesCount !== undefined && rule?.usesCount !== null && String(rule.usesCount).trim() !== '') fragments.push(`usesCount=${rule.usesCount}`);
 		if (rule?.update !== undefined && rule?.update !== null && String(rule.update).trim() !== '') fragments.push(`update=${rule.update}`);

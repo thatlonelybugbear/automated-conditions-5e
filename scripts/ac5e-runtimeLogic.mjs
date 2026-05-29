@@ -3,6 +3,7 @@ import { _applyResolvedFastForwardMode, _ensureRoll0Options, _syncResolvedFastFo
 import { lazySandbox } from './ac5e-main.mjs';
 import { canSee } from './ac5e-systemRules.mjs';
 import Settings from './ac5e-settings.mjs';
+import { _resolveAddToSpec } from './ac5e-addTo.mjs';
 import {
 	_activeModule,
 	_ac5eSafeEval,
@@ -362,8 +363,10 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	const getGlobalDamageCriticalEntries = (entries = []) =>
 		(entries ?? []).filter((entry) => {
 			if (!entry || typeof entry !== 'object') return true;
-			const addTo = entry?.addTo;
-			if (addTo?.mode === 'types' && Array.isArray(addTo.types) && addTo.types.length) return false;
+			const addTo = _resolveAddToSpec(entry?.addTo, 'global');
+			if (Array.isArray(addTo?.includeTypes) && addTo.includeTypes.length) return false;
+			if (Array.isArray(addTo?.excludeTypes) && addTo.excludeTypes.length) return false;
+			if (addTo?.parts === 'bonus') return false;
 			return true;
 		});
 	const resolveForcedD20Mode = (entries = []) => {

@@ -16,6 +16,7 @@ import {
 	_resolveEffectOriginContext,
 	_safeFromUuidSync,
 } from './ac5e-helpers.mjs';
+import { _parseAddToSpec } from './ac5e-addTo.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _setContextKeywordsSetting, _setUsageRulesSetting } from './ac5e-queries.mjs';
 import { clearStatusEffectOverrides, inspectCadenceFlags, listStatusEffectOverrides, registerStatusEffectOverride, removeStatusEffectOverride, resetCadenceFlags } from './ac5e-setpieces.mjs';
@@ -234,7 +235,7 @@ function _parseUsageRuleDefinition(definition = {}) {
 	const criticalStatic = Boolean(definition.criticalStatic);
 	const partialConsume = Boolean(definition.partialConsume);
 	const chance = definition.chance;
-	const addTo = definition.addTo;
+	const addTo = _parseAddToSpec(definition.addTo);
 	const usesCount = definition.usesCount;
 	const update = definition.update;
 	const itemLimited = Boolean(definition.itemLimited);
@@ -466,7 +467,7 @@ function showUsageRuleKeys() {
 		partialConsume: 'Boolean: for usesCount rules, allows bounded counters to consume only the remaining available amount instead of failing when the full requested amount is not available.',
 		cadence: 'String: once-per cadence. Supported values: "oncePerTurn", "oncePerRound", and "oncePerCombat".',
 		chance: 'String|Number: optional chance gate evaluated before applying the rule.',
-		addTo: 'String|String[]: optional addTo target list for compatible modes.',
+		addTo: 'String|String[]|Object: optional addTo target spec for compatible modes. Supports base, bonus, all, global, types(fire,cold), !types(poison,acid), and combined clauses such as base;!types(force). Legacy positive comma-delimited type lists still parse.',
 		convertAdvantage: 'Boolean: when true, converts native advantage into AC5E-driven behavior for this rule even if the world override is off.',
 		convertDisadvantage: 'Boolean: when true, converts native disadvantage into AC5E-driven behavior for this rule even if the world override is off.',
 		hasTransitAdvantage: 'Boolean: legacy alias for convertAdvantage.',
@@ -1233,13 +1234,42 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 					}
 
 					if (keyword === 'addto') {
-						const parsedTypes = keywordValue
-							.toLowerCase()
-							.split(/[,|]/)
-							.map((entry) => entry.trim())
-							.filter(Boolean);
-						if (parsedTypes.length && !(parsedTypes.length === 1 && parsedTypes[0] === 'all')) {
-							const unknownDamageTypes = parsedTypes.filter((entry) => !damageTypeSet.has(entry));
+						const parsedAddTo = _parseAddToSpec(keywordValue);
+						if (!parsedAddTo && keywordValue.trim()) {
+							pushFinding({
+								severity: 'warn',
+								code: 'invalidAddToSpec',
+								message: 'Invalid addTo spec. Use base, bonus, all, types(...), !types(...), or combined clauses like base;!types(force). Legacy positive comma-delimited type lists still parse.',
+								sourceType: source.sourceType,
+								actor,
+								item,
+								effect,
+								change,
+								changeIndex,
+								fragment,
+								keyword,
+								value: keywordValue,
+							});
+						}
+						if (parsedAddTo?.explicitIncludeClause && !parsedAddTo.includeTypes.length) {
+							pushFinding({
+								severity: 'warn',
+								code: 'incompleteAddToSpec',
+								message: 'Incomplete addTo spec. types() must contain at least one damage or healing type.',
+								sourceType: source.sourceType,
+								actor,
+								item,
+								effect,
+								change,
+								changeIndex,
+								fragment,
+								keyword,
+								value: keywordValue,
+							});
+						}
+						const parsedAddToTypes = [...(parsedAddTo?.includeTypes ?? []), ...(parsedAddTo?.excludeTypes ?? [])];
+						if (parsedAddToTypes.length) {
+							const unknownDamageTypes = parsedAddToTypes.filter((entry) => !damageTypeSet.has(entry));
 							if (unknownDamageTypes.length) {
 								pushFinding({
 									severity: 'warn',

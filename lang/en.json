@@ -288,15 +288,15 @@
 		},
 		"flags.automated-conditions-5e.damage.typeOverride": {
 			"name": "Override the damage type set of base damage rolls",
-			"description": "Use override=fire to force one type or override=fire,lightning,thunder to offer multiple types. set=... is still supported for backwards compatibility. addTo=... targets matching base damage parts only."
+			"description": "Use override=fire to force one type or override=fire,lightning,thunder to offer multiple types. set=... is still supported for backwards compatibility. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid), or combined clauses such as addTo=base;!types(force) control which damage parts are affected."
 		},
 		"flags.automated-conditions-5e.grants.damage.typeOverride": {
 			"name": "Grant a damage type override to the opponent's base damage rolls",
-			"description": "Use override=fire to force one type or override=fire,lightning,thunder to offer multiple types. set=... is still supported for backwards compatibility. addTo=... targets matching base damage parts only."
+			"description": "Use override=fire to force one type or override=fire,lightning,thunder to offer multiple types. set=... is still supported for backwards compatibility. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid), or combined clauses such as addTo=base;!types(force) control which damage parts are affected."
 		},
 		"flags.automated-conditions-5e.aura.damage.typeOverride": {
 			"name": "An aura overriding the damage type set of base damage rolls in radius",
-			"description": "Use radius=10;override=fire or radius=10;override=fire,lightning,thunder. set=... is still supported for backwards compatibility. addTo=... targets matching base damage parts only."
+			"description": "Use radius=10;override=fire or radius=10;override=fire,lightning,thunder. set=... is still supported for backwards compatibility. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid), or combined clauses such as addTo=base;!types(force) control which damage parts are affected."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modify the AC of the actor against incoming attacks",
