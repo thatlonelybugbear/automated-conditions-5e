@@ -645,8 +645,9 @@ export function shouldTriggerAc5eKeyAutocomplete(changeKey) {
 
 export function isAc5eAutocompleteDebugEnabled(scope = 'editor') {
 	const normalized = `${scope ?? ''}`.trim().toLowerCase();
+	const ac5e = globalThis?.[Constants.MODULE_NAME_SHORT];
 	const value = normalized === 'effectkeys'
-		? foundry.utils.getProperty(CONFIG, 'ac5e.debug.autocompletion.effectKeys')
-		: foundry.utils.getProperty(CONFIG, 'ac5e.debug.autocompletion.editor');
+		? foundry.utils.getProperty(ac5e, 'debug.autocompletion.effectKeys')
+		: foundry.utils.getProperty(ac5e, 'debug.autocompletion.editor');
 	return value === true;
 }

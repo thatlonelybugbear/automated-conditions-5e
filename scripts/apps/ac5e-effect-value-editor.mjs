@@ -1,5 +1,7 @@
 import { buildEffectValueAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, rankEffectValueAutocompleteEntries, replaceAutocompletePrefix, shouldActivateEffectValueAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import Constants from '../ac5e-constants.mjs';
 import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS } from '../ac5e-runtimeLogic.mjs';
+import { _parseAddToSpec, _stringifyAddToSpec } from '../ac5e-addTo.mjs';
 
 const AC5E_ACTOR_ROOTS = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
 const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([
@@ -473,7 +475,8 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const assistScope = resolveAssistScope(inputName, currentValue, changeKey);
 		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura, changeKey, assistScope });
 		const isOverrideScope = assistScope === 'typeOverride' || assistScope === 'abilityOverride';
-		const dialogWidth = isOverrideScope ? 620 : 920;
+		const isAddToScope = assistScope === 'addTo';
+		const dialogWidth = isAddToScope ? 500 : (isOverrideScope ? 620 : 920);
 		const assistControls = isOverrideScope
 			?	renderAssistActionFieldset(
 					assistScope === 'typeOverride' ? 'Type Override entries' : 'Ability Override entries',
@@ -483,13 +486,17 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					assistScope,
 					true,
 				)
+			: isAddToScope
+				? `
+					<div class="ac5e-effect-value-assist-groups ac5e-effect-value-assist-groups-addto">${renderAssistEntryGroups(assist)}</div>
+				`
 			:	`
 					${renderAssistActionFieldset('Operators', assist.operators, 'ac5e-assist-insert', 'button')}
 					<div class="ac5e-effect-value-assist-groups">
 						${renderAssistEntryGroups(assist)}
 					</div>
 				`;
-		const asideMarkup = isOverrideScope
+		const asideMarkup = (isOverrideScope || isAddToScope)
 			?	''
 			:	`
 					<aside class="ac5e-effect-value-expand-aside">
@@ -507,13 +514,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					id: appId,
 				},
 				content: `
-					<form class="ac5e-effect-value-expand-dialog" data-ac5e-lambda-assist data-ac5e-assist-scope="${escapeHtml(assistScope)}">
-						<div class="ac5e-effect-value-expand-layout">
+					<form class="ac5e-effect-value-expand-dialog${isAddToScope ? ' ac5e-effect-value-expand-dialog-addto' : ''}" data-ac5e-lambda-assist data-ac5e-assist-scope="${escapeHtml(assistScope)}">
+						<div class="ac5e-effect-value-expand-layout${isAddToScope ? ' ac5e-effect-value-expand-layout-single' : ''}">
 							<section class="ac5e-effect-value-expand-main">
 								<div class="form-group stacked">
 									<label for="ac5e-expand-value">${escapedLabel}</label>
 									<div class="form-fields">
-										<textarea id="ac5e-expand-value" name="value" rows="12">${escapedValue}</textarea>
+										<textarea id="ac5e-expand-value" name="value" rows="12" placeholder="${escapeHtml(isAddToScope ? 'Examples: base | bonus | types(fire,cold) | base;!types(acid)' : '')}">${escapedValue}</textarea>
 									</div>
 								</div>
 								${assistControls}
@@ -555,7 +562,8 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 							textarea.setSelectionRange(0, 0);
 						}, { capture: true });
 					}
-					prepareLambdaAssist(dialog.element, assist);
+					const assistRoot = textarea.closest('form') ?? dialog.element;
+					prepareLambdaAssist(assistRoot, assist, assistScope);
 					textarea.focus();
 					const cursor = textarea.value.length;
 					textarea.setSelectionRange(cursor, cursor);
@@ -692,6 +700,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isAbilityOverride = normalized.endsWith('.abilityoverride');
 	const isTypeOverride = normalized.endsWith('.typeoverride');
 	const isModifier = normalized.endsWith('.modifier') || normalized.endsWith('.modifiers') || normalized.includes('.modifier.');
+	const isDamageContext = normalized.includes('.damage.');
 	const isTargetADC = normalized.endsWith('.modifyac') || normalized.endsWith('.modifydc');
 	const isBonus =
 		normalized.endsWith('.bonus') ||
@@ -714,8 +723,11 @@ function getEditorProfile(changeKey, parsed) {
 	if (isRange) requiredFields.push('bonus');
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
 	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
-	if (isTypeOverride) requiredFields.push('addTo');
-	if (hasParsedValue(parsed, 'addTo')) requiredFields.push('addTo');
+	const supportsAddTo = isDamageContext && (isBonus || isTypeOverride || isModifier || hasParsedValue(parsed, 'addTo'));
+	const addToAnchorField =
+		isTypeOverride ? 'override'
+		: isModifier ? 'modifier'
+		: 'bonus';
 
 	const contextToggles = [];
 	if (isAura) contextToggles.push(...AURA_TOGGLE_FIELDS);
@@ -735,6 +747,8 @@ function getEditorProfile(changeKey, parsed) {
 		commonToggles: COMMON_TOGGLE_FIELDS,
 		contextToggles: renderedContextToggles,
 		supportsSetMode,
+		supportsAddTo,
+		addToAnchorField,
 	};
 }
 
@@ -778,6 +792,14 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 		inlineOverrideEntries: name === 'override' ? inlineOverrideEntries : [],
 		hasInlineOverrideEntries: name === 'override' && inlineOverrideEntries.length > 0,
 		fullRow: name === 'override' && inlineOverrideEntries.length > 0,
+		companionField:
+			profile.supportsAddTo && name === profile.addToAnchorField ? {
+				name: 'addTo',
+				label: 'Add To',
+				value: parsed.fields.addTo ?? '',
+				inputId: `ac5e-value-addTo-${id}`,
+				expandable: true,
+			} : null,
 		inlineToggle: profile.supportsSetMode && name === 'bonus' ? {
 			name: 'ui.setMode',
 			label: 'Set',
@@ -947,12 +969,13 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 	};
 	const contextRollAwareEntries = filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey);
 	const scopedEntries = buildScopedAssistEntries(assistScope, entries);
-	const scopedBrowser = scopedEntries.length ? buildScopedBrowserData(scopedEntries) : null;
+	const flatScopedEntries = flattenScopedAssistEntries(scopedEntries);
+	const scopedBrowser = flatScopedEntries.length ? buildScopedBrowserData(flatScopedEntries) : null;
 	const resolvedEntryPoints = scopedBrowser?.entryPoints ?? entryPoints;
 	const resolvedPathsByRoot = scopedBrowser?.pathsByRoot ?? pathsByRoot;
 	const resolvedTreesByRoot = scopedBrowser?.treesByRoot ?? treesByRoot;
-	const allEntryButtons = scopedEntries.length
-		? [...scopedEntries]
+	const allEntryButtons = flatScopedEntries.length
+		? [...flatScopedEntries]
 		: dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries]).sort((a, b) => a.localeCompare(b));
 	return {
 		scope: assistScope,
@@ -1149,26 +1172,49 @@ function buildAbilityOverrideScopedEntries() {
 }
 
 function buildAddToScopedEntries() {
-	const baseModes = ['base', 'all'];
-	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
-	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
-	const combinedTypes = dedupe([...damageTypes, ...healingTypes].map((entry) => `${entry ?? ''}`.trim()).filter(Boolean)).sort((a, b) => a.localeCompare(b));
-	const multiExamples = buildCommaTypeExamples(combinedTypes);
-	return dedupe([...baseModes, ...combinedTypes, ...multiExamples]).sort((a, b) => a.localeCompare(b));
+	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {})
+		.map((entry) => `${entry ?? ''}`.trim())
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {})
+		.map((entry) => `${entry ?? ''}`.trim())
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+	return {
+		parts: [
+			{ value: 'all', label: 'All' },
+			{ value: 'base', label: 'Base Damage' },
+			{ value: 'bonus', label: 'Bonus Damage' },
+		],
+		targets: [
+			{ value: 'include', label: 'Include Types' },
+			{ value: 'exclude', label: 'Exclude Types' },
+		],
+		damageTypes: buildLabeledAddToEntries(damageTypes),
+		healingTypes: buildLabeledAddToEntries(healingTypes),
+	};
 }
 
-function buildCommaTypeExamples(values) {
-	const list = values.filter(Boolean);
-	if (list.length < 2) return [];
-	const examples = [];
-	const first = list[0];
-	const second = list[1];
-	if (first && second) examples.push(`${first},${second}`);
-	const physical = list.filter((value) => ['bludgeoning', 'piercing', 'slashing'].includes(value));
-	if (physical.length >= 2) examples.push(physical.slice(0, 2).join(','));
-	const elemental = list.filter((value) => ['acid', 'cold', 'fire', 'lightning', 'thunder'].includes(value));
-	if (elemental.length >= 2) examples.push(elemental.slice(0, 2).join(','));
-	return dedupe(examples);
+function buildLabeledAddToEntries(values) {
+	return values.map((value) => {
+		const normalized = `${value ?? ''}`.trim();
+		if (!normalized) return null;
+		const label = formatAssistEntryLabel(normalized);
+		return { value: normalized, label };
+	}).filter(Boolean);
+}
+
+function formatAssistEntryLabel(value) {
+	return `${value ?? ''}`.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase()).trim();
+}
+
+function flattenScopedAssistEntries(scopedEntries) {
+	if (Array.isArray(scopedEntries)) return scopedEntries;
+	if (!scopedEntries || typeof scopedEntries !== 'object') return [];
+	return Object.values(scopedEntries)
+		.flatMap((group) => Array.isArray(group) ? group : [])
+		.map((entry) => typeof entry === 'string' ? entry : `${entry?.value ?? ''}`.trim())
+		.filter(Boolean);
 }
 
 function buildUsesCountScopedEntries(entries) {
@@ -1351,7 +1397,16 @@ function renderAssistEntryGroups(assist) {
 		return renderAssistActionFieldset('Ability Override entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'ability-override', true);
 	}
 	if (assist?.scope === 'addTo') {
-		return renderAssistActionFieldset('AddTo entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'addto', true);
+		const parts = Array.isArray(assist?.scopedEntries?.parts) ? assist.scopedEntries.parts : [];
+		const targets = Array.isArray(assist?.scopedEntries?.targets) ? assist.scopedEntries.targets : [];
+		const damageTypes = Array.isArray(assist?.scopedEntries?.damageTypes) ? assist.scopedEntries.damageTypes : [];
+		const healingTypes = Array.isArray(assist?.scopedEntries?.healingTypes) ? assist.scopedEntries.healingTypes : [];
+		return `
+			${renderAssistActionFieldset('Which Damage Parts', parts, 'ac5e-assist-addto-part', 'button', 'addto-parts', true)}
+			${renderAssistActionFieldset('Type Filters', targets, 'ac5e-assist-addto-target', 'button', 'addto-targets', true)}
+			${renderAssistActionFieldset('Damage Types', damageTypes, 'ac5e-assist-addto-type', 'button', 'addto-damage', true)}
+			${renderAssistActionFieldset('Healing Types', healingTypes, 'ac5e-assist-addto-type', 'button', 'addto-healing', true)}
+		`;
 	}
 	return `
 		${renderAssistCombinedFieldset('Actor entries', assist.actorEntryButtons, assist.actorContextEntries, 'actor', true)}
@@ -1393,10 +1448,23 @@ function resetAssistBrowserContext(root, assist, selectionState, textarea) {
 	renderAssistStage(root, assist, selectionState, textarea);
 }
 
-function prepareLambdaAssist(root, assist) {
+function prepareLambdaAssist(root, assist, scopeOverride = '') {
 	if (!(root instanceof HTMLElement)) return;
-	const textarea = root.querySelector('textarea[name="value"]');
+	const assistRoot = root.matches?.('form') ? root : (root.querySelector?.('form') ?? root);
+	const assistScope = `${scopeOverride || assistRoot.dataset.ac5eAssistScope || ''}`.trim();
+	if (assistScope) assistRoot.dataset.ac5eAssistScope = assistScope;
+	const textarea = assistRoot.querySelector('textarea[name="value"]');
 	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | prepare assist', {
+			scope: assistScope,
+			rootTag: assistRoot.tagName,
+			rootClass: assistRoot.className,
+			addToPartButtons: assistRoot.querySelectorAll('[data-ac5e-assist-addto-part]').length,
+			addToTargetButtons: assistRoot.querySelectorAll('[data-ac5e-assist-addto-target]').length,
+			addToTypeButtons: assistRoot.querySelectorAll('[data-ac5e-assist-addto-type]').length,
+		});
+	}
 	const selectionState = { userMovedCaret: false, start: null, end: null };
 	const rememberSelection = () => {
 		selectionState.userMovedCaret = true;
@@ -1426,8 +1494,9 @@ function prepareLambdaAssist(root, assist) {
 		if (handleAssistTabNavigation(textarea, selectionState, tabDirection)) event.preventDefault();
 	});
 	const syncFromInput = () => {
-		syncAssistBrowserFromInput(root, assist, selectionState, textarea);
-		updateAssistEntryHighlights(root, textarea, assist);
+		syncAssistBrowserFromInput(assistRoot, assist, selectionState, textarea);
+		updateAssistEntryHighlights(assistRoot, textarea, assist);
+		if (assistScope === 'addTo') syncAddToAssistUi(assistRoot, textarea);
 	};
 	textarea.addEventListener('input', syncFromInput);
 	textarea.addEventListener('click', syncFromInput);
@@ -1435,14 +1504,69 @@ function prepareLambdaAssist(root, assist) {
 		if (['ArrowUp', 'ArrowDown', 'Enter', 'Escape', 'Tab', 'Shift'].includes(event.key)) return;
 		syncFromInput();
 	});
-	for (const button of root.querySelectorAll('[data-ac5e-assist-insert]')) {
+	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-insert]')) {
 		button.addEventListener('click', () => insertAtCursor(textarea, button.dataset.ac5eAssistInsert ?? '', selectionState));
 	}
-	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
+	if (assistScope === 'addTo') {
+		if (isEditorAutocompleteDebugEnabled()) {
+			console.debug('AC5E | autocomplete.editor | bind addTo assist', {
+				scope: assistScope,
+				addToPartButtons: assistRoot.querySelectorAll('[data-ac5e-assist-addto-part]').length,
+				addToTargetButtons: assistRoot.querySelectorAll('[data-ac5e-assist-addto-target]').length,
+				addToTypeButtons: assistRoot.querySelectorAll('[data-ac5e-assist-addto-type]').length,
+			});
+		}
+		assistRoot.addEventListener('click', (event) => {
+			const target = event.target instanceof Element ? event.target : null;
+			if (!target) return;
+			const partButton = target.closest('[data-ac5e-assist-addto-part]');
+			if (partButton instanceof HTMLElement) {
+				const part = `${partButton.getAttribute('data-ac5e-assist-addto-part') ?? ''}`.trim();
+				if (!part) return;
+				if (isEditorAutocompleteDebugEnabled()) {
+					console.debug('AC5E | autocomplete.editor | addTo click part', {
+						part,
+						scope: assistScope,
+						currentValue: textarea.value,
+					});
+				}
+				applyAddToAssistPart(textarea, assistRoot, part, selectionState);
+				return;
+			}
+			const targetButton = target.closest('[data-ac5e-assist-addto-target]');
+			if (targetButton instanceof HTMLElement) {
+				const typeTarget = `${targetButton.getAttribute('data-ac5e-assist-addto-target') ?? ''}`.trim();
+				if (!typeTarget) return;
+				if (isEditorAutocompleteDebugEnabled()) {
+					console.debug('AC5E | autocomplete.editor | addTo click target', {
+						target: typeTarget,
+						scope: assistScope,
+						currentValue: textarea.value,
+					});
+				}
+				focusAddToAssistTarget(textarea, assistRoot, typeTarget, selectionState);
+				return;
+			}
+			const typeButton = target.closest('[data-ac5e-assist-addto-type]');
+			if (typeButton instanceof HTMLElement) {
+				const type = `${typeButton.getAttribute('data-ac5e-assist-addto-type') ?? ''}`.trim();
+				if (!type) return;
+				if (isEditorAutocompleteDebugEnabled()) {
+					console.debug('AC5E | autocomplete.editor | addTo click type', {
+						type,
+						scope: assistScope,
+						currentValue: textarea.value,
+						activeTarget: assistRoot.dataset.ac5eAddToTypeTarget ?? '',
+					});
+				}
+				applyAddToAssistType(textarea, assistRoot, type, selectionState);
+			}
+		});
+	}
+	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-entry]')) {
 		button.addEventListener('click', () => {
 			const value = (button.dataset.ac5eAssistEntry ?? '').trim();
 			if (!value) return;
-			const assistScope = `${root.dataset.ac5eAssistScope ?? ''}`.trim();
 			if (assistScope === 'typeOverride' || assistScope === 'abilityOverride') {
 				insertDelimitedAssistEntry(textarea, value, selectionState);
 				return;
@@ -1451,22 +1575,23 @@ function prepareLambdaAssist(root, assist) {
 			replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
 		});
 	}
-	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert]')) {
+	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-root-insert]')) {
 		button.addEventListener('click', () => {
 			const rootName = (button.dataset.ac5eAssistRootInsert ?? '').trim();
 			if (!rootName) return;
 			replaceTokenAtCursorOrInsert(textarea, `${rootName}.`, selectionState);
-			root.dataset.ac5eAssistActiveRoot = rootName;
-			root.dataset.ac5eAssistChain = '[]';
-			root.dataset.ac5eAssistFilter = '';
-			setAssistActivePath(root, '');
-			renderAssistStage(root, assist, selectionState, textarea);
+			assistRoot.dataset.ac5eAssistActiveRoot = rootName;
+			assistRoot.dataset.ac5eAssistChain = '[]';
+			assistRoot.dataset.ac5eAssistFilter = '';
+			setAssistActivePath(assistRoot, '');
+			renderAssistStage(assistRoot, assist, selectionState, textarea);
 		});
 	}
-	setAssistActivePath(root, '');
-	root.dataset.ac5eAssistFilter = '';
-	renderAssistStage(root, assist, selectionState, textarea);
-	updateAssistEntryHighlights(root, textarea, assist);
+	setAssistActivePath(assistRoot, '');
+	assistRoot.dataset.ac5eAssistFilter = '';
+	renderAssistStage(assistRoot, assist, selectionState, textarea);
+	updateAssistEntryHighlights(assistRoot, textarea, assist);
+	if (assistScope === 'addTo') syncAddToAssistUi(assistRoot, textarea);
 }
 
 function setAssistActivePath(root, path) {
@@ -1952,6 +2077,167 @@ function resolveAssistEntryInsertion(entry) {
 	if (!value) return '';
 	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools', 'statuses'].includes(value)) return `${value}.`;
 	return `${value} `;
+}
+
+function getDefaultAddToAssistSpec() {
+	return { parts: 'all', includeTypes: [], excludeTypes: [], explicitParts: false, explicitIncludeClause: false, explicitExcludeClause: false };
+}
+
+function getParsedAddToAssistSpec(value) {
+	return _parseAddToSpec(value) ?? getDefaultAddToAssistSpec();
+}
+
+function setAddToAssistValue(textarea, root, nextValue, selectionState = null, cursor = null) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | addTo set value', {
+			previousValue: textarea.value,
+			nextValue,
+			cursor,
+			scope: root instanceof HTMLElement ? root.dataset.ac5eAssistScope ?? '' : '',
+		});
+	}
+	textarea.value = nextValue;
+	const resolvedCursor = Number.isInteger(cursor) ? cursor : nextValue.length;
+	textarea.focus();
+	textarea.setSelectionRange(resolvedCursor, resolvedCursor);
+	if (selectionState) {
+		selectionState.start = resolvedCursor;
+		selectionState.end = resolvedCursor;
+		selectionState.userMovedCaret = true;
+	}
+	textarea.dispatchEvent(new Event('input', { bubbles: true }));
+	if (root instanceof HTMLElement) syncAddToAssistUi(root, textarea);
+}
+
+function getAddToClauseRange(value, target = 'include') {
+	const raw = `${value ?? ''}`;
+	const pattern = target === 'exclude' ? /!types\(([^)]*)\)/i : /(^|;)types\(([^)]*)\)/i;
+	const match = pattern.exec(raw);
+	if (!match) return null;
+	if (target === 'exclude') {
+		const start = match.index + '!types('.length;
+		const end = start + (match[1] ?? '').length;
+		return { start, end };
+	}
+	const prefixLength = (match[1] ?? '').length;
+	const start = match.index + prefixLength + 'types('.length;
+	const end = start + (match[2] ?? '').length;
+	return { start, end };
+}
+
+function detectAddToAssistTarget(root, textarea, spec = getParsedAddToAssistSpec(textarea?.value ?? '')) {
+	if (!(textarea instanceof HTMLTextAreaElement)) return 'include';
+	const caret = Number(textarea.selectionStart ?? 0);
+	for (const target of ['exclude', 'include']) {
+		const range = getAddToClauseRange(textarea.value, target);
+		if (range && caret >= range.start && caret <= range.end) return target;
+	}
+	const explicitTarget = `${root?.dataset?.ac5eAddToTypeTarget ?? ''}`.trim();
+	if (explicitTarget === 'include' || explicitTarget === 'exclude') return explicitTarget;
+	if (spec.includeTypes.length) return 'include';
+	if (spec.excludeTypes.length) return 'exclude';
+	return 'include';
+}
+
+function getAddToAssistCursor(value, target) {
+	const range = getAddToClauseRange(value, target);
+	return range ? range.end : String(value ?? '').length;
+}
+
+function focusAddToAssistTarget(textarea, root, target, selectionState = null) {
+	if (!(textarea instanceof HTMLTextAreaElement) || !(root instanceof HTMLElement)) return;
+	const spec = getParsedAddToAssistSpec(textarea.value);
+	root.dataset.ac5eAddToTypeTarget = target;
+	const nextSpec = {
+		...spec,
+		explicitIncludeClause: target === 'include' ? true : !!spec.explicitIncludeClause,
+		explicitExcludeClause: target === 'exclude' ? true : !!spec.explicitExcludeClause,
+	};
+	const serialized = _stringifyAddToSpec(nextSpec);
+	const cursor = getAddToAssistCursor(serialized, target);
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | addTo focus target', {
+			target,
+			spec,
+			nextSpec,
+			serialized,
+			cursor,
+		});
+	}
+	setAddToAssistValue(textarea, root, serialized, selectionState, cursor);
+}
+
+function applyAddToAssistPart(textarea, root, part, selectionState = null) {
+	if (!(textarea instanceof HTMLTextAreaElement) || !(root instanceof HTMLElement)) return;
+	const spec = getParsedAddToAssistSpec(textarea.value);
+	spec.parts = part;
+	spec.explicitParts = true;
+	const nextValue = _stringifyAddToSpec(spec);
+	const target = detectAddToAssistTarget(root, textarea, spec);
+	const cursor = getAddToClauseRange(nextValue, target) ? getAddToAssistCursor(nextValue, target) : nextValue.length;
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | addTo apply part', {
+			part,
+			spec,
+			nextValue,
+			target,
+			cursor,
+		});
+	}
+	setAddToAssistValue(textarea, root, nextValue, selectionState, cursor);
+}
+
+function applyAddToAssistType(textarea, root, type, selectionState = null) {
+	if (!(textarea instanceof HTMLTextAreaElement) || !(root instanceof HTMLElement)) return;
+	const spec = getParsedAddToAssistSpec(textarea.value);
+	const target = detectAddToAssistTarget(root, textarea, spec);
+	root.dataset.ac5eAddToTypeTarget = target;
+	const includeTypes = new Set(spec.includeTypes);
+	const excludeTypes = new Set(spec.excludeTypes);
+	if (target === 'exclude') {
+		includeTypes.delete(type);
+		excludeTypes.add(type);
+	} else {
+		excludeTypes.delete(type);
+		includeTypes.add(type);
+	}
+	spec.includeTypes = [...includeTypes];
+	spec.excludeTypes = [...excludeTypes];
+	spec.explicitIncludeClause = spec.includeTypes.length > 0 || target === 'include' || !!spec.explicitIncludeClause;
+	spec.explicitExcludeClause = spec.excludeTypes.length > 0 || target === 'exclude' || !!spec.explicitExcludeClause;
+	const nextValue = _stringifyAddToSpec(spec);
+	const cursor = getAddToAssistCursor(nextValue, target);
+	if (isEditorAutocompleteDebugEnabled()) {
+		console.debug('AC5E | autocomplete.editor | addTo apply type', {
+			type,
+			target,
+			spec,
+			nextValue,
+			cursor,
+		});
+	}
+	setAddToAssistValue(textarea, root, nextValue, selectionState, cursor);
+}
+
+function syncAddToAssistUi(root, textarea) {
+	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
+	const spec = getParsedAddToAssistSpec(textarea.value);
+	const target = detectAddToAssistTarget(root, textarea, spec);
+	root.dataset.ac5eAddToTypeTarget = target;
+	for (const button of root.querySelectorAll('[data-ac5e-assist-addto-part]')) {
+		const value = `${button.getAttribute('data-ac5e-assist-addto-part') ?? ''}`.trim();
+		button.classList.toggle('active', value === (spec.parts ?? 'all'));
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-addto-target]')) {
+		const value = `${button.getAttribute('data-ac5e-assist-addto-target') ?? ''}`.trim();
+		button.classList.toggle('active', value === target);
+	}
+	const activeTypeSet = new Set(target === 'exclude' ? spec.excludeTypes : spec.includeTypes);
+	for (const button of root.querySelectorAll('[data-ac5e-assist-addto-type]')) {
+		const value = `${button.getAttribute('data-ac5e-assist-addto-type') ?? ''}`.trim();
+		button.hidden = activeTypeSet.has(value);
+	}
 }
 
 function insertDelimitedAssistEntry(input, rawValue, selectionState = null) {
@@ -2605,7 +2891,7 @@ function getStatusEffectIds() {
 }
 
 function isEditorAutocompleteDebugEnabled() {
-	return foundry.utils.getProperty(CONFIG, 'ac5e.debug.autocompletion.editor') === true;
+	return foundry.utils.getProperty(globalThis?.[Constants.MODULE_NAME_SHORT], 'debug.autocompletion.editor') === true;
 }
 
 function handleAssistTabNavigation(input, selectionState = null, direction = 1) {
@@ -2766,6 +3052,7 @@ function applySetModeToFormData(formData, setMode) {
 function getPersistedFieldNames(profile) {
 	const fieldNames = [...profile.requiredFields, ...profile.auraFields, ...profile.optionalFields];
 	if (profile.supportsSetMode) fieldNames.push('set');
+	if (profile.supportsAddTo) fieldNames.push('addTo');
 	return dedupe(fieldNames);
 }
 

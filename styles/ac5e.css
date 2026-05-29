@@ -105,9 +105,12 @@
 
 .ac5e-effect-value-editor-toggle-companion > label {
 	display: block;
-	margin-bottom: 6px;
 	min-height: 1em;
 	visibility: hidden;
+}
+
+.ac5e-effect-value-editor-field-companion > label {
+	visibility: visible;
 }
 
 .ac5e-effect-value-editor-toggle-companion .form-fields {
@@ -115,6 +118,16 @@
 	display: flex;
 	min-height: 28px;
 	padding-top: 0;
+	width: 100%;
+}
+
+.ac5e-effect-value-editor-field-companion .form-fields {
+	align-items: flex-start;
+}
+
+.ac5e-effect-value-editor-field-companion .ac5e-effect-value-editor-inline-field {
+	flex: 1 1 auto;
+	width: 100%;
 }
 
 .ac5e-effect-value-editor-expand {
@@ -237,6 +250,10 @@
 	gap: 12px;
 }
 
+.ac5e-effect-value-expand-layout-single {
+	grid-template-columns: minmax(0, 1fr);
+}
+
 .ac5e-effect-value-assist-title {
 	font-weight: 700;
 	margin: 0 0 8px;
@@ -253,6 +270,10 @@
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 8px;
+}
+
+.ac5e-effect-value-assist-groups-addto {
+	gap: 12px;
 }
 
 .ac5e-effect-value-assist-fieldset {

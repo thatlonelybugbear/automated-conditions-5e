@@ -80,7 +80,44 @@
 							</div>
 						{{/if}}
 					</div>
-					{{#if inlineToggle}}
+					{{#if companionField}}
+						<div class="form-group ac5e-effect-value-editor-toggle-companion ac5e-effect-value-editor-field-companion">
+							<label for="{{companionField.inputId}}">{{companionField.label}}</label>
+							{{#if inlineToggle}}
+								<div class="form-fields">
+									<div class="form-fields ac5e-effect-value-editor-inline-field">
+										<input id="{{companionField.inputId}}" type="text" name="fields.{{companionField.name}}" value="{{companionField.value}}">
+										{{#if companionField.expandable}}
+											<button
+												type="button"
+												class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+												data-ac5e-expand-input="fields.{{companionField.name}}"
+												data-ac5e-expand-label="{{companionField.label}}"
+												aria-label="Expand {{companionField.label}}"
+											></button>
+										{{/if}}
+									</div>
+									<label class="ac5e-effect-value-editor-inline-toggle">
+										<input type="checkbox" name="{{inlineToggle.name}}" {{#if inlineToggle.checked}}checked{{/if}}>
+										<span title="{{inlineToggle.hint}}">{{inlineToggle.label}}</span>
+									</label>
+								</div>
+							{{else}}
+								<div class="form-fields ac5e-effect-value-editor-inline-field">
+									<input id="{{companionField.inputId}}" type="text" name="fields.{{companionField.name}}" value="{{companionField.value}}">
+									{{#if companionField.expandable}}
+										<button
+											type="button"
+											class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
+											data-ac5e-expand-input="fields.{{companionField.name}}"
+											data-ac5e-expand-label="{{companionField.label}}"
+											aria-label="Expand {{companionField.label}}"
+										></button>
+									{{/if}}
+								</div>
+							{{/if}}
+						</div>
+					{{else if inlineToggle}}
 						<div class="form-group ac5e-effect-value-editor-toggle-companion">
 							<label>&nbsp;</label>
 							<div class="form-fields">
