@@ -6,8 +6,8 @@
   - The editor is designed to be used alongside the existing raw string editor, so you can switch between them as needed and the structured editor will preserve your raw edits instead of overwriting them.
   - Common AC5E keywords are suggested as you type in the editor, and also as clickable chips in the structured editor view.
   - Most common data paths are being sourced from some SRD 5.2 compendium actors during the module's initialization, so a good baseline of suggestions should be available in the editor.
-- `flags.automated-conditions-5e.ACTIONTYPE.update` now supports actor status toggles as direct targets.
-  - You can now target paths like `rollingActor.statuses.<statusId>` or `opponentActor.statuses.<statusId>`.
+- `flags.automated-conditions-5e.ACTIONTYPE.info` now supports actor status toggles as direct targets.
+  - You can now target paths like `update=rollingActor.statuses.<statusId>,1` or `update=opponentActor.statuses.<statusId>,-1`.
   - Use `1` to apply a status and `-1` to remove it.
   - Status update targets are also included in update-field autocomplete suggestions.
 - Added `d20` as a valid AC5E flag and usage-rule hook.
