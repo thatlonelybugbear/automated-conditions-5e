@@ -6,6 +6,19 @@
 	width: 100%;
 }
 
+.application.ac5e-effect-value-editor {
+	max-width: min(1200px, calc(100vw - 2rem));
+	min-width: min(680px, calc(100vw - 2rem));
+	overflow: hidden;
+	resize: horizontal;
+}
+
+.application.ac5e-effect-value-expand-window {
+	max-width: min(1200px, calc(100vw - 2rem));
+	overflow: hidden;
+	resize: horizontal;
+}
+
 .active-effect-config .ac5e-effect-value-editor-control input,
 .active-effect-config .ac5e-effect-value-editor-control textarea {
 	flex: 1 1 auto;
@@ -21,7 +34,10 @@
 }
 
 .ac5e-effect-value-editor .window-content {
-	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
 }
 
 #autocomplete.ac5e-autocomplete-menu {
@@ -38,6 +54,15 @@
 	display: flex;
 	flex-direction: column;
 	gap: 18px;
+	height: 100%;
+	min-height: 0;
+}
+
+.ac5e-effect-value-editor-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 2px;
 }
 
 .ac5e-effect-value-editor-header p {
@@ -241,6 +266,8 @@
 .ac5e-effect-value-expand-dialog textarea {
 	box-sizing: border-box;
 	min-height: 14rem;
+	max-height: min(36vh, 22rem);
+	resize: vertical;
 	width: 100%;
 }
 
@@ -426,11 +453,15 @@
 
 .ac5e-effect-value-editor-footer {
 	align-items: center;
+	background: var(--color-background);
+	border-top: 1px solid var(--color-border-light-primary);
 	display: flex;
 	flex-direction: row;
+	flex: 0 0 auto;
 	gap: 8px;
 	justify-content: flex-end;
-	margin-top: 8px;
+	margin-top: 0;
+	padding-top: 8px;
 }
 
 .ac5e-effect-value-editor-footer button {

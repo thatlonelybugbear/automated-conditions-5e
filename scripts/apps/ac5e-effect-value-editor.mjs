@@ -131,7 +131,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		window: {
 			title: 'AC5E Effect Value Editor',
 			icon: 'fa-solid fa-wand-magic-sparkles',
-			resizable: true,
+			resizable: false,
 		},
 		actions: {
 			apply: AC5EEffectValueEditor.#onApplyAction,
@@ -490,7 +490,15 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const isOverrideScope = assistScope === 'typeOverride' || assistScope === 'abilityOverride';
 		const isAddToScope = assistScope === 'addTo';
 		const isCounterScope = assistScope === 'usesCount' || assistScope === 'update';
-		const dialogWidth = isAddToScope ? 500 : (isOverrideScope ? 620 : 920);
+		const isCompactScope = isAddToScope || isCounterScope;
+		const textAreaRows = (isAddToScope || isCounterScope) ? 3 : 6;
+		const minDialogWidth = isAddToScope ? 500 : (isCounterScope ? 700 : (isOverrideScope ? 620 : 760));
+		const preferredDialogWidth = isAddToScope ? 500 : (isCounterScope ? 760 : (isOverrideScope ? 620 : 920));
+		const resizeMinDialogWidth = isAddToScope ? 420 : (isCounterScope ? 620 : (isOverrideScope ? 520 : 620));
+		const viewportWidth = window.innerWidth || document.documentElement?.clientWidth || preferredDialogWidth;
+		const maxDialogWidth = Math.max(minDialogWidth, Math.min(1200, Math.floor(viewportWidth * 0.92)));
+		const dialogWidth = Math.min(maxDialogWidth, Math.max(minDialogWidth, preferredDialogWidth));
+		const clampedResizeMinDialogWidth = Math.min(dialogWidth, Math.max(360, Math.min(resizeMinDialogWidth, Math.floor(viewportWidth * 0.9))));
 		const assistControls = isOverrideScope
 			?	renderAssistActionFieldset(
 					assistScope === 'typeOverride' ? 'Type Override entries' : 'Ability Override entries',
@@ -532,6 +540,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				window: {
 					title: `Edit ${label}`,
 					id: appId,
+					resizable: false,
 				},
 				content: `
 					<form class="ac5e-effect-value-expand-dialog${isAddToScope ? ' ac5e-effect-value-expand-dialog-addto' : ''}" data-ac5e-lambda-assist data-ac5e-assist-scope="${escapeHtml(assistScope)}">
@@ -540,7 +549,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 								<div class="form-group stacked">
 									<label for="ac5e-expand-value">${escapedLabel}</label>
 									<div class="form-fields">
-										<textarea id="ac5e-expand-value" name="value" rows="12" placeholder="${escapeHtml(isAddToScope ? 'Examples: base | bonus | types(fire,cold) | base;!types(acid)' : '')}">${escapedValue}</textarea>
+										<textarea id="ac5e-expand-value" name="value" rows="${textAreaRows}" placeholder="${escapeHtml(isAddToScope ? 'Examples: base | bonus | types(fire,cold) | base;!types(acid)' : '')}">${escapedValue}</textarea>
 									</div>
 								</div>
 								${assistControls}
@@ -564,10 +573,15 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 						callback: () => '__ac5e_reset__',
 					},
 				],
-				position: {
-					width: dialogWidth,
-				},
+				position: { width: dialogWidth },
 				render: (_event, dialog) => {
+					const dialogElement = dialog?.element;
+					if (dialogElement instanceof HTMLElement) {
+						dialogElement.classList.add('ac5e-effect-value-expand-window');
+						dialogElement.style.height = 'auto';
+						dialogElement.style.minWidth = `${clampedResizeMinDialogWidth}px`;
+						dialogElement.style.maxHeight = 'calc(100vh - 2rem)';
+					}
 					const textarea = dialog.element.querySelector('textarea[name="value"]');
 					if (!(textarea instanceof HTMLTextAreaElement)) return;
 					const resetButton = dialog.element.querySelector('[data-action="reset"], button[name="reset"]');
@@ -3450,4 +3464,3 @@ function coerceScalingNumber(value, fallback) {
 	const parsed = Number(value);
 	return Number.isFinite(parsed) ? parsed : fallback;
 }
-
