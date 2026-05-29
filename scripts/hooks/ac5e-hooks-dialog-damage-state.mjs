@@ -112,6 +112,13 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const effectiveFormulas = getConfigAC5E.preservedInitialData?.modified ?? formulas;
 		syncAppendedBonusRolls(dialog, getConfigAC5E, effectiveFormulas);
 		syncSyntheticDamageDialogFormulaElements(elem, getConfigAC5E, effectiveFormulas.length);
+		if (shouldTriggerBaseRollPreviewResync(dialog, effectiveFormulas.length)) {
+			Promise.resolve().then(() => {
+				dialog.rebuild();
+				dialog.render();
+			});
+			return;
+		}
 		syncDamageRollTypeOverrideOptions(getConfigAC5E, dialog?.config?.rolls);
 		syncDamageRollModifierOptions(getConfigAC5E, dialog?.config?.rolls);
 		syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
@@ -531,9 +538,14 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 		for (let i = 0; i < config.rolls.length; i++) {
 			const roll = config.rolls[i];
 			if (!roll?.options) continue;
+			if (isSyntheticBonusRoll(roll)) {
+				roll.options.isCritical = false;
+				rollCriticalByIndex[i] = false;
+				continue;
+			}
 			const rollType =
 				typeof roll?.options?.type === 'string' && roll.options.type.trim() ?
-					String(roll.options.type).toLowerCase()
+					roll.options.type.toLowerCase()
 				:	(getRollDamageTypeFromForm(formData, config, i) ?? getDamageRollTypeAtIndex(ac5eConfig, undefined, i));
 			const localizedCritical = localizedCriticalEntries.some((entry) => shouldApplyCriticalToRoll(entry, i, rollType, allTypes));
 			const effectiveRollCritical = config.isCritical || localizedCritical;
@@ -967,6 +979,62 @@ function syncSyntheticDamageDialogFormulaElements(elem, ac5eConfig, baseCount = 
 	}
 }
 
+function hasBaseRollPreviewDesync(dialog, baseCount = 0) {
+	const renderedRolls = Array.isArray(dialog?.rolls) ? dialog.rolls : [];
+	const configuredRolls = Array.isArray(dialog?.config?.rolls) ? dialog.config.rolls : [];
+	if (!renderedRolls.length || !configuredRolls.length) return false;
+	const count = Math.min(baseCount || configuredRolls.length, renderedRolls.length, configuredRolls.length);
+	for (let index = 0; index < count; index++) {
+		const rendered = renderedRolls[index];
+		const configured = configuredRolls[index];
+		if (!rendered || !configured) continue;
+		const renderedFormula = rendered.formula?.trim?.() ?? '';
+		const configuredFormula = configured.formula?.trim?.() ?? '';
+		if (renderedFormula && configuredFormula && renderedFormula !== configuredFormula) return true;
+		const renderedCritical = !!rendered.isCritical;
+		const configuredCritical = !!configured?.options?.isCritical;
+		if (renderedCritical !== configuredCritical) return true;
+	}
+	return false;
+}
+
+function getBaseRollPreviewDesyncKey(dialog, baseCount = 0) {
+	const renderedRolls = Array.isArray(dialog?.rolls) ? dialog.rolls : [];
+	const configuredRolls = Array.isArray(dialog?.config?.rolls) ? dialog.config.rolls : [];
+	const count = Math.min(baseCount || configuredRolls.length, renderedRolls.length, configuredRolls.length);
+	const slices = [];
+	for (let index = 0; index < count; index++) {
+		const rendered = renderedRolls[index];
+		const configured = configuredRolls[index];
+		slices.push(
+			[
+				rendered?.formula?.trim?.() ?? '',
+				configured?.formula?.trim?.() ?? '',
+				!!rendered?.isCritical,
+				!!configured?.options?.isCritical,
+			].join('|'),
+		);
+	}
+	return slices.join('||');
+}
+
+function shouldTriggerBaseRollPreviewResync(dialog, baseCount = 0) {
+	if (!hasBaseRollPreviewDesync(dialog, baseCount)) {
+		dialog._ac5eLastPreviewDesyncKey = undefined;
+		dialog._ac5ePreviewResyncAttempts = 0;
+		return false;
+	}
+	const key = getBaseRollPreviewDesyncKey(dialog, baseCount);
+	if (dialog._ac5eLastPreviewDesyncKey !== key) {
+		dialog._ac5eLastPreviewDesyncKey = key;
+		dialog._ac5ePreviewResyncAttempts = 0;
+	}
+	const attempts = dialog._ac5ePreviewResyncAttempts ?? 0;
+	if (attempts >= 1) return false;
+	dialog._ac5ePreviewResyncAttempts = attempts + 1;
+	return true;
+}
+
 function extractImplicitBonusDamageType(value) {
 	const raw = String(value ?? '').trim();
 	if (!raw) return { formula: '', type: undefined, types: [] };
@@ -1109,16 +1177,24 @@ function syncAppendedBonusRolls(dialog, ac5eConfig, formulas = []) {
 		else if ('maximize' in roll.options) delete roll.options.maximize;
 		if (bonusRoll.minimize) roll.options.minimize = true;
 		else if ('minimize' in roll.options) delete roll.options.minimize;
-		if (bonusRoll.resolvedCriticalFormula) {
-			roll.options.isCritical = false;
-			delete roll.options.critical;
-		} else if ('isCritical' in roll.options) delete roll.options.isCritical;
+		// Synthetic bonus rolls already carry any critical-resolved formula adjustments;
+		// never let them inherit global dialog critical doubling from DnD5e.
+		roll.options.isCritical = false;
+		if (bonusRoll.resolvedCriticalFormula) delete roll.options.critical;
 		const syntheticCriticalBonus = normalizeCriticalBonusDamageFormula(bonusRoll.criticalFormula);
 		if (syntheticCriticalBonus) {
 			roll.options.critical ??= {};
 			roll.options.critical.bonusDamage = syntheticCriticalBonus;
 		} else if (roll.options.critical && typeof roll.options.critical === 'object' && Object.hasOwn(roll.options.critical, 'bonusDamage')) {
 			delete roll.options.critical.bonusDamage;
+		}
+		// Ensure roll terms reflect the synthetic critical state immediately; icon rendering reads roll.terms.
+		if (typeof roll.configureDamage === 'function') {
+			try {
+				roll.configureDamage({ critical: dialog?.config?.critical ?? {} });
+			} catch (_err) {
+				// Ignore non-DamageRoll or transient roll shape errors.
+			}
 		}
 		rolls[rollIndex] = roll;
 	}

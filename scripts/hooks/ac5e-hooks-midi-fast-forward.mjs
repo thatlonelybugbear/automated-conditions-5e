@@ -10,7 +10,7 @@ function getSelectedDamageTypes(ac5eConfig, config) {
 	return (Array.isArray(config?.rolls) ? config.rolls : [])
 		.map((roll) => {
 			const type = roll?.options?.type;
-			return typeof type === 'string' && type.trim().length ? String(type).toLowerCase() : undefined;
+			return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 		})
 		.filter(Boolean);
 }
