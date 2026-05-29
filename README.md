@@ -241,7 +241,7 @@ Snapshot includes:
 ## Compatibility
 - [x] Core highlights the correct buttons to press depending on the conditions on attacker and target, and Fast Forwards correctly
 - [X] MidiQOL
-- [ ] Ready Set Roll unknown compatibility currently. If the module is updated at some point, I will take another look.
+- [X] RSReforged (v4.6.0+) needs AC5E v14.533.2+ and is a WIP. Tooltips should be shown in ability related rolls and optins should be forcing FF off so that the user can toggle them on.
  
 ## Credits
 - Special thanks to [Illandril](https://github.com/illandril) for using some of his code from [Illandril's Token Tooltips](https://github.com/illandril/FoundryVTT-token-tooltips) for distance calculations.
