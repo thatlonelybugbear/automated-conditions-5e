@@ -1,3 +1,7 @@
+## 14.533.2.2
+
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.2.1
 
 - Quick fix for AC5E Effect Value editor window dimensions.
