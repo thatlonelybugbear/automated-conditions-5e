@@ -3,9 +3,9 @@
 		"Name": "Regole Condizioni D&D 5e",
 		"Hint": "Abilita la gestione AC5E delle condizioni di D&D 5e, estendendo l'automazione della modalità vantaggio integrata nel sistema D&D 5e con una gestione delle regole più ampia e precisa, soprattutto per i tiri per colpire."
 	},
-	"AC5E.ExperimentalUi": {
-		"Name": "Abilita AC5E UI (Sperimentale)",
-		"Hint": "Mostra il pulsante della bacchetta AC5E per l'editor sperimentale dei valori degli Effetti Attivi."
+	"AC5E.Ui": {
+		"Name": "Disabilita AC5E UI",
+		"Hint": "Disabilita il pulsante della bacchetta AC5E per l'editor dei valori degli Effetti Attivi."
 	},
 	"AC5E.ShowTooltipsName": "Mostra suggerimenti AC5E",
 	"AC5E.ShowTooltipsHint": "Mostra i suggerimenti AC5E nei dialoghi di tiro, nei messaggi in chat o in entrambi, spiegando i motivi del risultato suggerito.",
@@ -149,6 +149,7 @@
 	"AC5E.CannotSeeTarget": "Non può vedere il bersaglio",
 	"AC5E.TargetCannotSeeAttacker": "Il bersaglio non può vedere l'attaccante",
 	"AC5E.Bonus": "Bonus",
+	"AC5E.AbilityOverride": "Sovrascrivi Caratteristica",
 	"AC5E.ExtraDice": "Dadi extra",
 	"AC5E.Success": "Successo",
 	"AC5E.AbbreviationAdvantage": "vant",
@@ -168,6 +169,7 @@
 	"AC5E.TargetGrantsBonus": "Concede bonus",
 	"AC5E.TargetGrantsModifier": "Concede modificatore",
 	"AC5E.TargetGrantsExtraDice": "Concede dadi extra",
+	"AC5E.TargetGrantsAbilityOverride": "Concede sovrascrittura caratteristica",
 	"AC5E.NoChanges": "Nessuna modifica",
 	"AC5E.SystemMode": "Modalità sistema",
 	"AC5E.OptinDescription.Roll.Attack": "tiri per colpire",
@@ -211,6 +213,10 @@
 	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Aggiunge dadi danno extra ({value})",
 	"AC5E.OptinDescription.OverridesDamageType": "Sovrascrive il tipo di danno",
 	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Sovrascrive il tipo di danno ({value})",
+	"AC5E.OptinDescription.OverridesDcAbility": "Sovrascrive Caratteristica CD TS/Prova ({value})",
+	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Sovrascrive Caratteristica CD TS/Prova",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name": "Effetto Applica Modificatore Sovrascrittura",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint": "Solo GM. Tieni premuto questo tasto mentre fai clic su Applica Effetto per ignorare i controlli di Consenti Applicazione Effetto.",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta il tipo di dado del danno",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta il tipo di dado del danno ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Riduce il tipo di dado del danno",
@@ -281,16 +287,16 @@
 			"description": "Usa bonus=2; radius=10 per aumentare il numero di dadi in un raggio di 10 unità di distanza."
 		},
 		"flags.automated-conditions-5e.damage.typeOverride": {
-			"name": "Sovrascrive il tipo di danno impostato dei tiri di danno base",
-			"description": "Usa set=fire per forzare un solo tipo oppure set=fire,lightning,thunder per offrire più tipi. addTo=... si applica solo alle parti di danno base corrispondenti."
+			"name": "Sovrascrivi i tipi di danno dei tiri di danno base",
+			"description": "Usa override=fire per forzare un singolo tipo oppure override=fire,lightning,thunder per offrire più tipi tra cui scegliere. set=... è ancora supportato per retrocompatibilità. Le opzioni addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) oppure clausole combinate come addTo=base;!types(force) determinano quali componenti del danno vengono influenzate."
 		},
 		"flags.automated-conditions-5e.grants.damage.typeOverride": {
-			"name": "Concede sovrascrittura del tipo di danno ai tiri di danno base dell'avversario",
-			"description": "Usa set=fire per forzare un solo tipo oppure set=fire,lightning,thunder per offrire più tipi. addTo=... si applica solo alle parti di danno base corrispondenti."
+			"name": "Concedi sovrascrittura del tipo di danno ai tiri di danno base dell'avversario",
+			"description": "Usa override=fire per forzare un singolo tipo oppure override=fire,lightning,thunder per offrire più tipi tra cui scegliere. set=... è ancora supportato per retrocompatibilità. Le opzioni addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) oppure clausole combinate come addTo=base;!types(force) determinano quali componenti del danno vengono influenzate."
 		},
 		"flags.automated-conditions-5e.aura.damage.typeOverride": {
-			"name": "Un'aura che sovrascrive il tipo di danno dei tiri di danno base entro il raggio",
-			"description": "Usa radius=10;set=fire oppure radius=10;set=fire,lightning,thunder. addTo=... si applica solo alle parti di danno base corrispondenti."
+			"name": "Aura che sovrascrive i tipi di danno dei tiri di danno base entro il raggio",
+			"description": "Usa radius=10;override=fire oppure radius=10;override=fire,lightning,thunder. set=... è ancora supportato per retrocompatibilità. Le opzioni addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) oppure clausole combinate come addTo=base;!types(force) determinano quali componenti del danno vengono influenzate."
 		},
 		"flags.automated-conditions-5e.modifyAC": {
 			"name": "Modifica la Classe Armatura dell'attore contro gli attacchi in arrivo",
@@ -303,6 +309,22 @@
 		"flags.automated-conditions-5e.aura.modifyAC": {
 			"name": "Aura che modifica la CA dei token nell'area",
 			"description": "Usa radius=10;bonus=1d4; oppure radius=15;set=15. Il primo applica un bonus alla CA, il secondo imposta il valore."
+		},
+		"flags.automated-conditions-5e.abilityOverride": {
+			"name": "Sovrascrivi l'abilità per la CD di Tiri Salvezza/Prove",
+			"description": "Sovrascrive l'abilità utilizzata per calcolare le CD di Tiri Salvezza/Prove dell'attività. Usa override=cha. Esempio: override=(item.type==='spell' ? spellcastingAbility : wis). Sono ancora supportati anche abilityOverride=... e set=...."
+		},
+		"flags.automated-conditions-5e.grants.abilityOverride": {
+			"name": "Concedi sovrascrittura dell'abilità per la CD di Tiri Salvezza/Prove",
+			"description": "Sovrascrive l'abilità dell'attore influenzato utilizzata per la CD di Tiri Salvezza/Prove. Usa override=cha. Esempio: override=(opponentActor?.details?.type?.value==='fiend' ? cha : wis). Sono ancora supportati anche abilityOverride=... e set=...."
+		},
+		"flags.automated-conditions-5e.aura.abilityOverride": {
+			"name": "Aura che sovrascrive l'abilità per la CD di Tiri Salvezza/Prove",
+			"description": "Sovrascrive l'abilità utilizzata per la CD di Tiri Salvezza/Prove per i token influenzati dall'aura. Usa radius come di consueto insieme a override=cha. Esempio: radius=30;allies;includeSelf;override=wis. Sono ancora supportati anche abilityOverride=... e set=...."
+		},
+		"flags.automated-conditions-5e.allowEffectApplication": {
+			"name": "Consenti Applicazione Effetto",
+			"description": "Valutato al momento della creazione dell'effetto. Se questa espressione restituisce false, AC5E blocca l'applicazione dell'effetto. In caso di errori durante la valutazione, l'applicazione procede secondo il comportamento predefinito del sistema."
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
@@ -352,10 +374,6 @@
 			"success": {
 				"name": "I tiri d20 riescono",
 				"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/damage/death/save/skill/tool"
-			},
-			"abilityOverride": {
-				"name": "Sovrascrivi la caratteristica usata per il tiro",
-				"description": "Solo attacchi. Usa override=cha oppure abilityOverride=cha."
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
@@ -406,10 +424,6 @@
 		"success": {
 			"name": "I tiri d20 contro o causati da te hanno successo",
 			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool"
-		},
-		"abilityOverride": {
-			"name": "Concede una caratteristica sovrascritta ai tiri del bersaglio",
-			"description": "Solo attacchi. Usa override=cha oppure abilityOverride=cha."
 		}
 	},
 	"flags.automated-conditions-5e.aura.ACTIONTYPE": {
@@ -460,10 +474,6 @@
 		"success": {
 			"name": "Un'aura che forza il successo",
 			"description": "Sostituisci ACTIONTYPE con uno tra: all/attack/check/concentration/death/save/skill/tool. Formato valore: radius=Number;alleati o nemici o omettere per TUTTI;altre condizioni"
-		},
-		"abilityOverride": {
-			"name": "Un'aura che sovrascrive la caratteristica usata per i tiri",
-			"description": "Solo attacchi. Usa radius come di consueto più override=cha oppure abilityOverride=cha."
 			}
 		}
 	},
