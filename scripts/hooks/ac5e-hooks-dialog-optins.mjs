@@ -150,8 +150,8 @@ function updateSingleOptinScale(ac5eConfig, optinId, scale) {
 }
 
 function getUsesCountLabelSuffix(entry) {
-	const statusUpdateLabel = getStatusUpdateText(entry, { detailed: false });
-	if (statusUpdateLabel) return '(Info)';
+	const updateSummary = getUpdateSummaryText(entry, { compact: true });
+	if (updateSummary) return `(${updateSummary})`;
 	const counterDisplay = getCounterDisplaySpec(entry);
 	const parsed = counterDisplay.parsed;
 	const hasRecover = !!entry?.recover;
@@ -264,8 +264,8 @@ function formatUsesCountType(target) {
 }
 
 function getUsesCountDescriptionSuffix(entry) {
-	const statusUpdateDescription = getStatusUpdateText(entry, { detailed: false });
-	if (statusUpdateDescription) return `(${statusUpdateDescription})`;
+	const updateSummary = getUpdateSummaryText(entry, { compact: false });
+	if (updateSummary) return `(${updateSummary})`;
 	const counterDisplay = getCounterDisplaySpec(entry);
 	const parsed = counterDisplay.parsed;
 	const hasRecover = !!entry?.recover;
@@ -352,6 +352,83 @@ function getStatusUpdateText(entry, { detailed = false } = {}) {
 	const statusLabel = getStatusEffectLabel(statusId);
 	if (!detailed) return active ? `Apply ${statusLabel} to ${actorLabel}` : `Remove ${statusLabel} from ${actorLabel}`;
 	return active ? `Apply ${statusLabel} (${statusId}) to ${actorLabel}` : `Remove ${statusLabel} (${statusId}) from ${actorLabel}`;
+}
+
+function getUpdateSummaryText(entry, { compact = false } = {}) {
+	const rawTarget = typeof entry?.updateTarget === 'string' ? entry.updateTarget.trim() : '';
+	if (!rawTarget) return '';
+	const rawValue = typeof entry?.updateValue === 'string' ? entry.updateValue.trim() : '';
+	const op = (entry?.updateOp ?? '').trim().toLowerCase();
+
+	const statusText = getStatusUpdateText(entry, { detailed: false });
+	if (statusText) return compact ? normalizeUpdateVerb(statusText) : normalizeUpdateVerb(statusText);
+
+	if (isExhaustionPath(rawTarget)) {
+		const normalized = describeUpdateAmount(rawValue, op);
+		const exhaustionLabel = localizeWithFallback('AC5E.Optin.UpdateSummary.Exhaustion', 'Exhaustion');
+		const levelLabel = localizeWithFallback('AC5E.Optin.UpdateSummary.ExhaustionLevel', 'level');
+		const levelsLabel = localizeWithFallback('AC5E.Optin.UpdateSummary.ExhaustionLevels', 'levels');
+		if (!normalized) {
+			const updatesKey = compact ? 'AC5E.Optin.UpdateSummary.UpdatesCompact' : 'AC5E.Optin.UpdateSummary.Updates';
+			const updatesTemplate = localizeWithFallback(updatesKey, compact ? 'Updates {target}' : 'Updates {target}');
+			return updatesTemplate.replace('{target}', exhaustionLabel);
+		}
+		if (normalized.kind === 'set') return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.Sets', 'Sets {target} to {value}', exhaustionLabel, normalized.value);
+		if (normalized.kind === 'add') {
+			const count = Math.abs(Number(normalized.value));
+			const unit = count === 1 ? levelLabel : levelsLabel;
+			return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.AppliesWithUnit', 'Applies {value} {target} {unit}', exhaustionLabel, normalized.value, unit);
+		}
+		const count = Math.abs(Number(normalized.value));
+		const unit = count === 1 ? levelLabel : levelsLabel;
+		return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.RemovesWithUnit', 'Removes {value} {target} {unit}', exhaustionLabel, Math.abs(normalized.value), unit);
+	}
+
+	const target = formatUsesCountType(rawTarget) || rawTarget;
+	const normalized = describeUpdateAmount(rawValue, op);
+	if (!normalized) return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.Updates', 'Updates {target}', target);
+	if (normalized.kind === 'set') return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.Sets', 'Sets {target} to {value}', target, normalized.value);
+	if (normalized.kind === 'add') return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.AppliesTo', 'Applies {value} to {target}', target, normalized.value);
+	return formatUpdateSummaryTemplate('AC5E.Optin.UpdateSummary.RemovesFrom', 'Removes {value} from {target}', target, Math.abs(normalized.value));
+}
+
+function normalizeUpdateVerb(text) {
+	const value = (text ?? '').trim();
+	if (!value) return '';
+	return value
+		.replace(/^Apply\b/i, 'Applies')
+		.replace(/^Remove\b/i, 'Removes');
+}
+
+function isExhaustionPath(target) {
+	const normalized = (target ?? '').trim().toLowerCase();
+	if (!normalized) return false;
+	return normalized.endsWith('.exhaustion') || normalized.endsWith('.attributes.exhaustion');
+}
+
+function describeUpdateAmount(rawValue, op) {
+	const value = (rawValue ?? '').trim();
+	if (!value) return null;
+	if (op === 'set' || value.startsWith('=')) {
+		const setRaw = value.startsWith('=') ? value.slice(1).trim() : value;
+		const numericSet = Number(setRaw);
+		if (!Number.isFinite(numericSet)) return { kind: 'set', value: setRaw };
+		return { kind: 'set', value: numericSet };
+	}
+	const numeric = Number(value);
+	if (!Number.isFinite(numeric)) return null;
+	if (numeric >= 0) return { kind: 'add', value: numeric };
+	return { kind: 'remove', value: numeric };
+}
+
+function formatUpdateSummaryTemplate(key, fallback, target, value = '', unit = '') {
+	const template = localizeWithFallback(key, fallback);
+	return template
+		.replace('{target}', `${target ?? ''}`)
+		.replace('{value}', `${value ?? ''}`)
+		.replace('{unit}', `${unit ?? ''}`)
+		.replace(/\s+/g, ' ')
+		.trim();
 }
 
 function getStatusEffectLabel(statusId) {

@@ -155,6 +155,37 @@
 	width: 100%;
 }
 
+.ac5e-effect-value-editor-usescount-options {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.ac5e-effect-value-editor-usescount-row {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	min-width: 0;
+	width: 100%;
+}
+
+.ac5e-effect-value-editor-usescount-primary {
+	flex: 0 1 220px;
+	max-width: 220px;
+	min-width: 120px;
+}
+
+.ac5e-effect-value-editor-usescount-primary input {
+	width: 100%;
+}
+
+.ac5e-usescount-toggle-recover {
+	margin-left: 0;
+}
+
 .ac5e-effect-value-editor-expand {
 	flex: 0 0 28px;
 	height: 28px;
@@ -165,7 +196,7 @@
 
 .ac5e-effect-value-editor-scaling-grid {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 8px;
 	width: 100%;
 }
@@ -182,6 +213,18 @@
 	margin: 0;
 }
 
+.ac5e-effect-value-editor-scaling-recover {
+	grid-column: 4;
+	grid-row: 1;
+	justify-content: flex-end;
+}
+
+.ac5e-effect-value-editor-scaling-recover .ac5e-effect-value-editor-inline-toggle {
+	font-size: var(--font-size-14);
+	font-weight: 700;
+	margin-left: 0;
+}
+
 .ac5e-effect-value-editor-toggle-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -194,6 +237,12 @@
 	gap: 6px;
 	font-size: var(--font-size-14);
 	font-weight: 700;
+}
+
+.ac5e-effect-value-editor-label-info {
+	font-size: var(--font-size-12);
+	margin-left: 4px;
+	opacity: 0.9;
 }
 
 .ac5e-effect-value-editor-wide {

@@ -111,6 +111,8 @@ const AC5E_UPDATE_BASE_ENTRIES = [
 	'exhaustion',
 	'death.fail',
 	'death.success',
+	'flag.<path>',
+	'flags.<path>',
 	'abilities.<ability>.value',
 	'rollingActor',
 	'opponentActor',
@@ -233,37 +235,37 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					name: 'ui.showCadence',
 					label: 'Cadence',
 					checked: optionalFieldState.cadence,
-					hint: getToggleHint('ui.showCadence'),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowCadence'),
 				},
 				{
 					name: 'ui.showName',
 					label: 'Name',
 					checked: optionalFieldState.name,
-					hint: getToggleHint('ui.showName'),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowName'),
 				},
 				{
 					name: 'ui.showDescription',
 					label: 'Description',
 					checked: optionalFieldState.description,
-					hint: getToggleHint('ui.showDescription'),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowDescription'),
 				},
 				{
 					name: 'ui.showUsesCount',
 					label: 'Uses Count',
 					checked: optionalFieldState.usesCount,
-					hint: getToggleHint('ui.showUsesCount'),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUsesCount'),
 				},
 				...(profile.supportsUpdate ? [{
 					name: 'ui.showUpdate',
 					label: 'Update',
 					checked: optionalFieldState.update,
-					hint: getToggleHint('ui.showUpdate'),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUpdate'),
 				}] : []),
 				...profile.commonToggles.filter((name) => !CADENCE_TOGGLE_FIELDS.includes(name)).map((name) => ({
 					name: `toggles.${name}`,
 					label: labelForField(name),
 					checked: Boolean(parsed.toggles[name]),
-					hint: getToggleHint(`toggles.${name}`),
+					hint: getToggleHint(toggleHintKey(name)),
 				})),
 			],
 			showCadence: optionalFieldState.cadence,
@@ -274,7 +276,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				name,
 				label: labelForField(name),
 				checked: Boolean(parsed.toggles[name]),
-				hint: getToggleHint(`toggles.${name}`),
+				hint: getToggleHint(toggleHintKey(name)),
 			})),
 			hasAuraBehavior: profile.isAura && profile.contextToggles.length > 0,
 			hasContextToggles: profile.contextToggles.length > 0,
@@ -388,9 +390,21 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showUpdate) mergedData.fields.update = '';
 		const partialConsumeEnabled = Boolean(mergedData.toggles.partialConsume);
 		const scalingEnabled = showUsesCountScaling && !partialConsumeEnabled;
-		if (showUsesCount) mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, scalingEnabled ? usesCountScalingInputs : null);
+		if (showUsesCount) {
+			mergedData.fields.usesCount = buildUsesCountValueFromUi(form, {
+				includeScaling: scalingEnabled,
+				scalingInputs: scalingEnabled ? usesCountScalingInputs : null,
+				preferExisting: mergedData.fields.usesCount,
+			});
+			if (!scalingEnabled) mergedData.toggles.recover = false;
+		}
+		if (showUpdate) {
+			mergedData.fields.update = buildUpdateValueFromUi(form, {
+				preferExisting: mergedData.fields.update,
+			});
+		}
 		if (scalingEnabled) mergedData.toggles.partialConsume = false;
-		if (!String(mergedData.fields.usesCount ?? '').trim()) mergedData.toggles.partialConsume = false;
+		if (!`${mergedData.fields.usesCount ?? ''}`.trim()) mergedData.toggles.partialConsume = false;
 		applyCadenceMode(mergedData, cadenceMode);
 		if (profile.supportsSetMode) {
 			mergedData.fields.bonus = setMode ? '' : mergedData.fields.bonus;
@@ -486,7 +500,16 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
 		const assistProfile = getEditorProfile(changeKey, this.draftData ?? null);
 		const assistScope = resolveAssistScope(inputName, currentValue, changeKey);
-		const assist = buildLambdaAssistData(this.autocompleteEntries, { includeAuraActor: assistProfile.isAura, changeKey, assistScope });
+		const normalizedInputName = `${inputName ?? ''}`.trim().toLowerCase();
+		const isBonusExpand = normalizedInputName === 'fields.bonus' || normalizedInputName === 'fields.set';
+		const hasUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
+		const assist = buildLambdaAssistData(this.autocompleteEntries, {
+			includeAuraActor: assistProfile.isAura,
+			changeKey,
+			assistScope,
+			includeScaleValue: isBonusExpand && hasUsesCountScaling,
+			includeBaseValue: isBonusExpand && shouldExposeBaseValueForChangeKey(changeKey),
+		});
 		const isOverrideScope = assistScope === 'typeOverride' || assistScope === 'abilityOverride';
 		const isAddToScope = assistScope === 'addTo';
 		const isCounterScope = assistScope === 'usesCount' || assistScope === 'update';
@@ -615,15 +638,26 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	async #onUiToggleChange(event) {
 		const form = this.#getFormDataRoot(event);
 		if (!form) return;
+		const eventTarget = event?.currentTarget instanceof HTMLInputElement ? event.currentTarget : null;
+		if (eventTarget?.name === 'ui.enableUsesCountScaling' && eventTarget.checked) {
+			const partialInput = form.querySelector('input[name="toggles.partialConsume"]');
+			if (partialInput instanceof HTMLInputElement) partialInput.checked = false;
+		}
+		if (eventTarget?.name === 'toggles.partialConsume' && eventTarget.checked) {
+			const scalingInput = form.querySelector('input[name="ui.enableUsesCountScaling"]');
+			if (scalingInput instanceof HTMLInputElement) scalingInput.checked = false;
+		}
 		this.#captureDraftState(form);
+		const usesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
+		const partialConsume = hasCheckedInput(form, 'toggles.partialConsume');
 		this.uiState = {
 			cadence: hasCheckedInput(form, 'ui.showCadence'),
 			name: hasCheckedInput(form, 'ui.showName'),
 			description: hasCheckedInput(form, 'ui.showDescription'),
 			usesCount: hasCheckedInput(form, 'ui.showUsesCount'),
 			update: hasCheckedInput(form, 'ui.showUpdate'),
-			usesCountScaling: hasCheckedInput(form, 'ui.enableUsesCountScaling'),
-			partialConsume: hasCheckedInput(form, 'toggles.partialConsume'),
+			usesCountScaling: usesCountScaling && !partialConsume,
+			partialConsume: partialConsume,
 		};
 		await this.render({ force: true });
 	}
@@ -651,15 +685,24 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showName) mergedData.fields.name = baseData.fields.name;
 		if (!showDescription) mergedData.fields.description = baseData.fields.description;
 		if (!showUpdate) mergedData.fields.update = baseData.fields.update;
-		else mergedData.fields.update = formData.fields?.update ?? '';
+		else {
+			mergedData.fields.update = buildUpdateValueFromUi(form, {
+				preferExisting: formData.fields?.update ?? '',
+			});
+		}
 		if (!showUsesCount) {
 			mergedData.fields.usesCount = baseData.fields.usesCount;
 			mergedData.toggles.partialConsume = baseData.toggles.partialConsume;
 		} else {
 			const partialConsumeEnabled = Boolean(mergedData.toggles.partialConsume);
 			const scalingEnabled = showUsesCountScaling && !partialConsumeEnabled;
-			mergedData.fields.usesCount = updateUsesCountScaling(mergedData.fields.usesCount, scalingEnabled ? usesCountScalingInputs : null);
+			mergedData.fields.usesCount = buildUsesCountValueFromUi(form, {
+				includeScaling: scalingEnabled,
+				scalingInputs: scalingEnabled ? usesCountScalingInputs : null,
+				preferExisting: mergedData.fields.usesCount,
+			});
 			if (scalingEnabled) mergedData.toggles.partialConsume = false;
+			else mergedData.toggles.recover = false;
 		}
 		if (showCadence) applyCadenceMode(mergedData, cadenceMode);
 		else {
@@ -704,26 +747,24 @@ function labelForField(name) {
 	return name.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
 }
 
-function getToggleHint(name) {
-	const hints = {
-		'ui.showCadence': 'Show cadence controls (once, once per turn, round, or combat).',
-		'ui.showName': 'Include a custom display name for this entry.',
-		'ui.showDescription': 'Include a short description for display/tooltip text.',
-		'ui.showUsesCount': 'Enable uses-count configuration for this entry.',
-		'ui.showUpdate': 'Enable actor update configuration for this info entry.',
-		'ui.setMode': 'Treat the bonus field as an absolute set value instead of additive bonus.',
-		'ui.enableUsesCountScaling': 'Enable min/max/step scaling inputs for usesCount consume value.',
-		'toggles.optin': 'Show this entry as optional for users to enable per roll.',
-		'toggles.itemLimited': 'Only apply when the originating item/activity matches the limited source context.',
-		'toggles.allies': 'Aura applies to allied tokens.',
-		'toggles.enemies': 'Aura applies to enemy tokens.',
-		'toggles.includeSelf': 'Aura can apply to the source actor as well.',
-		'toggles.singleAura': 'Only allow one active aura source to apply at a time.',
-		'toggles.wallsBlock': 'Walls can block aura reach/pathing.',
-		'toggles.recover': 'Reverse uses consumption and restore the configured amount.',
-		'toggles.partialConsume': 'Allow spending only what is available instead of blocking when short.',
+function toggleHintKey(name) {
+	const map = {
+		optin: 'AC5E.EffectValueEditor.Hint.ToggleOptin',
+		itemLimited: 'AC5E.EffectValueEditor.Hint.ToggleItemLimited',
+		allies: 'AC5E.EffectValueEditor.Hint.ToggleAllies',
+		enemies: 'AC5E.EffectValueEditor.Hint.ToggleEnemies',
+		includeSelf: 'AC5E.EffectValueEditor.Hint.ToggleIncludeSelf',
+		singleAura: 'AC5E.EffectValueEditor.Hint.ToggleSingleAura',
+		wallsBlock: 'AC5E.EffectValueEditor.Hint.ToggleWallsBlock',
+		recover: 'AC5E.EffectValueEditor.Hint.ToggleRecover',
+		partialConsume: 'AC5E.EffectValueEditor.Hint.TogglePartialConsume',
 	};
-	return hints[name] ?? '';
+	return map[name] ?? '';
+}
+
+function getToggleHint(name) {
+	if (typeof name === 'string' && name.startsWith('AC5E.')) return game?.i18n?.localize?.(name) ?? name;
+	return '';
 }
 
 function buildEditorInstanceKey(effect, changeIndex) {
@@ -848,7 +889,7 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 			name: 'ui.setMode',
 			label: 'Set',
 			checked: setMode,
-			hint: getToggleHint('ui.setMode'),
+			hint: getToggleHint('AC5E.EffectValueEditor.Hint.SetMode'),
 		} : null,
 		})),
 		...profile.auraFields.map((name) => ({
@@ -886,48 +927,93 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 	const descriptionField = optionalFieldState.description ? buildRenderedOptionalField('description', parsed, id) : null;
 	const usesCountValue = parsed.fields.usesCount ?? '';
 	const parsedUsesCount = parseUsesCountScalingSpec(usesCountValue);
+	const parsedUsesCountParts = parseUsesCountUiParts(parsedUsesCount.baseValue);
 	const hasUsesCountScaling = optionalFieldState.usesCountScaling ?? hasUsesCountScalingSpec(usesCountValue);
+	if (!hasUsesCountScaling && parsed.toggles.recover && !parsedUsesCountParts.setMode) {
+		const amount = `${parsedUsesCountParts.amount ?? ''}`.trim();
+		if (amount && !amount.startsWith('-') && !amount.startsWith('=')) parsedUsesCountParts.amount = `-${amount}`;
+	}
 	const partialConsumeEnabled = optionalFieldState.partialConsume ?? Boolean(parsed.toggles.partialConsume);
-	const showPartialConsume = !hasUsesCountScaling;
-	const showScalingToggle = !partialConsumeEnabled;
+	const showPartialConsume = true;
+	const showScalingToggle = true;
 	return {
 		nameDescription: {
 			left: nameField ?? (!nameField && descriptionField ? descriptionField : null),
 			right: nameField && descriptionField ? descriptionField : null,
 		},
 		usesCount: {
-			left: optionalFieldState.usesCount ? buildRenderedOptionalField('usesCount', parsed, id) : null,
+			left: optionalFieldState.usesCount ? {
+				path: {
+					name: 'ui.usesCountPath',
+					label: game.i18n.localize('AC5E.EffectValueEditor.Label.ConsumptionType'),
+					value: parsedUsesCountParts.path,
+					inputId: `ac5e-value-usesCount-path-${id}`,
+					expandable: true,
+				},
+				amount: hasUsesCountScaling ? null : {
+					name: 'ui.usesCountAmount',
+					label: game.i18n.localize('AC5E.EffectValueEditor.Label.Amount'),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.UsesCountAmount'),
+					value: parsedUsesCountParts.amount,
+					inputId: `ac5e-value-usesCount-amount-${id}`,
+					placeholder: game.i18n.localize('AC5E.EffectValueEditor.Placeholder.UsesCountAmount'),
+				},
+				recover: hasUsesCountScaling ? {
+					name: 'toggles.recover',
+					label: 'Recover',
+					checked: Boolean(parsed.toggles.recover),
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ToggleRecover'),
+				} : null,
+			} : null,
 			right: optionalFieldState.usesCount ? [
 				showScalingToggle ? {
 					name: 'ui.enableUsesCountScaling',
 					label: 'Scaling',
+					className: 'ac5e-usescount-toggle-scaling',
 					checked: hasUsesCountScaling,
-					hint: getToggleHint('ui.enableUsesCountScaling'),
+					disabled: partialConsumeEnabled,
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.EnableUsesCountScaling'),
 				} : null,
-				{
-					name: 'toggles.recover',
-					label: 'Recover',
-					checked: Boolean(parsed.toggles.recover),
-					hint: getToggleHint('toggles.recover'),
-				},
 				showPartialConsume ? {
 					name: 'toggles.partialConsume',
 					label: 'Partial',
+					className: 'ac5e-usescount-toggle-partial',
 					checked: partialConsumeEnabled,
-					hint: getToggleHint('toggles.partialConsume'),
+					disabled: hasUsesCountScaling,
+					hint: getToggleHint('AC5E.EffectValueEditor.Hint.TogglePartialConsume'),
 				} : null,
 			].filter(Boolean) : null,
 			scaling: optionalFieldState.usesCount && hasUsesCountScaling ? buildRenderedUsesCountScalingFields(parsedUsesCount?.scaling, id) : null,
+			scalingRecover: null,
 		},
 		update: {
-			left: profile.supportsUpdate && optionalFieldState.update ? buildRenderedOptionalField('update', parsed, id) : null,
+			left: profile.supportsUpdate && optionalFieldState.update ? (() => {
+				const updateParts = parseUpdateUiParts(parsed.fields.update ?? '');
+				return {
+					path: {
+						name: 'ui.updatePath',
+						label: game.i18n.localize('AC5E.EffectValueEditor.Label.UpdateTarget'),
+						value: updateParts.path,
+						inputId: `ac5e-value-update-path-${id}`,
+						expandable: true,
+					},
+					amount: {
+						name: 'ui.updateAmount',
+						label: game.i18n.localize('AC5E.EffectValueEditor.Label.Amount'),
+						hint: getToggleHint('AC5E.EffectValueEditor.Hint.UpdateAmount'),
+						value: updateParts.amount,
+						inputId: `ac5e-value-update-amount-${id}`,
+						placeholder: game.i18n.localize('AC5E.EffectValueEditor.Placeholder.UpdateAmount'),
+					},
+				};
+			})() : null,
 			right: null,
 			scaling: null,
 		},
 	};
 }
 
-function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '', assistScope = 'default' } = {}) {
+function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '', assistScope = 'default', includeScaleValue = false, includeBaseValue = false } = {}) {
 	const entryRecords = (entries ?? []).filter((entry) => typeof entry?.identifier === 'string' && entry.identifier.trim());
 	const uniqueIdentifiers = dedupe(entryRecords.map((entry) => entry.identifier));
 	const allEntryPoints = [
@@ -1016,7 +1102,9 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 			...Object.keys(CONFIG?.DND5E?.ammoIds ?? {}),
 		].filter(Boolean)),
 	};
-	const contextRollAwareEntries = filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey);
+	let contextRollAwareEntries = filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey);
+	if (includeScaleValue) contextRollAwareEntries = dedupe([...contextRollAwareEntries, 'scaleValue']);
+	if (includeBaseValue) contextRollAwareEntries = dedupe([...contextRollAwareEntries, 'baseValue']);
 	const scopedEntries = buildScopedAssistEntries(assistScope, entries);
 	const flatScopedEntries = flattenScopedAssistEntries(scopedEntries);
 	const scopedBrowser = flatScopedEntries.length ? buildScopedBrowserData(flatScopedEntries) : null;
@@ -1121,6 +1209,16 @@ function isNonDamageBonusContext(changeKey) {
 		|| normalized.includes('d20');
 }
 
+function shouldExposeBaseValueForChangeKey(changeKey) {
+	const normalized = `${changeKey ?? ''}`.toLowerCase();
+	if (!normalized) return false;
+	return normalized.includes('.modifyac')
+		|| normalized.includes('.modifydc')
+		|| normalized.includes('.criticalthreshold')
+		|| normalized.includes('.critthreshold')
+		|| normalized.includes('.fumblethreshold');
+}
+
 function filterRollAwareEntriesForChangeKey(entries, changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	let filtered = entries;
@@ -1191,8 +1289,8 @@ function getContextSandboxFallbackEntries(changeKey) {
 
 function resolveAssistScope(inputName, currentValue, changeKey = '') {
 	const fieldName = `${inputName ?? ''}`.trim().toLowerCase();
-	if (fieldName === 'fields.usescount') return 'usesCount';
-	if (fieldName === 'fields.update') return 'update';
+	if (fieldName === 'fields.usescount' || fieldName === 'ui.usescountpath') return 'usesCount';
+	if (fieldName === 'fields.update' || fieldName === 'ui.updatepath') return 'update';
 	const normalizedKey = `${changeKey ?? ''}`.trim().toLowerCase();
 	if (fieldName === 'fields.override') {
 		if (normalizedKey.endsWith('.typeoverride')) return 'typeOverride';
@@ -1280,7 +1378,7 @@ function buildUsesCountScopedEntries(entries) {
 		.filter(Boolean);
 	const abilityValues = Object.keys(CONFIG?.DND5E?.abilities ?? {}).map((ability) => `abilities.${ability}.value`);
 	const actorTargets = buildCounterActorScopedTargets({
-		suffixes: ['hp', 'hpTemp', 'hpMax', 'hd', 'hd.smallest', 'hd.largest', 'inspiration', 'exhaustion', 'death.fail', 'death.success'],
+		suffixes: ['hp', 'hpTemp', 'hpMax', 'hd', 'hd.smallest', 'hd.largest', 'inspiration', 'exhaustion', 'death.fail', 'death.success', ...resources],
 		abilityValues,
 		includeFlags: true,
 	});
@@ -1289,15 +1387,18 @@ function buildUsesCountScopedEntries(entries) {
 
 function buildUpdateScopedEntries(entries) {
 	void entries;
+	const resources = (CONFIG?.DND5E?.consumableResources ?? [])
+		.map((entry) => `${entry ?? ''}`.trim())
+		.filter(Boolean);
 	const abilityValues = Object.keys(CONFIG?.DND5E?.abilities ?? {}).map((ability) => `abilities.${ability}.value`);
 	const statusValues = getStatusEffectIds().map((id) => `statuses.${id}`);
 	const actorTargets = buildCounterActorScopedTargets({
-		suffixes: ['hp', 'hpTemp', 'hpMax', 'inspiration', 'exhaustion', 'death.fail', 'death.success'],
+		suffixes: ['hp', 'hpTemp', 'hpMax', 'inspiration', 'exhaustion', 'death.fail', 'death.success', ...resources],
 		abilityValues,
 		statusValues,
 		includeFlags: true,
 	});
-	return dedupe([...AC5E_UPDATE_BASE_ENTRIES, ...abilityValues, ...statusValues, ...actorTargets]).sort((a, b) => a.localeCompare(b));
+	return dedupe([...AC5E_UPDATE_BASE_ENTRIES, ...resources, ...abilityValues, ...statusValues, ...actorTargets]).sort((a, b) => a.localeCompare(b));
 }
 
 function collectMatchingIdentifiers(entries, prefixes) {
@@ -1481,12 +1582,42 @@ function renderAssistEntryGroups(assist) {
 function resolveScopedQuickTargets(scopedEntries, scope = '') {
 	const entries = Array.isArray(scopedEntries) ? scopedEntries : [];
 	if (scope === 'usesCount') {
-		const preferred = ['origin', 'hp', 'hpTemp', 'hpMax', 'hd', 'hd.smallest', 'hd.largest', 'inspiration', 'exhaustion', 'death.fail', 'death.success', 'rollingActor', 'opponentActor', 'Item.<itemId>', 'Item.<itemId>.Activity.<activityId>'];
+		const preferred = [
+			'origin',
+			'hp',
+			'hpTemp',
+			'hpMax',
+			'hd',
+			'hd.smallest',
+			'hd.largest',
+			'inspiration',
+			'exhaustion',
+			'death.fail',
+			'death.success',
+			'flags.<path>',
+			'rollingActor',
+			'rollingActor.flags.<path>',
+			'opponentActor',
+			'opponentActor.flags.<path>',
+			'item.<itemId>',
+			'item.<itemId>.activity.<activityId>',
+		];
 		// Always expose origin/item template targets for usesCount authoring.
 		return dedupe([...preferred, ...entries]).filter((entry) => preferred.includes(entry));
 	}
 	const preferred = ['hp', 'hpTemp', 'hpMax', 'inspiration', 'exhaustion', 'death.fail', 'death.success', 'rollingActor', 'opponentActor'];
-	return preferred.filter((entry) => entries.includes(entry));
+	const statusScopedTemplates = [
+		'rollingActor.statuses.<statusId>',
+		'opponentActor.statuses.<statusId>',
+	];
+	return dedupe([
+		...preferred,
+		'flags.<path>',
+		'rollingActor.flags.<path>',
+		'opponentActor.flags.<path>',
+		...statusScopedTemplates,
+	]).filter((entry) => entries.includes(entry)
+		|| ['flags.<path>', 'rollingActor.flags.<path>', 'opponentActor.flags.<path>', 'rollingActor.statuses.<statusId>', 'opponentActor.statuses.<statusId>'].includes(entry));
 }
 
 function classifyContextEntry(identifier) {
@@ -2471,18 +2602,14 @@ function applyCounterAssistPathSelection(textarea, path, assistRoot, assist, sel
 function applyCounterTargetTemplate(textarea, target, selectionState = null) {
 	const normalizedTarget = `${target ?? ''}`.trim();
 	if (!normalizedTarget) return;
-	const defaultConsume = getDefaultCounterConsumeValue(normalizedTarget);
-	const nextValue = `${normalizedTarget}, ${defaultConsume}`;
-	const amountStart = nextValue.lastIndexOf(`${defaultConsume}`);
-	setAssistFieldValue(textarea, nextValue, amountStart, amountStart + `${defaultConsume}`.length, selectionState);
-}
-
-function getDefaultCounterConsumeValue(target = '') {
-	const normalized = `${target ?? ''}`.trim().toLowerCase();
-	if (!normalized) return 1;
-	const tail = normalized.startsWith('rollingactor.') || normalized.startsWith('opponentactor.') ? normalized.split('.').slice(1).join('.') : normalized;
-	if (tail === 'exhaustion' || tail === 'death.fail' || tail === 'death.success') return -1;
-	return 1;
+	const placeholder = normalizedTarget.match(/<[^>]+>/);
+	if (placeholder) {
+		const start = placeholder.index ?? 0;
+		const end = start + placeholder[0].length;
+		setAssistFieldValue(textarea, normalizedTarget, start, end, selectionState);
+		return;
+	}
+	setAssistFieldValue(textarea, normalizedTarget, normalizedTarget.length, normalizedTarget.length, selectionState);
 }
 
 function setAssistFieldValue(input, value, selectionStart, selectionEnd, selectionState = null) {
@@ -3063,6 +3190,15 @@ function insertAssistPathAtCursor(input, path, selectionState = null) {
 function resolveAssistInsertion(text) {
 	const rawText = String(text ?? '');
 	const trimmed = rawText.trim();
+	const placeholderMatch = rawText.match(/<[^>]+>/);
+	if (placeholderMatch) {
+		const tokenOffset = placeholderMatch.index ?? 0;
+		return {
+			text: rawText,
+			selectionStartOffset: tokenOffset,
+			selectionLength: placeholderMatch[0].length,
+		};
+	}
 	if (trimmed === '()') {
 		const cursorOffset = rawText.indexOf('(') + 1;
 		return { text: rawText, selectionStartOffset: Math.max(0, cursorOffset), selectionLength: 0 };
@@ -3204,6 +3340,10 @@ function handleAssistTabNavigation(input, selectionState = null, direction = 1) 
 
 function collectAssistNavigationTargets(value) {
 	const text = String(value ?? '');
+	const placeholders = Array.from(text.matchAll(/<[^>]+>/g))
+		.map((match) => ({ start: match.index ?? 0, end: (match.index ?? 0) + match[0].length }))
+		.filter((target) => target.end > target.start);
+	if (placeholders.length) return placeholders;
 	const targets = [];
 	let index = 0;
 	while (index < text.length) {
@@ -3389,6 +3529,52 @@ function updateUsesCountScaling(rawValue, enabled) {
 	if (!normalizedScaling) return baseValue;
 	const scalingLiteral = `{ min: ${normalizedScaling.min}, max: ${normalizedScaling.max}, step: ${normalizedScaling.step} }`;
 	return `${baseValue}, ${scalingLiteral}`;
+}
+
+function parseUsesCountUiParts(baseValue) {
+	const current = typeof baseValue === 'string' ? baseValue.trim() : '';
+	if (!current) return { path: '', amount: '', setMode: false };
+	const firstComma = current.indexOf(',');
+	if (firstComma < 0) return { path: current, amount: '', setMode: false };
+	const path = current.slice(0, firstComma).trim();
+	const consumeRaw = current.slice(firstComma + 1).trim();
+	if (!consumeRaw) return { path, amount: '', setMode: false };
+	if (consumeRaw.startsWith('=')) return { path, amount: consumeRaw.slice(1).trim(), setMode: true };
+	return { path, amount: consumeRaw, setMode: false };
+}
+
+function parseUpdateUiParts(rawValue) {
+	const current = typeof rawValue === 'string' ? rawValue.trim() : '';
+	if (!current) return { path: '', amount: '' };
+	const firstComma = current.indexOf(',');
+	if (firstComma < 0) return { path: current, amount: '' };
+	return {
+		path: current.slice(0, firstComma).trim(),
+		amount: current.slice(firstComma + 1).trim(),
+	};
+}
+
+function buildUsesCountValueFromUi(root, { includeScaling = false, scalingInputs = null, preferExisting = '' } = {}) {
+	const fallback = typeof preferExisting === 'string' ? preferExisting.trim() : '';
+	const path = `${getInputValue(root, 'ui.usesCountPath') ?? ''}`.trim();
+	if (!path) return fallback;
+	const amountInput = `${getInputValue(root, 'ui.usesCountAmount') ?? ''}`.trim();
+	const recover = hasCheckedInput(root, 'toggles.recover');
+	let amountLiteral = amountInput || '1';
+	const isSetMode = amountLiteral.startsWith('=');
+	if (!isSetMode && recover && !amountLiteral.startsWith('-')) amountLiteral = `-${amountLiteral}`;
+	let usesCountValue = `${path}, ${amountLiteral}`;
+	if (!includeScaling) return usesCountValue;
+	usesCountValue = updateUsesCountScaling(usesCountValue, scalingInputs);
+	return usesCountValue;
+}
+
+function buildUpdateValueFromUi(root, { preferExisting = '' } = {}) {
+	const fallback = typeof preferExisting === 'string' ? preferExisting.trim() : '';
+	const path = `${getInputValue(root, 'ui.updatePath') ?? ''}`.trim();
+	if (!path) return fallback;
+	const amountLiteral = `${getInputValue(root, 'ui.updateAmount') ?? ''}`.trim() || '1';
+	return `${path}, ${amountLiteral}`;
 }
 
 function parseUsesCountScalingSpec(rawValue) {
