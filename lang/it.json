@@ -490,5 +490,49 @@
 	"AC5E.advantageBehaviorDisadvantageFormula": {
 		"Name": "Formula della penalità da svantaggio",
 		"Hint": "Applicata quando è presente svantaggio temporaneo e la sovrascrittura è attiva. Esempio: -3d6kh1 o -2."
+	},
+	"AC5E.EffectValueEditor": {
+		"Label": {
+			"ConsumptionType": "Tipo Consumo",
+			"UpdateTarget": "Aggiorna Bersaglio",
+			"Amount": "Quantità"
+		},
+		"Placeholder": {
+			"UsesCountAmount": "1 oppure =5",
+			"UpdateAmount": "1, -1 oppure =5"
+		},
+		"Hint": {
+			"ShowCadence": "Mostra controlli di frequenza (una volta, una volta per turno, per round o per combattimento).",
+			"ShowName": "Includi nome personalizzato da visualizzare per questa voce.",
+			"ShowDescription": "Includi una breve descrizione per il testo visualizzato o il tooltip.",
+			"ShowUsesCount": "Abilita configurazione del conteggio degli utilizzi per questa voce.",
+			"ShowUpdate": "Abilita configurazione dell'aggiornamento del personaggio per questa voce.",
+			"SetMode": "Tratta il campo bonus come un valore assoluto da impostare anziché come un bonus cumulativo.",
+			"EnableUsesCountScaling": "Abilita i campi di scala minimo/massimo/step per il valore di consumo usesCount. Quando la scalatura è attiva, usa scaleValue nelle formule o nelle condizioni per fare riferimento all'importo calcolato.",
+			"UsesCountAmount": "I valori positivi consumano risorse. I valori negativi le ripristinano. Usa =valore per impostare un valore assoluto.",
+			"UpdateAmount": "I valori positivi aggiungono. I valori negativi sottraggono. Usa =valore per impostare un valore assoluto.",
+			"ToggleOptin": "Mostra questa voce come opzionale, in modo che gli utenti possano abilitarla per singolo tiro.",
+			"ToggleItemLimited": "Applica l'effetto solo quando l'oggetto o l'attività di origine corrisponde al contesto limitato della fonte.",
+			"ToggleAllies": "L'aura si applica ai token alleati.",
+			"ToggleEnemies": "L'aura si applica ai token nemici.",
+			"ToggleIncludeSelf": "L'aura può applicarsi anche al personaggio che la genera.",
+			"ToggleSingleAura": "Consenti l'applicazione di una sola fonte di aura attiva alla volta.",
+			"ToggleWallsBlock": "I muri possono bloccare la portata o il percorso dell'aura.",
+			"ToggleRecover": "Inverte il consumo degli utilizzi e ripristina la quantità configurata.",
+			"UsesCountSet": "Imposta il valore del bersaglio a una quantità assoluta usando la sintassi =quantità.",
+			"TogglePartialConsume": "Consenti di spendere quanto disponibile invece di bloccare l'azione quando le risorse sono insufficienti."
+		}
+	},
+	"AC5E.Optin.UpdateSummary": {
+		"Updates": "Aggiorna {target}",
+		"UpdatesCompact": "Aggiorna {target}",
+		"Sets": "Imposta {target} a {value}",
+		"AppliesTo": "Applica {value} a {target}",
+		"RemovesFrom": "Rimuovi {value} da {target}",
+		"AppliesWithUnit": "Applica {value} {unit} a {target}",
+		"RemovesWithUnit": "Rimuove {value} {unit} da {target}",
+		"Exhaustion": "Indebolimento",
+		"ExhaustionLevel": "livello",
+		"ExhaustionLevels": "livelli"
 	}
 }
