@@ -4,6 +4,7 @@
 - Fixed AC5E damage dialog rendering paths to safely skip formula/state processing when no damage rolls or formulas are available.
 - Added extra defensive handling around damage-roll state reads so malformed/empty roll entries do not trigger downstream runtime crashes.
 - Those changes also harden compatibility with RSReforged.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 
 ## 14.533.3
 
