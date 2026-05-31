@@ -3,6 +3,7 @@
 - Hardened AC5E damage pre-roll handling to safely no-op when no damage rolls are present in the roll configuration.
 - Fixed AC5E damage dialog rendering paths to safely skip formula/state processing when no damage rolls or formulas are available.
 - Added extra defensive handling around damage-roll state reads so malformed/empty roll entries do not trigger downstream runtime crashes.
+- Those changes also harden compatibility with RSReforged.
 
 ## 14.533.3
 
