@@ -3,6 +3,7 @@ import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configur
 
 export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
+	if (!Array.isArray(config?.rolls) || !config.rolls.length) return true;
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;

@@ -7,6 +7,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 	if (dialog._ac5eDamageRenderInProgress) return;
 	dialog._ac5eDamageRenderInProgress = true;
 	try {
+		if (!Array.isArray(dialog?.config?.rolls) || !dialog.config.rolls.length) return;
 		deps.restoreDamageConfigFromFrozenBaseline(getConfigAC5E, dialog.config);
 		const frozenDamageBaseline = getConfigAC5E?.preAC5eConfig?.frozenDamageBaseline ?? getConfigAC5E?.frozenDamageBaseline;
 		deps.setOptinSelections(getConfigAC5E, deps.readOptinSelections(elem, getConfigAC5E));
@@ -136,7 +137,11 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 			return;
 		}
 		if (!damageTypesChanged && !changed) {
-			dialog.config.rolls[0].options[deps.Constants.MODULE_ID].usedParts ??= dialog.config.rolls[0].options[deps.Constants.MODULE_ID].parts;
+			const firstRoll = dialog?.config?.rolls?.[0];
+			const moduleId = deps?.Constants?.MODULE_ID;
+			if (firstRoll && typeof firstRoll === 'object' && firstRoll.options && moduleId && firstRoll.options[moduleId]) {
+				firstRoll.options[moduleId].usedParts ??= firstRoll.options[moduleId].parts;
+			}
 			syncSyntheticDamageDialogFormulaElements(elem, getConfigAC5E, effectiveFormulas.length);
 			return;
 		}
@@ -302,7 +307,7 @@ function isSyntheticBonusRoll(roll) {
 }
 
 function getNonSyntheticDamageRolls(rolls = []) {
-	return (Array.isArray(rolls) ? rolls : []).filter((roll) => !isSyntheticBonusRoll(roll));
+	return (Array.isArray(rolls) ? rolls : []).filter((roll) => roll && (typeof roll === 'object') && !isSyntheticBonusRoll(roll));
 }
 
 function normalizeDamageTypeList(types) {
@@ -1273,9 +1278,10 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const formulas =
 		Array.isArray(baseFormulas) && baseFormulas.length ?
 			baseFormulas
-		:	Array.from(elem.querySelectorAll('.formula'))
+		:	Array.from(elem?.querySelectorAll?.('.formula') ?? [])
 				.map((el) => el.textContent?.trim())
 				.filter(Boolean);
+	if (!formulas.length) return false;
 	const damageModifierEntries = normalizeDamageModifierEntries(getConfigAC5E);
 	const formulaOperatorEntries = damageModifierEntries.filter((entry) => isFormulaOperatorDamageModifier(entry.value));
 	const allTypes = new Set(damageTypesByIndex.filter(Boolean).map((type) => String(type).toLowerCase()));
