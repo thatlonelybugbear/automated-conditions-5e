@@ -1,3 +1,21 @@
+## 14.533.3
+
+- Added `riderStatuses` roll-aware helper/autocomplete support in the AC5E Effect Value Editor, including Lambda chip browsing for `riderStatuses.<statusId>`.
+- Improved Foundry v14 status-effect source handling in editor helpers.
+- Removed duplicate chat post-processing by dropping the extra `dnd5e.renderChatMessage` hook.
+- Fixed a chat render crash when AC5E processed a single config object.
+- Expanded `actorData.items` sandbox data with `identified`, `systemType`, `properties`, `mastery`, `magicalBonus`, and `rarity`.
+- Hardened save/skill/tool proficiency helper resolution for rolls made by actors without scene tokens.
+- Reworked `usesCount` editor UX with separate `Consumption Type` and `Amount` fields, plus scaling (`min`/`max`/`step`) and recover handling.
+- Added `usesCount` amount help text for `positive`, `negative`, and `=value` syntax.
+- Reworked `update` editor UX to match counter-style authoring with `Update Target` + `Amount`.
+- Added update summary phrasing in opt-ins (for example: applies/removes statuses and exhaustion levels).
+- Extended `usesCount` handling to support update-style operations (`value`, `-value`, `=value`) while preserving backward compatibility.
+- Improved Lambda assist/autocomplete for `usesCount` and `update`: no auto-appended `,1`, better item/activity template insertion, and additional consumable/flags targets.
+- Added contextual `scaleValue` chips (when uses scaling is enabled) and contextual `baseValue` chips (relevant flags only).
+- Localized new Effect Value Editor and update-summary strings in `en.json` (`AC5E.EffectValueEditor.*`, `AC5E.Optin.UpdateSummary.*`).
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 ## 14.533.2.2
 
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗

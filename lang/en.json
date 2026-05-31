@@ -490,6 +490,50 @@
 	"AC5E.advantageBehaviorDisadvantageFormula": {
 		"Name": "Disadvantage Penalty Formula",
 		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
+	},
+	"AC5E.EffectValueEditor": {
+		"Label": {
+			"ConsumptionType": "Consumption Type",
+			"UpdateTarget": "Update Target",
+			"Amount": "Amount"
+		},
+		"Placeholder": {
+			"UsesCountAmount": "1 or =5",
+			"UpdateAmount": "1, -1 or =5"
+		},
+		"Hint": {
+			"ShowCadence": "Show cadence controls (once, once per turn, round, or combat).",
+			"ShowName": "Include a custom display name for this entry.",
+			"ShowDescription": "Include a short description for display/tooltip text.",
+			"ShowUsesCount": "Enable uses-count configuration for this entry.",
+			"ShowUpdate": "Enable actor update configuration for this info entry.",
+			"SetMode": "Treat the bonus field as an absolute set value instead of additive bonus.",
+			"EnableUsesCountScaling": "Enable min/max/step scaling inputs for usesCount consume value. When scaling is active, use scaleValue in formulas/conditions to reference the computed scaled amount.",
+			"UsesCountAmount": "Positive values consume. Negative values recover. Use =value to set an absolute value.",
+			"UpdateAmount": "Positive values add. Negative values subtract. Use =value to set an absolute value.",
+			"ToggleOptin": "Show this entry as optional for users to enable per roll.",
+			"ToggleItemLimited": "Only apply when the originating item/activity matches the limited source context.",
+			"ToggleAllies": "Aura applies to allied tokens.",
+			"ToggleEnemies": "Aura applies to enemy tokens.",
+			"ToggleIncludeSelf": "Aura can apply to the source actor as well.",
+			"ToggleSingleAura": "Only allow one active aura source to apply at a time.",
+			"ToggleWallsBlock": "Walls can block aura reach/pathing.",
+			"ToggleRecover": "Reverse uses consumption and restore the configured amount.",
+			"UsesCountSet": "Set the target to an absolute amount using =amount syntax.",
+			"TogglePartialConsume": "Allow spending what is available instead of blocking when short."
+		}
+	},
+	"AC5E.Optin.UpdateSummary": {
+		"Updates": "Updates {target}",
+		"UpdatesCompact": "Updates {target}",
+		"Sets": "Sets {target} to {value}",
+		"AppliesTo": "Applies {value} to {target}",
+		"RemovesFrom": "Removes {value} from {target}",
+		"AppliesWithUnit": "Applies {value} {target} {unit}",
+		"RemovesWithUnit": "Removes {value} {target} {unit}",
+		"Exhaustion": "Exhaustion",
+		"ExhaustionLevel": "level",
+		"ExhaustionLevels": "levels"
 	}
 }
 

@@ -2962,10 +2962,12 @@ function _splitTopLevelCsv(input) {
 function _parseUsesCountSpec(rawValue) {
 	const [target = '', ...consumeParts] = _splitTopLevelCsv(rawValue ?? '');
 	const consumeRaw = consumeParts.join(',').trim();
-	let consume = _repairLegacyUsesCountConsume(consumeRaw);
+	const repairedConsume = _repairLegacyUsesCountConsume(consumeRaw);
+	const parsedOperation = _parseCounterOperationSpec(repairedConsume, { defaultValue: '1' });
+	let consume = parsedOperation.value;
 	let scaling = null;
 	let scalingSign = 1;
-	const scalingMatch = consume.match(/^([+-])?\s*(\{[\s\S]*\})$/);
+	const scalingMatch = parsedOperation.op === 'delta' ? consume.match(/^([+-])?\s*(\{[\s\S]*\})$/) : null;
 	if (scalingMatch) {
 		scalingSign = scalingMatch[1] === '-' ? -1 : 1;
 		scaling = _parseScalingSpec(scalingMatch[2]);
@@ -2973,6 +2975,7 @@ function _parseUsesCountSpec(rawValue) {
 	}
 	return {
 		target: target.trim(),
+		op: parsedOperation.op,
 		consume,
 		scaling,
 		scalingSign,
@@ -3004,10 +3007,15 @@ function _parseScalingSpec(rawValue) {
 
 function _parseUpdateSpec(rawValue) {
 	const [target = '', ...valueParts] = _splitTopLevelCsv(String(rawValue ?? ''));
-	const updateRaw = valueParts.join(',').trim();
-	if (!updateRaw) return { target: target.trim(), op: 'delta', value: '' };
-	if (updateRaw.startsWith('=')) return { target: target.trim(), op: 'set', value: updateRaw.slice(1).trim() };
-	return { target: target.trim(), op: 'delta', value: updateRaw };
+	const parsedOperation = _parseCounterOperationSpec(valueParts.join(',').trim());
+	return { target: target.trim(), op: parsedOperation.op, value: parsedOperation.value };
+}
+
+function _parseCounterOperationSpec(rawValue, { defaultValue = '' } = {}) {
+	const trimmed = String(rawValue ?? '').trim();
+	if (!trimmed) return { op: 'delta', value: defaultValue };
+	if (trimmed.startsWith('=')) return { op: 'set', value: trimmed.slice(1).trim() };
+	return { op: 'delta', value: trimmed };
 }
 
 function _repairLegacyUsesCountConsume(consume) {
@@ -3057,6 +3065,12 @@ function _applyUpdateOperation(currentValue, amount, mode = 'delta') {
 	const current = Number(currentValue);
 	const numericAmount = Number(amount);
 	return mode === 'set' ? numericAmount : current + numericAmount;
+}
+
+function _applyUsesCountOperation(currentValue, consume, mode = 'delta') {
+	if (!Number.isFinite(Number(currentValue)) || !Number.isFinite(Number(consume))) return null;
+	if (mode === 'set') return Number(consume);
+	return Number(currentValue) - Number(consume);
 }
 
 function _resolveUpdateTargetPropertyPath(target = '') {
@@ -3300,6 +3314,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		const parsedCount = _parseUsesCountSpec(hasCount);
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
 		const consumptionValue = parsedCount.consume;
+		const usesCountOp = parsedCount.op === 'set' ? 'set' : 'delta';
+		if (usesCountOp === 'set' && !String(consumptionValue ?? '').trim()) return false;
 		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
 		const hasOrigin = lowerConsumptionTarget === 'origin';
 		let isNumber;
@@ -3319,25 +3335,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				}
 			}
 		}
-		let consume = 1; //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
-		if (consumptionValue) {
-			const trimmedConsumption = typeof consumptionValue === 'string' ? consumptionValue.trim() : consumptionValue;
-			const directNumber = Number(trimmedConsumption);
-			if (Number.isFinite(directNumber)) consume = directNumber;
-			else if (_looksLikeFormulaExpression(String(trimmedConsumption ?? ''))) {
-				let evaluated = evalDiceExpression(consumptionValue);
-				if (!isNaN(evaluated)) consume = evaluated;
-				else {
-					evaluated = _ac5eSafeEval({ expression: consumptionValue, sandbox: evalData, mode: 'formula', debug });
-					if (!isNaN(evaluated)) consume = evaluated;
-					else {
-						evaluated = evalDiceExpression(evaluated);
-						if (!isNaN(evaluated)) consume = evaluated;
-						else consume = 1;
-					}
-				}
-			}
-		}
+		let consume = _resolveUsesCountConsumeValue(consumptionValue, evalData, debug); //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
 		if (recover && Number.isFinite(Number(consume))) consume = -Math.abs(Number(consume));
 		const shouldResolveScaledConsume = !!parsedCount?.scaling || isOptin;
 		if (shouldResolveScaledConsume) {
@@ -3372,6 +3370,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			consume,
 			partialConsume,
 			raw: hasCount,
+			mode: usesCountOp,
 		});
 
 		if (!isNaN(isNumber)) {
@@ -3380,10 +3379,10 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				return false;
 			}
 
-			const appliedConsume = partialConsume && consume > 0 ? Math.min(consume, isNumber) : consume;
-			const newUses = isNumber - appliedConsume;
+			const appliedConsume = usesCountOp === 'delta' && partialConsume && consume > 0 ? Math.min(consume, isNumber) : consume;
+			const newUses = _applyUsesCountOperation(isNumber, appliedConsume, usesCountOp);
 
-			if (newUses < 0) {
+			if (!Number.isFinite(newUses) || newUses < 0) {
 				_logUsesCount('blocked', {
 					effect: effect?.name,
 					id,
@@ -3480,6 +3479,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					usesMax,
 					usesSource,
 					consume,
+					mode: usesCountOp,
 					partialConsume,
 					id,
 					baseId,
@@ -3517,6 +3517,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						usesMax,
 						usesSource,
 						consume,
+						mode: usesCountOp,
 						partialConsume,
 						id,
 						baseId,
@@ -3541,12 +3542,14 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						actorUuid: uuid,
 					});
 					if (lowerConsumptionTarget.includes('flag')) {
-						let value = lowerConsumptionTarget.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
+						const flagPath = _resolveUpdateTargetPropertyPath(consumptionTarget);
+						if (!flagPath.startsWith('flags.')) return false;
+						let value = foundry.utils.getProperty(consumptionActor, flagPath);
 						if (!Number(value)) value = 0;
-						const newValue = value - consume;
-						if (newValue < 0) return false;
-						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`${consumptionTarget}`]: newValue } } });
-						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`${consumptionTarget}`]: newValue } } });
+						const newValue = _applyUsesCountOperation(value, consume, usesCountOp);
+						if (!Number.isFinite(newValue) || newValue < 0) return false;
+						if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [flagPath]: newValue } } });
+						else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [flagPath]: newValue } } });
 					} else {
 						const attr = consumptionTarget.toLowerCase();
 						const numericConsume = Number(consume);
@@ -3570,12 +3573,12 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const value = Number(valueRaw);
 							if (!Number.isFinite(value)) return false;
 							let appliedConsume = numericConsume;
-							if (partialConsume && numericConsume > 0) {
+							if (usesCountOp === 'delta' && partialConsume && numericConsume > 0) {
 								const remaining = Math.max(0, 3 - value);
 								if (remaining <= 0) return false;
 								appliedConsume = Math.min(numericConsume, remaining);
 							}
-							const newValue = value + appliedConsume;
+							const newValue = _applyUpdateOperation(value, appliedConsume, usesCountOp === 'set' ? 'set' : 'delta');
 							if (newValue < 0 || newValue > 3) return false;
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
@@ -3585,7 +3588,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const hpTempmax = Number(tempmax);
 							const hpMax = Number(max);
 							const hpValue = Number(value);
-							const newTempmax = hpTempmax - consume;
+							const newTempmax = _applyUsesCountOperation(hpTempmax, consume, usesCountOp);
 							const newMax = hpMax + newTempmax;
 							if (newMax < 0) return false;
 							if (hasNumericConsume && numericConsume > 0 && newMax <= 0) applyFinalStandOverride(_buildFinalStandDescription(newMax));
@@ -3597,7 +3600,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const { temp } = consumptionActor?.attributes?.hp ?? {};
 							if (!Number.isFinite(Number(temp))) return false;
 							const hpTemp = Number(temp);
-							const newTemp = hpTemp - consume;
+							const newTemp = _applyUsesCountOperation(hpTemp, consume, usesCountOp);
 							if (newTemp < 0) return false;
 							const noConcentration = !(newTemp >= hpTemp || String(change.value ?? '').toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to temphp drop or user indicated
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.hp.temp': newTemp }, options: { dnd5e: { concentrationCheck: noConcentration } } } });
@@ -3606,7 +3609,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const { value } = consumptionActor?.attributes?.hp ?? {};
 							if (!Number.isFinite(Number(value))) return false;
 							const hpValue = Number(value);
-							const newValue = hpValue - consume;
+							const newValue = _applyUsesCountOperation(hpValue, consume, usesCountOp);
 							if (hasNumericConsume && numericConsume > 0 && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
 							const noConcentration = !(newValue >= hpValue || String(change.value ?? '').toLowerCase().includes('noconc')); //shouldn't trigger concentration check if it wouldn't lead to hp drop or user indicated
 							if (isOwner)
@@ -3615,7 +3618,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 						} else if (attr.includes('exhaustion')) {
 							const value = Number(consumptionActor?.attributes?.exhaustion);
 							if (!Number.isFinite(value)) return false;
-							const newValue = value - consume;
+							const newValue = _applyUsesCountOperation(value, consume, usesCountOp);
 							const max = CONFIG?.DND5E?.conditionTypes?.exhaustion?.levels ?? 6;
 							if (newValue < 0 || newValue > max) return false; //@to-do, allow when opt-ins are implemented (with an asterisk that it would drop the user unconscious if used)!
 							if (hasNumericConsume && numericConsume < 0 && Number.isFinite(max) && newValue >= max) applyFinalStandOverride(_buildFinalStandDescription(newValue));
@@ -3623,7 +3626,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.exhaustion': newValue } } });
 						} else if (attr.includes('inspiration')) {
 							const value = consumptionActor?.attributes?.inspiration ? 1 : 0;
-							const newValue = value - consume;
+							const newValue = _applyUsesCountOperation(value, consume, usesCountOp);
 							if (newValue < 0 || newValue > 1) return false; //@to-do: double check logic
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
 							else actorUpdatesGM.push({ name: effect.name, context: { uuid, updates: { 'system.attributes.inspiration': !!newValue } } });
@@ -3634,7 +3637,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const valueRaw = foundry.utils.getProperty(consumptionActor, `abilities.${abilityId}.value`) ?? foundry.utils.getProperty(consumptionActor, `system.abilities.${abilityId}.value`);
 							const value = Number(valueRaw);
 							if (!Number.isFinite(value)) return false;
-							const newValue = value - consume;
+							const newValue = _applyUsesCountOperation(value, consume, usesCountOp);
 							if (newValue < 0) return false;
 							if (hasNumericConsume && numericConsume > 0 && newValue <= 0) applyFinalStandOverride(_buildFinalStandDescription(newValue));
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.abilities.${abilityId}.value`]: newValue } } });
@@ -3646,7 +3649,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							const hdData = hdActor?.system?.attributes?.hd ?? hdActor?.attributes?.hd;
 							const { max, value, classes } = hdData ?? {};
 							if (!(hdActor instanceof Actor) || !hdData?.classes) return false;
-							if (value - consume < 0 || value - consume > max) return false;
+							const nextHdValue = _applyUsesCountOperation(value, consume, usesCountOp);
+							if (!Number.isFinite(nextHdValue) || nextHdValue < 0 || nextHdValue > max) return false;
 
 							const hdClasses = Array.from(classes)
 								.sort((a, b) => Number(a.system.hd.denomination.split('d')[1]) - Number(b.system.hd.denomination.split('d')[1]))
@@ -3740,10 +3744,10 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							if (!resource) return false;
 							else if (resource instanceof Object) {
 								const { max, value } = resource;
-								newValue = value - consume;
+								newValue = _applyUsesCountOperation(value, consume, usesCountOp);
 								if (newValue < 0 || newValue > max) return false;
 							} else if (typeof resource === 'number') {
-								newValue = resource - consume;
+								newValue = _applyUsesCountOperation(resource, consume, usesCountOp);
 								if (newValue < 0) return false;
 							}
 							if (isOwner) actorUpdates.push({ name: effect.name, context: { uuid, updates: { [`system.${type}`]: newValue } } });
@@ -4117,7 +4121,8 @@ function _replaceUsesCountLiteral(changeValue, nextUses) {
 		if (!match) return part;
 		const rhs = match[2]?.trim() ?? '';
 		const parsed = _parseUsesCountSpec(rhs);
-		const suffix = parsed.consume ? `,${parsed.consume}` : '';
+		const consumeToken = parsed.op === 'set' ? `=${parsed.consume}` : parsed.consume;
+		const suffix = consumeToken ? `,${consumeToken}` : '';
 		replaced = true;
 		return `${match[1]}${nextValue}${suffix}${match[3] ?? ''}`;
 	});
@@ -4153,6 +4158,7 @@ function updateUsesCount({
 	usesMax,
 	usesSource,
 	consume,
+	mode = 'delta',
 	partialConsume = false,
 	id,
 	baseId,
@@ -4168,10 +4174,10 @@ function updateUsesCount({
 		: usesSource === 'item' ? !!item?.isOwner
 		: false;
 	const quantityDocumentOwner = !!item?.isOwner;
-	const appliedUsesConsume = hasUses && partialConsume && consume > 0 ? Math.min(consume, currentUses) : consume;
-	const appliedQuantityConsume = hasQuantity && partialConsume && consume > 0 ? Math.min(consume, currentQuantity) : consume;
-	const newUses = hasUses ? currentUses - appliedUsesConsume : null;
-	const newQuantity = hasQuantity ? currentQuantity - appliedQuantityConsume : null;
+	const appliedUsesConsume = hasUses && mode === 'delta' && partialConsume && consume > 0 ? Math.min(consume, currentUses) : consume;
+	const appliedQuantityConsume = hasQuantity && mode === 'delta' && partialConsume && consume > 0 ? Math.min(consume, currentQuantity) : consume;
+	const newUses = hasUses ? _applyUsesCountOperation(currentUses, appliedUsesConsume, mode) : null;
+	const newQuantity = hasQuantity ? _applyUsesCountOperation(currentQuantity, appliedQuantityConsume, mode) : null;
 	_logUsesCount('evaluate-update', {
 		effect: effect?.name,
 		id,
@@ -4180,6 +4186,7 @@ function updateUsesCount({
 		currentUses: hasUses ? currentUses : null,
 		currentQuantity: hasQuantity ? currentQuantity : null,
 		consume,
+		mode,
 		partialConsume,
 		appliedUsesConsume: hasUses ? appliedUsesConsume : null,
 		appliedQuantityConsume: hasQuantity ? appliedQuantityConsume : null,

@@ -221,31 +221,57 @@
 				{{#with optionalFieldRows.usesCount}}
 					{{#if left}}
 						<div class="form-group">
-							<label for="{{left.inputId}}">{{left.label}}</label>
+							<label for="{{left.path.inputId}}">{{left.path.label}}</label>
 							<div class="form-fields ac5e-effect-value-editor-inline-field">
-								<input id="{{left.inputId}}" type="text" name="fields.{{left.name}}" value="{{left.value}}">
+								<input id="{{left.path.inputId}}" type="text" name="{{left.path.name}}" value="{{left.path.value}}">
 								<button
 									type="button"
 									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
-									data-ac5e-expand-input="fields.{{left.name}}"
-									data-ac5e-expand-label="{{left.label}}"
-									aria-label="Expand {{left.label}}"
+									data-ac5e-expand-input="{{left.path.name}}"
+									data-ac5e-expand-label="{{left.path.label}}"
+									aria-label="Expand {{left.path.label}}"
 								></button>
 							</div>
 						</div>
 					{{else}}
 						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
 					{{/if}}
-					{{#if right}}
-						<div class="form-group ac5e-effect-value-editor-toggle-companion">
-							<label>&nbsp;</label>
-							<div class="form-fields">
-								{{#each right}}
-									<label class="ac5e-effect-value-editor-inline-toggle" title="{{hint}}">
-										<input type="checkbox" name="{{name}}" {{#if checked}}checked{{/if}}>
-										<span>{{label}}</span>
-									</label>
-								{{/each}}
+					{{#if left}}
+						<div class="form-group">
+							{{#if left.amount}}
+								<label for="{{left.amount.inputId}}">
+									{{left.amount.label}}
+									<i
+										class="fa-solid fa-circle-info ac5e-effect-value-editor-label-info"
+										data-tooltip="{{left.amount.hint}}"
+										data-tooltip-direction="UP"
+										aria-label="{{left.amount.hint}}"
+									></i>
+								</label>
+							{{else if left.recover}}
+								<label>&nbsp;</label>
+							{{/if}}
+							<div class="form-fields ac5e-effect-value-editor-inline-field ac5e-effect-value-editor-usescount-row">
+								<div class="ac5e-effect-value-editor-usescount-primary">
+									{{#if left.amount}}
+										<input id="{{left.amount.inputId}}" type="text" name="{{left.amount.name}}" value="{{left.amount.value}}" placeholder="{{left.amount.placeholder}}">
+									{{else if left.recover}}
+										<label class="ac5e-effect-value-editor-inline-toggle ac5e-usescount-toggle-recover" title="{{left.recover.hint}}">
+											<input type="checkbox" name="{{left.recover.name}}" {{#if left.recover.checked}}checked{{/if}}>
+											<span>{{left.recover.label}}</span>
+										</label>
+									{{/if}}
+								</div>
+								{{#if right}}
+									<div class="ac5e-effect-value-editor-usescount-options">
+										{{#each right}}
+											<label class="ac5e-effect-value-editor-inline-toggle {{className}}" title="{{hint}}">
+												<input type="checkbox" name="{{name}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
+												<span>{{label}}</span>
+											</label>
+										{{/each}}
+									</div>
+								{{/if}}
 							</div>
 						</div>
 					{{else}}
@@ -253,7 +279,6 @@
 					{{/if}}
 					{{#if scaling}}
 						<div class="form-group ac5e-effect-value-editor-grid-span">
-							<label>Scaling</label>
 							<div class="form-fields ac5e-effect-value-editor-scaling-grid">
 								<div class="ac5e-effect-value-editor-scaling-field">
 									<label for="{{scaling.min.inputId}}">{{scaling.min.label}}</label>
@@ -275,33 +300,34 @@
 				{{#with optionalFieldRows.update}}
 					{{#if left}}
 						<div class="form-group">
-							<label for="{{left.inputId}}">{{left.label}}</label>
+							<label for="{{left.path.inputId}}">{{left.path.label}}</label>
 							<div class="form-fields ac5e-effect-value-editor-inline-field">
-								<input id="{{left.inputId}}" type="text" name="fields.{{left.name}}" value="{{left.value}}">
+								<input id="{{left.path.inputId}}" type="text" name="{{left.path.name}}" value="{{left.path.value}}">
 								<button
 									type="button"
 									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
-									data-ac5e-expand-input="fields.{{left.name}}"
-									data-ac5e-expand-label="{{left.label}}"
-									aria-label="Expand {{left.label}}"
+									data-ac5e-expand-input="{{left.path.name}}"
+									data-ac5e-expand-label="{{left.path.label}}"
+									aria-label="Expand {{left.path.label}}"
 								></button>
 							</div>
 						</div>
 					{{else}}
 						<div class="ac5e-effect-value-editor-grid-placeholder"></div>
 					{{/if}}
-					{{#if right}}
+					{{#if left}}
 						<div class="form-group">
-							<label for="{{right.inputId}}">{{right.label}}</label>
+							<label for="{{left.amount.inputId}}">
+								{{left.amount.label}}
+								<i
+									class="fa-solid fa-circle-info ac5e-effect-value-editor-label-info"
+									data-tooltip="{{left.amount.hint}}"
+									data-tooltip-direction="UP"
+									aria-label="{{left.amount.hint}}"
+								></i>
+							</label>
 							<div class="form-fields ac5e-effect-value-editor-inline-field">
-								<input id="{{right.inputId}}" type="text" name="fields.{{right.name}}" value="{{right.value}}">
-								<button
-									type="button"
-									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
-									data-ac5e-expand-input="fields.{{right.name}}"
-									data-ac5e-expand-label="{{right.label}}"
-									aria-label="Expand {{right.label}}"
-								></button>
+								<input id="{{left.amount.inputId}}" type="text" name="{{left.amount.name}}" value="{{left.amount.value}}" placeholder="{{left.amount.placeholder}}">
 							</div>
 						</div>
 					{{else}}
