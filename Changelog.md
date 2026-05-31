@@ -14,6 +14,7 @@
 - Improved Lambda assist/autocomplete for `usesCount` and `update`: no auto-appended `,1`, better item/activity template insertion, and additional consumable/flags targets.
 - Added contextual `scaleValue` chips (when uses scaling is enabled) and contextual `baseValue` chips (relevant flags only).
 - Localized new Effect Value Editor and update-summary strings in `en.json` (`AC5E.EffectValueEditor.*`, `AC5E.Optin.UpdateSummary.*`).
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 
 ## 14.533.2.2
 
