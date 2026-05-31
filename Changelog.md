@@ -1,3 +1,7 @@
+## 14.533.4.1
+
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.4
 
 - Hardened AC5E damage pre-roll handling to safely no-op when no damage rolls are present in the roll configuration.
