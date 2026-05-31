@@ -984,7 +984,7 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 		entry.value,
 		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES),
 	]));
-	for (const root of ['damageTypes', 'defaultDamageType', 'itemProperties', 'originItemProperties', 'mastery']) {
+	for (const root of ['damageTypes', 'defaultDamageType', 'itemProperties', 'originItemProperties', 'mastery', 'riderStatuses']) {
 		if (!Array.isArray(pathsByRoot[root])) continue;
 		treesByRoot[root] = buildAssistPathTree(root, pathsByRoot[root], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES);
 	}
@@ -1141,13 +1141,14 @@ function isConditionEntry(identifier) {
 	const value = `${identifier ?? ''}`.trim();
 	if (!value) return false;
 	if (ROLL_AWARE_ENTRIES.has(value)) return true;
+	if (value === 'riderStatuses' || value.startsWith('riderStatuses.')) return true;
 	if (value === 'damageTypes' || value === 'defaultDamageType') return true;
 	return value.startsWith('is') || value.startsWith('has') || value.startsWith('can');
 }
 
 function getContextSandboxFallbackEntries(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
-	const entries = ['ability'];
+	const entries = ['ability', 'riderStatuses'];
 	if (!normalized) return entries;
 	const isRollLike = isD20AssistContext(normalized);
 	if (isRollLike) {
@@ -1381,11 +1382,13 @@ function addEnumAliasRoots(pathsByRoot) {
 	const combinedDamage = dedupe([...damageTypes, ...healingTypes].filter(Boolean)).sort((a, b) => a.localeCompare(b));
 	const itemProps = Object.keys(CONFIG?.DND5E?.itemProperties ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
 	const masteries = Object.keys(CONFIG?.DND5E?.weaponMasteries ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
+	const statuses = getStatusEffectIds();
 	pathsByRoot.damageTypes = ['damageTypes', ...combinedDamage.map((entry) => `damageTypes.${entry}`)];
 	pathsByRoot.defaultDamageType = ['defaultDamageType', ...combinedDamage.map((entry) => `defaultDamageType.${entry}`)];
 	pathsByRoot.itemProperties = ['itemProperties', ...itemProps.map((entry) => `itemProperties.${entry}`)];
 	pathsByRoot.originItemProperties = ['originItemProperties', ...itemProps.map((entry) => `originItemProperties.${entry}`)];
 	pathsByRoot.mastery = ['mastery', ...masteries.map((entry) => `mastery.${entry}`)];
+	pathsByRoot.riderStatuses = ['riderStatuses', ...statuses.map((entry) => `riderStatuses.${entry}`)];
 }
 
 function renderAssistActionFieldset(title, values, dataAttribute, kind = 'button', section = '', compact = false) {
@@ -2189,7 +2192,7 @@ function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
 function resolveAssistEntryInsertion(entry) {
 	const value = `${entry ?? ''}`.trim();
 	if (!value) return '';
-	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools', 'statuses'].includes(value)) return `${value}.`;
+	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools', 'statuses', 'riderStatuses'].includes(value)) return `${value}.`;
 	return `${value} `;
 }
 
@@ -2665,6 +2668,7 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 function resolveAssistValueChoices(path, enumValues) {
 	const sourcePath = `${path ?? ''}`.trim();
 	if (!sourcePath) return [];
+	if (/^(?:riderStatuses)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.statuses ?? []);
 	if (/^(?:damageTypes|defaultDamageType)$/.test(sourcePath)) return toAssistValueChoices(dedupe([...(enumValues?.damageTypes ?? []), ...(enumValues?.healingTypes ?? [])]));
 	if (/^(?:itemProperties)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemProperties ?? [], CONFIG?.DND5E?.itemProperties, { appendKey: true });
 	if (/^(?:originItemProperties)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemProperties ?? [], CONFIG?.DND5E?.itemProperties, { appendKey: true });
@@ -3124,6 +3128,7 @@ function isExpandableAssistPath(path) {
 		'skills',
 		'tools',
 		'statuses',
+		'riderstatuses',
 		'damagetypes',
 		'defaultdamagetype',
 		'itemproperties',
@@ -3136,8 +3141,16 @@ function isExpandableAssistPath(path) {
 	return false;
 }
 
+function getStatusEffectConfigs() {
+	const effects = CONFIG?.statusEffects;
+	if (!effects) return [];
+	if (typeof foundry?.utils?.iterateValues === 'function') return Array.from(foundry.utils.iterateValues(effects));
+	if (Array.isArray(effects)) return effects;
+	return Object.values(effects);
+}
+
 function getStatusEffectIds() {
-	const entries = Array.from(CONFIG?.statusEffects ?? []);
+	const entries = getStatusEffectConfigs();
 	const ids = entries
 		.map((entry) => `${entry?.id ?? ''}`.trim())
 		.filter(Boolean);

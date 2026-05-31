@@ -44,7 +44,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 			getConfigAC5E = [render?.rolls?.[0]?.options?.[deps.Constants.MODULE_ID], render?.rolls?.[1]?.options?.[deps.Constants.MODULE_ID], render?.rolls?.[2]?.options?.[deps.Constants.MODULE_ID]];
 			if (!getConfigAC5E?.[0]?.hookType) return true;
 		}
-		if (!getConfigAC5E.length) getConfigAC5E = [getConfigAC5E];
+		if (!Array.isArray(getConfigAC5E)) getConfigAC5E = getConfigAC5E ? [getConfigAC5E] : [];
 		for (const ac5eElement of getConfigAC5E) {
 			const hT = ac5eElement?.hookType;
 			if (!hT) continue;

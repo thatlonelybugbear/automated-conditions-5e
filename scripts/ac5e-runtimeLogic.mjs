@@ -219,14 +219,25 @@ function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
 				equippedItems.names.push(item.name);
 				equippedItems.identifiers.push(identifier);
 			}
+			const itemProperties = item.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
+			const properties = {};
+			for (const prop of itemProperties) properties[prop] = true;
+			const mastery = {};
+			if (item.system?.mastery) mastery[item.system.mastery] = true;
 			items.push({
 				name: item.name,
 				uuid: item.uuid,
 				id: item.id,
+				identified: item.system?.identified,
 				identifier,
 				type: item.type,
+				systemType: item.system?.type,
 				uses: item.system?.uses || {},
 				equipped,
+				properties,
+				mastery,
+				magicalBonus: item.system?.magicalBonus,
+				rarity: item.system?.rarity,
 				attuned: !!item.system?.attuned,
 			});
 		}
@@ -1050,10 +1061,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (sandboxOptions?.tool) sandbox._evalConstants[sandboxOptions.tool] = true;
 	const isSkillCheck = sandboxOptions?.hook === 'check' && sandboxOptions?.skill;
 	const isToolCheck = sandboxOptions?.hook === 'check' && sandboxOptions?.tool;
-	sandbox.hasProficiency = sandboxOptions?.hook === 'save' ? rollingActor?.abilities[sandboxOptions.ability]?.proficient > 0 : isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient > 0 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier > 0 : !!sandbox.item?.hasProficiency;
-	sandbox.hasExpertise = isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient === 2 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier === 2 : false;
-	sandbox.hasHalfProficiency = isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient === 0.5 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier === 0.5 : false;
-	sandbox.hasFullProficiency = isSkillCheck ? rollingActor?.skills[sandboxOptions.skill]?.proficient === 1 : isToolCheck ? rollingActor?.tools[sandboxOptions.tool]?.prof?.multiplier === 1 : false;
+	sandbox.hasProficiency = sandboxOptions?.hook === 'save' ? rollingActor?.abilities?.[sandboxOptions.ability]?.proficient > 0 : isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient > 0 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier > 0 : !!sandbox.item?.hasProficiency;
+	sandbox.hasExpertise = isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 2 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 2 : false;
+	sandbox.hasHalfProficiency = isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 0.5 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 0.5 : false;
+	sandbox.hasFullProficiency = isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 1 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 1 : false;
 	sandbox.isConcentration = sandboxOptions?.isConcentration;
 	sandbox.isDeathSave = sandboxOptions?.isDeathSave;
 	sandbox.isInitiative = sandboxOptions?.isInitiative;
