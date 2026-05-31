@@ -1,3 +1,7 @@
+## 13.5330.1.3
+
+- Removed `dnd5e.renderChatMessage` hook
+
 ## 13.5330.1.2
 
 - Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗 
