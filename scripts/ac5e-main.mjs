@@ -126,7 +126,7 @@ function registerHooks(settings) {
 	];
 	const renderHooks = [
 		{ id: 'renderChatMessageHTML', type: 'chat' },
-		{ id: 'dnd5e.renderChatMessage', type: 'chat' },
+		// { id: 'dnd5e.renderChatMessage', type: 'chat' },
 		{ id: 'rsreforged.renderChatMessageContent', type: 'chat' },
 		{ id: 'rsreforged.renderRoll', type: 'chat' },
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
