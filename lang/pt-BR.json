@@ -490,5 +490,49 @@
 	"AC5E.advantageBehaviorDisadvantageFormula": {
 		"Name": "Fórmula de Penalidade de Desvantagem",
 		"Hint": "Aplicado quando há desvantagem transitória e a substituição estiver habilitada. Exemplo: -3d6kh1 or -2."
+	},
+	"AC5E.EffectValueEditor": {
+		"Label": {
+			"ConsumptionType": "Tipo de Consumível",
+			"UpdateTarget": "Atualizar Alvo",
+			"Amount": "Quantidade"
+		},
+		"Placeholder": {
+			"UsesCountAmount": "1 ou =5",
+			"UpdateAmount": "1, -1 ou =5"
+		},
+		"Hint": {
+			"ShowCadence": "Exibe controles de cadência (uma vez, uma vez por turno, por rodada ou por combate).",
+			"ShowName": "Inclui um nome de exibição personalizado para esta entrada.",
+			"ShowDescription": "Inclui uma breve descrição para exibição/dica.",
+			"ShowUsesCount": "Ativa a configuração de contagem de usos para esta entrada.",
+			"ShowUpdate": "Ativa a configuração de atualização do ator para esta entrada de informação.",
+			"SetMode": "Trata o campo de bônus como um valor definido absoluto em vez de um bônus adicional.",
+			"EnableUsesCountScaling": "Ativa campos de escala mínima/máxima/incremento para o valor consumido de usesCount. Quando a escala estiver ativa, use scaleValue em fórmulas/condições para referenciar o valor escalonado calculado.",
+			"UsesCountAmount": "Valores positivos consomem. Valores negativos recuperam. Use =valor para definir um valor absoluto.",
+			"UpdateAmount": "Valores positivos adicionam. Valores negativos subtraem. Use =valor para definir um valor absoluto.",
+			"ToggleOptin": "Exibe esta entrada como opcional para que os usuários possam ativá-la em cada rolagem.",
+			"ToggleItemLimited": "Aplica apenas quando o item/atividade de origem corresponder ao contexto de origem limitado.",
+			"ToggleAllies": "A aura se aplica a tokens aliados.",
+			"ToggleEnemies": "A aura se aplica a tokens inimigos.",
+			"ToggleIncludeSelf": "A aura também pode ser aplicada ao ator de origem.",
+			"ToggleSingleAura": "Permite que apenas uma fonte de aura ativa seja aplicada por vez.",
+			"ToggleWallsBlock": "Paredes podem bloquear o alcance/caminho da aura.",
+			"ToggleRecover": "Inverte o consumo de usos e restaurar a quantidade configurada.",
+			"UsesCountSet": "Define o alvo para uma quantidade absoluta usando a sintaxe =quantidade.",
+			"TogglePartialConsume": "Permite gastar o que estiver disponível em vez de bloquear quando a quantidade for insuficiente."
+		}
+	},
+	"AC5E.Optin.UpdateSummary": {
+		"Updates": "Atualiza {target}",
+		"UpdatesCompact": "Atualiza {target}",
+		"Sets": "Define {target} como {value}",
+		"AppliesTo": "Aplica {value} a {target}",
+		"RemovesFrom": "Remove {value} de {target}",
+		"AppliesWithUnit": "Aplica {value} {target} {unit}",
+		"RemovesWithUnit": "Remove {value} {target} {unit}",
+		"Exhaustion": "Exaustão",
+		"ExhaustionLevel": "nível",
+		"ExhaustionLevels": "níveis"
 	}
 }
