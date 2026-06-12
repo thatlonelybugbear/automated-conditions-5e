@@ -1,29 +1,37 @@
 {
 	"AC5E.AutomateStatuses": {
-		"Name": "Automatyzacja statusów D&D5E",
-		"Hint": "Po włączeniu AC5E automatycznie dostosuje modyfikatory trybu utrudnienia/ułatwienia oraz trybu rzutów w oparciu o statusy systemu."
+		"Name": "Zasady dotyczące stanów w D&D 5e",
+		"Hint": "Umożliwia obsługę AC5E w odniesieniu do stanów D&D 5e, rozszerzając wbudowaną w systemie D&D 5e automatyzację trybu ułatwień o szerszą i bardziej precyzyjną obsługę zasad, zwłaszcza w przypadku rzutów na atak."
 	},
-	"AC5E.ShowTooltipsName": "Pokaż podpowiedzi AC5e:",
-	"AC5E.ShowTooltipsHint": "Po wybraniu odpowiedniej opcji, AC5e wyświetli przydatną podpowiedź po najechaniu kursorem na sugerowany przycisk Rzutu lub wygenerowaną wiadomość lub oba te elementy, podsumowując powody tej sugestii.",
+	"AC5E.Ui": {
+		"Name": "Wyłącz AC5E UI",
+		"Hint": "Wyłącza przycisk AC5E służący do edycji wartości efektu aktywnego."
+	},
+	"AC5E.ShowTooltipsName": "Pokaż podpowiedzi AC5E",
+	"AC5E.ShowTooltipsHint": "Wyświetla podpowiedzi AC5E w oknach dialogowych rzutu postaci, wiadomościach na czacie lub w obu tych miejscach, wyjaśniając powody sugerowanego wyniku.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rzuty okien dialogowych i wiadomości czatu",
 	"AC5E.ShowToolTipsChoicesDialog": "Tylko rzuty okien dialogowych",
 	"AC5E.ShowToolTipsChoicesChat": "Tylko wiadomości czatu",
 	"AC5E.ShowToolTipsChoicesNone": "Nie pokazuj",
 	"AC5E.ShowModuleNameInTooltipsName": "Pokaż nazwę modułu w podpowiedziach",
 	"AC5E.ShowTooltipChatVisibility.Name": "Pokaż podpowiedzi czatu dla",
-	"AC5E.ShowTooltipChatVisibility.Hint": "'Wszyscy' - wszystkie rzuty aktorów, 'Brak' - brak rzutów, 'Własne' - rzuty własnych aktorów, 'Gracze' -  rzuty aktorów należących do gracza; (MG widzi wszystko)",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Wybierz, dla kogo mają być wyświetlane podpowiedzi czatu AC5E. MG zawsze widzi wszystkie podpowiedzi.",
 	"AC5E.ShowTooltipChatVisibility.All": "Wszyscy",
 	"AC5E.ShowTooltipChatVisibility.None": "Brak",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Własne",
 	"AC5E.ShowTooltipChatVisibility.Players": "Gracze",
 	"AC5E.ExpandedConditionsName": "Rozszerzone stany",
-	"AC5E.ExpandedConditionsHint": "Po włączeniu AC5e będzie próbował zautomatyzować niektóre dodatkowe stany, takie jak Uniki czy Ukrywanie się.",
+	"AC5E.ExpandedConditionsHint": "Umożliwia automatyzację stanów w przypadku dodatkowych stanów bojowych, takich jak uniki, ukrywanie się, ograniczenia związane z szałem oraz walka pod wodą.",
+	"AC5E.VisibilityChecksSetting": {
+		"Name": "Zasady widoczności",
+		"Hint": "Wykorzystuje reguły widoczności ataku AC5E oparte na tokenie widzenia i zmysłach postaci. Po włączeniu AC5E dodaje przyczyny ataku „Nie widzę celu” oraz „Cel nie widzi atakującego”. Przyczyny te są pomijane, gdy MidiQOL stosuje już swoje reguły dotyczące niewidzialności lub ukrytego atakującego."
+	},
 	"AC5E.ActivityUse": {
-		"Name": "Sprawdzanie użycia przedmiotów",
-		"Hint": "Gdy użycie przedmiotu jest niedozwolone, AC5e „nie podejmuje żadnych działań”, jedynie „ostrzega” (powiadomienie) lub „egzekwuje” (anulowanie rzutu + powiadomienie). Sprawdzane są następujące stany: obezwładnienie uniemożliwiające wykonanie odpowiednich działań, szał, uciszenie oraz brak biegłości w posługiwaniu się zbroją podczas rzucania zaklęć.",
+		"Name": "Zasady korzystania z przedmiotów",
+		"Hint": "Określa, czy system AC5E zezwala na nieprawidłowe wykonanie akcji przed rzutem, ostrzega o tym czy też blokuje taką akcję. Dotyczy to kontroli przeprowadzanych w fazie akcji, takich jak działania obezwładnione, ograniczenia dotyczące rzucania zaklęć oraz porażki związane z atakami poza zasięgiem. Porażki związane z atakami poza zasięgiem są rozpatrywane w późniejszym etapie, podczas konfiguracji rzutu ataku, z wykorzystaniem wybranego trybu ataku.",
 		"Choices": {
-			"Off": "Nic nie rób",
-			"Enforce": "Wymuszaj",
+			"Off": "Zezwól",
+			"Enforce": "Zablokuj / Odrzuć w zależności od sytuacji",
 			"Warn": "Ostrzegaj"
 		},
 		"Type": {
@@ -45,30 +53,49 @@
 			}
 		}
 	},
-	"AC5E.AutoExhaustionName": "Automatyzacja wyczerpania.",
-	"AC5E.AutoExhaustionHint": "Po włączeniu tej opcji i korzystaniu ze starych zasad dnd5e, AC5e automatycznie przetworzy normalne zasady dotyczące stanu Wyczerpania z 5e.",
-	"AC5E.AutoEncumbranceName": "Wariant obciążenia.",
-	"AC5E.AutoEncumbranceHint": "Po włączeniu AC5e automatycznie przetworzy zasady Obciążenia wariantu 5e. MG musi również wybrać w ustawieniach systemu Dnd5e opcję Wariant (obciążony i mocno obciążony), w przeciwnym razie nie będzie to miało żadnego efektu.",
+	"AC5E.AutoRangeChecks": {
+		"Name": "Zasady zasięgu",
+		"Hint": "Włącza automatyczne zasady dotyczące zasięgu ataków wręcz i na odległość, w tym zasięg ataku wręcz, porażka spowodowana przekroczeniem zasięgu, utrudnienie wynikające z obecności wroga w pobliżu oraz utrudnienie wynikające z dużej odległości. W przypadku zasięgu po przekątnej w walce wręcz wszystkie sąsiednie pola traktowane są jako znajdujące się w zasięgu, co ma pierwszeństwo przed zasadami dotyczącymi odległości po przekątnej siatki. Porażki spowodowane przekroczeniem zasięgu mają zastosowanie podczas sprawdzania zasięgu: w przypadku czynności innych niż atak w momencie użycia oraz w przypadku ataku podczas ustalania wyniku rzutu ataku przy użyciu wybranego trybu ataku.",
+		"MeleeDiagonals": "Zasięg po przekątnej w walce wręcz",
+		"MeleeOutOfRange": "Walka wręcz poza zasięgiem",
+		"RangedNearbyFoes": "Wrogowie znajdujący się w zasięgu",
+		"RangedLongDisadvantage": "Utrudnienie w dystansowym zasięgu",
+		"RangedOutOfRange": "Poza zasięgiem"
+	},
+	"AC5E.AutoExhaustionName": "Zasady dotyczące wyczerpania",
+	"AC5E.AutoExhaustionHint": "Włącza obsługę wyczerpania AC5E podczas korzystania ze starszych zasad D&D 5e.",
+	"AC5E.AutoEncumbranceName": "Zasady dotyczące wariantu obciążenia",
+	"AC5E.AutoEncumbranceHint": "Włącza obsługę wariantów obciążenia w AC5E. MG musi również włączyć opcję wariantów (obciążony i mocno obciążony) w systemie D&D 5e, w przeciwnym razie to ustawienie nie będzie miało żadnego wpływu.",
 	"AC5E.Targeting": {
-		"Name": "Opcje celowania ataków",
-		"Hint": "Jeśli nie wybrano żadnego celu lub wybrano wiele celów do ataku, wybierz sposób, w jaki AC5e ma zareagować.",
+		"Name": "Zasady celowania ataków",
+		"Hint": "Określa, w jaki sposób AC5E traktuje rzuty na atak, gdy nie wybrano żadnego celu lub wybrano wiele celów.",
 		"Choices": {
-			"Source": "Używaj tylko stanów źródła",
+			"Source": "Zignoruj statusy i flagi celów",
 			"Enforce": "Anuluj ukryty rzut",
 			"Warn": "Anuluj rzut z ostrzeżeniem"
 		},
 		"MultipleTargetsAttack": {
-			"Source": "AC5e: Wybrano wiele celów. Wyniki mogą być zniekształcone. Wykorzystano wyłącznie dane podmiotu źródłowego.",
-			"Enforce": "AC5e: Wybrano wiele celów. Rzut anulowany!"
+			"Source": "AC5E: Wybrano wiele celów. Wyniki mogą być zniekształcone. Wykorzystano wyłącznie dane podmiotu źródłowego.",
+			"Enforce": "AC5E: Wybrano wiele celów. Rzut anulowany!"
 		},
 		"NoTargetsAttack": {
-			"Source": "AC5e: Nie wybrano żadnych celów. Ułatwienia/utrudnienia mogą być niedokładne. Wykorzystano wyłącznie dane aktora źródłowego.",
-			"Enforce": "AC5e: Nie wybrano żadnych celów. Rzut anulowany!"
+			"Source": "AC5E: Nie wybrano żadnych celów. Ułatwienia/utrudnienia mogą być niedokładne. Wykorzystano wyłącznie dane aktora źródłowego.",
+			"Enforce": "AC5E: Nie wybrano żadnych celów. Rzut anulowany!"
 		}
 	},
-	"AC5E.DebuggingName": "Debugowanie AC5e",
-	"AC5E.DebuggingHint": "Po prostu przydatne dzienniki do debugowania podczas programowania. Prawdopodobnie nie ma sensu, aby użytkownicy go włączali :)",
+	"AC5E.DebuggingName": "Debugowanie AC5E",
+	"AC5E.DebuggingHint": "Włącza dodatkowe logi debugowania modelu AC5E przeznaczone do celów programistycznych i rozwiązywania problemów.",
+	"AC5E.TokenlessActorWarning": {
+		"Hint": "Wyświetla ostrzeżenie podczas rzutu kostką dla postaci, która nie ma tokenu w bieżącej scenie.",
+		"Name": "Pokaż ostrzeżenie dotyczące podmiotów nieposiadających tokenów",
+		"Text": "Ostrzeżenie AC5E: Aktor, którego ruch jest aktualnie rozpatrywany w trakcie rzutu, nie ma tokenu na planszy. Wyniki mogą być niedokładne."
+	},
+	"AC5E.Statuses": {
+		"UnderwaterCombat": "Walka pod wodą"
+	},
 	"AC5E.WarCaster": "Bitewny Mag",
+	"AC5E.ModifyAC": "Zmodyfikowane KP",
+	"AC5E.ModifyDC": "Zmodyfikowane ST",
 	"AC5E.Fail": "Porażka",
 	"AC5E.Alert": "Alarm",
 	"AC5E.FailLowerCase": "porażka",
@@ -87,30 +114,52 @@
 	"AC5E.NearbyFoe": "Pobliski wróg",
 	"AC5E.ButtonColorPicker": {
 		"Enabled": {
-			"Name": "Kolorowe przyciski",
-			"Hint": "Wyróżnij przyciski okna dialogowego rzutów. Domyślne kolory: #288bcc (tło), biały (tekst/obramowanie). Wprowadź użytkownika, aby użyć game.user.color (najlepszy dla tła). Wprowadź false/none/null/0, aby wyłączyć dowolny z dostępnych selektorów kolorów. Usuń dowolne pole, aby powrócić do wartości domyślnych."
+			"Name": "Niestandardowe kolory przycisków",
+			"Hint": "Dostosuj kolory przycisków w oknie dialogowym listy rozwijanej. Pozostaw pole puste, aby użyć wartości domyślnej. Użyj wartości „user”, aby zastosować ustawienie z pliku game.user.color. Użyj wartości „false”, „none”, „null” lub „0”, aby wyłączyć nadpisanie konkretnego koloru."
 		},
 		"Background": {
-			"Name": "🎨 Przycisk koloru tła",
-			"Hint": "Usuń dowolny ciąg znaków z danych wejściowych, aby domyślnie ustawić game.user.color"
+			"Name": "Kolor tła przycisku",
+			"Hint": "Pozostaw puste, aby użyć wartości game.user.color."
 		},
 		"Border": {
-			"Name": "🖍️ Przycisk koloru obramowania",
-			"Hint": "Usuń dowolny ciąg znaków z wejścia, aby domyślnie był biały"
+			"Name": "Kolor obramowania przycisku",
+			"Hint": "Pozostaw puste, aby użyć koloru białego."
 		},
 		"Text": {
-			"Name": "🔤 Przycisk koloru tekstu",
-			"Hint": "Usuń dowolny ciąg znaków z wejścia, aby domyślnie był biały"
+			"Name": "Kolor tekstu przycisku",
+			"Hint": "Pozostaw puste, aby użyć koloru białego."
 		}
 	},
+	"AC5E.AdvantageKeypress": "Klawisz ułatwienia",
+	"AC5E.CriticalKeypress": "Klawisz trafienia krytycznego",
+	"AC5E.DisadvantageKeypress": "Klawisz utrudnienia",
+	"AC5E.NoCriticalKeypress": "Klawisz normalnego trafienia",
+	"AC5E.OverrideAdvantage": "Zastąpienie klawisza ułatwienia",
+	"AC5E.OverrideCritical": "Zastąpienie klawisza trafienia krytycznego",
+	"AC5E.OverrideDisadvantage": "Zastąpienie klawisza utrudnienia",
+	"AC5E.OverrideNoCritical": "Zastąpienie klawisza normalnego trafienia",
+	"AC5E.ForcedAdvantage": "Wymuszone przez system ułatwienie",
+	"AC5E.ForcedDisadvantage": "Wymuszone przez system utrudnienie",
+	"AC5E.NoAdvantage": "Wstrzymane ułatwienie",
+	"AC5E.NoCritical": "Wstrzymane trafienie krytyczne",
+	"AC5E.NoDisadvantage": "Wstrzymane utrudnienie",
+	"AC5E.TargetGrantsNoAdvantage": "Nie przyznano żadnego ułatwienia",
+	"AC5E.TargetGrantsNoCritical": "Nie przyznano żadnego trafienia krytycznego",
+	"AC5E.TargetGrantsNoDisadvantage": "Nie przyznano żadnego utrudnienia",
+	"AC5E.CannotSeeTarget": "Nie widać celu",
+	"AC5E.TargetCannotSeeAttacker": "Cel nie widzi atakującego",
 	"AC5E.Bonus": "Akcja Dodatkowa",
+	"AC5E.AbilityOverride": "Zastąpienie atrybutów",
+	"AC5E.ExtraDice": "Dodatkowa kość",
 	"AC5E.Success": "Sukces",
 	"AC5E.AbbreviationAdvantage": "uła",
 	"AC5E.AbbreviationDisadvantage": "utr",
 	"AC5E.AbbreviationCritical": "kryt",
 	"AC5E.Grants": "otrzymuje",
 	"AC5E.Attacker": "Atakujący",
-	"AC5E.FlagsInitiativeDisadv": "Utrudnienia w inicjatywie",
+	"AC5E.Flags": "flagi",
+	"AC5E.FlagsInitiativeAdv": "Systemowe ułatwienie w inicjatywie",
+	"AC5E.FlagsInitiativeDisadv": "Systemowe utrudnienie w inicjatywie",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Przyznane ułatwienie",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Przyznane utrudnienie",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Przyznianie krytyka",
@@ -119,54 +168,71 @@
 	"AC5E.TargetGrantsSuccess": "Przyznanie sukcesu",
 	"AC5E.TargetGrantsBonus": "Przyznanie bonusu",
 	"AC5E.TargetGrantsModifier": "Przyznany modyfikator",
+	"AC5E.TargetGrantsExtraDice": "Przyznano dodatkową kość",
+	"AC5E.TargetGrantsAbilityOverride": "Przyznano zastąpienie atrybutów",
 	"AC5E.NoChanges": "Bez zmian",
 	"AC5E.SystemMode": "Tryb systemowy",
-	"AC5E.OptinDescription.Roll.Attack": "attack rolls",
-	"AC5E.OptinDescription.Roll.Damage": "damage rolls",
-	"AC5E.OptinDescription.Roll.Check": "checks",
-	"AC5E.OptinDescription.Roll.Save": "saving throws",
-	"AC5E.OptinDescription.Roll.Generic": "rolls",
-	"AC5E.OptinDescription.GrantsAdvantage": "Grants advantage on {roll}",
-	"AC5E.OptinDescription.ImposesDisadvantage": "Imposes disadvantage on {roll}",
-	"AC5E.OptinDescription.RemovesAdvantage": "Removes advantage on {roll}",
-	"AC5E.OptinDescription.RemovesDisadvantage": "Removes disadvantage on {roll}",
-	"AC5E.OptinDescription.ForcesCritical": "Forces a critical hit",
-	"AC5E.OptinDescription.PreventsCritical": "Prevents critical hits",
-	"AC5E.OptinDescription.ForcesFailure": "Forces automatic failure on {roll}",
-	"AC5E.OptinDescription.ForcesFumble": "Forces a fumble",
-	"AC5E.OptinDescription.ForcesSuccess": "Forces automatic success on {roll}",
-	"AC5E.OptinDescription.SetsRollBonus": "Sets {roll} bonus to {value}",
-	"AC5E.OptinDescription.AppliesRollBonus": "Applies {value} to {roll}",
-	"AC5E.OptinDescription.ModifiesRollBonus": "Modifies {roll} bonus",
-	"AC5E.OptinDescription.SetsTargetAC": "Sets target AC to {value}",
-	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifies target AC by {value}",
-	"AC5E.OptinDescription.ModifiesTargetAC": "Modifies target AC",
-	"AC5E.OptinDescription.SetsMinimumD20": "Sets minimum d20 result to {value}",
-	"AC5E.OptinDescription.SetsMaximumD20": "Sets maximum d20 result to {value}",
-	"AC5E.OptinDescription.AppliesRollModifier": "Applies roll modifier",
-	"AC5E.OptinDescription.AppliesRollModifierWithValue": "Applies roll modifier ({value})",
-	"AC5E.OptinDescription.SetsCriticalThreshold": "Sets critical threshold to {value}",
-	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modifies critical threshold",
-	"AC5E.OptinDescription.SetsFumbleThreshold": "Sets fumble threshold to {value}",
-	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modifies fumble threshold",
-	"AC5E.OptinDescription.AddsExtraDamageDice": "Adds extra damage dice",
-	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Adds extra damage dice ({value})",
-	"AC5E.OptinDescription.UpgradesDamageDice": "Upgrades damage dice",
-	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Upgrades damage dice ({value})",
-	"AC5E.OptinDescription.DowngradesDamageDice": "Downgrades damage dice",
-	"AC5E.OptinDescription.DowngradesDamageDiceWithValue": "Downgrades damage dice ({value})",
-	"AC5E.OptinDescription.ModifiesAttackRange": "Modifies attack range behavior",
-	"AC5E.OptinDescription.FinalStandDropsTo": "Final stand (drops to {value})",
-	"AC5E.Chance.Triggered": "is triggered",
-	"AC5E.Chance.TriggeredWithRoll": "is triggered (rolled {roll})",
-	"AC5E.OptinCadence.OncePerTurn": "(1/turn)",
-	"AC5E.OptinCadence.OncePerRound": "(1/round)",
-	"AC5E.OptinCadence.OncePerCombat": "(1/combat)",
+	"AC5E.OptinDescription.Roll.Attack": "Rzuty na atak",
+	"AC5E.OptinDescription.Roll.Damage": "Rzuty na obrażenia",
+	"AC5E.OptinDescription.Roll.Check": "testy",
+	"AC5E.OptinDescription.Roll.Save": "Rzuty obronne",
+	"AC5E.OptinDescription.Roll.Generic": "rzuty",
+	"AC5E.OptinDescription.GrantsAdvantage": "Przyznano ułatwienie na {roll}",
+	"AC5E.OptinDescription.ImposesDisadvantage": "Nakłada utrudnienie na {roll}",
+	"AC5E.OptinDescription.RemovesAdvantage": "Usunięto ułatwienie na {roll}",
+	"AC5E.OptinDescription.RemovesDisadvantage": "Usunięto utrudnienie na {roll}",
+	"AC5E.OptinDescription.ForcesCritical": "Wymusza krytyczne trafienie",
+	"AC5E.OptinDescription.PreventsCritical": "Zapobiega trafieniom krytycznym",
+	"AC5E.OptinDescription.ForcesFailure": "Wymusza automatyczną porażkę przy rzucie {roll}",
+	"AC5E.OptinDescription.ForcesFumble": "Wymusza krytyczną porażkę",
+	"AC5E.OptinDescription.ForcesSuccess": "Wymusza automatyczny sukces przy rzucie {roll}",
+	"AC5E.OptinDescription.SetsRollBonus": "Ustawia premię {value} na {roll}",
+	"AC5E.OptinDescription.AppliesRollBonus": "Zastosowano {value} do {roll}",
+	"AC5E.OptinDescription.ModifiesRollBonus": "Modyfikuje premię {roll}",
+	"AC5E.OptinDescription.SetsTargetAC": "Ustawia wartość KP celu na {value}",
+	"AC5E.OptinDescription.ModifiesTargetACBy": "Modyfikuje wartość KP celu o {value}",
+	"AC5E.OptinDescription.ModifiesTargetAC": "Modyfikuje wartość KP celu",
+	"AC5E.OptinDescription.DCLabel.Save": "ST rzutu obronnego",
+	"AC5E.OptinDescription.DCLabel.Check": "ST testu",
+	"AC5E.OptinDescription.SetsTargetSpecificDC": "Ustawia {dcLabel} na {value}",
+	"AC5E.OptinDescription.ModifiesTargetSpecificDCBy": "Modyfikuje {dcLabel} o {value}",
+	"AC5E.OptinDescription.ModifiesTargetSpecificDC": "Modyfikuje {dcLabel}",
+	"AC5E.OptinDescription.SetsMinimumD20": "Ustawia minimalny wynik rzutu kostką k20 na {value}",
+	"AC5E.OptinDescription.SetsMaximumD20": "Ustawia maksymalny wynik rzutu kostką k20 na {value}",
+	"AC5E.OptinDescription.AppliesRollModifier": "Stosuje modyfikator rzutu",
+	"AC5E.OptinDescription.AppliesRollModifierWithValue": "Stosuje modyfikator rzutu ({value})",
+	"AC5E.OptinDescription.SetsMinimumDiceRoll": "Ustawia minimalny wynik rzutu kostką na {value}",
+	"AC5E.OptinDescription.SetsMaximumDiceRoll": "Ustawia maksymalny wynik rzutu kostką na {value}",
+	"AC5E.OptinDescription.AppliesDiceRollModifier": "Stosuje modyfikator rzutu kostką",
+	"AC5E.OptinDescription.AppliesDiceRollModifierWithValue": "Stosuje modyfikator rzutu kostką ({value})",
+	"AC5E.OptinDescription.SetsCriticalThreshold": "Ustawia próg trafienia krytycznego na {value}",
+	"AC5E.OptinDescription.ModifiesCriticalThreshold": "Modyfikuje próg trafienia krytycznego",
+	"AC5E.OptinDescription.SetsFumbleThreshold": "Ustawia próg krytycznego pudła na {value}",
+	"AC5E.OptinDescription.ModifiesFumbleThreshold": "Modyfikuje próg krytycznego pudła",
+	"AC5E.OptinDescription.AddsExtraDamageDice": "Dodaje dodatkowe kości obrażeń",
+	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Dodaje dodatkowe kości obrażeń ({value})",
+	"AC5E.OptinDescription.OverridesDamageType": "Zastępuje typ obrażeń",
+	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Zastępuje typ obrażeń ({value})",
+	"AC5E.OptinDescription.OverridesDcAbility": "Zastępuje ST rzutów obronnych / testów atrybutów ({value})",
+	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Zastępuje ST rzutów obronnych / testów atrybutów",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name": "Zastosuj modyfikator nadpisania efektu",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint": "Tylko dla MG. Przytrzymaj ten przycisk podczas klikania opcji „Zastosuj efekt”, aby pominąć sprawdzanie uprawnień allowEffectApplication.",
+	"AC5E.OptinDescription.UpgradesDamageDice": "Zwiększa liczbę kości obrażeń",
+	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Zwiększa liczbę kości obrażeń ({value})",
+	"AC5E.OptinDescription.DowngradesDamageDice": "Zmniejsza liczbę kości obrażeń",
+	"AC5E.OptinDescription.DowngradesDamageDiceWithValue": "Zmniejsza liczbę kości obrażeń ({value})",
+	"AC5E.OptinDescription.ModifiesAttackRange": "Zmienia sposób działania zasięgu ataku",
+	"AC5E.OptinDescription.FinalStandDropsTo": "Ostateczna wartość (spada do {value})",
+	"AC5E.Chance.Triggered": "jest wyzwalany",
+	"AC5E.Chance.TriggeredWithRoll": "jest wyzwalany (rzut {roll})",
+	"AC5E.OptinCadence.OncePerTurn": "(1/turę)",
+	"AC5E.OptinCadence.OncePerRound": "(1/rundę)",
+	"AC5E.OptinCadence.OncePerCombat": "(1/walkę)",
 	"AC5E.OptinLegend.Optional": "AC5E",
-	"AC5E.OptinLegend.FromOtherSources": "AC5E From other sources (ask for permission)",
+	"AC5E.OptinLegend.FromOtherSources": "AC5E – źródła zewnętrzne (prośba o zgodę)",
 	"AC5E.EnvironmentalHazards": {
-		"SettingsName": "Zagrożenia środowiskowe (2024)",
-		"SettingsHint": "Zautomatyzowano stany podpalenia i uduszenia w oparciu o zestaw zasad D&D 5e z 2024 r.",
+		"SettingsName": "Zasady dotyczące zagrożeń środowiskowych",
+		"SettingsHint": "Umożliwia automatyczne rozstrzyganie obrażeń od ognia i uduszenia podczas gry zgodnie z zasadami D&D 5e z 2024 roku.",
 		"BurningHazard": "Niebezpieczeństwo podpalenia",
 		"SuffocatingHazard": "Duszenie"
 	},
@@ -186,263 +252,288 @@
 		},
 		"flags.automated-conditions-5e.attack.criticalThreshold": {
 			"name": "Zmiana krytycznego progu ataków",
-			"description": "Użyj threshold=18 lub threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+			"description": "Użyj opcji threshold=-5, aby zmniejszyć wartość o 5, lub set=15, aby ustawić wartość na 15. Możesz również korzystać z danych rzutów, formuł kości oraz oceny stanów."
 		},
 		"flags.automated-conditions-5e.grants.attack.criticalThreshold": {
 			"name": "Zmodyfikuj wartość krytycznego progu dla ataków przeciwnika",
-			"description": "Użyj threshold=18 lub threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+			"description": "Użyj opcji threshold=-5, aby zmniejszyć wartość o 5, lub set=15, aby ustawić wartość na 15. Możesz również korzystać z danych rzutów, formuł kości oraz oceny stanów."
 		},
 		"flags.automated-conditions-5e.aura.attack.criticalThreshold": {
 			"name": "Aura modyfikująca krytyczny próg ataków w obszarze działania",
-			"description": "Użyj radius=10;threshold=18; lub radius=15;threshold=-1d6. Pierwsza opcja ustawi wartość na 18, jeśli jest niższa, a druga doda ją do bieżącej wartości; użyj wartości ujemnej, aby zmniejszyć wartość."
+			"description": "Użyj opcji radius=15;threshold=-5, aby zmniejszyć wartość o 5, lub radius=20;set=15, aby ustawić wartość na 15. Możesz również korzystać z danych dotyczących rzutów, formuł kościanych oraz oceny stanów."
+		},
+		"flags.automated-conditions-5e.attack.fumbleThreshold": {
+			"name": "Zmień próg nieudanych ataków",
+			"description": "Użyj opcji threshold=5, aby zwiększyć wartość o 5, lub set=15, aby ustawić wartość na 15. Możesz również korzystać z danych dotyczących rzutów, formuł związanych z kostką oraz oceny stanów."
+		},
+		"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
+			"name": "Przyznanie zmiany progu krytycznego pudła w zależności od ataków przeciwnika",
+			"description": "Użyj opcji threshold=5, aby zwiększyć wartość o 5, lub set=15, aby ustawić wartość na 15. Możesz również korzystać z danych dotyczących rzutów, formuł związanych z kostką oraz oceny stanów."
+		},
+		"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
+			"name": "Aura modyfikująca próg krytycznego pudła ataków w obszarze działania",
+			"description": "Użyj opcji radius=15;threshold=5, aby zwiększyć wartość o 5, lub radius=20;set=15, aby ustawić wartość na 15. Możesz również korzystać z danych dotyczących rzutów, formuł kościanych oraz oceny stanów."
+		},
+		"flags.automated-conditions-5e.damage.extraDice": {
+			"name": "Zwiększ lub zmniejsz liczbę rzutów kośćmi dla każdej nominału",
+			"description": "Użyj opcji bonus=4, aby zwiększyć liczbę rzutów kośćmi o 4."
+		},
+		"flags.automated-conditions-5e.grants.damage.extraDice": {
+			"name": "Zwiększ lub zmniejsz liczbę rzutów kośćmi dla każdego nominału",
+			"description": "Użyj opcji bonus=-1, aby zmniejszyć liczbę rzutów kośćmi o 1"
+		},
+		"flags.automated-conditions-5e.aura.damage.extraDice": {
+			"name": "Aura zwiększająca lub zmniejszająca liczbę rzutów kośćmi dla każdej wartości",
+			"description": "Użyj opcji bonus=2; radius=10, aby zwiększyć liczbę rzutów kośćmi dla każdej wartości w promieniu 10 jednostek odległości."
+		},
+		"flags.automated-conditions-5e.damage.typeOverride": {
+			"name": "Zastąp zestaw typów obrażeń dla podstawowych rzutów na obrażenia",
+			"description": "Aby wymusić jeden rodzaj obrażeń, należy użyć opcji override=fire, a aby uwzględnić wiele rodzajów – override=fire,lightning,thunder. Opcja set=... jest nadal obsługiwana w celu zapewnienia kompatybilności wstecznej. Opcje addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) lub kombinacje klauzul, takie jak addTo=base;!types(force), określają, na które rodzaje obrażeń ma to wpływ."
+		},
+		"flags.automated-conditions-5e.grants.damage.typeOverride": {
+			"name": "Zastosuj modyfikację typu obrażeń do podstawowych rzutów na obrażenia przeciwnika",
+			"description": "Aby wymusić jeden rodzaj obrażeń, należy użyć opcji override=fire, a aby uwzględnić wiele rodzajów – override=fire,lightning,thunder. Opcja set=... jest nadal obsługiwana w celu zapewnienia kompatybilności wstecznej. Opcje addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) lub kombinacje klauzul, takie jak addTo=base;!types(force), określają, na które rodzaje obrażeń ma to wpływ."
+		},
+		"flags.automated-conditions-5e.aura.damage.typeOverride": {
+			"name": "Aura, która zastępuje typ obrażeń ustalony na podstawie rzutów na obrażenia podstawowe w promieniu",
+			"description": "Użyj radius=10;override=fire lub radius=10;override=fire,lightning,thunder. set=... jest nadal obsługiwane ze względu na kompatybilność wsteczną. addTo=base, addTo=bonus, addTo=all, addTo=types(fire,cold), addTo=!types(poison,acid) lub połączone klauzule, takie jak addTo=base;!types(force), kontrolują, na które części obrażeń mają wpływ."
+		},
+		"flags.automated-conditions-5e.modifyAC": {
+			"name": "Zmodyfikuj KP postaci na ataki przeciwników",
+			"description": "Użyj opcji bonus=5, aby dodać 5 do KP, lub set=15, aby ustawić tę wartość na 15. Możesz również korzystać z danych rzutów, formuł kościanych oraz oceny stanów."
+		},
+		"flags.automated-conditions-5e.grant.modifyAC": {
+			"name": "Przyznaj zmodyfikowaną wartość KP przeciwnikowi, na którego skierowany jest atak",
+			"description": "Użyj opcji bonus=-5, aby odjąć 5 od KP, lub set=15, aby ustawić tę wartość na 15. Możesz również korzystać z danych rzutów, wzorów na wyniki kości oraz oceny stanów."
+		},
+		"flags.automated-conditions-5e.aura.modifyAC": {
+			"name": "Aura zmieniająca KP odpowiednich tokenów w promieniu",
+			"description": "Użyj opcji radius=10;bonus=1d4; lub radius=15;set=15. Pierwsza z nich zapewni premię do KP, a druga ustawi wartość zgodnie z podaną wartością"
+		},
+		"flags.automated-conditions-5e.abilityOverride": {
+			"name": "Zastąpienie ST rzutów obronnych / testów atrybutów",
+			"description": "Zastępuje atrybut używany do obliczania wartości ST rzutu obronnego i testu dla danej czynności. Użyj override=cha. Przykład: override=(item.type===»spell« ? spellcastingAbility : wis). Atrybuty abilityOverride=... i set=... są nadal obsługiwane."
+		},
+		"flags.automated-conditions-5e.grants.abilityOverride": {
+			"name": "Przyznanie zastąpienia ST rzutów obronnych / testów atrybutów",
+			"description": "Zastępuje wartość ST do obliczania wartości ST rzutu obronnego i testu danej postaci poprzez przypisanie wartości. Użyj override=cha. Przykład: override=(opponentActor?.details?.type?.value===»fiend« ? cha : wis). Parametry abilityOverride=... i set=... są nadal obsługiwane."
+		},
+		"flags.automated-conditions-5e.aura.abilityOverride": {
+			"name": "Aura zastępująca ST rzutów obronnych / testów atrybutów",
+			"description": "Zastępuje wartość ST do obliczania wartości ST rzutu obronnego i testu w przypadku tokenów objętych aurą. Należy użyć promienia jak zwykle, dodając parametr override=cha. Przykład: radius=30;allies;includeSelf;override=wis. Parametry abilityOverride=... i set=... są nadal obsługiwane."
+		},
+		"flags.automated-conditions-5e.allowEffectApplication": {
+			"name": "Zezwól na zastosowanie efektu",
+			"description": "Obliczane w momencie tworzenia efektu. Jeśli wynik tego wyrażenia jest fałszywy, AC5E blokuje zastosowanie efektu. W przypadku błędów podczas obliczania stosowanie przebiega zgodnie z domyślnym zachowaniem systemu."
 		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rzut z ułatwieniem",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
 				"name": "Rzut otrzymuje premię",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. np. bonus=1d4 + 5 - rollingActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Rzut jest krytyczny (nat20 lub obrażenia krytyczne)",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"disadvantage": {
 				"name": "Rzut z utrudnieniem",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "Rzuty modyfikatorów k20 dla wartości maksymalnej i minimalnej",
-				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier=rollingActor.attributes.hp.pct < 50 ? 'max8' : 'min12'"
+				"name": "modyfikatory minimalne i maksymalne dla rzutów na kość 20-ścienną; modyfikatory maksymalne i dowolne dla rzutów na obrażenia",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: d20/attack/check/concentration/damage/death/initiative/save/skill/tool. np. modifier=(rollingActor.attributes.hp.pct < 50 ? max8 : min12)"
+			},
+			"modifyDC": {
+				"name": "Zmodyfikuj wartość ST swoich akcji. Działa to również w przypadku testów na koncentrację i rzutów obronnych przed śmiercią.",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: save/conc/death (obsługiwane są również check/skill/tool/d20, ale zazwyczaj nie mają one ustalonej wartości ST). Użyj bonus=5, aby dodać 5 do wartości ST, lub set=15, aby ustawić ją na podaną wartość. Możesz również korzystać z danych dotyczących rzutów, formuł kości oraz stanów."
+			},
+			"noAdvantage": {
+				"name": "Wstrzymaj tryb ułatwienia",
+				"description": "Zastąp ACTIONTYPE jednym z podanych all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"noCritical": {
+				"name": "Wstrzymaj trafienie krytyczne",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: all/d20/attack/damage"
+			},
+			"noDisadvantage": {
+				"name": "Wstrzymaj tryb utrudnienia",
+				"description": "Zastąp ACTIONTYPE jednym z podanych all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"fail": {
 				"name": "porażka przy rzucie k20",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/death/save/skill/tool"
 			},
 			"fumble": {
 				"name": "krytyczna porażka przy rzucie k20 (nat1)",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"success": {
 				"name": "sukces przy rzucie k20",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/save/skill/tool"
-			},
-			"modifyDC": {
-				"name": "Modify the DC of your actions. Will work for concentation checks and death saves you make too",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided. You can use roll data, dice formulas and evaluate conditions too."
-			},
-			"noAdvantage": {
-				"name": "Suppress advantage mode",
-				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
-			},
-			"noCritical": {
-				"name": "Suppress criticals",
-				"description": "Replace ACTIONTYPE with one of all/attack/damage"
-			},
-			"noDisadvantage": {
-				"name": "Suppress disadvantage mode",
-				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
-			},
-			"abilityOverride": {
-				"name": "Override the ability used for the roll",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/save/skill/tool"
 			}
 		},
 		"flags.automated-conditions-5e.grants.ACTIONTYPE": {
 			"advantage": {
 				"name": "Przyznaj ułatwienie dla rzutów k20 przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"bonus": {
 				"name": "Przyznaj bonus dla rzutów przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Na początku bonus=, a po nim separator ;, np. bonus=1d4 + 5 - opponentActor.abilities.dex.mod;"
 			},
 			"critical": {
 				"name": "Przyznaj krytyk (nat20 lub obrażenia) dla rzutów przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/damage/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"disadvantage": {
 				"name": "Przyznaj utrudnienie dla rzutów k20 przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"modifier": {
-				"name": "Modyfikatory do maksymalnych i minimalnych wyników rzutów kostką k20 przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z następujących: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'"
+				"name": "Przyznaj modyfikatory minimalne i maksymalne dla rzutów na kość 20-ścienną; modyfikatory maksymalne i dowolne dla rzutów na obrażenia",
+				"description": "Zastąp ACTIONTYPE jednym z następujących: d20/attack/check/concentration/damage/death/initiative/save/skill/tool. np. modifier=min10"
+			},
+			"modifyDC": {
+				"name": "Zmodyfikuj wartość ST rzutu, który wykonujesz w odpowiedzi na akcję podjętą przez inną postać",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: save/conc/death (obsługiwane są również check/skill/tool/d20, ale zazwyczaj nie mają one ustalonej wartości ST). Użyj bonus=5, aby dodać 5 do wartości ST, lub set=15, aby ustawić ją na podaną wartość. Możesz również korzystać z danych dotyczących rzutów, formuł kości oraz stanów."
+			},
+			"noAdvantage": {
+				"name": "Przyznaj tryb bez ułatwienia",
+				"description": "Zastąp ACTIONTYPE jednym z podanych all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
+			},
+			"noCritical": {
+				"name": "Przyznaj tryb bez trafienia krytycznego",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: all/d20/attack/damage"
+			},
+			"noDisadvantage": {
+				"name": "Przyznaj tryb bez utrudnienia",
+				"description": "Zastąp ACTIONTYPE jednym z podanych all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool"
 			},
 			"fail": {
 				"name": "Przyznaj porażkę dla rzutów k20 przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/death/save/skill/tool"
 			},
 			"fumble": {
 				"name": "Przyznaj krytyczną porażkę (nat1) dla rzutów k20 przeciwnika",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool"
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/death/initiative/save/skill/tool"
 			},
 			"success": {
 				"name": "Rzuty k20 przeciwko tobie lub spowodowane przez ciebie kończą się sukcesem",
-				"description": "Zastąp ACTIONTYPE jednym z podanych: all/attack/check/concentration/death/save/skill/tool"
-			},
-			"modifyDC": {
-				"name": "Modify the DC of a roll you make against an action taken by another",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus=5 to add 5 to DC or set=15 to set it to the value provided. You can use roll data, dice formulas and evaluate conditions too."
-			},
-			"noAdvantage": {
-				"name": "Grant no advantage mode",
-				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
-			},
-			"noCritical": {
-				"name": "Grant no criticals",
-				"description": "Replace ACTIONTYPE with one of all/attack/damage"
-			},
-			"noDisadvantage": {
-				"name": "Grant no disadvantage mode",
-				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool"
-			},
-			"abilityOverride": {
-				"name": "Grant an overridden ability to opponent rolls",
-				"description": "Attack only. Use override=cha or abilityOverride=cha."
+				"description": "Zastąp ACTIONTYPE jednym z podanych: all/d20/attack/check/concentration/death/save/skill/tool"
 			}
 		},
 		"flags.automated-conditions-5e.aura.ACTIONTYPE": {
 			"advantage": {
 				"name": "Aura zapewniająca ułatwienie",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmiana formatu wartości przykład dla rzutu obronnego ACTIONTYPE i: radius=15;includeSelf;allies;str;cha; dałaby wszystkim sojusznikom, w tym sobie, w promieniu 15 stóp ułatwienie do rzutów obronnych siły lub charyzmy."
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmiana formatu wartości przykład dla rzutu obronnego ACTIONTYPE i: radius=15;includeSelf;allies;str;cha; dałaby wszystkim sojusznikom, w tym sobie, w promieniu 15 stóp ułatwienie do rzutów obronnych siły lub charyzmy."
 			},
 			"bonus": {
 				"name": "Aura zapewniająca bonusy",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień przykładowy format wartości dla inicjatywy ACTIONTYPE i wartość efektu: radius=20;bonus=-source.abilities.cha.mod;target.statuses.surprised WSZYSCY w promieniu 20 stóp będą mieli swoje rzuty zmniejszone o cha mod źródłowego aktora, jeśli zostaną zaskoczeni."
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień przykładowy format wartości dla inicjatywy ACTIONTYPE i wartość efektu: radius=20;bonus=-auraActor.abilities.cha.mod;opponentActor.statuses.surprised WSZYSCY w promieniu 20 stóp będą mieli swoje rzuty zmniejszone o cha mod źródłowego aktora, jeśli zostaną zaskoczeni."
 			},
 			"critical": {
 				"name": "Aura wymuszająca krytyk (nat20 lub obrażenia)",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"disadvantage": {
 				"name": "Aura zapewniająca utrudnienie",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
 			},
 			"modifier": {
-				"name": "Aura nadająca modyfikatory do maksymalnej i minimalnej wartości rzutu k20",
-				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: attack/check/concentration/death/initiative/save/skill/tool. np. modifier='min10'; radius=rollingActor.details.level < 10 ? 15 : 30; modifier='min10'"
+				"name": "Przyznaj aurę modyfikatorów minimalnych i maksymalnych rzutów na kość 20-ścienną; modyfikatory maksymalne i dowolne dla rzutów na obrażenia",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: d20/attack/check/concentration/damage/death/initiative/save/skill/tool. np. modifier=min10; radius=(rollingActor.details.level < 10 ? 15 : 30; modifier=min10)"
+			},
+			"modifyDC": {
+				"name": "Aura, która zmienia ST działań wykonywanych przez dotknięte nią tokeny.",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: save/conc/death (obsługiwane są również check/skill/tool/d20, ale zazwyczaj nie mają one ustalonego współczynnika ST). Użyj bonus/set i radius jak zwykle"
+			},
+			"noAdvantage": {
+				"name": "Aura, która wstrzymuje tryb ułatwienia",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Promień należy zastosować jak zwykle"
+			},
+			"noCritical": {
+				"name": "Aura, która wstrzymuje tryb trafień krytycznych",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: all/d20/attack/damage. Promień należy zastosować jak zwykle"
+			},
+			"noDisadvantage": {
+				"name": "Aura, która wstrzymuje tryb utrudnienia",
+				"description": "Zastąp ACTIONTYPE jedną z następujących wartości: all/d20/attack/check/concentration/damage/death/initiative/save/skill/tool. Promień należy zastosować jak zwykle"
 			},
 			"fail": {
 				"name": "Aura wymuszająca porażkę dla rzutów k20",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration//death/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other conditions"
 			},
 			"fumble": {
 				"name": "Aura wymuszająca krytyczną porażkę dla rzutów k20",
-				"description": "Aura wokół aktora, na którego działa efekt. Zastąp ACTIONTYPE jednym z: all/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
+				"description": "Aura wokół aktora, na którego działa efekt. Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration/death/initiative/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other conditions"
 			},
 			"success": {
 				"name": "Aura zapewniająca sukces",
-				"description": "Zastąp ACTIONTYPE jednym z: all/attack/check/concentration//death/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other stanów"
-			},
-			"modifyDC": {
-				"name": "An aura that modifies the DC of actions the affected tokens take.",
-				"description": "Replace ACTIONTYPE with one of: save/conc/death (check/skill/tool are supported but usually they don't have DC set). Use bonus/set, radius as usual"
-			},
-			"noAdvantage": {
-				"name": "An aura that suppresses advantage mode",
-				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
-			},
-			"noCritical": {
-				"name": "An aura that suppresses criticals",
-				"description": "Replace ACTIONTYPE with one of all/attack/damage. Use radius as usual"
-			},
-			"noDisadvantage": {
-				"name": "An aura that suppresses disadvantage mode",
-				"description": "Replace ACTIONTYPE with one of all/attack/check/concentration/damage/death/initiative/save/skill/tool. Use radius as usual"
-			},
-			"abilityOverride": {
-				"name": "An aura overriding the ability used for rolls",
-				"description": "Attack only. Use radius as usual plus override=cha or abilityOverride=cha."
+				"description": "Zastąp ACTIONTYPE jednym z: all/d20/attack/check/concentration//death/save/skill/tool. Zmień format wartości: radius=Number;allies lub enemies lub pomiń dla ALL;other conditions"
 			}
-		},
-		"flags.automated-conditions-5e.attack.fumbleThreshold": {
-			"name": "Alter the fumbleThreshold of the attacks",
-			"description": "Use threshold=5 to increase by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
-		},
-		"flags.automated-conditions-5e.grants.attack.fumbleThreshold": {
-			"name": "Grant altered fumbleThreshold to opponent's attacks",
-			"description": "Use threshold=5 to increase by 5 or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
-		},
-		"flags.automated-conditions-5e.aura.attack.fumbleThreshold": {
-			"name": "An aura altering the fumbleThreshold of the attacks in radius",
-			"description": "Use radius=15;threshold=5 to increase by 5 or radius=20;set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
-		},
-		"flags.automated-conditions-5e.damage.extraDice": {
-			"name": "Increase or decrease the number of dice rolled for each denomination",
-			"description": "Use bonus=4 to increase the number of dice rolled by 4."
-		},
-		"flags.automated-conditions-5e.grants.damage.extraDice": {
-			"name": "Grant an increase or decrease to the number of dice rolled for each denomination",
-			"description": "Use bonus=-1 to decrease the number of dice rolled by 1"
-		},
-		"flags.automated-conditions-5e.aura.damage.extraDice": {
-			"name": "An aura increasing or decreasing the number of dice rolled for each denomination",
-			"description": "Use bonus=2; radius=10 to increase the number of dice rolled for each denomination in a 10 distance units radius."
-		},
-		"flags.automated-conditions-5e.modifyAC": {
-			"name": "Modify the AC of the actor against incoming attacks",
-			"description": "Use bonus=5 to add 5 to AC or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
-		},
-		"flags.automated-conditions-5e.grant.modifyAC": {
-			"name": "Grant modified AC to the opponent of the attack",
-			"description": "Use bonus=-5 to subtract 5 from the AC or set=15 to set the value to 15. You can use roll data, dice formulas and evaluate conditions too."
-		},
-		"flags.automated-conditions-5e.aura.modifyAC": {
-			"name": "An aura modifying the AC of the relevant tokens in radius",
-			"description": "Use radius=10;bonus=1d4; or radius=15;set=15. The former will give a bonus to AC and the latter will set to the value provided"
 		}
 	},
-	"AC5E.AutoRangeChecks": {
-		"Name": "Automatyzacja ataków dystansowych:",
-		"Hint": "'Wyłączone': AC5e nie będzie przetwarzać żadnych testów dystansu; „Tylko sprawdzanie zasięgu”: AC5e automatycznie przetworzy utrudnienie/porażkę dystansu w oparciu o odległość celu i wartości zasięgu przedmiotu użytego do ataku; „Zasięg + pobliscy wrogowie”: Wrogowie sąsiadujący z atakującym będą nakładać utrudnienia na ataki dystansowe.",
-		"MeleeDiagonals": "Melee diagonal reach",
-		"MeleeOutOfRange": "Melee out of range",
-		"RangedNearbyFoes": "Zasięg + pobliscy wrogowie",
-		"RangedLongDisadvantage": "Ranged long disadvantage",
-		"RangedOutOfRange": "Ranged out of range"
-	},
-	"AC5E.TokenlessActorWarning": {
-		"Hint": "The module doesn't affect currently rolls from actors without a token on the scene!",
-		"Name": "Show tokenless actor warning",
-		"Text": "AC5E warning: The actor you are rolling for, doesn't have a token on the scene. The results can be skewed"
-	},
-	"AC5E.ModifyAC": "Modified AC",
-	"AC5E.ModifyDC": "Modified DC",
-	"AC5E.AdvantageKeypress": "Advantage keypress",
-	"AC5E.CriticalKeypress": "Critical keypress",
-	"AC5E.DisadvantageKeypress": "Disadvantage keypress",
-	"AC5E.NoCriticalKeypress": "Normal keypress",
-	"AC5E.OverrideAdvantage": "Override advantage keypress",
-	"AC5E.OverrideCritical": "Override critical keypress",
-	"AC5E.OverrideDisadvantage": "Override disadvantage keypress",
-	"AC5E.OverrideNoCritical": "Override normal keypress",
-	"AC5E.ForcedAdvantage": "System forced advantage",
-	"AC5E.ForcedDisadvantage": "System forced disadvantage",
-	"AC5E.NoAdvantage": "Suppressed advantage",
-	"AC5E.NoCritical": "Suppressed criticals",
-	"AC5E.NoDisadvantage": "Suppressed disadvantage",
-	"AC5E.TargetGrantsNoAdvantage": "Granted no advantage",
-	"AC5E.TargetGrantsNoCritical": "Granted no criticals",
-	"AC5E.TargetGrantsNoDisadvantage": "Granted no disadvantage",
-	"AC5E.ExtraDice": "Extra dice",
-	"AC5E.Flags": "flags",
-	"AC5E.FlagsInitiativeAdv": "System advantage on Initiative",
-	"AC5E.TargetGrantsExtraDice": "Granted extra dice",
 	"AC5E.Info": "Info",
-	"AC5E.OptinDescription.AppliesNonRollEffect": "Applies a non-roll effect on {roll}",
+	"AC5E.OptinDescription.AppliesNonRollEffect": "Zastosuj efekt zapobiegania przewracaniu się po rzucie do {roll}",
 	"AC5E.advantageBehaviorOverride": {
-		"Name": "Override system advantage handling",
-		"Hint": "If enabled, AC5E suppresses native advantage/disadvantage rolling and converts transient advantage/disadvantage into the formulas below."
+		"Name": "Zastąp ustawienia domyślne systemu dotyczące obsługi ułatwień",
+		"Hint": "Jeśli opcja ta jest włączona, AC5E pomija rzuty na ułatwienie/utrudnienie i przelicza tymczasową ułatwienie/utrudnienie zgodnie z poniższymi wzorami."
 	},
 	"AC5E.advantageBehaviorAdvantageFormula": {
-		"Name": "Advantage bonus formula",
-		"Hint": "Applied when transient advantage is present and the override is enabled. Example: 3d6kh1 or 2."
+		"Name": "Formuła bonusu ułatwienia",
+		"Hint": "Stosuje się, gdy występuje tymczasowe ułatwienie i włączona jest funkcja nadpisywania. Przykład: 3d6kh1 lub 2."
 	},
 	"AC5E.advantageBehaviorDisadvantageFormula": {
-		"Name": "Disadvantage penalty formula",
-		"Hint": "Applied when transient disadvantage is present and the override is enabled. Example: -3d6kh1 or -2."
+		"Name": "Formuła kary utrudnienia",
+		"Hint": "Stosuje się, gdy występuje tymczasowe utrudnienie i włączona jest funkcja nadpisywania. Przykład: -3d6kh1 lub -2."
+	},
+	"AC5E.EffectValueEditor": {
+		"Label": {
+			"ConsumptionType": "Typ materiału eksploatacyjnego",
+			"UpdateTarget": "Zaktualizuj cel",
+			"Amount": "Wartość"
+		},
+		"Placeholder": {
+			"UsesCountAmount": "1 lub =5",
+			"UpdateAmount": "1, -1 lub =5"
+		},
+		"Hint": {
+			"ShowCadence": "Pokaż opcje częstotliwości (jednorazowo, raz na turę, raz na rundę lub raz na walkę).",
+			"ShowName": "Podaj własną nazwę wyświetlaną dla tego wpisu.",
+			"ShowDescription": "Wpisz krótki opis, który będzie wyświetlany jako podpowiedź.",
+			"ShowUsesCount": "Włącz konfigurację liczby użyć dla tego wpisu.",
+			"ShowUpdate": "Włącz konfigurację aktualizacji aktorów dla tego wpisu informacyjnego.",
+			"SetMode": "Traktuj pole premii jako stałą wartość, a nie jako premię dodawaną.",
+			"EnableUsesCountScaling": "Włącz opcje skalowania min/max/step dla wartości zużycia usesCount. Gdy skalowanie jest aktywne, w formułach i stanach należy używać wartości scaleValue, aby odwołać się do obliczonej, skalowanej wartości.",
+			"UsesCountAmount": "Wartości dodatnie powodują zużycie. Wartości ujemne powodują odzyskanie. Użyj =value, aby ustawić wartość bezwzględną.",
+			"UpdateAmount": "Wartości dodatnie są sumowane. Wartości ujemne są odejmowane. Użyj =value, aby ustawić wartość bezwzględną.",
+			"ToggleOptin": "Ustaw ten wpis jako opcjonalny, aby użytkownicy mogli go włączać dla poszczególnych rzutów.",
+			"ToggleItemLimited": "Stosuj tylko wtedy, gdy pozycja item/activity odpowiada ograniczonemu kontekstowi źródłowemu.",
+			"ToggleAllies": "Aura działa na sojusznicze tokeny.",
+			"ToggleEnemies": "Aura działa na wrogie tokeny.",
+			"ToggleIncludeSelf": "Aura może również dotyczyć aktora źródłowego.",
+			"ToggleSingleAura": "W danym momencie może działać tylko jedno źródło aury.",
+			"ToggleWallsBlock": "Ściany mogą blokować zasięg aury lub trasę jej przemieszczania się.",
+			"ToggleRecover": "Funkcja „Cofnij” wykorzystuje zużycie i przywraca skonfigurowaną ilość.",
+			"UsesCountSet": "Ustaw wartość docelową jako kwotę bezwzględną, używając składni =amount.",
+			"TogglePartialConsume": "Zezwól na wydawanie dostępnych kwot zamiast blokować transakcje w przypadku niedoboru środków."
+		}
+	},
+	"AC5E.Optin.UpdateSummary": {
+		"Updates": "Zaktualizuj {target}",
+		"UpdatesCompact": "Zaktualizuj {target}",
+		"Sets": "Ustawia {target} na {value}",
+		"AppliesTo": "Zastosowano {value} do {target}",
+		"RemovesFrom": "Usuwa {value} z {target}",
+		"AppliesWithUnit": "Zastosuj {value} {target} {unit}",
+		"RemovesWithUnit": "Usuwa {value} {target} {unit}",
+		"Exhaustion": "Wyczerpanie",
+		"ExhaustionLevel": "poziom",
+		"ExhaustionLevels": "poziomy"
 	}
 }
+
