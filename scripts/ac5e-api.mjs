@@ -474,7 +474,7 @@ function showUsageRuleKeys() {
 		partialConsume: 'Boolean: for usesCount rules, allows bounded counters to consume only the remaining available amount instead of failing when the full requested amount is not available.',
 		cadence: 'String: once-per cadence. Supported values: "oncePerTurn", "oncePerRound", and "oncePerCombat".',
 		chance: 'String|Number: optional chance gate evaluated before applying the rule.',
-		addTo: 'String|String[]|Object: optional addTo target spec for compatible modes. Supports base, bonus, all, global, types(fire,cold), !types(poison,acid), and combined clauses such as base;!types(force). Legacy positive comma-delimited type lists still parse.',
+		addTo: 'String|String[]|Object: optional addTo target spec for compatible modes. Supports base, bonus, all, global, types(fire,cold), !types(poison,acid), and combined clauses such as base,!types(force).',
 		convertAdvantage: 'Boolean: when true, converts native advantage into AC5E-driven behavior for this rule even if the world override is off.',
 		convertDisadvantage: 'Boolean: when true, converts native disadvantage into AC5E-driven behavior for this rule even if the world override is off.',
 		hasTransitAdvantage: 'Boolean: legacy alias for convertAdvantage.',
@@ -1246,7 +1246,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 							pushFinding({
 								severity: 'warn',
 								code: 'invalidAddToSpec',
-								message: 'Invalid addTo spec. Use base, bonus, all, types(...), !types(...), or combined clauses like base;!types(force). Legacy positive comma-delimited type lists still parse.',
+								message: 'Invalid addTo spec. Use base, bonus, all, types(...), !types(...), or combined clauses like base,!types(force).',
 								sourceType: source.sourceType,
 								actor,
 								item,
@@ -1606,6 +1606,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.getLightLevel = _getLightLevel;
 	ac5e.debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;
 	ac5e.evaluationData = _createEvaluationSandbox;
+	ac5e.safeEval = _ac5eSafeEval;
 	ac5e.getItems = _getItems;
 	ac5e.getItem = _getItem;
 	ac5e.getItemOrActivity = _getItemOrActivity;

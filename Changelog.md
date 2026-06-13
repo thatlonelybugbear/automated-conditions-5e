@@ -1,3 +1,21 @@
+## 14.533.5
+
+- Added `magicAvailable` and `isScroll` flags to the AC5E formula sandbox for more precise item-type checks.
+- Added `summonerActor` roll data for summoned actors with `flags.dnd5e.summon.origin`.
+- Fixed usage-rule `condition` handling so a false condition prevents later rule value evaluation.
+- Fixed `addTo` parsing/stringification for comma-separated clauses such as `base,!types(force)`.
+- Added grouped Damage Type and Healing Type assists for `typeOverride` authoring, including append-style multi-selection.
+- Improved Lambda path assists for `ability`, `skill`, and `tool` entries, including selected-entry highlighting and OR-clause toggling.
+- Improved `usesCount` scaling authoring with capitalized `Item.<identifier>` and `Item.<identifier>.Activity.<identifier>` quick targets.
+- Improved `usesCount` scaling evaluation to support roll-data expressions, `usesAvailable`, `usesMissing`, and `usesMax`, with max values capped to available or recoverable uses.
+- Fixed scaled `usesCount` serialization so Scaling no longer inserts an extra numeric amount before the `{ min, max, step }` object.
+- Fixed `recover` handling for scaled opt-in entries so it is treated as a keyword instead of an unmet condition.
+- Improved opt-in scaling labels and descriptions so slider changes update displayed consume/recover counts.
+- Forced the damage configuration dialog when multi-damage-type bonus parts need a damage type selection during fast-forwarded rolls.
+- Improved damage type override state syncing across damage dialog rebuilds and added targeted debug snapshots/breakpoints for type override troubleshooting.
+- Fixed damage dice modifiers such as `r1` applying to roll-data scale formulas that resolve to implicit dice like `d6`.
+- Hardened AC5E effect value parsing so semicolons inside nested expressions do not split flag fragments.
+
 ## 14.533.5.1
 
 - Tolerate subjectless inline attacks.

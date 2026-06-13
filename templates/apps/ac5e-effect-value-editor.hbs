@@ -58,7 +58,7 @@
 					<div class="form-group {{#if fullRow}}stacked ac5e-effect-value-editor-grid-span{{/if}}">
 						<label for="{{inputId}}">{{label}}</label>
 						<div class="form-fields ac5e-effect-value-editor-inline-field">
-							{{#if hasInlineOverrideEntries}}
+							{{#if hideOverrideInput}}
 								<input id="{{inputId}}" type="hidden" name="fields.{{name}}" value="{{value}}">
 							{{else}}
 								<input id="{{inputId}}" type="text" name="fields.{{name}}" value="{{value}}">
@@ -76,7 +76,7 @@
 						{{#if hasInlineOverrideEntries}}
 							<div class="ac5e-effect-value-assist-chip-list ac5e-effect-value-inline-override-row">
 								{{#each inlineOverrideEntries}}
-									<button type="button" class="ac5e-effect-value-assist-chip{{#if selected}} active{{/if}}" data-ac5e-inline-override="{{value}}">{{label}}</button>
+									<button type="button" class="ac5e-effect-value-assist-chip{{#if selected}} active{{/if}}" data-ac5e-inline-override="{{value}}" data-ac5e-inline-override-mode="{{mode}}">{{label}}</button>
 								{{/each}}
 							</div>
 						{{/if}}

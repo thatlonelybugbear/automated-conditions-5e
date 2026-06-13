@@ -162,6 +162,9 @@ export function _ac5eActorRollData(token, rollData, actor, initializing = false)
 	const actorUuid = resolvedActor.uuid ?? null;
 	actorData.flags ??= resolvedActor.flags ?? {};
 	actorData.flags['midi-qol'] ??= resolvedActor.flags?.['midi-qol'] ?? {};
+	const summonOrigin = actorData.flags?.dnd5e?.summon?.origin;
+	const summonerActor = summonOrigin ? _safeFromUuidSync(summonOrigin)?.actor : null;
+	actorData.summonerActor = summonerActor instanceof CONFIG.Actor.documentClass && summonerActor !== resolvedActor ? _ac5eActorRollData(null, null, summonerActor) : {};
 	actorData.midiFlags ??= actorData.flags['midi-qol'];
 	actorData.currencyWeight = resolvedActor.system.currencyWeight;
 	actorData.effects = resolvedActor.appliedEffects;
@@ -980,7 +983,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);
 	sandbox.hasSave = !foundry.utils.isEmpty(activity?.save);
 	sandbox.hasCheck = !foundry.utils.isEmpty(activity?.check);
-	sandbox.isSpell = activity?.isSpell;
 	sandbox.isAoE = activity?.target?.template?.type in CONFIG.DND5E.areaTargetTypes;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
@@ -1019,6 +1021,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.classIdentifier = item?.system?.classIdentifier;
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
+	sandbox.magicAvailable = item?.magicAvailable;
+	sandbox.isScroll = item?.type === 'consumable' && item?.system?.type?.value === 'scroll';
+	sandbox.isSpell = activity?.isSpell || !!activity?.spell;
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
 	sandbox.item.hasAttack = item?.hasAttack;

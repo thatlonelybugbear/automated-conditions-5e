@@ -1,4 +1,5 @@
-import { _getOptinSelectionScale, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
+import { _ac5eSafeEval, _getOptinSelectionScale, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
+import { _ac5eActorRollData } from '../ac5e-runtimeLogic.mjs';
 import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-hooks-roll-selections.mjs';
 
 export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
@@ -207,12 +208,95 @@ function parseScalingSpecFromUsesCountConsume(consumeRaw) {
 	const trimmed = consumeRaw.trim();
 	const match = trimmed.match(/^([+-])?\s*(\{[\s\S]*\})$/);
 	if (!match) return null;
-	const scaling = normalizeScalingConfig(match[2]);
+	const scaling = parseScalingObjectEntries(match[2]);
 	if (!scaling) return null;
 	return {
 		scaling,
 		scalingSign: match[1] === '-' ? -1 : 1,
 	};
+}
+
+function parseScalingObjectEntries(scaling) {
+	if (!scaling) return null;
+	let source = scaling;
+	if (typeof scaling === 'string') {
+		const trimmed = scaling.trim();
+		if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+		source = Object.fromEntries(
+			splitTopLevelCsv(trimmed.slice(1, -1))
+				.map((part) => part.trim())
+				.filter(Boolean)
+				.map((part) => {
+					const match = part.match(/^([a-z]+)\s*[:=]\s*(.+)$/i);
+					return match ? [match[1].toLowerCase(), match[2].trim()] : null;
+				})
+				.filter(Boolean),
+		);
+	}
+	return typeof source === 'object' ? source : null;
+}
+
+function buildScalingEvaluationSandbox(context, ac5eConfig) {
+	const token = canvas?.tokens?.get(ac5eConfig?.tokenId) ?? null;
+	const targetToken = canvas?.tokens?.get(ac5eConfig?.targetId) ?? null;
+	return {
+		usesAvailable: context.usesAvailable,
+		usesMissing: context.usesMissing,
+		usesMax: context.usesMax,
+		rollingActor: _ac5eActorRollData(token),
+		opponentActor: _ac5eActorRollData(targetToken),
+		actor: _ac5eActorRollData(token),
+	};
+}
+
+function evaluateScalingNumber(rawValue, context, ac5eConfig, fallback = null) {
+	if (rawValue === undefined || rawValue === null || rawValue === '') return fallback;
+	if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : fallback;
+	if (typeof rawValue !== 'string') return fallback;
+	let expression = rawValue.trim();
+	const direct = Number(expression);
+	if (Number.isFinite(direct)) return direct;
+	const sandbox = buildScalingEvaluationSandbox(context, ac5eConfig);
+	try {
+		const evaluated = _ac5eSafeEval({ expression, sandbox, mode: 'formula' });
+		const numericEvaluated = Number(evaluated);
+		if (Number.isFinite(numericEvaluated)) return numericEvaluated;
+		if (typeof evaluated === 'string' && evaluated.trim()) {
+			const rolledEvaluated = Roll.create(evaluated).evaluateSync?.({ maximize: true })?.total;
+			if (Number.isFinite(Number(rolledEvaluated))) return Number(rolledEvaluated);
+		}
+	} catch (_err) { /* no-op */ }
+	for (const [key, value] of Object.entries(context)) {
+		if (!Number.isFinite(value)) continue;
+		expression = expression.replace(new RegExp(`\\b${key}\\b`, 'g'), String(value));
+	}
+	try {
+		const roll = Roll.create(expression);
+		const total = roll.evaluateSync?.({ maximize: true })?.total ?? roll.evaluate({ async: false, maximize: true })?.total;
+		const numericTotal = Number(total);
+		if (Number.isFinite(numericTotal)) return numericTotal;
+	} catch (_err) { /* no-op */ }
+	return fallback;
+}
+
+function resolveScalingConfigForEntry(scaling, entry, ac5eConfig) {
+	const source = parseScalingObjectEntries(scaling);
+	if (!source) return null;
+	const usesAvailable = Number(entry?.usesCountAvailable);
+	const usesMissing = Number(entry?.usesCountMissing);
+	const finiteAvailable = Number.isFinite(usesAvailable) ? usesAvailable : null;
+	const finiteMissing = Number.isFinite(usesMissing) ? usesMissing : null;
+	const usesMax = finiteAvailable !== null && finiteMissing !== null ? finiteAvailable + finiteMissing : finiteAvailable;
+	const context = { usesAvailable: finiteAvailable, usesMissing: finiteMissing, usesMax };
+	const isRestore = !!entry?.recover || /,\s*-\s*\{/.test(String(entry?.usesCount ?? ''));
+	const min = Math.floor(evaluateScalingNumber(source.min, context, ac5eConfig, 1));
+	let max = Math.floor(evaluateScalingNumber(source.max, context, ac5eConfig, usesMax ?? finiteAvailable));
+	const step = Math.floor(evaluateScalingNumber(source.step, context, ac5eConfig, 1));
+	const cap = isRestore ? finiteMissing : finiteAvailable;
+	if (Number.isFinite(cap)) max = Math.min(max, cap);
+	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;
+	if (max < min || step <= 0) return null;
+	return { min, max, step };
 }
 
 function splitTopLevelCsv(value) {
@@ -440,13 +524,15 @@ function getStatusEffectLabel(statusId) {
 }
 
 function resolveOptinScaleDescription(description, entry, ac5eConfig) {
-	if (typeof description !== 'string' || !/(?:\(optinScale\)|\boptinScale\b)/i.test(description)) return description;
+	if (typeof description !== 'string' || !/(?:\(optinScale\)|\boptinScale\b|\(bonusScale\)|\bbonusScale\b)/i.test(description)) return description;
 	const selection = ac5eConfig?.optinSelected?.[entry?.id];
 	const selectedScale = _getOptinSelectionScale(selection);
 	if (!Number.isFinite(selectedScale)) return description;
 	return description
 		.replace(/\(optinScale\)/gi, selectedScale)
-		.replace(/\boptinScale\b/gi, selectedScale);
+		.replace(/\boptinScale\b/gi, selectedScale)
+		.replace(/\(bonusScale\)/gi, selectedScale)
+		.replace(/\bbonusScale\b/gi, selectedScale);
 }
 function getCadenceLabelSuffix(cadence) {
 	const keyMap = {
@@ -545,7 +631,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const isOptinEntry = Boolean(entry?.optin || entry?.forceOptin);
 		if (!isOptinEntry) return;
 		const parsedUsesCount = parseUsesCountSpec(entry?.usesCount);
-		const scaling = getOptinScaling(entry, parsedUsesCount);
+		const scaling = getOptinScaling(entry, parsedUsesCount, ac5eConfig);
 		const selectedScale = _getOptinSelectionScale(ac5eConfig?.optinSelected?.[entry.id]);
 		if (scaling) entry.selectedScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
 		else delete entry.selectedScale;
@@ -584,6 +670,21 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			descriptionPill.setAttribute('role', 'note');
 			applyDescriptionPillTooltip(descriptionPill, description);
 		}
+		const refreshScaleText = () => {
+			const nextUsesCountSuffix = isOptinEntry ? getUsesCountLabelSuffix(entry) : '';
+			const nextDetailSuffixes = [nextUsesCountSuffix, permissionSuffix ? `(${permissionSuffix})` : '', cadenceSuffix].filter(Boolean);
+			label.textContent = nextDetailSuffixes.length ? `${indexedLabel} ${nextDetailSuffixes.join(' ')}` : indexedLabel;
+			label.title = label.textContent;
+			const nextUsesCountDescription = isOptinEntry ? getUsesCountDescriptionSuffix(entry) : '';
+			const nextScaledBaseDescription = resolveOptinScaleDescription(baseDescription, entry, ac5eConfig);
+			const nextDescription =
+				hasStatusUpdateDescription ? nextUsesCountDescription
+				: [nextScaledBaseDescription, nextUsesCountDescription].filter(Boolean).join(nextScaledBaseDescription && nextUsesCountDescription ? ' ' : '');
+			if (descriptionPill && nextDescription) {
+				descriptionPill.title = nextDescription;
+				applyDescriptionPillTooltip(descriptionPill, nextDescription);
+			}
+		};
 		const checkbox = document.createElement('input');
 		checkbox.type = 'checkbox';
 		checkbox.style.flex = '0 0 auto';
@@ -617,6 +718,9 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			valueLabel.style.flex = '0 0 auto';
 			slider.addEventListener('input', () => {
 				valueLabel.textContent = slider.value;
+				updateSingleOptinScale(ac5eConfig, entry.id, slider.value);
+				entry.selectedScale = Number(slider.value);
+				refreshScaleText();
 			});
 			if (descriptionPill) row.append(label, slider, valueLabel, checkbox, descriptionPill);
 			else row.append(label, slider, valueLabel, checkbox);
@@ -626,34 +730,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 	});
 }
 
-function normalizeScalingConfig(scaling) {
-	if (!scaling) return null;
-	let source = scaling;
-	if (typeof scaling === 'string') {
-		const trimmed = scaling.trim();
-		if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
-		source = Object.fromEntries(
-			trimmed
-				.slice(1, -1)
-				.split(',')
-				.map((part) => part.trim())
-				.filter(Boolean)
-				.map((part) => {
-					const [key, value] = part.split(/[:=]/).map((v) => v?.trim());
-					return [key?.toLowerCase(), Number(value)];
-				}),
-		);
-	}
-	if (typeof source !== 'object') return null;
-	const min = Number(source.min);
-	const max = Number(source.max);
-	const step = Number(source.step);
-	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;
-	if (max < min || step <= 0) return null;
-	return { min, max, step };
-}
-
-function getOptinScaling(entry, parsedUsesCount) {
+function getOptinScaling(entry, parsedUsesCount, ac5eConfig) {
 	const mode = entry?.mode;
 	const modeSupportsScaling =
 		mode === 'bonus' ||
@@ -663,7 +740,7 @@ function getOptinScaling(entry, parsedUsesCount) {
 		mode === 'criticalThreshold' ||
 		mode === 'fumbleThreshold';
 	if (!modeSupportsScaling) return null;
-	return parsedUsesCount?.scaling ?? null;
+	return resolveScalingConfigForEntry(parsedUsesCount?.scaling, entry, ac5eConfig);
 }
 
 export function getRollingActorIdForOptins(ac5eConfig) {

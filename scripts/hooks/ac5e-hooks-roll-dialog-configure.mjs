@@ -55,6 +55,35 @@ function _disableRsrQuickRollFastForward(message, config, hookType) {
 	return changed;
 }
 
+function hasMultiTypeDamageRoll(config, hookType) {
+	if (hookType !== 'damage') return false;
+	return (Array.isArray(config?.rolls) ? config.rolls : []).some((roll) => normalizeRollDamageTypes(roll).length > 1);
+}
+
+function hasMultiTypeDamageBonus(ac5eConfig, config, hookType) {
+	if (hookType !== 'damage') return false;
+	const selectedDamageTypes = getSelectedDamageTypes(ac5eConfig, config);
+	return getDamageBonusEntries(ac5eConfig, selectedDamageTypes).some((entry) => (Array.isArray(entry?.values) ? entry.values : []).some(valueHasMultipleInlineDamageTypes));
+}
+
+function normalizeRollDamageTypes(roll) {
+	const types = Array.isArray(roll?.options?.types) ? roll.options.types : [];
+	return types.map((type) => String(type ?? '').trim().toLowerCase()).filter(Boolean);
+}
+
+function valueHasMultipleInlineDamageTypes(value) {
+	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => key.toLowerCase()));
+	const detectedTypes = new Set();
+	String(value ?? '').replace(/\[([^\]]+)\]/g, (_match, inner) => {
+		for (const type of String(inner ?? '').split(',')) {
+			const normalized = String(type ?? '').trim().toLowerCase();
+			if (knownDamageTypes.has(normalized)) detectedTypes.add(normalized);
+		}
+		return '';
+	});
+	return detectedTypes.size > 1;
+}
+
 export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookType = ac5eConfig?.hookType, message = undefined) {
 	if (!_isFastForwardingModuleActive()) return false;
 	const hasDialogObject = dialog && typeof dialog === 'object';
@@ -67,16 +96,19 @@ export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookTy
 		|| currentConfigDialogConfigure !== true;
 	if (!shouldForceConfigure) return false;
 	const relevantEntries = getRelevantOptinEntriesForDialogConfigure(ac5eConfig, config, hookType);
+	// This also deals with multiple damage types that need a dialog selection.
+	const hasMultiTypeDamage = hasMultiTypeDamageRoll(config, hookType) || hasMultiTypeDamageBonus(ac5eConfig, config, hookType);
 	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
 		console.warn('AC5E TRACE dialogConfigure.forceForOptins.check', {
 			hookType,
 			dialogConfigure: currentDialogConfigure,
 			configDialogConfigure: currentConfigDialogConfigure,
 			relevantEntryCount: relevantEntries.length,
+			hasMultiTypeDamage,
 			entries: relevantEntries.map((entry) => ({ id: entry?.id, mode: entry?.mode, hook: entry?.hook, optin: !!entry?.optin, forceOptin: !!entry?.forceOptin, set: entry?.set, label: entry?.label ?? entry?.name })),
 		});
 	}
-	if (!relevantEntries.length) return false;
+	if (!relevantEntries.length && !hasMultiTypeDamage) return false;
 	if (hasDialogObject) {
 		try {
 			dialog.configure = true;
@@ -92,6 +124,7 @@ export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookTy
 		console.warn('AC5E forced dialog.configure due to relevant optins', {
 			hookType,
 			optins: relevantEntries.map((entry) => ({ id: entry.id, label: entry.label ?? entry.name, mode: entry.mode })),
+			hasMultiTypeDamage,
 			dialogConfigure: hasDialogObject ? dialog.configure : undefined,
 			configDialogConfigure: hasConfigDialogObject ? config.dialog.configure : undefined,
 			rsrQuickRollDisabled,

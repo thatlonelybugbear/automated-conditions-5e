@@ -148,8 +148,10 @@ function applyLiteralD20CountToDialogFormula(render, elem, ac5eConfig) {
 }
 
 function syncDamageDialogState(render, elem, initialConfig, deps) {
-	const getConfigAC5E = initialConfig;
-	doDialogDamageRender(render, elem, getConfigAC5E, deps);
+	let getConfigAC5E = initialConfig;
+	const refreshed = doDialogDamageRender(render, elem, getConfigAC5E, deps);
+	if (refreshed) getConfigAC5E = refreshed;
+	syncDialogAc5eState(render, getConfigAC5E);
 	const currentSelections = deps.readOptinSelections(elem, getConfigAC5E);
 	deps.setOptinSelections(getConfigAC5E, currentSelections);
 	applyOptinCriticalToDamageConfig(getConfigAC5E, render.config);

@@ -8,7 +8,15 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 	dialog._ac5eDamageRenderInProgress = true;
 	try {
 		if (!Array.isArray(dialog?.config?.rolls) || !dialog.config.rolls.length) return;
+		debugTypeOverrideBreakpoint('render-enter-before-restore', {
+			rolls: summarizeDamageRolls(dialog?.config?.rolls),
+			ac5e: summarizeTypeOverrideState(getConfigAC5E),
+		});
 		deps.restoreDamageConfigFromFrozenBaseline(getConfigAC5E, dialog.config);
+		debugTypeOverrideBreakpoint('render-after-restore', {
+			rolls: summarizeDamageRolls(dialog?.config?.rolls),
+			ac5e: summarizeTypeOverrideState(getConfigAC5E),
+		});
 		const frozenDamageBaseline = getConfigAC5E?.preAC5eConfig?.frozenDamageBaseline ?? getConfigAC5E?.frozenDamageBaseline;
 		deps.setOptinSelections(getConfigAC5E, deps.readOptinSelections(elem, getConfigAC5E));
 		renderOptionalBonusesDamage(dialog, elem, getConfigAC5E, deps);
@@ -20,8 +28,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const previousCritical = getConfigAC5E._lastOptinCritical;
 		getConfigAC5E._lastOptinCritical = currentCritical;
 		if (previousCritical !== undefined && previousCritical !== currentCritical) {
-			dialog.rebuild();
-			dialog.render();
+			refreshDamageDialog(dialog);
 			return;
 		}
 		const currentRolls = Array.isArray(dialog?.config?.rolls) ? dialog.config.rolls : [];
@@ -31,7 +38,11 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const baseFormulas = getConfigAC5E.preservedInitialData?.formulas ?? (getConfigAC5E.isCritical ? baseRolls.map((roll) => roll?.parts?.join(' + ') ?? roll?.formula).filter(Boolean) : undefined);
 		const damageTypesByIndex = getDamageTypesByIndex(dialog, elem);
 		const selectedDamageTypesByIndex = Array.fromRange(rollsLength).map((el) => {
-			const selected = damageTypesByIndex?.[el] ?? elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ?? currentRolls?.[el]?.options?.type;
+			const selected =
+				getConfigAC5E.preservedInitialData?.activeDamageTypeByRoll?.[el] ??
+				damageTypesByIndex?.[el] ??
+				elem.querySelector(`select[name="roll.${el}.damageType"]`)?.value ??
+				currentRolls?.[el]?.options?.type;
 			return selected ? selected.toLowerCase() : undefined;
 		});
 		const selects = selectedDamageTypesByIndex.filter(Boolean);
@@ -103,8 +114,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 				dialog._ac5eDamageRollCountRefreshQueued = true;
 				Promise.resolve().then(() => {
 					dialog._ac5eDamageRollCountRefreshQueued = false;
-					dialog.rebuild();
-					dialog.render();
+					refreshDamageDialog(dialog);
 				});
 			}
 			return;
@@ -115,8 +125,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		syncSyntheticDamageDialogFormulaElements(elem, getConfigAC5E, effectiveFormulas.length);
 		if (shouldTriggerBaseRollPreviewResync(dialog, effectiveFormulas.length)) {
 			Promise.resolve().then(() => {
-				dialog.rebuild();
-				dialog.render();
+				refreshDamageDialog(dialog);
 			});
 			return;
 		}
@@ -124,7 +133,9 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		syncDamageRollModifierOptions(getConfigAC5E, dialog?.config?.rolls);
 		syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
 		const effectiveBaseRolls = getNonSyntheticDamageRolls(dialog.config.rolls);
-		const effectiveDamageTypesByIndex = effectiveBaseRolls.map((roll) => {
+		const effectiveDamageTypesByIndex = effectiveBaseRolls.map((roll, index) => {
+			const activeType = getConfigAC5E?.preservedInitialData?.activeDamageTypeByRoll?.[index];
+			if (typeof activeType === 'string' && activeType.trim().length) return activeType.toLowerCase();
 			const type = roll?.options?.type;
 			return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 		});
@@ -132,8 +143,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		const compared = compareArrays(getConfigAC5E.options.selectedDamageTypesByIndex, effectiveDamageTypesByIndex);
 		const damageTypesChanged = !compared.equal;
 		if (!damageTypesChanged && changed) {
-			dialog.rebuild();
-			dialog.render();
+			refreshDamageDialog(dialog);
 			return;
 		}
 		if (!damageTypesChanged && !changed) {
@@ -160,7 +170,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 		deps.setOptinSelections(getConfigAC5E, currentOptinSelections);
 		applyOptinCriticalToDamageConfig(getConfigAC5E, newConfig);
 		const reEval = getConfigAC5E.reEval ?? {};
-		reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selects;
+		reEval.initialDamages = getConfigAC5E.reEval?.initialDamages ?? selectedDamageTypesByIndex;
 		reEval.initialRolls =
 			getConfigAC5E.reEval?.initialRolls ??
 			baseRolls.map((roll) => ({
@@ -168,7 +178,12 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 				options: { maximum: roll?.options?.maximum, minimum: roll?.options?.minimum, maximize: roll?.options?.maximize, minimize: roll?.options?.minimize },
 			}));
 		reEval.initialFormulas = getConfigAC5E.reEval?.initialFormulas ?? formulas;
-		if (newConfig.rolls?.[compared.index]?.options) newConfig.rolls[compared.index].options.type = compared.selectedValue;
+		const comparedRollOptions = newConfig.rolls?.[compared.index]?.options;
+		const comparedSelectedValue = typeof compared.selectedValue === 'string' ? compared.selectedValue.toLowerCase() : '';
+		const comparedAvailableTypes = Array.isArray(comparedRollOptions?.types) ? comparedRollOptions.types.map((type) => String(type ?? '').toLowerCase()) : [];
+		if (comparedRollOptions && comparedSelectedValue && (!comparedAvailableTypes.length || comparedAvailableTypes.includes(comparedSelectedValue))) {
+			comparedRollOptions.type = compared.selectedValue;
+		}
 		const effectiveCritical = newConfig.isCritical ?? getConfigAC5E.isCritical ?? getConfigAC5E.preAC5eConfig?.wasCritical ?? false;
 		if (newConfig.midiOptions) newConfig.midiOptions.isCritical = effectiveCritical;
 		const rollCriticalByIndex = Array.isArray(getConfigAC5E.damageRollCriticalByIndex) ? getConfigAC5E.damageRollCriticalByIndex : [];
@@ -197,22 +212,32 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 				roll.options.isCritical = rollCriticalByIndex[i] ?? effectiveCritical;
 			}
 		}
+		syncDamageRollTypeOverrideOptions(getConfigAC5E, newConfig.rolls);
 		const newDialog = { options: { window: { title: dialog.message.flavor }, isCritical: effectiveCritical, defaultButton: effectiveCritical ? 'critical' : 'normal' } };
 		const preservedDamageBaselineState = snapshotDamageBaselineState(getConfigAC5E);
 		deps.setOptinSelections(getConfigAC5E, {});
+		debugTypeOverrideLog('before-preroll-rebuild', {
+			effectiveDamageTypesByIndex,
+			nextDamageTypesByIndex: effectiveDamageTypesByIndex,
+			dialogRollTypes: getNonSyntheticDamageRolls(newConfig.rolls).map((roll) => roll?.options?.type),
+		});
 		getConfigAC5E = deps.preRollDamage(newConfig, newDialog, dialog.message, 'damage', reEval);
+		debugTypeOverrideLog('after-preroll-rebuild', {
+			selectedDamageTypesByIndex: getConfigAC5E?.options?.selectedDamageTypesByIndex,
+			selectedDamageTypes: getConfigAC5E?.options?.selectedDamageTypes,
+			dialogRollTypes: getNonSyntheticDamageRolls(newConfig.rolls).map((roll) => roll?.options?.type),
+		});
 		restoreDamageBaselineState(getConfigAC5E, preservedDamageBaselineState);
 		deps.setOptinSelections(getConfigAC5E, currentOptinSelections);
 		applyOptinCriticalToDamageConfig(getConfigAC5E, dialog.config);
 		const nextDamageTypesByIndex = [...effectiveDamageTypesByIndex];
-		if (Number.isInteger(compared?.index) && compared?.selectedValue) nextDamageTypesByIndex[compared.index] = compared.selectedValue;
 		getConfigAC5E.options.selectedDamageTypes = effectiveSelects;
 		getConfigAC5E.options.selectedDamageTypesByIndex = nextDamageTypesByIndex;
 		applyOrResetFormulaChanges(elem, getConfigAC5E, 'apply', baseFormulas, nextDamageTypesByIndex);
 		syncDamageRollTypeOverrideOptions(getConfigAC5E, dialog?.config?.rolls);
 		syncCriticalStaticBonusDamageRollOptions(getConfigAC5E, dialog?.config?.rolls);
-		dialog.rebuild();
-		dialog.render();
+		refreshDamageDialog(dialog);
+		return getConfigAC5E;
 	} finally {
 		dialog._ac5eDamageRenderInProgress = false;
 	}
@@ -221,22 +246,58 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 export function handleDamageOptinSelectionsChanged(dialog, ac5eConfig, deps = {}) {
 	if (ac5eConfig?.hookType !== 'damage') return false;
 	if (dialog?._ac5eOptinReevalInProgress) return false;
+	debugTypeOverrideBreakpoint('optin-change-enter', {
+		rolls: summarizeDamageRolls(dialog?.config?.rolls),
+		ac5e: summarizeTypeOverrideState(ac5eConfig),
+	});
 	dialog._ac5eOptinReevalInProgress = true;
 	try {
 		if (dialog?.config && deps?.preRollDamage instanceof Function) {
 			// Re-evaluate from the frozen baseline to avoid compounding bonus parts
 			// when opt-in scale sliders change repeatedly.
 			deps.restoreDamageConfigFromFrozenBaseline?.(ac5eConfig, dialog.config);
+			syncDamageRollTypeOverrideOptions(ac5eConfig, dialog.config.rolls);
 			const transientDialog = { options: { window: { title: dialog?.message?.flavor }, isCritical: !!dialog?.config?.isCritical, defaultButton: dialog?.config?.isCritical ? 'critical' : 'normal' } };
 			const reEval = ac5eConfig?.reEval;
-			deps.preRollDamage(dialog.config, transientDialog, dialog.message, 'damage', reEval);
+			ac5eConfig = deps.preRollDamage(dialog.config, transientDialog, dialog.message, 'damage', reEval) ?? ac5eConfig;
+			syncDamageRollTypeOverrideOptions(ac5eConfig, dialog.config.rolls);
+			dialog.config.options ??= {};
+			dialog.config.options[Constants.MODULE_ID] = ac5eConfig;
+			if (dialog.config.rolls?.[0]?.options) dialog.config.rolls[0].options[Constants.MODULE_ID] = ac5eConfig;
+			dialog.config[Constants.MODULE_ID] = ac5eConfig;
 		}
-	dialog.rebuild();
-	dialog.render();
-	return true;
+		debugTypeOverrideBreakpoint('optin-change-before-refresh', {
+			rolls: summarizeDamageRolls(dialog?.config?.rolls),
+			ac5e: summarizeTypeOverrideState(ac5eConfig),
+		});
+		refreshDamageDialog(dialog);
+		return true;
 	} finally {
-		dialog._ac5eOptinReevalInProgress = false;
+		queueMicrotask(() => {
+			dialog._ac5eOptinReevalInProgress = false;
+		});
 	}
+}
+
+function refreshDamageDialog(dialog) {
+	debugTypeOverrideBreakpoint('refresh-damage-dialog', {
+		queuedRollCountRefresh: !!dialog?._ac5eDamageRollCountRefreshQueued,
+		optinReevalInProgress: !!dialog?._ac5eOptinReevalInProgress,
+		damageRenderInProgress: !!dialog?._ac5eDamageRenderInProgress,
+		rolls: summarizeDamageRolls(dialog?.config?.rolls),
+		ac5e: summarizeTypeOverrideState(dialog?.config?.options?.[Constants.MODULE_ID] ?? dialog?.config?.[Constants.MODULE_ID]),
+	});
+	dialog.rebuild();
+	debugTypeOverrideBreakpoint('refresh-damage-dialog-after-rebuild', {
+		rolls: summarizeDamageRolls(dialog?.config?.rolls),
+		ac5e: summarizeTypeOverrideState(dialog?.config?.options?.[Constants.MODULE_ID] ?? dialog?.config?.[Constants.MODULE_ID]),
+	});
+	queueMicrotask(() => {
+		debugTypeOverrideBreakpoint('refresh-damage-dialog-after-microtask', {
+			rolls: summarizeDamageRolls(dialog?.config?.rolls),
+			ac5e: summarizeTypeOverrideState(dialog?.config?.options?.[Constants.MODULE_ID] ?? dialog?.config?.[Constants.MODULE_ID]),
+		});
+	});
 }
 
 export function renderOptionalBonusesDamage(dialog, elem, ac5eConfig, deps) {
@@ -327,6 +388,75 @@ function normalizeDamageTypeList(types) {
 	return normalized;
 }
 
+function debugTypeOverrideLog(stage, payload = {}) {
+	if (!ac5e?.debug?.typeOverride) return;
+	if (ac5e.debug.typeOverride !== 'verbose' && stage !== 'roll config snapshot') return;
+	const slug = String(stage ?? '')
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+	const compact = (value) => {
+		if (Array.isArray(value)) return value.map((entry) => compact(entry)).join('|');
+		if (value && typeof value === 'object') {
+			return Object.entries(value)
+				.map(([key, entry]) => `${key}=${compact(entry)}`)
+				.join(' ');
+		}
+		return String(value ?? '');
+	};
+	console.warn(`AC5E typeOverride ${slug} ${compact(payload)}`.trim());
+}
+
+function stringifyTypeOverridePayload(payload = {}) {
+	try {
+		return JSON.stringify(payload, (_key, value) => {
+			if (value instanceof Set) return [...value];
+			if (value instanceof Map) return Object.fromEntries(value.entries());
+			return value;
+		});
+	} catch (_err) {
+		return String(payload);
+	}
+}
+
+function summarizeDamageRolls(rolls = []) {
+	return (Array.isArray(rolls) ? rolls : []).map((roll, index) => ({
+		index,
+		synthetic: isSyntheticBonusRoll(roll),
+		formula:
+			typeof roll?.formula === 'string' ? roll.formula
+			: Array.isArray(roll?.parts) ? roll.parts.join(' + ')
+			: undefined,
+		type: roll?.options?.type,
+		types: normalizeDamageTypeList(roll?.options?.types),
+	}));
+}
+
+function summarizeTypeOverrideState(ac5eConfig) {
+	const preserved = ac5eConfig?.preservedInitialData ?? {};
+	return {
+		optinSelected: ac5eConfig?.optinSelected,
+		selectedDamageTypes: ac5eConfig?.options?.selectedDamageTypes,
+		selectedDamageTypesByIndex: ac5eConfig?.options?.selectedDamageTypesByIndex,
+		baseDamageTypeByRoll: preserved.baseDamageTypeByRoll,
+		baseDamageTypesByRoll: preserved.baseDamageTypesByRoll,
+		activeDamageTypeByRoll: preserved.activeDamageTypeByRoll,
+		activeDamageTypesByRoll: preserved.activeDamageTypesByRoll,
+		activeAppendedBonusRolls: preserved.activeAppendedBonusRolls,
+	};
+}
+
+function debugTypeOverrideBreakpoint(stage, payload = {}) {
+	if (!ac5e?.debug?.typeOverride) return;
+	const snapshot = {
+		stage,
+		...payload,
+	};
+	console.warn(`AC5E typeOverride breakpoint ${stage} ${stringifyTypeOverridePayload(snapshot)}`);
+	if (ac5e?.debug?.typeOverrideBreakpoints) debugger;
+}
+
 function captureBaseDamageTypeData(ac5eConfig, rolls, baseline) {
 	const preserved = ac5eConfig?.preservedInitialData;
 	if (!preserved || !Array.isArray(rolls)) return;
@@ -385,6 +515,12 @@ function syncDamageRollTypeOverrideOptions(ac5eConfig, rolls) {
 		else if (Object.hasOwn(roll.options, 'types')) delete roll.options.types;
 		if (resolvedType) roll.options.type = resolvedType;
 		else if (Object.hasOwn(roll.options, 'type')) delete roll.options.type;
+		debugTypeOverrideLog('sync roll option', {
+			index,
+			resolvedType,
+			resolvedTypes,
+			rollFormula: typeof roll?.formula === 'string' ? roll.formula : Array.isArray(roll?.parts) ? roll.parts.join(' + ') : undefined,
+		});
 	}
 }
 
@@ -608,11 +744,20 @@ export function getRollDamageTypeFromForm(formData, rollConfig, index) {
 
 export function getDamageRollTypeAtIndex(ac5eConfig, damageTypesByIndex, index) {
 	const directType = damageTypesByIndex?.[index];
-	if (typeof directType === 'string' && directType.trim()) return directType.toLowerCase();
+	if (typeof directType === 'string' && directType.trim()) {
+		debugTypeOverrideLog('roll-type-source', { index, source: 'damageTypesByIndex', value: directType.toLowerCase() });
+		return directType.toLowerCase();
+	}
 	const selectedByIndex = ac5eConfig?.options?.selectedDamageTypesByIndex?.[index];
-	if (typeof selectedByIndex === 'string' && selectedByIndex.trim()) return selectedByIndex.toLowerCase();
+	if (typeof selectedByIndex === 'string' && selectedByIndex.trim()) {
+		debugTypeOverrideLog('roll-type-source', { index, source: 'selectedDamageTypesByIndex', value: selectedByIndex.toLowerCase() });
+		return selectedByIndex.toLowerCase();
+	}
 	const selectedType = ac5eConfig?.options?.selectedDamageTypes?.[index];
-	if (typeof selectedType === 'string' && selectedType.trim()) return selectedType.toLowerCase();
+	if (typeof selectedType === 'string' && selectedType.trim()) {
+		debugTypeOverrideLog('roll-type-source', { index, source: 'selectedDamageTypes', value: selectedType.toLowerCase() });
+		return selectedType.toLowerCase();
+	}
 	return undefined;
 }
 
@@ -635,7 +780,16 @@ function isDamageEntryEligibleForSelectedTypes(entry, selectedTypes) {
 function shouldApplyDamageEntryToRoll(entry, rollIndex, rollType, { defaultMode = 'base', selectedTypes = undefined } = {}) {
 	if (selectedTypes && !hasRequiredDamageTypes(entry, selectedTypes)) return false;
 	const addTo = resolveEntryAddTo(entry, defaultMode);
-	return _shouldApplyAddToRoll(addTo, rollIndex, rollType, defaultMode);
+	const applies = _shouldApplyAddToRoll(addTo, rollIndex, rollType, defaultMode);
+	debugTypeOverrideLog('base roll gate', {
+		label: entry?.label ?? entry?.name,
+		mode: entry?.mode,
+		rollIndex,
+		rollType,
+		addTo,
+		applies,
+	});
+	return applies;
 }
 
 function hasExplicitAddTo(entry) {
@@ -954,11 +1108,11 @@ function combineSyntheticDisplayFormula(formula, criticalFormula = '') {
 	const critDisplay = normalizeDisplayFormula(criticalFormula);
 	if (!baseDisplay) return critDisplay;
 	if (!critDisplay) return baseDisplay;
-	const diceRegex = /^(\d+)d(\d+)([a-z0-9]*)$/i;
+	const diceRegex = /^(\d*)d(\d+)([a-z0-9]*)$/i;
 	const baseMatch = baseDisplay.match(diceRegex);
 	const critMatch = critDisplay.match(diceRegex);
 	if (baseMatch && critMatch && `${baseMatch[2]}${baseMatch[3]}`.toLowerCase() === `${critMatch[2]}${critMatch[3]}`.toLowerCase()) {
-		return `${Number(baseMatch[1]) + Number(critMatch[1])}d${baseMatch[2]}${baseMatch[3]}`;
+		return `${Number(baseMatch[1] || 1) + Number(critMatch[1] || 1)}d${baseMatch[2]}${baseMatch[3]}`;
 	}
 	return `${baseDisplay} + ${critDisplay}`;
 }
@@ -966,7 +1120,7 @@ function combineSyntheticDisplayFormula(formula, criticalFormula = '') {
 function extractCriticalDiceFormula(formula) {
 	const source = String(formula ?? '').trim();
 	if (!source) return '';
-	const matches = source.match(/\d+d\d+(?:[a-z0-9]+)*/gi);
+	const matches = source.match(/\d*d\d+(?:[a-z0-9]+)*/gi);
 	return Array.isArray(matches) && matches.length ? matches.join(' + ') : '';
 }
 
@@ -1113,7 +1267,7 @@ function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = ''
 		.join('');
 	const rollOptionModifierState = getDamageRollOptionModifierState(modifierValues);
 	const formulaOperatorTokens = modifierValues.filter((value) => isFormulaOperatorDamageModifier(value)).map((value) => normalizeFormulaOperatorDamageModifier(value)).filter(Boolean);
-	const diceRegex = /(\d+)d(\d+)([a-z0-9]*)?/gi;
+	const diceRegex = /(\d*)d(\d+)([a-z0-9]*)?/gi;
 	const diceProgression = _getDamageDiceStepProgression();
 	let nextFormula = String(formula ?? '').trim();
 	if (nextFormula) {
@@ -1121,7 +1275,7 @@ function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = ''
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
 			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
 			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
-			return `${count}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
+			return `${count || ''}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
 		});
 		for (const op of formulaOperatorTokens) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 	}
@@ -1148,6 +1302,10 @@ function syncAppendedBonusRolls(dialog, ac5eConfig, formulas = []) {
 		roll.options ??= {};
 		roll.options[Constants.MODULE_ID] ??= {};
 		roll.options[Constants.MODULE_ID].displayFormula = formulas[index];
+		const activeTypes = normalizeDamageTypeList(preserved.activeDamageTypesByRoll?.[index]);
+		const activeType = typeof preserved.activeDamageTypeByRoll?.[index] === 'string' ? preserved.activeDamageTypeByRoll[index].trim().toLowerCase() : undefined;
+		if (activeTypes.length) roll.options.types = [...activeTypes];
+		if (activeType) roll.options.type = activeType;
 		roll.parts = formulas[index]
 			.split('+')
 			.map((part) => part.trim())
@@ -1302,6 +1460,15 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter(
 		(entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry),
 	);
+	debugTypeOverrideLog('collected entries', damageTypeOverrideEntries.map((entry) => ({
+		label: entry?.label ?? entry?.name,
+		id: entry?.id,
+		set: entry?.set,
+		addTo: entry?.addTo,
+		requiredDamageTypes: entry?.requiredDamageTypes,
+		optin: entry?.optin,
+		forceOptin: entry?.forceOptin,
+	})));
 	const subjectAdvantage = _filterOptinEntries(getConfigAC5E.subject.advantage, getConfigAC5E.optinSelected);
 	const opponentAdvantage = _filterOptinEntries(getConfigAC5E.opponent.advantage, getConfigAC5E.optinSelected);
 	const subjectDisadvantage = _filterOptinEntries(getConfigAC5E.subject.disadvantage, getConfigAC5E.optinSelected);
@@ -1628,17 +1795,51 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		let nextTypes = baselineTypes.length ? [...baselineTypes] : [];
 		let nextType = baselineType;
 		for (const entry of damageTypeOverrideEntries) {
-			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) continue;
+			const typeOverrideSelectedTypes = new Set([...allTypes, ...baselineTypes, baselineType].filter(Boolean));
+			const typeOverrideGateType = baselineType ?? rollType;
+			const applies = shouldApplyDamageEntryToRoll(entry, index, typeOverrideGateType, { selectedTypes: typeOverrideSelectedTypes });
+			debugTypeOverrideBreakpoint('base-override-decision', {
+				index,
+				label: entry?.label ?? entry?.name,
+				id: entry?.id,
+				rollType,
+				typeOverrideGateType,
+				baselineType,
+				baselineTypes,
+				currentTypes: nextTypes,
+				overrideSet: entry?.set,
+				addTo: entry?.addTo,
+				requiredDamageTypes: entry?.requiredDamageTypes,
+				selectedTypes: [...typeOverrideSelectedTypes],
+				applies,
+			});
+			if (!applies) continue;
 			const overrideTypes = parseDamageTypeOverrideSet(entry?.set);
 			if (!overrideTypes.length) continue;
 			const currentSelectedType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 			nextTypes = [...overrideTypes];
-			nextType = overrideTypes.includes(currentSelectedType) ? currentSelectedType : overrideTypes[0];
+			nextType = overrideTypes[0];
+			debugTypeOverrideLog('apply base override', {
+				index,
+				label: entry?.label ?? entry?.name,
+				rollType,
+				currentSelectedType,
+				overrideTypes,
+				nextType,
+			});
 		}
-		return { type: nextType, types: nextTypes };
+		const resolved = { type: nextType, types: nextTypes };
+		debugTypeOverrideLog('resolved base roll state', {
+			index,
+			rollType,
+			baselineType,
+			baselineTypes,
+			resolved,
+		});
+		return resolved;
 	});
 	const formulaReplacementData = getDamageFormulaReplacementData(getConfigAC5E);
-	const diceRegex = /(\d+)d(\d+)([a-z0-9]*)?/gi;
+	const diceRegex = /(\d*)d(\d+)([a-z0-9]*)?/gi;
 	const diceProgression = _getDamageDiceStepProgression();
 	const criticalBonusDamageByRoll = originals.map(() => '');
 	getConfigAC5E.preservedInitialData.modified = originals.map((formula, index) => {
@@ -1659,13 +1860,14 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const diceStepTotal = diceStepTotals[index] ?? 0;
 		const criticalStaticParts = [];
 		let nextFormula = resolvedFormula.replace(diceRegex, (match, count, sides, existing = '') => {
-			const baseCount = parseInt(count, 10);
+			const baseCount = parseInt(count || '1', 10);
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
 			if (newCount <= 0) return `0d${sides}${existing}`;
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
 			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
 			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
-			const diceTerm = `${newCount}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
+			const nextCount = count || newCount !== 1 || extraDiceMultiplier !== 1 || extraDiceAdditive !== 0 ? newCount : '';
+			const diceTerm = `${nextCount}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
 			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
 			if (criticalStaticCount > 0) {
 				const criticalAppliedModifiers = addDamageAdvantageModifier(existing, advDis);
@@ -1751,6 +1953,10 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		getConfigAC5E.preservedInitialData.activeAdvDis = originals.map(() => '');
 		getConfigAC5E.preservedInitialData.activeDamageTypeByRoll = [...baseDamageTypeArray];
 		getConfigAC5E.preservedInitialData.activeDamageTypesByRoll = baseDamageTypesArray.map((types) => [...types]);
+		debugTypeOverrideLog('reset-active-state', {
+			activeDamageTypeByRoll: getConfigAC5E.preservedInitialData.activeDamageTypeByRoll,
+			activeDamageTypesByRoll: getConfigAC5E.preservedInitialData.activeDamageTypesByRoll,
+		});
 		return true;
 	}
 	getConfigAC5E.preservedInitialData.activeModifiers = [...suffixesByRoll];
@@ -1772,6 +1978,14 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	getConfigAC5E.preservedInitialData.activeAdvDis = [...advDisByRoll];
 	getConfigAC5E.preservedInitialData.activeDamageTypeByRoll = effectiveDamageTypeStateByRoll.map((entry) => entry.type);
 	getConfigAC5E.preservedInitialData.activeDamageTypesByRoll = effectiveDamageTypeStateByRoll.map((entry) => [...entry.types]);
+	debugTypeOverrideLog('store-active-state', {
+		activeDamageTypeByRoll: getConfigAC5E.preservedInitialData.activeDamageTypeByRoll,
+		activeDamageTypesByRoll: getConfigAC5E.preservedInitialData.activeDamageTypesByRoll,
+	});
+	debugTypeOverrideBreakpoint('store-active-state', {
+		effectiveDamageTypeStateByRoll,
+		ac5e: summarizeTypeOverrideState(getConfigAC5E),
+	});
 	return true;
 }
 
@@ -1811,12 +2025,31 @@ export function applyDamageFormulaStateToConfig(ac5eConfig, config) {
 	syncAppendedBonusRolls({ config }, ac5eConfig, ac5eConfig.preservedInitialData?.modified ?? baseFormulas);
 	syncDamageRollTypeOverrideOptions(ac5eConfig, config.rolls);
 	const syncedBaseRolls = getNonSyntheticDamageRolls(config.rolls);
-	const syncedDamageTypesByIndex = syncedBaseRolls.map((roll) => {
+	const syncedDamageTypesByIndex = syncedBaseRolls.map((roll, index) => {
+		const activeType = ac5eConfig?.preservedInitialData?.activeDamageTypeByRoll?.[index];
+		if (typeof activeType === 'string' && activeType.trim().length) return activeType.toLowerCase();
 		const type = roll?.options?.type;
 		return typeof type === 'string' && type.trim().length ? type.toLowerCase() : undefined;
 	});
 	ac5eConfig.options.selectedDamageTypesByIndex = syncedDamageTypesByIndex;
 	ac5eConfig.options.selectedDamageTypes = syncedDamageTypesByIndex.filter(Boolean);
+	debugTypeOverrideLog('roll config snapshot', {
+		baseDamageTypeByRoll: ac5eConfig?.preservedInitialData?.baseDamageTypeByRoll,
+		baseDamageTypesByRoll: ac5eConfig?.preservedInitialData?.baseDamageTypesByRoll,
+		activeDamageTypeByRoll: ac5eConfig?.preservedInitialData?.activeDamageTypeByRoll,
+		activeDamageTypesByRoll: ac5eConfig?.preservedInitialData?.activeDamageTypesByRoll,
+		selectedDamageTypesByIndex: ac5eConfig?.options?.selectedDamageTypesByIndex,
+		rolls: syncedBaseRolls.map((roll, index) => ({
+			index,
+			formula: typeof roll?.formula === 'string' ? roll.formula : Array.isArray(roll?.parts) ? roll.parts.join(' + ') : undefined,
+			type: roll?.options?.type,
+			types: roll?.options?.types,
+		})),
+	});
+	debugTypeOverrideBreakpoint('apply-config-final', {
+		rolls: summarizeDamageRolls(config.rolls),
+		ac5e: summarizeTypeOverrideState(ac5eConfig),
+	});
 	syncDamageRollModifierOptions(ac5eConfig, config.rolls);
 	syncCriticalStaticBonusDamageRollOptions(ac5eConfig, config.rolls);
 	return true;

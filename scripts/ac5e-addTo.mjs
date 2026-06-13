@@ -66,8 +66,31 @@ export function _parseAddToSpec(value) {
 	}
 	const raw = Array.isArray(value) ? value.filter((entry) => typeof entry === 'string').join(',') : typeof value === 'string' ? value.trim() : '';
 	if (!raw) return undefined;
-	if (raw.includes(';') || /!?types\s*\(/i.test(raw)) {
-		const clauses = raw.split(';').map((entry) => entry.trim()).filter(Boolean);
+	if (/!?types\s*\(/i.test(raw)) {
+		const clauses = [];
+		let current = '';
+		let depth = 0;
+		for (const char of raw) {
+			if (char === '(') {
+				depth++;
+				current += char;
+				continue;
+			}
+			if (char === ')') {
+				depth = Math.max(0, depth - 1);
+				current += char;
+				continue;
+			}
+			if (char === ',' && depth === 0) {
+				const clause = current.trim();
+				if (clause) clauses.push(clause);
+				current = '';
+				continue;
+			}
+			current += char;
+		}
+		const trailingClause = current.trim();
+		if (trailingClause) clauses.push(trailingClause);
 		if (!clauses.length) return undefined;
 		let parts = null;
 		let explicitParts = false;
@@ -124,7 +147,7 @@ export function _stringifyAddToSpec(value) {
 	if (parsed.parts && (parsed.parts !== 'all' || parsed.explicitParts || !hasTypeFilters)) clauses.push(parsed.parts);
 	if (parsed.includeTypes.length || parsed.explicitIncludeClause) clauses.push(`types(${parsed.includeTypes.join(',')})`);
 	if (parsed.excludeTypes.length || parsed.explicitExcludeClause) clauses.push(`!types(${parsed.excludeTypes.join(',')})`);
-	return clauses.join(';');
+	return clauses.join(',');
 }
 
 export function _addToAllowsRollType(addTo, rollType) {

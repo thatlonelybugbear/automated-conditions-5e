@@ -345,10 +345,20 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				if (!value) return;
 				const input = htmlElement?.querySelector?.('input[name="fields.override"]');
 				if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
-				input.value = value;
+				if (target?.dataset?.ac5eInlineOverrideMode === 'append') {
+					const selected = new Set(
+						`${input.value ?? ''}`.split(',').map((entry) => entry.trim()).filter(Boolean),
+					);
+					if (selected.has(value)) return;
+					selected.add(value);
+					input.value = [...selected].join(',');
+					target.hidden = true;
+				} else input.value = value;
 				input.dispatchEvent(new Event('input', { bubbles: true }));
 				input.dispatchEvent(new Event('change', { bubbles: true }));
 				for (const chip of htmlElement.querySelectorAll('[data-ac5e-inline-override]')) {
+					if (!(chip instanceof HTMLElement)) continue;
+					if (chip.dataset.ac5eInlineOverrideMode === 'append') continue;
 					chip.classList.toggle('active', chip === target);
 				}
 			});
@@ -523,14 +533,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const dialogWidth = Math.min(maxDialogWidth, Math.max(minDialogWidth, preferredDialogWidth));
 		const clampedResizeMinDialogWidth = Math.min(dialogWidth, Math.max(360, Math.min(resizeMinDialogWidth, Math.floor(viewportWidth * 0.9))));
 		const assistControls = isOverrideScope
-			?	renderAssistActionFieldset(
-					assistScope === 'typeOverride' ? 'Type Override entries' : 'Ability Override entries',
-					assist.scopedEntries,
-					'ac5e-assist-entry',
-					'entry',
-					assistScope,
-					true,
-				)
+			?	renderAssistEntryGroups(assist)
 			: isAddToScope
 				? `
 					<div class="ac5e-effect-value-assist-groups ac5e-effect-value-assist-groups-addto">${renderAssistEntryGroups(assist)}</div>
@@ -572,7 +575,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 								<div class="form-group stacked">
 									<label for="ac5e-expand-value">${escapedLabel}</label>
 									<div class="form-fields">
-										<textarea id="ac5e-expand-value" name="value" rows="${textAreaRows}" placeholder="${escapeHtml(isAddToScope ? 'Examples: base | bonus | types(fire,cold) | base;!types(acid)' : '')}">${escapedValue}</textarea>
+										<textarea id="ac5e-expand-value" name="value" rows="${textAreaRows}" placeholder="${escapeHtml(isAddToScope ? 'Examples: base | bonus | types(fire,cold) | base,!types(acid)' : '')}">${escapedValue}</textarea>
 									</div>
 								</div>
 								${assistControls}
@@ -867,16 +870,18 @@ function dedupe(values) {
 
 function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, changeKey = '' } = {}) {
 	const inlineOverrideEntries = getInlineOverrideEntries(changeKey, parsed?.fields?.override ?? '');
+	const isAbilityOverride = `${changeKey ?? ''}`.trim().toLowerCase().endsWith('.abilityoverride');
 	return [
 		...profile.requiredFields.map((name) => ({
 		name,
 		label: profile.supportsSetMode && name === 'bonus' ? 'Bonus / Set' : name === 'bonus' ? 'Bonus' : labelForField(name),
 		value: profile.supportsSetMode && name === 'bonus' ? parsed.fields[setMode ? 'set' : 'bonus'] ?? '' : parsed.fields[name] ?? '',
 		inputId: `ac5e-value-${name}-${id}`,
-		expandable: name === 'override' && inlineOverrideEntries.length ? false : true,
-		inlineOverrideEntries: name === 'override' ? inlineOverrideEntries : [],
-		hasInlineOverrideEntries: name === 'override' && inlineOverrideEntries.length > 0,
-		fullRow: name === 'override' && inlineOverrideEntries.length > 0,
+		expandable: name === 'override' && isAbilityOverride && inlineOverrideEntries.length ? false : true,
+		inlineOverrideEntries: name === 'override' && isAbilityOverride ? inlineOverrideEntries : [],
+		hasInlineOverrideEntries: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
+		hideOverrideInput: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
+		fullRow: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
 		companionField:
 			profile.supportsAddTo && name === profile.addToAnchorField ? {
 				name: 'addTo',
@@ -1103,7 +1108,7 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, changeKey = '
 		].filter(Boolean)),
 	};
 	let contextRollAwareEntries = filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey);
-	if (includeScaleValue) contextRollAwareEntries = dedupe([...contextRollAwareEntries, 'scaleValue']);
+	if (includeScaleValue) contextRollAwareEntries = dedupe([...contextRollAwareEntries, 'optinScale']);
 	if (includeBaseValue) contextRollAwareEntries = dedupe([...contextRollAwareEntries, 'baseValue']);
 	const scopedEntries = buildScopedAssistEntries(assistScope, entries);
 	const flatScopedEntries = flattenScopedAssistEntries(scopedEntries);
@@ -1156,14 +1161,7 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 			})
 			.filter((entry) => entry.value)
 			.sort((a, b) => a.label.localeCompare(b.label));
-		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride }));
-	}
-	if (normalized.endsWith('.typeoverride')) {
-		const damage = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
-		const healing = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
-		return dedupe([...damage, ...healing].filter(Boolean))
-			.sort((a, b) => a.localeCompare(b))
-			.map((value) => ({ value, label: value, selected: value === currentOverride }));
+		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride, mode: 'single' }));
 	}
 	return [];
 }
@@ -1248,7 +1246,8 @@ function getContextSandboxFallbackEntries(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	const entries = ['ability', 'riderStatuses'];
 	if (!normalized) return entries;
-	const isRollLike = isD20AssistContext(normalized);
+	const actionType = getRuleActionTypeFromChangeKey(normalized);
+	const isRollLike = isD20AssistContext(normalized) || ['all', 'd20', 'check', 'skill', 'tool'].includes(actionType);
 	if (isRollLike) {
 		entries.push(
 			'skill',
@@ -1287,6 +1286,15 @@ function getContextSandboxFallbackEntries(changeKey) {
 	return dedupe(entries);
 }
 
+function getRuleActionTypeFromChangeKey(changeKey) {
+	const segments = `${changeKey ?? ''}`.trim().toLowerCase().split('.').filter(Boolean);
+	const moduleIndex = segments.indexOf(Constants.MODULE_ID);
+	if (moduleIndex < 0) return '';
+	const next = segments[moduleIndex + 1] ?? '';
+	if (next === 'aura' || next === 'grants') return segments[moduleIndex + 2] ?? '';
+	return next;
+}
+
 function resolveAssistScope(inputName, currentValue, changeKey = '') {
 	const fieldName = `${inputName ?? ''}`.trim().toLowerCase();
 	if (fieldName === 'fields.usescount' || fieldName === 'ui.usescountpath') return 'usesCount';
@@ -1315,7 +1323,18 @@ function buildScopedAssistEntries(scope, entries) {
 function buildTypeOverrideScopedEntries() {
 	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
 	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
-	return dedupe([...damageTypes, ...healingTypes].map((entry) => `${entry ?? ''}`.trim()).filter(Boolean)).sort((a, b) => a.localeCompare(b));
+	return {
+		damageTypes: damageTypes
+			.map((entry) => `${entry ?? ''}`.trim())
+			.filter(Boolean)
+			.sort((a, b) => a.localeCompare(b))
+			.map((value) => ({ value, label: value.capitalize() })),
+		healingTypes: healingTypes
+			.map((entry) => `${entry ?? ''}`.trim())
+			.filter(Boolean)
+			.sort((a, b) => a.localeCompare(b))
+			.map((value) => ({ value, label: value.capitalize() })),
+	};
 }
 
 function buildAbilityOverrideScopedEntries() {
@@ -1555,7 +1574,12 @@ function renderAssistEntryGroups(assist) {
 		return renderAssistActionFieldset('Update quick targets', resolveScopedQuickTargets(assist?.scopedEntries, 'update'), 'ac5e-assist-entry', 'entry', 'update', true);
 	}
 	if (assist?.scope === 'typeOverride') {
-		return renderAssistActionFieldset('Type Override entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'type-override', true);
+		const damageTypes = Array.isArray(assist?.scopedEntries?.damageTypes) ? assist.scopedEntries.damageTypes : [];
+		const healingTypes = Array.isArray(assist?.scopedEntries?.healingTypes) ? assist.scopedEntries.healingTypes : [];
+		return `
+			${renderAssistActionFieldset('Damage Types', damageTypes, 'ac5e-assist-entry', 'button', 'type-override-damage', true)}
+			${renderAssistActionFieldset('Healing Types', healingTypes, 'ac5e-assist-entry', 'button', 'type-override-healing', true)}
+		`;
 	}
 	if (assist?.scope === 'abilityOverride') {
 		return renderAssistActionFieldset('Ability Override entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'ability-override', true);
@@ -1599,8 +1623,8 @@ function resolveScopedQuickTargets(scopedEntries, scope = '') {
 			'rollingActor.flags.<path>',
 			'opponentActor',
 			'opponentActor.flags.<path>',
-			'item.<itemId>',
-			'item.<itemId>.activity.<activityId>',
+			'Item.<itemId>',
+			'Item.<itemId>.Activity.<activityId>',
 		];
 		// Always expose origin/item template targets for usesCount authoring.
 		return dedupe([...preferred, ...entries]).filter((entry) => preferred.includes(entry));
@@ -1780,6 +1804,7 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 				insertDelimitedAssistEntry(textarea, value, selectionState);
 				return;
 			}
+			if (applyProfileAssistEntrySelection(textarea, value, assistRoot, assist, selectionState)) return;
 			const insertion = resolveAssistEntryInsertion(value);
 			replaceTokenAtCursorOrInsert(textarea, insertion, selectionState);
 		});
@@ -1792,7 +1817,7 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 				applyCounterAssistRootSelection(textarea, rootName, assistRoot, assist, selectionState);
 				return;
 			}
-			replaceTokenAtCursorOrInsert(textarea, `${rootName}.`, selectionState);
+			replaceTokenAtCursorOrInsert(textarea, `${resolveAssistRootInsertion(rootName)}.`, selectionState);
 			assistRoot.dataset.ac5eAssistActiveRoot = rootName;
 			assistRoot.dataset.ac5eAssistChain = '[]';
 			assistRoot.dataset.ac5eAssistFilter = '';
@@ -1952,6 +1977,11 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 		});
 	}
 	for (const valueButton of container.querySelectorAll('[data-ac5e-assist-value]')) {
+		const groupPath = resolveAssistValueGroupPath(root.dataset.ac5eAssistValuePath ?? '');
+		if (groupPath) {
+			const value = `${valueButton.dataset.ac5eAssistValue ?? ''}`.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
+			valueButton.classList.toggle('active', isAssistOrClauseSelected(textarea, `${groupPath}.${value}`));
+		}
 		valueButton.addEventListener('click', () => {
 			const value = valueButton.dataset.ac5eAssistValue ?? '';
 			if (!value) return;
@@ -2031,7 +2061,7 @@ function resolveAssistInputContext(token, assist, fullText = '', caret = 0, acti
 	const trimmed = trailingDot ? normalized.slice(0, -1) : normalized;
 	const segments = trimmed.split('.').filter(Boolean);
 	if (!segments.length) return null;
-	const root = segments[0];
+	const root = resolveAssistCanonicalRoot(segments[0]);
 	if (assist?.treesByRoot?.[root]) {
 		const tree = assist.treesByRoot[root];
 		if (trailingDot) {
@@ -2057,6 +2087,14 @@ function resolveAssistInputContext(token, assist, fullText = '', caret = 0, acti
 	if (!inferredRoot || !assist?.treesByRoot?.[inferredRoot]) return null;
 	const inferredPath = `${inferredRoot}.${enumPathKey}`;
 	return { root: inferredRoot, chain: [inferredPath], filter: '' };
+}
+
+function resolveAssistCanonicalRoot(rootName) {
+	const value = `${rootName ?? ''}`.trim();
+	if (value === 'ability') return 'abilities';
+	if (value === 'skill') return 'skills';
+	if (value === 'tool') return 'tools';
+	return value;
 }
 
 function inferAssistRootFromTextContext(fullText, caret, assist, candidateRoots, activeRoot = '') {
@@ -2105,7 +2143,9 @@ function applyAssistTabRootCompletion(textarea, root, assist, selectionState) {
 		applyCounterAssistRootSelection(textarea, selected, root, assist, selectionState);
 		return true;
 	}
-	replaceTokenAtCursorOrInsert(textarea, `${selected}.`, selectionState);
+	if (applyProfileAssistEntrySelection(textarea, selected, root, assist, selectionState)) return true;
+	const selectedRoot = resolveAssistRootInsertion(selected);
+	replaceTokenAtCursorOrInsert(textarea, `${selectedRoot}.`, selectionState);
 	root.dataset.ac5eAssistActiveRoot = selected;
 	root.dataset.ac5eAssistChain = '[]';
 	root.dataset.ac5eAssistFilter = '';
@@ -2198,6 +2238,7 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const caret = Number(textarea.selectionStart ?? 0);
 	const rawToken = extractAutocompleteToken(textarea.value, caret);
 	const token = rawToken.toLowerCase();
+	const assistScope = getAssistScope(root);
 	const operatorOnlyMode = shouldIncludeOperatorMatches(rawToken, root, token);
 	const matches = operatorOnlyMode
 		? []
@@ -2215,6 +2256,14 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 		? (combined.includes(focused) ? focused : combined[0])
 		: '';
 	root.dataset.ac5eAssistEntryFocus = resolvedFocus;
+	const selectedTypeOverrides = assistScope === 'typeOverride'
+		? new Set(
+			`${textarea.value ?? ''}`
+				.split(',')
+				.map((entry) => entry.trim().toLowerCase())
+				.filter(Boolean),
+		)
+		: null;
 	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
 		const value = button.dataset.ac5eAssistEntry ?? '';
 		const lower = value.toLowerCase();
@@ -2223,7 +2272,7 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 		button.classList.toggle('active', matchesToken || (resolvedFocus && key === resolvedFocus));
 		button.classList.toggle('ac5e-effect-value-assist-focused', Boolean(resolvedFocus) && key === resolvedFocus);
 		button.classList.toggle('ac5e-effect-value-assist-single-match', Boolean(single) && key === single);
-		button.hidden = false;
+		button.hidden = selectedTypeOverrides?.has(lower) ?? false;
 	}
 	const rootToken = token.includes('.') ? '' : token;
 	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert]')) {
@@ -2290,14 +2339,14 @@ function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
 		return true;
 	}
 	const selectedRoot = (selectedButton.dataset.ac5eAssistRootInsert ?? '').trim();
-	if (selectedRoot) {
-		const assistScope = getAssistScope(root);
-		if (isCounterAssistScope(assistScope)) {
-			applyCounterAssistRootSelection(textarea, selectedRoot, root, assist, selectionState);
-			updateAssistEntryHighlights(root, textarea, assist);
-			return true;
-		}
-		replaceTokenAtCursorOrInsert(textarea, `${selectedRoot}.`, selectionState);
+		if (selectedRoot) {
+			const assistScope = getAssistScope(root);
+			if (isCounterAssistScope(assistScope)) {
+				applyCounterAssistRootSelection(textarea, selectedRoot, root, assist, selectionState);
+				updateAssistEntryHighlights(root, textarea, assist);
+				return true;
+			}
+		replaceTokenAtCursorOrInsert(textarea, `${resolveAssistRootInsertion(selectedRoot)}.`, selectionState);
 		root.dataset.ac5eAssistActiveRoot = selectedRoot;
 		root.dataset.ac5eAssistChain = '[]';
 		root.dataset.ac5eAssistFilter = '';
@@ -2325,6 +2374,14 @@ function resolveAssistEntryInsertion(entry) {
 	if (!value) return '';
 	if (['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'activityType', 'creatureType', 'abilities', 'skills', 'tools', 'statuses', 'riderStatuses'].includes(value)) return `${value}.`;
 	return `${value} `;
+}
+
+function resolveAssistRootInsertion(rootName) {
+	const value = `${rootName ?? ''}`.trim();
+	if (value === 'abilities') return 'ability';
+	if (value === 'skills') return 'skill';
+	if (value === 'tools') return 'tool';
+	return value;
 }
 
 function getDefaultAddToAssistSpec() {
@@ -2539,6 +2596,7 @@ function applyFocusedAssistRoot(textarea, root, assist, selectionState) {
 		applyCounterAssistRootSelection(textarea, selected, root, assist, selectionState);
 		return true;
 	}
+	if (applyProfileAssistEntrySelection(textarea, selected, root, assist, selectionState)) return true;
 	replaceTokenAtCursorOrInsert(textarea, `${selected}.`, selectionState);
 	root.dataset.ac5eAssistActiveRoot = selected;
 	root.dataset.ac5eAssistChain = '[]';
@@ -2546,6 +2604,26 @@ function applyFocusedAssistRoot(textarea, root, assist, selectionState) {
 	setAssistActivePath(root, '');
 	renderAssistStage(root, assist, selectionState, textarea);
 	return true;
+}
+
+function applyProfileAssistEntrySelection(textarea, entryValue, assistRoot, assist, selectionState = null) {
+	const activeRoot = getProfileAssistEntryRoot(entryValue);
+	if (!activeRoot) return false;
+	replaceTokenAtCursorOrInsert(textarea, entryValue, selectionState);
+	assistRoot.dataset.ac5eAssistActiveRoot = activeRoot;
+	assistRoot.dataset.ac5eAssistChain = '[]';
+	assistRoot.dataset.ac5eAssistFilter = '';
+	setAssistActivePath(assistRoot, '');
+	renderAssistStage(assistRoot, assist, selectionState, textarea);
+	return true;
+}
+
+function getProfileAssistEntryRoot(entryValue) {
+	const value = `${entryValue ?? ''}`.trim();
+	if (value === 'ability') return 'abilities';
+	if (value === 'skill') return 'skills';
+	if (value === 'tool') return 'tools';
+	return '';
 }
 
 function isCounterAssistScope(scope = '') {
@@ -2811,9 +2889,9 @@ function resolveAssistValueChoices(path, enumValues) {
 	if (/\.(?:itemProperties)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemProperties ?? [], CONFIG?.DND5E?.itemProperties, { appendKey: true });
 	if (/\.(?:originItemProperties)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemProperties ?? [], CONFIG?.DND5E?.itemProperties, { appendKey: true });
 	if (/\.(?:statuses)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.statuses ?? []);
-	if (/\.(?:abilities)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.abilities ?? []);
-	if (/\.(?:skills)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.skills ?? []);
-	if (/\.(?:tools)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.tools ?? []);
+	if (/^(?:abilities)$/.test(sourcePath) || /\.(?:abilities)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.abilities ?? [], CONFIG?.DND5E?.abilities);
+	if (/^(?:skills)$/.test(sourcePath) || /\.(?:skills)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.skills ?? [], CONFIG?.DND5E?.skills);
+	if (/^(?:tools)$/.test(sourcePath) || /\.(?:tools)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.tools ?? [], getToolLabelConfig());
 	if (/\.(?:type)$/.test(sourcePath)) {
 		if (/^(?:rollingActor|opponentActor|effectActor|nonEffectActor|auraActor)\./.test(sourcePath)) return toAssistValueChoices(enumValues?.actorTypes ?? []);
 		if (/^(?:item|originItem)\./.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypes ?? []);
@@ -2866,20 +2944,30 @@ function resolveAssistEnumLabel(key, labelConfig = null, { appendKey = false } =
 	return fallback;
 }
 
+function getToolLabelConfig() {
+	const tools = CONFIG?.DND5E?.tools ?? {};
+	return Object.fromEntries(Object.keys(tools).map((key) => {
+		const tool = fromUuidSync?.(tools[key]?.id);
+		const label = tool && typeof tool.then !== 'function' ? tool.name : '';
+		return [key, { label: label || key.capitalize() }];
+	}));
+}
+
 function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState = null) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 	const path = `${valuePath ?? ''}`.trim();
 	const value = `${quotedValue ?? ''}`.trim();
 	if (!path || !value) return insertAtCursor(input, value, selectionState);
+	const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
+	const groupPath = resolveAssistValueGroupPath(path);
+	if (groupPath) return toggleAssistOrClause(input, `${groupPath}.${normalizedValue}`, `${groupPath}.`, selectionState);
 	if (path === 'mastery' || path.endsWith('.mastery') || path === 'itemProperties' || path.endsWith('.itemProperties') || path.endsWith('.originItemProperties') || path.endsWith('.actionType')) {
-		const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 		const enumPath = `${path}.${normalizedValue}`;
 		if (tryAppendEnumPathClause(input, enumPath, selectionState)) return;
 		if (tryReplaceTrailingEnumPathToken(input, enumPath, path, selectionState)) return;
 		return insertAtCursor(input, `${enumPath} `, selectionState);
 	}
 	if (path.endsWith('.damageTypes') || path.endsWith('.defaultDamageType')) {
-		const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 		const enumPath = `${path}.${normalizedValue}`;
 		if (tryAppendEnumPathClause(input, enumPath, selectionState)) return;
 		if (tryReplaceTrailingEnumPathToken(input, enumPath, path, selectionState)) return;
@@ -2890,6 +2978,35 @@ function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState
 	if (tryAppendCreatureTypeIncludesClause(input, value, path, selectionState)) return;
 	if (tryReplaceTrailingPathWithCreatureTypeClause(input, value, path, selectionState)) return;
 	insertAtCursor(input, `${path}.includes(${value})`, selectionState);
+}
+
+function resolveAssistValueGroupPath(path) {
+	const value = `${path ?? ''}`.trim();
+	if (value === 'abilities' || value.endsWith('.abilities')) return 'ability';
+	if (value === 'skills' || value.endsWith('.skills')) return 'skill';
+	if (value === 'tools' || value.endsWith('.tools')) return 'tool';
+	return '';
+}
+
+function toggleAssistOrClause(input, clause, fallback, selectionState = null) {
+	const current = `${input.value ?? ''}`;
+	const parts = current.split(/\s*\|\|\s*/).map((part) => part.trim()).filter(Boolean);
+	const nextParts = parts.includes(clause) ? parts.filter((part) => part !== clause) : [...parts.filter((part) => part !== fallback), clause];
+	const nextValue = nextParts.join(' || ') || fallback;
+	input.value = nextValue;
+	const cursor = nextValue.length;
+	input.focus();
+	input.setSelectionRange(cursor, cursor);
+	if (selectionState) {
+		selectionState.start = cursor;
+		selectionState.end = cursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function isAssistOrClauseSelected(input, clause) {
+	return `${input?.value ?? ''}`.split(/\s*\|\|\s*/).map((part) => part.trim()).includes(clause);
 }
 
 function tryAppendEnumPathClause(input, enumPath, selectionState = null) {
@@ -3527,7 +3644,11 @@ function updateUsesCountScaling(rawValue, enabled) {
 	if (!baseValue) return '';
 	const normalizedScaling = normalizeScalingConfig(enabled);
 	if (!normalizedScaling) return baseValue;
-	const scalingLiteral = `{ min: ${normalizedScaling.min}, max: ${normalizedScaling.max}, step: ${normalizedScaling.step} }`;
+	const scalingParts = [];
+	if (normalizedScaling.min) scalingParts.push(`min: ${normalizedScaling.min}`);
+	if (normalizedScaling.max) scalingParts.push(`max: ${normalizedScaling.max}`);
+	if (normalizedScaling.step) scalingParts.push(`step: ${normalizedScaling.step}`);
+	const scalingLiteral = `{ ${scalingParts.join(', ')} }`;
 	return `${baseValue}, ${scalingLiteral}`;
 }
 
@@ -3560,12 +3681,11 @@ function buildUsesCountValueFromUi(root, { includeScaling = false, scalingInputs
 	if (!path) return fallback;
 	const amountInput = `${getInputValue(root, 'ui.usesCountAmount') ?? ''}`.trim();
 	const recover = hasCheckedInput(root, 'toggles.recover');
+	if (includeScaling) return updateUsesCountScaling(path, scalingInputs);
 	let amountLiteral = amountInput || '1';
 	const isSetMode = amountLiteral.startsWith('=');
 	if (!isSetMode && recover && !amountLiteral.startsWith('-')) amountLiteral = `-${amountLiteral}`;
 	let usesCountValue = `${path}, ${amountLiteral}`;
-	if (!includeScaling) return usesCountValue;
-	usesCountValue = updateUsesCountScaling(usesCountValue, scalingInputs);
 	return usesCountValue;
 }
 
@@ -3585,17 +3705,37 @@ function parseUsesCountScalingSpec(rawValue) {
 	const baseValue = match[1].trim();
 	const objectSource = match[2] ?? '';
 	const scaling = {
-		min: extractNumericScalingKey(objectSource, 'min'),
-		max: extractNumericScalingKey(objectSource, 'max'),
-		step: extractNumericScalingKey(objectSource, 'step'),
+		min: extractScalingKey(objectSource, 'min'),
+		max: extractScalingKey(objectSource, 'max'),
+		step: extractScalingKey(objectSource, 'step'),
 	};
 	return { baseValue, scaling };
 }
 
-function extractNumericScalingKey(source, key) {
+function extractScalingKey(source, key) {
 	if (typeof source !== 'string' || typeof key !== 'string') return '';
-	const match = source.match(new RegExp(`\\b${key}\\s*:\\s*(-?\\d*\\.?\\d+)`, 'i'));
-	return match ? match[1] : '';
+	const part = splitTopLevelCsv(source).find((candidate) => new RegExp(`^\\s*${key}\\s*[:=]`, 'i').test(candidate));
+	if (!part) return '';
+	return part.replace(new RegExp(`^\\s*${key}\\s*[:=]\\s*`, 'i'), '').trim();
+}
+
+function splitTopLevelCsv(value) {
+	const text = String(value ?? '');
+	const parts = [];
+	let depth = 0;
+	let current = '';
+	for (const char of text) {
+		if (char === ',' && depth === 0) {
+			parts.push(current);
+			current = '';
+			continue;
+		}
+		current += char;
+		if (char === '(' || char === '[' || char === '{') depth += 1;
+		else if ((char === ')' || char === ']' || char === '}') && depth > 0) depth -= 1;
+	}
+	parts.push(current);
+	return parts;
 }
 
 function buildRenderedUsesCountScalingFields(scaling, id) {
@@ -3648,18 +3788,9 @@ function normalizeScalingConfig(scalingInputs) {
 	const minRaw = String(scalingInputs.min ?? '').trim();
 	const stepRaw = String(scalingInputs.step ?? '').trim();
 	if (!maxRaw && !minRaw && !stepRaw) return null;
-	const max = coerceScalingNumber(maxRaw, DEFAULT_USESCOUNT_SCALING.max);
-	const min = coerceScalingNumber(minRaw, DEFAULT_USESCOUNT_SCALING.min);
-	let step = coerceScalingNumber(stepRaw, DEFAULT_USESCOUNT_SCALING.step);
-	if (step <= 0) step = DEFAULT_USESCOUNT_SCALING.step;
 	return {
-		min,
-		max: max < min ? min : max,
-		step,
+		min: minRaw || String(DEFAULT_USESCOUNT_SCALING.min),
+		max: maxRaw,
+		step: stepRaw || String(DEFAULT_USESCOUNT_SCALING.step),
 	};
-}
-
-function coerceScalingNumber(value, fallback) {
-	const parsed = Number(value);
-	return Number.isFinite(parsed) ? parsed : fallback;
 }

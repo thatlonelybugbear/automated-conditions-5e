@@ -82,7 +82,15 @@ export function serializeAc5eEffectValue({ fields = {}, toggles = {}, conditions
 	const fragments = [];
 	const aliasState = getAssignmentAliasState(changeKey);
 	for (const field of ASSIGNMENT_FIELDS) {
-		const value = String(fields[field] ?? '').trim();
+		let value = String(fields[field] ?? '').trim();
+		if (field === 'override' && aliasState.isTypeOverride && value) {
+			value = value
+				.split(',')
+				.map((entry) => entry.trim())
+				.filter(Boolean)
+				.sort((a, b) => a.localeCompare(b))
+				.join(',');
+		}
 		if (!value) continue;
 		const serializedField = getSerializedFieldName(field, aliasState);
 		fragments.push(`${serializedField}=${value}`);
@@ -157,10 +165,52 @@ export function mergeAc5eEffectValueFormData(baseData, formData, { fieldNames = 
 }
 
 function splitEffectValueFragments(value) {
-	return String(value ?? '')
-		.split(';')
-		.map((fragment) => fragment.trim())
-		.filter(Boolean);
+	const source = String(value ?? '');
+	const fragments = [];
+	let current = '';
+	let depth = 0;
+	let quote = null;
+	for (let index = 0; index < source.length; index++) {
+		const char = source[index];
+		if (quote) {
+			current += char;
+			if (char === '\\') {
+				const next = source[index + 1];
+				if (next !== undefined) {
+					current += next;
+					index++;
+				}
+				continue;
+			}
+			if (char === quote) quote = null;
+			continue;
+		}
+		if (char === "'" || char === '"' || char === '`') {
+			quote = char;
+			current += char;
+			continue;
+		}
+		if (char === '(') {
+			depth++;
+			current += char;
+			continue;
+		}
+		if (char === ')') {
+			depth = Math.max(0, depth - 1);
+			current += char;
+			continue;
+		}
+		if (char === ';' && depth === 0) {
+			const fragment = current.trim();
+			if (fragment) fragments.push(fragment);
+			current = '';
+			continue;
+		}
+		current += char;
+	}
+	const fragment = current.trim();
+	if (fragment) fragments.push(fragment);
+	return fragments;
 }
 
 function getAssignmentAliasState(changeKey = '') {

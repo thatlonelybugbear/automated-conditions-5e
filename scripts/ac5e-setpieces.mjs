@@ -1439,8 +1439,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'outofrangefail',
 		'override',
 		'partialconsume',
+		'priority',
 		'radius',
 		'reach',
+		'recover',
 		'set',
 		'short',
 		'singleaura',
@@ -2498,7 +2500,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (rule?.criticalStatic) fragments.push('criticalStatic');
 		if (rule?.partialConsume) fragments.push('partialConsume');
 		if (rule?.cadence) fragments.push(rule.cadence);
-		if (typeof rule?.condition === 'string' && rule.condition.trim()) fragments.push(rule.condition.trim());
 
 		let runtimeConditionOk = true;
 		if (typeof rule?.evaluate === 'function') {
@@ -2507,6 +2508,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			} catch (err) {
 				runtimeConditionOk = false;
 				console.warn(`AC5E usage rule "${rule?.key ?? rulePrimaryName}" evaluate() failed`, err);
+			}
+		}
+		if (!runtimeConditionOk) continue;
+		if (typeof rule?.condition === 'string' && rule.condition.trim()) {
+			try {
+				runtimeConditionOk = !!_ac5eSafeEval({ expression: rule.condition.trim(), sandbox: evaluationData, mode: 'condition', debug: { usageRuleKey: rule.key } });
+			} catch (err) {
+				runtimeConditionOk = false;
+				console.warn(`AC5E usage rule "${rule?.key ?? rulePrimaryName}" condition failed`, err);
 			}
 		}
 		if (!runtimeConditionOk) continue;
@@ -2987,22 +2997,15 @@ function _parseScalingSpec(rawValue) {
 	const trimmed = rawValue.trim();
 	if (!trimmed) return null;
 	const cleaned = trimmed.startsWith('{') && trimmed.endsWith('}') ? trimmed.slice(1, -1) : trimmed;
-	const parts = cleaned
-		.split(',')
-		.map((part) => part.trim())
-		.filter(Boolean);
+	const parts = _splitTopLevelCsv(cleaned).map((part) => part.trim()).filter(Boolean);
 	const values = {};
 	for (const part of parts) {
-		const match = part.match(/^([a-z]+)\s*[:=]\s*(-?\d+(?:\.\d+)?)$/i);
+		const match = part.match(/^([a-z]+)\s*[:=]\s*(.+)$/i);
 		if (!match) continue;
-		values[match[1].toLowerCase()] = Number(match[2]);
+		values[match[1].toLowerCase()] = match[2].trim();
 	}
-	const min = Number(values.min);
-	const max = Number(values.max);
-	const step = Number(values.step);
-	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;
-	if (max < min || step <= 0) return null;
-	return { min, max, step };
+	if (values.min === undefined && values.max === undefined && values.step === undefined) return null;
+	return values;
 }
 
 function _parseUpdateSpec(rawValue) {
@@ -3071,6 +3074,18 @@ function _applyUsesCountOperation(currentValue, consume, mode = 'delta') {
 	if (!Number.isFinite(Number(currentValue)) || !Number.isFinite(Number(consume))) return null;
 	if (mode === 'set') return Number(consume);
 	return Number(currentValue) - Number(consume);
+}
+
+function _parseUsesCountItemTarget(target) {
+	if (typeof target !== 'string') return null;
+	const match = target.trim().match(/^item\.(.+)$/i);
+	if (!match) return null;
+	const str = match[1].replace(/[\s,]+$/, '');
+	const activitySeparatorMatch = str.match(/^(.*?)\.activity\.(.+)$/i);
+	const itemID = (activitySeparatorMatch ? activitySeparatorMatch[1] : str).trim();
+	const activityID = activitySeparatorMatch ? activitySeparatorMatch[2].trim() || null : null;
+	if (!itemID) return null;
+	return { itemID, activityID };
 }
 
 function _resolveUpdateTargetPropertyPath(target = '') {
@@ -3337,7 +3352,9 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		}
 		let consume = _resolveUsesCountConsumeValue(consumptionValue, evalData, debug); //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
 		if (recover && Number.isFinite(Number(consume))) consume = -Math.abs(Number(consume));
-		const shouldResolveScaledConsume = !!parsedCount?.scaling || isOptin;
+		const usesCountAvailability = _getUsesCountAvailabilityData({ rawUsesCount: hasCount, effect, evalData, debug });
+		const resolvedScaling = _resolveUsesCountScalingSpec(parsedCount, usesCountAvailability, evalData, debug, { recover });
+		const shouldResolveScaledConsume = !!resolvedScaling || isOptin;
 		if (shouldResolveScaledConsume) {
 			const optinSelection = _getOptinSelectionValueById(evalData, id, baseId);
 			let selectedScale = null;
@@ -3353,7 +3370,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				id,
 				baseId,
 				isOptin,
-				hasScaling: !!parsedCount?.scaling,
+				hasScaling: !!resolvedScaling,
 				scalingSign: scaleSign,
 				optinSelection: JSON.stringify(optinSelection ?? null),
 				selectedScale,
@@ -3492,12 +3509,9 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			} else {
 				const actor = effect.target;
 				if (!(actor instanceof Actor)) return false;
-				if (consumptionTarget.startsWith('Item.')) {
-					const str = consumptionTarget.replace(/[\s,]+$/, '');
-					const activitySeparatorIndex = str.indexOf('.Activity.');
-					const itemID = (activitySeparatorIndex >= 0 ? str.slice(5, activitySeparatorIndex) : str.slice(5)).trim();
-					const activityID = activitySeparatorIndex >= 0 ? str.slice(activitySeparatorIndex + 10).trim() || null : null;
-					if (!itemID) return false;
+				const itemTarget = _parseUsesCountItemTarget(consumptionTarget);
+				if (itemTarget) {
+					const { itemID, activityID } = itemTarget;
 					const document = _getItemOrActivity(itemID, activityID, actor);
 					if (!document) return false;
 					let item, activity;
@@ -3953,6 +3967,48 @@ function _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug) {
 	return null;
 }
 
+function _buildUsesCountScalingContext(availability) {
+	const usesAvailable = _asFiniteNumber(availability?.available);
+	const usesMissing = _asFiniteNumber(availability?.missing);
+	const usesMax = usesAvailable !== null && usesMissing !== null ? usesAvailable + usesMissing : usesAvailable;
+	return { usesAvailable, usesMissing, usesMax };
+}
+
+function _resolveUsesCountScalingNumber(rawValue, context, evalData, debug, fallback = null) {
+	if (rawValue === undefined || rawValue === null || rawValue === '') return fallback;
+	if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : fallback;
+	if (typeof rawValue !== 'string') return fallback;
+	const expression = String(rawValue).trim();
+	const direct = Number(expression);
+	if (Number.isFinite(direct)) return direct;
+	const scalingSandbox = {
+		...evalData,
+		usesAvailable: context.usesAvailable,
+		usesMissing: context.usesMissing,
+		usesMax: context.usesMax,
+	};
+	let evaluated = _ac5eSafeEval({ expression, sandbox: scalingSandbox, mode: 'formula', debug });
+	const numericEvaluated = Number(evaluated);
+	if (Number.isFinite(numericEvaluated)) return numericEvaluated;
+	if (typeof evaluated !== 'string' && typeof evaluated !== 'number') return fallback;
+	evaluated = evalDiceExpression(evaluated);
+	return !isNaN(evaluated) ? evaluated : fallback;
+}
+
+function _resolveUsesCountScalingSpec(parsedCount, availability, evalData, debug, { recover = false } = {}) {
+	if (!parsedCount?.scaling) return null;
+	const context = _buildUsesCountScalingContext(availability);
+	const min = Math.floor(_resolveUsesCountScalingNumber(parsedCount.scaling.min, context, evalData, debug, 1));
+	const defaultMax = context.usesMax ?? context.usesAvailable;
+	let max = Math.floor(_resolveUsesCountScalingNumber(parsedCount.scaling.max, context, evalData, debug, defaultMax));
+	const step = Math.floor(_resolveUsesCountScalingNumber(parsedCount.scaling.step, context, evalData, debug, 1));
+	const cap = recover || Number(parsedCount?.scalingSign) < 0 ? context.usesMissing : context.usesAvailable;
+	if (Number.isFinite(cap)) max = Math.min(max, cap);
+	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;
+	if (max < min || step <= 0) return null;
+	return { min, max, step };
+}
+
 function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }) {
 	const result = (available = null, missing = null) => ({ available, missing });
 	if (typeof rawUsesCount !== 'string' || !rawUsesCount.trim()) return result();
@@ -3981,12 +4037,9 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	}
 	const actor = effect?.target;
 	if (!(actor instanceof Actor)) return result();
-	if (consumptionTarget.startsWith('Item.')) {
-		const str = consumptionTarget.replace(/[\s,]+$/, '');
-		const activitySeparatorIndex = str.indexOf('.Activity.');
-		const itemID = (activitySeparatorIndex >= 0 ? str.slice(5, activitySeparatorIndex) : str.slice(5)).trim();
-		const activityID = activitySeparatorIndex >= 0 ? str.slice(activitySeparatorIndex + 10).trim() || null : null;
-		if (!itemID) return result();
+	const itemTarget = _parseUsesCountItemTarget(consumptionTarget);
+	if (itemTarget) {
+		const { itemID, activityID } = itemTarget;
 		const document = _getItemOrActivity(itemID, activityID, actor);
 		if (!document) return result();
 		let item;

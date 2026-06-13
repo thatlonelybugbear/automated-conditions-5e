@@ -493,6 +493,12 @@
 	box-shadow: inset 0 0 0 1px var(--color-text-primary);
 }
 
+.ac5e-effect-value-assist-node[data-ac5e-assist-value].active {
+	background: var(--dnd5e-color-gold);
+	border-color: var(--dnd5e-color-gold-bright);
+	color: var(--dnd5e-color-black);
+}
+
 .ac5e-effect-value-assist-chip.ac5e-effect-value-assist-focused {
 	box-shadow: inset 0 0 0 1px var(--dnd5e-color-gold-bright);
 }
