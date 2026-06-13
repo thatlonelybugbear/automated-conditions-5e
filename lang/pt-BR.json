@@ -65,7 +65,7 @@
 	},
 	"AC5E.AutoExhaustionName": "Regras de Exaustão",
 	"AC5E.AutoExhaustionHint": "Ativa o tratamento de Exaustão do AC5E ao utilizar as regras Legadas do D&D 5e.",
-	"AC5E.AutoEncumbranceName": "Regra Variante Sobrecarga",
+	"AC5E.AutoEncumbranceName": "Regras da Variante Sobrecarga",
 	"AC5E.AutoEncumbranceHint": "Ativa o tratamento de Variante Sobrecarga no AC5E. O Mestre também deve habilitar a opção Variante (sobrecarregado e muito sobrecarregado) no sistema D&D 5e. Caso contrário, esta configuração não terá efeito.",
 	"AC5E.Targeting": {
 		"Name": "Regras de Alvos para Ataques",
