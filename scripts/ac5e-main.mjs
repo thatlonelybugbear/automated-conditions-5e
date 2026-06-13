@@ -23,6 +23,7 @@ export { createTroubleshooterSnapshot, exportTroubleshooterSnapshot, importTroub
 let daeFlags;
 const AC5E_LOCAL_BUILD_ID = 'v14.360.15042026';
 
+registerActiveEffectChangeType();
 Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('i18nInit', ac5ei18nInit);
 Hooks.once('ready', ac5eReady);
@@ -40,6 +41,7 @@ function ac5eRegisterOnInit() {
 }
 
 function registerActiveEffectChangeType() {
+	if (!CONFIG?.ActiveEffect?.changeTypes) return;
 	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = {
 		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
 		defaultPriority: 0,
@@ -132,6 +134,7 @@ function registerHooks(settings) {
 	const foundryHooks = [
 		{ id: 'preCreateItem', type: 'preCreateItem' },
 		{ id: 'preCreateActiveEffect', type: 'preCreateActiveEffect' },
+		{ id: 'preUpdateActiveEffect', type: 'preUpdateActiveEffect' },
 	];
 	const renderHooks = [
 		{ id: 'renderChatMessageHTML', type: 'chat' },

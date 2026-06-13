@@ -1,6 +1,7 @@
 ## 14.533.5
 
-- Added an `AC5E` Active Effect change mode for Foundry v14 authoring, enabling AC5E key autocomplete and the effect value editor wand on AC5E rows.
+- Added an `AC5E` Active Effect change mode for Foundry v14 authoring, enabling AC5E key autocomplete and the effect value editor wand icon.
+  - Made sure that Active Effects aren't bricked if the module is disabled, and the `AC5E` change type is not registered.
 - Compatibility bump for Foundry v14.364.
 
 ## 14.533.4.2

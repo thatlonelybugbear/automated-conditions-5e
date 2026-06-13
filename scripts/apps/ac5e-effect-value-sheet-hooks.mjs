@@ -11,6 +11,7 @@ function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
 	moveAc5eChangeTypeOptionsToBottom(root);
+	restoreAc5eChangeTypeSelections(app, root);
 	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
@@ -163,10 +164,25 @@ function moveAc5eChangeTypeOptionsToBottom(root) {
 	}
 }
 
-function getChangeIndex(row, valueInput) {
+function restoreAc5eChangeTypeSelections(app, root) {
+	const rows = app.document?.getFlag?.(Constants.MODULE_ID, Constants.ACTIVE_EFFECT_CHANGE_ROWS_FLAG);
+	if (!rows || typeof rows !== 'object') return;
+	for (const select of root.querySelectorAll('select[name$=".type"]')) {
+		if (`${select.value ?? ''}`.trim().toLowerCase() !== 'custom') continue;
+		const row = select.closest('li, .form-group, tr, fieldset') ?? select.parentElement;
+		const index = getChangeIndex(row, select);
+		if (index == null || !Object.hasOwn(rows, index)) continue;
+		const key = `${findKeyInput(row, select)?.value ?? ''}`.trim();
+		const savedKey = `${rows[index] ?? ''}`.trim();
+		if (!savedKey || (key !== savedKey && !isAc5eChangeKey(key))) continue;
+		select.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
+	}
+}
+
+function getChangeIndex(row, input) {
 	const rowIndex = Number(row?.dataset?.index);
 	if (Number.isInteger(rowIndex)) return rowIndex;
-	const match = valueInput.name.match(/(?:^|\.)changes\.(\d+)\.value$/);
+	const match = input.name.match(/(?:^|\.)changes\.(\d+)\.(?:key|type|value)$/);
 	return match ? Number(match[1]) : null;
 }
 

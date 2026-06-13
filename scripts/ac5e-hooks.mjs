@@ -81,6 +81,7 @@ const rollFunctionDispatch = {
 	init: (hook, [actor, rollConfig]) => _preConfigureInitiative(actor, rollConfig, hook),
 	preCreateItem: (hook, [item, updates]) => _preCreateItem(item, updates),
 	preCreateActiveEffect: (hook, [effect, updates, options, userId]) => _preCreateActiveEffect(effect, updates, options, userId),
+	preUpdateActiveEffect: (hook, [effect, updates]) => _preUpdateActiveEffect(effect, updates),
 };
 
 export function _rollFunctions(hook, ...args) {
@@ -158,6 +159,7 @@ function _formatAllowEffectApplicationBypassKeys(bindings) {
 
 export function _preCreateActiveEffect(effect, updates, options, userId) {
 	try {
+		_normalizeAc5eActiveEffectChangeTypes(effect, updates, { updateSource: true });
 		const trace = _hookDebugEnabled('allowEffectApplicationTrace');
 		const traceSkip = (reason, extra = {}) => {
 			if (!trace) return;
@@ -269,6 +271,105 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 		}
 		return true;
 	}
+}
+
+export function _preUpdateActiveEffect(effect, updates) {
+	_normalizeAc5eActiveEffectChangeTypes(effect, updates);
+	// @to-do: what else could we add in AC5e here?
+	return true;
+}
+
+function _normalizeAc5eActiveEffectChangeTypes(effect, updates, { updateSource = false } = {}) {
+	const ac5eChangeRows = _syncAc5eChangeRowsFlag(effect, updates);
+	_normalizeAc5eChangeTypeData(updates);
+	if (!updateSource) return;
+	if (ac5eChangeRows) effect.updateSource({ [`flags.${Constants.MODULE_ID}.${Constants.ACTIVE_EFFECT_CHANGE_ROWS_FLAG}`]: ac5eChangeRows });
+	const changes = foundry.utils.getProperty(effect, 'system.changes') ?? foundry.utils.getProperty(effect, '_source.system.changes');
+	const normalized = _normalizeAc5eChangeTypeCollection(changes);
+	if (normalized.changed) effect.updateSource({ 'system.changes': normalized.changes });
+}
+
+function _normalizeAc5eChangeTypeData(data) {
+	if (!data || typeof data !== 'object') return false;
+	let changed = false;
+	const direct = _normalizeAc5eChangeTypeCollection(data.changes);
+	if (direct.changed) {
+		data.changes = direct.changes;
+		changed = true;
+	}
+	const system = _normalizeAc5eChangeTypeCollection(data.system?.changes);
+	if (system.changed) {
+		data.system ??= {};
+		data.system.changes = system.changes;
+		changed = true;
+	}
+	for (const [key, value] of Object.entries(data)) {
+		if (!/^(?:system\.)?changes\.[^.]+\.type$/.test(key)) continue;
+		if (`${value ?? ''}`.trim().toLowerCase() !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
+		data[key] = 'custom';
+		changed = true;
+	}
+	return changed;
+}
+
+function _normalizeAc5eChangeTypeCollection(changes) {
+	if (!changes || typeof changes !== 'object') return { changed: false, changes };
+	const duplicate = foundry.utils.duplicate(changes);
+	let changed = false;
+	const entries = Array.isArray(duplicate) ? duplicate : Object.values(duplicate);
+	for (const change of entries) {
+		if (!change || typeof change !== 'object') continue;
+		if (`${change.type ?? ''}`.trim().toLowerCase() !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
+		change.type = 'custom';
+		changed = true;
+	}
+	return { changed, changes: duplicate };
+}
+
+function _syncAc5eChangeRowsFlag(effect, data) {
+	if (!data || typeof data !== 'object') return;
+	const existingChanges = _getEffectChanges(effect);
+	const collected = _collectAc5eChangeRows(data, existingChanges);
+	if (!collected.hasChangeData) return;
+	foundry.utils.setProperty(data, `flags.${Constants.MODULE_ID}.${Constants.ACTIVE_EFFECT_CHANGE_ROWS_FLAG}`, collected.rows);
+	return collected.rows;
+}
+
+function _collectAc5eChangeRows(data, existingChanges = []) {
+	const rows = {};
+	let hasChangeData = false;
+	const collect = (changes) => {
+		if (!changes || typeof changes !== 'object') return;
+		hasChangeData = true;
+		const entries = Array.isArray(changes) ? changes.entries() : Object.entries(changes);
+		for (const [index, change] of entries) {
+			if (!change || typeof change !== 'object') continue;
+			if (`${change.type ?? ''}`.trim().toLowerCase() !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
+			const key = `${change.key ?? ''}`.trim();
+			if (_isAc5eChangeKey(key)) rows[index] = key;
+		}
+	};
+	collect(data.changes);
+	collect(data.system?.changes);
+	for (const [path, value] of Object.entries(data)) {
+		const match = path.match(/^(?:system\.)?changes\.(\d+)\.type$/);
+		if (!match) continue;
+		hasChangeData = true;
+		if (`${value ?? ''}`.trim().toLowerCase() !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
+		const index = match[1];
+		const key = `${data[`system.changes.${index}.key`] ?? data[`changes.${index}.key`] ?? existingChanges[index]?.key ?? ''}`.trim();
+		if (_isAc5eChangeKey(key)) rows[index] = key;
+	}
+	return { hasChangeData, rows };
+}
+
+function _getEffectChanges(effect) {
+	return foundry.utils.getProperty(effect, 'system.changes') ?? foundry.utils.getProperty(effect, '_source.system.changes') ?? effect?.changes ?? [];
+}
+
+function _isAc5eChangeKey(changeKey) {
+	const normalized = `${changeKey ?? ''}`.trim().toLowerCase();
+	return normalized.startsWith(`flags.${Constants.MODULE_NAME_SHORT}`) || normalized.startsWith(`flags.${Constants.MODULE_ID}.`);
 }
 
 export function _preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook) {
