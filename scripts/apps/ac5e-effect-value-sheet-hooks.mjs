@@ -1,5 +1,6 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
 import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eAutocompleteDebugEnabled, isAc5eChangeKey, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import Constants from '../ac5e-constants.mjs';
 import Settings from '../ac5e-settings.mjs';
 
 export function registerEffectValueEditorHooks() {
@@ -9,6 +10,7 @@ export function registerEffectValueEditorHooks() {
 function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
+	moveAc5eChangeTypeOptionsToBottom(root);
 	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
@@ -24,6 +26,7 @@ function initializeKeyAutocomplete(app, root) {
 	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
 		if (keyInput.dataset.ac5eKeyAutocompleteReady) continue;
 		keyInput.dataset.ac5eKeyAutocompleteReady = 'true';
+		const row = keyInput.closest('li, .form-group, tr, fieldset') ?? keyInput.parentElement;
 		const autocomplete = new Autocomplete({
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				void prefix;
@@ -35,7 +38,7 @@ function initializeKeyAutocomplete(app, root) {
 			},
 		});
 		const activateAutocomplete = () => {
-			if (!shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
+			if (!isAc5eChangeRow(row, keyInput) && !shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
 				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
 					console.debug('AC5E | autocomplete.effectKeys | dismiss (trigger=false)', { value: keyInput.value ?? '' });
 				}
@@ -75,9 +78,11 @@ function initializeEditorButtonSync(app, root) {
 	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
 		if (keyInput.dataset.ac5eEditorButtonSyncReady) continue;
 		keyInput.dataset.ac5eEditorButtonSyncReady = 'true';
+		const row = keyInput.closest('li, .form-group, tr, fieldset') ?? keyInput.parentElement;
 		const refresh = () => refreshEditorButtons(app, root);
 		keyInput.addEventListener('input', refresh);
 		keyInput.addEventListener('change', refresh);
+		findTypeInput(row, keyInput)?.addEventListener('change', refresh);
 	}
 }
 
@@ -88,7 +93,7 @@ function refreshEditorButtons(app, root) {
 		const keyInput = findKeyInput(row, valueInput);
 		if (!keyInput) continue;
 		const existingButton = row.querySelector('.ac5e-effect-value-editor-button');
-		if (!new Settings().enableAc5eUi || !isAc5eChangeKey(keyInput.value)) {
+		if (!new Settings().enableAc5eUi || (!isAc5eChangeRow(row, valueInput) && !isAc5eChangeKey(keyInput.value))) {
 			existingButton?.remove();
 			cleanupValueEditorWrapper(valueInput);
 			continue;
@@ -138,6 +143,24 @@ function findKeyInput(row, valueInput) {
 	const keyName = valueInput.name.replace(/\.value$/, '.key');
 	const escapedKeyName = globalThis.CSS?.escape?.(keyName) ?? keyName.replaceAll('"', '\\"');
 	return row.querySelector('input[name$=".key"], textarea[name$=".key"]') ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`);
+}
+
+function findTypeInput(row, input) {
+	const typeName = input.name.replace(/\.(?:key|value)$/, '.type');
+	const escapedTypeName = globalThis.CSS?.escape?.(typeName) ?? typeName.replaceAll('"', '\\"');
+	return row?.querySelector('select[name$=".type"], input[name$=".type"]') ?? input.ownerDocument.querySelector(`[name="${escapedTypeName}"]`);
+}
+
+function isAc5eChangeRow(row, input) {
+	const typeInput = findTypeInput(row, input);
+	return `${typeInput?.value ?? ''}`.trim().toLowerCase() === Constants.ACTIVE_EFFECT_CHANGE_TYPE;
+}
+
+function moveAc5eChangeTypeOptionsToBottom(root) {
+	for (const select of root.querySelectorAll('select[name$=".type"]')) {
+		const option = select.querySelector(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`);
+		if (option) select.append(option);
+	}
 }
 
 function getChangeIndex(row, valueInput) {

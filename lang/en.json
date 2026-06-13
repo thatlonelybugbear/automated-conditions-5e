@@ -7,6 +7,7 @@
 		"Name": "Disable AC5E UI",
 		"Hint": "Disables the AC5E wand button for the Active Effect value editor."
 	},
+	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
 	"AC5E.ShowTooltipsName": "Show AC5E Tooltips",
 	"AC5E.ShowTooltipsHint": "Shows AC5E tooltips in roll dialogs, chat messages, or both, explaining the reasons behind the suggested outcome.",
 	"AC5E.ShowToolTipsChoicesBoth": "Roll dialogs and chat messages",

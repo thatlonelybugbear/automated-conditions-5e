@@ -26,6 +26,8 @@
 }
 
 .active-effect-config .ac5e-effect-value-editor-button {
+	border-color: var(--color-level-success);
+	color: var(--color-level-success);
 	flex: 0 0 28px;
 	width: 28px;
 	height: 28px;

@@ -28,6 +28,7 @@ Hooks.once('i18nInit', ac5ei18nInit);
 Hooks.once('ready', ac5eReady);
 
 function ac5eRegisterOnInit() {
+	registerActiveEffectChangeType();
 	registerQueries();
 	registerKeybindings();
 	daeFlags = _generateAC5eFlags();
@@ -36,6 +37,14 @@ function ac5eRegisterOnInit() {
 	});
 	scopeUser = 'user';
 	return new Settings().registerSettings();
+}
+
+function registerActiveEffectChangeType() {
+	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = {
+		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
+		defaultPriority: 0,
+		handler: (value) => value,
+	};
 }
 
 function registerKeybindings() {
