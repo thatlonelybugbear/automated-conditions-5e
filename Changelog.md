@@ -1,3 +1,8 @@
+## 14.533.5.1
+
+- Tolerate subjectless inline attacks.
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.5
 
 - Added an `AC5E` Active Effect change mode for Foundry v14 authoring, enabling AC5E key autocomplete and the effect value editor wand icon.
