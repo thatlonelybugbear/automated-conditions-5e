@@ -15,6 +15,8 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	const { subject: { actor: sourceActor, ability } = {}, subject: configActivity, ammunition, attackMode, mastery } = config || {};
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;
+	const attackActor = sourceActor ?? activity?.actor;
+	if (!attackActor) return true;
 	const resolvedAbilityOverride = _getResolvedUseAbilityOverride({
 		config,
 		options,
@@ -62,7 +64,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		}
 	}
 	options.ammo = ammunition;
-	options.ammunition = sourceActor.items.get(ammunition)?.toObject();
+	options.ammunition = attackActor.items.get(ammunition)?.toObject();
 	options.attackMode = attackMode;
 	const actionType = activity?.getActionType(attackMode);
 	options.actionType = actionType;
@@ -76,7 +78,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		messageForTargets,
 		activity,
 		options,
-		sourceActor,
+		sourceActor: attackActor,
 		needsTarget,
 		getSubjectTokenForHook: (hookType, messageData, actor) => deps.getSubjectTokenForHook(hookType, messageData, actor, deps),
 		getSingleTargetToken: deps.getSingleTargetToken,
@@ -99,7 +101,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 				ac5eConfig,
 				item,
 				actionType,
-				sourceActor,
+				sourceActor: attackActor,
 				sourceToken,
 				modernRules: deps.settings.dnd5eModernRules,
 				automateHeavy: deps.settings.automateHeavy,
