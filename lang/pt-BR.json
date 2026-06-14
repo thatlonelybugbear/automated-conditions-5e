@@ -1,37 +1,38 @@
 {
 	"AC5E.AutomateStatuses": {
-		"Name": "Automatizar Status do D&D 5E",
-		"Hint": "Quando ativado, o AC5E irá automatizar os modificadores de desvantagem/vantagem e modo de rolagem, com base nos status do sistema."
+		"Name": "Regras de Condições do D&D 5e",
+		"Hint": "Ativa o tratamento de condições do AC5E para D&D 5e, expandindo a automação nativa de vantagem do sistema D&D 5e com uma aplicação de regras mais ampla e precisa, especialmente para jogadas de ataque."
 	},
 	"AC5E.Ui": {
     	"Name": "Desabilitar Interface do AC5E",
     	"Hint": "Desativa o botão da varinha AC5E para o editor de valores de Efeito Ativo."
   	},
+	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5E",
-	"AC5E.ShowTooltipsHint": "Quando uma opção relevante é selecionada, o AC5E mostrará uma dica útil ao passar o mouse sobre o botão Rolar sugerido ou uma mensagem gerada ou ambos, resumindo os motivos dessa sugestão.",
-	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e chat",
-	"AC5E.ShowToolTipsChoicesDialog": "Somente em rolagens",
-	"AC5E.ShowToolTipsChoicesChat": "Somente em chat",
-	"AC5E.ShowToolTipsChoicesNone": "Não exibir",
-	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome AC5E nas Dicas",
-	"AC5E.ShowTooltipChatVisibility.Name": "Mostrar Dicas de Chat para Jogadores",
-	"AC5E.ShowTooltipChatVisibility.Hint": "'Todas': todas rolagens de atores. 'Nenhuma': nenhuma rolagem. 'Próprias': rolagens de atores próprios. 'Jogadores': rolagens de atores de jogadores.",
-	"AC5E.ShowTooltipChatVisibility.All": "Todas",
-	"AC5E.ShowTooltipChatVisibility.None": "Nenhuma",
+	"AC5E.ShowTooltipsHint": "Exibe dicas de ferramenta do AC5E nas janelas de rolagem, mensagens de chat ou em ambos, explicando os motivos por trás do resultado sugerido.",
+	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e Chat",
+	"AC5E.ShowToolTipsChoicesDialog": "Somente em Rolagens",
+	"AC5E.ShowToolTipsChoicesChat": "Somente em Chat",
+	"AC5E.ShowToolTipsChoicesNone": "Não Exibir",
+	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome do Módulo nas Dicas",
+	"AC5E.ShowTooltipChatVisibility.Name": "Mostrar Dicas de Chat para",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Escolha quais rolagens exibem as dicas de ferramenta do AC5E no chat. O Mestre sempre vê todas as dicas de ferramenta.",
+	"AC5E.ShowTooltipChatVisibility.All": "Todos",
+	"AC5E.ShowTooltipChatVisibility.None": "Ninguém",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Próprias",
 	"AC5E.ShowTooltipChatVisibility.Players": "Jogadores",
-	"AC5E.ExpandedConditionsName": "Condições Expandidas AC5E",
-	"AC5E.ExpandedConditionsHint": "Quando marcado, AC5E tentará automatizar algumas condições extras, como Esquivar ou Esconder.",
+	"AC5E.ExpandedConditionsName": "Condições Expandidas",
+	"AC5E.ExpandedConditionsHint": "Ativa a automação para condições e estados de combate adicionais, como Esquivar, Furtividade, restrições de magia durante Fúria e Combate Submerso.",
 	"AC5E.VisibilityChecksSetting": {
-    	"Name": "Verificações de Visibilidade",
-    	"Hint": "Quando ativado, o AC5E injeta as opções 'Não Consegue Ver o Alvo' / 'Alvo Não Consegue Ver o Atacante' e permite que essas entradas determinem a vantagem/desvantagem do ataque, em vez de apenas os status Cego/Invisível. As opções são suprimidas quando o MidiQOL já aplica suas regras opcionais de Invisibilidade/Atacante Oculto para evitar motivos duplicados."
+    	"Name": "Regras de Visibilidade",
+    	"Hint": "Utiliza as regras de visibilidade de ataque do AC5E com base na visão e nos sentidos dos tokens. Quando ativado, o AC5E adiciona os motivos de ataque 'Não Pode Ver o Alvo' e 'O Alvo Não Pode Ver o Atacante'. Esses motivos são ignorados quando o Midi QOL já aplica suas próprias regras de invisibilidade ou atacante oculto."
   	},
 	"AC5E.ActivityUse": {
-		"Name": "Testes para Usos de Itens",
-		"Hint": "Permitir, Forçar (cancelar + notificar) ou Avisar (permitir + notificar). Testes: ações enquanto Incapacitado; conjuração enquanto em Fúria, Silenciado ou com Armadura sem proficiência.",
+		"Name": "Regras de Uso de Itens",
+		"Hint": "Controla se o AC5E permite, avisa ou bloqueia o uso inválido de atividades antes da rolagem. Aplica-se a verificações realizadas na fase de uso, como ações enquanto Incapacitado, restrições de conjuração de magias e falhas por alvo fora de alcance em atividades que não sejam ataques. Falhas por alvo fora de alcance em ataques são tratadas posteriormente durante a configuração da jogada de ataque, utilizando o modo de ataque selecionado.",
 		"Choices": {
 			"Off": "Permitir",
-			"Enforce": "Forçar",
+			"Enforce": "Bloquear/Falhar Conforme Apropriado",
 			"Warn": "Avisar"
 		},
 		"Type": {
@@ -54,23 +55,23 @@
 		}
 	},
 	"AC5E.AutoRangeChecks": {
-		"Name": "Automação de Verificação de Distância",
-		"Hint": "Alcance Diagonal Corpo a Corpo: Todos os quadrados adjacentes contam como estando ao alcance, independentemente das regras diagonais. Fora de Alcance Corpo a Corpo: Ataques além do alcance da arma falham. Inimigos Próximos à Distância: Tokens hostis adjacentes ao atacante impõem desvantagem em ataques à distância. Desvantagem Alcance Longo à Distância: Ataques além do alcance curto, mas dentro do alcance longo, sofrem desvantagem. Fora de Alcance à Distância: Ataques além do alcance longo falham.",
+		"Name": "Regras de Alcance",
+		"Hint": "Ativa regras automatizadas de alcance corpo a corpo e à distância, incluindo alcance corpo a corpo, falhas por alvo fora de alcance, desvantagem por inimigo adjacente e desvantagem por alcance longo. O alcance diagonal corpo a corpo considera todos os quadrados adjacentes como estando ao alcance, substituindo as regras de distância diagonal da grade. Falhas por alvo fora de alcance são aplicadas quando o alcance é validado: em atividades que não sejam ataques no momento do uso e em atividades de ataque durante a configuração da jogada de ataque, utilizando o modo de ataque selecionado.",
 		"MeleeDiagonals": "Alcance Diagonal Corpo a Corpo",
 		"MeleeOutOfRange": "Fora de Alcance Corpo a Corpo",
-		"RangedNearbyFoes": "Inimigos Próximos à Distância",
+		"RangedNearbyFoes": "Inimigos Adjacentes à Distância",
 		"RangedLongDisadvantage": "Desvantagem Alcance Longo à Distância",
 		"RangedOutOfRange": "Fora de Alcance à Distância"
 	},
-	"AC5E.AutoExhaustionName": "Automação de Exaustão",
-	"AC5E.AutoExhaustionHint": "Se marcado, AC5E irá processar automaticamente as regras das condições normais de Exaustão da 5e. Desabilite se você quiser compatibilidade com outros módulos de exaustão ou suas próprias regras (regras do One D&D serão adicionadas em uma futura atualização).",
-	"AC5E.AutoEncumbranceName": "Variante Sobrecarga",
-	"AC5E.AutoEncumbranceHint": "Se marcado, AC5E irá processar automaticamente as regras da variante Sobrecarga da 5e. O Mestre também deve selecionar, nas configurações de sistema do D&D5e, a opção 'Variante (sobrecarregado & muito sobrecarregado)', do contrário isso não terá efeito.",
+	"AC5E.AutoExhaustionName": "Regras de Exaustão",
+	"AC5E.AutoExhaustionHint": "Ativa o tratamento de Exaustão do AC5E ao utilizar as regras Legadas do D&D 5e.",
+	"AC5E.AutoEncumbranceName": "Regras da Variante Sobrecarga",
+	"AC5E.AutoEncumbranceHint": "Ativa o tratamento de Variante Sobrecarga no AC5E. O Mestre também deve habilitar a opção Variante (sobrecarregado e muito sobrecarregado) no sistema D&D 5e. Caso contrário, esta configuração não terá efeito.",
 	"AC5E.Targeting": {
-		"Name": "Opções de Alvos para Ataques",
-		"Hint": "Quando nenhum ou vários alvos são selecionados para um Ataque, Dano ou jogada semelhante, escolha como o AC5E deve responder.",
+		"Name": "Regras de Alvos para Ataques",
+		"Hint": "Controla como o AC5E lida com jogadas de ataque quando nenhum alvo ou múltiplos alvos estão selecionados.",
 		"Choices": {
-			"Source": "Usar Apenas Condições do Ator de Origem",
+			"Source": "Ignorar Status e Flags dos Alvos",
 			"Enforce": "Cancelar Rolagem Silenciosamente",
 			"Warn": "Cancelar Rolagem com Aviso"
 		},
@@ -83,10 +84,10 @@
 			"Enforce": "AC5E: Nenhum alvo selecionado. Rolagem cancelada!"
 		}
 	},
-	"AC5E.DebuggingName": "Debug",
-	"AC5E.DebuggingHint": "Apenas alguns logs úteis para depuração durante o desenvolvimento. Provavelmente faz pouco sentido para os usuários ativarem esta opção :)",
+	"AC5E.DebuggingName": "Registro de Depuração do AC5E",
+	"AC5E.DebuggingHint": "Ativa registros adicionais de depuração do AC5E destinados ao desenvolvimento e à solução de problemas",
 	"AC5E.TokenlessActorWarning": {
-		"Hint": "O módulo não afeta rolagens atuais de atores sem um token na cena!",
+		"Hint": "Exibe um aviso ao realizar uma rolagem para um ator que não possui um token na cena atual",
 		"Name": "Exibir Aviso de Ator sem Token",
 		"Text": "Aviso do AC5E: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
 	},
@@ -111,23 +112,23 @@
 		"SpellSniper": "Atirador de Magia"
 	},
 	"AC5E.Equipment": "Equipmento",
-	"AC5E.NearbyFoe": "Inimigo Próximo",
+	"AC5E.NearbyFoe": "Inimigo Adjacente",
 	"AC5E.ButtonColorPicker": {
 		"Enabled": {
-			"Name": "Botões Coloridos",
-			"Hint": "Destaque os botões de diálogo de rolagem. Cores padrão: #288bcc (fundo), branco (texto/borda). Insira 'user' para usar 'game.user.color' (melhor para fundo). Insira 'false/none/null/0' para desativar qualquer um dos seletores de cores disponíveis. Exclua qualquer campo para retornar aos padrões."
+			"Name": "Cores Personalizadas dos Botões de Rolagem",
+			"Hint": "Personalize as cores dos botões da janela de rolagem. Deixe um campo em branco para usar a cor padrão. Use 'user' para utilizar game.user.color. Use 'false', 'none', 'null', ou '0' para desativar uma substituição de cor específica."
 		},
 		"Background": {
-			"Name": "🎨 Cor de Fundo do Botão",
-			"Hint": "Exclui qualquer string da entrada para definir como padrão o game.user.color."
+			"Name": "Cor de Fundo do Botão",
+			"Hint": "Deixe em branco para usar game.user.color."
 		},
 		"Border": {
-			"Name": "🖍️ Cor da Borda do Botão",
-			"Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
+			"Name": "Cor da Borda do Botão",
+			"Hint": "Deixe vazio para usar branco."
 		},
 		"Text": {
-			"Name": "🔤 Cor do Texto do Botão",
-			"Hint": "Exclua qualquer string da entrada para que o padrão seja branco."
+			"Name": "Cor do Texto do Botão",
+			"Hint": "Deixe vazio para usar branco."
 		}
 	},
 	"AC5E.AdvantageKeypress": "Atalho Vantagem",
