@@ -7,6 +7,14 @@
 		"Name": "Disabilita AC5E UI",
 		"Hint": "Disabilita il pulsante della bacchetta AC5E per l'editor dei valori degli Effetti Attivi."
 	},
+	"AC5E.LinksMenu": {
+		"Name": "Supporto Modulo",
+		"Label": "Links",
+		"Hint": "Apri Documentazione AC5E, Tracciamento problemi e link di supporto.",
+		"SupportMessage": "Lancia una Moneta al tuo Bugbear!",
+		"Title": "Risorse & Supporto"
+	},
+	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
 	"AC5E.ShowTooltipsName": "Mostra suggerimenti AC5E",
 	"AC5E.ShowTooltipsHint": "Mostra i suggerimenti AC5E nei dialoghi di tiro, nei messaggi in chat o in entrambi, spiegando i motivi del risultato suggerito.",
 	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi Tiro e Messaggi Chat",
