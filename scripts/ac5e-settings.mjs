@@ -1,6 +1,55 @@
 import Constants from './ac5e-constants.mjs';
 import { scopeUser } from './ac5e-main.mjs';
 
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+class AC5ELinksMenu extends HandlebarsApplicationMixin(ApplicationV2) {
+	static LINKS = [
+		{ label: 'Wiki', icon: 'fa-solid fa-book', url: 'https://github.com/thatlonelybugbear/automated-conditions-5e/wiki' },
+		{ label: 'README', icon: 'fa-brands fa-github', url: 'https://github.com/thatlonelybugbear/automated-conditions-5e/blob/main/README.md' },
+		{ label: 'Issues', icon: 'fa-solid fa-circle-exclamation', url: 'https://github.com/thatlonelybugbear/automated-conditions-5e/issues' },
+		{ label: 'Ko-Fi', icon: 'fa-solid fa-mug-hot', url: 'https://ko-fi.com/thatlonelybugbear' },
+		{ label: 'Patreon', icon: 'fa-brands fa-patreon', url: 'https://www.patreon.com/thatlonelybugbear' },
+	];
+
+	static DEFAULT_OPTIONS = {
+		id: 'ac5e-links-menu',
+		classes: ['ac5e-links-menu'],
+		window: {
+			title: 'AC5E.LinksMenu.Title',
+			icon: 'fa-solid fa-link',
+			resizable: false,
+		},
+		actions: {
+			openLink: AC5ELinksMenu.#onOpenLink,
+		},
+		position: {
+			width: 420,
+			height: 'auto',
+		},
+	};
+
+	static PARTS = {
+		body: {
+			template: 'modules/automated-conditions-5e/templates/apps/ac5e-links-menu.hbs',
+		},
+	};
+
+	async _prepareContext(options) {
+		const context = await super._prepareContext(options);
+		context.primaryLinks = this.constructor.LINKS.slice(0, 3);
+		context.secondaryLinks = this.constructor.LINKS.slice(3);
+
+		return context;
+	}
+
+	static #onOpenLink(_event, target) {
+		const url = target?.dataset?.url;
+		if (!url) return;
+		globalThis.open(url, '_blank', 'noopener,noreferrer');
+	}
+}
+
 export default class Settings {
 	// KEYS FOR WORLD CONFIG SETTINGS
 	static SHOW_TOOLTIPS = 'showTooltips';
@@ -32,12 +81,21 @@ export default class Settings {
 	static ADVANTAGE_BEHAVIOR_ADV_FORMULA = 'advantageBehaviorAdvantageFormula';
 	static ADVANTAGE_BEHAVIOR_DIS_FORMULA = 'advantageBehaviorDisadvantageFormula';
 	static DISABLE_AC5E_UI = 'disableAc5eUi';
+	static LINKS_MENU = 'linksMenu';
 
 	registerSettings() {
 		this._registerWorldSettings();
 	}
 
 	_registerWorldSettings() {
+		game.settings.registerMenu(Constants.MODULE_ID, Settings.LINKS_MENU, {
+			name: 'AC5E.LinksMenu.Name',
+			label: 'AC5E.LinksMenu.Label',
+			hint: 'AC5E.LinksMenu.Hint',
+			icon: 'fa-solid fa-link',
+			type: AC5ELinksMenu,
+			restricted: false,
+		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_STATUSES, {
 			name: 'AC5E.AutomateStatuses.Name',
 			hint: 'AC5E.AutomateStatuses.Hint',
