@@ -4,6 +4,7 @@
 - Added `summonerActor` roll data for summoned actors with `flags.dnd5e.summon.origin`.
 - Fixed usage-rule `condition` handling so a false condition prevents later rule value evaluation.
 - Fixed `addTo` parsing/stringification for comma-separated clauses such as `base,!types(force)`.
+  - This should be considered a breaking change for any existing `addTo` entries that used a semi-colon separated list of clauses instead of comma-separated sub-clauses.
 - Added grouped Damage Type and Healing Type assists for `typeOverride` authoring, including append-style multi-selection.
 - Improved Lambda path assists for `ability`, `skill`, and `tool` entries, including selected-entry highlighting and OR-clause toggling.
 - Improved `usesCount` scaling authoring with capitalized `Item.<identifier>` and `Item.<identifier>.Activity.<identifier>` quick targets.
@@ -16,6 +17,8 @@
 - Fixed damage dice modifiers such as `r1` applying to roll-data scale formulas that resolve to implicit dice like `d6`.
 - Hardened AC5E effect value parsing so semicolons inside nested expressions do not split flag fragments.
 - Preserve source message for associated damage rolls.
+- Some groundwork for future AC5E Effect Value Editor autocompletion and structured editing improvements.
+- Added module documentation and support links to the AC5E settings menu.
 
 ## 14.533.5.1
 
