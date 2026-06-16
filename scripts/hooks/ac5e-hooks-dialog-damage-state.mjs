@@ -1557,28 +1557,40 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const applyExplicitBonusEntry = (entry, values) => {
 		let discoveredNewType = false;
 		const addTo = resolveEntryAddTo(entry);
-		const parts = values.map((value) => resolveEntryOptinScaleValue(String(value ?? '').trim(), entry)).filter(Boolean);
-		if (!parts.length) return discoveredNewType;
+		const parsedParts = values
+			.map((value) => extractImplicitBonusDamageType(resolveEntryOptinScaleValue(String(value ?? '').trim(), entry)))
+			.filter((part) => part.formula);
+		const parts = parsedParts.map((part) => part.formula);
+		if (!parsedParts.length) return discoveredNewType;
 		if (addTo.includeTypes.length) {
 			const matchedTypes = new Set();
-			for (const type of addTo.includeTypes) {
-				const normalizedType = String(type).toLowerCase();
-				const targetIndex = existingRollIndexByType.get(normalizedType);
-				if (Number.isInteger(targetIndex)) {
-					const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, targetIndex);
-					if (!shouldApplyDamageEntryToRoll(entry, targetIndex, rollType, { selectedTypes: allTypes })) continue;
-					const criticalOnly = isCriticalStaticBonusEntry(entry) && isCriticalDamageRollAtIndex(targetIndex);
-					for (const part of parts) {
-						if (criticalOnly) criticalBonusPartsByRoll[targetIndex].push(part);
-						else bonusPartsByRoll[targetIndex].push(part);
-					}
+			for (const parsedPart of parsedParts) {
+				const inlineTypes = normalizeDamageTypeList(parsedPart.types);
+				if (inlineTypes.length > 1) {
+					const allowedTypes = inlineTypes.filter((type) => _addToAllowsRollType(addTo, type));
+					if (allowedTypes.length) discoveredNewType = addSyntheticBonusRollPart(allowedTypes, parsedPart.formula, isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage) || discoveredNewType;
+					for (const type of allowedTypes) matchedTypes.add(type);
+					continue;
+				}
+				if (parsedPart.type) {
+					const normalizedType = String(parsedPart.type).toLowerCase();
+					if (!_addToAllowsRollType(addTo, normalizedType)) continue;
+					discoveredNewType = applyBonusPartToType(normalizedType, parsedPart.formula, isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage) || discoveredNewType;
 					matchedTypes.add(normalizedType);
 					continue;
 				}
-				if (addTo.parts === 'base') continue;
-				const criticalOnly = isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage;
-				for (const part of parts) discoveredNewType = applyBonusPartToType(normalizedType, part, criticalOnly) || discoveredNewType;
-				matchedTypes.add(normalizedType);
+				for (const type of addTo.includeTypes) {
+					const normalizedType = String(type).toLowerCase();
+					const targetIndex = existingRollIndexByType.get(normalizedType);
+					if (Number.isInteger(targetIndex)) {
+						const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, targetIndex);
+						if (!shouldApplyDamageEntryToRoll(entry, targetIndex, rollType, { selectedTypes: allTypes })) continue;
+						const criticalOnly = isCriticalStaticBonusEntry(entry) && isCriticalDamageRollAtIndex(targetIndex);
+						if (criticalOnly) criticalBonusPartsByRoll[targetIndex].push(parsedPart.formula);
+						else bonusPartsByRoll[targetIndex].push(parsedPart.formula);
+						matchedTypes.add(normalizedType);
+					}
+				}
 			}
 			if (addTo.parts !== 'base') {
 				const targetMap = isCriticalStaticBonusEntry(entry) && isGlobalCriticalDamage ? appendedCriticalBonusRollsByKey : appendedBonusRollsByKey;
