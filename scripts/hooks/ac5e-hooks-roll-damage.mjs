@@ -3,7 +3,7 @@ import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-f
 export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
-	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
+	const { message: messageForSource, messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;
 	const directDamageTargets = deps.getAssociatedRollTargets(options?.originatingMessageId, activity?.type);
 	options.ammo = ammunition;
@@ -19,7 +19,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	} else {
 		deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource: 'roll' }, deps);
 	}
-	const sourceToken = deps.getSubjectTokenForHook(hook, messageForTargets, sourceActor, deps);
+	const sourceToken = deps.getSubjectTokenForHook(hook, messageForSource ?? messageForTargets, sourceActor, deps);
 	const sourceTokenId = sourceToken?.id;
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
 	let singleTargetToken = deps.getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : game.user?.targets?.first());

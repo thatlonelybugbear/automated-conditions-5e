@@ -1,3 +1,7 @@
+## 13.5330.1.4
+
+- Preserve source message for associated damage rolls
+
 ## 13.5330.1.3
 
 - Removed `dnd5e.renderChatMessage` hook
