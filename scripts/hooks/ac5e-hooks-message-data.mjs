@@ -84,7 +84,7 @@ function resolveMessageFromConfig(config, messageConfig, hook, deps) {
 	const messageId = eventMessageId ?? originatingMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
 	const registryHookMessage = messageId ? dnd5e?.registry?.messages?.get(messageId, hook)?.pop?.() : undefined;
-	const registryAnyMessage = !registryHookMessage && messageId ? dnd5e?.registry?.messages?.get(messageId)?.pop?.() : undefined;
+	const registryAnyMessage = !registryHookMessage && hook !== 'damage' && messageId ? dnd5e?.registry?.messages?.get(messageId)?.pop?.() : undefined;
 	const message = registryHookMessage ?? registryAnyMessage ?? (messageId ? game.messages.get(messageId) : undefined) ?? (messageUuid ? _safeFromUuidSync(messageUuid) : undefined) ?? messageConfig;
 	return { messageId, message, originatingMessageId };
 }

@@ -53,7 +53,7 @@ export function evaluateCondition(expression, sandbox, debug) {
 
 	try {
 		const result = new Function('sandbox', `with (sandbox) { return (${expression}); }`)(proxySandbox);
-		debug.log?.('AC5E._ac5eSafeEval [condition OK]', { expression, result });
+		debug.log?.('AC5E._ac5eSafeEval [condition OK]', { expression, result, effectName: fromUuidSync(debug.effectUuid)?.name, effectParent: fromUuidSync(debug.effectUuid)?.parent?.uuid });
 		return !!result;
 	} catch (err) {
 		let reason = 'unknown error';

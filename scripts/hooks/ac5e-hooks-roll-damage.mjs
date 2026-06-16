@@ -5,7 +5,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage', hook, { config, dialog, message });
 	if (!Array.isArray(config?.rolls) || !config.rolls.length) return true;
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
-	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
+	const { message: messageForSource, messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const activity = messageActivity || configActivity;
 	const damageActor = sourceActor ?? activity?.actor;
 	if (!damageActor && !activity) return true;
@@ -37,7 +37,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	} else {
 		deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource: 'roll' }, deps);
 	}
-	const sourceToken = deps.getSubjectTokenForHook(hook, messageForTargets, damageActor, deps);
+	const sourceToken = deps.getSubjectTokenForHook(hook, messageForSource ?? messageForTargets, damageActor, deps);
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
 	let singleTargetToken = deps.getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : game.user?.targets?.first());
 	const needsTarget = deps.settings.needsTarget;

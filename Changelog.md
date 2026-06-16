@@ -1,4 +1,4 @@
-## 14.533.5
+## 14.533.6
 
 - Added `magicAvailable` and `isScroll` flags to the AC5E formula sandbox for more precise item-type checks.
 - Added `summonerActor` roll data for summoned actors with `flags.dnd5e.summon.origin`.
@@ -12,9 +12,10 @@
 - Fixed `recover` handling for scaled opt-in entries so it is treated as a keyword instead of an unmet condition.
 - Improved opt-in scaling labels and descriptions so slider changes update displayed consume/recover counts.
 - Forced the damage configuration dialog when multi-damage-type bonus parts need a damage type selection during fast-forwarded rolls.
-- Improved damage type override state syncing across damage dialog rebuilds and added targeted debug snapshots/breakpoints for type override troubleshooting.
+- Improved damage type override state syncing across damage dialog rebuilds.
 - Fixed damage dice modifiers such as `r1` applying to roll-data scale formulas that resolve to implicit dice like `d6`.
 - Hardened AC5E effect value parsing so semicolons inside nested expressions do not split flag fragments.
+- Preserve source message for associated damage rolls.
 
 ## 14.533.5.1
 
