@@ -165,6 +165,7 @@ export function shouldActivateEffectValueAutocomplete(input, prefix = '') {
 	const normalizedPrefix = `${prefix ?? ''}`.toLowerCase().trim();
 	if (!normalizedPrefix) return false;
 	if (AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => normalizedPrefix.startsWith(trigger))) return true;
+	if (ROOT_PATHS.some((root) => root.toLowerCase().includes(normalizedPrefix))) return true;
 	const token = beforeCursor.match(/[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*\.?$/)?.[0] ?? '';
 	return AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => token.startsWith(trigger));
 }
@@ -330,13 +331,11 @@ async function collectFromSeedActorUuids(pathsByRoot) {
 }
 
 async function getSeedActorsFromUuids() {
-	const fromUuidFn = globalThis.fromUuid;
-	if (typeof fromUuidFn !== 'function') return [];
 	const actors = [];
 	for (const uuid of DND5E_SEED_ACTOR_UUIDS) {
 		try {
-			const actor = await fromUuidFn(uuid);
-			if (actor) actors.push(actor);
+			const actor = await fromUuid?.(uuid);
+			if (actor instanceof CONFIG.Actor.documentClass) actors.push(actor);
 		} catch (_error) {}
 	}
 	return dedupeByUuid(actors);
@@ -367,14 +366,15 @@ function collectActorRoots(pathsByRoot, actor) {
 
 function collectRepresentativeItemsAndActivities(pathsByRoot, actor) {
 	const representativeItems = getRepresentativeItemsFromActor(actor);
+	let itemRollData;
 	for (const item of representativeItems) {
-		const rollData = item?.getRollData?.();
+		const rollData = collectActivityRollDataFromItem(pathsByRoot, item);
 		if (!rollData || typeof rollData !== 'object') continue;
-		const itemData = rollData?.item && typeof rollData.item === 'object' ? rollData.item : rollData;
+		const itemData = rollData?.item;
+		itemRollData ??= itemData;
 		walkDataIntoSet(pathsByRoot.item, 'item', itemData);
 		walkDataIntoSet(pathsByRoot.originItem, 'originItem', itemData);
 	}
-	for (const item of actor?.items ?? []) collectActivityRollDataFromItem(pathsByRoot, item);
 }
 
 function getRepresentativeItemsFromActor(actor) {
@@ -393,13 +393,15 @@ function collectActivityRollDataFromItem(pathsByRoot, item) {
 	}
 	if (!values.length) values = typeof activities?.values === 'function' ? Array.from(activities.values()) : Object.values(activities ?? {});
 	values = dedupeByUuid(values);
+	let rollData;
 	for (const activity of values) {
-		const rollData = activity?.getRollData?.();
+		rollData ??= activity?.getRollData?.();
 		if (!rollData || typeof rollData !== 'object') continue;
-		const activityData = rollData?.activity && typeof rollData.activity === 'object' ? rollData.activity : rollData;
+		const activityData = rollData?.activity;
 		walkDataIntoSet(pathsByRoot.activity, 'activity', activityData);
 		walkDataIntoSet(pathsByRoot.originActivity, 'originActivity', activityData);
 	}
+	return rollData;
 }
 
 function logSeedCoverage(actors, collectedPathsByRoot = null) {
@@ -454,13 +456,10 @@ function logSeedCoverage(actors, collectedPathsByRoot = null) {
 }
 
 function collectAc5eRuntimeAdditions(pathsByRoot) {
-	const actorArmorEntries = [
-		'hasArmor',
-		'hasArmorLight',
-		'hasArmorMedium',
-		'hasArmorHeavy',
-		'hasShield',
-	];
+	const actorArmorEntries = Array.from(foundry.utils.iterateKeys(CONFIG.DND5E.armorTypes)).map(e => {
+		if (e === 'shield') return `has${e.capitalize()}`;
+		return `has${e.capitalize()}Armor`
+	});
 	const additions = {
 		rollingActor: [
 			...AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((field) => `rollingActor.${field}`),

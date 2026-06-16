@@ -9,16 +9,16 @@ const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([
 	'opponentActor.opponentId',
 ]);
 const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
-	'item.itemUuid',
-	'item.itemType',
-	'item.itemProperties',
-	'item.actionType',
-	'item.attackMode',
-	'item.mastery',
-	'activity.actionType',
-	'activity.damageTypes',
-	'activity.defaultDamageType',
-	'activity.healingTypes',
+	// 'item.itemUuid',
+	// 'item.itemType',
+	// 'item.itemProperties',
+	// 'item.actionType',
+	// 'item.attackMode',
+	// 'item.mastery',
+	// 'activity.actionType',
+	// 'activity.damageTypes',
+	// 'activity.defaultDamageType',
+	// 'activity.healingTypes',
 	'originItem.actionType',
 	'originItem.attackMode',
 	'originItem.mastery',
@@ -1909,7 +1909,7 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
 	const stageNodes = getAssistStageNodes(parentNode, headerPath);
 	const filterText = (root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
-	const nodes = filterText ? stageNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : stageNodes;
+	const nodes = filterText ? stageNodes.filter((node) => assistEntryMatchesToken(node?.label, filterText)) : stageNodes;
 	const activePath = root.dataset.ac5eAssistActivePath ?? '';
 	const fallbackPath =
 		nodes.length === 1 ? nodes[0]?.path
@@ -2132,7 +2132,7 @@ function applyAssistTabRootCompletion(textarea, root, assist, selectionState) {
 	const normalized = (token ?? '').trim();
 	if (!normalized || normalized.includes('.')) return false;
 	const roots = (assist?.entryPoints ?? []).map((entry) => (entry?.value ?? '').trim()).filter(Boolean);
-	const matches = roots.filter((entry) => entry.toLowerCase().startsWith(normalized.toLowerCase()));
+	const matches = roots.filter((entry) => assistEntryMatchesToken(entry, normalized));
 	if (!matches.length) return false;
 	const entryMatches = getAssistEntryMatchesInUiOrder(root, normalized);
 	const uniqueMatches = new Set([...matches, ...entryMatches]);
@@ -2167,7 +2167,7 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 			const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
 			const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
 			const stageNodes = getAssistStageNodes(parentNode, headerPath);
-			const match = stageNodes.find((node) => (node?.label ?? '').toLowerCase().startsWith(normalized.toLowerCase()));
+			const match = stageNodes.find((node) => assistEntryMatchesToken(node?.label, normalized));
 			if (match?.path) {
 				const insertion = match.isVirtualArrayMethod ? (match.insertion ?? '') : resolveAssistNodeInsertionPath(textarea, match.path);
 				const assistScope = getAssistScope(root);
@@ -2198,7 +2198,7 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 	const headerPath = chain.length ? chain[chain.length - 1] : context.root;
 	const stageNodes = getAssistStageNodes(parentNode, headerPath);
 	const filterText = (context.filter ?? '').trim().toLowerCase();
-	const nodes = filterText ? stageNodes.filter((node) => (node?.label ?? '').toLowerCase().startsWith(filterText)) : stageNodes;
+	const nodes = filterText ? stageNodes.filter((node) => assistEntryMatchesToken(node?.label, filterText)) : stageNodes;
 	if (!nodes.length) return false;
 	const insertion = nodes[0].isVirtualArrayMethod ? (nodes[0].insertion ?? '') : resolveAssistNodeInsertionPath(textarea, nodes[0].path);
 	const assistScope = getAssistScope(root);
@@ -2277,7 +2277,7 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const rootToken = token.includes('.') ? '' : token;
 	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert]')) {
 		const value = normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? '');
-		const starts = operatorOnlyMode ? false : (rootToken ? value.startsWith(rootToken) : false);
+		const starts = operatorOnlyMode ? false : (rootToken ? assistEntryMatchesToken(value, rootToken) : false);
 		const isFocused = Boolean(resolvedFocus) && value === resolvedFocus;
 		button.classList.toggle('active', starts || isFocused);
 		button.classList.toggle('ac5e-effect-value-assist-focused', isFocused);
@@ -2588,7 +2588,7 @@ function applyFocusedAssistRoot(textarea, root, assist, selectionState) {
 	const normalized = (token ?? '').trim();
 	if (!normalized || normalized.includes('.')) return false;
 	const roots = (assist?.entryPoints ?? []).map((entry) => `${entry?.value ?? ''}`.trim()).filter(Boolean);
-	const matches = roots.filter((entry) => entry.toLowerCase().startsWith(normalized.toLowerCase()));
+	const matches = roots.filter((entry) => assistEntryMatchesToken(entry, normalized));
 	if (!matches.length) return false;
 	const selected = matches[0];
 	const assistScope = getAssistScope(root);
@@ -2926,7 +2926,7 @@ function toAssistValueChoices(values, labelConfig = null, { appendKey = false } 
 function resolveAssistEnumLabel(key, labelConfig = null, { appendKey = false } = {}) {
 	const fallback = `${key ?? ''}`.trim();
 	if (!fallback) return '';
-	const withKey = (label) => appendKey && label && label !== fallback ? `${label} (${fallback})` : label;
+	const withKey = (label) => appendKey && label && label !== fallback ? `${fallback} (${label})` : label;
 	const configEntry = labelConfig?.[fallback];
 	if (typeof configEntry === 'string') {
 		const localized = game?.i18n?.localize?.(configEntry);
