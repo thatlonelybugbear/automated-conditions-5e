@@ -7,6 +7,13 @@
     	"Name": "Desabilitar Interface do AC5E",
     	"Hint": "Desativa o botão da varinha AC5E para o editor de valores de Efeito Ativo."
   	},
+  	"AC5E.LinksMenu": {
+    	"Name": "Suporte do Módulo",
+    	"Label": "Links",
+    	"Hint": "Abrir a documentação, o rastreador de problemas e os links de suporte do AC5E.",
+    	"SupportMessage": "Dê um Trocado pro seu Bugbear!",
+    	"Title": "Recursos e Suporte"
+  	},
 	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5E",
 	"AC5E.ShowTooltipsHint": "Exibe dicas de ferramenta do AC5E nas janelas de rolagem, mensagens de chat ou em ambos, explicando os motivos por trás do resultado sugerido.",
