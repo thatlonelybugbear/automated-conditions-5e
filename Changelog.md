@@ -1,3 +1,8 @@
+## 14.533.6.1
+
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.6
 
 - Added `magicAvailable` and `isScroll` flags to the AC5E formula sandbox for more precise item-type checks.
