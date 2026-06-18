@@ -8,6 +8,7 @@ class AC5ELinksMenu extends HandlebarsApplicationMixin(ApplicationV2) {
 		{ label: 'Wiki', icon: 'fa-solid fa-book', url: 'https://github.com/thatlonelybugbear/automated-conditions-5e/wiki' },
 		{ label: 'README', icon: 'fa-brands fa-github', url: 'https://github.com/thatlonelybugbear/automated-conditions-5e/blob/main/README.md' },
 		{ label: 'Issues', icon: 'fa-solid fa-circle-exclamation', url: 'https://github.com/thatlonelybugbear/automated-conditions-5e/issues' },
+		{ label: 'Discord', icon: 'fa-brands fa-discord', url: 'https://discord.gg/twsvWuJJEN' },
 		{ label: 'Ko-Fi', icon: 'fa-solid fa-mug-hot', url: 'https://ko-fi.com/thatlonelybugbear' },
 		{ label: 'Patreon', icon: 'fa-brands fa-patreon', url: 'https://www.patreon.com/thatlonelybugbear' },
 	];
@@ -38,7 +39,8 @@ class AC5ELinksMenu extends HandlebarsApplicationMixin(ApplicationV2) {
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		context.primaryLinks = this.constructor.LINKS.slice(0, 3);
-		context.secondaryLinks = this.constructor.LINKS.slice(3);
+		context.secondaryLinks = this.constructor.LINKS.slice(3, 4);
+		context.tertiaryLinks = this.constructor.LINKS.slice(4);
 
 		return context;
 	}

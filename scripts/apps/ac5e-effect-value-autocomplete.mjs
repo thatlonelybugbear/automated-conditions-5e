@@ -498,9 +498,9 @@ function collectAc5eRuntimeAdditions(pathsByRoot) {
 			...actorArmorEntries.map((field) => `effectOriginActor.${field}`),
 			'effectOriginActor.effects',
 		],
-		item: ['item.itemUuid', 'item.itemType', 'item.itemProperties'],
-		activity: ['activity.activityType', 'activity.identifier', 'activity.uuid', 'activity.damageTypes', 'activity.defaultDamageType', 'activity.healingTypes'],
-		originActivity: ['originActivity.activityType', 'originActivity.identifier', 'originActivity.uuid', 'originActivity.damageTypes', 'originActivity.defaultDamageType', 'originActivity.healingTypes'],
+		item: ['item.itemUuid', 'item.type', 'item.type.value', 'item.type.subtype', 'item.type.baseItem', 'item.itemProperties'],
+		activity: ['activity.type', 'activity.identifier', 'activity.uuid', 'activity.damageTypes', 'activity.defaultDamageType', 'activity.healingTypes'],
+		originActivity: ['originActivity.type', 'originActivity.identifier', 'originActivity.uuid', 'originActivity.damageTypes', 'originActivity.defaultDamageType', 'originActivity.healingTypes'],
 	};
 	for (const [root, paths] of Object.entries(additions)) {
 		const set = pathsByRoot[root];

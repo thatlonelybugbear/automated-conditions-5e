@@ -3092,7 +3092,7 @@ function _resolveUpdateTargetPropertyPath(target = '') {
 	const raw = String(target ?? '').trim();
 	if (!raw) return '';
 	return raw
-		.replace(/^(?:rollingactor|opponentactor|targetactor|auraactor)\./i, '')
+		.replace(/^(?:rollingactor|opponentactor|targetactor|auraactor|effectactor|noneffectactor|effectoriginactor)\./i, '')
 		.replace(/^(?:system\.)?flags\./i, 'flags.');
 }
 
@@ -3192,7 +3192,10 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData.opponentActor
 				: lowerConsumptionTarget.startsWith('auraactor') ? evalData.auraActor
 					: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
-						: _ac5eActorRollData(actor);
+						: lowerConsumptionTarget.startsWith('noneffectactor') ? evalData.nonEffectActor
+							: lowerConsumptionTarget.startsWith('effectoriginactor') ? evalData.effectOriginActor
+								: lowerConsumptionTarget.startsWith('effectactor') ? (evalData.effectActor ?? _ac5eActorRollData(actor))
+									: _ac5eActorRollData(actor);
 		const uuid = consumptionActor?.uuid ?? actor.uuid;
 		const attr = consumptionTarget.toLowerCase();
 		const consume = _evaluateCounterExpression(parsedUpdate.value, evalData, debug, null);

@@ -822,6 +822,7 @@ function _normalizeCadenceToken(value) {
 function _splitKeywordFragments(value) {
 	if (typeof value !== 'string') return [];
 	return value
+		// @to-do: Move to dnd5e.utils.splitSemicolons when not bored...
 		.split(';')
 		.map((fragment) => fragment.trim())
 		.filter(Boolean);

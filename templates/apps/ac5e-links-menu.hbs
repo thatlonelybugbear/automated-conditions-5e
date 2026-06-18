@@ -1,25 +1,46 @@
 <section class='ac5e-links-menu-body'>
 
-	<div class='ac5e-links-row ac5e-links-row-primary'>
-		{{#each primaryLinks}}
-			<button type='button' class='ac5e-links-menu-button' data-action='openLink' data-url='{{url}}'>
-				<i class='{{icon}}' inert></i>
-				<span>{{label}}</span>
-			</button>
-		{{/each}}
+	<div class='ac5e-links-group'>
+		<div class='ac5e-links-menu-label'>
+			{{localize "AC5E.LinksMenu.GitHubMessage"}}
+		</div>
+		<div class='ac5e-links-row ac5e-links-row-primary'>
+			{{#each primaryLinks}}
+				<button type='button' class='ac5e-links-menu-button' data-action='openLink' data-url='{{url}}'>
+					<i class='{{icon}}' inert></i>
+					<span>{{label}}</span>
+				</button>
+			{{/each}}
+		</div>
 	</div>
 
-	<div class='ac5e-links-menu-label'>
-		{{localize "AC5E.LinksMenu.SupportMessage"}}
-	</div>
-
-	<div class='ac5e-links-row ac5e-links-row-secondary'>
-		{{#each secondaryLinks}}
-			<button type='button' class='ac5e-links-menu-button' data-action='openLink' data-url='{{url}}'>
-				<i class='{{icon}}' inert></i>
-				<span>{{label}}</span>
-			</button>
-		{{/each}}
+	<div class='ac5e-links-row ac5e-links-row-combined'>
+		<div class='ac5e-links-group'>
+			<div class='ac5e-links-menu-label'>
+				{{localize "AC5E.LinksMenu.DiscordMessage"}}
+			</div>
+			<div class='ac5e-links-row ac5e-links-row-secondary'>
+				{{#each secondaryLinks}}
+					<button type='button' class='ac5e-links-menu-button' data-action='openLink' data-url='{{url}}'>
+						<i class='{{icon}}' inert></i>
+						<span>{{label}}</span>
+					</button>
+				{{/each}}
+			</div>
+		</div>
+		<div class='ac5e-links-group'>
+			<div class='ac5e-links-menu-label'>
+				{{localize "AC5E.LinksMenu.SupportMessage"}}
+			</div>
+			<div class='ac5e-links-row ac5e-links-row-tertiary'>
+				{{#each tertiaryLinks}}
+					<button type='button' class='ac5e-links-menu-button' data-action='openLink' data-url='{{url}}'>
+						<i class='{{icon}}' inert></i>
+						<span>{{label}}</span>
+					</button>
+				{{/each}}
+			</div>
+		</div>
 	</div>
 
 </section>
