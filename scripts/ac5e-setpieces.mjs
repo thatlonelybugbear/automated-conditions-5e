@@ -1306,6 +1306,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['modifyac', 'targetADC'], //we cleared the conflict with "mod" mode by going first
 			['modifydc', 'targetADC'],
 			['abilityoverride', 'abilityOverride'],
+			['templatesize', 'templateSize'],
 			['mod', 'modifiers'],
 			['bonus', 'bonus'],
 			['fail', 'fail'],
@@ -1446,10 +1447,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'set',
 		'short',
 		'singleaura',
+		'height',
+		'size',
 		'threshold',
 		'typeoverride',
 		'update',
 		'usescount',
+		'width',
 		'wallsblock',
 	]);
 	const knownKeyedKeywords = new Set([...blacklist, 'condition', 'priority']);
@@ -1556,6 +1560,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const isUseActivity = hook === 'use' && !!activity?.type;
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
 		const isAbilityOverride = change.key.toLowerCase().includes('abilityoverride') && (hook === 'attack' || hook === 'damage' || hook === 'check' || hook === 'save' || isUseActivity || isSkill || isTool);
+		const isTemplateSize = change.key.toLowerCase().includes('templatesize') && isUseActivity;
 		if (ac5e?.debug?.abilityOverrideTrace && change.key.toLowerCase().includes('abilityoverride')) {
 			console.warn('AC5E TRACE setpieces.effectChangesTest.abilityOverrideGate', {
 				hook,
@@ -1568,7 +1573,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				isAbilityOverride,
 			});
 		}
-		const modifyHooks = isModifyAC || isModifyDC || isAbilityOverride;
+		const modifyHooks = isModifyAC || isModifyDC || isAbilityOverride || isTemplateSize;
 		const isRange = change.key.toLowerCase().includes('.range');
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
@@ -1818,9 +1823,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				return localizeText('AC5E.OptinDescription.DowngradesDamageDice', 'Downgrades damage dice');
 			case 'range':
 				return localizeText('AC5E.OptinDescription.ModifiesAttackRange', 'Modifies attack range behavior');
+			case 'templateSize':
+				return localizeText('AC5E.OptinDescription.ModifiesTemplateSize', 'Modifies the placed template size');
 			default:
 				return undefined;
 		}
+	};
+	const parseTemplateSizeData = (value) => {
+		const templateSize = {};
+		for (const field of ['size', 'width', 'height']) {
+			const raw = getBlacklistedKeysValue(field, value);
+			if (raw) templateSize[field] = raw;
+		}
+		return templateSize;
 	};
 	const parseBooleanValue = (raw) => {
 		if (raw === undefined || raw === null) return undefined;
@@ -2243,6 +2258,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			entry.auraTokenUuid = auraToken?.document?.uuid;
 			entry.distance = _getDistance(auraToken, subjectToken);
 		}
+		if (mode === 'templateSize') entry.templateSize = parseTemplateSizeData(change.value);
 		if (mode === 'range') entry.range = parseRangeData({ key: change.key, value: change.value, evaluationData: sandbox, effect, isAura, debug });
 		return entry;
 	};
@@ -2634,6 +2650,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			sourceActorId: null,
 			sourceActorName: '',
 		};
+		if (mode === 'templateSize') entry.templateSize = parseTemplateSizeData(ruleValue);
 		if (mode === 'range') entry.range = parseRangeData({ key: pseudoChange.key, value: ruleValue, evaluationData, effect: pseudoEffect, isAura: false, debug: { usageRuleKey: rule.key } });
 		pushUniqueValidFlag(entry);
 	}
@@ -2712,7 +2729,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-		if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+		if (['bonus', 'targetADC', 'templateSize', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = !!(entry?.label && entry.label !== name);
@@ -2732,7 +2749,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					entryMode: mode,
 					actorType,
 					optin: !!optin,
-					storedAs: optin || ['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode) ? 'entry' : 'labelOrName',
+					storedAs: optin || ['bonus', 'targetADC', 'templateSize', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode) ? 'entry' : 'labelOrName',
 					changeKey: entry?.changeKey,
 					label: entry?.label,
 				});

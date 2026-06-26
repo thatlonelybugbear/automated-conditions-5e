@@ -2,10 +2,12 @@ import {
 	_autoArmor,
 	_collectActivityDamageTypes,
 	_filterOptinEntries,
+	_ac5eSafeEval,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
 	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
+	_getOptinSelectionScale,
 	_getTokenFromActor,
 	_isOptinSelectionActive,
 	getAlteredTargetValueOrThreshold,
@@ -15,11 +17,14 @@ import {
 	_setUseConfigInflightCache,
 } from '../ac5e-helpers.mjs';
 import { _getConfig, _getSafeUseConfig } from '../ac5e-config-logic.mjs';
+import { _createEvaluationSandbox } from '../ac5e-runtimeLogic.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _setAC5eProperties } from '../ac5e-runtimeLogic.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { _ac5eChecks, _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { getTargets } from './ac5e-hooks-target-context.mjs';
+
+const templateSizeStateByActivityUuid = new Map();
 
 export function preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook, deps) {
 	const { item, ability, skill, tool } = activity || {};
@@ -81,6 +86,8 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
 	_ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig);
 	_ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usageConfig, dialogConfig, ac5eConfig);
+	_ensureUsageConfigurationDialogForTemplateSizeOptins(activity, usageConfig, dialogConfig, ac5eConfig);
+	resolveActivityTemplateSize(activity, ac5eConfig);
 	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
 		console.warn('AC5E TRACE preUseActivity.configureState', {
 			activityType: activity?.type,
@@ -160,6 +167,31 @@ export function preActivityConsumption(activity, usageConfig, _messageConfig, _h
 	if (!ac5eConfig) return true;
 	_applyPreUseActivityAbilityOverride(activity, ac5eConfig);
 	_refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps);
+	resolveActivityTemplateSize(activity, ac5eConfig);
+	return true;
+}
+
+export function preCreateActivityTemplate(activity, templateData) {
+	const resolved = templateSizeStateByActivityUuid.get(activity?.uuid);
+	if (!resolved || typeof resolved !== 'object') return true;
+	templateData.flags ??= {};
+	templateData.flags.dnd5e ??= {};
+	templateData.flags.dnd5e.dimensions ??= {};
+	const dnd5eDimensions = templateData.flags.dnd5e.dimensions;
+	if (Number.isFinite(Number(resolved.size))) {
+		const size = Number(resolved.size);
+		templateData.distance = size;
+		dnd5eDimensions.size = size;
+		if (templateData.t === 'rect') templateData.width = size;
+	}
+	if (Number.isFinite(Number(resolved.width))) {
+		const width = Number(resolved.width);
+		templateData.width = width;
+		dnd5eDimensions.width = width;
+	}
+	if (Number.isFinite(Number(resolved.height))) {
+		dnd5eDimensions.height = Number(resolved.height);
+	}
 	return true;
 }
 
@@ -244,6 +276,27 @@ export function getAbilityOverrideOptinChoices(ac5eConfig, activity) {
 		});
 	}
 	return choices;
+}
+
+export function getTemplateSizeOptinChoices(ac5eConfig, activity) {
+	if (!activity?.target?.template?.type) return [];
+	const entries = [
+		...(Array.isArray(ac5eConfig?.subject?.templateSize) ? ac5eConfig.subject.templateSize : []),
+		...(Array.isArray(ac5eConfig?.opponent?.templateSize) ? ac5eConfig.opponent.templateSize : []),
+	].filter((entry) => entry && typeof entry === 'object' && !!entry.optin);
+	return entries.map((entry) => {
+		const label = String(entry?.label ?? entry?.name ?? entry?.id ?? '').trim() || 'Template Size';
+		return {
+			id: entry?.id ?? null,
+			label,
+			displayLabel: label,
+			description:
+				typeof entry?.description === 'string' && entry.description.trim() ? entry.description.trim()
+				: typeof entry?.autoDescription === 'string' && entry.autoDescription.trim() ? entry.autoDescription.trim()
+				: '',
+			entry,
+		};
+	});
 }
 
 export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected } = {}) {
@@ -414,6 +467,82 @@ function _ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usage
 	if (!abilityOverrideEntries.length) return;
 	dialogConfig.configure = true;
 	usageConfig.configure = true;
+}
+
+function _ensureUsageConfigurationDialogForTemplateSizeOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
+	if (!activity?.target?.template?.type) return;
+	const templateSizeEntries = [
+		...(Array.isArray(ac5eConfig?.subject?.templateSize) ? ac5eConfig.subject.templateSize : []),
+		...(Array.isArray(ac5eConfig?.opponent?.templateSize) ? ac5eConfig.opponent.templateSize : []),
+	].filter((entry) => entry && typeof entry === 'object' && !!entry.optin);
+	if (!templateSizeEntries.length) return;
+	dialogConfig.configure = true;
+	usageConfig.configure = true;
+}
+
+function resolveActivityTemplateSize(activity, ac5eConfig) {
+	const activityUuid = activity?.uuid;
+	if (!activityUuid) return null;
+	if (!activity?.target?.template?.type) {
+		templateSizeStateByActivityUuid.delete(activityUuid);
+		return null;
+	}
+	const entries = _filterOptinEntries(
+		[
+			...(Array.isArray(ac5eConfig?.subject?.templateSize) ? ac5eConfig.subject.templateSize : []),
+			...(Array.isArray(ac5eConfig?.opponent?.templateSize) ? ac5eConfig.opponent.templateSize : []),
+		],
+		ac5eConfig?.optinSelected,
+	).filter((entry) => entry && typeof entry === 'object' && entry.evaluation !== false);
+	if (!entries.length) {
+		ac5eConfig.templateSize = null;
+		templateSizeStateByActivityUuid.delete(activityUuid);
+		return null;
+	}
+	const sourceToken = _getTokenFromActor(activity?.item?.actor) ?? activity?.item?.actor?.getActiveTokens?.()?.[0];
+	const sandbox = _createEvaluationSandbox({ subjectToken: sourceToken, opponentToken: null, options: { ...(ac5eConfig?.options ?? {}), activity } });
+	sandbox.ac5eConfig = ac5eConfig;
+	sandbox.optinSelected = ac5eConfig?.optinSelected ?? {};
+	const resolved = {};
+	for (const entry of entries) {
+		for (const field of ['size', 'width', 'height']) {
+			const expression = String(entry?.templateSize?.[field] ?? '').trim();
+			if (!expression) continue;
+			const selectedScale = _getOptinSelectionScale(ac5eConfig?.optinSelected?.[entry.id]);
+			const prepared =
+				Number.isFinite(selectedScale) ?
+					expression.replace(/\(optinScale\)/gi, selectedScale).replace(/\boptinScale\b/gi, selectedScale)
+				:	expression;
+			const evaluated = _ac5eSafeEval({ expression: prepared, sandbox: { ...sandbox, baseValue: getActivityTemplateBaseValue(activity, field) }, mode: 'formula', debug: { changeKey: entry.changeKey, field } });
+			const numeric = resolveTemplateSizeNumber(evaluated);
+			if (Number.isFinite(numeric)) resolved[field] = numeric;
+		}
+	}
+	ac5eConfig.templateSize = Object.keys(resolved).length ? resolved : null;
+	if (ac5eConfig.templateSize) templateSizeStateByActivityUuid.set(activityUuid, foundry.utils.duplicate(ac5eConfig.templateSize));
+	else templateSizeStateByActivityUuid.delete(activityUuid);
+	return ac5eConfig.templateSize;
+}
+
+function getActivityTemplateBaseValue(activity, field) {
+	const template = activity?.target?.template;
+	const numeric = Number(template?.[field]);
+	return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function resolveTemplateSizeNumber(value) {
+	const direct = Number(value);
+	if (Number.isFinite(direct)) return direct;
+	const expression = String(value ?? '').trim();
+	if (!expression || !/^[\d+\-*/().\s]+$/.test(expression)) return NaN;
+	try {
+		// eslint-disable-next-line no-new-func
+		const evaluated = new Function(`"use strict"; return (${expression});`)();
+		const numeric = Number(evaluated);
+		return Number.isFinite(numeric) ? numeric : NaN;
+	} catch {
+		return NaN;
+	}
 }
 
 function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {

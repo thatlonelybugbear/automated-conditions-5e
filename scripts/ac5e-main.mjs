@@ -128,6 +128,7 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.preRollSavingThrow', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
 		{ id: 'dnd5e.preActivityConsumption', type: 'preActivityConsumption' },
+		{ id: 'dnd5e.preCreateActivityTemplate', type: 'preCreateActivityTemplate' },
 		{ id: 'dnd5e.postUseActivity', type: 'postUse' },
 	];
 	const buildHooks = [

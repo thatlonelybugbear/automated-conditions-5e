@@ -1,7 +1,7 @@
 import Constants from '../ac5e-constants.mjs';
-import { _buildStandardTooltipFromLines, _localize } from '../ac5e-helpers.mjs';
-import { getAskPermissionSourceSuffix, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
-import { getAbilityOverrideOptinChoices, getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
+import { _buildStandardTooltipFromLines, _getOptinSelectionScale, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
+import { getAskPermissionSourceSuffix, getOptinScaling, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
+import { getAbilityOverrideOptinChoices, getResolvedUseDisplayState, getTargetADCOptinChoices, getTemplateSizeOptinChoices } from './ac5e-hooks-use-activity.mjs';
 
 export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	if (!dialog || !elem) return true;
@@ -11,7 +11,7 @@ export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	const activity = dialog.activity;
 	if (!ac5eConfig || !activity) return true;
 
-	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity)];
+	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity), ...getTemplateSizeOptinChoices(ac5eConfig, activity)];
 	const root = elem instanceof HTMLElement ? elem : elem?.[0] ?? null;
 	logUsageDialogRenderDebug('renderActivityUsageDialogHijack.entry', {
 		dialogClass: dialog?.constructor?.name ?? null,
@@ -117,13 +117,40 @@ function renderChoiceRows(fieldset, choices, ac5eConfig, { askPermission = false
 		const input = document.createElement('input');
 		input.type = 'checkbox';
 		input.name = `ac5eOptins.${choice.id}`;
-		input.checked = !!selected?.[choice.id];
+		input.checked = _isOptinSelectionActive(selected?.[choice.id]);
 		input.dataset.ac5eUsageOptin = 'true';
 		input.dataset.ac5eOptinId = String(choice.id ?? '');
 		input.style.marginLeft = 'auto';
 		input.style.flex = '0 0 auto';
 		input.style.alignSelf = 'center';
-		row.append(input);
+		const scaling = getOptinScaling(choice?.entry, null, ac5eConfig);
+		if (scaling) {
+			const selectedScale = _getOptinSelectionScale(selected?.[choice.id]);
+			const initialScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
+			const slider = document.createElement('input');
+			slider.type = 'range';
+			slider.name = `ac5eOptinScale.${choice.id}`;
+			slider.dataset.ac5eUsageOptinScale = 'true';
+			slider.dataset.ac5eOptinId = String(choice.id ?? '');
+			slider.min = scaling.min;
+			slider.max = scaling.max;
+			slider.step = scaling.step;
+			slider.value = String(initialScale);
+			slider.disabled = !input.checked;
+			slider.style.flex = '0 0 7.5rem';
+			const valueLabel = document.createElement('span');
+			valueLabel.className = 'ac5e-optin-scale-value';
+			valueLabel.textContent = slider.value;
+			valueLabel.style.flex = '0 0 auto';
+			input.dataset.ac5eOptinScaleMin = String(scaling.min);
+			input.addEventListener('change', () => {
+				slider.disabled = !input.checked;
+			});
+			slider.addEventListener('input', () => {
+				valueLabel.textContent = slider.value;
+			});
+			row.append(slider, valueLabel, input);
+		} else row.append(input);
 
 		fieldset.append(row);
 	}
@@ -135,19 +162,25 @@ function syncSelectionsToUsageConfig(fieldset, usageConfig, root, choices, ac5eC
 	for (const input of fieldset.querySelectorAll('input[data-ac5e-usage-optin="true"]')) {
 		const optinId = (input.dataset.ac5eOptinId ?? '').trim();
 		if (!optinId) continue;
-		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = !!input.checked;
+		const slider = fieldset.querySelector(`input[data-ac5e-usage-optin-scale="true"][data-ac5e-optin-id="${globalThis.CSS?.escape?.(optinId) ?? optinId}"]`);
+		const scale = Number(slider?.value ?? input.dataset.ac5eOptinScaleMin);
+		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = input.checked && Number.isFinite(scale) ? { enabled: true, scale } : !!input.checked;
 	}
 	fieldset.onchange = (event) => {
 		const target = event.target;
-		if (!(target instanceof HTMLInputElement) || target.dataset.ac5eUsageOptin !== 'true') return;
+		if (!(target instanceof HTMLInputElement) || (target.dataset.ac5eUsageOptin !== 'true' && target.dataset.ac5eUsageOptinScale !== 'true')) return;
 		const optinId = (target.dataset.ac5eOptinId ?? '').trim();
 		if (!optinId) return;
 		usageConfig[Constants.MODULE_ID] ??= {};
 		usageConfig[Constants.MODULE_ID].optinSelected ??= {};
-		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = !!target.checked;
+		const checkbox = fieldset.querySelector(`input[data-ac5e-usage-optin="true"][data-ac5e-optin-id="${globalThis.CSS?.escape?.(optinId) ?? optinId}"]`);
+		const slider = fieldset.querySelector(`input[data-ac5e-usage-optin-scale="true"][data-ac5e-optin-id="${globalThis.CSS?.escape?.(optinId) ?? optinId}"]`);
+		const checked = checkbox instanceof HTMLInputElement ? checkbox.checked : target.checked;
+		const scale = Number(slider?.value ?? checkbox?.dataset?.ac5eOptinScaleMin);
+		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = checked && Number.isFinite(scale) ? { enabled: true, scale } : !!checked;
 		const refreshedChoices =
 			activity ?
-				[...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity)]
+				[...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity), ...getTemplateSizeOptinChoices(ac5eConfig, activity)]
 			:	choices;
 		if (activity) {
 			const groupedChoices = groupChoicesForDisplay(refreshedChoices, ac5eConfig);

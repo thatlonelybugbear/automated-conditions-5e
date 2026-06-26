@@ -730,17 +730,18 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 	});
 }
 
-function getOptinScaling(entry, parsedUsesCount, ac5eConfig) {
+export function getOptinScaling(entry, parsedUsesCount, ac5eConfig) {
 	const mode = entry?.mode;
 	const modeSupportsScaling =
 		mode === 'bonus' ||
 		mode === 'update' ||
 		mode === 'extraDice' ||
 		mode === 'targetADC' ||
+		mode === 'templateSize' ||
 		mode === 'criticalThreshold' ||
 		mode === 'fumbleThreshold';
 	if (!modeSupportsScaling) return null;
-	return resolveScalingConfigForEntry(parsedUsesCount?.scaling, entry, ac5eConfig);
+	return resolveScalingConfigForEntry(parsedUsesCount?.scaling ?? entry?.scaling, entry, ac5eConfig);
 }
 
 export function getRollingActorIdForOptins(ac5eConfig) {

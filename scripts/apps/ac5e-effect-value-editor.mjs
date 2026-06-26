@@ -41,6 +41,7 @@ const AURA_TOGGLE_FIELDS = ['allies', 'enemies', 'includeSelf', 'singleAura', 'w
 const CONDITIONAL_TOGGLE_FIELDS = ['partialConsume'];
 const RANGE_TOGGLE_FIELDS = ['longDisadvantage', 'noLongDisadvantage', 'nearbyFoeDisadvantage', 'noNearbyFoeDisadvantage', 'outOfRangeFail', 'noOutOfRangeFail'];
 const RANGE_VALUE_FIELDS = ['short', 'long', 'reach', 'bonus'];
+const TEMPLATE_SIZE_FIELDS = ['size', 'width', 'height'];
 const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
 const DEFAULT_USESCOUNT_SCALING = { min: 1, max: 1, step: 1 };
@@ -545,7 +546,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const assistProfile = getEditorProfile(changeKey, this.draftData ?? null);
 		const assistScope = resolveAssistScope(inputName, currentValue, changeKey);
 		const normalizedInputName = `${inputName ?? ''}`.trim().toLowerCase();
-		const isBonusExpand = normalizedInputName === 'fields.bonus' || normalizedInputName === 'fields.set';
+		const isBonusExpand = normalizedInputName === 'fields.bonus' || normalizedInputName === 'fields.set' || TEMPLATE_SIZE_FIELDS.some((field) => normalizedInputName === `fields.${field}`);
 		const hasUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const assist = buildLambdaAssistData(this.autocompleteEntries, {
 			includeAuraActor: assistProfile.isAura,
@@ -886,6 +887,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isModifier = normalized.endsWith('.modifier') || normalized.endsWith('.modifiers') || normalized.includes('.modifier.');
 	const isDamageContext = normalized.includes('.damage.');
 	const isTargetADC = normalized.endsWith('.modifyac') || normalized.endsWith('.modifydc');
+	const isTemplateSize = normalized.endsWith('.templatesize');
 	const isInfo = normalized.endsWith('.info');
 	const supportsUpdate = true;
 	const supportsCriticalStatic = isDamageContext && (normalized.endsWith('.bonus') || normalized.endsWith('.extradice'));
@@ -902,6 +904,7 @@ function getEditorProfile(changeKey, parsed) {
 	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('bonus', 'set');
 	if (isAura) auraFields.push('radius');
 	if (isRange) requiredFields.push(...RANGE_VALUE_FIELDS);
+	if (isTemplateSize) requiredFields.push(...TEMPLATE_SIZE_FIELDS);
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
 	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
 	const supportsAddTo = isDamageContext && (isBonus || isTypeOverride || isModifier || hasParsedValue(parsed, 'addTo'));
@@ -925,6 +928,7 @@ function getEditorProfile(changeKey, parsed) {
 	return {
 		isAura,
 		isRange,
+		isTemplateSize,
 		rangeFields: isRange ? RANGE_VALUE_FIELDS : [],
 		requiredFields: renderedRequiredFields,
 		auraFields: dedupe(auraFields),
@@ -987,9 +991,13 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 				label:
 					profile.supportsSetMode && name === 'bonus' ? 'Bonus / Set'
 					: name === 'bonus' && profile.isRange ? 'Range Bonus'
+					: TEMPLATE_SIZE_FIELDS.includes(name) ? labelForField(name)
 					: name === 'bonus' ? 'Bonus'
 					: labelForField(name),
-				hint: rangeFields.has(name) ? getToggleHint(rangeFieldHintKey(name)) : '',
+				hint:
+					rangeFields.has(name) ? getToggleHint(rangeFieldHintKey(name))
+					: profile.isTemplateSize && TEMPLATE_SIZE_FIELDS.includes(name) ? getToggleHint(`AC5E.EffectValueEditor.Hint.${name.replace(/^./, (char) => char.toUpperCase())}`)
+					: '',
 				value: profile.supportsSetMode && name === 'bonus' ? (parsed.fields[setMode ? 'set' : 'bonus'] ?? '') : (parsed.fields[name] ?? ''),
 				inputId: `ac5e-value-${name}-${id}`,
 				expandable: name === 'override' && isAbilityOverride && inlineOverrideEntries.length ? false : true,
@@ -1381,7 +1389,8 @@ function shouldExposeBaseValueForChangeKey(changeKey) {
 		normalized.includes('.modifydc') ||
 		normalized.includes('.criticalthreshold') ||
 		normalized.includes('.critthreshold') ||
-		normalized.includes('.fumblethreshold')
+		normalized.includes('.fumblethreshold') ||
+		normalized.includes('.templatesize')
 	);
 }
 

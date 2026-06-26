@@ -325,6 +325,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			criticalThreshold: [],
 			fumbleThreshold: [],
 			targetADC: [],
+			templateSize: [],
 			abilityOverride: [],
 			extraDice: [],
 			typeOverride: [],
@@ -352,6 +353,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 			criticalThreshold: [],
 			fumbleThreshold: [],
 			targetADC: [],
+			templateSize: [],
 			abilityOverride: [],
 			extraDice: [],
 			typeOverride: [],
@@ -362,6 +364,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		options,
 		parts: [],
 		targetADC: [],
+		templateSize: null,
 		extraDice: [],
 		threshold: [],
 		fumbleThreshold: [],
@@ -374,10 +377,13 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	if (Array.isArray(originatingUseConfig?.subject?.info)) ac5eConfig.subject.info.push(...foundry.utils.duplicate(originatingUseConfig.subject.info));
 	if (Array.isArray(originatingUseConfig?.subject?.rangeNotes)) ac5eConfig.subject.rangeNotes.push(...foundry.utils.duplicate(originatingUseConfig.subject.rangeNotes));
 	if (Array.isArray(originatingUseConfig?.subject?.targetADC)) ac5eConfig.subject.targetADC.push(...foundry.utils.duplicate(originatingUseConfig.subject.targetADC));
+	if (Array.isArray(originatingUseConfig?.subject?.templateSize)) ac5eConfig.subject.templateSize.push(...foundry.utils.duplicate(originatingUseConfig.subject.templateSize));
 	if (Array.isArray(originatingUseConfig?.opponent?.fail)) ac5eConfig.opponent.fail.push(...foundry.utils.duplicate(originatingUseConfig.opponent.fail));
 	if (Array.isArray(originatingUseConfig?.opponent?.info)) ac5eConfig.opponent.info.push(...foundry.utils.duplicate(originatingUseConfig.opponent.info));
 	if (Array.isArray(originatingUseConfig?.opponent?.targetADC)) ac5eConfig.opponent.targetADC.push(...foundry.utils.duplicate(originatingUseConfig.opponent.targetADC));
+	if (Array.isArray(originatingUseConfig?.opponent?.templateSize)) ac5eConfig.opponent.templateSize.push(...foundry.utils.duplicate(originatingUseConfig.opponent.templateSize));
 	if (Array.isArray(originatingUseConfig?.targetADC)) ac5eConfig.targetADC.push(...foundry.utils.duplicate(originatingUseConfig.targetADC));
+	if (originatingUseConfig?.templateSize && typeof originatingUseConfig.templateSize === 'object') ac5eConfig.templateSize = foundry.utils.duplicate(originatingUseConfig.templateSize);
 	const persistedBaseRoll0Options = persistedAc5eConfig?.preAC5eConfig?.baseRoll0Options;
 	if (persistedBaseRoll0Options && typeof persistedBaseRoll0Options === 'object') ac5eConfig.preAC5eConfig.baseRoll0Options = foundry.utils.duplicate(persistedBaseRoll0Options);
 	const persistedOptinBaseTargetADC = persistedAc5eConfig?.optinBaseTargetADC;

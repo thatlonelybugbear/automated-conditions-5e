@@ -15,6 +15,7 @@ export function _cloneUseConfigShallow(useConfig) {
 	if (Array.isArray(useConfig.damageModifiers)) cloned.damageModifiers = foundry.utils.duplicate(useConfig.damageModifiers);
 	if (Array.isArray(useConfig.parts)) cloned.parts = foundry.utils.duplicate(useConfig.parts);
 	if (Array.isArray(useConfig.targetADC)) cloned.targetADC = foundry.utils.duplicate(useConfig.targetADC);
+	if (useConfig.templateSize && typeof useConfig.templateSize === 'object') cloned.templateSize = foundry.utils.duplicate(useConfig.templateSize);
 	if (Array.isArray(useConfig.threshold)) cloned.threshold = foundry.utils.duplicate(useConfig.threshold);
 	if (Array.isArray(useConfig.fumbleThreshold)) cloned.fumbleThreshold = foundry.utils.duplicate(useConfig.fumbleThreshold);
 	if (useConfig.subject && typeof useConfig.subject === 'object') cloned.subject = foundry.utils.duplicate(useConfig.subject);
@@ -213,6 +214,7 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'extraDice',
 	'typeOverride',
 	'targetADC',
+	'templateSize',
 	'criticalThreshold',
 	'fumbleThreshold',
 	'abilityOverride',
@@ -3005,6 +3007,7 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.grants.modifyAC`,
 		`${moduleFlagScope}.aura.modifyAC`,
 		`${moduleFlagScope}.abilityOverride`,
+		`${moduleFlagScope}.use.templateSize`,
 		`${moduleFlagScope}.grants.abilityOverride`,
 		`${moduleFlagScope}.aura.abilityOverride`,
 	]);

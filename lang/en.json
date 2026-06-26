@@ -324,6 +324,10 @@
 			"name": "Override Save/Check DC ability",
 			"description": "Overrides the ability used to calculate Save/Check DCs for the activity. Use override=cha. Example: override=(item.type==='spell' ? spellcastingAbility : wis). abilityOverride=... and set=... are still supported."
 		},
+		"flags.automated-conditions-5e.use.templateSize": {
+			"name": "Alter placed template size",
+			"description": "Changes the dimensions of an activity template when the activity is used. Use size=, width=, or height=. Supports opt-in scaling with optinScale, for example size=activity.target.template.size + optinScale * 5; usesCount=origin,{min:1,max:rollingActor.attributes.prof*2,step:1}; optin."
+		},
 		"flags.automated-conditions-5e.grants.abilityOverride": {
 			"name": "Grant Save/Check DC ability override",
 			"description": "Overrides the affected actor's Save/Check DC ability via grants. Use override=cha. Example: override=(opponentActor?.details?.type?.value==='fiend' ? cha : wis). abilityOverride=... and set=... are still supported."
@@ -545,7 +549,10 @@
 			"RangeShort": "Modify short range using +value, -value, or a bare value to set.",
 			"RangeLong": "Modify long range using +value, -value, or a bare value to set.",
 			"RangeReach": "Modify melee reach using +value, -value, or a bare value to set.",
-			"RangeBonus": "Modify every matching range value using +value, -value, or a bare value to set."
+			"RangeBonus": "Modify every matching range value using +value, -value, or a bare value to set.",
+			"Size": "Set the placed template's main size or distance.",
+			"Width": "Set the placed template's width.",
+			"Height": "Set the placed template's height."
 		}
 	},
 	"AC5E.Optin.UpdateSummary": {
