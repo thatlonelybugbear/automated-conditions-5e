@@ -1,3 +1,38 @@
+## 14.533.7
+
+- Added a Discord button to the AC5E links menu and reorganized the links into GitHub, Discord, and support groups.
+- Added more Effect Value Editor suggestions for item, activity, and origin range data.
+- Added Effect Value Editor suggestions for item and activity spell school data.
+- Added more Effect Value Editor suggestions for item type, item subtype, base item, action type, attack mode, item properties, and weapon mastery checks.
+- Added guided range editing for AC5E range flags, including short range, long range, reach, range-wide bonus, long-range disadvantage, nearby-foe disadvantage, and out-of-range failure controls.
+- Added `use.templateSize` flags for opt-in scaling of placed activity template size, width, and height based on the amount of uses a player chooses to spend.
+- Added clearer update amount help for statuses, Concentrating, Inspiration, and Exhaustion.
+- Added `criticalStatic` as a toggleBehaviour when relevant.
+- Added support for `update` and `usesCount` targets that point at `effectActor`, `nonEffectActor`, and `effectOriginActor`.
+- Improved AC5E Active Effect change type handling so the `AC5E` change type is more reliably available and preserved on Foundry Active Effect sheets.
+- Improved the Effect Value Editor's condition helper with better operator suggestions after common number, string, and boolean entries.
+- Improved the Effect Value Editor's `!` helper so it can toggle the previous boolean-style condition.
+- Improved Effect Value Editor browsing for actor, item, activity, origin item, and origin activity data paths.
+- Improved `ability`, `skill`, and `tool` authoring so value chips insert the expected shorthand checks.
+- Improved mastery authoring:
+  - `mastery.<name>` remains available for the currently selected weapon mastery.
+  - `item.mastery` and `originItem.mastery` now insert string comparisons such as `item.mastery === 'cleave'`, matching the item data shape.
+- Improved mastery evaluation so AC5E can fall back to the item's mastery when the roll configuration does not provide one.
+- Improved range flag authoring so newly generated AC5E range flags use the consolidated `.range` flag instead of many separate range subkeys.
+- Improved existing range subkey editing so opening and saving old `range.short`, `range.long`, `range.reach`, or `range.bonus` effects moves them into the consolidated `.range` value format.
+- Improved range toggle handling so standalone range keywords such as `longDisadvantage`, `nearbyFoeDisadvantage`, and `outOfRangeFail` are recognized consistently.
+- Improved range alias handling so the old `fail` range alias is normalized to `outOfRangeFail` when converted to the new range format.
+- Improved the editor layout so helper panels and buttons fit better in narrower windows.
+- Fixed AC5E change rows with an empty key being lost when Active Effect sheet data is collected.
+- Fixed range editor hints that previously suggested typing `=value` in fields where the editor already supplies the assignment.
+- Fixed explicit old range value subkeys so editing `range.short`, `range.long`, `range.reach`, or `range.bonus` no longer saves values in a form the runtime ignores.
+- Fixed range toggle UI state so migrated or edited out-of-range failure aliases do not appear as hidden contradictory values.
+
+### Breaking Changes
+
+- Generated AC5E range authoring now uses the consolidated `.range` flag instead of generating separate `.range.short`, `.range.long`, `.range.reach`, `.range.longDisadvantage`, and similar subkey flags.
+- Existing old range subkey flags are still supported at runtime, but editing them in the Effect Value Editor will save them back using the consolidated `.range` format.
+
 ## 14.533.6.1
 
 - Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
