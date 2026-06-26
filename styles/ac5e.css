@@ -300,6 +300,10 @@
 	font-weight: 700;
 }
 
+.ac5e-effect-value-editor-range-field-toggles {
+	margin-top: 10px;
+}
+
 .ac5e-effect-value-editor-label-info {
 	font-size: var(--font-size-12);
 	margin-left: 4px;

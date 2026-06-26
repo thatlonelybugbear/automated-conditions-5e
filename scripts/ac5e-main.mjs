@@ -42,11 +42,15 @@ function ac5eRegisterOnInit() {
 
 function registerActiveEffectChangeType() {
 	if (!CONFIG?.ActiveEffect?.changeTypes) return;
-	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = {
+	const config = {
 		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
 		defaultPriority: 0,
 		handler: (value) => value,
 	};
+	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
+	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
+	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
+	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
 }
 
 function registerKeybindings() {

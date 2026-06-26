@@ -346,7 +346,7 @@ function _collectAc5eChangeRows(data, existingChanges = []) {
 			if (!change || typeof change !== 'object') continue;
 			if (`${change.type ?? ''}`.trim().toLowerCase() !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
 			const key = `${change.key ?? ''}`.trim();
-			if (_isAc5eChangeKey(key)) rows[index] = key;
+			if (!key || _isAc5eChangeKey(key)) rows[index] = key;
 		}
 	};
 	collect(data.changes);
@@ -358,7 +358,7 @@ function _collectAc5eChangeRows(data, existingChanges = []) {
 		if (`${value ?? ''}`.trim().toLowerCase() !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
 		const index = match[1];
 		const key = `${data[`system.changes.${index}.key`] ?? data[`changes.${index}.key`] ?? existingChanges[index]?.key ?? ''}`.trim();
-		if (_isAc5eChangeKey(key)) rows[index] = key;
+		if (!key || _isAc5eChangeKey(key)) rows[index] = key;
 	}
 	return { hasChangeData, rows };
 }

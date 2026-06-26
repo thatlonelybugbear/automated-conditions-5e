@@ -535,7 +535,17 @@
 			"ToggleWallsBlock": "Walls can block aura reach/pathing.",
 			"ToggleRecover": "Reverse uses consumption and restore the configured amount.",
 			"UsesCountSet": "Set the target to an absolute amount using =amount syntax.",
-			"TogglePartialConsume": "Allow spending what is available instead of blocking when short."
+			"TogglePartialConsume": "Allow spending what is available instead of blocking when short.",
+			"ToggleRangeLongDisadvantage": "Force long-range disadvantage on.",
+			"ToggleRangeNoLongDisadvantage": "Force long-range disadvantage off.",
+			"ToggleRangeNearbyFoeDisadvantage": "Force nearby-foe ranged disadvantage on.",
+			"ToggleRangeNoNearbyFoeDisadvantage": "Force nearby-foe ranged disadvantage off.",
+			"ToggleRangeOutOfRangeFail": "Force out-of-range usage to fail.",
+			"ToggleRangeNoOutOfRangeFail": "Force out-of-range usage not to fail.",
+			"RangeShort": "Modify short range using +value, -value, or a bare value to set.",
+			"RangeLong": "Modify long range using +value, -value, or a bare value to set.",
+			"RangeReach": "Modify melee reach using +value, -value, or a bare value to set.",
+			"RangeBonus": "Modify every matching range value using +value, -value, or a bare value to set."
 		}
 	},
 	"AC5E.Optin.UpdateSummary": {

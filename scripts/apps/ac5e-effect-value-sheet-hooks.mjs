@@ -10,6 +10,8 @@ export function registerEffectValueEditorHooks() {
 function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
+	registerActiveEffectChangeType();
+	ensureAc5eChangeTypeOptions(root);
 	moveAc5eChangeTypeOptionsToBottom(root);
 	restoreAc5eChangeTypeSelections(app, root);
 	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
@@ -17,6 +19,29 @@ function enhanceActiveEffectConfig(app, element) {
 	if (!new Settings().enableAc5eUi) return;
 
 	refreshEditorButtons(app, root);
+}
+
+function registerActiveEffectChangeType() {
+	if (!CONFIG?.ActiveEffect?.changeTypes) return;
+	const config = {
+		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
+		defaultPriority: 0,
+		handler: (value) => value,
+	};
+	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
+	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
+	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
+	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
+}
+
+function ensureAc5eChangeTypeOptions(root) {
+	for (const select of root.querySelectorAll('select[name$=".type"]')) {
+		if (select.querySelector(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`)) continue;
+		const option = document.createElement('option');
+		option.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
+		option.textContent = game.i18n?.localize?.('AC5E.ActiveEffect.ChangeTypes.AC5E') ?? 'AC5E';
+		select.append(option);
+	}
 }
 
 function initializeKeyAutocomplete(app, root) {
@@ -174,7 +199,9 @@ function restoreAc5eChangeTypeSelections(app, root) {
 		if (index == null || !Object.hasOwn(rows, index)) continue;
 		const key = `${findKeyInput(row, select)?.value ?? ''}`.trim();
 		const savedKey = `${rows[index] ?? ''}`.trim();
-		if (!savedKey || (key !== savedKey && !isAc5eChangeKey(key))) continue;
+		if (savedKey) {
+			if (key !== savedKey && !isAc5eChangeKey(key)) continue;
+		} else if (key && !isAc5eChangeKey(key)) continue;
 		select.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 	}
 }

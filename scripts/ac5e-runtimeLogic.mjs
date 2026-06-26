@@ -937,6 +937,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const sandboxOptions = options;
 	const activity = options.activity;
 	const item = activity?.item;
+	const resolvedMastery = sandboxOptions.mastery || itemData?.mastery || item?.system?.mastery;
 	sandbox.rollingActor = rollingActor || {};
 	sandbox.opponentActor = opponentActor || {};
 	sandbox.tokenId = subjectToken?.id;
@@ -993,14 +994,15 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.actionType = actionType ? { [actionType]: true } : {};
 	sandbox.attackMode = sandboxOptions.attackMode ? { [sandboxOptions.attackMode]: true } : {};
 	if (sandboxOptions.attackMode) sandbox._evalConstants[sandboxOptions.attackMode] = true;
-	sandbox.mastery = sandboxOptions.mastery ? { [sandboxOptions.mastery]: true } : {};
+	sandbox.mastery = resolvedMastery ? { [resolvedMastery]: true } : {};
+	if (resolvedMastery) sandbox._evalConstants[resolvedMastery] = true;
 	sandbox.damageTypes = sandboxOptions.damageTypes;
 	sandbox.defaultDamageType = sandboxOptions.defaultDamageType;
 	if (!foundry.utils.isEmpty(sandboxOptions.damageTypes)) foundry.utils.mergeObject(sandbox._evalConstants, sandboxOptions.damageTypes);
 	sandbox.activity.damageTypes = sandboxOptions.damageTypes;
 	sandbox.activity.defaultDamageType = sandboxOptions.defaultDamageType;
 	sandbox.activity.attackMode = sandboxOptions.attackMode;
-	sandbox.activity.mastery = sandboxOptions.mastery;
+	sandbox.activity.mastery = resolvedMastery;
 	if (actionType) {
 		sandbox._evalConstants[actionType] = true;
 		sandbox.activity.actionType = actionType;

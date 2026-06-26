@@ -16,6 +16,17 @@
 			</p>
 		</header>
 
+		{{#if hasRangeFieldToggles}}
+			<div class="ac5e-effect-value-editor-toggle-grid ac5e-effect-value-editor-range-field-toggles">
+				{{#each rangeFieldToggles}}
+					<label title="{{hint}}">
+						<input type="checkbox" name="{{name}}" {{#if checked}}checked{{/if}}>
+						<span>{{label}}</span>
+					</label>
+				{{/each}}
+			</div>
+		{{/if}}
+
 		{{#if primaryLayout}}
 			<section class="ac5e-effect-value-editor-grid">
 				{{#if primaryLayout.radiusField}}
@@ -56,7 +67,7 @@
 
 				{{#each primaryLayout.mainFields}}
 					<div class="form-group {{#if fullRow}}stacked ac5e-effect-value-editor-grid-span{{/if}}">
-						<label for="{{inputId}}">{{label}}</label>
+						<label for="{{inputId}}" {{#if hint}}title="{{hint}}"{{/if}}>{{label}}</label>
 						<div class="form-fields ac5e-effect-value-editor-inline-field">
 							{{#if hideOverrideInput}}
 								<input id="{{inputId}}" type="hidden" name="fields.{{name}}" value="{{value}}">
@@ -339,9 +350,9 @@
 		{{/if}}
 	</fieldset>
 
-	{{#if hasAuraBehavior}}
+	{{#if hasContextBehavior}}
 		<fieldset class="ac5e-effect-value-editor-fieldset">
-			<legend>Aura Behavior</legend>
+			<legend>{{contextBehaviorLabel}}</legend>
 			{{#if hasContextToggles}}
 				<div class="ac5e-effect-value-editor-toggle-grid">
 					{{#each contextToggles}}

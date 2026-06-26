@@ -1902,6 +1902,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let noLongDisadvantage = parseRangeToggle({ expression: noLongRaw, evaluationData, effect, isAura, debug });
 		if (longDisadvantage === undefined && explicitKey === 'longdisadvantage') longDisadvantage = true;
 		if (noLongDisadvantage === undefined && explicitKey === 'nolongdisadvantage') noLongDisadvantage = true;
+		if (longDisadvantage === undefined && hasStandaloneRangeKeyword(value, 'longdisadvantage')) longDisadvantage = true;
 		if (noLongDisadvantage === undefined && hasStandaloneRangeKeyword(value, 'nolongdisadvantage')) noLongDisadvantage = true;
 		if (longDisadvantage === undefined && typeof noLongDisadvantage === 'boolean') longDisadvantage = !noLongDisadvantage;
 		if (typeof noLongDisadvantage === 'boolean') rangeData.noLongDisadvantage = noLongDisadvantage;
@@ -1911,6 +1912,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let noNearbyFoeDisadvantage = parseRangeToggle({ expression: noNearbyDisRaw, evaluationData, effect, isAura, debug });
 		if (nearbyFoeDisadvantage === undefined && (explicitKey === 'nearbyfoedisadvantage' || explicitKey === 'nearbyfoes')) nearbyFoeDisadvantage = true;
 		if (noNearbyFoeDisadvantage === undefined && (explicitKey === 'nonearbyfoedisadvantage' || explicitKey === 'nonearbyfoes')) noNearbyFoeDisadvantage = true;
+		if (nearbyFoeDisadvantage === undefined && (hasStandaloneRangeKeyword(value, 'nearbyfoedisadvantage') || hasStandaloneRangeKeyword(value, 'nearbyfoes'))) nearbyFoeDisadvantage = true;
 		if (noNearbyFoeDisadvantage === undefined && (hasStandaloneRangeKeyword(value, 'nonearbyfoedisadvantage') || hasStandaloneRangeKeyword(value, 'nonearbyfoes'))) noNearbyFoeDisadvantage = true;
 		if (nearbyFoeDisadvantage === undefined && typeof noNearbyFoeDisadvantage === 'boolean') nearbyFoeDisadvantage = !noNearbyFoeDisadvantage;
 		if (typeof nearbyFoeDisadvantage === 'boolean') rangeData.nearbyFoeDisadvantage = nearbyFoeDisadvantage;
@@ -1920,6 +1922,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let noFail = parseRangeToggle({ expression: noFailRaw, evaluationData, effect, isAura, debug });
 		if (fail === undefined && (explicitKey === 'fail' || explicitKey === 'outofrangefail')) fail = true;
 		if (noFail === undefined && (explicitKey === 'nofail' || explicitKey === 'nooutofrangefail')) noFail = true;
+		if (fail === undefined && (hasStandaloneRangeKeyword(value, 'fail') || hasStandaloneRangeKeyword(value, 'outofrangefail'))) fail = true;
 		if (noFail === undefined && (hasStandaloneRangeKeyword(value, 'nofail') || hasStandaloneRangeKeyword(value, 'nooutofrangefail'))) noFail = true;
 		if (fail === undefined && typeof noFail === 'boolean') fail = !noFail;
 		if (typeof fail === 'boolean') rangeData.outOfRangeFail = fail;

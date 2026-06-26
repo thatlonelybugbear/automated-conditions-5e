@@ -3,6 +3,9 @@ const ASSIGNMENT_FIELDS = [
 	'modifier',
 	'override',
 	'set',
+	'short',
+	'long',
+	'reach',
 	'radius',
 	'threshold',
 	'chance',
@@ -29,10 +32,17 @@ const TOGGLE_FIELDS = [
 	'criticalStatic',
 	'recover',
 	'optin',
+	'longDisadvantage',
+	'noLongDisadvantage',
+	'nearbyFoeDisadvantage',
+	'noNearbyFoeDisadvantage',
+	'outOfRangeFail',
+	'noOutOfRangeFail',
 ];
 
 const ASSIGNMENT_LOOKUP = new Map(ASSIGNMENT_FIELDS.map((field) => [field.toLowerCase(), field]));
 const TOGGLE_LOOKUP = new Map(TOGGLE_FIELDS.map((field) => [field.toLowerCase(), field]));
+const RANGE_VALUE_FIELDS = new Set(['short', 'long', 'reach', 'bonus']);
 
 export { ASSIGNMENT_FIELDS, TOGGLE_FIELDS };
 
@@ -70,6 +80,11 @@ export function parseAc5eEffectValue(value = '', { changeKey = '' } = {}) {
 		const toggle = TOGGLE_LOOKUP.get(fragment.toLowerCase());
 		if (toggle) {
 			parsed.toggles[toggle] = true;
+			continue;
+		}
+
+		if (aliasState.rangeField && !parsed.fields[aliasState.rangeField]) {
+			parsed.fields[aliasState.rangeField] = fragment;
 			continue;
 		}
 
@@ -216,8 +231,10 @@ function splitEffectValueFragments(value) {
 
 function getAssignmentAliasState(changeKey = '') {
 	const normalized = String(changeKey ?? '').trim().toLowerCase();
+	const rangeField = normalized.match(/\.range\.(short|long|reach|bonus)$/)?.[1] ?? '';
 	return {
 		isTypeOverride: normalized.endsWith('.typeoverride'),
+		rangeField: RANGE_VALUE_FIELDS.has(rangeField) ? rangeField : '',
 	};
 }
 

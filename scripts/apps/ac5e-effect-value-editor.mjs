@@ -1,13 +1,17 @@
-import { buildEffectValueAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, rankEffectValueAutocompleteEntries, replaceAutocompletePrefix, shouldActivateEffectValueAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import {
+	buildEffectValueAutocompleteEntries,
+	configureAc5eAutocompleteMenu,
+	getAutocompletePrefix,
+	rankEffectValueAutocompleteEntries,
+	replaceAutocompletePrefix,
+	shouldActivateEffectValueAutocomplete,
+} from './ac5e-effect-value-autocomplete.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS } from '../ac5e-runtimeLogic.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from '../ac5e-addTo.mjs';
 
 const AC5E_ACTOR_ROOTS = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
-const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([
-	...AC5E_ACTOR_ROOTS.flatMap((root) => AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((suffix) => `${root}.${suffix}`)),
-	'opponentActor.opponentId',
-]);
+const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([...AC5E_ACTOR_ROOTS.flatMap((root) => AC5E_ACTOR_ROLLDATA_ADDED_FIELDS.map((suffix) => `${root}.${suffix}`)), 'opponentActor.opponentId']);
 const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
 	// 'item.itemUuid',
 	// 'item.itemProperties',
@@ -27,9 +31,7 @@ const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
 	'originActivity.healingTypes',
 ]);
 const AC5E_ADDED_LAMBDA_PATHS = new Set([...AC5E_ACTOR_ADDED_LAMBDA_PATHS, ...AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS]);
-const AC5E_ADDED_LAMBDA_PREFIXES = new Set(
-	AC5E_ACTOR_ROOTS.flatMap((root) => AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((suffix) => `${root}.${suffix}`)),
-);
+const AC5E_ADDED_LAMBDA_PREFIXES = new Set(AC5E_ACTOR_ROOTS.flatMap((root) => AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS.map((suffix) => `${root}.${suffix}`)));
 import { collectAc5eEffectValueFormData, mergeAc5eEffectValueFormData, parseAc5eEffectValue, serializeAc5eEffectValue } from './ac5e-effect-value-parser.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -37,11 +39,27 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const COMMON_TOGGLE_FIELDS = ['optin', 'once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat', 'itemLimited'];
 const AURA_TOGGLE_FIELDS = ['allies', 'enemies', 'includeSelf', 'singleAura', 'wallsBlock'];
 const CONDITIONAL_TOGGLE_FIELDS = ['partialConsume'];
+const RANGE_TOGGLE_FIELDS = ['longDisadvantage', 'noLongDisadvantage', 'nearbyFoeDisadvantage', 'noNearbyFoeDisadvantage', 'outOfRangeFail', 'noOutOfRangeFail'];
+const RANGE_VALUE_FIELDS = ['short', 'long', 'reach', 'bonus'];
 const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
 const DEFAULT_USESCOUNT_SCALING = { min: 1, max: 1, step: 1 };
-const SPELL_SLOT_USESCOUNT_ENTRIES = ['pact', ...Array.from({ length: 9 }, (_entry, index) => `spell${index + 1}`)];
-const ENUM_ASSIST_ALIAS_ROOTS = new Set(['damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery', 'riderStatuses']);
+const SPELL_SLOT_USESCOUNT_ENTRIES = ['pact', ...Array.from({ length: Number(Object.keys(CONFIG?.DND5E?.spellLevels || {0: 'Cantrip', 1: '1st Level', 2: '2nd Level', 3: '3rd Level', 4: '4th Level', 5: '5th Level', 6: '6th Level', 7: '7th Level', 8: '8th Level', 9: '9th Level'})?.at(-1) ?? 9) }, (_entry, index) => `spell${index + 1}`)];
+const ENUM_ASSIST_ALIAS_ROOTS = new Set([
+	'ability',
+	'skill',
+	'tool',
+	'damageTypes',
+	'defaultDamageType',
+	'actionType',
+	'attackMode',
+	'itemProperties',
+	'itemType',
+	'originItemProperties',
+	'originItemType',
+	'mastery',
+	'riderStatuses',
+]);
 const ROOT_IDENTIFIERS = new Set(['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor', 'item', 'activity', 'originItem', 'originActivity']);
 const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20ResultOverTarget', 'd20Total', 'opponentAC', 'targetOverAC', 'targetValue']);
 const STRING_OPERATOR_ASSIST_ENTRIES = new Set(['ability', 'skill', 'tool']);
@@ -75,16 +93,7 @@ const ROLL_AWARE_ENTRIES = new Set([
 	'attackRollD20',
 	'attackRollOverAC',
 ]);
-const COMPUTED_ROLL_AWARE_ENTRIES = new Set([
-	'opponentAC',
-	'targetOverAC',
-	'd20Total',
-	'd20Result',
-	'd20ResultOverTarget',
-	'attackRollTotal',
-	'attackRollD20',
-	'attackRollOverAC',
-]);
+const COMPUTED_ROLL_AWARE_ENTRIES = new Set(['opponentAC', 'targetOverAC', 'd20Total', 'd20Result', 'd20ResultOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC']);
 const AC5E_USESCOUNT_BASE_ENTRIES = [
 	'origin',
 	'hp',
@@ -103,13 +112,7 @@ const AC5E_USESCOUNT_BASE_ENTRIES = [
 	'Item.<itemId>',
 	'Item.<itemId>.Activity.<activityId>',
 ];
-const AC5E_UPDATE_BASE_ENTRIES = [
-	'rollingActor',
-	'opponentActor',
-	'effectActor',
-	'nonEffectActor',
-	'effectOriginActor',
-];
+const AC5E_UPDATE_BASE_ENTRIES = ['rollingActor', 'opponentActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
 const AC5E_COUNTER_ACTOR_ROOTS = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
 
 export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -206,17 +209,26 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const profile = getEditorProfile(changeKey, parsed);
 		const setMode = profile.supportsSetMode && shouldUseSetMode(parsed);
 		const optionalFieldState = resolveOptionalFieldState(parsed, this.uiState);
+		const rangeFieldState = resolveRangeFieldState(parsed, this.uiState, profile);
 		const optionalFieldRows = buildRenderedOptionalFieldRows(parsed, this.id, optionalFieldState, profile);
 		const primaryLayout = buildPrimaryLayout(profile, parsed, this.id, {
 			setMode,
 			conditionsLabel: 'Condition',
 			changeKey,
+			rangeFieldState,
 		});
 		return {
 			...context,
 			changeIndex: this.changeIndex,
 			headerLabel: `${this.effect?.name ?? 'Effect'} (change index: ${this.changeIndex})`,
 			changeKey,
+			rangeFieldToggles: profile.rangeFields.map((name) => ({
+				name: `ui.showRange${name.replace(/^./, (char) => char.toUpperCase())}`,
+				label: name === 'bonus' ? 'Range Bonus' : labelForField(name),
+				checked: Boolean(rangeFieldState[name]),
+				hint: getToggleHint(rangeFieldHintKey(name)),
+			})),
+			hasRangeFieldToggles: profile.rangeFields.length > 0,
 			primaryLayout,
 			toggleBehavior: [
 				{
@@ -243,18 +255,24 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					checked: optionalFieldState.usesCount,
 					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUsesCount'),
 				},
-				...(profile.supportsUpdate ? [{
-					name: 'ui.showUpdate',
-					label: 'Update',
-					checked: optionalFieldState.update,
-					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUpdate'),
-				}] : []),
-				...profile.commonToggles.filter((name) => !CADENCE_TOGGLE_FIELDS.includes(name)).map((name) => ({
-					name: `toggles.${name}`,
-					label: labelForField(name),
-					checked: Boolean(parsed.toggles[name]),
-					hint: getToggleHint(toggleHintKey(name)),
-				})),
+				...(profile.supportsUpdate ?
+					[
+						{
+							name: 'ui.showUpdate',
+							label: 'Update',
+							checked: optionalFieldState.update,
+							hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUpdate'),
+						},
+					]
+				:	[]),
+				...profile.commonToggles
+					.filter((name) => !CADENCE_TOGGLE_FIELDS.includes(name))
+					.map((name) => ({
+						name: `toggles.${name}`,
+						label: labelForField(name),
+						checked: Boolean(parsed.toggles[name]),
+						hint: getToggleHint(toggleHintKey(name)),
+					})),
 			],
 			showCadence: optionalFieldState.cadence,
 			cadenceOptions: buildCadenceOptions(resolveCadenceMode(parsed)),
@@ -266,7 +284,11 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				checked: Boolean(parsed.toggles[name]),
 				hint: getToggleHint(toggleHintKey(name)),
 			})),
-			hasAuraBehavior: profile.isAura && profile.contextToggles.length > 0,
+			hasContextBehavior: profile.contextToggles.length > 0,
+			contextBehaviorLabel:
+				profile.isRange && profile.isAura ? 'Range / Aura Behavior'
+				: profile.isRange ? 'Range Behavior'
+				: 'Aura Behavior',
 			hasContextToggles: profile.contextToggles.length > 0,
 		};
 	}
@@ -335,7 +357,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 				if (target?.dataset?.ac5eInlineOverrideMode === 'append') {
 					const selected = new Set(
-						`${input.value ?? ''}`.split(',').map((entry) => entry.trim()).filter(Boolean),
+						`${input.value ?? ''}`
+							.split(',')
+							.map((entry) => entry.trim())
+							.filter(Boolean),
 					);
 					if (selected.has(value)) return;
 					selected.add(value);
@@ -351,7 +376,9 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				}
 			});
 		}
-		for (const input of htmlElement?.querySelectorAll('[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])') ?? []) {
+		for (const input of htmlElement?.querySelectorAll(
+			'[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])',
+		) ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
 		}
@@ -382,6 +409,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
 		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const showUpdate = profile.supportsUpdate && hasCheckedInput(form, 'ui.showUpdate');
+		const rangeFieldState = getRangeFieldUiState(form, profile);
 		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
@@ -393,6 +421,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
 		if (!showUpdate) mergedData.fields.update = '';
+		clearHiddenRangeFields(mergedData, profile, rangeFieldState);
 		const partialConsumeEnabled = Boolean(mergedData.toggles.partialConsume);
 		const scalingEnabled = showUsesCountScaling && !partialConsumeEnabled;
 		if (showUsesCount) {
@@ -415,13 +444,20 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.bonus = setMode ? '' : mergedData.fields.bonus;
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
-		const value = serializeAc5eEffectValue(mergedData, { changeKey });
+		const outputChangeKey = getMigratedRangeChangeKey(changeKey);
+		const value = serializeAc5eEffectValue(mergedData, { changeKey: outputChangeKey });
+		const keyInput = this.#getKeyInput();
+		if (keyInput && outputChangeKey !== changeKey) {
+			keyInput.value = outputChangeKey;
+			keyInput.dispatchEvent(new Event('input', { bubbles: true }));
+			keyInput.dispatchEvent(new Event('change', { bubbles: true }));
+		}
 		valueInput.value = value;
 		valueInput.dispatchEvent(new Event('input', { bubbles: true }));
 		valueInput.dispatchEvent(new Event('change', { bubbles: true }));
-		this.draftKey = changeKey;
+		this.draftKey = outputChangeKey;
 		this.draftData = mergedData;
-		await this.#submitActiveEffectSheet({ changeKey, value });
+		await this.#submitActiveEffectSheet({ changeKey: outputChangeKey, value });
 		if (close) this.close();
 	}
 
@@ -462,10 +498,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!expectedChange) return;
 		const currentChange = this.effect.system?.changes?.[this.changeIndex];
 		if (currentChange?.key === expectedChange.key && currentChange?.value === expectedChange.value) return;
-		await this.effect.update({
-			[`system.changes.${this.changeIndex}.key`]: expectedChange.key,
-			[`system.changes.${this.changeIndex}.value`]: expectedChange.value,
-		}, { render: false });
+		await this.effect.update(
+			{
+				[`system.changes.${this.changeIndex}.key`]: expectedChange.key,
+				[`system.changes.${this.changeIndex}.value`]: expectedChange.value,
+			},
+			{ render: false },
+		);
 	}
 
 	#onConditionInput(event) {
@@ -521,34 +560,47 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const isUsesCountScope = assistScope === 'usesCount';
 		const isCounterScope = assistScope === 'usesCount' || assistScope === 'update';
 		const isCompactScope = isAddToScope || isCounterScope;
-		const textAreaRows = (isAddToScope || isCounterScope) ? 3 : 6;
-		const minDialogWidth = isAddToScope || isUsesCountScope ? 500 : (isCounterScope ? 680 : (isOverrideScope ? 620 : 760));
-		const preferredDialogWidth = isAddToScope || isUsesCountScope ? 560 : (isCounterScope ? 760 : (isOverrideScope ? 620 : 920));
-		const resizeMinDialogWidth = isAddToScope || isUsesCountScope ? 420 : (isCounterScope ? 580 : (isOverrideScope ? 520 : 620));
+		const textAreaRows = isAddToScope || isCounterScope ? 3 : 6;
+		const minDialogWidth =
+			isAddToScope || isUsesCountScope ? 500
+			: isCounterScope ? 680
+			: isOverrideScope ? 620
+			: 760;
+		const preferredDialogWidth =
+			isAddToScope || isUsesCountScope ? 560
+			: isCounterScope ? 760
+			: isOverrideScope ? 620
+			: 920;
+		const resizeMinDialogWidth =
+			isAddToScope || isUsesCountScope ? 420
+			: isCounterScope ? 580
+			: isOverrideScope ? 520
+			: 620;
 		const viewportWidth = window.innerWidth || document.documentElement?.clientWidth || preferredDialogWidth;
 		const maxDialogWidth = Math.max(minDialogWidth, Math.min(1200, Math.floor(viewportWidth * 0.92)));
 		const dialogWidth = Math.min(maxDialogWidth, Math.max(minDialogWidth, preferredDialogWidth));
 		const clampedResizeMinDialogWidth = Math.min(dialogWidth, Math.max(360, Math.min(resizeMinDialogWidth, Math.floor(viewportWidth * 0.9))));
-		const assistControls = isOverrideScope
-			?	renderAssistEntryGroups(assist)
-			: isAddToScope
-				? `
+		const assistControls =
+			isOverrideScope ? renderAssistEntryGroups(assist)
+			: isAddToScope ?
+				`
 					<div class="ac5e-effect-value-assist-groups ac5e-effect-value-assist-groups-addto">${renderAssistEntryGroups(assist)}</div>
 				`
-				: isCounterScope
-					? `
+			: isCounterScope ?
+				`
 						<div class="ac5e-effect-value-assist-groups">
 							${renderAssistEntryGroups(assist)}
 						</div>
 					`
-				:	`
+			:	`
 					${renderAssistActionFieldset('Operators', assist.operators, 'ac5e-assist-insert', 'button')}
 					<div class="ac5e-effect-value-assist-groups">
 						${renderAssistEntryGroups(assist)}
 					</div>
 				`;
-		const asideMarkup = (isOverrideScope || isAddToScope || isUsesCountScope)
-			?	''
+		const asideMarkup =
+			isOverrideScope || isAddToScope || isUsesCountScope ?
+				''
 			:	`
 					<aside class="ac5e-effect-value-expand-aside">
 						<p class="ac5e-effect-value-assist-title">Lambda Paths <small>(* AC5E addition)</small></p>
@@ -567,7 +619,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				},
 				content: `
 					<form class="ac5e-effect-value-expand-dialog${isAddToScope ? ' ac5e-effect-value-expand-dialog-addto' : ''}" data-ac5e-lambda-assist data-ac5e-assist-scope="${escapeHtml(assistScope)}">
-						<div class="ac5e-effect-value-expand-layout${(isAddToScope || isUsesCountScope) ? ' ac5e-effect-value-expand-layout-single' : ''}">
+						<div class="ac5e-effect-value-expand-layout${isAddToScope || isUsesCountScope ? ' ac5e-effect-value-expand-layout-single' : ''}">
 							<section class="ac5e-effect-value-expand-main">
 								<div class="form-group stacked">
 									<label for="ac5e-expand-value">${escapedLabel}</label>
@@ -609,15 +661,19 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					if (!(textarea instanceof HTMLTextAreaElement)) return;
 					const resetButton = dialog.element.querySelector('[data-action="reset"], button[name="reset"]');
 					if (resetButton instanceof HTMLButtonElement) {
-						resetButton.addEventListener('click', (clickEvent) => {
-							clickEvent.preventDefault();
-							clickEvent.stopImmediatePropagation();
-							textarea.value = '';
-							textarea.dispatchEvent(new Event('input', { bubbles: true }));
-							textarea.dispatchEvent(new Event('change', { bubbles: true }));
-							textarea.focus();
-							textarea.setSelectionRange(0, 0);
-						}, { capture: true });
+						resetButton.addEventListener(
+							'click',
+							(clickEvent) => {
+								clickEvent.preventDefault();
+								clickEvent.stopImmediatePropagation();
+								textarea.value = '';
+								textarea.dispatchEvent(new Event('input', { bubbles: true }));
+								textarea.dispatchEvent(new Event('change', { bubbles: true }));
+								textarea.focus();
+								textarea.setSelectionRange(0, 0);
+							},
+							{ capture: true },
+						);
 					}
 					const assistRoot = textarea.closest('form') ?? dialog.element;
 					prepareLambdaAssist(assistRoot, assist, assistScope);
@@ -648,6 +704,8 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			if (scalingInput instanceof HTMLInputElement) scalingInput.checked = false;
 		}
 		this.#captureDraftState(form);
+		const changeKey = this.draftKey ?? this.#getKeyInput()?.value ?? '';
+		const profile = getEditorProfile(changeKey, this.draftData ?? parseAc5eEffectValue(this.#getValueInput()?.value ?? '', { changeKey }));
 		const usesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const partialConsume = hasCheckedInput(form, 'toggles.partialConsume');
 		this.uiState = {
@@ -656,6 +714,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			description: hasCheckedInput(form, 'ui.showDescription'),
 			usesCount: hasCheckedInput(form, 'ui.showUsesCount'),
 			update: hasCheckedInput(form, 'ui.showUpdate'),
+			rangeFields: getRangeFieldUiState(form, profile),
 			usesCountScaling: usesCountScaling && !partialConsume,
 			partialConsume: partialConsume,
 		};
@@ -675,6 +734,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const showUsesCount = hasCheckedInput(form, 'ui.showUsesCount');
 		const showUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const showUpdate = profile.supportsUpdate && hasCheckedInput(form, 'ui.showUpdate');
+		const rangeFieldState = getRangeFieldUiState(form, profile);
 		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
@@ -712,6 +772,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.bonus = setMode ? '' : mergedData.fields.bonus;
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
+		preserveHiddenRangeFields(mergedData, baseData, profile, rangeFieldState, form);
 		this.draftData = mergedData;
 	}
 
@@ -734,7 +795,6 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		this.valueInput = findInputByName(this.valueInputName);
 		return this.valueInput;
 	}
-
 }
 
 function findInputByName(name) {
@@ -744,7 +804,22 @@ function findInputByName(name) {
 }
 
 function labelForField(name) {
-	return name.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
+	const labels = {
+		short: 'Short Range',
+		long: 'Long Range',
+		reach: 'Reach',
+	};
+	return labels[name] ?? name.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
+}
+
+function rangeFieldHintKey(name) {
+	const map = {
+		short: 'AC5E.EffectValueEditor.Hint.RangeShort',
+		long: 'AC5E.EffectValueEditor.Hint.RangeLong',
+		reach: 'AC5E.EffectValueEditor.Hint.RangeReach',
+		bonus: 'AC5E.EffectValueEditor.Hint.RangeBonus',
+	};
+	return map[name] ?? '';
 }
 
 function toggleHintKey(name) {
@@ -759,6 +834,12 @@ function toggleHintKey(name) {
 		wallsBlock: 'AC5E.EffectValueEditor.Hint.ToggleWallsBlock',
 		recover: 'AC5E.EffectValueEditor.Hint.ToggleRecover',
 		partialConsume: 'AC5E.EffectValueEditor.Hint.TogglePartialConsume',
+		longDisadvantage: 'AC5E.EffectValueEditor.Hint.ToggleRangeLongDisadvantage',
+		noLongDisadvantage: 'AC5E.EffectValueEditor.Hint.ToggleRangeNoLongDisadvantage',
+		nearbyFoeDisadvantage: 'AC5E.EffectValueEditor.Hint.ToggleRangeNearbyFoeDisadvantage',
+		noNearbyFoeDisadvantage: 'AC5E.EffectValueEditor.Hint.ToggleRangeNoNearbyFoeDisadvantage',
+		outOfRangeFail: 'AC5E.EffectValueEditor.Hint.ToggleRangeOutOfRangeFail',
+		noOutOfRangeFail: 'AC5E.EffectValueEditor.Hint.ToggleRangeNoOutOfRangeFail',
 	};
 	return map[name] ?? '';
 }
@@ -791,6 +872,10 @@ function buildEditorInstanceKey(effect, changeIndex) {
 	return `${effect.uuid}::${changeIndex}`;
 }
 
+function getMigratedRangeChangeKey(changeKey = '') {
+	return String(changeKey ?? '').replace(/\.range\.(short|long|reach|bonus)$/i, '.range');
+}
+
 function getEditorProfile(changeKey, parsed) {
 	const normalized = String(changeKey ?? '').toLowerCase();
 	const isAura = normalized.includes('.aura.');
@@ -804,12 +889,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isInfo = normalized.endsWith('.info');
 	const supportsUpdate = true;
 	const supportsCriticalStatic = isDamageContext && (normalized.endsWith('.bonus') || normalized.endsWith('.extradice'));
-	const isBonus =
-		normalized.endsWith('.bonus') ||
-		isTargetADC ||
-		normalized.endsWith('.extradice') ||
-		normalized.endsWith('.diceupgrade') ||
-		normalized.endsWith('.dicedowngrade');
+	const isBonus = normalized.endsWith('.bonus') || isTargetADC || normalized.endsWith('.extradice') || normalized.endsWith('.diceupgrade') || normalized.endsWith('.dicedowngrade');
 	const isRange = normalized.includes('.range');
 
 	const requiredFields = [];
@@ -820,9 +900,8 @@ function getEditorProfile(changeKey, parsed) {
 	if (isTargetADC) requiredFields.push('set');
 	if (isModifier) requiredFields.push('modifier');
 	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('bonus', 'set');
-	if (isRange) requiredFields.push('radius');
 	if (isAura) auraFields.push('radius');
-	if (isRange) requiredFields.push('bonus');
+	if (isRange) requiredFields.push(...RANGE_VALUE_FIELDS);
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
 	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
 	const supportsAddTo = isDamageContext && (isBonus || isTypeOverride || isModifier || hasParsedValue(parsed, 'addTo'));
@@ -833,7 +912,8 @@ function getEditorProfile(changeKey, parsed) {
 
 	const contextToggles = [];
 	if (isAura) contextToggles.push(...AURA_TOGGLE_FIELDS);
-	for (const toggle of [...AURA_TOGGLE_FIELDS, ...CONDITIONAL_TOGGLE_FIELDS]) {
+	if (isRange) contextToggles.push(...RANGE_TOGGLE_FIELDS);
+	for (const toggle of [...AURA_TOGGLE_FIELDS, ...CONDITIONAL_TOGGLE_FIELDS, ...RANGE_TOGGLE_FIELDS]) {
 		if (parsed?.toggles?.[toggle] && !contextToggles.includes(toggle)) contextToggles.push(toggle);
 	}
 
@@ -844,6 +924,8 @@ function getEditorProfile(changeKey, parsed) {
 
 	return {
 		isAura,
+		isRange,
+		rangeFields: isRange ? RANGE_VALUE_FIELDS : [],
 		requiredFields: renderedRequiredFields,
 		auraFields: dedupe(auraFields),
 		optionalFields,
@@ -881,53 +963,74 @@ function resolveOptionalFieldState(parsed, uiState = null) {
 	};
 }
 
+function resolveRangeFieldState(parsed, uiState = null, profile = {}) {
+	const state = {};
+	for (const field of profile.rangeFields ?? []) {
+		state[field] = uiState?.rangeFields?.[field] ?? hasParsedValue(parsed, field);
+	}
+	return state;
+}
+
 function dedupe(values) {
 	return [...new Set(values)];
 }
 
-function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, changeKey = '' } = {}) {
+function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, changeKey = '', rangeFieldState = {} } = {}) {
 	const inlineOverrideEntries = getInlineOverrideEntries(changeKey, parsed?.fields?.override ?? '');
 	const isAbilityOverride = `${changeKey ?? ''}`.trim().toLowerCase().endsWith('.abilityoverride');
+	const rangeFields = new Set(profile.rangeFields ?? []);
 	return [
-		...profile.requiredFields.map((name) => ({
-		name,
-		label: profile.supportsSetMode && name === 'bonus' ? 'Bonus / Set' : name === 'bonus' ? 'Bonus' : labelForField(name),
-		value: profile.supportsSetMode && name === 'bonus' ? parsed.fields[setMode ? 'set' : 'bonus'] ?? '' : parsed.fields[name] ?? '',
-		inputId: `ac5e-value-${name}-${id}`,
-		expandable: name === 'override' && isAbilityOverride && inlineOverrideEntries.length ? false : true,
-		inlineOverrideEntries: name === 'override' && isAbilityOverride ? inlineOverrideEntries : [],
-		hasInlineOverrideEntries: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
-		hideOverrideInput: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
-		fullRow: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
-		companionField:
-			profile.supportsAddTo && name === profile.addToAnchorField ? {
-				name: 'addTo',
-				label: 'Add To',
-				value: parsed.fields.addTo ?? '',
-				inputId: `ac5e-value-addTo-${id}`,
-				expandable: true,
-			} : null,
-		inlineToggle: profile.supportsSetMode && name === 'bonus' ? {
-			name: 'ui.setMode',
-			label: 'Set',
-			checked: setMode,
-			hint: getToggleHint('AC5E.EffectValueEditor.Hint.SetMode'),
-		} : null,
-		})),
+		...profile.requiredFields
+			.filter((name) => !rangeFields.has(name) || rangeFieldState[name])
+			.map((name) => ({
+				name,
+				label:
+					profile.supportsSetMode && name === 'bonus' ? 'Bonus / Set'
+					: name === 'bonus' && profile.isRange ? 'Range Bonus'
+					: name === 'bonus' ? 'Bonus'
+					: labelForField(name),
+				hint: rangeFields.has(name) ? getToggleHint(rangeFieldHintKey(name)) : '',
+				value: profile.supportsSetMode && name === 'bonus' ? (parsed.fields[setMode ? 'set' : 'bonus'] ?? '') : (parsed.fields[name] ?? ''),
+				inputId: `ac5e-value-${name}-${id}`,
+				expandable: name === 'override' && isAbilityOverride && inlineOverrideEntries.length ? false : true,
+				inlineOverrideEntries: name === 'override' && isAbilityOverride ? inlineOverrideEntries : [],
+				hasInlineOverrideEntries: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
+				hideOverrideInput: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
+				fullRow: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
+				companionField:
+					profile.supportsAddTo && name === profile.addToAnchorField ?
+						{
+							name: 'addTo',
+							label: 'Add To',
+							value: parsed.fields.addTo ?? '',
+							inputId: `ac5e-value-addTo-${id}`,
+							expandable: true,
+						}
+					:	null,
+				inlineToggle:
+					profile.supportsSetMode && name === 'bonus' ?
+						{
+							name: 'ui.setMode',
+							label: 'Set',
+							checked: setMode,
+							hint: getToggleHint('AC5E.EffectValueEditor.Hint.SetMode'),
+						}
+					:	null,
+			})),
 		...profile.auraFields.map((name) => ({
-		name,
-		label: labelForField(name),
-		value: parsed.fields[name] ?? '',
-		inputId: `ac5e-value-${name}-${id}`,
-		expandable: true,
-		fullRow: true,
-		inlineToggle: null,
+			name,
+			label: labelForField(name),
+			value: parsed.fields[name] ?? '',
+			inputId: `ac5e-value-${name}-${id}`,
+			expandable: true,
+			fullRow: true,
+			inlineToggle: null,
 		})),
 	];
 }
 
-function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLabel = 'Condition', changeKey = '' } = {}) {
-	const renderedPrimaryFields = buildRenderedPrimaryFields(profile, parsed, id, { setMode, changeKey });
+function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLabel = 'Condition', changeKey = '', rangeFieldState = {} } = {}) {
+	const renderedPrimaryFields = buildRenderedPrimaryFields(profile, parsed, id, { setMode, changeKey, rangeFieldState });
 	const radiusField = renderedPrimaryFields.find((field) => field.name === 'radius') ?? null;
 	const mainFields = renderedPrimaryFields.filter((field) => field.name !== 'radius');
 	return {
@@ -964,78 +1067,100 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 			right: nameField && descriptionField ? descriptionField : null,
 		},
 		usesCount: {
-			left: optionalFieldState.usesCount ? {
-				path: {
-					name: 'ui.usesCountPath',
-					label: game.i18n.localize('AC5E.EffectValueEditor.Label.ConsumptionType'),
-					value: parsedUsesCountParts.path,
-					inputId: `ac5e-value-usesCount-path-${id}`,
-					expandable: true,
-				},
-				amount: hasUsesCountScaling ? null : {
-					name: 'ui.usesCountAmount',
-					label: game.i18n.localize('AC5E.EffectValueEditor.Label.Amount'),
-					hint: getToggleHint('AC5E.EffectValueEditor.Hint.UsesCountAmount'),
-					value: parsedUsesCountParts.amount,
-					inputId: `ac5e-value-usesCount-amount-${id}`,
-					placeholder: game.i18n.localize('AC5E.EffectValueEditor.Placeholder.UsesCountAmount'),
-				},
-				recover: hasUsesCountScaling ? {
-					name: 'toggles.recover',
-					label: 'Recover',
-					checked: Boolean(parsed.toggles.recover),
-					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ToggleRecover'),
-				} : null,
-			} : null,
-			right: optionalFieldState.usesCount ? [
-				showScalingToggle ? {
-					name: 'ui.enableUsesCountScaling',
-					label: 'Scaling',
-					className: 'ac5e-usescount-toggle-scaling',
-					checked: hasUsesCountScaling,
-					disabled: partialConsumeEnabled,
-					hint: getToggleHint('AC5E.EffectValueEditor.Hint.EnableUsesCountScaling'),
-				} : null,
-				showPartialConsume ? {
-					name: 'toggles.partialConsume',
-					label: 'Partial',
-					className: 'ac5e-usescount-toggle-partial',
-					checked: partialConsumeEnabled,
-					disabled: hasUsesCountScaling,
-					hint: getToggleHint('AC5E.EffectValueEditor.Hint.TogglePartialConsume'),
-				} : null,
-			].filter(Boolean) : null,
+			left:
+				optionalFieldState.usesCount ?
+					{
+						path: {
+							name: 'ui.usesCountPath',
+							label: game.i18n.localize('AC5E.EffectValueEditor.Label.ConsumptionType'),
+							value: parsedUsesCountParts.path,
+							inputId: `ac5e-value-usesCount-path-${id}`,
+							expandable: true,
+						},
+						amount:
+							hasUsesCountScaling ? null : (
+								{
+									name: 'ui.usesCountAmount',
+									label: game.i18n.localize('AC5E.EffectValueEditor.Label.Amount'),
+									hint: getToggleHint('AC5E.EffectValueEditor.Hint.UsesCountAmount'),
+									value: parsedUsesCountParts.amount,
+									inputId: `ac5e-value-usesCount-amount-${id}`,
+									placeholder: game.i18n.localize('AC5E.EffectValueEditor.Placeholder.UsesCountAmount'),
+								}
+							),
+						recover:
+							hasUsesCountScaling ?
+								{
+									name: 'toggles.recover',
+									label: 'Recover',
+									checked: Boolean(parsed.toggles.recover),
+									hint: getToggleHint('AC5E.EffectValueEditor.Hint.ToggleRecover'),
+								}
+							:	null,
+					}
+				:	null,
+			right:
+				optionalFieldState.usesCount ?
+					[
+						showScalingToggle ?
+							{
+								name: 'ui.enableUsesCountScaling',
+								label: 'Scaling',
+								className: 'ac5e-usescount-toggle-scaling',
+								checked: hasUsesCountScaling,
+								disabled: partialConsumeEnabled,
+								hint: getToggleHint('AC5E.EffectValueEditor.Hint.EnableUsesCountScaling'),
+							}
+						:	null,
+						showPartialConsume ?
+							{
+								name: 'toggles.partialConsume',
+								label: 'Partial',
+								className: 'ac5e-usescount-toggle-partial',
+								checked: partialConsumeEnabled,
+								disabled: hasUsesCountScaling,
+								hint: getToggleHint('AC5E.EffectValueEditor.Hint.TogglePartialConsume'),
+							}
+						:	null,
+					].filter(Boolean)
+				:	null,
 			scaling: optionalFieldState.usesCount && hasUsesCountScaling ? buildRenderedUsesCountScalingFields(parsedUsesCount?.scaling, id) : null,
 			scalingRecover: null,
 		},
 		update: {
-			left: profile.supportsUpdate && optionalFieldState.update ? (() => {
-				const updateParts = parseUpdateUiParts(parsed.fields.update ?? '');
-				return {
-					path: {
-						name: 'ui.updatePath',
-						label: game.i18n.localize('AC5E.EffectValueEditor.Label.UpdateTarget'),
-						value: updateParts.path,
-						inputId: `ac5e-value-update-path-${id}`,
-						expandable: true,
-					},
-					amount: {
-						name: 'ui.updateAmount',
-						label: game.i18n.localize('AC5E.EffectValueEditor.Label.Amount'),
-						hint: getUpdateAmountHint(updateParts.path),
-						value: updateParts.amount,
-						inputId: `ac5e-value-update-amount-${id}`,
-						placeholder: game.i18n.localize('AC5E.EffectValueEditor.Placeholder.UpdateAmount'),
-					},
-				};
-			})() : null,
+			left:
+				profile.supportsUpdate && optionalFieldState.update ?
+					(() => {
+						const updateParts = parseUpdateUiParts(parsed.fields.update ?? '');
+						return {
+							path: {
+								name: 'ui.updatePath',
+								label: game.i18n.localize('AC5E.EffectValueEditor.Label.UpdateTarget'),
+								value: updateParts.path,
+								inputId: `ac5e-value-update-path-${id}`,
+								expandable: true,
+							},
+							amount: {
+								name: 'ui.updateAmount',
+								label: game.i18n.localize('AC5E.EffectValueEditor.Label.Amount'),
+								hint: getUpdateAmountHint(updateParts.path),
+								value: updateParts.amount,
+								inputId: `ac5e-value-update-amount-${id}`,
+								placeholder: game.i18n.localize('AC5E.EffectValueEditor.Placeholder.UpdateAmount'),
+							},
+						};
+					})()
+				:	null,
 			right: null,
 			scaling: null,
 		},
 	};
 }
 
-function buildLambdaAssistData(entries, { includeAuraActor = true, includeEffectOriginActor = true, changeKey = '', assistScope = 'default', includeScaleValue = false, includeBaseValue = false } = {}) {
+function buildLambdaAssistData(
+	entries,
+	{ includeAuraActor = true, includeEffectOriginActor = true, changeKey = '', assistScope = 'default', includeScaleValue = false, includeBaseValue = false } = {},
+) {
 	const entryRecords = (entries ?? []).filter((entry) => typeof entry?.identifier === 'string' && entry.identifier.trim());
 	const uniqueIdentifiers = dedupe(entryRecords.map((entry) => entry.identifier));
 	const allEntryPoints = [
@@ -1050,15 +1175,11 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, includeEffect
 		{ label: 'originItem', value: 'originItem' },
 		{ label: 'originActivity', value: 'originActivity' },
 	];
-	const entryPoints = allEntryPoints
-		.filter((entry) => includeAuraActor || entry.value !== 'auraActor')
-		.filter((entry) => includeEffectOriginActor || entry.value !== 'effectOriginActor');
+	const entryPoints = allEntryPoints.filter((entry) => includeAuraActor || entry.value !== 'auraActor').filter((entry) => includeEffectOriginActor || entry.value !== 'effectOriginActor');
 	const actorEntryButtons = entryPoints
 		.filter((entry) => ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'].includes(entry.value))
 		.map((entry) => entry.value);
-	const itemActivityEntryButtons = entryPoints
-		.filter((entry) => ['item', 'activity', 'originItem', 'originActivity'].includes(entry.value))
-		.map((entry) => entry.value);
+	const itemActivityEntryButtons = entryPoints.filter((entry) => ['item', 'activity', 'originItem', 'originActivity'].includes(entry.value)).map((entry) => entry.value);
 	const operators = [
 		{ label: 'AND', value: ' && ' },
 		{ label: 'OR', value: ' || ' },
@@ -1072,9 +1193,7 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, includeEffect
 		{ label: '(...)', value: ' () ' },
 		{ label: 'Ternary', value: '(condition ? trueValue : falseValue)' },
 	];
-	const sandboxIdentifiers = dedupe(entryRecords
-		.filter((entry) => isSandboxAssistIdentifier(entry))
-		.map((entry) => entry.identifier));
+	const sandboxIdentifiers = dedupe(entryRecords.filter((entry) => isSandboxAssistIdentifier(entry)).map((entry) => entry.identifier));
 	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier));
 	const contextualFallbacks = getContextSandboxFallbackEntries(changeKey);
 	const contextualIdentifiers = dedupe([...compatibilityFiltered, ...contextualFallbacks]);
@@ -1082,41 +1201,60 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, includeEffect
 	const sandboxEntries = dedupe(contextualIdentifiers.filter((identifier) => !isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
 	const actorContextEntries = sandboxEntries.filter((identifier) => classifyContextEntry(identifier) === 'actor');
 	const itemActivityContextEntries = sandboxEntries.filter((identifier) => classifyContextEntry(identifier) === 'item-activity');
-	const pathsByRoot = Object.fromEntries(entryPoints.map((entry) => {
-		const fromEntries = uniqueIdentifiers
-			.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
-			.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`);
-		return [entry.value, dedupe(fromEntries)];
-	}));
+	const pathsByRoot = Object.fromEntries(
+		entryPoints.map((entry) => {
+			const fromEntries = uniqueIdentifiers
+				.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
+				.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`);
+			return [entry.value, dedupe(fromEntries)];
+		}),
+	);
 	addAssistFallbackPaths(pathsByRoot);
 	addEnumAliasRoots(pathsByRoot);
-	const treesByRoot = Object.fromEntries(entryPoints.map((entry) => [
-		entry.value,
-		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES),
-	]));
-	for (const root of ['ability', 'skill', 'tool', 'damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery', 'riderStatuses']) {
+	const treesByRoot = Object.fromEntries(
+		entryPoints.map((entry) => [entry.value, buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES)]),
+	);
+	for (const root of [
+		'ability',
+		'skill',
+		'tool',
+		'damageTypes',
+		'defaultDamageType',
+		'actionType',
+		'attackMode',
+		'itemProperties',
+		'itemType',
+		'originItemProperties',
+		'originItemType',
+		'mastery',
+		'riderStatuses',
+	]) {
 		if (!Array.isArray(pathsByRoot[root])) continue;
 		treesByRoot[root] = buildAssistPathTree(root, pathsByRoot[root], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES);
 	}
 	const enumValues = {
-		actorTypes: dedupe([
-			...(Array.isArray(game?.system?.documentTypes?.Actor) ? game.system.documentTypes.Actor : []),
-			...Object.keys(CONFIG?.Actor?.typeLabels ?? {}),
-		].map((value) => String(value ?? '').trim()).filter(Boolean)),
+		actorTypes: dedupe(
+			[...(Array.isArray(game?.system?.documentTypes?.Actor) ? game.system.documentTypes.Actor : []), ...Object.keys(CONFIG?.Actor?.typeLabels ?? {})]
+				.map((value) => String(value ?? '').trim())
+				.filter(Boolean),
+		),
 		creatureTypes: Object.keys(CONFIG?.DND5E?.creatureTypes ?? {}).filter(Boolean),
-		itemTypes: dedupe([
-			...(Array.isArray(game?.system?.documentTypes?.Item) ? game.system.documentTypes.Item : []),
-			...Object.keys(CONFIG?.Item?.typeLabels ?? {}),
-		].map((value) => String(value ?? '').trim()).filter(Boolean)),
-		itemTypeValues: dedupe([
-			...Object.keys(CONFIG?.DND5E?.armorTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.consumableTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.equipmentTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.featureTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.lootTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.toolTypes ?? {}),
-			...Object.keys(CONFIG?.DND5E?.weaponTypes ?? {}),
-		].filter(Boolean)),
+		itemTypes: dedupe(
+			[...(Array.isArray(game?.system?.documentTypes?.Item) ? game.system.documentTypes.Item : []), ...Object.keys(CONFIG?.Item?.typeLabels ?? {})]
+				.map((value) => String(value ?? '').trim())
+				.filter(Boolean),
+		),
+		itemTypeValues: dedupe(
+			[
+				...Object.keys(CONFIG?.DND5E?.armorTypes ?? {}),
+				...Object.keys(CONFIG?.DND5E?.consumableTypes ?? {}),
+				...Object.keys(CONFIG?.DND5E?.equipmentTypes ?? {}),
+				...Object.keys(CONFIG?.DND5E?.featureTypes ?? {}),
+				...Object.keys(CONFIG?.DND5E?.lootTypes ?? {}),
+				...Object.keys(CONFIG?.DND5E?.toolTypes ?? {}),
+				...Object.keys(CONFIG?.DND5E?.weaponTypes ?? {}),
+			].filter(Boolean),
+		),
 		activityTypes: Object.keys(CONFIG?.DND5E?.activityTypes ?? {}).filter(Boolean),
 		actionTypes: Object.keys(CONFIG?.DND5E?.itemActionTypes ?? {}).filter(Boolean),
 		attackModes: Object.keys(CONFIG?.DND5E?.attackModes ?? {}).filter(Boolean),
@@ -1128,12 +1266,14 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, includeEffect
 		damageTypes: Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).filter(Boolean),
 		healingTypes: Object.keys(CONFIG?.DND5E?.healingTypes ?? {}).filter(Boolean),
 		statuses: getStatusEffectIds(),
-		baseItems: dedupe([
-			...Object.keys(CONFIG?.DND5E?.weaponIds ?? {}),
-			...Object.keys(CONFIG?.DND5E?.armorIds ?? {}),
-			...Object.keys(CONFIG?.DND5E?.toolIds ?? {}),
-			...Object.keys(CONFIG?.DND5E?.ammoIds ?? {}),
-		].filter(Boolean)),
+		baseItems: dedupe(
+			[
+				...Object.keys(CONFIG?.DND5E?.weaponIds ?? {}),
+				...Object.keys(CONFIG?.DND5E?.armorIds ?? {}),
+				...Object.keys(CONFIG?.DND5E?.toolIds ?? {}),
+				...Object.keys(CONFIG?.DND5E?.ammoIds ?? {}),
+			].filter(Boolean),
+		),
 	};
 	let contextRollAwareEntries = filterRollAwareEntriesForChangeKey(rollAwareEntries, changeKey);
 	if (includeScaleValue) contextRollAwareEntries = dedupe([...contextRollAwareEntries, 'optinScale']);
@@ -1145,14 +1285,17 @@ function buildLambdaAssistData(entries, { includeAuraActor = true, includeEffect
 	const scopedCounterRoots = assistScope === 'update' ? updateActorRoots : null;
 	const scopedRootFilter = assistScope === 'update' ? scopedCounterRoots : null;
 	const scopedEntryPoints = scopedRootFilter && scopedBrowser ? scopedBrowser.entryPoints.filter((entry) => scopedRootFilter.includes(entry.value)) : (scopedBrowser?.entryPoints ?? null);
-	const scopedPathsByRoot = scopedRootFilter && scopedBrowser ? Object.fromEntries(scopedRootFilter.map((root) => [root, scopedBrowser.pathsByRoot?.[root] ?? []])) : (scopedBrowser?.pathsByRoot ?? null);
-	const scopedTreesByRoot = scopedRootFilter && scopedBrowser ? Object.fromEntries(scopedCounterRoots.map((root) => [root, scopedBrowser.treesByRoot?.[root] ?? buildAssistPathTree(root, [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES)])) : (scopedBrowser?.treesByRoot ?? null);
+	const scopedPathsByRoot =
+		scopedRootFilter && scopedBrowser ? Object.fromEntries(scopedRootFilter.map((root) => [root, scopedBrowser.pathsByRoot?.[root] ?? []])) : (scopedBrowser?.pathsByRoot ?? null);
+	const scopedTreesByRoot =
+		scopedRootFilter && scopedBrowser ?
+			Object.fromEntries(scopedCounterRoots.map((root) => [root, scopedBrowser.treesByRoot?.[root] ?? buildAssistPathTree(root, [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES)]))
+		:	(scopedBrowser?.treesByRoot ?? null);
 	const resolvedEntryPoints = scopedEntryPoints ?? entryPoints;
 	const resolvedPathsByRoot = scopedPathsByRoot ?? pathsByRoot;
 	const resolvedTreesByRoot = scopedTreesByRoot ?? treesByRoot;
-	const allEntryButtons = flatScopedEntries.length
-		? [...flatScopedEntries]
-		: dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries]).sort((a, b) => a.localeCompare(b));
+	const allEntryButtons =
+		flatScopedEntries.length ? [...flatScopedEntries] : dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries]).sort((a, b) => a.localeCompare(b));
 	return {
 		scope: assistScope,
 		entryPoints: resolvedEntryPoints,
@@ -1181,10 +1324,7 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 					typeof rawLabel === 'string' ? rawLabel
 					: typeof rawLabel?.label === 'string' ? rawLabel.label
 					: '';
-				const directLabel =
-					typeof rawLabel?.label === 'string' && !rawLabel.label.startsWith('DND5E.')
-						? rawLabel.label
-						: '';
+				const directLabel = typeof rawLabel?.label === 'string' && !rawLabel.label.startsWith('DND5E.') ? rawLabel.label : '';
 				const localized = labelKey ? game?.i18n?.localize?.(labelKey) : '';
 				return { value, label: directLabel || localized || value };
 			})
@@ -1212,13 +1352,15 @@ function isD20AssistContext(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	if (!normalized) return false;
 	const isDamageContext = normalized.includes('damage');
-	return normalized.includes('attack')
-		|| normalized.includes('check')
-		|| normalized.includes('save')
-		|| isDamageContext
-		|| normalized.includes('d20')
-		|| normalized.includes('critical')
-		|| normalized.includes('fumble');
+	return (
+		normalized.includes('attack') ||
+		normalized.includes('check') ||
+		normalized.includes('save') ||
+		isDamageContext ||
+		normalized.includes('d20') ||
+		normalized.includes('critical') ||
+		normalized.includes('fumble')
+	);
 }
 
 function isNonDamageBonusContext(changeKey) {
@@ -1228,22 +1370,19 @@ function isNonDamageBonusContext(changeKey) {
 	if (!isBonus) return false;
 	const isDamage = normalized.includes('damage');
 	if (isDamage) return false;
-	return normalized.includes('attack')
-		|| normalized.includes('save')
-		|| normalized.includes('check')
-		|| normalized.includes('skill')
-		|| normalized.includes('tool')
-		|| normalized.includes('d20');
+	return normalized.includes('attack') || normalized.includes('save') || normalized.includes('check') || normalized.includes('skill') || normalized.includes('tool') || normalized.includes('d20');
 }
 
 function shouldExposeBaseValueForChangeKey(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	if (!normalized) return false;
-	return normalized.includes('.modifyac')
-		|| normalized.includes('.modifydc')
-		|| normalized.includes('.criticalthreshold')
-		|| normalized.includes('.critthreshold')
-		|| normalized.includes('.fumblethreshold');
+	return (
+		normalized.includes('.modifyac') ||
+		normalized.includes('.modifydc') ||
+		normalized.includes('.criticalthreshold') ||
+		normalized.includes('.critthreshold') ||
+		normalized.includes('.fumblethreshold')
+	);
 }
 
 function filterRollAwareEntriesForChangeKey(entries, changeKey) {
@@ -1252,12 +1391,7 @@ function filterRollAwareEntriesForChangeKey(entries, changeKey) {
 	if (isNonDamageBonusContext(changeKey)) filtered = filtered.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
 	const isAbilityOverrideOrModifyDC = normalized.endsWith('.abilityoverride') || normalized.endsWith('.modifydc');
 	if (isAbilityOverrideOrModifyDC) {
-		filtered = filtered.filter((entry) => ![
-			'hasAdvantage',
-			'hasDisadvantage',
-			'hasTransitAdvantage',
-			'hasTransitDisadvantage',
-		].includes(entry));
+		filtered = filtered.filter((entry) => !['hasAdvantage', 'hasDisadvantage', 'hasTransitAdvantage', 'hasTransitDisadvantage'].includes(entry));
 	}
 	return filtered;
 }
@@ -1277,39 +1411,13 @@ function getContextSandboxFallbackEntries(changeKey) {
 	const actionType = getRuleActionTypeFromChangeKey(normalized);
 	const isRollLike = isD20AssistContext(normalized) || ['all', 'd20', 'check', 'skill', 'tool'].includes(actionType);
 	if (isRollLike) {
-		entries.push(
-			'skill',
-			'tool',
-			'hasProficiency',
-			'hasExpertise',
-			'hasHalfProficiency',
-			'hasFullProficiency',
-			'isConcentration',
-			'isDeathSave',
-			'isInitiative',
-			'targetValue',
-		);
+		entries.push('skill', 'tool', 'hasProficiency', 'hasExpertise', 'hasHalfProficiency', 'hasFullProficiency', 'isConcentration', 'isDeathSave', 'isInitiative', 'targetValue');
 		if (!isNonDamageBonusContext(normalized)) {
-			entries.push(
-				'd20Total',
-				'd20Result',
-				'd20ResultOverTarget',
-				'attackRollTotal',
-				'attackRollD20',
-				'attackRollOverAC',
-			);
+			entries.push('d20Total', 'd20Result', 'd20ResultOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC');
 		}
 	}
 	if ((normalized.includes('attack') || normalized.includes('damage')) && !isNonDamageBonusContext(normalized)) {
-		entries.push(
-			'hasAttack',
-			'hasDamage',
-			'hasHealing',
-			'hasSave',
-			'hasCheck',
-			'opponentAC',
-			'targetOverAC',
-		);
+		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'opponentAC', 'targetOverAC');
 	}
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
@@ -1398,41 +1506,42 @@ function buildAddToScopedEntries() {
 }
 
 function buildLabeledAddToEntries(values) {
-	return values.map((value) => {
-		const normalized = `${value ?? ''}`.trim();
-		if (!normalized) return null;
-		const label = formatAssistEntryLabel(normalized);
-		return { value: normalized, label };
-	}).filter(Boolean);
+	return values
+		.map((value) => {
+			const normalized = `${value ?? ''}`.trim();
+			if (!normalized) return null;
+			const label = formatAssistEntryLabel(normalized);
+			return { value: normalized, label };
+		})
+		.filter(Boolean);
 }
 
 function formatAssistEntryLabel(value) {
-	return `${value ?? ''}`.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase()).trim();
+	return `${value ?? ''}`
+		.replace(/([A-Z])/g, ' $1')
+		.replace(/^./, (char) => char.toUpperCase())
+		.trim();
 }
 
 function flattenScopedAssistEntries(scopedEntries) {
 	if (Array.isArray(scopedEntries)) return scopedEntries;
 	if (!scopedEntries || typeof scopedEntries !== 'object') return [];
 	return Object.values(scopedEntries)
-		.flatMap((group) => Array.isArray(group) ? group : [])
-		.map((entry) => typeof entry === 'string' ? entry : `${entry?.value ?? ''}`.trim())
+		.flatMap((group) => (Array.isArray(group) ? group : []))
+		.map((entry) => (typeof entry === 'string' ? entry : `${entry?.value ?? ''}`.trim()))
 		.filter(Boolean);
 }
 
 function buildUsesCountScopedEntries(entries) {
 	void entries;
-	const resources = (CONFIG?.DND5E?.consumableResources ?? [])
-		.map((entry) => `${entry ?? ''}`.trim())
-		.filter(Boolean);
+	const resources = (CONFIG?.DND5E?.consumableResources ?? []).map((entry) => `${entry ?? ''}`.trim()).filter(Boolean);
 	const abilityValues = Object.keys(CONFIG?.DND5E?.abilities ?? {}).map((ability) => `abilities.${ability}.value`);
 	return dedupe([...AC5E_USESCOUNT_BASE_ENTRIES, ...resources, ...abilityValues]).sort((a, b) => a.localeCompare(b));
 }
 
 function buildUpdateScopedEntries(entries, changeKey = '', { includeEffectOriginActor = true } = {}) {
 	void entries;
-	const resources = (CONFIG?.DND5E?.consumableResources ?? [])
-		.map((entry) => `${entry ?? ''}`.trim())
-		.filter(Boolean);
+	const resources = (CONFIG?.DND5E?.consumableResources ?? []).map((entry) => `${entry ?? ''}`.trim()).filter(Boolean);
 	const abilityValues = Object.keys(CONFIG?.DND5E?.abilities ?? {}).map((ability) => `abilities.${ability}.value`);
 	const statusValues = getStatusEffectIds().map((id) => `statuses.${id}`);
 	const actorTargets = buildCounterActorScopedTargets({
@@ -1483,12 +1592,13 @@ function buildScopedBrowserData(scopedEntries) {
 		if (root === 'keywords' && !identifier.includes('.')) set.add(`keywords.${identifier}`);
 		else set.add(identifier);
 	}
-	const entryPoints = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b)).map((root) => ({ label: root, value: root }));
+	const entryPoints = Array.from(groups.keys())
+		.sort((a, b) => a.localeCompare(b))
+		.map((root) => ({ label: root, value: root }));
 	const pathsByRoot = Object.fromEntries(Array.from(groups.entries()).map(([root, set]) => [root, Array.from(set).sort((a, b) => a.localeCompare(b))]));
-	const treesByRoot = Object.fromEntries(entryPoints.map((entry) => [
-		entry.value,
-		buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES),
-	]));
+	const treesByRoot = Object.fromEntries(
+		entryPoints.map((entry) => [entry.value, buildAssistPathTree(entry.value, pathsByRoot[entry.value] ?? [], AC5E_ADDED_LAMBDA_PATHS, AC5E_ADDED_LAMBDA_PREFIXES)]),
+	);
 	return { entryPoints, pathsByRoot, treesByRoot };
 }
 
@@ -1531,15 +1641,25 @@ function addEnumAliasRoots(pathsByRoot) {
 	const damageTypes = Object.keys(CONFIG?.DND5E?.damageTypes ?? {});
 	const healingTypes = Object.keys(CONFIG?.DND5E?.healingTypes ?? {});
 	const combinedDamage = dedupe([...damageTypes, ...healingTypes].filter(Boolean)).sort((a, b) => a.localeCompare(b));
-	const itemProps = Object.keys(CONFIG?.DND5E?.itemProperties ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
-	const masteries = Object.keys(CONFIG?.DND5E?.weaponMasteries ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
-	const abilities = Object.keys(CONFIG?.DND5E?.abilities ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
-	const skills = Object.keys(CONFIG?.DND5E?.skills ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
-	const tools = Object.keys(CONFIG?.DND5E?.tools ?? {}).filter(Boolean).sort((a, b) => a.localeCompare(b));
+	const itemProps = Object.keys(CONFIG?.DND5E?.itemProperties ?? {})
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+	const masteries = Object.keys(CONFIG?.DND5E?.weaponMasteries ?? {})
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+	const abilities = Object.keys(CONFIG?.DND5E?.abilities ?? {})
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+	const skills = Object.keys(CONFIG?.DND5E?.skills ?? {})
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
+	const tools = Object.keys(CONFIG?.DND5E?.tools ?? {})
+		.filter(Boolean)
+		.sort((a, b) => a.localeCompare(b));
 	const statuses = getStatusEffectIds();
-	pathsByRoot.ability = ['ability', ...abilities.map((entry) => `ability.${entry}`)];
-	pathsByRoot.skill = ['skill', ...skills.map((entry) => `skill.${entry}`)];
-	pathsByRoot.tool = ['tool', ...tools.map((entry) => `tool.${entry}`)];
+	pathsByRoot.ability = ['ability'];
+	pathsByRoot.skill = ['skill'];
+	pathsByRoot.tool = ['tool'];
 	pathsByRoot.damageTypes = ['damageTypes'];
 	pathsByRoot.defaultDamageType = ['defaultDamageType'];
 	pathsByRoot.actionType = ['actionType'];
@@ -1609,7 +1729,14 @@ function renderAssistCombinedFieldset(title, rootValues, entryValues, section = 
 
 function renderAssistEntryGroups(assist) {
 	if (assist?.scope === 'usesCount') {
-		return renderAssistActionFieldset('UsesCount quick targets (actor with this effect)', resolveScopedQuickTargets(assist?.scopedEntries, 'usesCount'), 'ac5e-assist-entry', 'entry', 'usesCount', true);
+		return renderAssistActionFieldset(
+			'UsesCount quick targets (actor with this effect)',
+			resolveScopedQuickTargets(assist?.scopedEntries, 'usesCount'),
+			'ac5e-assist-entry',
+			'entry',
+			'usesCount',
+			true,
+		);
 	}
 	if (assist?.scope === 'update') {
 		return renderAssistActionFieldset('Update quick targets', resolveScopedQuickTargets(assist?.scopedEntries, 'update'), 'ac5e-assist-entry', 'entry', 'update', true);
@@ -1673,24 +1800,32 @@ function resolveScopedQuickTargets(scopedEntries, scope = '') {
 function classifyContextEntry(identifier) {
 	const value = `${identifier ?? ''}`.trim();
 	if (!value) return 'actor';
-	const actorOnly = [
-		'actorId',
-		'actorUuid',
-		'opponentId',
-		'opponentUuid',
-		'opponentActorId',
-		'opponentActorUuid',
-		'tokenId',
-		'tokenUuid',
-		'isTurn',
-		'isOpponentTurn',
-		'canMove',
-		'canSee',
-		'isSeen',
-	];
+	const actorOnly = ['actorId', 'actorUuid', 'opponentId', 'opponentUuid', 'opponentActorId', 'opponentActorUuid', 'tokenId', 'tokenUuid', 'isTurn', 'isOpponentTurn', 'canMove', 'canSee', 'isSeen'];
 	if (actorOnly.includes(value)) return 'actor';
 	if (value.startsWith('item') || value.startsWith('originItem') || value.startsWith('activity') || value.startsWith('originActivity')) return 'item-activity';
-	const itemActivityKeys = ['ability', 'skill', 'tool', 'damageTypes', 'defaultDamageType', 'riderStatuses', 'actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery', 'hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isSpell', 'isCantrip', 'isAoE'];
+	const itemActivityKeys = [
+		'ability',
+		'skill',
+		'tool',
+		'damageTypes',
+		'defaultDamageType',
+		'riderStatuses',
+		'actionType',
+		'attackMode',
+		'itemProperties',
+		'itemType',
+		'originItemProperties',
+		'originItemType',
+		'mastery',
+		'hasAttack',
+		'hasDamage',
+		'hasHealing',
+		'hasSave',
+		'hasCheck',
+		'isSpell',
+		'isCantrip',
+		'isAoE',
+	];
 	if (itemActivityKeys.includes(value)) return 'item-activity';
 	return 'actor';
 }
@@ -2011,7 +2146,7 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 		const enumPath = resolveAssistEnumClausePath(textarea, root.dataset.ac5eAssistValuePath ?? '', valueButton.dataset.ac5eAssistValue ?? '');
 		if (groupPath) {
 			const value = `${valueButton.dataset.ac5eAssistValue ?? ''}`.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
-			valueButton.classList.toggle('active', isAssistOrClauseSelected(textarea, `${groupPath}.${value}`));
+			valueButton.hidden = isAssistOrClauseSelected(textarea, `${groupPath}.${value}`);
 		}
 		if (enumPath) valueButton.hidden = isAssistOrClauseSelected(textarea, enumPath);
 		valueButton.addEventListener('click', () => {
@@ -2027,7 +2162,7 @@ function getAssistStageNodes(parentNode, headerPath) {
 	const hasArrayIndexChild = allNodes.some((node) => isNumericPathSegment(node?.label));
 	const arrayLikePath = isLikelyArrayPath(headerPath);
 	const allVisibleNodes = allNodes.filter((node) => !isNumericPathSegment(node?.label));
-	const arrayMethodNodes = (hasArrayIndexChild || arrayLikePath) ? buildArrayMethodAssistNodes(headerPath) : [];
+	const arrayMethodNodes = hasArrayIndexChild || arrayLikePath ? buildArrayMethodAssistNodes(headerPath) : [];
 	return [...arrayMethodNodes, ...allVisibleNodes];
 }
 
@@ -2064,9 +2199,7 @@ function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
 	const nextChain = JSON.stringify(context.chain ?? []);
 	const nextRoot = context.root ?? '';
 	const nextFilter = context.filter ?? '';
-	const changed = root.dataset.ac5eAssistActiveRoot !== nextRoot
-		|| (root.dataset.ac5eAssistChain ?? '[]') !== nextChain
-		|| (root.dataset.ac5eAssistFilter ?? '') !== nextFilter;
+	const changed = root.dataset.ac5eAssistActiveRoot !== nextRoot || (root.dataset.ac5eAssistChain ?? '[]') !== nextChain || (root.dataset.ac5eAssistFilter ?? '') !== nextFilter;
 	if (!changed) {
 		if (normalizedToken.endsWith('.')) renderAssistStage(root, assist, selectionState, textarea);
 		return;
@@ -2276,12 +2409,11 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const operatorOnlyMode = shouldIncludeOperatorMatches(rawToken, root, token);
 	const suggestedOperatorButtons = getSuggestedOperatorButtons(root, textarea);
 	const suggestedOperatorMode = shouldUseSuggestedOperatorMode(rawToken, suggestedOperatorButtons);
-	const matches = operatorOnlyMode || suggestedOperatorMode
-		? []
-		: (explicitMatches ?? (token ? getAssistEntryMatchesInUiOrder(root, token) : []));
-	const allMatchButtons = suggestedOperatorMode
-		? suggestedOperatorButtons
-		: (token ? getAssistMatchButtonsInUiOrder(root, token, rawToken) : suggestedOperatorButtons);
+	const matches = operatorOnlyMode || suggestedOperatorMode ? [] : (explicitMatches ?? (token ? getAssistEntryMatchesInUiOrder(root, token) : []));
+	const allMatchButtons =
+		suggestedOperatorMode ? suggestedOperatorButtons
+		: token ? getAssistMatchButtonsInUiOrder(root, token, rawToken)
+		: suggestedOperatorButtons;
 	const rootMatchButtons = allMatchButtons.filter((button) => Boolean(button.dataset.ac5eAssistRootInsert));
 	const operatorMatchButtons = allMatchButtons.filter((button) => Boolean(button.dataset.ac5eAssistInsert));
 	const rootMatches = rootMatchButtons.map((button) => normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? '')).filter(Boolean);
@@ -2290,22 +2422,29 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const combined = dedupe([...rootMatches, ...entryMatches, ...operatorMatches]);
 	const single = combined.length === 1 ? combined[0] : '';
 	const focused = normalizeAssistMatchKey(root.dataset.ac5eAssistEntryFocus ?? '');
-	const resolvedFocus = combined.length
-		? (combined.includes(focused) ? focused : combined[0])
-		: '';
+	const resolvedFocus =
+		combined.length ?
+			combined.includes(focused) ?
+				focused
+			:	combined[0]
+		:	'';
 	root.dataset.ac5eAssistEntryFocus = resolvedFocus;
-	const selectedTypeOverrides = assistScope === 'typeOverride'
-		? new Set(
-			`${textarea.value ?? ''}`
-				.split(',')
-				.map((entry) => entry.trim().toLowerCase())
-				.filter(Boolean),
-		)
-		: null;
+	const selectedTypeOverrides =
+		assistScope === 'typeOverride' ?
+			new Set(
+				`${textarea.value ?? ''}`
+					.split(',')
+					.map((entry) => entry.trim().toLowerCase())
+					.filter(Boolean),
+			)
+		:	null;
 	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
 		const value = button.dataset.ac5eAssistEntry ?? '';
 		const lower = value.toLowerCase();
-		const matchesToken = (operatorOnlyMode || suggestedOperatorMode) ? false : (token ? assistEntryMatchesToken(lower, token) : false);
+		const matchesToken =
+			operatorOnlyMode || suggestedOperatorMode ? false
+			: token ? assistEntryMatchesToken(lower, token)
+			: false;
 		const key = normalizeAssistMatchKey(value);
 		button.classList.toggle('active', matchesToken || (resolvedFocus && key === resolvedFocus));
 		button.classList.toggle('ac5e-effect-value-assist-focused', Boolean(resolvedFocus) && key === resolvedFocus);
@@ -2315,7 +2454,10 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const rootToken = token.includes('.') ? '' : token;
 	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert]')) {
 		const value = normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? '');
-		const starts = (operatorOnlyMode || suggestedOperatorMode) ? false : (rootToken ? assistEntryMatchesToken(value, rootToken) : false);
+		const starts =
+			operatorOnlyMode || suggestedOperatorMode ? false
+			: rootToken ? assistEntryMatchesToken(value, rootToken)
+			: false;
 		const isFocused = Boolean(resolvedFocus) && value === resolvedFocus;
 		button.classList.toggle('active', starts || isFocused);
 		button.classList.toggle('ac5e-effect-value-assist-focused', isFocused);
@@ -2395,13 +2537,13 @@ function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
 		return true;
 	}
 	const selectedRoot = (selectedButton.dataset.ac5eAssistRootInsert ?? '').trim();
-		if (selectedRoot) {
-			const assistScope = getAssistScope(root);
-			if (isCounterAssistScope(assistScope)) {
-				applyCounterAssistRootSelection(textarea, selectedRoot, root, assist, selectionState);
-				updateAssistEntryHighlights(root, textarea, assist);
-				return true;
-			}
+	if (selectedRoot) {
+		const assistScope = getAssistScope(root);
+		if (isCounterAssistScope(assistScope)) {
+			applyCounterAssistRootSelection(textarea, selectedRoot, root, assist, selectionState);
+			updateAssistEntryHighlights(root, textarea, assist);
+			return true;
+		}
 		replaceTokenAtCursorOrInsert(textarea, `${resolveAssistRootInsertion(selectedRoot)}.`, selectionState);
 		root.dataset.ac5eAssistActiveRoot = selectedRoot;
 		root.dataset.ac5eAssistChain = '[]';
@@ -2429,7 +2571,30 @@ function resolveAssistEntryInsertion(entry) {
 	const value = `${entry ?? ''}`.trim();
 	if (!value) return '';
 	if (ROOT_IDENTIFIERS.has(value)) return `${value}.`;
-	if (['ability', 'skill', 'tool', 'damageTypes', 'defaultDamageType', 'actionType', 'attackMode', 'mastery', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'activityType', 'creatureType', 'abilities', 'skills', 'tools', 'statuses', 'riderStatuses'].includes(value)) return `${value}.`;
+	if (
+		[
+			'ability',
+			'skill',
+			'tool',
+			'damageTypes',
+			'defaultDamageType',
+			'actionType',
+			'attackMode',
+			'mastery',
+			'itemProperties',
+			'itemType',
+			'originItemProperties',
+			'originItemType',
+			'activityType',
+			'creatureType',
+			'abilities',
+			'skills',
+			'tools',
+			'statuses',
+			'riderStatuses',
+		].includes(value)
+	)
+		return `${value}.`;
 	return `${value} `;
 }
 
@@ -2456,7 +2621,7 @@ function setAddToAssistValue(textarea, root, nextValue, selectionState = null, c
 			previousValue: textarea.value,
 			nextValue,
 			cursor,
-			scope: root instanceof HTMLElement ? root.dataset.ac5eAssistScope ?? '' : '',
+			scope: root instanceof HTMLElement ? (root.dataset.ac5eAssistScope ?? '') : '',
 		});
 	}
 	textarea.value = nextValue;
@@ -2793,8 +2958,7 @@ function getSuggestedOperatorButtons(root, textarea) {
 	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return [];
 	const operators = getSuggestedOperatorsForRecentEntry(textarea, root);
 	if (!operators.size) return [];
-	return Array.from(root.querySelectorAll('[data-ac5e-assist-insert]'))
-		.filter((button) => operators.has(`${button.dataset.ac5eAssistInsert ?? ''}`.trim()));
+	return Array.from(root.querySelectorAll('[data-ac5e-assist-insert]')).filter((button) => operators.has(`${button.dataset.ac5eAssistInsert ?? ''}`.trim()));
 }
 
 function shouldUseSuggestedOperatorMode(token, buttons) {
@@ -2974,11 +3138,12 @@ function renderAssistIdleStage() {
 function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) {
 	const items = (nodes ?? [])
 		.map((node) => {
-		const marker = node.children?.length ? '>' : '';
-		const ac5eMarker = node.ac5eActorAdded ? '*' : '';
-		const displayLabel = resolveAssistNodeDisplayLabel(node, headerPath);
-		return `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(displayLabel)}${ac5eMarker ? ` ${ac5eMarker}` : ''} ${marker}</button>`;
-	}).join('');
+			const marker = node.children?.length ? '>' : '';
+			const ac5eMarker = node.ac5eActorAdded ? '*' : '';
+			const displayLabel = resolveAssistNodeDisplayLabel(node, headerPath);
+			return `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(displayLabel)}${ac5eMarker ? ` ${ac5eMarker}` : ''} ${marker}</button>`;
+		})
+		.join('');
 	const empty = items || '<p class="ac5e-effect-value-assist-empty">No paths available</p>';
 	const values = (valueChoices ?? [])
 		.map((choice) => {
@@ -2989,9 +3154,7 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 		})
 		.filter(Boolean)
 		.join('');
-	const valuesSection = values ?
-		`<div class="ac5e-effect-value-assist-toolbar"><span>Values</span></div><div class="ac5e-effect-value-assist-list">${values}</div>`
-		: '';
+	const valuesSection = values ? `<div class="ac5e-effect-value-assist-toolbar"><span>Values</span></div><div class="ac5e-effect-value-assist-list">${values}</div>` : '';
 	return `
 		<div class="ac5e-effect-value-assist-toolbar">
 			<button type="button" data-ac5e-assist-roots>Roots</button>
@@ -3008,6 +3171,9 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 function resolveAssistValueChoices(path, enumValues) {
 	const sourcePath = `${path ?? ''}`.trim();
 	if (!sourcePath) return [];
+	if (/^(?:ability)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.abilities ?? [], CONFIG?.DND5E?.abilities);
+	if (/^(?:skill)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.skills ?? [], CONFIG?.DND5E?.skills);
+	if (/^(?:tool)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.tools ?? [], getToolLabelConfig());
 	if (/^(?:riderStatuses)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.statuses ?? []);
 	if (/^(?:damageTypes|defaultDamageType)$/.test(sourcePath)) return toAssistValueChoices(dedupe([...(enumValues?.damageTypes ?? []), ...(enumValues?.healingTypes ?? [])]));
 	if (/^(?:actionType)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.actionTypes ?? []);
@@ -3066,7 +3232,7 @@ function toAssistValueChoices(values, labelConfig = null, { appendKey = false } 
 function resolveAssistEnumLabel(key, labelConfig = null, { appendKey = false } = {}) {
 	const fallback = `${key ?? ''}`.trim();
 	if (!fallback) return '';
-	const withKey = (label) => appendKey && label && label !== fallback ? `${fallback} (${label})` : label;
+	const withKey = (label) => (appendKey && label && label !== fallback ? `${fallback} (${label})` : label);
 	const configEntry = labelConfig?.[fallback];
 	if (typeof configEntry === 'string') {
 		const localized = game?.i18n?.localize?.(configEntry);
@@ -3074,7 +3240,10 @@ function resolveAssistEnumLabel(key, labelConfig = null, { appendKey = false } =
 		return withKey(String(label).capitalize?.() ?? label);
 	}
 	if (configEntry && typeof configEntry === 'object') {
-		const rawLabel = typeof configEntry.label === 'string' ? configEntry.label : typeof configEntry.name === 'string' ? configEntry.name : '';
+		const rawLabel =
+			typeof configEntry.label === 'string' ? configEntry.label
+			: typeof configEntry.name === 'string' ? configEntry.name
+			: '';
 		if (rawLabel) {
 			const localized = game?.i18n?.localize?.(rawLabel);
 			const label = localized && localized !== rawLabel ? localized : rawLabel;
@@ -3086,11 +3255,13 @@ function resolveAssistEnumLabel(key, labelConfig = null, { appendKey = false } =
 
 function getToolLabelConfig() {
 	const tools = CONFIG?.DND5E?.tools ?? {};
-	return Object.fromEntries(Object.keys(tools).map((key) => {
-		const tool = fromUuidSync?.(tools[key]?.id);
-		const label = tool && typeof tool.then !== 'function' ? tool.name : '';
-		return [key, { label: label || key.capitalize() }];
-	}));
+	return Object.fromEntries(
+		Object.keys(tools).map((key) => {
+			const tool = fromUuidSync?.(tools[key]?.id);
+			const label = tool && typeof tool.then !== 'function' ? tool.name : '';
+			return [key, { label: label || key.capitalize() }];
+		}),
+	);
 }
 
 function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState = null) {
@@ -3100,7 +3271,18 @@ function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState
 	if (!path || !value) return insertAtCursor(input, value, selectionState);
 	const normalizedValue = value.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 	const groupPath = resolveAssistValueGroupPath(path);
-	if (groupPath) return toggleAssistOrClause(input, `${groupPath}.${normalizedValue}`, groupPath, selectionState);
+	if (groupPath) {
+		const enumPath = `${groupPath}.${normalizedValue}`;
+		if (tryAppendEnumPathClause(input, enumPath, selectionState)) return;
+		if (tryReplaceTrailingEnumPathToken(input, enumPath, groupPath, selectionState)) return;
+		return insertAtCursor(input, enumPath, selectionState);
+	}
+	if (/^(?:item|originItem)\.mastery$/.test(path)) {
+		const clause = `${path} === ${value}`;
+		if (tryAppendEqualityClause(input, clause, path, selectionState)) return;
+		if (tryReplaceTrailingEnumPathToken(input, clause, path, selectionState)) return;
+		return insertAtCursor(input, clause, selectionState);
+	}
 	if (isEnumAssistValuePath(path)) {
 		const basePath = resolveAssistEnumInsertionBasePath(input, path);
 		const enumPath = `${basePath}.${normalizedValue}`;
@@ -3133,7 +3315,13 @@ function isEnumAssistValuePath(path) {
 	const value = `${path ?? ''}`.trim();
 	if (!value) return false;
 	if (ENUM_ASSIST_ALIAS_ROOTS.has(value)) return true;
-	return /\.(?:actionType|attackMode|itemProperties|itemType|mastery)$/.test(value) || value.endsWith('.originItemProperties') || value.endsWith('.originItemType') || /^(?:item|originItem)\.type\.(?:value|baseItem)$/.test(value) || /^(?:activity|originActivity)\.type$/.test(value);
+	return (
+		/\.(?:actionType|attackMode|itemProperties|itemType|mastery)$/.test(value) ||
+		value.endsWith('.originItemProperties') ||
+		value.endsWith('.originItemType') ||
+		/^(?:item|originItem)\.type\.(?:value|baseItem)$/.test(value) ||
+		/^(?:activity|originActivity)\.type$/.test(value)
+	);
 }
 
 function resolveAssistEnumInsertionBasePath(input, path) {
@@ -3153,25 +3341,11 @@ function resolveAssistEnumClausePath(input, path, quotedValue) {
 	return `${resolveAssistEnumInsertionBasePath(input, path)}.${value}`;
 }
 
-function toggleAssistOrClause(input, clause, fallback, selectionState = null) {
-	const current = `${input.value ?? ''}`;
-	const parts = current.split(/\s*\|\|\s*/).map((part) => part.trim()).filter(Boolean);
-	const nextParts = parts.includes(clause) ? parts.filter((part) => part !== clause) : [...parts.filter((part) => part !== fallback), clause];
-	const nextValue = nextParts.join(' || ') || fallback;
-	input.value = nextValue;
-	const cursor = nextValue.length;
-	input.focus();
-	input.setSelectionRange(cursor, cursor);
-	if (selectionState) {
-		selectionState.start = cursor;
-		selectionState.end = cursor;
-		selectionState.userMovedCaret = true;
-	}
-	input.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
 function isAssistOrClauseSelected(input, clause) {
-	return `${input?.value ?? ''}`.split(/\s*\|\|\s*/).map((part) => part.trim()).includes(clause);
+	return `${input?.value ?? ''}`
+		.split(/\s*\|\|\s*/)
+		.map((part) => part.trim())
+		.includes(clause);
 }
 
 function tryAppendEnumPathClause(input, enumPath, selectionState = null) {
@@ -3183,6 +3357,28 @@ function tryAppendEnumPathClause(input, enumPath, selectionState = null) {
 	const match = before.match(new RegExp(`${escaped}\\.[A-Za-z0-9_]+\\s*$`));
 	if (!match) return false;
 	const insertion = ` || ${enumPath}`;
+	input.value = `${input.value.slice(0, cursor)}${insertion}${input.value.slice(cursor)}`;
+	const nextCursor = cursor + insertion.length;
+	input.focus();
+	input.setSelectionRange(nextCursor, nextCursor);
+	if (selectionState) {
+		selectionState.start = nextCursor;
+		selectionState.end = nextCursor;
+		selectionState.userMovedCaret = true;
+	}
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	return true;
+}
+
+function tryAppendEqualityClause(input, clause, basePath, selectionState = null) {
+	const cursor = Number(input.selectionStart ?? input.value.length);
+	const selectionEnd = Number(input.selectionEnd ?? cursor);
+	if (cursor !== selectionEnd) return false;
+	const before = input.value.slice(0, cursor).trimEnd();
+	const escaped = escapeRegExp(basePath);
+	const match = before.match(new RegExp(`${escaped}\\s*(?:==|===)\\s*'(?:\\\\'|[^'])*'\\s*$`));
+	if (!match) return false;
+	const insertion = ` || ${clause}`;
 	input.value = `${input.value.slice(0, cursor)}${insertion}${input.value.slice(cursor)}`;
 	const nextCursor = cursor + insertion.length;
 	input.focus();
@@ -3370,9 +3566,7 @@ function replaceTokenAtCursorOrInsert(input, replacement, selectionState = null)
 	const end = Number(input.selectionEnd ?? cursor);
 	const replacementText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${replacementText}${input.value.slice(end)}`;
-	const nextStart = insertion.selectionLength > 0
-		? start + Math.min(insertion.selectionStartOffset, replacementText.length)
-		: start + replacementText.length;
+	const nextStart = insertion.selectionLength > 0 ? start + Math.min(insertion.selectionStartOffset, replacementText.length) : start + replacementText.length;
 	const nextEnd = nextStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(nextStart, nextEnd);
@@ -3389,16 +3583,12 @@ function insertAtCursor(input, text, selectionState = null) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 	if (!text) return;
 	const insertion = resolveAssistInsertion(text);
-	const hasExplicitSelection = Boolean(selectionState?.userMovedCaret) &&
-		Number.isInteger(selectionState?.start) &&
-		Number.isInteger(selectionState?.end);
+	const hasExplicitSelection = Boolean(selectionState?.userMovedCaret) && Number.isInteger(selectionState?.start) && Number.isInteger(selectionState?.end);
 	const start = hasExplicitSelection ? selectionState.start : input.value.length;
 	const end = hasExplicitSelection ? selectionState.end : input.value.length;
 	const insertionText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${insertionText}${input.value.slice(end)}`;
-	const selectionStart = insertion.selectionLength > 0
-		? start + Math.min(insertion.selectionStartOffset, insertionText.length)
-		: start + insertionText.length;
+	const selectionStart = insertion.selectionLength > 0 ? start + Math.min(insertion.selectionStartOffset, insertionText.length) : start + insertionText.length;
 	const selectionEnd = selectionStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(selectionStart, selectionEnd);
@@ -3528,11 +3718,7 @@ function resolveAssistInsertion(text) {
 			selectionLength: conditionToken.length,
 		};
 	}
-	const arrayTemplates = [
-		'.some((entry) => condition)',
-		'.filter((entry) => condition)',
-		'.find((entry) => condition)',
-	];
+	const arrayTemplates = ['.some((entry) => condition)', '.filter((entry) => condition)', '.find((entry) => condition)'];
 	for (const template of arrayTemplates) {
 		if (!trimmed.endsWith(template)) continue;
 		const tokenOffset = rawText.indexOf('condition');
@@ -3572,24 +3758,27 @@ function isExpandableAssistPath(path) {
 	if (!value) return false;
 	if (/\.\d+$/.test(value)) return false;
 	const last = value.split('.').at(-1)?.toLowerCase() ?? '';
-	if ([
-		'effects',
-		'equippeditems',
-		'abilities',
-		'skills',
-		'tools',
-		'statuses',
-		'riderstatuses',
-		'damagetypes',
-		'defaultdamagetype',
-		'itemproperties',
-		'itemtype',
-		'actiontype',
-		'activitytype',
-		'attackmode',
-		'mastery',
-		'creaturetype',
-	].includes(last)) return true;
+	if (
+		[
+			'effects',
+			'equippeditems',
+			'abilities',
+			'skills',
+			'tools',
+			'statuses',
+			'riderstatuses',
+			'damagetypes',
+			'defaultdamagetype',
+			'itemproperties',
+			'itemtype',
+			'actiontype',
+			'activitytype',
+			'attackmode',
+			'mastery',
+			'creaturetype',
+		].includes(last)
+	)
+		return true;
 	return false;
 }
 
@@ -3603,9 +3792,7 @@ function getStatusEffectConfigs() {
 
 function getStatusEffectIds() {
 	const entries = getStatusEffectConfigs();
-	const ids = entries
-		.map((entry) => `${entry?.id ?? ''}`.trim())
-		.filter(Boolean);
+	const ids = entries.map((entry) => `${entry?.id ?? ''}`.trim()).filter(Boolean);
 	return dedupe(ids).sort((a, b) => a.localeCompare(b));
 }
 
@@ -3624,9 +3811,7 @@ function handleAssistTabNavigation(input, selectionState = null, direction = 1) 
 	let nextIndex = -1;
 	if (currentIndex >= 0) nextIndex = currentIndex + (direction > 0 ? 1 : -1);
 	else {
-		nextIndex = direction > 0
-			? targets.findIndex((target) => target.start >= end)
-			: findLastIndex(targets, (target) => target.end <= start);
+		nextIndex = direction > 0 ? targets.findIndex((target) => target.start >= end) : findLastIndex(targets, (target) => target.end <= start);
 	}
 	if (nextIndex < 0 || nextIndex >= targets.length) {
 		const activeIndex = currentIndex >= 0 ? currentIndex : findActiveNavigationTargetIndex(targets, start, end);
@@ -3748,13 +3933,7 @@ function findEnclosingParenthesisRange(text, position) {
 
 function hasOptionalFieldRows(rows) {
 	return Boolean(
-		rows?.nameDescription?.left ||
-		rows?.nameDescription?.right ||
-		rows?.usesCount?.left ||
-		rows?.usesCount?.right ||
-		rows?.usesCount?.scaling ||
-		rows?.update?.left ||
-		rows?.update?.right,
+		rows?.nameDescription?.left || rows?.nameDescription?.right || rows?.usesCount?.left || rows?.usesCount?.right || rows?.usesCount?.scaling || rows?.update?.left || rows?.update?.right,
 	);
 }
 
@@ -3785,6 +3964,33 @@ function getPersistedFieldNames(profile) {
 	if (profile.supportsSetMode) fieldNames.push('set');
 	if (profile.supportsAddTo) fieldNames.push('addTo');
 	return dedupe(fieldNames);
+}
+
+function getRangeFieldUiState(root, profile = {}) {
+	const state = {};
+	for (const field of profile.rangeFields ?? []) {
+		state[field] = hasCheckedInput(root, `ui.showRange${field.replace(/^./, (char) => char.toUpperCase())}`);
+	}
+	return state;
+}
+
+function clearHiddenRangeFields(data, profile = {}, state = {}) {
+	for (const field of profile.rangeFields ?? []) {
+		if (!state[field]) data.fields[field] = '';
+	}
+}
+
+function preserveHiddenRangeFields(data, baseData, profile = {}, state = {}, root = null) {
+	for (const field of profile.rangeFields ?? []) {
+		if (!state[field] || !hasNamedInput(root, `fields.${field}`)) data.fields[field] = baseData?.fields?.[field] ?? '';
+	}
+}
+
+function hasNamedInput(root, name) {
+	if (!root) return false;
+	if (root instanceof HTMLFormElement) return Array.from(root.elements).some((element) => element.name === name);
+	const escapedName = globalThis.CSS?.escape?.(name) ?? name.replaceAll('"', '\\"');
+	return Boolean(root.querySelector(`[name="${escapedName}"]`));
 }
 
 function buildCadenceOptions(selectedValue = '') {
