@@ -29,7 +29,7 @@
 - Fixed range editor hints that previously suggested typing `=value` in fields where the editor already supplies the assignment.
 - Fixed explicit old range value subkeys so editing `range.short`, `range.long`, `range.reach`, or `range.bonus` no longer saves values in a form the runtime ignores.
 - Fixed range toggle UI state so migrated or edited out-of-range failure aliases do not appear as hidden contradictory values.
-- Fixed `effectOriginActor` missing
+- Fixed missing `effectOriginActor` from the evaluation roll data.
 
 ### Breaking Changes
 
