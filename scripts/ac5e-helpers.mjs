@@ -1111,17 +1111,18 @@ function _itemMatchesLookup(item, identifier, matcher, options = {}) {
 	const id = String(item.id ?? '');
 	const uuid = String(item.uuid ?? '');
 	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
+	const directIdentifierSlug = directIdentifier.slugify();
 
 	if (match === 'id') return id === normalizedIdentifier;
 	if (match === 'uuid') return uuid === normalizedIdentifier;
-	if (match === 'identifier') return directIdentifier === normalizedIdentifier;
+	if (match === 'identifier') return directIdentifier === normalizedIdentifier || (!!identifierSlug && directIdentifierSlug === identifierSlug);
 	if (match === 'name') return _itemNameMatches(item, identifier, matcher, normalizedOptions);
 
 	return (
 		id === normalizedIdentifier ||
 		uuid === normalizedIdentifier ||
 		directIdentifier === normalizedIdentifier ||
-		(identifierSlug && directIdentifier === identifierSlug) ||
+		(!!identifierSlug && directIdentifierSlug === identifierSlug) ||
 		_itemNameMatches(item, identifier, matcher, normalizedOptions)
 	);
 }
@@ -1247,7 +1248,7 @@ export function _getItems(source, itemIdentifier, options = {}) {
 			break;
 		}
 	}
-	if (options.returnIdentifiers) return matches.map((item) => item.identifier);
+	if (options.returnIdentifiers) return matches.map((item) => item.identifier ?? item.system?.identifier);
 	if (options.returnUuids) return matches.map((item) => item.uuid);
 	if (options.returnIds) return matches.map((item) => item.id);
 	return matches;

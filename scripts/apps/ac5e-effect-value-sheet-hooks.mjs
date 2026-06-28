@@ -1,5 +1,5 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
-import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eAutocompleteDebugEnabled, isAc5eChangeKey, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eAutocompleteDebugEnabled, isAc5eChangeKey, normalizeEffectKeyAutocompletePrefix, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
 import Constants from '../ac5e-constants.mjs';
 import Settings from '../ac5e-settings.mjs';
 
@@ -14,7 +14,7 @@ function enhanceActiveEffectConfig(app, element) {
 	ensureAc5eChangeTypeOptions(root);
 	moveAc5eChangeTypeOptionsToBottom(root);
 	restoreAc5eChangeTypeSelections(app, root);
-	if (!globalThis.DAE) initializeKeyAutocomplete(app, root);
+	if (!isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
 
@@ -47,7 +47,6 @@ function ensureAc5eChangeTypeOptions(root) {
 function initializeKeyAutocomplete(app, root) {
 	const Autocomplete = foundry.applications?.ux?.Autocomplete?.implementation;
 	if (!Autocomplete) return;
-	const entries = buildEffectKeyAutocompleteEntries();
 
 	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
 		if (keyInput.dataset.ac5eKeyAutocompleteReady) continue;
@@ -72,7 +71,8 @@ function initializeKeyAutocomplete(app, root) {
 				return;
 			}
 			const prefix = getAutocompletePrefix(keyInput);
-			const normalizedPrefix = prefix.toLowerCase();
+			const normalizedPrefix = normalizeEffectKeyAutocompletePrefix(prefix).toLowerCase();
+			const entries = buildEffectKeyAutocompleteEntries(keyInput.value);
 			const filteredEntries = prefix
 				? entries.filter((entry) => entry.identifier.toLowerCase().includes(normalizedPrefix)).slice(0, 40)
 				: entries.slice(0, 40);
@@ -166,15 +166,15 @@ function ensureValueEditorWrapper(valueInput) {
 }
 
 function findKeyInput(row, valueInput) {
-	const keyName = valueInput.name.replace(/\.value$/, '.key');
+	const keyName = valueInput.name.replace(/\.(?:type|value)$/, '.key');
 	const escapedKeyName = globalThis.CSS?.escape?.(keyName) ?? keyName.replaceAll('"', '\\"');
-	return row.querySelector('input[name$=".key"], textarea[name$=".key"]') ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`);
+	return row.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row.querySelector('input[name$=".key"], textarea[name$=".key"]');
 }
 
 function findTypeInput(row, input) {
 	const typeName = input.name.replace(/\.(?:key|value)$/, '.type');
 	const escapedTypeName = globalThis.CSS?.escape?.(typeName) ?? typeName.replaceAll('"', '\\"');
-	return row?.querySelector('select[name$=".type"], input[name$=".type"]') ?? input.ownerDocument.querySelector(`[name="${escapedTypeName}"]`);
+	return row?.querySelector(`[name="${escapedTypeName}"]`) ?? input.ownerDocument.querySelector(`[name="${escapedTypeName}"]`) ?? row?.querySelector('select[name$=".type"], input[name$=".type"]');
 }
 
 function isAc5eChangeRow(row, input) {
@@ -204,6 +204,10 @@ function restoreAc5eChangeTypeSelections(app, root) {
 		} else if (key && !isAc5eChangeKey(key)) continue;
 		select.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 	}
+}
+
+function isDaeActiveEffectSheet(app, root) {
+	return app?.constructor?.name === 'DAEActiveEffectConfig' || root?.classList?.contains('dae') || !!root?.querySelector?.('.dae-key-input');
 }
 
 function getChangeIndex(row, input) {

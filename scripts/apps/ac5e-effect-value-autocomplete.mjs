@@ -92,6 +92,8 @@ const CURATED_AC5E_PATHS = [
 ];
 const ROOT_PATHS = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor', 'item', 'activity', 'originItem', 'originActivity'];
 const AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES = ['flags.auto', 'ac5e', 'automated-'];
+const AC5E_SHORT_FLAG_PREFIX = 'flags.ac5e';
+const AC5E_CANONICAL_FLAG_PREFIX = `flags.${Constants.MODULE_ID}`;
 const CONFIG_BOOLEAN_MAP_KEYS = [
 	'abilities',
 	'abilityConsumptionTypes',
@@ -178,6 +180,14 @@ export function getAutocompletePrefix(input) {
 	const cursor = input.selectionStart ?? input.value.length;
 	const beforeCursor = input.value.slice(0, cursor);
 	return beforeCursor.match(/[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*\.?$/)?.[0] ?? '';
+}
+
+export function normalizeEffectKeyAutocompletePrefix(prefix) {
+	const value = `${prefix ?? ''}`.trim();
+	if (value.toLowerCase().startsWith(AC5E_SHORT_FLAG_PREFIX)) {
+		return `${AC5E_CANONICAL_FLAG_PREFIX}${value.slice(AC5E_SHORT_FLAG_PREFIX.length)}`;
+	}
+	return value;
 }
 
 export function shouldActivateEffectValueAutocomplete(input, prefix = '') {

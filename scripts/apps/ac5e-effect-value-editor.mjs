@@ -485,6 +485,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				changes: {
 					[this.changeIndex]: {
 						key: changeKey,
+						type: Constants.ACTIVE_EFFECT_CHANGE_TYPE,
 						value,
 					},
 				},

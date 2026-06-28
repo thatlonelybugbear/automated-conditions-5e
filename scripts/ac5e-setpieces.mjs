@@ -189,6 +189,7 @@ function _withEffectOriginEvaluationData(sandbox, effect) {
 	const originActivityData = _getOriginActivityRollData(originActivity);
 	return {
 		...sandbox,
+		effectOriginActor: _ac5eActorRollData(null, null, originContext.originActor),
 		originItem: originItemData,
 		originActivity: originActivityData,
 		originItemType: originItem?.type,
