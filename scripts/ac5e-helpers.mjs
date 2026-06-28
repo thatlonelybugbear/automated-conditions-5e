@@ -1003,7 +1003,7 @@ function _normalizeItemIdentifierInput(itemIdentifier) {
 		.map((value) => {
 			if (typeof value === 'string') return value.trim();
 			if (typeof value === 'object') {
-				return String(value.identifier ?? value.system?.identifier ?? value.name ?? value.id ?? value.uuid ?? '').trim();
+				return String(value.system?.identifier ?? value.name ?? value.id ?? value.uuid ?? '').trim();
 			}
 			return String(value).trim();
 		})
@@ -1051,11 +1051,11 @@ function _buildItemMatcher(queryRaw) {
 }
 
 function _normalizeItemLookupMatchOption(value) {
-	const parsed = String(value ?? 'name')
+	const parsed = String(value ?? 'any')
 		.trim()
 		.toLowerCase();
 	if (['name', 'identifier', 'id', 'uuid', 'any'].includes(parsed)) return parsed;
-	return 'name';
+	return 'any';
 }
 
 function _normalizeItemLookupNameModeOption(value) {
@@ -1110,7 +1110,7 @@ function _itemMatchesLookup(item, identifier, matcher, options = {}) {
 	const identifierSlug = normalizedIdentifier.slugify();
 	const id = String(item.id ?? '');
 	const uuid = String(item.uuid ?? '');
-	const directIdentifier = String(item.identifier ?? item.system?.identifier ?? '');
+	const directIdentifier = String(item.system?.identifier || '');
 	const directIdentifierSlug = directIdentifier.slugify();
 
 	if (match === 'id') return id === normalizedIdentifier;
@@ -1156,6 +1156,15 @@ function _itemMatchesLookupStateFilters(item, options = {}) {
 	if (options.hasQuantity !== undefined && _itemHasQuantity(item) !== options.hasQuantity) return false;
 	if (Array.isArray(options.properties) && options.properties.some((property) => !_itemHasProperty(item, property))) return false;
 	return true;
+}
+
+function _shapeItemLookupResults(items, options = {}) {
+	const getPropertyPath = typeof options.getProperty === 'string' ? options.getProperty.trim() : '';
+	if (getPropertyPath) return items.map((item) => foundry.utils.getProperty(item, getPropertyPath));
+	if (options.returnIdentifiers) return items.map((item) => item.system?.identifier);
+	if (options.returnUuids) return items.map((item) => item.uuid);
+	if (options.returnIds) return items.map((item) => item.id);
+	return items;
 }
 
 function _resolveActorForItemLookup(source) {
@@ -1213,6 +1222,7 @@ function _resolveActorForItemLookup(source) {
  * @param {object} [options]
  * @param {string} [options.type] - Optional item.type filter.
  * @param {string|string[]} [options.properties] - Optional item.system.properties filter; all requested properties must be present.
+ * @param {string} [options.getProperty] - Optional property path to return from each matched item.
  * @param {boolean} [options.returnIds] - If true, returns matching item ids instead of documents.
  * @param {boolean} [options.returnUuids] - If true, returns matching item uuids instead of documents.
  * @param {boolean} [options.returnIdentifiers] - If true, returns matching item identifiers instead of documents.
@@ -1230,7 +1240,7 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	const typeScopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
 	const scopedItems = typeScopedItems.filter((item) => _itemMatchesLookupStateFilters(item, normalizedOptions));
 	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
-	if (!identifiers.length) return scopedItems;
+	if (!identifiers.length) return _shapeItemLookupResults(scopedItems, options);
 
 	const matchers = new Map(identifiers.map((identifier) => [identifier, _buildItemMatcher(identifier)]));
 	const seen = new Set();
@@ -1248,10 +1258,7 @@ export function _getItems(source, itemIdentifier, options = {}) {
 			break;
 		}
 	}
-	if (options.returnIdentifiers) return matches.map((item) => item.identifier ?? item.system?.identifier);
-	if (options.returnUuids) return matches.map((item) => item.uuid);
-	if (options.returnIds) return matches.map((item) => item.id);
-	return matches;
+	return _shapeItemLookupResults(matches, options);
 }
 
 export function _getItem(source, itemIdentifier, options = {}) {

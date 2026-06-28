@@ -10,6 +10,8 @@
 - Added `criticalStatic` as a toggleBehaviour when relevant.
 - Added support for `update` and `usesCount` targets that point at `effectActor`, `nonEffectActor`, and `effectOriginActor`.
 - Improved AC5E Active Effect change type handling so the `AC5E` change type is more reliably available and preserved on Foundry Active Effect sheets.
+- Improved `ac5e.getItem(...)`, `ac5e.getItems(...)`, and `ac5e.hasItem(...)` so item identifiers such as `arts-dice` work by default.
+  - Added `getProperty` support to item lookup helpers, so `ac5e.getItem(actor, "arts-dice", { getProperty: "system.uses.value" })` can return a specific item data path such as current uses.
 - Improved the Effect Value Editor's condition helper with better operator suggestions after common number, string, and boolean entries.
 - Improved the Effect Value Editor's `!` helper so it can toggle the previous boolean-style condition.
 - Improved Effect Value Editor browsing for actor, item, activity, origin item, and origin activity data paths.
@@ -27,6 +29,7 @@
 - Fixed range editor hints that previously suggested typing `=value` in fields where the editor already supplies the assignment.
 - Fixed explicit old range value subkeys so editing `range.short`, `range.long`, `range.reach`, or `range.bonus` no longer saves values in a form the runtime ignores.
 - Fixed range toggle UI state so migrated or edited out-of-range failure aliases do not appear as hidden contradictory values.
+- Fixed `effectOriginActor` missing
 
 ### Breaking Changes
 

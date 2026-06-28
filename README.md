@@ -158,6 +158,22 @@ Persistence notes:
 
 See full developer API details in `wiki/Usage-Rules-API.md`.
 
+### Item lookup helpers
+
+`ac5e.getItem(source, itemIdentifier, options = {})` returns the first matching item, while `ac5e.getItems(...)` returns all matches and `ac5e.hasItem(...)` returns a boolean. `source` can be an actor, token, token ID, token UUID, actor ID, or actor UUID.
+
+By default, item lookup matches item ID, UUID, dnd5e identifier, or exact item name. The dnd5e identifier is the stored `system.identifier` value, such as `arts-dice`.
+
+```js
+ac5e.getItem(actor, 'arts-dice'); // returns the first item on the actor with a matching identifier of 'arts-dice'
+ac5e.getItems(token.id, ['arts-dice', 'Superiority Die'], { getProperty: 'system.uses.value' }); // returns matching use values in actor item order, for example [4, 3]
+ac5e.getItems(token.id, ['arts-dice', 'Superiority Die'], { getProperty: 'system.uses.value', match: 'name' }); // exact-name matching ignores 'arts-dice' and can return [3]
+ac5e.getItems(actor, null, { properties: 'mgc' }); // returns all items with the magical property on the actor
+ac5e.hasItem(token, 'shield', { type: 'spell' }); // returns true if the token.actor has the Shield spell
+```
+
+Useful options include `match: "name" | "identifier" | "id" | "uuid" | "any"`, `nameMode: "exact" | "partial"`, `type`, `properties`, `returnIds`, `returnUuids`, `returnIdentifiers`, and `getProperty`.
+
 ### Troubleshooter utility
 AC5E exposes snapshot/export/import helpers for troubleshooting environment drift.
 
