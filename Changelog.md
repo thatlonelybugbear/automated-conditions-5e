@@ -1,3 +1,8 @@
+## 14.533.7.1
+
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+- Removed a WIP entry from the previous release changelog.
+
 ## 14.533.7
 
 - Added a Discord button to the AC5E links menu and reorganized the links into GitHub, Discord, and support groups.
