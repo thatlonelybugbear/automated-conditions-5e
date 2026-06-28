@@ -4,18 +4,18 @@
 		"Hint": "Ativa o tratamento de condições do AC5E para D&D 5e, expandindo a automação nativa de vantagem do sistema D&D 5e com uma aplicação de regras mais ampla e precisa, especialmente para jogadas de ataque."
 	},
 	"AC5E.Ui": {
-    	"Name": "Desabilitar Interface do AC5E",
-    	"Hint": "Desativa o botão da varinha AC5E para o editor de valores de Efeito Ativo."
-  	},
-  	"AC5E.LinksMenu": {
-    	"Name": "Suporte do Módulo",
-    	"Label": "Links",
-    	"Hint": "Abrir a documentação, o rastreador de problemas e os links de suporte do AC5E.",
+		"Name": "Desabilitar Interface do AC5E",
+		"Hint": "Desativa o botão da varinha AC5E para o editor de valores de Efeito Ativo."
+	},
+	"AC5E.LinksMenu": {
+		"Name": "Suporte do Módulo",
+		"Label": "Links",
+		"Hint": "Abrir a documentação, o rastreador de problemas e os links de suporte do AC5E.",
 		"GitHubMessage": "Links do GitHub",
-    	"DiscordMessage": "Entre na Toca",
-    	"SupportMessage": "Dê um Trocado pro seu Bugbear",
-    	"Title": "Recursos e Suporte"
-  	},
+		"DiscordMessage": "Entre na Toca",
+		"SupportMessage": "Dê um Trocado pro seu Bugbear",
+		"Title": "Recursos e Suporte"
+	},
 	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5E",
 	"AC5E.ShowTooltipsHint": "Exibe dicas de ferramenta do AC5E nas janelas de rolagem, mensagens de chat ou em ambos, explicando os motivos por trás do resultado sugerido.",
@@ -33,9 +33,9 @@
 	"AC5E.ExpandedConditionsName": "Condições Expandidas",
 	"AC5E.ExpandedConditionsHint": "Ativa a automação para condições e estados de combate adicionais, como Esquivar, Furtividade, restrições de magia durante Fúria e Combate Submerso.",
 	"AC5E.VisibilityChecksSetting": {
-    	"Name": "Regras de Visibilidade",
-    	"Hint": "Utiliza as regras de visibilidade de ataque do AC5E com base na visão e nos sentidos dos tokens. Quando ativado, o AC5E adiciona os motivos de ataque 'Não Pode Ver o Alvo' e 'O Alvo Não Pode Ver o Atacante'. Esses motivos são ignorados quando o Midi QOL já aplica suas próprias regras de invisibilidade ou atacante oculto."
-  	},
+		"Name": "Regras de Visibilidade",
+		"Hint": "Utiliza as regras de visibilidade de ataque do AC5E com base na visão e nos sentidos dos tokens. Quando ativado, o AC5E adiciona os motivos de ataque 'Não Pode Ver o Alvo' e 'O Alvo Não Pode Ver o Atacante'. Esses motivos são ignorados quando o Midi QOL já aplica suas próprias regras de invisibilidade ou atacante oculto."
+	},
 	"AC5E.ActivityUse": {
 		"Name": "Regras de Uso de Itens",
 		"Hint": "Controla se o AC5E permite, avisa ou bloqueia o uso inválido de atividades antes da rolagem. Aplica-se a verificações realizadas na fase de uso, como ações enquanto Incapacitado, restrições de conjuração de magias e falhas por alvo fora de alcance em atividades que não sejam ataques. Falhas por alvo fora de alcance em ataques são tratadas posteriormente durante a configuração da jogada de ataque, utilizando o modo de ataque selecionado.",
@@ -203,10 +203,10 @@
 	"AC5E.OptinDescription.ModifiesTargetACBy": "Modifica a CA alvo para {value}",
 	"AC5E.OptinDescription.ModifiesTargetAC": "Modifica a CA do alvo",
 	"AC5E.OptinDescription.DCLabel.Save": "CD da Salv.",
-  	"AC5E.OptinDescription.DCLabel.Check": "CD do Teste",
-  	"AC5E.OptinDescription.SetsTargetSpecificDC": "Define {dcLabel} para {value}",
-  	"AC5E.OptinDescription.ModifiesTargetSpecificDCBy": "Modifica {dcLabel} para {value}",
-  	"AC5E.OptinDescription.ModifiesTargetSpecificDC": "Modifica {dcLabel}",
+	"AC5E.OptinDescription.DCLabel.Check": "CD do Teste",
+	"AC5E.OptinDescription.SetsTargetSpecificDC": "Define {dcLabel} para {value}",
+	"AC5E.OptinDescription.ModifiesTargetSpecificDCBy": "Modifica {dcLabel} para {value}",
+	"AC5E.OptinDescription.ModifiesTargetSpecificDC": "Modifica {dcLabel}",
 	"AC5E.OptinDescription.SetsMinimumD20": "Define o resultado mínimo do d20 como {value}",
 	"AC5E.OptinDescription.SetsMaximumD20": "Define o resultado máximo do d20 como {value}",
 	"AC5E.OptinDescription.AppliesRollModifier": "Aplica modificador de rolagem",
@@ -222,11 +222,11 @@
 	"AC5E.OptinDescription.AddsExtraDamageDice": "Adiciona dados extras de dano",
 	"AC5E.OptinDescription.AddsExtraDamageDiceWithValue": "Adiciona dados extras de dano ({value})",
 	"AC5E.OptinDescription.OverridesDamageType": "Substitui o tipo de dano",
-  	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Substitui o tipo de dano ({value})",
+	"AC5E.OptinDescription.OverridesDamageTypeWithValue": "Substitui o tipo de dano ({value})",
 	"AC5E.OptinDescription.OverridesDcAbility": "Substitui o atributo da CD de Salvaguarda/Teste ({value})",
-  	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Substitui o atributo da CD de Salvaguarda/Teste",
-  	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name": "Efeito Aplica Substituição de Modificação",
-  	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint": "Somente para o Mestre. Mantenha esta tecla pressionada ao clicar em Aplicar Efeito para ignorar as verificações de allowEffectApplication.",
+	"AC5E.OptinDescription.OverridesDcAbilityGeneric": "Substitui o atributo da CD de Salvaguarda/Teste",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Name": "Efeito Aplica Substituição de Modificação",
+	"AC5E.Keybinding.AllowEffectApplicationBypassModifier.Hint": "Somente para o Mestre. Mantenha esta tecla pressionada ao clicar em Aplicar Efeito para ignorar as verificações de allowEffectApplication.",
 	"AC5E.OptinDescription.UpgradesDamageDice": "Aumenta dados de dano",
 	"AC5E.OptinDescription.UpgradesDamageDiceWithValue": "Aumenta dados de dano ({value})",
 	"AC5E.OptinDescription.DowngradesDamageDice": "Diminui dados de dano",
@@ -321,21 +321,21 @@
 			"description": "Use radius=10;bonus=1d4; ou radius=15;set=15;. O primeiro dará um bônus para a CA e o último definirá o CA para o valor configurado."
 		},
 		"flags.automated-conditions-5e.abilityOverride": {
-      		"name": "Substituir Atributo da CD de Salvaguarda/Teste",
-      		"description": "Substitui o atributo usado para calcular as CDs de Salvaguarda/Teste da atividade. Use override=cha. Exemplo: override=(item.type==='spell' ? spellcastingAbility : wis). abilityOverride=... e set=... continuam sendo suportados."
-    	},
-    	"flags.automated-conditions-5e.grants.abilityOverride": {
-      		"name": "Conceder Substituição do Atributo da CD de Salvaguarda/Teste",
-      		"description": "Substitui o atributo da CD de Salvaguarda/Teste do ator afetado por meio de concessões. Use override=cha. Exemplo: override=(opponentActor?.details?.type?.value==='fiend' ? cha : wis). abilityOverride=... e set=... continuam sendo suportados."
-    	},
-    	"flags.automated-conditions-5e.aura.abilityOverride": {
-      		"name": "Aura que Substitui o Atributo da CD de Salvaguarda/Teste",
-      		"description": "Substitui o atributo da CD de Salvaguarda/Teste dos tokens afetados pela aura. Use radius normalmente junto com override=cha. Exemplo: radius=30;allies;includeSelf;override=wis. abilityOverride=... e set=... continuam sendo suportados."
-    	},
-    	"flags.automated-conditions-5e.allowEffectApplication": {
-      		"name": "Permitir Aplicação de Efeito",
-      		"description": "Avaliado no momento da criação do efeito. Se esta expressão resultar em false, o AC5E bloqueará a aplicação do efeito. Em caso de erros durante a avaliação, a aplicação prosseguirá utilizando o comportamento padrão do sistema."
-    	},
+			"name": "Substituir Atributo da CD de Salvaguarda/Teste",
+			"description": "Substitui o atributo usado para calcular as CDs de Salvaguarda/Teste da atividade. Use override=cha. Exemplo: override=(item.type==='spell' ? spellcastingAbility : wis). abilityOverride=... e set=... continuam sendo suportados."
+		},
+		"flags.automated-conditions-5e.grants.abilityOverride": {
+			"name": "Conceder Substituição do Atributo da CD de Salvaguarda/Teste",
+			"description": "Substitui o atributo da CD de Salvaguarda/Teste do ator afetado por meio de concessões. Use override=cha. Exemplo: override=(opponentActor?.details?.type?.value==='fiend' ? cha : wis). abilityOverride=... e set=... continuam sendo suportados."
+		},
+		"flags.automated-conditions-5e.aura.abilityOverride": {
+			"name": "Aura que Substitui o Atributo da CD de Salvaguarda/Teste",
+			"description": "Substitui o atributo da CD de Salvaguarda/Teste dos tokens afetados pela aura. Use radius normalmente junto com override=cha. Exemplo: radius=30;allies;includeSelf;override=wis. abilityOverride=... e set=... continuam sendo suportados."
+		},
+		"flags.automated-conditions-5e.allowEffectApplication": {
+			"name": "Permitir Aplicação de Efeito",
+			"description": "Avaliado no momento da criação do efeito. Se esta expressão resultar em false, o AC5E bloqueará a aplicação do efeito. Em caso de erros durante a avaliação, a aplicação prosseguirá utilizando o comportamento padrão do sistema."
+		},
 		"flags.automated-conditions-5e.ACTIONTYPE": {
 			"advantage": {
 				"name": "Rolar com Vantagem",
@@ -522,9 +522,9 @@
 			"UsesCountAmount": "Valores positivos consomem. Valores negativos recuperam. Use =valor para definir um valor absoluto.",
 			"UpdateAmount": "Valores positivos adicionam. Valores negativos subtraem. Use =valor para definir um valor absoluto.",
 			"UpdateAmountStatus": "Valores positivos ou =1 aplicam a condição. Zero, valores negativos ou =0 a removem.",
-      		"UpdateAmountConcentration": "Valores positivos ou =1 aplicam a condição genérica de Concentração. Zero, valores negativos ou =0 a removem.",
-      		"UpdateAmountInspiration": "Valores positivos ou =1 concedem Inspiração. Zero, valores negativos ou =0 a removem.",
-      		"UpdateAmountExhaustion": "Valores positivos adicionam níveis de Exaustão. Valores negativos removem níveis. Use =0 para remover toda a Exaustão.",
+			"UpdateAmountConcentration": "Valores positivos ou =1 aplicam a condição genérica de Concentração. Zero, valores negativos ou =0 a removem.",
+			"UpdateAmountInspiration": "Valores positivos ou =1 concedem Inspiração. Zero, valores negativos ou =0 a removem.",
+			"UpdateAmountExhaustion": "Valores positivos adicionam níveis de Exaustão. Valores negativos removem níveis. Use =0 para remover toda a Exaustão.",
 			"ToggleOptin": "Exibe esta entrada como opcional para que os usuários possam ativá-la em cada rolagem.",
 			"ToggleItemLimited": "Aplica apenas quando o item/atividade de origem corresponder ao contexto de origem limitado.",
 			"ToggleCriticalStatic": "Aplica este bônus de dano ou estes dados adicionais exatamente como estão, sem seguir as regras normais de acerto crítico.",
@@ -537,15 +537,15 @@
 			"UsesCountSet": "Define o alvo para uma quantidade absoluta usando a sintaxe =quantidade.",
 			"TogglePartialConsume": "Permite gastar o que estiver disponível em vez de bloquear quando a quantidade for insuficiente.",
 			"ToggleRangeLongDisadvantage": "Forçar desvantagem em longo alcance.",
-      		"ToggleRangeNoLongDisadvantage": "Não forçar desvantagem em longo alcance.",
-      		"ToggleRangeNearbyFoeDisadvantage": "Forçar desvantagem à distância contra inimigos adjacentes.",
-      		"ToggleRangeNoNearbyFoeDisadvantage": "Não forçar desvantagem à distância contra inimigos adjacentes.",
-      		"ToggleRangeOutOfRangeFail": "Forçar falha ao usar fora do alcance.",
-      		"ToggleRangeNoOutOfRangeFail": "Não forçar falha ao usar fora do alcance.",
-      		"RangeShort": "Modifique o alcance curto usando +valor, -valor ou apenas um valor para defini-lo.",
-      		"RangeLong": "Modifique o alcance longo usando +valor, -valor ou apenas um valor para defini-lo.",
-      		"RangeReach": "Modifique a extensão corpo a corpo usando +valor, -valor ou apenas um valor para defini-lo.",
-      		"RangeBonus": "Modifique todos os valores de alcance correspondentes usando +valor, -valor ou apenas um valor para defini-los."
+			"ToggleRangeNoLongDisadvantage": "Não forçar desvantagem em longo alcance.",
+			"ToggleRangeNearbyFoeDisadvantage": "Forçar desvantagem à distância contra inimigos adjacentes.",
+			"ToggleRangeNoNearbyFoeDisadvantage": "Não forçar desvantagem à distância contra inimigos adjacentes.",
+			"ToggleRangeOutOfRangeFail": "Forçar falha ao usar fora do alcance.",
+			"ToggleRangeNoOutOfRangeFail": "Não forçar falha ao usar fora do alcance.",
+			"RangeShort": "Modifique o alcance curto usando +valor, -valor ou apenas um valor para defini-lo.",
+			"RangeLong": "Modifique o alcance longo usando +valor, -valor ou apenas um valor para defini-lo.",
+			"RangeReach": "Modifique a extensão corpo a corpo usando +valor, -valor ou apenas um valor para defini-lo.",
+			"RangeBonus": "Modifique todos os valores de alcance correspondentes usando +valor, -valor ou apenas um valor para defini-los."
 		}
 	},
 	"AC5E.Optin.UpdateSummary": {
