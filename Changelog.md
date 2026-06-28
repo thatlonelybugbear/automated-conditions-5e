@@ -5,7 +5,6 @@
 - Added Effect Value Editor suggestions for item and activity spell school data.
 - Added more Effect Value Editor suggestions for item type, item subtype, base item, action type, attack mode, item properties, and weapon mastery checks.
 - Added guided range editing for AC5E range flags, including short range, long range, reach, range-wide bonus, long-range disadvantage, nearby-foe disadvantage, and out-of-range failure controls.
-- Added `use.templateSize` flags for opt-in scaling of placed activity template size, width, and height based on the amount of uses a player chooses to spend.
 - Added clearer update amount help for statuses, Concentrating, Inspiration, and Exhaustion.
 - Added `criticalStatic` as a toggleBehaviour when relevant.
 - Added support for `update` and `usesCount` targets that point at `effectActor`, `nonEffectActor`, and `effectOriginActor`.
