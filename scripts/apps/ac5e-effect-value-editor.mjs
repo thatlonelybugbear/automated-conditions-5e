@@ -1227,7 +1227,9 @@ function buildLambdaAssistData(
 		'itemProperties',
 		'itemType',
 		'item.classIdentifier',
+		'originItem.classIdentifier',
 		'item.sourceItem',
+		'originItem.sourceItem',
 		'originItemProperties',
 		'originItemType',
 		'mastery',
@@ -3251,9 +3253,9 @@ function resolveAssistValueChoices(path, enumValues) {
 	if (/^(?:activity|originActivity)\.type$/.test(sourcePath)) return toAssistValueChoices(enumValues?.activityTypes ?? []);
 	if (/^(?:item|originItem)\.type\.value$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypeValues ?? []);
 	if (/^(?:item|originItem)\.type\.baseItem$/.test(sourcePath)) return toAssistValueChoices(enumValues?.baseItems ?? []);
-	if (sourcePath === 'item.classIdentifier') return toAssistValueChoices(enumValues?.classIdentifiers ?? [], globalThis.dnd5e?.registry?.classes?.choices);
-	if (sourcePath === 'item.sourceItem') return toAssistValueChoices(enumValues?.sourceItems ?? []);
-	if (sourcePath === 'item.school') return toAssistValueChoices(enumValues?.spellSchools ?? [], CONFIG?.DND5E?.spellSchools);
+	if (sourcePath === 'item.classIdentifier' || sourcePath === 'originItem.classIdentifier') return toAssistValueChoices(enumValues?.classIdentifiers ?? [], globalThis.dnd5e?.registry?.classes?.choices);
+	if (sourcePath === 'item.sourceItem' || sourcePath === 'originItem.sourceItem') return toAssistValueChoices(enumValues?.sourceItems ?? []);
+	if (sourcePath === 'item.school' || sourcePath === 'originItem.school') return toAssistValueChoices(enumValues?.spellSchools ?? [], CONFIG?.DND5E?.spellSchools);
 	if (/\.(?:itemType)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypes ?? []);
 	if (/\.(?:attackMode)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.attackModes ?? []);
 	if (/\.(?:mastery)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.masteries ?? [], CONFIG?.DND5E?.weaponMasteries);
@@ -3377,7 +3379,7 @@ function resolveAssistValueGroupPath(path) {
 
 function isEqualityAssistValuePath(path) {
 	const value = `${path ?? ''}`.trim();
-	return /^(?:item|originItem)\.mastery$/.test(value) || /^item\.(?:classIdentifier|sourceItem|school)$/.test(value);
+	return /^(?:item|originItem)\.mastery$/.test(value) || /^(?:item|originItem)\.(?:classIdentifier|sourceItem|school)$/.test(value);
 }
 
 function isEnumAssistValuePath(path) {
