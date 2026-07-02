@@ -1021,8 +1021,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.flags['midi-qol'] ??= item?.flags?.['midi-qol'] ?? {};
 	sandbox.item.midiFlags ??= sandbox.item.flags['midi-qol'];
 	sandbox.item.classIdentifier = item?.system?.classIdentifier;
+	sandbox.item.sourceItem = item?.system?.sourceItem ?? itemData?.sourceItem;
 	sandbox.itemType = item?.type;
-	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
+	sandbox.isCantrip = item?.system?.level === 0 || itemData?.level === 0;
 	sandbox.magicAvailable = item?.magicAvailable;
 	sandbox.isScroll = item?.type === 'consumable' && item?.system?.type?.value === 'scroll';
 	sandbox.isSpell = activity?.isSpell || !!activity?.spell;
