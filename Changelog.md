@@ -1,3 +1,7 @@
+## 14.533.7.2
+
+- Updated Polish translation by [Lioheart](https://github.com/Lioheart) 🤗
+
 ## 14.533.7.1
 
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
