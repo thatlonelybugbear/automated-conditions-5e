@@ -1185,8 +1185,8 @@ function buildLambdaAssistData(
 		{ label: 'AND', value: ' && ' },
 		{ label: 'OR', value: ' || ' },
 		{ label: 'NOT', value: '!' },
-		{ label: '==', value: ' == ' },
-		{ label: '!=', value: ' != ' },
+		{ label: '===', value: ' === ' },
+		{ label: '!==', value: ' !== ' },
 		{ label: '>', value: ' > ' },
 		{ label: '>=', value: ' >= ' },
 		{ label: '<', value: ' < ' },
@@ -1206,7 +1206,8 @@ function buildLambdaAssistData(
 		entryPoints.map((entry) => {
 			const fromEntries = uniqueIdentifiers
 				.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
-				.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`);
+				.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`)
+				.filter((identifier) => isAssistPathIdentifier(identifier));
 			return [entry.value, dedupe(fromEntries)];
 		}),
 	);
@@ -1225,6 +1226,8 @@ function buildLambdaAssistData(
 		'attackMode',
 		'itemProperties',
 		'itemType',
+		'item.classIdentifier',
+		'item.sourceItem',
 		'originItemProperties',
 		'originItemType',
 		'mastery',
@@ -1267,6 +1270,9 @@ function buildLambdaAssistData(
 		damageTypes: Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).filter(Boolean),
 		healingTypes: Object.keys(CONFIG?.DND5E?.healingTypes ?? {}).filter(Boolean),
 		statuses: getStatusEffectIds(),
+		classIdentifiers: Object.keys(globalThis.dnd5e?.registry?.classes?.choices ?? {}).filter(Boolean),
+		sourceItems: Object.keys(globalThis.dnd5e?.registry?.classes?.choices ?? {}).filter(Boolean).map((identifier) => `class:${identifier}`),
+		spellSchools: Object.keys(CONFIG?.DND5E?.spellSchools ?? {}).filter(Boolean),
 		baseItems: dedupe(
 			[
 				...Object.keys(CONFIG?.DND5E?.weaponIds ?? {}),
@@ -1343,6 +1349,10 @@ function isSandboxAssistIdentifier(entry) {
 	const source = `${entry?.source ?? ''}`;
 	if (source === 'DND5E config' || source.startsWith('DND5E ')) return false;
 	return true;
+}
+
+function isAssistPathIdentifier(identifier) {
+	return /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\.\d+)*$/.test(`${identifier ?? ''}`.trim());
 }
 
 function isLegacyCompatibilityIdentifier(identifier) {
@@ -1825,6 +1835,9 @@ function classifyContextEntry(identifier) {
 		'hasCheck',
 		'isSpell',
 		'isCantrip',
+		'spellLevel',
+		'scaling',
+		'scaling.increase',
 		'isAoE',
 	];
 	if (itemActivityKeys.includes(value)) return 'item-activity';
@@ -2076,14 +2089,17 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	const filterText = (root.dataset.ac5eAssistFilter ?? '').trim().toLowerCase();
 	const nodes = filterText ? stageNodes.filter((node) => assistEntryMatchesToken(node?.label, filterText)) : stageNodes;
 	const activePath = root.dataset.ac5eAssistActivePath ?? '';
+	const activeValueChoices = activePath ? resolveAssistValueChoices(activePath, assist?.enumValues) : [];
+	const exactValueNode = filterText && nodes.length === 1 && (nodes[0]?.label ?? '').toLowerCase() === filterText && resolveAssistValueChoices(nodes[0]?.path, assist?.enumValues).length ? nodes[0] : null;
 	const fallbackPath =
+		exactValueNode ? exactValueNode.path :
 		nodes.length === 1 ? nodes[0]?.path
 		: filterText ? nodes.find((node) => (node?.label ?? '').toLowerCase() === filterText)?.path
 		: '';
 	const valuePath = activePath || fallbackPath || headerPath || '';
 	root.dataset.ac5eAssistValuePath = valuePath;
-	const valueChoices = nodes.length ? [] : resolveAssistValueChoices(valuePath, assist?.enumValues);
-	container.innerHTML = renderAssistNodeStage(nodes, headerPath, chain.length > 0, valueChoices);
+	const valueChoices = activeValueChoices.length ? activeValueChoices : exactValueNode || !nodes.length ? resolveAssistValueChoices(valuePath, assist?.enumValues) : [];
+	container.innerHTML = renderAssistNodeStage(activeValueChoices.length || exactValueNode ? [] : nodes, headerPath, chain.length > 0, valueChoices);
 	const backButton = container.querySelector('[data-ac5e-assist-back]');
 	backButton?.addEventListener('click', () => {
 		const nextChain = chain.slice(0, -1);
@@ -2112,6 +2128,15 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 				syncAssistBrowserFromInput(root, assist, selectionState, textarea);
 				return;
 			}
+			if (node.terminal && resolveAssistValueChoices(node.path, assist?.enumValues).length) {
+				setAssistActivePath(root, node.path);
+				root.dataset.ac5eAssistChain = JSON.stringify(buildAssistChainForPath(tree, activeRoot, node.path));
+				root.dataset.ac5eAssistFilter = '';
+				const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
+				replaceTokenAtCursorOrInsert(textarea, insertionPath, selectionState);
+				renderAssistStage(root, assist, selectionState, textarea);
+				return;
+			}
 			const assistScope = getAssistScope(root);
 			if (isCounterAssistScope(assistScope) && applyCounterAssistPathSelection(textarea, node.path, root, assist, selectionState)) {
 				resetAssistBrowserContext(root, assist, selectionState, textarea);
@@ -2130,6 +2155,15 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 				resetAssistBrowserContext(root, assist, selectionState, textarea);
 				return;
 			}
+			if (resolveAssistValueChoices(node.path, assist?.enumValues).length) {
+				setAssistActivePath(root, node.path);
+				root.dataset.ac5eAssistChain = JSON.stringify(buildAssistChainForPath(tree, activeRoot, node.path));
+				root.dataset.ac5eAssistFilter = '';
+				const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
+				replaceTokenAtCursorOrInsert(textarea, insertionPath, selectionState);
+				renderAssistStage(root, assist, selectionState, textarea);
+				return;
+			}
 			const assistScope = getAssistScope(root);
 			if (isCounterAssistScope(assistScope) && applyCounterAssistPathSelection(textarea, node.path, root, assist, selectionState)) {
 				resetAssistBrowserContext(root, assist, selectionState, textarea);
@@ -2145,15 +2179,27 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	for (const valueButton of container.querySelectorAll('[data-ac5e-assist-value]')) {
 		const groupPath = resolveAssistValueGroupPath(root.dataset.ac5eAssistValuePath ?? '');
 		const enumPath = resolveAssistEnumClausePath(textarea, root.dataset.ac5eAssistValuePath ?? '', valueButton.dataset.ac5eAssistValue ?? '');
+		const equalityPath = resolveAssistEqualityClausePath(root.dataset.ac5eAssistValuePath ?? '', valueButton.dataset.ac5eAssistValue ?? '');
 		if (groupPath) {
 			const value = `${valueButton.dataset.ac5eAssistValue ?? ''}`.replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 			valueButton.hidden = isAssistOrClauseSelected(textarea, `${groupPath}.${value}`);
 		}
 		if (enumPath) valueButton.hidden = isAssistOrClauseSelected(textarea, enumPath);
+		if (equalityPath) valueButton.hidden = isAssistOrClauseSelected(textarea, equalityPath);
 		valueButton.addEventListener('click', () => {
 			const value = valueButton.dataset.ac5eAssistValue ?? '';
 			if (!value) return;
-			insertAssistValueAtCursor(textarea, value, root.dataset.ac5eAssistValuePath ?? '', selectionState);
+			const valuePath = root.dataset.ac5eAssistValuePath ?? '';
+			const activeRoot = root.dataset.ac5eAssistActiveRoot ?? '';
+			const chain = root.dataset.ac5eAssistChain ?? '[]';
+			insertAssistValueAtCursor(textarea, value, valuePath, selectionState);
+			if (isEqualityAssistValuePath(valuePath)) {
+				root.dataset.ac5eAssistActiveRoot = activeRoot;
+				root.dataset.ac5eAssistChain = chain;
+				setAssistActivePath(root, valuePath);
+				root.dataset.ac5eAssistFilter = '';
+			}
+			renderAssistStage(root, assist, selectionState, textarea);
 		});
 	}
 }
@@ -2343,6 +2389,7 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 					syncAssistBrowserFromInput(root, assist, selectionState, textarea);
 					return true;
 				}
+				if (!match.isVirtualArrayMethod && openAssistValuePathIfAvailable(textarea, root, assist, tree, activeRoot, match.path, selectionState)) return true;
 				if (isEditorAutocompleteDebugEnabled()) {
 					console.debug('AC5E | autocomplete.editor | tab path match', {
 						token: normalized,
@@ -2374,6 +2421,7 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 		syncAssistBrowserFromInput(root, assist, selectionState, textarea);
 		return true;
 	}
+	if (!nodes[0].isVirtualArrayMethod && openAssistValuePathIfAvailable(textarea, root, assist, tree, context.root, nodes[0].path, selectionState)) return true;
 	if (isEditorAutocompleteDebugEnabled()) {
 		console.debug('AC5E | autocomplete.editor | tab fallback match', {
 			token,
@@ -2507,6 +2555,18 @@ function cycleAssistEntryFromInput(textarea, root, assist, direction = 1) {
 	const cycled = cycleAssistButtonFocus(root, matchButtons, direction);
 	if (!cycled?.selected) return false;
 	updateAssistEntryHighlights(root, textarea, assist);
+	return true;
+}
+
+function openAssistValuePathIfAvailable(textarea, root, assist, tree, activeRoot, path, selectionState = null) {
+	if (!resolveAssistValueChoices(path, assist?.enumValues).length) return false;
+	setAssistActivePath(root, path);
+	root.dataset.ac5eAssistActiveRoot = activeRoot;
+	root.dataset.ac5eAssistChain = JSON.stringify(buildAssistChainForPath(tree, activeRoot, path));
+	root.dataset.ac5eAssistFilter = '';
+	const insertionPath = resolveAssistNodeInsertionPath(textarea, path);
+	replaceTokenAtCursorOrInsert(textarea, insertionPath, selectionState);
+	renderAssistStage(root, assist, selectionState, textarea);
 	return true;
 }
 
@@ -3191,6 +3251,9 @@ function resolveAssistValueChoices(path, enumValues) {
 	if (/^(?:activity|originActivity)\.type$/.test(sourcePath)) return toAssistValueChoices(enumValues?.activityTypes ?? []);
 	if (/^(?:item|originItem)\.type\.value$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypeValues ?? []);
 	if (/^(?:item|originItem)\.type\.baseItem$/.test(sourcePath)) return toAssistValueChoices(enumValues?.baseItems ?? []);
+	if (sourcePath === 'item.classIdentifier') return toAssistValueChoices(enumValues?.classIdentifiers ?? [], globalThis.dnd5e?.registry?.classes?.choices);
+	if (sourcePath === 'item.sourceItem') return toAssistValueChoices(enumValues?.sourceItems ?? []);
+	if (sourcePath === 'item.school') return toAssistValueChoices(enumValues?.spellSchools ?? [], CONFIG?.DND5E?.spellSchools);
 	if (/\.(?:itemType)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypes ?? []);
 	if (/\.(?:attackMode)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.attackModes ?? []);
 	if (/\.(?:mastery)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.masteries ?? [], CONFIG?.DND5E?.weaponMasteries);
@@ -3278,7 +3341,7 @@ function insertAssistValueAtCursor(input, quotedValue, valuePath, selectionState
 		if (tryReplaceTrailingEnumPathToken(input, enumPath, groupPath, selectionState)) return;
 		return insertAtCursor(input, enumPath, selectionState);
 	}
-	if (/^(?:item|originItem)\.mastery$/.test(path)) {
+	if (isEqualityAssistValuePath(path)) {
 		const clause = `${path} === ${value}`;
 		if (tryAppendEqualityClause(input, clause, path, selectionState)) return;
 		if (tryReplaceTrailingEnumPathToken(input, clause, path, selectionState)) return;
@@ -3312,6 +3375,11 @@ function resolveAssistValueGroupPath(path) {
 	return '';
 }
 
+function isEqualityAssistValuePath(path) {
+	const value = `${path ?? ''}`.trim();
+	return /^(?:item|originItem)\.mastery$/.test(value) || /^item\.(?:classIdentifier|sourceItem|school)$/.test(value);
+}
+
 function isEnumAssistValuePath(path) {
 	const value = `${path ?? ''}`.trim();
 	if (!value) return false;
@@ -3340,6 +3408,13 @@ function resolveAssistEnumClausePath(input, path, quotedValue) {
 	const value = `${quotedValue ?? ''}`.trim().replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 	if (!value || !isEnumAssistValuePath(path)) return '';
 	return `${resolveAssistEnumInsertionBasePath(input, path)}.${value}`;
+}
+
+function resolveAssistEqualityClausePath(path, quotedValue) {
+	const sourcePath = `${path ?? ''}`.trim();
+	const value = `${quotedValue ?? ''}`.trim();
+	if (!value || !isEqualityAssistValuePath(sourcePath)) return '';
+	return `${sourcePath} === ${value}`;
 }
 
 function isAssistOrClauseSelected(input, clause) {
