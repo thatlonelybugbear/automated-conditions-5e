@@ -1,3 +1,9 @@
+## 14.533.8
+
+- Added easier ways to build spell-related conditions for class, source item, and school, with quick pick lists for common values.
+- Added better spell suggestions in the editor, including spell level and scaling entries.
+- Made item source details available so the new spell condition suggestions work reliably.
+
 ## 14.533.7.2
 
 - Updated Polish translation by [Lioheart](https://github.com/Lioheart) 🤗
