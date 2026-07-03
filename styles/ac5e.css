@@ -385,6 +385,10 @@
 	width: 100%;
 }
 
+.ac5e-effect-value-expand-dialog-full {
+	min-height: min(680px, calc(100vh - 8rem));
+}
+
 .ac5e-effect-value-expand-layout {
 	display: grid;
 	grid-template-columns: minmax(0, 2fr) minmax(180px, 0.8fr);
@@ -489,17 +493,6 @@
 	border-color: var(--button-hover-border-color);
 }
 
-.ac5e-effect-value-assist-browser {
-	border: 1px solid var(--color-border-light-primary);
-	border-radius: 4px;
-	min-height: 280px;
-	max-height: 360px;
-	min-width: 0;
-	overflow: hidden;
-	padding: 6px;
-	display: flex;
-}
-
 .ac5e-effect-value-assist-stage {
 	display: flex;
 	flex-direction: column;
@@ -507,6 +500,14 @@
 	min-height: 260px;
 	flex: 1 1 auto;
 	min-width: 0;
+}
+
+.ac5e-effect-value-assist-main-stage {
+	border: 1px solid var(--color-border-light-primary);
+	border-radius: 4px;
+	padding: 6px;
+	min-height: 180px;
+	overflow: visible;
 }
 
 .ac5e-effect-value-assist-scroll {
@@ -524,6 +525,15 @@
 	min-width: 0;
 }
 
+.ac5e-effect-value-assist-main-stage .ac5e-effect-value-assist-list {
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.ac5e-effect-value-assist-main-stage .ac5e-effect-value-assist-scroll {
+	overflow: visible;
+}
+
 .ac5e-effect-value-assist-toolbar {
 	display: flex;
 	align-items: center;
@@ -536,7 +546,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	max-width: 140px;
+	max-width: 100%;
 }
 
 .ac5e-effect-value-assist-node {
@@ -547,9 +557,25 @@
 	width: 100%;
 }
 
+.ac5e-effect-value-assist-main-stage .ac5e-effect-value-assist-node {
+	width: auto;
+}
+
 .ac5e-effect-value-assist-node.active,
 .ac5e-effect-value-assist-node:focus-visible {
 	outline: 1px solid var(--color-text-primary);
+}
+
+.ac5e-effect-value-assist-main-stage .ac5e-effect-value-assist-node.active {
+	background: #9f9275;
+	border-color: #9f9275;
+	color: var(--color-text-dark-primary);
+}
+
+.ac5e-effect-value-assist-main-stage .ac5e-effect-value-assist-node.ac5e-effect-value-assist-focused {
+	background: var(--button-hover-background-color);
+	border-color: var(--button-hover-border-color);
+	color: var(--button-hover-text-color);
 }
 
 .ac5e-effect-value-assist-node.ac5e-effect-value-assist-single-match {
@@ -560,6 +586,12 @@
 	background: var(--dnd5e-color-gold);
 	border-color: var(--dnd5e-color-gold-bright);
 	color: var(--dnd5e-color-black);
+}
+
+.ac5e-effect-value-assist-main-stage .ac5e-effect-value-assist-node[data-ac5e-assist-value].ac5e-effect-value-assist-focused {
+	background: var(--button-hover-background-color);
+	border-color: var(--button-hover-border-color);
+	color: var(--button-hover-text-color);
 }
 
 .ac5e-effect-value-assist-chip.ac5e-effect-value-assist-focused {

@@ -1045,6 +1045,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		const itemProperties = item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
 		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
+		sandbox.item.properties = itemProperties;
 		for (const property of itemProperties) {
 			sandbox.itemProperties[property] = true;
 			sandbox._evalConstants[property] = true;

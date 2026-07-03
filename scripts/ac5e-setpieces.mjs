@@ -187,13 +187,15 @@ function _withEffectOriginEvaluationData(sandbox, effect) {
 	const originActivity = originContext.originActivity;
 	const originItemData = _getOriginItemRollData(originItem);
 	const originActivityData = _getOriginActivityRollData(originActivity);
+	const originItemProperties = _getItemPropertiesMap(originItem);
+	if (originItemData) originItemData.properties = _getItemPropertiesSet(originItem);
 	return {
 		...sandbox,
 		effectOriginActor: _ac5eActorRollData(null, null, originContext.originActor),
 		originItem: originItemData,
 		originActivity: originActivityData,
 		originItemType: originItem?.type,
-		originItemProperties: _getItemPropertiesMap(originItem),
+		originItemProperties,
 	};
 }
 
@@ -203,6 +205,10 @@ function _getItemPropertiesMap(item) {
 		for (const property of item.system.properties) properties[property] = true;
 	}
 	return properties;
+}
+
+function _getItemPropertiesSet(item) {
+	return item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
 }
 
 function _getEffectOriginItemOrActivity(effect) {
