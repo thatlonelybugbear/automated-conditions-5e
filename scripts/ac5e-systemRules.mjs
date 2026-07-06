@@ -37,6 +37,7 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 
 	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
 		if (!includeToken && target === token) return false;
+		if (!includeHidden && target.document.hidden) return false;
 		if (partyMember && game.actors.party) {
 			const {
 				members: { ids },
@@ -58,8 +59,8 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, hasEffects = [], hasStatuses = [], partyMember = false } = {}) {
-	return findNearby({ token, disposition, radius, hasEffects, hasStatuses, includeToken, includeIncapacitated, lengthTest: count, partyMember });
+export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = true, hasEffects = [], hasStatuses = [], partyMember = false } = {}) {
+	return findNearby({ token, disposition, radius, hasEffects, hasStatuses, includeToken, includeIncapacitated, lengthTest: count, partyMember, includeHidden });
 }
 
 export function autoRanged(activity, token, target, options = {}) {
