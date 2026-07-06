@@ -5,7 +5,7 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 const _canSeeDebugEnabled = () => Boolean(settings.debug || globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.canSee);
 
-export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasStatuses = [], includeToken = false, includeIncapacitated = false, partyMember = false }) {
+export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasStatuses = [], includeToken = false, includeIncapacitated = false, includeHidden = false, partyMember = false }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = foundry.canvas.placeables.Token;
 	if (token instanceof TokenDocument) {
@@ -59,7 +59,7 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = true, hasEffects = [], hasStatuses = [], partyMember = false } = {}) {
+export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = false, hasEffects = [], hasStatuses = [], partyMember = false } = {}) {
 	return findNearby({ token, disposition, radius, hasEffects, hasStatuses, includeToken, includeIncapacitated, lengthTest: count, partyMember, includeHidden });
 }
 
