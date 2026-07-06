@@ -1,3 +1,7 @@
+## 14.533.7.3
+
+- Added `includeHidden` (defaults to false) in checkNearby function.
+
 ## 14.533.7.2
 
 - Updated Polish translation by [Lioheart](https://github.com/Lioheart) 🤗
