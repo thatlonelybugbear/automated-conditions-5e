@@ -14,6 +14,7 @@ import {
 	onContextKeywordsRegistrySettingUpdate,
 	onUsageRulesRegistrySettingUpdate,
 } from './ac5e-api.mjs';
+import { captureAllowEffectApplicationSaveResult } from './ac5e-allow-effect-application.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -44,8 +45,9 @@ function registerActiveEffectChangeType() {
 	if (!CONFIG?.ActiveEffect?.changeTypes) return;
 	const config = {
 		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
-		defaultPriority: 0,
-		handler: (value) => value,
+		defaultPriority: 20,
+		handler: null,
+		render: null,
 	};
 	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
 	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
@@ -135,6 +137,9 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.postBuildRollConfig', type: 'postBuildRoll' },
 		{ id: 'dnd5e.postRollConfiguration', type: 'postRollConfig' },
 	];
+	const resultHooks = [
+		{ id: 'dnd5e.rollSavingThrow', handler: captureAllowEffectApplicationSaveResult },
+	];
 	const foundryHooks = [
 		{ id: 'preCreateItem', type: 'preCreateItem' },
 		{ id: 'preCreateActiveEffect', type: 'preCreateActiveEffect' },
@@ -186,6 +191,9 @@ function registerHooks(settings) {
 			return _rollFunctions(hook.type, ...args);
 		});
 		hooksRegistered[hook.id] = hookId;
+	}
+	for (const hook of resultHooks) {
+		hooksRegistered[hook.id] = Hooks.on(hook.id, hook.handler);
 	}
 
 	hooksRegistered.renderSettingsConfig = Hooks.on('renderSettingsConfig', _renderSettings);
