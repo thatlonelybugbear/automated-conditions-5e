@@ -1,5 +1,6 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
 import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eAutocompleteDebugEnabled, isAc5eChangeKey, normalizeEffectKeyAutocompletePrefix, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import { registerAc5eActiveEffectChangeType } from '../ac5e-active-effect-change-type.mjs';
 import Constants from '../ac5e-constants.mjs';
 import Settings from '../ac5e-settings.mjs';
 
@@ -10,7 +11,7 @@ export function registerEffectValueEditorHooks() {
 function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
-	registerActiveEffectChangeType();
+	registerAc5eActiveEffectChangeType();
 	ensureAc5eChangeTypeOptions(root);
 	moveAc5eChangeTypeOptionsToBottom(root);
 	restoreAc5eChangeTypeSelections(app, root);
@@ -19,19 +20,6 @@ function enhanceActiveEffectConfig(app, element) {
 	if (!new Settings().enableAc5eUi) return;
 
 	refreshEditorButtons(app, root);
-}
-
-function registerActiveEffectChangeType() {
-	if (!CONFIG?.ActiveEffect?.changeTypes) return;
-	const config = {
-		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
-		defaultPriority: 0,
-		handler: (value) => value,
-	};
-	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
-	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
 }
 
 function ensureAc5eChangeTypeOptions(root) {

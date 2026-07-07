@@ -14,6 +14,7 @@ import {
 	onContextKeywordsRegistrySettingUpdate,
 	onUsageRulesRegistrySettingUpdate,
 } from './ac5e-api.mjs';
+import { registerAc5eActiveEffectChangeType } from './ac5e-active-effect-change-type.mjs';
 import { captureAllowEffectApplicationSaveResult } from './ac5e-allow-effect-application.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -24,13 +25,13 @@ export { createTroubleshooterSnapshot, exportTroubleshooterSnapshot, importTroub
 let daeFlags;
 const AC5E_LOCAL_BUILD_ID = 'v14.360.15042026';
 
-registerActiveEffectChangeType();
+registerAc5eActiveEffectChangeType();
 Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('i18nInit', ac5ei18nInit);
 Hooks.once('ready', ac5eReady);
 
 function ac5eRegisterOnInit() {
-	registerActiveEffectChangeType();
+	registerAc5eActiveEffectChangeType();
 	registerQueries();
 	registerKeybindings();
 	daeFlags = _generateAC5eFlags();
@@ -39,20 +40,6 @@ function ac5eRegisterOnInit() {
 	});
 	scopeUser = 'user';
 	return new Settings().registerSettings();
-}
-
-function registerActiveEffectChangeType() {
-	if (!CONFIG?.ActiveEffect?.changeTypes) return;
-	const config = {
-		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
-		defaultPriority: 20,
-		handler: null,
-		render: null,
-	};
-	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
-	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
 }
 
 function registerKeybindings() {
