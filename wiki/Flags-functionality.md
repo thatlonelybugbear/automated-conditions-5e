@@ -384,6 +384,7 @@ If the roll involves a specific action or item, you'll also have access to:
 - `item.name`, `item.school` (for spells), etc
 - `item.identifier`
 - `item.classIdentifier`
+- `item.sourceItem`
 - `item.properties` or `itemProperties`
 - `item.type` is essentially an object that contains the basic data of the item rolled, for example: `{value: 'martialR', baseItem: 'longbow', label: 'Martial Ranged', identifier: 'Compendium.dnd5e.equipment24.Item.phbwepLongbow000'}`
 - `itemType` is one of the following `equipment`, `feat`, `spell`, `tool`, `weapon` etc (full list in `CONFIG.Item.typeLabels`)

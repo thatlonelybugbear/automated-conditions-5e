@@ -928,6 +928,28 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post runtime._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 
+function _createEvaluationSandboxLogSnapshot(value) {
+	if (!value || typeof value !== 'object') return value;
+	const { options, ...snapshot } = value;
+	return {
+		...snapshot,
+		options: {
+			ability: options?.ability,
+			activity: options?.activity ? { id: options.activity.id, uuid: options.activity.uuid, identifier: options.activity.identifier, type: options.activity.type, name: options.activity.name } : undefined,
+			attackMode: options?.attackMode,
+			damageTypes: options?.damageTypes,
+			defaultDamageType: options?.defaultDamageType,
+			distance: options?.distance,
+			hook: options?.hook,
+			originatingMessageId: options?.originatingMessageId,
+			skill: options?.skill,
+			target: options?.target,
+			targets: options?.targets,
+			tool: options?.tool,
+		},
+	};
+}
+
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const { rollingActor, opponentActor, activityData, itemData, formulaData } = _buildRollEvaluationData({ subjectToken, opponentToken, options });
 	const sandbox = {
@@ -1045,6 +1067,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		const itemProperties = item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
 		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
+		sandbox.item.properties = itemProperties;
 		for (const property of itemProperties) {
 			sandbox.itemProperties[property] = true;
 			sandbox._evalConstants[property] = true;
@@ -1114,6 +1137,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox[''];
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
-	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: sandbox });
+	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: _createEvaluationSandboxLogSnapshot(sandbox) });
 	return sandbox;
 }

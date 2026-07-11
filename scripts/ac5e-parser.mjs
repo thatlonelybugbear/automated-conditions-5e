@@ -53,7 +53,7 @@ export function evaluateCondition(expression, sandbox, debug) {
 
 	try {
 		const result = new Function('sandbox', `with (sandbox) { return (${expression}); }`)(proxySandbox);
-		debug.log?.('AC5E._ac5eSafeEval [condition OK]', { expression, result, effectUuid: debug.effectUuid });
+		debug.log?.('AC5E._ac5eSafeEval [condition OK]', { expression, result, effectUuid: debug.effectUuid, proxySandbox, sandbox });
 		return !!result;
 	} catch (err) {
 		let reason = 'unknown error';
@@ -62,7 +62,7 @@ export function evaluateCondition(expression, sandbox, debug) {
 		else if (err.name === 'TypeError') reason = 'type error';
 		else reason = `${err.name}: ${err.message}`;
 
-		debug.log?.(`AC5E._ac5eSafeEval [condition fail to false]: ${reason}`, { expression, effect: debug.effectUuid, change: debug.changeKey });
+		debug.log?.(`AC5E._ac5eSafeEval [condition fail to false]: ${reason}`, { expression, effect: debug.effectUuid, change: debug.changeKey, proxySandbox, sandbox });
 		return false; // always fail safe
 	}
 }

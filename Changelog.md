@@ -1,3 +1,25 @@
+## 14.533.8
+
+- Added easier ways to build spell-related conditions for class, source item, and school, with quick pick lists for common values.
+- Added better spell suggestions in the editor, including spell level and scaling entries.
+- Made item source details available so the new spell condition suggestions work reliably.
+- Added `allowEffectApplication` roll-result hydration for saving throws, ability checks, skill checks, tool checks, and attacks.
+- Added per-target attack roll data for effect application checks, including `attackRollTotal`, `attackRollD20`, and target-specific `attackRollOverAC`.
+- Added `d20Total`, `d20Result`, `targetValue`, `d20ResultOverTarget`, `isCritical`, `isFumble`, and `isSuccess` to the effect-application sandbox when matching roll results are available.
+- Added a callable `AC5E` Active Effect change type so saved `type: "ac5e"` rows can apply AC5E flag changes directly.
+- Improved Active Effect sheet handling for AC5E rows so the AC5E type is restored from AC5E keys and editor buttons update when the row type changes.
+- Improved Effect Value Editor assists for `originItem`, `sourceItem`, and related condition paths.
+- Improved condition helper browsing, operator suggestions, and editor layout for AC5E effect values.
+- Added source item documentation for AC5E flags.
+- Updated dnd5e compatibility metadata for the current v14-only branch.
+- Changed `findNearby` and `checkNearby` to ignore hidden tokens by default, with an `includeHidden` option for formulas that need them.
+- Improved sandbox debug logging so `ac5e.logEvaluationData` logs a safe snapshot instead of a live object with circular Foundry references.
+- Improved condition debug logging with the evaluated sandbox context.
+
+## 14.533.7.3
+
+- Added `includeHidden` (defaults to false) in checkNearby function.
+
 ## 14.533.7.2
 
 - Updated Polish translation by [Lioheart](https://github.com/Lioheart) 🤗
