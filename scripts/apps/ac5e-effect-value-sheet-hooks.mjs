@@ -89,14 +89,12 @@ function initializeKeyAutocomplete(app, root) {
 }
 
 function initializeEditorButtonSync(app, root) {
-	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
-		if (keyInput.dataset.ac5eEditorButtonSyncReady) continue;
-		keyInput.dataset.ac5eEditorButtonSyncReady = 'true';
-		const row = keyInput.closest('li, .form-group, tr, fieldset') ?? keyInput.parentElement;
+	for (const input of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"], select[name$=".type"]')) {
+		if (input.dataset.ac5eEditorButtonSyncReady) continue;
+		input.dataset.ac5eEditorButtonSyncReady = 'true';
 		const refresh = () => refreshEditorButtons(app, root);
-		keyInput.addEventListener('input', refresh);
-		keyInput.addEventListener('change', refresh);
-		findTypeInput(row, keyInput)?.addEventListener('change', refresh);
+		input.addEventListener('input', refresh);
+		input.addEventListener('change', refresh);
 	}
 }
 
@@ -156,7 +154,7 @@ function ensureValueEditorWrapper(valueInput) {
 function findKeyInput(row, valueInput) {
 	const keyName = valueInput.name.replace(/\.(?:type|value)$/, '.key');
 	const escapedKeyName = globalThis.CSS?.escape?.(keyName) ?? keyName.replaceAll('"', '\\"');
-	return row.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row.querySelector('input[name$=".key"], textarea[name$=".key"]');
+	return row?.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row?.querySelector('input[name$=".key"], textarea[name$=".key"]');
 }
 
 function findTypeInput(row, input) {
@@ -178,18 +176,12 @@ function moveAc5eChangeTypeOptionsToBottom(root) {
 }
 
 function restoreAc5eChangeTypeSelections(app, root) {
-	const rows = app.document?.getFlag?.(Constants.MODULE_ID, Constants.ACTIVE_EFFECT_CHANGE_ROWS_FLAG);
-	if (!rows || typeof rows !== 'object') return;
 	for (const select of root.querySelectorAll('select[name$=".type"]')) {
 		if (`${select.value ?? ''}`.trim().toLowerCase() !== 'custom') continue;
 		const row = select.closest('li, .form-group, tr, fieldset') ?? select.parentElement;
-		const index = getChangeIndex(row, select);
-		if (index == null || !Object.hasOwn(rows, index)) continue;
-		const key = `${findKeyInput(row, select)?.value ?? ''}`.trim();
-		const savedKey = `${rows[index] ?? ''}`.trim();
-		if (savedKey) {
-			if (key !== savedKey && !isAc5eChangeKey(key)) continue;
-		} else if (key && !isAc5eChangeKey(key)) continue;
+		const keyInput = findKeyInput(row, select);
+		const key = `${keyInput?.value ?? ''}`.trim();
+		if (!isAc5eChangeKey(key)) continue;
 		select.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 	}
 }
@@ -202,7 +194,10 @@ function getChangeIndex(row, input) {
 	const rowIndex = Number(row?.dataset?.index);
 	if (Number.isInteger(rowIndex)) return rowIndex;
 	const match = input.name.match(/(?:^|\.)changes\.(\d+)\.(?:key|type|value)$/);
-	return match ? Number(match[1]) : null;
+	if (match) return Number(match[1]);
+	const rows = Array.from(row?.parentElement?.children ?? []).filter((element) => element.querySelector?.('input[name$=".value"], textarea[name$=".value"]'));
+	const index = rows.indexOf(row);
+	return index >= 0 ? index : null;
 }
 
 function normalizeElement(element) {
