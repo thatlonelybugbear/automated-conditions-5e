@@ -1,5 +1,6 @@
 import { AC5EEffectValueEditor } from './ac5e-effect-value-editor.mjs';
 import { buildEffectKeyAutocompleteEntries, configureAc5eAutocompleteMenu, getAutocompletePrefix, isAc5eAutocompleteDebugEnabled, isAc5eChangeKey, normalizeEffectKeyAutocompletePrefix, shouldTriggerAc5eKeyAutocomplete } from './ac5e-effect-value-autocomplete.mjs';
+import { registerAc5eActiveEffectChangeType } from '../ac5e-active-effect-change-type.mjs';
 import Constants from '../ac5e-constants.mjs';
 import Settings from '../ac5e-settings.mjs';
 
@@ -10,7 +11,7 @@ export function registerEffectValueEditorHooks() {
 function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
-	registerActiveEffectChangeType();
+	registerAc5eActiveEffectChangeType();
 	ensureAc5eChangeTypeOptions(root);
 	moveAc5eChangeTypeOptionsToBottom(root);
 	restoreAc5eChangeTypeSelections(app, root);
@@ -19,19 +20,6 @@ function enhanceActiveEffectConfig(app, element) {
 	if (!new Settings().enableAc5eUi) return;
 
 	refreshEditorButtons(app, root);
-}
-
-function registerActiveEffectChangeType() {
-	if (!CONFIG?.ActiveEffect?.changeTypes) return;
-	const config = {
-		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
-		defaultPriority: 0,
-		handler: (value) => value,
-	};
-	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
-	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
 }
 
 function ensureAc5eChangeTypeOptions(root) {
@@ -101,14 +89,12 @@ function initializeKeyAutocomplete(app, root) {
 }
 
 function initializeEditorButtonSync(app, root) {
-	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
-		if (keyInput.dataset.ac5eEditorButtonSyncReady) continue;
-		keyInput.dataset.ac5eEditorButtonSyncReady = 'true';
-		const row = keyInput.closest('li, .form-group, tr, fieldset') ?? keyInput.parentElement;
+	for (const input of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"], select[name$=".type"]')) {
+		if (input.dataset.ac5eEditorButtonSyncReady) continue;
+		input.dataset.ac5eEditorButtonSyncReady = 'true';
 		const refresh = () => refreshEditorButtons(app, root);
-		keyInput.addEventListener('input', refresh);
-		keyInput.addEventListener('change', refresh);
-		findTypeInput(row, keyInput)?.addEventListener('change', refresh);
+		input.addEventListener('input', refresh);
+		input.addEventListener('change', refresh);
 	}
 }
 
@@ -168,7 +154,7 @@ function ensureValueEditorWrapper(valueInput) {
 function findKeyInput(row, valueInput) {
 	const keyName = valueInput.name.replace(/\.(?:type|value)$/, '.key');
 	const escapedKeyName = globalThis.CSS?.escape?.(keyName) ?? keyName.replaceAll('"', '\\"');
-	return row.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row.querySelector('input[name$=".key"], textarea[name$=".key"]');
+	return row?.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row?.querySelector('input[name$=".key"], textarea[name$=".key"]');
 }
 
 function findTypeInput(row, input) {
@@ -190,18 +176,12 @@ function moveAc5eChangeTypeOptionsToBottom(root) {
 }
 
 function restoreAc5eChangeTypeSelections(app, root) {
-	const rows = app.document?.getFlag?.(Constants.MODULE_ID, Constants.ACTIVE_EFFECT_CHANGE_ROWS_FLAG);
-	if (!rows || typeof rows !== 'object') return;
 	for (const select of root.querySelectorAll('select[name$=".type"]')) {
 		if (`${select.value ?? ''}`.trim().toLowerCase() !== 'custom') continue;
 		const row = select.closest('li, .form-group, tr, fieldset') ?? select.parentElement;
-		const index = getChangeIndex(row, select);
-		if (index == null || !Object.hasOwn(rows, index)) continue;
-		const key = `${findKeyInput(row, select)?.value ?? ''}`.trim();
-		const savedKey = `${rows[index] ?? ''}`.trim();
-		if (savedKey) {
-			if (key !== savedKey && !isAc5eChangeKey(key)) continue;
-		} else if (key && !isAc5eChangeKey(key)) continue;
+		const keyInput = findKeyInput(row, select);
+		const key = `${keyInput?.value ?? ''}`.trim();
+		if (!isAc5eChangeKey(key)) continue;
 		select.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 	}
 }
@@ -214,7 +194,10 @@ function getChangeIndex(row, input) {
 	const rowIndex = Number(row?.dataset?.index);
 	if (Number.isInteger(rowIndex)) return rowIndex;
 	const match = input.name.match(/(?:^|\.)changes\.(\d+)\.(?:key|type|value)$/);
-	return match ? Number(match[1]) : null;
+	if (match) return Number(match[1]);
+	const rows = Array.from(row?.parentElement?.children ?? []).filter((element) => element.querySelector?.('input[name$=".value"], textarea[name$=".value"]'));
+	const index = rows.indexOf(row);
+	return index >= 0 ? index : null;
 }
 
 function normalizeElement(element) {

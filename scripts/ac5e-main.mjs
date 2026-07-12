@@ -14,6 +14,8 @@ import {
 	onContextKeywordsRegistrySettingUpdate,
 	onUsageRulesRegistrySettingUpdate,
 } from './ac5e-api.mjs';
+import { registerAc5eActiveEffectChangeType } from './ac5e-active-effect-change-type.mjs';
+import { captureAllowEffectApplicationD20Result } from './ac5e-allow-effect-application.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -23,13 +25,13 @@ export { createTroubleshooterSnapshot, exportTroubleshooterSnapshot, importTroub
 let daeFlags;
 const AC5E_LOCAL_BUILD_ID = 'v14.360.15042026';
 
-registerActiveEffectChangeType();
+registerAc5eActiveEffectChangeType();
 Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('i18nInit', ac5ei18nInit);
 Hooks.once('ready', ac5eReady);
 
 function ac5eRegisterOnInit() {
-	registerActiveEffectChangeType();
+	registerAc5eActiveEffectChangeType();
 	registerQueries();
 	registerKeybindings();
 	daeFlags = _generateAC5eFlags();
@@ -38,19 +40,6 @@ function ac5eRegisterOnInit() {
 	});
 	scopeUser = 'user';
 	return new Settings().registerSettings();
-}
-
-function registerActiveEffectChangeType() {
-	if (!CONFIG?.ActiveEffect?.changeTypes) return;
-	const config = {
-		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
-		defaultPriority: 0,
-		handler: (value) => value,
-	};
-	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
-	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
 }
 
 function registerKeybindings() {
@@ -135,6 +124,13 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.postBuildRollConfig', type: 'postBuildRoll' },
 		{ id: 'dnd5e.postRollConfiguration', type: 'postRollConfig' },
 	];
+	const resultHooks = [
+		{ id: 'dnd5e.rollSavingThrow', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'save') },
+		{ id: 'dnd5e.rollAbilityCheck', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'check') },
+		{ id: 'dnd5e.rollSkill', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'check') },
+		{ id: 'dnd5e.rollToolCheck', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'check') },
+		{ id: 'dnd5e.rollAttack', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'attack') },
+	];
 	const foundryHooks = [
 		{ id: 'preCreateItem', type: 'preCreateItem' },
 		{ id: 'preCreateActiveEffect', type: 'preCreateActiveEffect' },
@@ -186,6 +182,9 @@ function registerHooks(settings) {
 			return _rollFunctions(hook.type, ...args);
 		});
 		hooksRegistered[hook.id] = hookId;
+	}
+	for (const hook of resultHooks) {
+		hooksRegistered[hook.id] = Hooks.on(hook.id, hook.handler);
 	}
 
 	hooksRegistered.renderSettingsConfig = Hooks.on('renderSettingsConfig', _renderSettings);

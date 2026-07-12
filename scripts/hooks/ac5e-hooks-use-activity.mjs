@@ -6,6 +6,8 @@ import {
 	_getDistance,
 	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
+	_getMessageScaling,
+	_getMessageSpellLevel,
 	_getTokenFromActor,
 	_isOptinSelectionActive,
 	getAlteredTargetValueOrThreshold,
@@ -179,11 +181,10 @@ export async function postUseActivity(usageConfig, results, hook) {
 	const dnd5eUseFlag = _getMessageDnd5eFlags(message);
 	if (dnd5eUseFlag) {
 		ac5eConfig.options ??= {};
-		if (dnd5eUseFlag.use?.spellLevel !== undefined) ac5eConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;
-		if (Number.isFinite(Number(message.system?.scaling))) {
-			const increase = Number(message.system.scaling);
-			ac5eConfig.options.scaling = { increase, value: increase + 1 };
-		}
+		const spellLevel = _getMessageSpellLevel(message, dnd5eUseFlag);
+		if (spellLevel !== undefined) ac5eConfig.options.spellLevel = spellLevel;
+		const scaling = _getMessageScaling(message, dnd5eUseFlag);
+		if (scaling !== undefined) ac5eConfig.options.scaling = scaling;
 		if (Array.isArray(dnd5eUseFlag.use?.effects)) ac5eConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
 		if (Array.isArray(dnd5eUseFlag.targets)) ac5eConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
 		if (dnd5eUseFlag.activity) ac5eConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);

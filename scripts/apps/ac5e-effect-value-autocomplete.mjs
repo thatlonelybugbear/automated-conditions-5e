@@ -18,6 +18,9 @@ const CURATED_AC5E_PATHS = [
 	'item.range.units',
 	'item.range.scalar',
 	'item.range.special',
+	'item.properties',
+	'item.classIdentifier',
+	'item.sourceItem',
 	'activity.range',
 	'activity.range.value',
 	'activity.range.units',
@@ -28,6 +31,7 @@ const CURATED_AC5E_PATHS = [
 	'originItem.range.units',
 	'originItem.range.scalar',
 	'originItem.range.special',
+	'originItem.properties',
 	'originActivity.range',
 	'originActivity.range.value',
 	'originActivity.range.units',
@@ -60,6 +64,9 @@ const CURATED_AC5E_PATHS = [
 	'hasTransitDisadvantage',
 	'isSpell',
 	'isCantrip',
+	'spellLevel',
+	'scaling',
+	'scaling.increase',
 	'item.school',
 	'activity.school',
 	'isAoE',
@@ -79,16 +86,6 @@ const CURATED_AC5E_PATHS = [
 	'opponentUuid',
 	'opponentActorId',
 	'opponentActorUuid',
-	'originItemProperties.sil',
-	'originItemProperties.mgc',
-	'originItemProperties.ver',
-	'originItemProperties.som',
-	'originItemProperties.mat',
-	'itemProperties.sil',
-	'itemProperties.mgc',
-	'itemProperties.ver',
-	'itemProperties.som',
-	'itemProperties.mat',
 ];
 const ROOT_PATHS = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor', 'item', 'activity', 'originItem', 'originActivity'];
 const AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES = ['flags.auto', 'ac5e', 'automated-'];
@@ -198,6 +195,7 @@ export function shouldActivateEffectValueAutocomplete(input, prefix = '') {
 	if (!normalizedPrefix) return false;
 	if (AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => normalizedPrefix.startsWith(trigger))) return true;
 	if (ROOT_PATHS.some((root) => root.toLowerCase().includes(normalizedPrefix))) return true;
+	if (CURATED_AC5E_PATHS.some((path) => path.toLowerCase().includes(normalizedPrefix))) return true;
 	const token = beforeCursor.match(/[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*\.?$/)?.[0] ?? '';
 	return AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => token.startsWith(trigger));
 }
@@ -530,7 +528,8 @@ function collectAc5eRuntimeAdditions(pathsByRoot) {
 			...actorArmorEntries.map((field) => `effectOriginActor.${field}`),
 			'effectOriginActor.effects',
 		],
-		item: ['item.itemUuid', 'item.type', 'item.type.value', 'item.type.subtype', 'item.type.baseItem', 'item.itemProperties'],
+		item: ['item.itemUuid', 'item.type', 'item.type.value', 'item.type.subtype', 'item.type.baseItem', 'item.properties', 'item.classIdentifier', 'item.sourceItem'],
+		originItem: ['originItem.properties'],
 		activity: ['activity.type', 'activity.identifier', 'activity.uuid', 'activity.damageTypes', 'activity.defaultDamageType', 'activity.healingTypes'],
 		originActivity: ['originActivity.type', 'originActivity.identifier', 'originActivity.uuid', 'originActivity.damageTypes', 'originActivity.defaultDamageType', 'originActivity.healingTypes'],
 	};

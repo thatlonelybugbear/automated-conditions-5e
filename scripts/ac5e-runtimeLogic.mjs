@@ -418,8 +418,13 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const opponentAdvantageNamesCount = _collectionCount(ac5eConfig.opponent.advantageNames);
 		const subjectDisadvantageNamesCount = _collectionCount(ac5eConfig.subject.disadvantageNames);
 		const opponentDisadvantageNamesCount = _collectionCount(ac5eConfig.opponent.disadvantageNames);
-		const hasAdvantageSources = Boolean(subjectAdvantage.length || opponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
-		const hasDisadvantageSources = Boolean(subjectDisadvantage.length || opponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
+		const hasTransitRequirement = (entry) => entry?.requiresTransitAdvantage || entry?.requiresTransitDisadvantage;
+		const baseSubjectAdvantage = subjectAdvantage.filter((entry) => !hasTransitRequirement(entry));
+		const baseOpponentAdvantage = opponentAdvantage.filter((entry) => !hasTransitRequirement(entry));
+		const baseSubjectDisadvantage = subjectDisadvantage.filter((entry) => !hasTransitRequirement(entry));
+		const baseOpponentDisadvantage = opponentDisadvantage.filter((entry) => !hasTransitRequirement(entry));
+		const hasAdvantageSources = Boolean(baseSubjectAdvantage.length || baseOpponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
+		const hasDisadvantageSources = Boolean(baseSubjectDisadvantage.length || baseOpponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
 		const transientRollState = {
 			hasTransitAdvantage: hasAdvantageSources,
 			hasTransitDisadvantage: hasDisadvantageSources,
@@ -438,10 +443,20 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		ac5eConfig.hasTransitAdvantage = transientRollState.hasTransitAdvantage;
 		ac5eConfig.hasTransitDisadvantage = transientRollState.hasTransitDisadvantage;
 		ac5eConfig.advantageBehavior = _getConfiguredAdvantageBehavior(ac5eConfig, config);
-		config.advantage = hasAdvantageSources;
-		config.disadvantage = hasDisadvantageSources;
-		if (subjectNoAdv.length || opponentNoAdv.length) config.advantage = false;
-		if (subjectNoDis.length || opponentNoDis.length) config.disadvantage = false;
+		const matchedAdvantage = [...subjectAdvantage, ...opponentAdvantage].filter((entry) => _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
+		const matchedDisadvantage = [...subjectDisadvantage, ...opponentDisadvantage].filter((entry) => _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
+		config.advantage = Boolean(matchedAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
+		config.disadvantage = Boolean(matchedDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
+		if (subjectNoAdv.length || opponentNoAdv.length) {
+			config.advantage = false;
+			transientRollState.hasTransitAdvantage = false;
+			ac5eConfig.hasTransitAdvantage = false;
+		}
+		if (subjectNoDis.length || opponentNoDis.length) {
+			config.disadvantage = false;
+			transientRollState.hasTransitDisadvantage = false;
+			ac5eConfig.hasTransitDisadvantage = false;
+		}
 		const enforcedD20Mode = resolveForcedD20Mode(
 			[...subjectInfo, ...opponentInfo].filter((entry) => entry && typeof entry === 'object' && _entryMatchesTransientState(entry, ac5eConfig, transientRollState)),
 		);
@@ -928,6 +943,28 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post runtime._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 
+function _createEvaluationSandboxLogSnapshot(value) {
+	if (!value || typeof value !== 'object') return value;
+	const { options, ...snapshot } = value;
+	return {
+		...snapshot,
+		options: {
+			ability: options?.ability,
+			activity: options?.activity ? { id: options.activity.id, uuid: options.activity.uuid, identifier: options.activity.identifier, type: options.activity.type, name: options.activity.name } : undefined,
+			attackMode: options?.attackMode,
+			damageTypes: options?.damageTypes,
+			defaultDamageType: options?.defaultDamageType,
+			distance: options?.distance,
+			hook: options?.hook,
+			originatingMessageId: options?.originatingMessageId,
+			skill: options?.skill,
+			target: options?.target,
+			targets: options?.targets,
+			tool: options?.tool,
+		},
+	};
+}
+
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
 	const { rollingActor, opponentActor, activityData, itemData, formulaData } = _buildRollEvaluationData({ subjectToken, opponentToken, options });
 	const sandbox = {
@@ -1021,8 +1058,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.item.flags['midi-qol'] ??= item?.flags?.['midi-qol'] ?? {};
 	sandbox.item.midiFlags ??= sandbox.item.flags['midi-qol'];
 	sandbox.item.classIdentifier = item?.system?.classIdentifier;
+	sandbox.item.sourceItem = item?.system?.sourceItem ?? itemData?.sourceItem;
 	sandbox.itemType = item?.type;
-	sandbox.isCantrip = item?.labels?.level === 'Cantrip' ?? options?.spellLevel === 0 ?? itemData?.level === 0;
+	sandbox.isCantrip = item?.system?.level === 0 || itemData?.level === 0;
 	sandbox.magicAvailable = item?.magicAvailable;
 	sandbox.isScroll = item?.type === 'consumable' && item?.system?.type?.value === 'scroll';
 	sandbox.isSpell = activity?.isSpell || !!activity?.spell;
@@ -1044,6 +1082,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		const ammoProperties = sandbox.ammunition?.system?.properties;
 		const itemProperties = item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
 		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
+		sandbox.item.properties = itemProperties;
 		for (const property of itemProperties) {
 			sandbox.itemProperties[property] = true;
 			sandbox._evalConstants[property] = true;
@@ -1088,9 +1127,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.targetValue = hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC : sandboxOptions?.target;
 	const d20ResultOverTarget = sandbox.d20Total - sandbox.targetValue;
 	sandbox.d20ResultOverTarget = !isNaN(d20ResultOverTarget) ? d20ResultOverTarget : undefined;
-	sandbox.attackRollTotal = sandbox.d20Total;
-	sandbox.attackRollD20 = sandbox.d20Result;
-	sandbox.attackRollOverAC = sandbox.d20ResultOverTarget;
+	sandbox.attackRollTotal = sandboxOptions?.d20?.attackRollTotal;
+	sandbox.attackRollD20 = sandboxOptions?.d20?.attackRollD20;
+	sandbox.attackRollOverAC = sandboxOptions?.d20?.attackRollOverAC;
 	const resolvedD20Mode = sandboxOptions?.d20?.advantageMode ?? sandboxOptions?.advantageMode ?? sandboxOptions?.[Constants.MODULE_ID]?.advantageMode;
 	const transientRollState = _getSandboxTransientRollState(sandboxOptions);
 	sandbox.hasTransitAdvantage = transientRollState.hasTransitAdvantage;
@@ -1113,6 +1152,6 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox[''];
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
-	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: sandbox });
+	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: _createEvaluationSandboxLogSnapshot(sandbox) });
 	return sandbox;
 }

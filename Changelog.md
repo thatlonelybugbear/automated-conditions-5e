@@ -1,3 +1,22 @@
+## 14.533.8
+
+- Added AC5E Effect Value Editor assists for spell source checks, including `item.classIdentifier`, `item.sourceItem`, `item.school`, `activity.school`, `originItem.classIdentifier`, `originItem.sourceItem`, and related item/activity spell source paths.
+- Added AC5E Effect Value Editor assists for spell scaling checks, including `spellLevel`, `castingLevel`, `baseSpellLevel`, `scaling`, and `scaling.increase`.
+- Improved AC5E Effect Value Editor spell condition support so class, source item, and school checks can be inserted and evaluated reliably.
+- Added `allowEffectApplication` roll-result hydration for saving throws, ability checks, skill checks, tool checks, and attacks.
+  - Added per-target attack roll data for effect application checks, including `attackRollTotal`, `attackRollD20`, and target-specific `attackRollOverAC`.
+  - Added `d20Total`, `d20Result`, `targetValue`, `d20ResultOverTarget`, `isCritical`, `isFumble`, and `isSuccess` to the effect-application sandbox when matching roll results are available.
+- Improved Effect Value Editor assists for `originItem`, `sourceItem`, and related condition paths.
+- Improved condition helper browsing, operator suggestions, and editor layout for AC5E effect values.
+- Added source item documentation for AC5E flags.
+- Updated dnd5e compatibility metadata for the current v14-only branch.
+- Changed `findNearby` and `checkNearby` to ignore hidden tokens by default, with an `includeHidden` option for formulas that need them.
+- Improved sandbox debug logging so `ac5e.logEvaluationData` logs a safe snapshot instead of a live object with circular Foundry references.
+- Improved `ac5e.getLightLevel(token)` for Foundry v14 lighting, including point-sensitive darkness, global illumination, dim/bright classification, and elevated token/light distance checks.
+- Fixed spell upcast roll data so `spellLevel`, `castingLevel`, `baseSpellLevel`, `scaling`, and `scaling.increase` stay correct across use, save, and damage follow-up rolls.
+- Fixed attack-roll sandbox aliases so `attackRollTotal`, `attackRollD20`, and `attackRollOverAC` remain attack-specific instead of being populated by unrelated d20 rolls.
+- Fixed transit advantage/disadvantage gating so `hasTransitAdvantage` and `hasTransitDisadvantage` no longer bootstrap themselves from their own control keywords.
+
 ## 14.533.7.3
 
 - Added `includeHidden` (defaults to false) in checkNearby function.

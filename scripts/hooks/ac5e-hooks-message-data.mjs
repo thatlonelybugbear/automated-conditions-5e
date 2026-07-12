@@ -1,4 +1,4 @@
-import { _activeModule, _cloneUseConfigShallow, _getMessageDnd5eFlags, _getMessageFlagScope, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { _activeModule, _cloneUseConfigShallow, _getMessageDnd5eFlags, _getMessageFlagScope, _getMessageScaling, _getMessageSpellLevel, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _mergeUseOptions } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
@@ -33,6 +33,7 @@ export function resolveMessageDataContext(config, hook, messageConfig, deps) {
 			activity,
 			item,
 			use,
+			sourceMessage,
 		},
 		deps,
 	);
@@ -124,7 +125,7 @@ function resolveActivityItemUse({ config, message, originatingMessage, usageMess
 	return { item, activity, use, sourceMessage };
 }
 
-function buildMessageOptions({ config, hook, message, triggerMessageId, resolvedMessageId, useConfig, originatingMessage, activity, item, use }, deps) {
+function buildMessageOptions({ config, hook, message, triggerMessageId, resolvedMessageId, useConfig, originatingMessage, activity, item, use, sourceMessage }, deps) {
 	const options = {};
 	if (!activity && message) foundry.utils.mergeObject(options, _getMessageFlagScope(message, Constants.MODULE_ID) ?? {});
 
@@ -193,7 +194,11 @@ function buildMessageOptions({ config, hook, message, triggerMessageId, resolved
 	}
 	if (originatingUseConfig) options.originatingUseConfig = originatingUseConfig;
 	options.messageId = resolvedMessageId ?? triggerMessageId ?? message?.id;
-	options.spellLevel = hook !== 'use' && activity?.isSpell ? use?.spellLevel || item?.system.level : undefined;
+	if (hook !== 'use' && activity?.isSpell) {
+		const sourceDnd5eFlags = _getMessageDnd5eFlags(sourceMessage);
+		options.spellLevel ??= _getMessageSpellLevel(sourceMessage, sourceDnd5eFlags, item);
+		options.scaling ??= _getMessageScaling(sourceMessage, sourceDnd5eFlags);
+	}
 	return options;
 }
 

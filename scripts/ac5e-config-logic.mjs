@@ -7,6 +7,8 @@ import {
 	_autoEncumbrance,
 	_getD20TooltipOwnership,
 	_getMessageDnd5eFlags,
+	_getMessageScaling,
+	_getMessageSpellLevel,
 	_getMidiAbilityAttributionEntries,
 	_getMidiAttackAttributionEntries,
 	_cloneUseConfigShallow,
@@ -652,7 +654,10 @@ export function _getUseConfig({ options, config } = {}) {
 		useConfig = _cloneUseConfigShallow(useConfig);
 		if (dnd5eUseFlag) {
 			useConfig.options ??= {};
-			if (dnd5eUseFlag.use?.spellLevel !== undefined) useConfig.options.spellLevel ??= dnd5eUseFlag.use.spellLevel;
+			const spellLevel = _getMessageSpellLevel(usageMessage ?? originatingMessage, dnd5eUseFlag, useConfig.options?.item);
+			if (spellLevel !== undefined) useConfig.options.spellLevel = spellLevel;
+			const scaling = _getMessageScaling(usageMessage ?? originatingMessage, dnd5eUseFlag);
+			if (scaling !== undefined) useConfig.options.scaling = scaling;
 			if (Array.isArray(dnd5eUseFlag.use?.effects)) useConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
 			if (Array.isArray(dnd5eUseFlag.targets)) useConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
 			if (dnd5eUseFlag.activity) useConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);
