@@ -46,7 +46,7 @@ export function _getTokenLightSamplePoints(token, { includeCenter = true } = {})
 	if (!token) return [];
 	const points = [];
 	const center = token.center;
-	const elevation = token.document?.elevation ?? token.elevation ?? 0;
+	const elevation = _getTokenLightElevation(token);
 	if (includeCenter && center) points.push({ x: center.x, y: center.y, elevation });
 	for (const point of getPerimeterCenters(token) ?? []) {
 		if (!point) continue;
@@ -57,25 +57,96 @@ export function _getTokenLightSamplePoints(token, { includeCenter = true } = {})
 	return Array.from(unique.values());
 }
 
-function _getSceneBaselineLightLevel(scene = canvas?.scene, { considerSceneDarkness = false } = {}) {
+function _getSceneBaselineLightLevel(scene = canvas?.scene, { considerSceneDarkness = false, point = null } = {}) {
 	if (!considerSceneDarkness) return 'darkness';
-	const darkness = Number(scene?.environment?.darknessLevel ?? scene?.darkness ?? 1);
+	const darkness = Number((point ? canvas?.effects?.getDarknessLevel?.(point) : undefined) ?? scene?.environment?.darknessLevel ?? scene?.darkness ?? 1);
 	if (darkness <= 0.25) return 'bright';
 	if (darkness <= 0.75) return 'dim';
 	return 'darkness';
 }
 
-function _classifyPointLightLevel({ point, token, baseline = _getSceneBaselineLightLevel() } = {}) {
+function _toElevatedPoint(point, token) {
+	if (!point) return null;
+	return {
+		x: point.x,
+		y: point.y,
+		elevation: point.elevation ?? _getTokenLightElevation(token),
+	};
+}
+
+function _getTokenLightElevation(token) {
+	const elevation = Number(token?.document?.getLightOrigin?.()?.elevation ?? token?.document?.getMovementOrigin?.()?.elevation ?? token?.document?.elevation ?? token?.elevation ?? 0);
+	return Number.isFinite(elevation) ? elevation : 0;
+}
+
+function _getLightSourceRadius(lightSource, radius) {
+	const sourceRadius = Number(lightSource?.[`${radius}Radius`]);
+	if (Number.isFinite(sourceRadius)) return sourceRadius;
+	const configRadius = Number(lightSource?.config?.[radius]);
+	if (Number.isFinite(configRadius)) return configRadius * (Number(canvas?.dimensions?.distancePixels) || 1);
+	return Number(lightSource?.data?.[radius] ?? 0);
+}
+
+function _getLightSourceElevation(lightSource) {
+	const sourceElevation = Number(lightSource?.origin?.elevation ?? lightSource?.data?.elevation ?? lightSource?.object?.document?.elevation ?? 0);
+	return Number.isFinite(sourceElevation) ? sourceElevation : 0;
+}
+
+function _isPointInsideBrightLight(point) {
+	const distancePixels = Number(canvas?.dimensions?.distancePixels) || 1;
+	for (const lightSource of canvas?.effects?.lightSources ?? []) {
+		if (!lightSource?.active || lightSource?.isPreview || lightSource?.constructor?.name === 'GlobalLightSource') continue;
+		if (typeof lightSource.testPoint === 'function' && !lightSource.testPoint(point)) continue;
+		const bright = _getLightSourceRadius(lightSource, 'bright');
+		if (!(bright > 0)) continue;
+		const sourceX = Number(lightSource.x ?? lightSource.data?.x);
+		const sourceY = Number(lightSource.y ?? lightSource.data?.y);
+		const sourceElevation = _getLightSourceElevation(lightSource) * distancePixels;
+		const pointElevation = Number(point.elevation ?? 0) * distancePixels;
+		if (!Number.isFinite(sourceX) || !Number.isFinite(sourceY)) continue;
+		if (Math.hypot(point.x - sourceX, point.y - sourceY, pointElevation - sourceElevation) <= bright) return true;
+	}
+	return false;
+}
+
+function _isPointInsideDimLight(point) {
+	const distancePixels = Number(canvas?.dimensions?.distancePixels) || 1;
+	for (const lightSource of canvas?.effects?.lightSources ?? []) {
+		if (!lightSource?.active || lightSource?.isPreview || lightSource?.constructor?.name === 'GlobalLightSource') continue;
+		if (typeof lightSource.testPoint === 'function' && !lightSource.testPoint(point)) continue;
+		const bright = _getLightSourceRadius(lightSource, 'bright');
+		const dim = _getLightSourceRadius(lightSource, 'dim');
+		if (!(dim > bright)) continue;
+		const sourceX = Number(lightSource.x ?? lightSource.data?.x);
+		const sourceY = Number(lightSource.y ?? lightSource.data?.y);
+		const sourceElevation = _getLightSourceElevation(lightSource) * distancePixels;
+		const pointElevation = Number(point.elevation ?? 0) * distancePixels;
+		if (!Number.isFinite(sourceX) || !Number.isFinite(sourceY)) continue;
+		if (Math.hypot(point.x - sourceX, point.y - sourceY, pointElevation - sourceElevation) <= dim) return true;
+	}
+	return false;
+}
+
+function _classifyPointLightLevel({ point, token, baseline = _getSceneBaselineLightLevel(), considerSceneDarkness = false } = {}) {
 	if (!point || !token) return baseline;
+	const elevatedPoint = _toElevatedPoint(point, token);
+	baseline = _getSceneBaselineLightLevel(canvas?.scene, { considerSceneDarkness, point: elevatedPoint });
+	if (typeof canvas?.effects?.testInsideDarkness === 'function' && canvas.effects.testInsideDarkness(elevatedPoint)) return 'darkness';
+	if (typeof canvas?.effects?.testInsideLight === 'function' && canvas.effects.testInsideLight(elevatedPoint)) {
+		const globalLightSource = canvas?.environment?.globalLightSource ?? canvas?.effects?.globalLightSource;
+		if (globalLightSource?.active && canvas.effects.testInsideLight(elevatedPoint, { condition: (source) => source === globalLightSource })) return 'bright';
+		if (_isPointInsideBrightLight(elevatedPoint)) return 'bright';
+		if (_isPointInsideDimLight(elevatedPoint)) return 'dim';
+	}
 	let matchedLevel = baseline;
 	for (const lightSource of canvas?.effects?.lightSources ?? []) {
 		if (!lightSource?.active || lightSource?.data?.disabled) continue;
-		const shapeContains = typeof lightSource.shape?.contains === 'function' ? lightSource.shape.contains(point.x, point.y) : false;
-		const losContains = !shapeContains && typeof lightSource.los?.contains === 'function' ? lightSource.los.contains(point.x, point.y) : false;
+		const shapeContains = typeof lightSource.shape?.contains === 'function' ? lightSource.shape.contains(elevatedPoint.x, elevatedPoint.y) : false;
+		const losContains = !shapeContains && typeof lightSource.los?.contains === 'function' ? lightSource.los.contains(elevatedPoint.x, elevatedPoint.y) : false;
 		const config = {
 			tests: [{
-				point: { x: point.x, y: point.y },
-				elevation: point.elevation ?? token.document?.elevation ?? token.elevation ?? 0,
+				point: { x: elevatedPoint.x, y: elevatedPoint.y },
+				elevation: elevatedPoint.elevation,
 				los: new Map(),
 			}],
 			object: token,
@@ -84,12 +155,14 @@ function _classifyPointLightLevel({ point, token, baseline = _getSceneBaselineLi
 		if (!lit) continue;
 		const sourceX = Number(lightSource.x ?? lightSource.data?.x);
 		const sourceY = Number(lightSource.y ?? lightSource.data?.y);
-		const brightRadius = Number(lightSource.data?.bright ?? 0);
-		const dimRadius = Number(lightSource.data?.dim ?? 0);
-		const distance = Number.isFinite(sourceX) && Number.isFinite(sourceY) ? Math.hypot(point.x - sourceX, point.y - sourceY) : undefined;
+		const brightRadius = _getLightSourceRadius(lightSource, 'bright');
+		const dimRadius = _getLightSourceRadius(lightSource, 'dim');
+		const distancePixels = Number(canvas?.dimensions?.distancePixels) || 1;
+		const sourceElevation = _getLightSourceElevation(lightSource) * distancePixels;
+		const pointElevation = Number(elevatedPoint.elevation ?? 0) * distancePixels;
+		const distance = Number.isFinite(sourceX) && Number.isFinite(sourceY) ? Math.hypot(elevatedPoint.x - sourceX, elevatedPoint.y - sourceY, pointElevation - sourceElevation) : undefined;
 		if (Number.isFinite(distance) && brightRadius > 0 && distance <= brightRadius) return 'bright';
-		if (matchedLevel !== 'bright') matchedLevel = 'dim';
-		if (Number.isFinite(distance) && dimRadius > 0 && distance <= dimRadius) matchedLevel = 'dim';
+		if (dimRadius > brightRadius && (!Number.isFinite(distance) || distance <= dimRadius) && matchedLevel !== 'bright') matchedLevel = 'dim';
 	}
 	return matchedLevel;
 }
@@ -109,10 +182,10 @@ export function _getTokenLightingState(token, options = {}) {
 			inDarkness: true,
 		};
 	}
-	const baselineLevel = _getSceneBaselineLightLevel(options.scene, options);
 	const samplePoints = _getTokenLightSamplePoints(token, options);
 	const points = samplePoints.length ? samplePoints : [{ x: token.center?.x, y: token.center?.y, elevation: token.document?.elevation ?? token.elevation ?? 0 }];
-	const sampleLevels = points.map((point) => _classifyPointLightLevel({ point, token, baseline: baselineLevel }));
+	const baselineLevel = _getSceneBaselineLightLevel(options.scene, { ...options, point: _toElevatedPoint(points[0], token) });
+	const sampleLevels = points.map((point) => _classifyPointLightLevel({ point, token, baseline: baselineLevel, considerSceneDarkness: options.considerSceneDarkness }));
 	const brightSamples = sampleLevels.filter((level) => level === 'bright').length;
 	const dimSamples = sampleLevels.filter((level) => level === 'dim').length;
 	const darknessSamples = sampleLevels.filter((level) => level === 'darkness').length;
@@ -680,6 +753,23 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 
 export function _getMessageDnd5eFlags(message) {
 	return _getMessageFlagScope(message, 'dnd5e');
+}
+
+export function _getMessageSpellLevel(message, dnd5eFlags = _getMessageDnd5eFlags(message), item = null) {
+	const messageLevel = Number(message?.system?.spellLevel ?? foundry.utils.getProperty(message, 'data.system.spellLevel'));
+	if (Number.isFinite(messageLevel)) return messageLevel;
+	const scaling = Number(message?.system?.scaling ?? foundry.utils.getProperty(message, 'data.system.scaling') ?? dnd5eFlags?.use?.scaling);
+	const itemLevel = Number(item?.system?.level);
+	if (Number.isFinite(itemLevel) && Number.isFinite(scaling)) return itemLevel + scaling;
+	const flagLevel = Number(dnd5eFlags?.use?.spellLevel);
+	if (Number.isFinite(flagLevel)) return flagLevel;
+	return Number.isFinite(itemLevel) ? itemLevel : undefined;
+}
+
+export function _getMessageScaling(message, dnd5eFlags = _getMessageDnd5eFlags(message)) {
+	const increase = Number(message?.system?.scaling ?? foundry.utils.getProperty(message, 'data.system.scaling') ?? dnd5eFlags?.use?.scaling);
+	if (!Number.isFinite(increase)) return undefined;
+	return { increase, value: increase + 1 };
 }
 
 function _getMessageAc5eFlags(message) {

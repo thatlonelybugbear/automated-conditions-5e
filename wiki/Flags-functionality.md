@@ -329,6 +329,7 @@ In addition to actor data, some useful values are also available:
 | `tokenUuid`            | Rolling actor's active token document UUID |
 | `canMove`              | `true` if the rolling actor has at least a non zero movement type |
 | `canSee`               | `true` if the rolling actor can see the target |
+| `lightLevel`           | the rolling token's current light level: `bright`, `dim`, or `darkness` |
 | `isTurn`               | `true` if it's currently the rolling actor's turn |
 | `opponentActorId`      | The opponent actor's ID if any |
 | `opponentActorUuid`    | The opponent actor's UUID if any |
@@ -343,7 +344,9 @@ In addition to actor data, some useful values are also available:
 | `distance`             | Distance between rolling and target token if both available |
 | `hasAttack`            | `true` if the activity has an attack |
 | `hasAdvantage`         | `true` if the attack had advantage |
-| `hasDisavantage`       | `true` if the attack had disadvantage |
+| `hasDisadvantage`      | `true` if the d20 roll has disadvantage |
+| `hasTransitAdvantage`  | `true` when AC5E has added transient advantage to the current d20 roll |
+| `hasTransitDisadvantage` | `true` when AC5E has added transient disadvantage to the current d20 roll |
 | `isCritical`           | `true` if the d20 roll was a critical |
 | `isFumble`             | `true` if the d20 roll was a fumble |
 | `hasDamage`            | `true` if the activity deals damage |
@@ -357,10 +360,14 @@ In addition to actor data, some useful values are also available:
 | `spellLevel`           | spell slot level used if relevant |
 | `castingLevel`         | spell slot level used if relevant |
 | `baseSpellLevel`       | the item's original spell level if relevant |
-| `scaling`              | the difference between spellLevel and baseSpellLevel if relevant |
-| `attackRollTotal`      | if relevant, available after an attack roll has been made |
-| `attackRollD20`        | if relevant, the attack dice result |
-| `attackRollOverAC`     | the attack roll total minus the opponent's AC or undefined |
+| `scaling`              | spell scaling data if relevant; use `scaling.value` for the dnd5e scale value |
+| `scaling.increase`     | the difference between `spellLevel` and `baseSpellLevel` if relevant |
+| `d20Total`             | if relevant, the total of the current d20 roll |
+| `d20Result`            | if relevant, the die result of the current d20 roll |
+| `d20ResultOverTarget`  | if relevant, the current d20 roll total minus its target value |
+| `attackRollTotal`      | if relevant, available only when an explicit attack roll has been made |
+| `attackRollD20`        | if relevant, the attack die result from an explicit attack roll |
+| `attackRollOverAC`     | the explicit attack roll total minus the opponent's AC, or undefined |
 | `worldTime`            | Current world time in seconds |
 | `combat`               | some combat data if one is active |
 | `singleTarget`         | true if there is only 1 target selected |
@@ -385,6 +392,9 @@ If the roll involves a specific action or item, you'll also have access to:
 - `item.identifier`
 - `item.classIdentifier`
 - `item.sourceItem`
+- `activity.school`
+- `originItem.classIdentifier`, `originItem.sourceItem`, `originItem.school`
+- `originActivity.school`
 - `item.properties` or `itemProperties`
 - `item.type` is essentially an object that contains the basic data of the item rolled, for example: `{value: 'martialR', baseItem: 'longbow', label: 'Martial Ranged', identifier: 'Compendium.dnd5e.equipment24.Item.phbwepLongbow000'}`
 - `itemType` is one of the following `equipment`, `feat`, `spell`, `tool`, `weapon` etc (full list in `CONFIG.Item.typeLabels`)
@@ -393,6 +403,25 @@ All these are accessible directly as paths. For example:
 ```text
 (itemProperties.mgc && itemProperties.fin) || (itemName.Claw && damageTypes.poison)   // true if either an the roll involves a magical finesse weapon, or one named Claw and dealing poison damage
 ```
+
+### Light level helper
+
+AC5E exposes `ac5e.getLightLevel(token, options)` for checking a token's current light level.
+
+It returns one of:
+- `bright`
+- `dim`
+- `darkness`
+
+In Foundry v14, AC5E samples token light using the canvas lighting system, including point-sensitive darkness, global illumination, darkness sources, bright and dim light radii, and token/light elevation.
+
+Examples:
+```js
+ac5e.getLightLevel(token)
+ac5e.getLightLevel(token, { considerSceneDarkness: true })
+```
+
+The same result is available in AC5E conditions as `lightLevel`.
 
 ### Effect Origin Data (`originItem` / `originActivity`)
 

@@ -2080,11 +2080,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let valuesToEvaluate = String(value ?? '')
 			.split(';')
 			.map((v) => v.trim())
-			.filter((v) => {
-				if (!v) return false;
+			.map((v) => {
+				if (!v) return '';
 				const [key] = v.split(/[:=]/).map((s) => s.trim());
-				return !blacklist.has(key.toLowerCase());
+				const normalizedKey = key.toLowerCase();
+				return blacklist.has(normalizedKey) ? '' : v;
 			})
+			.filter(Boolean)
 			.join(';');
 		if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 		if (valuesToEvaluate.includes('effectOriginTokenId')) valuesToEvaluate = valuesToEvaluate.replaceAll('effectOriginTokenId', `"${_getEffectOriginToken(effect, 'id')}"`);
@@ -2583,11 +2585,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		let valuesToEvaluate = String(ruleValue ?? '')
 			.split(';')
 			.map((v) => v.trim())
-			.filter((v) => {
-				if (!v) return false;
+			.map((v) => {
+				if (!v) return '';
 				const [key] = v.split(/[:=]/).map((s) => s.trim());
-				return !blacklist.has(key.toLowerCase());
+				const normalizedKey = key.toLowerCase();
+				return blacklist.has(normalizedKey) ? '' : v;
 			})
+			.filter(Boolean)
 			.join(';');
 		if (!valuesToEvaluate) valuesToEvaluate = mode === 'bonus' && !bonus ? 'false' : 'true';
 		const evaluation = getMode({ value: valuesToEvaluate, sandbox: evaluationData, debug: { usageRuleKey: rule.key } }) && (!chance?.enabled || chance.triggered);

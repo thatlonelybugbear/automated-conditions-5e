@@ -195,6 +195,7 @@ export function shouldActivateEffectValueAutocomplete(input, prefix = '') {
 	if (!normalizedPrefix) return false;
 	if (AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => normalizedPrefix.startsWith(trigger))) return true;
 	if (ROOT_PATHS.some((root) => root.toLowerCase().includes(normalizedPrefix))) return true;
+	if (CURATED_AC5E_PATHS.some((path) => path.toLowerCase().includes(normalizedPrefix))) return true;
 	const token = beforeCursor.match(/[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*\.?$/)?.[0] ?? '';
 	return AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => token.startsWith(trigger));
 }
