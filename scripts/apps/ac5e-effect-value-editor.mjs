@@ -46,7 +46,30 @@ const RANGE_VALUE_FIELDS = ['short', 'long', 'reach', 'bonus'];
 const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
 const DEFAULT_USESCOUNT_SCALING = { min: 1, max: 1, step: 1 };
-const SPELL_SLOT_USESCOUNT_ENTRIES = ['pact', ...Array.from({ length: Number(Object.keys(CONFIG?.DND5E?.spellLevels || {0: 'Cantrip', 1: '1st Level', 2: '2nd Level', 3: '3rd Level', 4: '4th Level', 5: '5th Level', 6: '6th Level', 7: '7th Level', 8: '8th Level', 9: '9th Level'})?.at(-1) ?? 9) }, (_entry, index) => `spell${index + 1}`)];
+const SPELL_SLOT_USESCOUNT_ENTRIES = [
+	'pact',
+	...Array.from(
+		{
+			length: Number(
+				Object.keys(
+					CONFIG?.DND5E?.spellLevels || {
+						0: 'Cantrip',
+						1: '1st Level',
+						2: '2nd Level',
+						3: '3rd Level',
+						4: '4th Level',
+						5: '5th Level',
+						6: '6th Level',
+						7: '7th Level',
+						8: '8th Level',
+						9: '9th Level',
+					},
+				)?.at(-1) ?? 9,
+			),
+		},
+		(_entry, index) => `spell${index + 1}`,
+	),
+];
 const ENUM_ASSIST_ALIAS_ROOTS = new Set([
 	'ability',
 	'skill',
@@ -63,9 +86,36 @@ const ENUM_ASSIST_ALIAS_ROOTS = new Set([
 	'riderStatuses',
 ]);
 const ROOT_IDENTIFIERS = new Set(['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor', 'item', 'activity', 'originItem', 'originActivity']);
-const AC5E_FUNCTION_ASSIST_ENTRIES = ['checkNearby()', 'checkVisibility()', 'checkDistance()', 'getLightLevel()', 'checkCreatureType()', 'getItemOrActivity()', 'getItems()', 'getItem()', 'checkArmor()', 'checkRanged()', 'hasItem()'];
+const AC5E_FUNCTION_ASSIST_ENTRIES = [
+	'checkNearby()',
+	'checkVisibility()',
+	'checkDistance()',
+	'getLightLevel()',
+	'checkCreatureType()',
+	'getItemOrActivity()',
+	'getItems()',
+	'getItem()',
+	'checkArmor()',
+	'checkRanged()',
+	'hasItem()',
+];
 const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20ResultOverTarget', 'd20Total', 'opponentAC', 'targetOverAC', 'targetValue']);
-const STRING_OPERATOR_ASSIST_ENTRIES = new Set(['actorId', 'actorUuid', 'opponentId', 'opponentUuid', 'opponentActorId', 'opponentActorUuid', 'opponentItemId', 'tokenId', 'tokenUuid', 'itemIdentifier', 'itemName', 'activityName', 'originItemName', 'originActivityName']);
+const STRING_OPERATOR_ASSIST_ENTRIES = new Set([
+	'actorId',
+	'actorUuid',
+	'opponentId',
+	'opponentUuid',
+	'opponentActorId',
+	'opponentActorUuid',
+	'opponentItemId',
+	'tokenId',
+	'tokenUuid',
+	'itemIdentifier',
+	'itemName',
+	'activityName',
+	'originItemName',
+	'originActivityName',
+]);
 const NUMBER_COMPARATOR_OPERATORS = new Set(['==', '===', '!=', '!==', '>', '>=', '<=', '<']);
 const STRING_COMPARISON_OPERATORS = new Set(['==', '!=']);
 const BOOLEAN_LOGICAL_OPERATORS = new Set(['&&', '||', '!']);
@@ -1269,7 +1319,9 @@ function buildLambdaAssistData(
 		healingTypes: Object.keys(CONFIG?.DND5E?.healingTypes ?? {}).filter(Boolean),
 		statuses: getStatusEffectIds(),
 		classIdentifiers: Object.keys(globalThis.dnd5e?.registry?.classes?.choices ?? {}).filter(Boolean),
-		sourceItems: Object.keys(globalThis.dnd5e?.registry?.classes?.choices ?? {}).filter(Boolean).map((identifier) => `class:${identifier}`),
+		sourceItems: Object.keys(globalThis.dnd5e?.registry?.classes?.choices ?? {})
+			.filter(Boolean)
+			.map((identifier) => `class:${identifier}`),
 		spellSchools: Object.keys(CONFIG?.DND5E?.spellSchools ?? {}).filter(Boolean),
 		baseItems: dedupe(
 			[
@@ -1300,7 +1352,9 @@ function buildLambdaAssistData(
 	const resolvedPathsByRoot = scopedPathsByRoot ?? pathsByRoot;
 	const resolvedTreesByRoot = scopedTreesByRoot ?? treesByRoot;
 	const allEntryButtons =
-		flatScopedEntries.length ? [...flatScopedEntries] : dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries, ...AC5E_FUNCTION_ASSIST_ENTRIES]).sort((a, b) => a.localeCompare(b));
+		flatScopedEntries.length ?
+			[...flatScopedEntries]
+		:	dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries, ...AC5E_FUNCTION_ASSIST_ENTRIES]).sort((a, b) => a.localeCompare(b));
 	return {
 		scope: assistScope,
 		entryPoints: resolvedEntryPoints,
@@ -2091,15 +2145,19 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 	const nodes = filterText ? stageNodes.filter((node) => assistEntryMatchesToken(node?.label, filterText)) : stageNodes;
 	const activePath = root.dataset.ac5eAssistActivePath ?? '';
 	const activeValueChoices = activePath ? resolveAssistValueChoices(activePath, assist?.enumValues) : [];
-	const exactValueNode = filterText && nodes.length === 1 && (nodes[0]?.label ?? '').toLowerCase() === filterText && resolveAssistValueChoices(nodes[0]?.path, assist?.enumValues).length ? nodes[0] : null;
+	const exactValueNode =
+		filterText && nodes.length === 1 && (nodes[0]?.label ?? '').toLowerCase() === filterText && resolveAssistValueChoices(nodes[0]?.path, assist?.enumValues).length ? nodes[0] : null;
 	const fallbackPath =
-		exactValueNode ? exactValueNode.path :
-		nodes.length === 1 ? nodes[0]?.path
+		exactValueNode ? exactValueNode.path
+		: nodes.length === 1 ? nodes[0]?.path
 		: filterText ? nodes.find((node) => (node?.label ?? '').toLowerCase() === filterText)?.path
 		: '';
 	const valuePath = activePath || fallbackPath || headerPath || '';
 	root.dataset.ac5eAssistValuePath = valuePath;
-	const valueChoices = activeValueChoices.length ? activeValueChoices : exactValueNode || !nodes.length ? resolveAssistValueChoices(valuePath, assist?.enumValues) : [];
+	const valueChoices =
+		activeValueChoices.length ? activeValueChoices
+		: exactValueNode || !nodes.length ? resolveAssistValueChoices(valuePath, assist?.enumValues)
+		: [];
 	for (const container of containers) {
 		container.innerHTML = renderAssistNodeStage(activeValueChoices.length || exactValueNode ? [] : nodes, headerPath, chain.length > 0, valueChoices);
 		bindAssistStageContainer(container, root, assist, selectionState, textarea, tree, nodes, activeRoot, chain);
@@ -2244,7 +2302,11 @@ function syncAssistBrowserFromInput(root, assist, selectionState, textarea) {
 		const nextChain = JSON.stringify(creatureTypeContext.chain ?? []);
 		const nextRoot = creatureTypeContext.root ?? '';
 		const nextFilter = creatureTypeContext.filter ?? '';
-		const changed = root.dataset.ac5eAssistActiveRoot !== nextRoot || (root.dataset.ac5eAssistChain ?? '[]') !== nextChain || (root.dataset.ac5eAssistFilter ?? '') !== nextFilter || (root.dataset.ac5eAssistActivePath ?? '') !== creatureTypeContext.path;
+		const changed =
+			root.dataset.ac5eAssistActiveRoot !== nextRoot ||
+			(root.dataset.ac5eAssistChain ?? '[]') !== nextChain ||
+			(root.dataset.ac5eAssistFilter ?? '') !== nextFilter ||
+			(root.dataset.ac5eAssistActivePath ?? '') !== creatureTypeContext.path;
 		root.dataset.ac5eAssistActiveRoot = nextRoot;
 		root.dataset.ac5eAssistChain = nextChain;
 		root.dataset.ac5eAssistFilter = nextFilter;
@@ -2516,7 +2578,9 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const rootMatches = rootMatchButtons.map((button) => normalizeAssistMatchKey(button.dataset.ac5eAssistRootInsert ?? '')).filter(Boolean);
 	const entryMatches = matches.map((value) => normalizeAssistMatchKey(value)).filter(Boolean);
 	const operatorMatches = operatorMatchButtons.map((button) => getAssistButtonValue(button)).filter(Boolean);
-	const stageMatches = getAssistStageMatchButtonsInUiOrder(root, rawToken).map((button) => getAssistButtonValue(button)).filter(Boolean);
+	const stageMatches = getAssistStageMatchButtonsInUiOrder(root, rawToken)
+		.map((button) => getAssistButtonValue(button))
+		.filter(Boolean);
 	const combined = dedupe([...rootMatches, ...entryMatches, ...operatorMatches, ...stageMatches]);
 	const single = combined.length === 1 ? combined[0] : '';
 	const hideNonMatches = Boolean(token || operatorOnlyMode || suggestedOperatorMode);
@@ -3388,7 +3452,8 @@ function resolveAssistValueChoices(path, enumValues) {
 	if (/^(?:activity|originActivity)\.type$/.test(sourcePath)) return toAssistValueChoices(enumValues?.activityTypes ?? []);
 	if (/^(?:item|originItem)\.type\.value$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypeValues ?? []);
 	if (/^(?:item|originItem)\.type\.baseItem$/.test(sourcePath)) return toAssistValueChoices(enumValues?.baseItems ?? []);
-	if (sourcePath === 'item.classIdentifier' || sourcePath === 'originItem.classIdentifier') return toAssistValueChoices(enumValues?.classIdentifiers ?? [], globalThis.dnd5e?.registry?.classes?.choices);
+	if (sourcePath === 'item.classIdentifier' || sourcePath === 'originItem.classIdentifier')
+		return toAssistValueChoices(enumValues?.classIdentifiers ?? [], globalThis.dnd5e?.registry?.classes?.choices);
 	if (sourcePath === 'item.sourceItem' || sourcePath === 'originItem.sourceItem') return toAssistValueChoices(enumValues?.sourceItems ?? []);
 	if (sourcePath === 'item.school' || sourcePath === 'originItem.school') return toAssistValueChoices(enumValues?.spellSchools ?? [], CONFIG?.DND5E?.spellSchools);
 	if (/\.(?:itemType)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.itemTypes ?? []);
