@@ -2276,6 +2276,28 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		} catch (err) {
 			if (settings.debug || ac5e?.debug?.sandboxReadyTrace) console.warn('AC5E sandboxReady hook failed', err);
 		}
+		const aa5eMatch = /^flags\.aa5e\.(use|attack|damage|check|concentration|death|initiative|save|skill|tool)\.action$/.exec(normalizedChange?.key ?? '');
+		if (!isAura && aa5eMatch?.[1] === hook) {
+			try {
+				Hooks.callAll('ac5e.sandboxReady.aa5e', {
+					effectSandbox,
+					evaluateCondition: (expression, evaluationData = {}) => _ac5eSafeEval({ expression, sandbox: Object.assign(Object.create(effectSandbox), evaluationData), mode: 'condition' }),
+					context: {
+						hook,
+						changeIndex,
+						effect: effect.uuid,
+						effectId: effect.id,
+						isAura,
+						user: game.user.id,
+						changeKey: normalizedChange.key,
+						value: normalizedChange.value,
+						actorType,
+					},
+				});
+			} catch (err) {
+				if (settings.debug || ac5e?.debug?.sandboxReadyTrace) console.warn('AC5E AA5E sandboxReady hook failed', err);
+			}
+		}
 		if (
 			!effectChangesTest({
 				token,

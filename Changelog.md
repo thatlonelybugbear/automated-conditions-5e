@@ -1,3 +1,7 @@
+## 14.533.9
+
+- Added compatibility bridge for Automated Actions 5e.
+
 ## 14.533.8
 
 - Added AC5E Effect Value Editor assists for spell source checks, including `item.classIdentifier`, `item.sourceItem`, `item.school`, `activity.school`, `originItem.classIdentifier`, `originItem.sourceItem`, and related item/activity spell source paths.
