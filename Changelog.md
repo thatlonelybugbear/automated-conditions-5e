@@ -1,6 +1,6 @@
 ## 14.533.9
 
-- Added compatibility bridge for Automated Actions 5e.
+- Added compatibility bridge for the upcoming Automated Actions 5e module.
 
 ## 14.533.8
 
