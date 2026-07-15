@@ -1,5 +1,5 @@
 # Automated Conditions 5e
-![Latest Version](https://img.shields.io/badge/dynamic/json.svg?url=https://api.github.com/repos/thatlonelybugbear/automated-conditions-5e/releases/latest&label=AC5E%20Version&query=$.tag_name&colorB=yellow&style=for-the-badge)
+![Latest Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2Fthatlonelybugbear%2Fautomated-conditions-5e%2Freleases%2Flatest%2Fdownload%2Fmodule.json&query=%24.version&label=AC5E%20Version&style=for-the-badge&color=yellow)
 ![Total Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/total?color=2b82fc&label=TOTAL%20DOWNLOADS&style=for-the-badge)
 ![Latest Release Download Count](https://img.shields.io/github/downloads/thatlonelybugbear/automated-conditions-5e/latest/total?color=2b82fc&label=LATEST%20DOWNLOADS&style=for-the-badge)
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https://forge-vtt.com/api/bazaar/package/automated-conditions-5e&colorB=68a74f&style=for-the-badge)](https://forge-vtt.com/bazaar#package=automated-conditions-5e)
