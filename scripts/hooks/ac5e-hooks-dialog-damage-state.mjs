@@ -1562,6 +1562,22 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			.filter((part) => part.formula);
 		const parts = parsedParts.map((part) => part.formula);
 		if (!parsedParts.length) return discoveredNewType;
+		if (addTo.parts === 'all' && !addTo.includeTypes.length && parsedParts.every((part) => part.type)) {
+			formulas.forEach((_, index) => {
+				const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+				if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) return;
+				const criticalOnly = isCriticalStaticBonusEntry(entry) && isCriticalDamageRollAtIndex(index);
+				for (const part of parsedParts) {
+					const types = normalizeDamageTypeList(part.types);
+					if (types.length > 1) {
+						discoveredNewType = addSyntheticBonusRollPart(types, part.formula, criticalOnly) || discoveredNewType;
+						continue;
+					}
+					discoveredNewType = applyBonusPartToType(part.type, part.formula, criticalOnly) || discoveredNewType;
+				}
+			});
+			return discoveredNewType;
+		}
 		if (addTo.includeTypes.length) {
 			const matchedTypes = new Set();
 			for (const parsedPart of parsedParts) {
