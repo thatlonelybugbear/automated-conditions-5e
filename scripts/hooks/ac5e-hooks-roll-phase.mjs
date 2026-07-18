@@ -32,6 +32,8 @@ export function runAc5eRollPhase({
 	syncTargets,
 	debugExtra,
 } = {}) {
+	const initialCritical = !!(config?.isCritical ?? config?.midiOptions?.isCritical);
+	if (hook === 'damage') options.isCritical = initialCritical;
 	let ac5eConfig = deps.getConfig(config, dialog, hook, subjectToken?.id, opponentToken?.id, options, reEval);
 	if (ac5eConfig.returnEarly) {
 		deps.applyExplicitModeOverride(ac5eConfig, config);
@@ -54,6 +56,12 @@ export function runAc5eRollPhase({
 
 	logPhaseState('normalized', phaseContext, debugExtra);
 	runPhaseCallback(applyHookState, phaseContext);
+	if (hook === 'damage' && !!config?.isCritical !== initialCritical) {
+		options.isCritical = !!config.isCritical;
+		phaseContext.ac5eConfig = deps.getConfig(config, dialog, hook, subjectToken?.id, opponentToken?.id, options, reEval);
+		phaseContext.ac5eConfig = deps.ac5eChecks({ ac5eConfig: phaseContext.ac5eConfig, subjectToken, opponentToken });
+		runPhaseCallback(applyHookState, phaseContext);
+	}
 	if (captureBaseline instanceof Function) captureBaseline(phaseContext.ac5eConfig, config);
 	deps.calcAdvantageMode(phaseContext.ac5eConfig, config, dialog, message, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(phaseContext.ac5eConfig, config);

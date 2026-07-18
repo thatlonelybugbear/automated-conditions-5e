@@ -1144,7 +1144,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	}
 	sandbox.hasAdvantage = Boolean(sandbox.hasAdvantage || sandbox.hasTransitAdvantage);
 	sandbox.hasDisadvantage = Boolean(sandbox.hasDisadvantage || sandbox.hasTransitDisadvantage);
-	sandbox.isCritical = sandboxOptions?.d20?.isCritical;
+	sandbox.isCritical = sandboxOptions?.isCritical ?? sandboxOptions?.d20?.isCritical;
 	sandbox.isFumble = sandboxOptions?.d20?.isFumble;
 
 	if (sandbox.undefined || sandbox['']) {

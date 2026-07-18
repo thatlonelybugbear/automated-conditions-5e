@@ -650,10 +650,12 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 		ac5eConfig.optinForcedCritical = true;
 		ac5eConfig.isCritical = true;
 		config.isCritical = true;
+		ac5eConfig.options.isCritical = true;
 		if (config.midiOptions) config.midiOptions.isCritical = true;
 	} else {
 		ac5eConfig.isCritical = baseCritical;
 		config.isCritical = baseCritical;
+		ac5eConfig.options.isCritical = baseCritical;
 		if (config.midiOptions) config.midiOptions.isCritical = baseCritical;
 		ac5eConfig.optinForcedCritical = false;
 	}
