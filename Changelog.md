@@ -1,3 +1,10 @@
+## 14.533.10
+
+- Fixed typed `damage.bonus` entries with `addTo=all` so each base damage part receives one matching bonus part without duplicating or dropping declared damage types.
+- Fixed typed synthetic bonus damage rolls so critical hits apply normal critical rules while `criticalStatic` bonus damage remains unchanged.
+- Fixed damage flag conditions such as `!isCritical` so they are reevaluated after AC5E opt-ins change the damage roll's critical state.
+
+
 ## 14.533.9
 
 - Added compatibility bridge for the upcoming Automated Actions 5e module.
