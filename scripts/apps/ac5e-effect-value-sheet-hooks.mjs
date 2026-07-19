@@ -14,7 +14,6 @@ function enhanceActiveEffectConfig(app, element) {
 	registerAc5eActiveEffectChangeType();
 	ensureAc5eChangeTypeOptions(root);
 	moveAc5eChangeTypeOptionsToBottom(root);
-	restoreAc5eChangeTypeSelections(app, root);
 	if (!isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
@@ -172,17 +171,6 @@ function moveAc5eChangeTypeOptionsToBottom(root) {
 	for (const select of root.querySelectorAll('select[name$=".type"]')) {
 		const option = select.querySelector(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`);
 		if (option) select.append(option);
-	}
-}
-
-function restoreAc5eChangeTypeSelections(app, root) {
-	for (const select of root.querySelectorAll('select[name$=".type"]')) {
-		if (`${select.value ?? ''}`.trim().toLowerCase() !== 'custom') continue;
-		const row = select.closest('li, .form-group, tr, fieldset') ?? select.parentElement;
-		const keyInput = findKeyInput(row, select);
-		const key = `${keyInput?.value ?? ''}`.trim();
-		if (!isAc5eChangeKey(key)) continue;
-		select.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 	}
 }
 
