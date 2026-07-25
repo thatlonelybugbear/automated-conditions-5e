@@ -70,6 +70,7 @@ const CURATED_AC5E_PATHS = [
 	'item.school',
 	'activity.school',
 	'isAoE',
+	'isHeal',
 	'isCritical',
 	'isFumble',
 	'isTurn',

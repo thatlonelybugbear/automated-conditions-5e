@@ -3,6 +3,10 @@
 - Fixed typed `damage.bonus` entries with `addTo=all` so each base damage part receives one matching bonus part without duplicating or dropping declared damage types.
 - Fixed typed synthetic bonus damage rolls so critical hits apply normal critical rules while `criticalStatic` bonus damage remains unchanged.
 - Fixed damage flag conditions such as `!isCritical` so they are reevaluated after AC5E opt-ins change the damage roll's critical state.
+- Added Simple Cover 5e Library Mode integration for target cover AC adjustments.
+- Prevented damage bonus and critical flags from applying to healing activities unless their condition explicitly references `isHeal`.
+- Fixed activity status-rider sandbox data when an applicable effect has no statuses collection.
+- Updated the Active Effect change-mode UI: AC5E remains available after Foundry core modes on dnd5e v5, while dnd5e v6 groups it under Bugbear's Den as Automated Conditions 5e.
 - Set Foundry v14.365 as the minimum and verified version.
 
 

@@ -276,6 +276,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		return `index:${index}`;
 	};
 	const getLiveTargetAC = (target = {}) => {
+		const embeddedAC = target?.ac;
+		if (Number.isFinite(Number(embeddedAC)) && !isForcedSentinelAC(embeddedAC)) return Number(embeddedAC);
 		const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
 		if (tokenUuid) {
 			const tokenDoc = _safeFromUuidSync(tokenUuid);
@@ -289,8 +291,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			const actorAC = actor?.system?.attributes?.ac?.value;
 			if (Number.isFinite(Number(actorAC))) return Number(actorAC);
 		}
-		const embeddedAC = target?.ac;
-		if (Number.isFinite(Number(embeddedAC)) && !isForcedSentinelAC(embeddedAC)) return Number(embeddedAC);
 		return null;
 	};
 	const hasRoll0 = Array.isArray(config.rolls) && config.rolls[0] && typeof config.rolls[0] === 'object';
@@ -1019,6 +1019,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.hasAttack = !foundry.utils.isEmpty(activity?.attack);
 	sandbox.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);
+	sandbox.isHeal = activity?.type === 'heal';
 	sandbox.hasSave = !foundry.utils.isEmpty(activity?.save);
 	sandbox.hasCheck = !foundry.utils.isEmpty(activity?.check);
 	sandbox.isAoE = activity?.target?.template?.type in CONFIG.DND5E.areaTargetTypes;

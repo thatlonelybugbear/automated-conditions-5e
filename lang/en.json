@@ -17,6 +17,7 @@
 		"Title": "Resources & Support"
 	},
 	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
+	"AC5E.ActiveEffect.ChangeTypes.AutomatedConditions5e": "Automated Conditions 5e",
 	"AC5E.ShowTooltipsName": "Show AC5E Tooltips",
 	"AC5E.ShowTooltipsHint": "Shows AC5E tooltips in roll dialogs, chat messages, or both, explaining the reasons behind the suggested outcome.",
 	"AC5E.ShowToolTipsChoicesBoth": "Roll dialogs and chat messages",

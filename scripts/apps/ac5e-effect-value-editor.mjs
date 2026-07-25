@@ -134,6 +134,7 @@ const ROLL_AWARE_ENTRIES = new Set([
 	'isConcentration',
 	'isDeathSave',
 	'isInitiative',
+	'isHeal',
 	'targetValue',
 	'isCritical',
 	'isFumble',
@@ -1481,7 +1482,7 @@ function getContextSandboxFallbackEntries(changeKey) {
 		}
 	}
 	if ((normalized.includes('attack') || normalized.includes('damage')) && !isNonDamageBonusContext(normalized)) {
-		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'opponentAC', 'targetOverAC');
+		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC', 'targetOverAC');
 	}
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
@@ -1893,6 +1894,7 @@ function classifyContextEntry(identifier) {
 		'scaling',
 		'scaling.increase',
 		'isAoE',
+		'isHeal',
 	];
 	if (itemActivityKeys.includes(value)) return 'item-activity';
 	return 'actor';

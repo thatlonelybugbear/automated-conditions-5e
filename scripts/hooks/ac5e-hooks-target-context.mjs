@@ -27,8 +27,8 @@ export function hydrateTargetACs(targets = [], { allowLiveFallback = true } = {}
 
 export function resolveTargets(message, messageTargets, { hook, activity } = {}, deps) {
 	const freshTargets = getTargets({ message }, deps);
-	if (Array.isArray(freshTargets) && freshTargets.length) return hydrateTargetACs(freshTargets, { allowLiveFallback: false });
-	if (Array.isArray(messageTargets) && messageTargets.length) return hydrateTargetACs(messageTargets, { allowLiveFallback: false });
+	if (Array.isArray(freshTargets) && freshTargets.length) return hydrateTargetACs(captureTargetTokenUuids(freshTargets), { allowLiveFallback: false });
+	if (Array.isArray(messageTargets) && messageTargets.length) return hydrateTargetACs(captureTargetTokenUuids(messageTargets), { allowLiveFallback: false });
 	if (hook === 'save' && activity?.target?.affects?.type === 'self') {
 		const explicitMessage = message?.document ?? message;
 		const speakerToken = explicitMessage?.speaker?.token ? canvas.tokens.get(explicitMessage.speaker.token) : null;
@@ -65,11 +65,33 @@ export function syncResolvedTargetsToMessage(message, targets, deps) {
 			foundry.utils.mergeObject(foundry.utils.duplicate(currentAc5eFlags), { optionsSnapshot: { targets: foundry.utils.duplicate(nextTargets) } }, { inplace: false })
 		:	{ optionsSnapshot: { targets: foundry.utils.duplicate(nextTargets) } };
 	try {
-		foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', nextTargets);
 		foundry.utils.setProperty(message, `data.flags.${deps.Constants.MODULE_ID}`, nextAc5eFlags);
 	} catch (_err) {
 		// ignore immutable message-like payloads
 	}
+}
+
+function captureTargetTokenUuids(targets) {
+	if (!game.user?.targets?.size) return targets;
+	const selectedByActorUuid = new Map();
+	for (const token of game.user.targets) {
+		const uuid = token?.actor?.uuid;
+		if (!uuid) continue;
+		const selected = selectedByActorUuid.get(uuid) ?? [];
+		selected.push(token);
+		selectedByActorUuid.set(uuid, selected);
+	}
+	const targetCountByActorUuid = new Map();
+	for (const target of targets) {
+		if (!target?.uuid) continue;
+		targetCountByActorUuid.set(target.uuid, (targetCountByActorUuid.get(target.uuid) ?? 0) + 1);
+	}
+	return targets.map((target) => {
+		if (!target?.uuid || target?.tokenUuid || targetCountByActorUuid.get(target.uuid) !== 1) return target;
+		const selected = selectedByActorUuid.get(target.uuid);
+		if (selected?.length !== 1) return target;
+		return { ...target, tokenUuid: selected[0].document?.uuid };
+	});
 }
 
 export function getAssociatedRollTargets(originatingMessageId, activityType, messageLike, deps) {

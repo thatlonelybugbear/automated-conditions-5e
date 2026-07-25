@@ -4,6 +4,8 @@ import { registerAc5eActiveEffectChangeType } from '../ac5e-active-effect-change
 import Constants from '../ac5e-constants.mjs';
 import Settings from '../ac5e-settings.mjs';
 
+const CORE_CHANGE_TYPES = new Set(['custom', 'multiply', 'add', 'subtract', 'downgrade', 'upgrade', 'override']);
+
 export function registerEffectValueEditorHooks() {
 	return Hooks.on('renderActiveEffectConfig', enhanceActiveEffectConfig);
 }
@@ -12,8 +14,10 @@ function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
 	registerAc5eActiveEffectChangeType();
-	ensureAc5eChangeTypeOptions(root);
-	moveAc5eChangeTypeOptionsToBottom(root);
+	if (!foundry.utils.isNewerVersion(game.system.version, 6)) {
+		ensureAc5eChangeTypeOptions(root);
+		moveAc5eChangeTypeOptionsAfterCore(root);
+	}
 	restoreAc5eChangeTypeSelections(root);
 	if (!isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
@@ -27,8 +31,17 @@ function ensureAc5eChangeTypeOptions(root) {
 		if (select.querySelector(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`)) continue;
 		const option = document.createElement('option');
 		option.value = Constants.ACTIVE_EFFECT_CHANGE_TYPE;
-		option.textContent = game.i18n?.localize?.('AC5E.ActiveEffect.ChangeTypes.AC5E') ?? 'AC5E';
+		option.textContent = 'AC5E';
 		select.append(option);
+	}
+}
+
+function moveAc5eChangeTypeOptionsAfterCore(root) {
+	for (const select of root.querySelectorAll('select[name$=".type"]')) {
+		const option = select.querySelector(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`);
+		const coreOptions = [...select.options].filter((entry) => CORE_CHANGE_TYPES.has(entry.value));
+		const lastCoreOption = coreOptions[coreOptions.length - 1];
+		if (option && lastCoreOption) lastCoreOption.after(option);
 	}
 }
 
@@ -168,13 +181,6 @@ function isAc5eChangeRow(row, input) {
 	return `${typeInput?.value ?? ''}`.trim().toLowerCase() === Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 }
 
-function moveAc5eChangeTypeOptionsToBottom(root) {
-	for (const select of root.querySelectorAll('select[name$=".type"]')) {
-		const option = select.querySelector(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`);
-		if (option) select.append(option);
-	}
-}
-
 function restoreAc5eChangeTypeSelections(root) {
 	for (const select of root.querySelectorAll('select[name$=".type"]')) {
 		if (`${select.value ?? ''}`.trim().toLowerCase() !== 'custom') continue;
@@ -202,5 +208,6 @@ function getChangeIndex(row, input) {
 function normalizeElement(element) {
 	if (element instanceof HTMLElement) return element;
 	if (element?.[0] instanceof HTMLElement) return element[0];
+	if (element?.element instanceof HTMLElement) return element.element;
 	return null;
 }

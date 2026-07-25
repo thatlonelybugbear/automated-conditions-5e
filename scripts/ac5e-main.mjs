@@ -25,7 +25,6 @@ export { createTroubleshooterSnapshot, exportTroubleshooterSnapshot, importTroub
 let daeFlags;
 const AC5E_LOCAL_BUILD_ID = 'v14.360.15042026';
 
-registerAc5eActiveEffectChangeType();
 Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('i18nInit', ac5ei18nInit);
 Hooks.once('ready', ac5eReady);

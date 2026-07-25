@@ -3,6 +3,7 @@ import { doDialogAttackRender, refreshDialogAbilityState } from './ac5e-hooks-di
 import { applyOptinCriticalToDamageConfig, doDialogDamageRender } from './ac5e-hooks-dialog-damage-state.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { applySimpleCover5eDialogTooltip } from '../integrations/ac5e-simplecover5e.mjs';
 
 function logInitialOptinFormulaDebug(stage, render, ac5eConfig) {
 	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
@@ -38,9 +39,26 @@ export function renderRollConfigDialogHijack(hook, render, elem, initialConfig, 
 	const { title, newTitle } = applyDialogTitleOverrides(render, elem, getConfigAC5E);
 	if (newTitle && title) title.textContent = newTitle;
 	if (!['both', 'dialog'].includes(deps.settings.showTooltips)) return true;
+	bindSimpleCover5eTooltip(render, elem, getConfigAC5E, deps);
 	const tooltip = deps.getTooltip(getConfigAC5E);
 	if (tooltip === '') return true;
 	return applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip, deps);
+}
+
+function bindSimpleCover5eTooltip(render, elem, ac5eConfig, deps) {
+	const updateTooltip = () => {
+		const liveConfig = getDialogAc5eConfig(render, ac5eConfig);
+		if (!applySimpleCover5eDialogTooltip(liveConfig, render?.message, elem)) return;
+		const tooltip = deps.getTooltip(liveConfig);
+		for (const button of elem.querySelectorAll('.ac5e-button')) button.setAttribute('data-tooltip', tooltip);
+		if (render?.message) deps.setMessageFlagScope(render.message, deps.Constants.MODULE_ID, { tooltipObj: liveConfig.tooltipObj, hookType: liveConfig.hookType }, { merge: true });
+	};
+	updateTooltip();
+	if (elem.dataset.ac5eSimpleCoverTooltipBound) return;
+	elem.dataset.ac5eSimpleCoverTooltipBound = 'true';
+	elem.addEventListener('change', (event) => {
+		if (event.target?.matches?.(`select[name^="simplecover5e.targets."][name$=".newCover"]`)) updateTooltip();
+	});
 }
 
 function bindDialogAbilityRefresh(hook, render, elem, initialConfig, deps) {
