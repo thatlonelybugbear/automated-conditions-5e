@@ -11,7 +11,9 @@
 		"Name": "Supporto Modulo",
 		"Label": "Links",
 		"Hint": "Apri Documentazione AC5E, Tracciamento problemi e link di supporto.",
-		"SupportMessage": "Lancia una Moneta al tuo Bugbear!",
+		"GitHubMessage": "Links GitHub",
+		"DiscordMessage": "Entra nella Tana",
+		"SupportMessage": "Lancia una Moneta al tuo Bugbear",
 		"Title": "Risorse & Supporto"
 	},
 	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
@@ -519,8 +521,13 @@
 			"EnableUsesCountScaling": "Abilita i campi di scala minimo/massimo/step per il valore di consumo usesCount. Quando la scalatura è attiva, usa scaleValue nelle formule o nelle condizioni per fare riferimento all'importo calcolato.",
 			"UsesCountAmount": "I valori positivi consumano risorse. I valori negativi le ripristinano. Usa =valore per impostare un valore assoluto.",
 			"UpdateAmount": "I valori positivi aggiungono. I valori negativi sottraggono. Usa =valore per impostare un valore assoluto.",
+			"UpdateAmountStatus": "I valori positivi o =1 applicano lo stato. I valori zero, negativi o =0 lo rimuovono.",
+			"UpdateAmountConcentration": "I valori positivi o =1 applicano lo stato generico di Concentrazione. I valori zero, negativi o =0 lo rimuovono.",
+			"UpdateAmountInspiration": "I valori positivi o =1 conferiscono Ispirazione. I valori zero, negativi o =0 la rimuovono.",
+			"UpdateAmountExhaustion": "I valori positivi aggiungono livelli di Indebolimento. I valori negativi rimuovono i livelli. Usa =0 per azzerare l'Indebolimento.",
 			"ToggleOptin": "Mostra questa voce come opzionale, in modo che gli utenti possano abilitarla per singolo tiro.",
 			"ToggleItemLimited": "Applica l'effetto solo quando l'oggetto o l'attività di origine corrisponde al contesto limitato della fonte.",
+			"ToggleCriticalStatic": "Applica questo bonus ai danni o questi dadi aggiuntivi così come sono, senza seguire le normali regole dei colpi critici.",
 			"ToggleAllies": "L'aura si applica ai token alleati.",
 			"ToggleEnemies": "L'aura si applica ai token nemici.",
 			"ToggleIncludeSelf": "L'aura può applicarsi anche al personaggio che la genera.",
@@ -528,7 +535,17 @@
 			"ToggleWallsBlock": "I muri possono bloccare la portata o il percorso dell'aura.",
 			"ToggleRecover": "Inverte il consumo degli utilizzi e ripristina la quantità configurata.",
 			"UsesCountSet": "Imposta il valore del bersaglio a una quantità assoluta usando la sintassi =quantità.",
-			"TogglePartialConsume": "Consenti di spendere quanto disponibile invece di bloccare l'azione quando le risorse sono insufficienti."
+			"TogglePartialConsume": "Consenti di spendere quanto disponibile invece di bloccare l'azione quando le risorse sono insufficienti.",
+			"ToggleRangeLongDisadvantage": "Forza la penalità per la gittata lunga.",
+			"ToggleRangeNoLongDisadvantage": "Disattiva la penalità per la gittata lunga.",
+			"ToggleRangeNearbyFoeDisadvantage": "Forza la penalità ai tiri a distanza contro nemici nelle vicinanze.",
+			"ToggleRangeNoNearbyFoeDisadvantage": "Disattiva la penalità ai tiri a distanza contro nemici nelle vicinanze.",
+			"ToggleRangeOutOfRangeFail": "Forza il fallimento dell'utilizzo fuori gittata.",
+			"ToggleRangeNoOutOfRangeFail": "Impedisce il fallimento dell'utilizzo fuori gittata.",
+			"RangeShort": "Modifica la gittata breve usando +valore, -valore oppure un semplice valore per impostarla.",
+			"RangeLong": "Modifica la gittata lunga usando +valore, -valore oppure un semplice valore per impostarla.",
+			"RangeReach": "Modifica la portata in mischia usando +valore, -valore oppure un semplice valore per impostarla.",
+			"RangeBonus": "Modifica ogni valore di gittata corrispondente usando +valore, -valore oppure un semplice valore per impostarlo."
 		}
 	},
 	"AC5E.Optin.UpdateSummary": {
