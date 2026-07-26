@@ -5,6 +5,7 @@
   - Added `isHeal` to the Effect Value Editor autocomplete and condition assists.
 - Fixed activity status-rider sandbox data when an applicable effect has no statuses collection.
 - Updated the Active Effect change-mode UI: AC5E remains available after Foundry core modes on dnd5e v5, while dnd5e v6 will group it under Bugbear's Den as Automated Conditions 5e.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 
 ## 14.533.10
 
