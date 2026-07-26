@@ -8,14 +8,13 @@ export function applyAc5eActiveEffectChange(targetDoc, change) {
 
 export function registerAc5eActiveEffectChangeType() {
 	if (!CONFIG?.ActiveEffect?.changeTypes) return;
+	const dnd5eV6OrNewer = foundry.utils.isNewerVersion(game.system.version, 6);
 	const config = {
-		label: 'AC5E.ActiveEffect.ChangeTypes.AC5E',
+		...(dnd5eV6OrNewer ? { group: "Bugbear's Den" } : {}),
+		label: dnd5eV6OrNewer ? 'AC5E.ActiveEffect.ChangeTypes.AutomatedConditions5e' : 'AC5E',
 		defaultPriority: 20,
 		handler: applyAc5eActiveEffectChange,
 		render: null,
 	};
 	CONFIG.ActiveEffect.changeTypes[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config;
-	CONFIG.ActiveEffect.documentClass?.CHANGE_TYPES && (CONFIG.ActiveEffect.documentClass.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	globalThis.ActiveEffect?.CHANGE_TYPES && (globalThis.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
-	foundry.documents?.ActiveEffect?.CHANGE_TYPES && (foundry.documents.ActiveEffect.CHANGE_TYPES[Constants.ACTIVE_EFFECT_CHANGE_TYPE] = config);
 }

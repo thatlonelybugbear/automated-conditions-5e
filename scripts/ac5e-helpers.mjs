@@ -2027,6 +2027,10 @@ export function _getTooltip(ac5eConfig = {}) {
 		translationString += ` ${tooltipAlteredTargetADC} (${tooltipInitialTargetADC})`;
 		addTooltip(true, `<span style="display: block; text-align: left;">${translationString}: ${combinedTargetADC.join(', ')}</span>`);
 	}
+	if (hookType === 'attack' && ac5eConfig?.simpleCoverEntries?.length) {
+		const coverEntries = ac5eConfig.simpleCoverEntries.map((entry) => `${_localize('AC5E.ModifyAC')} ${entry.ac} (${entry.base}): ${entry.label}`);
+		addTooltip(true, `<span style="display: block; text-align: left;">${coverEntries.join(', ')}</span>`);
+	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
 	ac5eConfig.tooltipObj ||= {};
 	ac5eConfig.tooltipObj[hookType] = tooltip;
@@ -3256,10 +3260,17 @@ export function _collectRollDamageTypes(rolls, options) {
 export function _getActivityEffectsStatusRiders(activity) {
 	const statuses = {};
 	// const riders = {};
-	activity?.applicableEffects?.forEach((effect) => {
-		Array.from(effect?.statuses).forEach((status) => (statuses[status] = true));
+	activity?.applicableEffects?.filter((effect) => {
+		Array.from(effect?.statuses ?? []).forEach((status) => (statuses[status] = true));
 		effect.flags?.dnd5e?.riders?.statuses?.forEach((rider) => (statuses[rider] = true));
 	});
+	/* For v6
+	activity?.applicableEffects?.filter((e) => {
+		const effect = e.getEffect();
+		Array.from(effect?.statuses ?? []).forEach((status) => (statuses[status] = true));
+		effect.flags?.dnd5e?.riders?.statuses?.forEach((rider) => (statuses[rider] = true));
+	});
+	*/
 	if (settings.debug) console.log('AC5E._getActivityEffectsStatusRiders:', { statuses });
 	return statuses;
 }

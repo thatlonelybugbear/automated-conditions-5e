@@ -2,6 +2,7 @@ import { _getDistance, _hasValidTargets, _localize } from '../ac5e-helpers.mjs';
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
+import { applySimpleCover5eLibraryMode, applySimpleCover5eTooltip } from '../integrations/ac5e-simplecover5e.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollAttackHook')) {
@@ -85,6 +86,14 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		logResolvedTargets: deps.logResolvedTargets,
 	});
 	if (invalidTargets && needsTarget !== 'source') return false;
+	applySimpleCover5eLibraryMode({
+		config,
+		message: messageForTargets,
+		messages: [message, messageForTargets],
+		activity,
+		attacker: sourceToken,
+		targets: options.targets,
+	});
 	const ac5eConfig = runAc5eRollPhase({
 		hook,
 		config,

@@ -2901,6 +2901,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	//special functions\\
 	function getMode({ value, sandbox, debug }) {
 		const rawValue = typeof value === 'string' ? value : String(value ?? '');
+		if (sandbox?.isHeal && sandbox?.hook === 'damage' && !/\bisHeal\b/.test(rawValue)) return false;
 		const normalizedLiteral = rawValue.trim().toLowerCase();
 		if (['1', 'true'].includes(normalizedLiteral)) return true;
 		if (['0', 'false'].includes(normalizedLiteral)) return false;
