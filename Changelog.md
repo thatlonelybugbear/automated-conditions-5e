@@ -1,3 +1,8 @@
+## 14.533.12
+
+- Added semantic opt-in IDs with downstream `optinSelected['id']` conditions, including a True Strike example in the WIKI that carries an opted-in attack choice into the damage roll.
+- Added `spellcasting` as an `abilityOverride` value, resolving to the activity's spellcasting ability or the actor's primary spellcasting ability.
+
 ## 14.533.11
 
 - Added Simple Cover 5e Library Mode integration for target cover AC adjustments.
