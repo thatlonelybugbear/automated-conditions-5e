@@ -13,6 +13,7 @@ const ASSIGNMENT_FIELDS = [
 	'update',
 	'enforceMode',
 	'name',
+	'optinId',
 	'description',
 	'addTo',
 ];

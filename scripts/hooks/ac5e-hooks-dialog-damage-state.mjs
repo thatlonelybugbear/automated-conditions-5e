@@ -251,6 +251,7 @@ export function handleDamageOptinSelectionsChanged(dialog, ac5eConfig, deps = {}
 	dialog._ac5eOptinReevalInProgress = true;
 	try {
 		if (dialog?.config && deps?.preRollDamage instanceof Function) {
+			const preservedDamageBaselineState = snapshotDamageBaselineState(ac5eConfig);
 			// Re-evaluate from the frozen baseline to avoid compounding bonus parts
 			// when opt-in scale sliders change repeatedly.
 			deps.restoreDamageConfigFromFrozenBaseline?.(ac5eConfig, dialog.config);
@@ -258,6 +259,7 @@ export function handleDamageOptinSelectionsChanged(dialog, ac5eConfig, deps = {}
 			const transientDialog = { options: { window: { title: dialog?.message?.flavor }, isCritical: !!dialog?.config?.isCritical, defaultButton: dialog?.config?.isCritical ? 'critical' : 'normal' } };
 			const reEval = ac5eConfig?.reEval;
 			ac5eConfig = deps.preRollDamage(dialog.config, transientDialog, dialog.message, 'damage', reEval) ?? ac5eConfig;
+			restoreDamageBaselineState(ac5eConfig, preservedDamageBaselineState);
 			syncDamageRollTypeOverrideOptions(ac5eConfig, dialog.config.rolls);
 			dialog.config.options ??= {};
 			dialog.config.options[Constants.MODULE_ID] = ac5eConfig;
@@ -468,12 +470,12 @@ function captureBaseDamageTypeData(ac5eConfig, rolls, baseline) {
 		const roll = baseRolls[index];
 		const baselineRoll = baselineRolls[index];
 		const baselineTypes = normalizeDamageTypeList(baselineRoll?.types);
+		const initialTypes = normalizeDamageTypeList(ac5eConfig?.reEval?.initialDamages?.[index]);
 		const liveTypes = normalizeDamageTypeList(roll?.options?.types);
-		const normalizedTypes = baselineTypes.length ? baselineTypes : liveTypes;
+		const normalizedTypes = baselineTypes.length ? baselineTypes : initialTypes.length ? initialTypes : liveTypes;
 		const normalizedType =
 			typeof baselineRoll?.type === 'string' && baselineRoll.type.trim() ? baselineRoll.type.trim().toLowerCase()
-			: typeof roll?.options?.type === 'string' && roll.options.type.trim() ? roll.options.type.trim().toLowerCase()
-			: normalizedTypes[0];
+			: initialTypes[0] ?? (typeof roll?.options?.type === 'string' && roll.options.type.trim() ? roll.options.type.trim().toLowerCase() : normalizedTypes[0]);
 		if (!baseTypesByRoll[index]?.length) baseTypesByRoll[index] = normalizedTypes;
 		if (baseTypeByRoll[index] === undefined) baseTypeByRoll[index] = normalizedType;
 		if (!activeTypesByRoll[index]?.length && baseTypesByRoll[index]?.length) activeTypesByRoll[index] = [...baseTypesByRoll[index]];
@@ -1030,7 +1032,7 @@ function getCollectedDamageEntries(ac5eConfig, mode, { selectedTypes = undefined
 }
 
 export function getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes) {
-	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info', 'abilityOverride'];
+	const modes = ['advantage', 'disadvantage', 'modifiers', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'fumble', 'success', 'info'];
 	return modes.flatMap((mode) => getCollectedDamageEntries(ac5eConfig, mode, { optinOnly: true })).filter((entry) => isDamageEntryEligibleForSelectedTypes(entry, selectedTypes));
 }
 
@@ -1449,9 +1451,18 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const baseDamageTypesArray = Array.isArray(baseDamageTypesByRoll) ? baseDamageTypesByRoll.map((types) => normalizeDamageTypeList(types)) : formulas.map(() => []);
 	const bonusPartsByRoll = formulas.map(() => []);
 	const criticalBonusPartsByRoll = formulas.map(() => []);
+	const getEffectiveDamageRollType = (index) => {
+		let rollType = baseDamageTypeArray[index] ?? getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+		for (const entry of damageTypeOverrideEntries) {
+			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) continue;
+			const overrideTypes = parseDamageTypeOverrideSet(entry?.set);
+			if (overrideTypes.length) rollType = overrideTypes[0];
+		}
+		return rollType;
+	};
 	const existingRollIndexByType = new Map();
 	formulas.forEach((_, index) => {
-		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+		const rollType = getEffectiveDamageRollType(index);
 		if (rollType && !existingRollIndexByType.has(rollType)) existingRollIndexByType.set(rollType, index);
 	});
 	const damageModifierValuesByRoll = formulas.map((_, index) => {
@@ -1514,7 +1525,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		if (!parsedParts.length) return discoveredNewType;
 		if (addTo.parts === 'all' && !addTo.includeTypes.length && parsedParts.every((part) => part.type)) {
 			formulas.forEach((_, index) => {
-				const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+				const rollType = getEffectiveDamageRollType(index);
 				if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) return;
 				const criticalOnly = isCriticalStaticBonusEntry(entry);
 				for (const part of parsedParts) {
@@ -1549,7 +1560,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 					const normalizedType = String(type).toLowerCase();
 					const targetIndex = existingRollIndexByType.get(normalizedType);
 					if (Number.isInteger(targetIndex)) {
-						const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, targetIndex);
+						const rollType = getEffectiveDamageRollType(targetIndex);
 						if (!shouldApplyDamageEntryToRoll(entry, targetIndex, rollType, { selectedTypes: allTypes })) continue;
 						const criticalOnly = isCriticalStaticBonusEntry(entry);
 						if (criticalOnly) discoveredNewType = addSyntheticBonusRollPart([normalizedType], parsedPart.formula, true) || discoveredNewType;
@@ -1570,7 +1581,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			return discoveredNewType;
 		}
 		formulas.forEach((_, index) => {
-			const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+			const rollType = getEffectiveDamageRollType(index);
 			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) return;
 				const criticalOnly = isCriticalStaticBonusEntry(entry);
 			for (const part of parts) {
@@ -1617,7 +1628,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				}
 				if (!inlineDamageType) {
 					if (bonusPartsByRoll.length) {
-						const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, 0);
+					const rollType = getEffectiveDamageRollType(0);
 						if (criticalOnly && rollType) shouldRetryPendingBonusEntries = addSyntheticBonusRollPart([rollType], part, true) || shouldRetryPendingBonusEntries;
 						else bonusPartsByRoll[0].push(part);
 					}

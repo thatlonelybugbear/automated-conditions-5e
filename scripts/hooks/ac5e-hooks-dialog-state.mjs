@@ -23,6 +23,13 @@ export function syncDialogAc5eState(dialog, ac5eConfig) {
 		dialog.config.options[Constants.MODULE_ID].defaultButton = defaultButton;
 		dialog.config.options[Constants.MODULE_ID].advantageMode = advantageMode;
 		dialog.config.options[Constants.MODULE_ID].optinSelected = optinSelected;
+		const originatingUseConfig = dialog.config.options.originatingUseConfig;
+		if (originatingUseConfig && typeof originatingUseConfig === 'object') {
+			originatingUseConfig.optinSelected = optinSelected;
+			originatingUseConfig.options ??= {};
+			originatingUseConfig.options[Constants.MODULE_ID] ??= {};
+			originatingUseConfig.options[Constants.MODULE_ID].optinSelected = optinSelected;
+		}
 	}
 	dialog.config[Constants.MODULE_ID] = ac5eConfig;
 	dialog.config[Constants.MODULE_ID].defaultButton = defaultButton;

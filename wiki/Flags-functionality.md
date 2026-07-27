@@ -211,6 +211,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 |                        | The `Number` is optional. If omitted 1 use or relevant value will be consumed by default! |
 | `partialConsume`       | For bounded `usesCount` targets, consume only the remaining available amount instead of failing when the full requested amount would exceed the cap |
 | `optin`                | Shows the flag as an optional checkbox in the relevant roll dialog |
+| `optinId=identifier`   | Assigns an optional flag a stable selection identifier. Use it with `optin` when another flag needs to react to that selection. |
 | `optinScale` / `bonusScale` | Formula tokens for scaled opt-ins. `optinScale` is the selected slider value. `bonusScale` is the resolved scale value (selected slider value when present, otherwise resolved fallback scale). |
 | `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `critical`) |
 | `addTo=fire,cold`      | Targets only matching damage types |
@@ -223,6 +224,8 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `noProne` (and similar status keys) | Suppresses a specific status for roll automation while the effect is active. Current stable usage is boolean-style only, for example `true`. Conditional expressions and `optin` handling are reserved for later work. |
 
 If multiple same-action-type entries are present on the same effect, AC5e disambiguates labels automatically (for example by appending `#2`).
+
+`optinSelected['identifier']` is available in the evaluation sandbox. It is `true` when the matching `optinId` was selected and stays available to downstream roll phases, such as an attack opt-in enabling a damage opt-in or automatic damage bonus.
 
 > When `enforceMode` forces the final d20 mode, AC5E and MidiQOL attribution surfaces show the forced result and suppress overridden d20-state reasons for clarity.
 

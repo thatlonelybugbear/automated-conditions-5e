@@ -85,12 +85,14 @@ export function renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries,
 	}
 }
 
-export function readOptinSelections(elem, _ac5eConfig) {
-	const selected = {};
+export function readOptinSelections(elem, ac5eConfig) {
+	const selected = { ...(ac5eConfig?.optinSelected ?? {}) };
 	const inputs = elem.querySelectorAll('input[data-ac5e-optin="true"]');
 	for (const input of inputs) {
 		const id = input.dataset.ac5eOptinId;
 		if (id) selected[id] = input.checked;
+		const optinId = input.dataset.ac5eOptinSemanticId;
+		if (optinId) selected[optinId] = input.checked;
 	}
 	const sliders = elem.querySelectorAll('input[data-ac5e-optin-scale="true"]');
 	for (const slider of sliders) {
@@ -127,7 +129,7 @@ export function setOptinSelections(ac5eConfig, nextSelections) {
 	ac5eConfig.optinSelected = nextSelections ?? {};
 }
 
-function updateSingleOptinSelection(ac5eConfig, optinId, checked, { scaleMin = null } = {}) {
+function updateSingleOptinSelection(ac5eConfig, optinId, checked, { scaleMin = null, semanticId = null } = {}) {
 	if (!ac5eConfig || !optinId) return;
 	const previous = ac5eConfig.optinSelected ?? {};
 	const priorSelection = previous[optinId];
@@ -137,6 +139,7 @@ function updateSingleOptinSelection(ac5eConfig, optinId, checked, { scaleMin = n
 		...previous,
 		[optinId]: checked ? (Number.isFinite(nextScale) ? { enabled: true, scale: nextScale } : true) : false,
 	};
+	if (semanticId) nextSelections[semanticId] = checked;
 	setOptinSelections(ac5eConfig, nextSelections);
 }
 
@@ -611,7 +614,10 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 		const activeConfig = activeFieldset?._ac5eConfig ?? ac5eConfig;
 		const input = event.target;
 		if (input?.dataset?.ac5eOptinScale === 'true') updateSingleOptinScale(activeConfig, input?.dataset?.ac5eOptinId, input?.value);
-		else updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked, { scaleMin: Number(input?.dataset?.ac5eOptinScaleMin) });
+		else updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked, {
+			scaleMin: Number(input?.dataset?.ac5eOptinScaleMin),
+			semanticId: input?.dataset?.ac5eOptinSemanticId,
+		});
 		const hookType = activeConfig?.hookType;
 		if (['attack', 'save', 'check'].includes(hookType)) {
 			deps.handleD20OptinSelectionsChanged?.(activeDialog, activeConfig, deps);
@@ -692,6 +698,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		checkbox.name = `ac5eOptins.${entry.id}`;
 		checkbox.dataset.ac5eOptinId = entry.id;
 		checkbox.dataset.ac5eOptin = 'true';
+		if (entry.optinId) checkbox.dataset.ac5eOptinSemanticId = entry.optinId;
 		checkbox.checked = _isOptinSelectionActive(ac5eConfig?.optinSelected?.[entry.id]);
 		if (scaling) {
 			checkbox.dataset.ac5eOptinScaleMin = String(scaling.min);

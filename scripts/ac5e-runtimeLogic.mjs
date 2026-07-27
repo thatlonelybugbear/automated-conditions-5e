@@ -977,6 +977,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const resolvedMastery = sandboxOptions.mastery || itemData?.mastery || item?.system?.mastery;
 	sandbox.rollingActor = rollingActor || {};
 	sandbox.opponentActor = opponentActor || {};
+	sandbox.optinSelected = sandboxOptions?.[Constants.MODULE_ID]?.optinSelected ?? {};
 	sandbox.tokenId = subjectToken?.id;
 	sandbox.tokenUuid = subjectToken?.document?.uuid;
 	sandbox.actorId = subjectToken?.actor?.id;

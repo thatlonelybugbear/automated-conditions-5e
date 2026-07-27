@@ -6,6 +6,27 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (!Array.isArray(config?.rolls) || !config.rolls.length) return true;
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const { message: messageForSource, messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
+	const moduleId = deps.Constants.MODULE_ID;
+	const optinCandidates = {
+		message: message?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
+		messageFlags: message?.flags?.[moduleId]?.optinSelected ?? null,
+		messageForSource: messageForSource?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
+		messageForSourceFlags: messageForSource?.flags?.[moduleId]?.optinSelected ?? null,
+		messageForTargets: messageForTargets?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
+		messageForTargetsFlags: messageForTargets?.flags?.[moduleId]?.optinSelected ?? null,
+		config: config?.options?.[moduleId]?.optinSelected ?? config?.[moduleId]?.optinSelected ?? null,
+		configRoll: config?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
+		originatingUse: options?.originatingUseConfig?.options?.[moduleId]?.optinSelected
+			?? options?.originatingUseConfig?.optinSelected ?? null,
+	};
+	const attackOptins = Object.values(optinCandidates).find(value => value && typeof value === 'object' && Object.keys(value).length) ?? null;
+	if (attackOptins && typeof attackOptins === 'object') {
+		options.originatingUseConfig ??= {};
+		options.originatingUseConfig.optinSelected = foundry.utils.duplicate(attackOptins);
+		options.originatingUseConfig.options ??= {};
+		options.originatingUseConfig.options[deps.Constants.MODULE_ID] ??= {};
+		options.originatingUseConfig.options[deps.Constants.MODULE_ID].optinSelected = foundry.utils.duplicate(attackOptins);
+	}
 	const activity = messageActivity || configActivity;
 	const damageActor = sourceActor ?? activity?.actor;
 	if (!damageActor && !activity) return true;

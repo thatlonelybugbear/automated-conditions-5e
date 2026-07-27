@@ -1443,6 +1443,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'onceperround',
 		'oncepercombat',
 		'optin',
+		'optinid',
 		'outofrangefail',
 		'override',
 		'partialconsume',
@@ -1658,6 +1659,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const name = match?.[1]?.trim();
 		return name || undefined;
 	};
+	const getOptinId = (value) => getBlacklistedKeysValue('optinid', value).toLowerCase() || undefined;
 	const getAddTo = (value) => {
 		if (!value) return undefined;
 		const match = String(value).match(/(?:^|;)\s*addto\s*[:=]\s*([^;]+)/i);
@@ -2157,6 +2159,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const debug = { effectUuid: effect.uuid, changeKey: change.key, changeValue: change.value };
 		const entryId =
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
+		const optinId = getOptinId(change.value);
+		if (optinId) {
+			const selection = _getOptinSelectionValueById(sandbox, entryId);
+			if (_isOptinSelectionActive(selection)) {
+				sandbox.optinSelected ??= {};
+				sandbox.optinSelected[optinId] = selection;
+			}
+		}
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
 		const scopedSandbox = sandbox && typeof sandbox === 'object' ? { ...sandbox } : sandbox;
 		const baseValue = getStableBaseValueForEntry({ mode, hook, sandbox });
@@ -2174,7 +2184,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		});
 		const forceOptin = !!usesOverride?.forceOptin;
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
-		const optin = normalizedChangeValue.includes('optin') || forceOptin;
+		const optin = /(?:^|[;|])\s*optin\s*(?:$|[;|])/i.test(normalizedChangeValue) || forceOptin;
 		const cadence = _extractCadenceFromValue(change.value);
 		const priority = getPriorityValue(change.value);
 		const customName = getCustomName(change.value);
@@ -2219,6 +2229,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chance,
 			evaluation,
 			optin,
+			optinId,
 			forceOptin,
 			cadence,
 			priority,
@@ -2529,6 +2540,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		if (rule?.itemLimited) fragments.push('itemLimited');
 		if (rule?.description) fragments.push(`description=${rule.description}`);
 		if (rule?.optin) fragments.push('optin');
+		if (rule?.optinId) fragments.push(`optinId=${rule.optinId}`);
 		if (rule?.convertAdvantage || rule?.hasTransitAdvantage) fragments.push('convertAdvantage');
 		if (rule?.convertDisadvantage || rule?.hasTransitDisadvantage) fragments.push('convertDisadvantage');
 		if (rule?.criticalStatic) fragments.push('criticalStatic');
@@ -2590,6 +2602,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chanceKey: ruleId,
 		});
 		const optin = !!rule?.optin;
+		const optinId = getOptinId(ruleValue);
 		const cadence = _extractCadenceFromValue(ruleValue);
 		const priority = getPriorityValue(ruleValue);
 		const valueCustomName = getCustomName(ruleValue);
@@ -2642,6 +2655,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chance,
 			evaluation,
 			optin,
+			optinId,
 			forceOptin: false,
 			cadence,
 			priority,

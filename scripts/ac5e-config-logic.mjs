@@ -387,7 +387,13 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	if (persistedAc5eConfig?.optinBaseTargetADCValue !== undefined) ac5eConfig.optinBaseTargetADCValue = persistedAc5eConfig.optinBaseTargetADCValue;
 	if (persistedAc5eConfig?.initialTargetADC !== undefined) ac5eConfig.initialTargetADC = persistedAc5eConfig.initialTargetADC;
 	if (persistedAc5eConfig?.alteredTargetADC !== undefined) ac5eConfig.alteredTargetADC = persistedAc5eConfig.alteredTargetADC;
-	const persistedOptins = getPersistedHookConfig(config, hookType)?.optinSelected ?? getPersistedHookConfig(dialog?.config, hookType)?.optinSelected;
+	const persistedOptins = Object.assign(
+		{},
+		originatingUseConfig?.options?.[Constants.MODULE_ID]?.optinSelected,
+		originatingUseConfig?.optinSelected,
+		getPersistedHookConfig(dialog?.config, hookType)?.optinSelected,
+		getPersistedHookConfig(config, hookType)?.optinSelected,
+	);
 	const persistedChanceRolls = getPersistedHookConfig(config, hookType)?.chanceRolls ?? getPersistedHookConfig(dialog?.config, hookType)?.chanceRolls;
 	const parseOptinsFromFormObject = (formObject = {}) => {
 		if (!formObject || typeof formObject !== 'object') return null;
@@ -410,7 +416,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	const hasFormOptins = parsedFormOptins.some((entry) => entry !== null);
 	const formOptins = Object.assign({}, ...parsedFormOptins.filter((entry) => entry && typeof entry === 'object'));
 	const resolvedOptins =
-		hasFormOptins ? formOptins
+		hasFormOptins ? { ...persistedOptins, ...formOptins }
 		: persistedOptins && typeof persistedOptins === 'object' ? foundry.utils.duplicate(persistedOptins)
 		: null;
 	if (resolvedOptins) ac5eConfig.optinSelected = resolvedOptins;

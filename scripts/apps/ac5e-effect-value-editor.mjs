@@ -270,6 +270,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			conditionsLabel: 'Condition',
 			changeKey,
 			rangeFieldState,
+			optinIdDefault: `${this.effect?.name?.slugify({ strict: true }) || 'optin'}-${this.changeIndex}`,
 		});
 		return {
 			...context,
@@ -431,7 +432,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			});
 		}
 		for (const input of htmlElement?.querySelectorAll(
-			'[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready])',
+			'[name^="ui.show"]:not([data-ac5e-ui-toggle-ready]), [name="ui.setMode"]:not([data-ac5e-ui-toggle-ready]), [name="ui.enableUsesCountScaling"]:not([data-ac5e-ui-toggle-ready]), [name="toggles.optin"]:not([data-ac5e-ui-toggle-ready])',
 		) ?? []) {
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
@@ -472,6 +473,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
 		});
 		if (!showName) mergedData.fields.name = '';
+		if (!mergedData.toggles.optin) mergedData.fields.optinId = '';
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
 		if (!showUpdate) mergedData.fields.update = '';
@@ -792,6 +794,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		});
 		if (!showName) mergedData.fields.name = baseData.fields.name;
 		if (!showDescription) mergedData.fields.description = baseData.fields.description;
+		if (!mergedData.toggles.optin) mergedData.fields.optinId = '';
 		if (!showUpdate) mergedData.fields.update = baseData.fields.update;
 		else {
 			mergedData.fields.update = buildUpdateValueFromUi(form, {
@@ -968,7 +971,7 @@ function getEditorProfile(changeKey, parsed) {
 	const supportsSetMode = !isTypeOverride && (isTargetADC || isCriticalThreshold || isFumbleThreshold || hasParsedValue(parsed, 'set'));
 	const renderedRequiredFields = supportsSetMode ? dedupe(requiredFields).filter((field) => field !== 'set') : dedupe(requiredFields);
 	const renderedContextToggles = dedupe(contextToggles).filter((toggle) => toggle !== 'partialConsume');
-	const optionalFields = supportsUpdate ? [...OPTIONAL_FIELD_NAMES, 'update'] : [...OPTIONAL_FIELD_NAMES];
+	const optionalFields = supportsUpdate ? [...OPTIONAL_FIELD_NAMES, 'optinId', 'update'] : [...OPTIONAL_FIELD_NAMES, 'optinId'];
 
 	return {
 		isAura,
@@ -1077,13 +1080,22 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 	];
 }
 
-function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLabel = 'Condition', changeKey = '', rangeFieldState = {} } = {}) {
+function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLabel = 'Condition', changeKey = '', rangeFieldState = {}, optinIdDefault = '' } = {}) {
 	const renderedPrimaryFields = buildRenderedPrimaryFields(profile, parsed, id, { setMode, changeKey, rangeFieldState });
 	const radiusField = renderedPrimaryFields.find((field) => field.name === 'radius') ?? null;
 	const mainFields = renderedPrimaryFields.filter((field) => field.name !== 'radius');
 	return {
 		radiusField,
 		mainFields,
+		optinIdField:
+			parsed.toggles.optin ?
+				{
+					name: 'optinId',
+					label: 'Optin Id',
+					value: parsed.fields.optinId || optinIdDefault,
+					inputId: `ac5e-value-optinId-${id}`,
+				}
+			: null,
 		conditionField: {
 			name: 'conditions',
 			label: conditionsLabel,
@@ -1245,7 +1257,7 @@ function buildLambdaAssistData(
 	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier));
 	const contextualFallbacks = getContextSandboxFallbackEntries(changeKey);
 	const contextualIdentifiers = dedupe([...compatibilityFiltered, ...contextualFallbacks]);
-	const rollAwareEntries = dedupe(contextualIdentifiers.filter((identifier) => isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
+	const rollAwareEntries = dedupe([...contextualIdentifiers, "optinSelected['']"].filter((identifier) => isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
 	const sandboxEntries = dedupe(contextualIdentifiers.filter((identifier) => !isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
 	const actorContextEntries = sandboxEntries.filter((identifier) => classifyContextEntry(identifier) === 'actor');
 	const itemActivityContextEntries = sandboxEntries.filter((identifier) => classifyContextEntry(identifier) === 'item-activity');
@@ -1379,7 +1391,9 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 	const currentOverride = `${currentOverrideValue ?? ''}`.trim();
 	if (normalized.endsWith('.abilityoverride')) {
 		const abilitiesConfig = CONFIG?.DND5E?.abilities ?? {};
-		const entries = Object.entries(abilitiesConfig)
+		const entries = [
+			{ value: 'spellcasting', label: 'Spellcasting' },
+			...Object.entries(abilitiesConfig)
 			.map(([value, rawLabel]) => {
 				const labelKey =
 					typeof rawLabel === 'string' ? rawLabel
@@ -1388,7 +1402,8 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 				const directLabel = typeof rawLabel?.label === 'string' && !rawLabel.label.startsWith('DND5E.') ? rawLabel.label : '';
 				const localized = labelKey ? game?.i18n?.localize?.(labelKey) : '';
 				return { value, label: directLabel || localized || value };
-			})
+			}),
+		]
 			.filter((entry) => entry.value)
 			.sort((a, b) => a.label.localeCompare(b.label));
 		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride, mode: 'single' }));
@@ -1465,6 +1480,7 @@ function isConditionEntry(identifier) {
 	const value = `${identifier ?? ''}`.trim();
 	if (!value) return false;
 	if (['ability', 'skill', 'tool', 'riderStatuses', 'damageTypes', 'defaultDamageType'].includes(value)) return false;
+	if (value === "optinSelected['']") return true;
 	if (ROLL_AWARE_ENTRIES.has(value)) return true;
 	return value.startsWith('is') || value.startsWith('has') || value.startsWith('can');
 }
@@ -1540,7 +1556,10 @@ function buildTypeOverrideScopedEntries() {
 }
 
 function buildAbilityOverrideScopedEntries() {
-	return Object.keys(CONFIG?.DND5E?.abilities ?? {})
+	return [
+		'spellcasting',
+		...Object.keys(CONFIG?.DND5E?.abilities ?? {}),
+	]
 		.map((entry) => `${entry ?? ''}`.trim())
 		.filter(Boolean)
 		.sort((a, b) => a.localeCompare(b));
@@ -2254,7 +2273,7 @@ function applyAssistNodeButton(node, textarea, root, assist, selectionState, tre
 	}
 	setAssistActivePath(root, node.path);
 	const insertionPath = resolveAssistNodeInsertionPath(textarea, node.path);
-	replaceTokenAtCursorOrInsert(textarea, `${insertionPath}${insertionPath.endsWith('.') ? '' : ' '}`, selectionState);
+	replaceTokenAtCursorOrInsert(textarea, insertionPath, selectionState);
 	if (insertionPath.endsWith('.')) syncAssistBrowserFromInput(root, assist, selectionState, textarea);
 	else resetAssistBrowserContext(root, assist, selectionState, textarea);
 }
@@ -2800,6 +2819,7 @@ function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
 function resolveAssistEntryInsertion(entry) {
 	const value = `${entry ?? ''}`.trim();
 	if (!value) return '';
+	if (value === "optinSelected['']" || /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)$/.test(value)) return value;
 	if (ROOT_IDENTIFIERS.has(value)) return `${value}.`;
 	if (
 		[
@@ -3961,7 +3981,7 @@ function replaceTokenAtCursorOrInsert(input, replacement, selectionState = null)
 	const end = Number(input.selectionEnd ?? cursor);
 	const replacementText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${replacementText}${input.value.slice(end)}`;
-	const nextStart = insertion.selectionLength > 0 ? start + Math.min(insertion.selectionStartOffset, replacementText.length) : start + replacementText.length;
+	const nextStart = start + Math.min(insertion.selectionStartOffset, replacementText.length);
 	const nextEnd = nextStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(nextStart, nextEnd);
@@ -3983,7 +4003,7 @@ function insertAtCursor(input, text, selectionState = null) {
 	const end = hasExplicitSelection ? selectionState.end : input.value.length;
 	const insertionText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${insertionText}${input.value.slice(end)}`;
-	const selectionStart = insertion.selectionLength > 0 ? start + Math.min(insertion.selectionStartOffset, insertionText.length) : start + insertionText.length;
+	const selectionStart = start + Math.min(insertion.selectionStartOffset, insertionText.length);
 	const selectionEnd = selectionStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(selectionStart, selectionEnd);
@@ -4104,11 +4124,15 @@ function resolveAssistInsertion(text) {
 		const cursorOffset = rawText.indexOf('(') + 1;
 		return { text: rawText, selectionStartOffset: Math.max(0, cursorOffset), selectionLength: 0 };
 	}
-	if (/^[A-Za-z_$][\w$]*\(\)$/.test(trimmed)) {
+	if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)$/.test(trimmed)) {
 		const cursorOffset = rawText.indexOf('(') + 1;
 		return { text: rawText, selectionStartOffset: Math.max(0, cursorOffset), selectionLength: 0 };
 	}
 	if (/\.creatureType\.includes\(''\)$/.test(trimmed)) {
+		const cursorOffset = rawText.indexOf("''") + 1;
+		return { text: rawText, selectionStartOffset: Math.max(0, cursorOffset), selectionLength: 0 };
+	}
+	if (trimmed === "optinSelected['']") {
 		const cursorOffset = rawText.indexOf("''") + 1;
 		return { text: rawText, selectionStartOffset: Math.max(0, cursorOffset), selectionLength: 0 };
 	}

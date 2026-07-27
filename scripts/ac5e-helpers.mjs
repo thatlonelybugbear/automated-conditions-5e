@@ -448,12 +448,13 @@ function _normalizeCadenceToken(value) {
 }
 
 function _extractRuleMetadata(value) {
-	if (typeof value !== 'string') return { optin: false, priority: 0, addTo: null, condition: null, cadence: null, itemLimited: false };
+	if (typeof value !== 'string') return { optin: false, optinId: null, priority: 0, addTo: null, condition: null, cadence: null, itemLimited: false };
 	const fragments = value
 		.split(/[;|]/)
 		.map((part) => part.trim())
 		.filter(Boolean);
 	let optin = false;
+	let optinId = null;
 	let priority = 0;
 	let addTo = null;
 	let condition = null;
@@ -484,12 +485,13 @@ function _extractRuleMetadata(value) {
 			if (!Number.isNaN(parsedPriority)) priority = parsedPriority;
 		} else if (key === 'addto') addTo = parsedValue;
 		else if (key === 'condition') condition = parsedValue;
+		else if (key === 'optinid') optinId = parsedValue;
 		else if (key === 'cadence') {
 			const parsedCadence = _normalizeCadenceToken(parsedValue);
 			if (parsedCadence) cadence = parsedCadence;
 		}
 	}
-	return { optin, priority, addTo, condition, cadence, itemLimited };
+	return { optin, optinId, priority, addTo, condition, cadence, itemLimited };
 }
 
 function _getEffectOwnerActor(effect) {
@@ -549,6 +551,7 @@ function _collectRegistryEntriesFromFlags({ sourceType, sourceDocument, actorDoc
 			addTo: meta.addTo,
 			value: node,
 			optin: meta.optin,
+			optinId: meta.optinId,
 			priority: meta.priority,
 			cadence: meta.cadence,
 			itemLimited: meta.itemLimited,

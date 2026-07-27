@@ -12,6 +12,8 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	syncRollReferencesToConfig(rolls, config);
 	const options = config.options ?? {};
 	const ac5eConfig = getPostRollAc5eConfig(rolls, config, dialog);
+	syncOptinSelectionsToRolls(ac5eConfig, rolls);
+	syncOptinSelectionsToMessage(ac5eConfig, message);
 	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
 	reconcileResolvedD20Mode(ac5eConfig, config, rolls, message);
 	applyLiteralD20AdvantageCounts(ac5eConfig, config, rolls);
@@ -30,6 +32,24 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts);
 	debugRollStateMigration('postRoll', { hook, config, rolls, ac5eConfig, extra: { hasMessage: !!message } });
 	return true;
+}
+
+function syncOptinSelectionsToRolls(ac5eConfig, rolls) {
+	if (!ac5eConfig?.optinSelected || !Array.isArray(rolls)) return;
+	for (const roll of rolls) {
+		if (!roll?.options || typeof roll.options !== 'object') continue;
+		roll.options[Constants.MODULE_ID] ??= {};
+		roll.options[Constants.MODULE_ID].optinSelected = foundry.utils.duplicate(ac5eConfig.optinSelected);
+	}
+}
+
+function syncOptinSelectionsToMessage(ac5eConfig, message) {
+	if (!ac5eConfig?.optinSelected || !message?.data) return;
+	foundry.utils.setProperty(
+		message.data,
+		`flags.${Constants.MODULE_ID}.optinSelected`,
+		foundry.utils.duplicate(ac5eConfig.optinSelected),
+	);
 }
 
 function applyLiteralD20AdvantageCounts(ac5eConfig, config, rolls) {

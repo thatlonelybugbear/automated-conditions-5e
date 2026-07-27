@@ -22,6 +22,7 @@ Applies to version: `13.5250.18`
 - [Protection from Evil and Good](#protection-from-evil-and-good)
 - [Sure Footed](#sure-footed)
 - [Thrown Weapon Fighting Style](#thrown-weapon-fighting-style)
+- [True Strike 2024](#true-strike-2024)
 - [Random Examples of Functionality](#random-examples-of-functionality)
   - [Aura of Save Disadvantage](#aura-of-save-disadvantage)
 - [New Syntax Examples](#new-syntax-examples)
@@ -174,6 +175,25 @@ Or - value: riderStatuses.prone && ['dex', 'str'].includes(options.ability);
 key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=2; activity.attackMode.includes('thrown');
+```
+## True Strike 2024
+Use these three Active Effect changes on an automated True Strike effect. Selecting the attack opt-in uses the activity's spellcasting ability, or the actor's primary spellcasting ability when the activity does not provide one. The damage bonus then applies automatically, while the damage-type choice remains optional.
+
+```
+//change row 0
+key: flags.automated-conditions-5e.abilityOverride
+
+value: override=spellcasting; optinId=true-strike-0; optin; oncePerRound; name=True Strike; weapon
+
+//change row 1
+key: flags.automated-conditions-5e.damage.typeOverride
+
+value: override=radiant; name=Radiant Damage Override; optinId=true-strike-1; optin; optinSelected['true-strike-0']
+
+//change row 2
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=(rollingActor.details.level >= 17 ? 3 : (rollingActor.details.level >= 11 ? 2 : 1))d6[radiant]; optinSelected['true-strike-0'] && rollingActor.details.level >= 5
 ```
 ## Random Examples of Functionality
 ### Aura of save disadvantage

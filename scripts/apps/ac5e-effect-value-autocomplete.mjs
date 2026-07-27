@@ -142,6 +142,7 @@ export function buildEffectValueAutocompleteEntries(effect) {
 	addCuratedEntries(entries);
 	addConfigConstantEntries(entries);
 	addKnownValueLiteralEntries(entries);
+	addEntry(entries, "optinSelected['']", 'AC5E roll-aware condition');
 
 	return Array.from(entries.values()).sort((a, b) => a.identifier.localeCompare(b.identifier));
 }
@@ -197,6 +198,7 @@ export function shouldActivateEffectValueAutocomplete(input, prefix = '') {
 	if (AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => normalizedPrefix.startsWith(trigger))) return true;
 	if (ROOT_PATHS.some((root) => root.toLowerCase().includes(normalizedPrefix))) return true;
 	if (CURATED_AC5E_PATHS.some((path) => path.toLowerCase().includes(normalizedPrefix))) return true;
+	if ('optinselected'.startsWith(normalizedPrefix)) return true;
 	const token = beforeCursor.match(/[A-Za-z_$][\w$-]*(?:\.(?:[A-Za-z_$][\w$-]*|\d+))*\.?$/)?.[0] ?? '';
 	return AC5E_AUTOCOMPLETE_TRIGGER_PREFIXES.some((trigger) => token.startsWith(trigger));
 }
@@ -205,10 +207,17 @@ export function replaceAutocompletePrefix(input, prefix, replacement) {
 	const cursor = input.selectionStart ?? input.value.length;
 	const start = Math.max(0, cursor - prefix.length);
 	input.value = `${input.value.slice(0, start)}${replacement}${input.value.slice(cursor)}`;
-	const nextCursor = start + replacement.length;
+	const nextCursor = start + getAutocompleteInsertionCursorOffset(replacement);
 	input.setSelectionRange(nextCursor, nextCursor);
 	input.dispatchEvent(new Event('input', { bubbles: true }));
 	input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function getAutocompleteInsertionCursorOffset(replacement) {
+	const text = String(replacement ?? '');
+	if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)$/.test(text)) return text.indexOf('(') + 1;
+	if (/\.creatureType\.includes\(''\)$/.test(text) || text === "optinSelected['']") return text.indexOf("''") + 1;
+	return text.length;
 }
 
 export function configureAc5eAutocompleteMenu(autocomplete) {

@@ -142,6 +142,15 @@
 					{{/if}}
 				{{/each}}
 
+				{{#if primaryLayout.optinIdField}}
+					<div class="form-group">
+						<label for="{{primaryLayout.optinIdField.inputId}}">{{primaryLayout.optinIdField.label}}</label>
+						<div class="form-fields ac5e-effect-value-editor-inline-field">
+							<input id="{{primaryLayout.optinIdField.inputId}}" type="text" name="fields.{{primaryLayout.optinIdField.name}}" value="{{primaryLayout.optinIdField.value}}">
+						</div>
+					</div>
+				{{/if}}
+
 				{{#unless primaryLayout.radiusField}}
 				<div class="form-group ac5e-effect-value-editor-grid-span">
 					<label for="{{primaryLayout.conditionField.inputId}}">{{primaryLayout.conditionField.label}}</label>
