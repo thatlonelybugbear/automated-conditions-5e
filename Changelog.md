@@ -1,3 +1,11 @@
+## 14.533.13
+
+- Added targeted `addTo=optin(id)` support for damage dice upgrades and type overrides, allowing an opted-in bonus damage part to become a separate typed synthetic damage roll.
+  - Added a Selected Optin pill to the `addTo` editor.
+  - Added [Venomous Strike example](https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-examples-(automating-5e-items)#venomous-strike) to the WIKI.
+- Changed `name=` labels to replace the Active Effect name instead of appending it.
+- Some WIKI cleanup
+
 ## 14.533.12
 
 - Added semantic opt-in IDs with downstream `optinSelected['id']` conditions, including a [True Strike example](https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-examples-(automating-5e-items)#true-strike-2024) in the WIKI that carries an opted-in attack choice into the damage roll.
