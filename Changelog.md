@@ -2,7 +2,7 @@
 
 - Added targeted `addTo=optin(id)` support for damage dice upgrades and type overrides, allowing an opted-in bonus damage part to become a separate typed synthetic damage roll.
   - Added a Selected Optin pill to the `addTo` editor.
-  - Added [Venomous Strike example](https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-examples-(automating-5e-items)#venomous-strike) to the WIKI.
+  - Added [Venomous Strike example](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Flags-examples-(automating-5e-items)#venomous-strike>) to the WIKI.
 - Changed `name=` labels to replace the Active Effect name instead of appending it.
 - Some WIKI cleanup
 
