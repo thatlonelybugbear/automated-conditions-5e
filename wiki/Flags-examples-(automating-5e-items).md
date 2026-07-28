@@ -23,6 +23,7 @@ Applies to version: `13.5250.18`
 - [Sure Footed](#sure-footed)
 - [Thrown Weapon Fighting Style](#thrown-weapon-fighting-style)
 - [True Strike 2024](#true-strike-2024)
+- [Venomous Strike](#venomous-strike)
 - [Random Examples of Functionality](#random-examples-of-functionality)
   - [Aura of Save Disadvantage](#aura-of-save-disadvantage)
 - [New Syntax Examples](#new-syntax-examples)
@@ -194,6 +195,25 @@ value: override=radiant; name=Radiant Damage Override; optinId=true-strike-1; op
 key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=(rollingActor.details.level >= 17 ? 3 : (rollingActor.details.level >= 11 ? 2 : 1))d6[radiant]; optinSelected['true-strike-0'] && rollingActor.details.level >= 5
+```
+## Venomous Strike
+Use this with an opted-in Sneak Attack bonus. Selecting Venomous Strike moves only the selected Sneak Attack dice into a poison synthetic damage part and upgrades those dice from d6 to d8.
+
+```
+//change row 0
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=8d6; optinId=sneak-attack; optin; name=Sneak Attack
+
+//change row 1
+key: flags.automated-conditions-5e.damage.typeOverride
+
+value: override=poison; optinId=venomous-strike-1; addTo=optin(sneak-attack); optin; optinSelected['sneak-attack']; name=Venomous Strike
+
+//change row 2
+key: flags.automated-conditions-5e.damage.diceUpgrade
+
+value: bonus=1; addTo=optin(sneak-attack); optinSelected['venomous-strike-1']
 ```
 ## Random Examples of Functionality
 ### Aura of save disadvantage
