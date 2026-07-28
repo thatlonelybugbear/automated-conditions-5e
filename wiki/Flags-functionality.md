@@ -124,7 +124,7 @@ Replace `MODE` with one of the following:
    - Include `override=fire,lightning,thunder` to offer multiple damage types through D&D 5e's native dropdown.
    - `set=...` is still accepted for backwards compatibility.
    - `addTo=...` targeting works the same way as other damage-entry modes.
-   - Current limitation: `damage.typeOverride` applies to base/native damage rolls only, not to synthetic appended bonus damage parts.
+   - `addTo=optin(identifier)` targets an opted-in `damage.bonus` part with the matching `optinId`. When it changes that part to a different type, AC5E moves the part into a synthetic damage roll and preserves the base roll's type.
 - `range` - Adjusts ranged profile values and ranged-penalty behavior.
    - Use the shared `flags.automated-conditions-5e.range` surface for range automation. Do not use legacy `...attack.range` paths for new flags.
    - You can use `bonus`, `short`, `long`, `reach`.
@@ -214,9 +214,10 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `optinId=identifier`   | Assigns an optional flag a stable selection identifier. Use it with `optin` when another flag needs to react to that selection. |
 | `optinScale` / `bonusScale` | Formula tokens for scaled opt-ins. `optinScale` is the selected slider value. `bonusScale` is the resolved scale value (selected slider value when present, otherwise resolved fallback scale). |
 | `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `critical`) |
-| `addTo=fire,cold`      | Targets only matching damage types |
+| `addTo=types(fire,cold)` | Targets only matching damage types |
+| `addTo=optin(identifier)` | Targets the opted-in `damage.bonus` part with that `optinId` |
 | `chance=Number`        | Applies only when a d100 roll is greater than or equal to the threshold |
-| `name=Text`            | Custom label for tooltips/dialog opt-in entry |
+| `name=Text`            | Replaces the Active Effect name for tooltips/dialog opt-in entries; use distinct names for otherwise similar opt-ins to keep them distinguishable |
 | `description=Text`     | Custom opt-in description/reason text |
 | `description=effectDescription` | Uses the Active Effect's own description as the opt-in tooltip text |
 | `update=ActorAttr, Delta` | Applies an allowlisted actor update instruction. Delta is the default, and `=` sets an absolute value. Example: `update=opponentActor.hp,-5` or `update=rollingActor.hp,=1` |
