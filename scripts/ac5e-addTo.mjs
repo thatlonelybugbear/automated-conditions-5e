@@ -15,7 +15,7 @@ function _normalizeAddToParts(parts, fallback = null) {
 	return _normalizeAddToModeToken(parts) ?? _normalizeAddToModeToken(fallback) ?? null;
 }
 
-function _buildResolvedAddToSpec({ parts = null, includeTypes = [], excludeTypes = [], explicitParts = false, explicitIncludeClause = false, explicitExcludeClause = false } = {}, fallbackParts = null) {
+function _buildResolvedAddToSpec({ parts = null, includeTypes = [], excludeTypes = [], optinId = null, explicitParts = false, explicitIncludeClause = false, explicitExcludeClause = false } = {}, fallbackParts = null) {
 	const normalizedIncludeTypes = _normalizeAddToTypes(includeTypes);
 	const normalizedExcludeTypes = _normalizeAddToTypes(excludeTypes);
 	const normalizedParts = _normalizeAddToParts(parts, normalizedIncludeTypes.length || normalizedExcludeTypes.length ? 'all' : fallbackParts);
@@ -24,6 +24,7 @@ function _buildResolvedAddToSpec({ parts = null, includeTypes = [], excludeTypes
 		parts: normalizedParts ?? 'all',
 		includeTypes: normalizedIncludeTypes,
 		excludeTypes: normalizedExcludeTypes,
+		optinId: typeof optinId === 'string' && optinId.trim() ? optinId.trim().toLowerCase() : null,
 		explicitParts: !!explicitParts,
 		explicitIncludeClause: !!explicitIncludeClause,
 		explicitExcludeClause: !!explicitExcludeClause,
@@ -48,6 +49,7 @@ export function _parseAddToSpec(value) {
 				parts: value.parts,
 				includeTypes,
 				excludeTypes,
+				optinId: value.optinId,
 				explicitParts: 'parts' in value,
 				explicitIncludeClause: !!value.explicitIncludeClause || !!value.hasIncludeClause,
 				explicitExcludeClause: !!value.explicitExcludeClause || !!value.hasExcludeClause,
@@ -122,6 +124,8 @@ export function _parseAddToSpec(value) {
 		}
 		return _buildResolvedAddToSpec({ parts, includeTypes, excludeTypes, explicitParts, explicitIncludeClause, explicitExcludeClause });
 	}
+	const optinMatch = raw.match(/^optin\s*\(([^)]+)\)$/i);
+	if (optinMatch) return _buildResolvedAddToSpec({ parts: 'all', optinId: optinMatch[1], explicitParts: false });
 	const rawValues = raw.split(/[,|]/).map((entry) => entry.trim()).filter(Boolean);
 	if (!rawValues.length) return undefined;
 	if (rawValues.length === 1) {
@@ -143,6 +147,7 @@ export function _stringifyAddToSpec(value) {
 	const parsed = _parseAddToSpec(value);
 	if (!parsed) return '';
 	const clauses = [];
+	if (parsed.optinId) return `optin(${parsed.optinId})`;
 	const hasTypeFilters = parsed.includeTypes.length || parsed.excludeTypes.length;
 	if (parsed.parts && (parsed.parts !== 'all' || parsed.explicitParts || !hasTypeFilters)) clauses.push(parsed.parts);
 	if (parsed.includeTypes.length || parsed.explicitIncludeClause) clauses.push(`types(${parsed.includeTypes.join(',')})`);

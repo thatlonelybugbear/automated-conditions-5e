@@ -1949,17 +1949,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		}
 		return rangeData;
 	};
-	const buildEntryLabel = (baseLabel, customName) => {
-		if (customName) return `${baseLabel} (${customName})`;
-		return baseLabel;
-	};
 	const buildResolvedEntryLabel = ({ effectName, customName, usesOverride, auraName } = {}) => {
 		const overrideLabelName = typeof usesOverride?.labelName === 'string' ? usesOverride.labelName.trim() : '';
-		const preferCustomName = Boolean(usesOverride?.preferCustomName && customName);
-		const baseName = preferCustomName ? customName : overrideLabelName || effectName;
+		const baseName = customName || overrideLabelName || effectName;
 		const auraBase = auraName ? `${baseName} - Aura (${auraName})` : baseName;
-		const inlineCustom = preferCustomName ? undefined : customName;
-		return appendLabelSuffix(buildEntryLabel(auraBase, inlineCustom), usesOverride?.labelSuffix);
+		return appendLabelSuffix(auraBase, usesOverride?.labelSuffix);
 	};
 	const applyIndexLabels = (entry, existing) => {
 		if (entry.customName) return;
@@ -2348,7 +2342,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				if (!shouldAdd) return;
 			}
 		}
-		const sameType = validFlags.filter((existing) => existing.effectUuid === effect.uuid && existing.hook === hook);
+		const sameType = validFlags.filter((existing) => existing.effectUuid === effect.uuid && existing.hook === hook && existing.mode === entry.mode);
 		applyIndexLabels(entry, sameType);
 		pushUniqueValidFlag(entry);
 	};

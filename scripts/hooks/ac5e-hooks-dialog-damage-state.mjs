@@ -1414,6 +1414,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const damageTypeOverrideEntries = getCollectedDamageEntries(getConfigAC5E, 'typeOverride', { raw: true }).filter(
 		(entry) => !(entry?.optin || entry?.forceOptin) || isOptinEntrySelected(entry),
 	);
+	const targetedDamageTypeOverrideEntries = damageTypeOverrideEntries.filter((entry) => resolveEntryAddTo(entry).optinId);
+	const baseDamageTypeOverrideEntries = damageTypeOverrideEntries.filter((entry) => !resolveEntryAddTo(entry).optinId);
 	debugTypeOverrideLog('collected entries', damageTypeOverrideEntries.map((entry) => ({
 		label: entry?.label ?? entry?.name,
 		id: entry?.id,
@@ -1450,10 +1452,15 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const baseDamageTypeArray = Array.isArray(baseDamageTypeByRoll) ? baseDamageTypeByRoll : formulas.map(() => undefined);
 	const baseDamageTypesArray = Array.isArray(baseDamageTypesByRoll) ? baseDamageTypesByRoll.map((types) => normalizeDamageTypeList(types)) : formulas.map(() => []);
 	const bonusPartsByRoll = formulas.map(() => []);
+	const bonusPartOptinIdsByRoll = formulas.map(() => []);
+	const addBonusPart = (index, part, entry) => {
+		bonusPartsByRoll[index].push(part);
+		bonusPartOptinIdsByRoll[index].push(String(entry?.optinId ?? entry?.id ?? '').trim().toLowerCase());
+	};
 	const criticalBonusPartsByRoll = formulas.map(() => []);
 	const getEffectiveDamageRollType = (index) => {
 		let rollType = baseDamageTypeArray[index] ?? getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
-		for (const entry of damageTypeOverrideEntries) {
+		for (const entry of baseDamageTypeOverrideEntries) {
 			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) continue;
 			const overrideTypes = parseDamageTypeOverrideSet(entry?.set);
 			if (overrideTypes.length) rollType = overrideTypes[0];
@@ -1504,13 +1511,13 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		for (const type of normalizedTypes) allTypes.add(type);
 		return discoveredNewType;
 	};
-	const applyBonusPartToType = (rollType, part, criticalStatic = false) => {
+	const applyBonusPartToType = (rollType, part, criticalStatic = false, entry = null) => {
 		if (!part || !rollType) return false;
 		const normalizedType = String(rollType).toLowerCase();
 		if (criticalStatic) return addSyntheticBonusRollPart([normalizedType], part, true);
 		const targetIndex = existingRollIndexByType.get(normalizedType);
 		if (Number.isInteger(targetIndex)) {
-			bonusPartsByRoll[targetIndex].push(part);
+			addBonusPart(targetIndex, part, entry);
 			return false;
 		}
 		return addSyntheticBonusRollPart([normalizedType], part);
@@ -1534,7 +1541,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 						discoveredNewType = addSyntheticBonusRollPart(types, part.formula, criticalOnly) || discoveredNewType;
 						continue;
 					}
-					discoveredNewType = applyBonusPartToType(part.type, part.formula, criticalOnly) || discoveredNewType;
+					discoveredNewType = applyBonusPartToType(part.type, part.formula, criticalOnly, entry) || discoveredNewType;
 				}
 			});
 			return discoveredNewType;
@@ -1552,7 +1559,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				if (parsedPart.type) {
 					const normalizedType = String(parsedPart.type).toLowerCase();
 					if (!_addToAllowsRollType(addTo, normalizedType)) continue;
-					discoveredNewType = applyBonusPartToType(normalizedType, parsedPart.formula, isCriticalStaticBonusEntry(entry)) || discoveredNewType;
+					discoveredNewType = applyBonusPartToType(normalizedType, parsedPart.formula, isCriticalStaticBonusEntry(entry), entry) || discoveredNewType;
 					matchedTypes.add(normalizedType);
 					continue;
 				}
@@ -1564,7 +1571,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 						if (!shouldApplyDamageEntryToRoll(entry, targetIndex, rollType, { selectedTypes: allTypes })) continue;
 						const criticalOnly = isCriticalStaticBonusEntry(entry);
 						if (criticalOnly) discoveredNewType = addSyntheticBonusRollPart([normalizedType], parsedPart.formula, true) || discoveredNewType;
-						else bonusPartsByRoll[targetIndex].push(parsedPart.formula);
+						else addBonusPart(targetIndex, parsedPart.formula, entry);
 						matchedTypes.add(normalizedType);
 					}
 				}
@@ -1586,7 +1593,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				const criticalOnly = isCriticalStaticBonusEntry(entry);
 			for (const part of parts) {
 				if (criticalOnly && rollType) discoveredNewType = addSyntheticBonusRollPart([rollType], part, true) || discoveredNewType;
-				else bonusPartsByRoll[index].push(part);
+				else addBonusPart(index, part, entry);
 			}
 		});
 		if (addTo.parts !== 'base') {
@@ -1630,26 +1637,59 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 					if (bonusPartsByRoll.length) {
 					const rollType = getEffectiveDamageRollType(0);
 						if (criticalOnly && rollType) shouldRetryPendingBonusEntries = addSyntheticBonusRollPart([rollType], part, true) || shouldRetryPendingBonusEntries;
-						else bonusPartsByRoll[0].push(part);
+						else addBonusPart(0, part, entry);
 					}
 					continue;
 				}
-				shouldRetryPendingBonusEntries = applyBonusPartToType(inlineDamageType, part, criticalOnly) || shouldRetryPendingBonusEntries;
+				shouldRetryPendingBonusEntries = applyBonusPartToType(inlineDamageType, part, criticalOnly, entry) || shouldRetryPendingBonusEntries;
 			}
 		}
 		pendingDamageBonusEntries = nextPendingDamageBonusEntries;
+	}
+	const targetedDiceStepsByOptinId = new Map();
+	for (const entry of [...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceUpgrade'), ...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceDowngrade')]) {
+		if ((entry.optin || entry.forceOptin) && !isOptinEntrySelected(entry)) continue;
+		const optinId = resolveEntryAddTo(entry).optinId;
+		if (!optinId) continue;
+		const steps = (Array.isArray(entry.values) ? entry.values : []).reduce((total, value) => total + _getDamageDiceStepFromEntry(entry, value), 0);
+		targetedDiceStepsByOptinId.set(optinId, (targetedDiceStepsByOptinId.get(optinId) ?? 0) + steps);
+	}
+	const targetedBonusRollsByKey = new Map();
+	for (let index = 0; index < bonusPartsByRoll.length; index++) {
+		const retainedParts = [];
+		const retainedOptinIds = [];
+		for (let partIndex = 0; partIndex < bonusPartsByRoll[index].length; partIndex++) {
+			const part = bonusPartsByRoll[index][partIndex];
+			const optinId = bonusPartOptinIdsByRoll[index][partIndex];
+			const overrideEntry = targetedDamageTypeOverrideEntries.find((entry) => resolveEntryAddTo(entry).optinId === optinId);
+			const overrideTypes = parseDamageTypeOverrideSet(overrideEntry?.set);
+			const baseType = getEffectiveDamageRollType(index);
+			if (!overrideTypes.length || (overrideTypes.length === 1 && overrideTypes[0] === baseType)) {
+				retainedParts.push(part);
+				retainedOptinIds.push(optinId);
+				continue;
+			}
+			const key = overrideTypes.join('|');
+			const synthetic = targetedBonusRollsByKey.get(key) ?? { type: overrideTypes[0], types: overrideTypes, parts: [], optinIds: [] };
+			synthetic.parts.push(part);
+			synthetic.optinIds.push(optinId);
+			targetedBonusRollsByKey.set(key, synthetic);
+		}
+		bonusPartsByRoll[index] = retainedParts;
+		bonusPartOptinIdsByRoll[index] = retainedOptinIds;
 	}
 	// Preserve identical bonus parts from distinct sources. Rerender stability is handled
 	// by the preserved baseline/state machinery, so value-based dedupe would under-apply
 	// cases like two separate +1 damage bonuses.
 	const appendedBonusRollEntries = [
+		...targetedBonusRollsByKey.values().map((entry) => ({ entry, criticalStatic: false })),
 		...appendedBonusRollsByKey.values().map((entry) => ({ entry, criticalStatic: false })),
 		...appendedCriticalBonusRollsByKey.values().map((entry) => ({ entry, criticalStatic: true })),
 	];
 	const appendedBonusRolls = appendedBonusRollEntries.map(({ entry, criticalStatic }) => {
 		let syntheticRollTypes = Array.isArray(entry.types) ? normalizeDamageTypeList(entry.types) : [];
 		let syntheticRollType = typeof entry.type === 'string' && entry.type.trim() ? entry.type.trim().toLowerCase() : syntheticRollTypes[0];
-		for (const typeOverrideEntry of damageTypeOverrideEntries) {
+		for (const typeOverrideEntry of baseDamageTypeOverrideEntries) {
 			if (!shouldApplyDamageEntryToSyntheticRoll(typeOverrideEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes })) continue;
 			const overrideTypes = parseDamageTypeOverrideSet(typeOverrideEntry?.set);
 			if (!overrideTypes.length) continue;
@@ -1660,7 +1700,10 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			.filter((modifierEntry) => shouldApplyDamageEntryToSyntheticRoll(modifierEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes }))
 			.map((modifierEntry) => modifierEntry.value)
 			.filter((value) => typeof value === 'string');
-		const baseFormula = entry.parts?.length ? entry.parts.join(' + ') : '0';
+		const baseFormula = entry.parts?.length ? entry.parts.map((part, index) => {
+			const steps = targetedDiceStepsByOptinId.get(entry.optinIds?.[index]) ?? 0;
+			return steps ? part.replace(/(\d*)d(\d+)([a-z0-9]*)?/gi, (match, count, sides, existing = '') => `${count || ''}d${_shiftDamageDieSize(sides, steps, _getDamageDiceStepProgression())}${existing}`) : part;
+		}).join(' + ') : '0';
 		const formulaState = applyDamageFormulaModifiers(baseFormula, modifierValues);
 		return {
 			formula: formulaState.formula,
@@ -1722,6 +1765,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		let total = 0;
 		for (const entry of entries) {
 			if ((entry.optin || entry.forceOptin) && !isOptinEntrySelected(entry)) continue;
+			if (resolveEntryAddTo(entry).optinId) continue;
 			if (!shouldApplyDamageEntryToRoll(entry, index, rollType)) continue;
 			for (const value of Array.isArray(entry.values) ? entry.values : []) total += _getDamageDiceStepFromEntry(entry, value);
 		}
@@ -1769,7 +1813,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			: baselineTypes[0];
 		let nextTypes = baselineTypes.length ? [...baselineTypes] : [];
 		let nextType = baselineType;
-		for (const entry of damageTypeOverrideEntries) {
+		for (const entry of baseDamageTypeOverrideEntries) {
 			const typeOverrideSelectedTypes = new Set([...allTypes, ...baselineTypes, baselineType].filter(Boolean));
 			const typeOverrideGateType = baselineType ?? rollType;
 			const applies = shouldApplyDamageEntryToRoll(entry, index, typeOverrideGateType, { selectedTypes: typeOverrideSelectedTypes });
@@ -1816,9 +1860,14 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const formulaReplacementData = getDamageFormulaReplacementData(getConfigAC5E);
 	const diceRegex = /(\d*)d(\d+)([a-z0-9]*)?/gi;
 	const diceProgression = _getDamageDiceStepProgression();
+	const applyTargetedDiceStep = (formula, optinId) => {
+		const steps = targetedDiceStepsByOptinId.get(optinId) ?? 0;
+		if (!steps) return formula;
+		return formula.replace(diceRegex, (match, count, sides, existing = '') => `${count || ''}d${_shiftDamageDieSize(sides, steps, diceProgression)}${existing}`);
+	};
 	const criticalBonusDamageByRoll = originals.map(() => '');
 	getConfigAC5E.preservedInitialData.modified = originals.map((formula, index) => {
-		const optinBonusParts = bonusPartsByRoll[index] ?? [];
+		const optinBonusParts = (bonusPartsByRoll[index] ?? []).map((part, partIndex) => applyTargetedDiceStep(part, bonusPartOptinIdsByRoll[index]?.[partIndex]));
 		let formulaWithOptins = formula;
 		if (optinBonusParts.length)
 			formulaWithOptins = typeof formulaWithOptins === 'string' && formulaWithOptins.trim().length ? `${formulaWithOptins} + ${optinBonusParts.join(' + ')}` : optinBonusParts.join(' + ');
@@ -1865,7 +1914,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const multiplierChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceMultiplierArray[index] !== adj.multiplier);
 	const diceStepChanged = diceStepTotals.some((total, index) => activeDiceStepsArray[index] !== total);
 	const formulaOperatorChanged = !areStringMatrixEqual(activeFormulaOperatorsArray, formulaOperatorTokensByRoll);
-	const optinBonusChanged = !areStringMatrixEqual(activeOptinBonusPartsArray, bonusPartsByRoll);
+	const displayedBonusPartsByRoll = bonusPartsByRoll.map((parts, index) => parts.map((part, partIndex) => applyTargetedDiceStep(part, bonusPartOptinIdsByRoll[index]?.[partIndex])));
+	const optinBonusChanged = !areStringMatrixEqual(activeOptinBonusPartsArray, displayedBonusPartsByRoll);
 	const appendedBonusChanged = !areBonusRollEntriesEqual(activeAppendedBonusRolls, appendedBonusRolls);
 	const activeCriticalBonusDamageArray =
 		Array.isArray(getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll) ? getConfigAC5E.preservedInitialData.activeCriticalBonusDamageByRoll : originals.map(() => '');
@@ -1941,7 +1991,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = extraDiceAdjustments.map((adj) => adj.multiplier);
 	getConfigAC5E.preservedInitialData.activeDiceSteps = [...diceStepTotals];
 	getConfigAC5E.preservedInitialData.activeFormulaOperators = formulaOperatorTokensByRoll.map((tokens) => [...tokens]);
-	getConfigAC5E.preservedInitialData.activeOptinBonusParts = bonusPartsByRoll.map((parts) => [...parts]);
+	getConfigAC5E.preservedInitialData.activeOptinBonusParts = displayedBonusPartsByRoll.map((parts) => [...parts]);
 	getConfigAC5E.preservedInitialData.activeAppendedBonusRolls = appendedBonusRolls.map((entry) => ({
 		...entry,
 		types: Array.isArray(entry.types) ? [...entry.types] : [],

@@ -633,6 +633,12 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission = false } = {}) {
 	for (const row of fieldset.querySelectorAll('.form-group')) row.remove();
 	const shouldSuffixUnnamedOptins = visibleEntries.length > 1;
+	const labelCounts = new Map();
+	for (const entry of visibleEntries) {
+		if (!entry?.optin && !entry?.forceOptin) continue;
+		const label = String(entry?.label ?? entry?.name ?? entry?.id ?? '').trim();
+		labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+	}
 	visibleEntries.forEach((entry, index) => {
 		const isOptinEntry = Boolean(entry?.optin || entry?.forceOptin);
 		if (!isOptinEntry) return;
@@ -650,7 +656,11 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const rawName = typeof entry?.name === 'string' ? entry.name.trim() : '';
 		const isUnnamedOptin = isOptinEntry && !rawLabel && !rawName;
 		const baseLabel = rawLabel || rawName || String(entry?.id ?? '');
-		const indexedLabel = isUnnamedOptin && shouldSuffixUnnamedOptins ? `${baseLabel} #${index + 1}` : baseLabel;
+		const modeLabel = String(entry?.mode ?? '').replace(/([a-z])([A-Z])/g, '$1 $2');
+		const indexedLabel =
+			labelCounts.get(baseLabel) > 1 && modeLabel ? `${baseLabel} (${modeLabel})`
+			: isUnnamedOptin && shouldSuffixUnnamedOptins ? `${baseLabel} #${index + 1}`
+			: baseLabel;
 		const usesCountSuffix = isOptinEntry ? getUsesCountLabelSuffix(entry) : '';
 		const cadenceSuffix = isOptinEntry ? getCadenceLabelSuffix(entry?.cadence) : '';
 		const permissionSuffix = getAskPermissionSourceSuffix(entry, askPermission);

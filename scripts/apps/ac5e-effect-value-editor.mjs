@@ -1580,6 +1580,7 @@ function buildAddToScopedEntries() {
 			{ value: 'base', label: 'Base Damage' },
 			{ value: 'bonus', label: 'Bonus Damage' },
 		],
+		optin: [{ value: 'optin()', label: 'Selected Optin' }],
 		targets: [
 			{ value: 'include', label: 'Include Types' },
 			{ value: 'exclude', label: 'Exclude Types' },
@@ -1838,11 +1839,13 @@ function renderAssistEntryGroups(assist) {
 	}
 	if (assist?.scope === 'addTo') {
 		const parts = Array.isArray(assist?.scopedEntries?.parts) ? assist.scopedEntries.parts : [];
+		const optin = Array.isArray(assist?.scopedEntries?.optin) ? assist.scopedEntries.optin : [];
 		const targets = Array.isArray(assist?.scopedEntries?.targets) ? assist.scopedEntries.targets : [];
 		const damageTypes = Array.isArray(assist?.scopedEntries?.damageTypes) ? assist.scopedEntries.damageTypes : [];
 		const healingTypes = Array.isArray(assist?.scopedEntries?.healingTypes) ? assist.scopedEntries.healingTypes : [];
 		return `
 			${renderAssistActionFieldset('Which Damage Parts', parts, 'ac5e-assist-addto-part', 'button', 'addto-parts', true)}
+			${renderAssistActionFieldset('Selected Optin', optin, 'ac5e-assist-addto-optin', 'button', 'addto-optin', true)}
 			${renderAssistActionFieldset('Type Filters', targets, 'ac5e-assist-addto-target', 'button', 'addto-targets', true)}
 			${renderAssistActionFieldset('Damage Types', damageTypes, 'ac5e-assist-addto-type', 'button', 'addto-damage', true)}
 			${renderAssistActionFieldset('Healing Types', healingTypes, 'ac5e-assist-addto-type', 'button', 'addto-healing', true)}
@@ -2001,6 +2004,13 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 		assistRoot.addEventListener('click', (event) => {
 			const target = event.target instanceof Element ? event.target : null;
 			if (!target) return;
+			const optinButton = target.closest('[data-ac5e-assist-addto-optin]');
+			if (optinButton instanceof HTMLElement) {
+				const value = `${optinButton.getAttribute('data-ac5e-assist-addto-optin') ?? ''}`.trim();
+				if (!value) return;
+				setAddToAssistValue(textarea, assistRoot, value, selectionState, value.indexOf('(') + 1);
+				return;
+			}
 			const partButton = target.closest('[data-ac5e-assist-addto-part]');
 			if (partButton instanceof HTMLElement) {
 				const part = `${partButton.getAttribute('data-ac5e-assist-addto-part') ?? ''}`.trim();
