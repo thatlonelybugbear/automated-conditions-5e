@@ -17,6 +17,7 @@
 		"Title": "Recursos e Suporte"
 	},
 	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
+	"AC5E.ActiveEffect.ChangeTypes.AutomatedConditions5e": "Automated Conditions 5e",
 	"AC5E.ShowTooltipsName": "Mostrar Dicas de AC5E",
 	"AC5E.ShowTooltipsHint": "Exibe dicas de ferramenta do AC5E nas janelas de rolagem, mensagens de chat ou em ambos, explicando os motivos por trás do resultado sugerido.",
 	"AC5E.ShowToolTipsChoicesBoth": "Rolagens e Chat",
