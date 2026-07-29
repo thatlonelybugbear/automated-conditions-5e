@@ -1,3 +1,7 @@
+## 14.533.13.1
+
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.13
 
 - Added targeted `addTo=optin(id)` support for damage dice upgrades and type overrides, allowing an opted-in bonus damage part to become a separate typed synthetic damage roll.
