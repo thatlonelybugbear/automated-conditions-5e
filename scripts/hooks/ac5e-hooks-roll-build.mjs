@@ -81,7 +81,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	deps.calcAdvantageMode(ac5eConfig, rollConfig, undefined, undefined, { skipSetProperties: true });
 	applyExplicitModeOverride(ac5eConfig, rollConfig);
 	if (ac5eConfig.hookType === 'attack') {
-		applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets: true });
+		applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets: true, message: targetMessage });
 		applySimpleCover5eSingleTargetTotalCover(rollConfig, targetMessage, ac5eConfig.options?.targets);
 		if (ac5e?.debugTargetADC)
 			console.warn('AC5E targetADC: buildRollConfig target', {

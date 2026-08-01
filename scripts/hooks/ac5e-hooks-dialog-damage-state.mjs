@@ -308,6 +308,7 @@ export function renderOptionalBonusesDamage(dialog, elem, ac5eConfig, deps) {
 		...getDamageEntriesByMode(ac5eConfig, selectedTypes, 'typeOverride'),
 		...getDamageEntriesByMode(ac5eConfig, selectedTypes, 'diceUpgrade'),
 		...getDamageEntriesByMode(ac5eConfig, selectedTypes, 'diceDowngrade'),
+		...getDamageEntriesByMode(ac5eConfig, selectedTypes, 'modifyDenomination'),
 		...getDamageNonBonusOptinEntries(ac5eConfig, selectedTypes),
 	]
 		.filter((entry) => entry?.optin || entry?.forceOptin)
@@ -1366,6 +1367,21 @@ function _getDamageDiceStepFromEntry(entry, value) {
 	return parsed;
 }
 
+function _getDamageDiceSetFromEntry(entry) {
+	const match = entry.values
+		.find((value) => typeof value === 'string' && /^d\d+$/i.test(value))
+		?.match(/^d(\d+)$/i);
+	return match ? parseInt(match[1], 10) : null;
+}
+
+function _applyDamageDiceAlteration(sides, { steps = 0, setSides = null } = {}, progression) {
+	return setSides ?? _shiftDamageDieSize(sides, steps, progression);
+}
+
+function _getDamageDiceAlterationEntries(config, types) {
+	return [...getDamageEntriesByMode(config, types, 'diceUpgrade'), ...getDamageEntriesByMode(config, types, 'diceDowngrade'), ...getDamageEntriesByMode(config, types, 'modifyDenomination')];
+}
+
 function _getDamageDiceStepProgression() {
 	const dice = CONFIG?.Dice?.fulfillment?.dice ?? {};
 	const sizes = Object.keys(dice)
@@ -1647,12 +1663,14 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		pendingDamageBonusEntries = nextPendingDamageBonusEntries;
 	}
 	const targetedDiceStepsByOptinId = new Map();
-	for (const entry of [...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceUpgrade'), ...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceDowngrade')]) {
+	for (const entry of _getDamageDiceAlterationEntries(getConfigAC5E, allTypes)) {
 		if ((entry.optin || entry.forceOptin) && !isOptinEntrySelected(entry)) continue;
 		const optinId = resolveEntryAddTo(entry).optinId;
 		if (!optinId) continue;
-		const steps = (Array.isArray(entry.values) ? entry.values : []).reduce((total, value) => total + _getDamageDiceStepFromEntry(entry, value), 0);
-		targetedDiceStepsByOptinId.set(optinId, (targetedDiceStepsByOptinId.get(optinId) ?? 0) + steps);
+		const current = targetedDiceStepsByOptinId.get(optinId) ?? { steps: 0, setSides: null };
+		current.steps += (Array.isArray(entry.values) ? entry.values : []).reduce((total, value) => total + _getDamageDiceStepFromEntry(entry, value), 0);
+		current.setSides = _getDamageDiceSetFromEntry(entry) ?? current.setSides;
+		targetedDiceStepsByOptinId.set(optinId, current);
 	}
 	const targetedBonusRollsByKey = new Map();
 	for (let index = 0; index < bonusPartsByRoll.length; index++) {
@@ -1701,8 +1719,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			.map((modifierEntry) => modifierEntry.value)
 			.filter((value) => typeof value === 'string');
 		const baseFormula = entry.parts?.length ? entry.parts.map((part, index) => {
-			const steps = targetedDiceStepsByOptinId.get(entry.optinIds?.[index]) ?? 0;
-			return steps ? part.replace(/(\d*)d(\d+)([a-z0-9]*)?/gi, (match, count, sides, existing = '') => `${count || ''}d${_shiftDamageDieSize(sides, steps, _getDamageDiceStepProgression())}${existing}`) : part;
+			const alteration = targetedDiceStepsByOptinId.get(entry.optinIds?.[index]);
+			return alteration ? part.replace(/(\d*)d(\d+)([a-z0-9]*)?/gi, (match, count, sides, existing = '') => `${count || ''}d${_applyDamageDiceAlteration(sides, alteration, _getDamageDiceStepProgression())}${existing}`) : part;
 		}).join(' + ') : '0';
 		const formulaState = applyDamageFormulaModifiers(baseFormula, modifierValues);
 		return {
@@ -1761,15 +1779,16 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	});
 	const diceStepTotals = formulas.map((_, index) => {
 		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
-		const entries = [...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceUpgrade'), ...getDamageEntriesByMode(getConfigAC5E, allTypes, 'diceDowngrade')];
-		let total = 0;
+		const entries = _getDamageDiceAlterationEntries(getConfigAC5E, allTypes);
+		const alteration = { steps: 0, setSides: null };
 		for (const entry of entries) {
 			if ((entry.optin || entry.forceOptin) && !isOptinEntrySelected(entry)) continue;
 			if (resolveEntryAddTo(entry).optinId) continue;
 			if (!shouldApplyDamageEntryToRoll(entry, index, rollType)) continue;
-			for (const value of Array.isArray(entry.values) ? entry.values : []) total += _getDamageDiceStepFromEntry(entry, value);
+			for (const value of Array.isArray(entry.values) ? entry.values : []) alteration.steps += _getDamageDiceStepFromEntry(entry, value);
+			alteration.setSides = _getDamageDiceSetFromEntry(entry) ?? alteration.setSides;
 		}
-		return total;
+		return alteration;
 	});
 	const formulaOperatorTokensByRoll = formulas.map((_, index) => {
 		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
@@ -1861,33 +1880,30 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const diceRegex = /(\d*)d(\d+)([a-z0-9]*)?/gi;
 	const diceProgression = _getDamageDiceStepProgression();
 	const applyTargetedDiceStep = (formula, optinId) => {
-		const steps = targetedDiceStepsByOptinId.get(optinId) ?? 0;
-		if (!steps) return formula;
-		return formula.replace(diceRegex, (match, count, sides, existing = '') => `${count || ''}d${_shiftDamageDieSize(sides, steps, diceProgression)}${existing}`);
+		const alteration = targetedDiceStepsByOptinId.get(optinId);
+		if (!alteration) return formula;
+		return formula.replace(diceRegex, (match, count, sides, existing = '') => `${count || ''}d${_applyDamageDiceAlteration(sides, alteration, diceProgression)}${existing}`);
 	};
 	const criticalBonusDamageByRoll = originals.map(() => '');
 	getConfigAC5E.preservedInitialData.modified = originals.map((formula, index) => {
 		const optinBonusParts = (bonusPartsByRoll[index] ?? []).map((part, partIndex) => applyTargetedDiceStep(part, bonusPartOptinIdsByRoll[index]?.[partIndex]));
-		let formulaWithOptins = formula;
-		if (optinBonusParts.length)
-			formulaWithOptins = typeof formulaWithOptins === 'string' && formulaWithOptins.trim().length ? `${formulaWithOptins} + ${optinBonusParts.join(' + ')}` : optinBonusParts.join(' + ');
 		const baseCriticalBonusDamage = normalizeCriticalBonusDamageFormula(getConfigAC5E.preservedInitialData?.baseCriticalBonusDamageByRoll?.[index]);
 		const advDis = advDisByRoll[index] ?? '';
 		const suffix = suffixesByRoll[index] ?? '';
 		const rollOptionModifierState = rollOptionModifierStateByRoll[index] ?? {};
-		const formulaSource = advDis && baseCriticalBonusDamage ? `${formulaWithOptins} + ${baseCriticalBonusDamage}` : formulaWithOptins;
+		const formulaSource = advDis && baseCriticalBonusDamage ? `${formula} + ${baseCriticalBonusDamage}` : formula;
 		const resolvedFormula = resolveDamageFormulaDataReferences(formulaSource, formulaReplacementData);
 		const extraDiceAdditive = extraDiceAdjustments[index]?.additive ?? 0;
 		const extraDiceCriticalStaticAdditive = extraDiceAdjustments[index]?.criticalStaticAdditive ?? 0;
 		const extraDiceCriticalStaticMultiplier = extraDiceAdjustments[index]?.criticalStaticMultiplier ?? 1;
 		const extraDiceMultiplier = extraDiceAdjustments[index]?.multiplier ?? 1;
-		const diceStepTotal = diceStepTotals[index] ?? 0;
+		const diceAlteration = diceStepTotals[index] ?? { steps: 0, setSides: null };
 		const criticalStaticParts = [];
 		let nextFormula = resolvedFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const baseCount = parseInt(count || '1', 10);
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
 			if (newCount <= 0) return `0d${sides}${existing}`;
-			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
+			const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
 			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
 			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
 			const nextCount = count || newCount !== 1 || extraDiceMultiplier !== 1 || extraDiceAdditive !== 0 ? newCount : '';
@@ -1900,6 +1916,19 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			}
 			return diceTerm;
 		});
+		const resolvedBonusParts = optinBonusParts
+			.map((part) => resolveDamageFormulaDataReferences(part, formulaReplacementData))
+			.map((part) =>
+				part.replace(diceRegex, (match, count, sides, existing = '') => {
+					const baseCount = parseInt(count || '1', 10);
+					const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
+					const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
+					const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
+					const nextCount = count || baseCount !== 1 ? baseCount : '';
+					return `${nextCount}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
+				}),
+			);
+		if (resolvedBonusParts.length) nextFormula = nextFormula ? `${nextFormula} + ${resolvedBonusParts.join(' + ')}` : resolvedBonusParts.join(' + ');
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) criticalBonusDamage = applyFormulaOperatorToAllTerms(criticalBonusDamage, op);
@@ -1912,7 +1941,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const criticalStaticChanged = extraDiceAdjustments.some((adj, index) => activeCriticalStaticExtraDiceArray[index] !== (adj.criticalStaticAdditive ?? 0));
 	const criticalStaticMultiplierChanged = extraDiceAdjustments.some((adj, index) => activeCriticalStaticExtraDiceMultiplierArray[index] !== (adj.criticalStaticMultiplier ?? 1));
 	const multiplierChanged = extraDiceAdjustments.some((adj, index) => activeExtraDiceMultiplierArray[index] !== adj.multiplier);
-	const diceStepChanged = diceStepTotals.some((total, index) => activeDiceStepsArray[index] !== total);
+	const diceStepChanged = diceStepTotals.some((alteration, index) => activeDiceStepsArray[index] !== alteration.steps || getConfigAC5E.preservedInitialData.activeDiceSets?.[index] !== alteration.setSides);
 	const formulaOperatorChanged = !areStringMatrixEqual(activeFormulaOperatorsArray, formulaOperatorTokensByRoll);
 	const displayedBonusPartsByRoll = bonusPartsByRoll.map((parts, index) => parts.map((part, partIndex) => applyTargetedDiceStep(part, bonusPartOptinIdsByRoll[index]?.[partIndex])));
 	const optinBonusChanged = !areStringMatrixEqual(activeOptinBonusPartsArray, displayedBonusPartsByRoll);
@@ -1952,7 +1981,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		mode === 'reset' ||
 		(!suffixesByRoll.some(Boolean) &&
 			extraDiceAdjustments.every((adj) => adj.additive === 0 && (adj.criticalStaticAdditive ?? 0) === 0 && (adj.criticalStaticMultiplier ?? 1) === 1 && adj.multiplier === 1) &&
-			diceStepTotals.every((total) => total === 0) &&
+			diceStepTotals.every((alteration) => alteration.steps === 0 && alteration.setSides === null) &&
 			formulaOperatorTokensByRoll.every((tokens) => !tokens.length) &&
 			bonusPartsByRoll.every((parts) => !parts.length) &&
 			!appendedBonusRolls.length &&
@@ -1969,6 +1998,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDiceMultipliers = originals.map(() => 1);
 		getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = originals.map(() => 1);
 		getConfigAC5E.preservedInitialData.activeDiceSteps = originals.map(() => 0);
+		getConfigAC5E.preservedInitialData.activeDiceSets = originals.map(() => null);
 		getConfigAC5E.preservedInitialData.activeFormulaOperators = originals.map(() => []);
 		getConfigAC5E.preservedInitialData.activeOptinBonusParts = originals.map(() => []);
 		getConfigAC5E.preservedInitialData.activeAppendedBonusRolls = [];
@@ -1989,7 +2019,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDice = extraDiceAdjustments.map((adj) => adj.criticalStaticAdditive ?? 0);
 	getConfigAC5E.preservedInitialData.activeCriticalStaticExtraDiceMultipliers = extraDiceAdjustments.map((adj) => adj.criticalStaticMultiplier ?? 1);
 	getConfigAC5E.preservedInitialData.activeExtraDiceMultipliers = extraDiceAdjustments.map((adj) => adj.multiplier);
-	getConfigAC5E.preservedInitialData.activeDiceSteps = [...diceStepTotals];
+	getConfigAC5E.preservedInitialData.activeDiceSteps = diceStepTotals.map((alteration) => alteration.steps);
+	getConfigAC5E.preservedInitialData.activeDiceSets = diceStepTotals.map((alteration) => alteration.setSides);
 	getConfigAC5E.preservedInitialData.activeFormulaOperators = formulaOperatorTokensByRoll.map((tokens) => [...tokens]);
 	getConfigAC5E.preservedInitialData.activeOptinBonusParts = displayedBonusPartsByRoll.map((parts) => [...parts]);
 	getConfigAC5E.preservedInitialData.activeAppendedBonusRolls = appendedBonusRolls.map((entry) => ({

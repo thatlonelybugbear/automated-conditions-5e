@@ -124,6 +124,8 @@ const ROLL_AWARE_ENTRIES = new Set([
 	'hasDisadvantage',
 	'hasTransitAdvantage',
 	'hasTransitDisadvantage',
+	'mod',
+	'prof',
 	'ability',
 	'skill',
 	'tool',
@@ -940,7 +942,8 @@ function getEditorProfile(changeKey, parsed) {
 	const isInfo = normalized.endsWith('.info');
 	const supportsUpdate = true;
 	const supportsCriticalStatic = isDamageContext && (normalized.endsWith('.bonus') || normalized.endsWith('.extradice'));
-	const isBonus = normalized.endsWith('.bonus') || isTargetADC || normalized.endsWith('.extradice') || normalized.endsWith('.diceupgrade') || normalized.endsWith('.dicedowngrade');
+	const isModifyDenomination = normalized.endsWith('.modifydenomination');
+	const isBonus = (normalized.endsWith('.bonus') || isTargetADC || normalized.endsWith('.extradice') || normalized.endsWith('.diceupgrade') || normalized.endsWith('.dicedowngrade')) && !isModifyDenomination;
 	const isRange = normalized.includes('.range');
 
 	const requiredFields = [];
@@ -949,16 +952,18 @@ function getEditorProfile(changeKey, parsed) {
 	if (isAbilityOverride) requiredFields.push('override');
 	if (isTypeOverride) requiredFields.push('override');
 	if (isTargetADC) requiredFields.push('set');
+	if (isModifyDenomination) requiredFields.push('modify');
 	if (isModifier) requiredFields.push('modifier');
 	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('bonus', 'set');
 	if (isAura) auraFields.push('radius');
 	if (isRange) requiredFields.push(...RANGE_VALUE_FIELDS);
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
 	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
-	const supportsAddTo = isDamageContext && (isBonus || isTypeOverride || isModifier || hasParsedValue(parsed, 'addTo'));
+	const supportsAddTo = isDamageContext && (isBonus || isModifyDenomination || isTypeOverride || isModifier || hasParsedValue(parsed, 'addTo'));
 	const addToAnchorField =
 		isTypeOverride ? 'override'
 		: isModifier ? 'modifier'
+		: isModifyDenomination ? 'modify'
 		: 'bonus';
 
 	const contextToggles = [];
@@ -1487,7 +1492,7 @@ function isConditionEntry(identifier) {
 
 function getContextSandboxFallbackEntries(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
-	const entries = ['ability', 'skill', 'tool', 'damageTypes', 'defaultDamageType', 'riderStatuses'];
+	const entries = ['mod', 'prof', 'ability', 'skill', 'tool', 'damageTypes', 'defaultDamageType', 'riderStatuses'];
 	if (!normalized) return entries;
 	const actionType = getRuleActionTypeFromChangeKey(normalized);
 	const isRollLike = isD20AssistContext(normalized) || ['all', 'd20', 'check', 'skill', 'tool'].includes(actionType);

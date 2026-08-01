@@ -126,7 +126,18 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
 	if (ac5eConfig?.hookType !== 'attack') return;
-	syncResolvedTargetsToMessage(message, resolvedTargets, deps);
+	if (message) foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', foundry.utils.duplicate(resolvedTargets));
+	const snapshotTargets = foundry.utils.duplicate(resolvedTargets);
+	const baseTargetAcByKey = ac5eConfig?.preAC5eConfig?.baseTargetAcByKey;
+	if (baseTargetAcByKey) {
+		for (const [index, target] of snapshotTargets.entries()) {
+			const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
+			const key = tokenUuid ? `token:${tokenUuid}` : target?.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
+			const baseTarget = baseTargetAcByKey[key];
+			if (baseTarget?.hasAC) target.ac = baseTarget.ac;
+		}
+	}
+	syncResolvedTargetsToMessage(message, snapshotTargets, deps);
 }
 
 function isForcedSentinelAC(value) {

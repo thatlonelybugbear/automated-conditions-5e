@@ -5,7 +5,7 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 const _canSeeDebugEnabled = () => Boolean(settings.debug || globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.canSee);
 
-export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasStatuses = [], includeToken = false, includeIncapacitated = false, includeHidden = false, partyMember = false }) {
+export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasItems = [], hasStatuses = [], includeToken = false, includeIncapacitated = false, includeHidden = false, partyMember = false }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = foundry.canvas.placeables.Token;
 	if (token instanceof TokenDocument) {
@@ -48,6 +48,7 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 		if (includeIncapacitated === 'only' && !_hasStatuses(target.actor, ['dead', 'incapacitated'], true)) return false;
 		if (!_dispositionCheck(token, target, disposition, mult)) return false;
 		if (hasEffects.length && !target.actor?.appliedEffects.some((e) => hasEffects.includes(e.name))) return false;
+		if (hasItems.length && !_hasItem(target, hasItems)) return false;
 		if (hasStatuses.length && !_hasStatuses(target.actor, hasStatuses, true)) return false;
 		if (radius === 0) return true;
 		const distance = _getDistance(token, target);
@@ -59,8 +60,8 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = false, hasEffects = [], hasStatuses = [], partyMember = false } = {}) {
-	return findNearby({ token, disposition, radius, hasEffects, hasStatuses, includeToken, includeIncapacitated, includeHidden, lengthTest: count, partyMember });
+export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = false, hasEffects = [], hasItems = [], hasStatuses = [], partyMember = false } = {}) {
+	return findNearby({ token, disposition, radius, hasEffects, hasItems, hasStatuses, includeToken, includeIncapacitated, includeHidden, lengthTest: count, partyMember });
 }
 
 export function autoRanged(activity, token, target, options = {}) {

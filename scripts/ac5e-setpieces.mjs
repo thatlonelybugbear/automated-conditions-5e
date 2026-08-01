@@ -563,6 +563,8 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 
 	if (settings.automateStatuses) {
 		const tables = statusEffectsTables;
+		const statusEvaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
+		statusEvaluationData.ac5eConfig = ac5eConfig;
 		if (!tables) {
 			console.warn('AC5E status effects tables unavailable during check evaluation; skipping status automation for this roll.');
 		}
@@ -581,7 +583,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			if (options.hook === 'attack') actorStatuses = filterAttackStatusesForMidiVisibility(actorStatuses);
 
 			for (const status of actorStatuses) {
-				const suppressedStatus = getSuppressedStatusData({ actor, statusId: status, type, subjectToken, opponentToken });
+				const suppressedStatus = getSuppressedStatusData({ actor, statusId: status, type, subjectToken, opponentToken, evaluationData: statusEvaluationData });
 				if (suppressedStatus.suppressed) {
 					ac5eConfig[type].suppressedStatuses ??= [];
 					ac5eConfig[type].suppressedStatuses.push(...suppressedStatus.labels);
@@ -696,6 +698,7 @@ function createChecksSnapshot(ac5eConfig) {
 		extraDice: foundry.utils.duplicate(ac5eConfig.extraDice ?? []),
 		diceUpgrade: foundry.utils.duplicate(ac5eConfig.diceUpgrade ?? []),
 		diceDowngrade: foundry.utils.duplicate(ac5eConfig.diceDowngrade ?? []),
+		modifyDenomination: foundry.utils.duplicate(ac5eConfig.modifyDenomination ?? []),
 		threshold: foundry.utils.duplicate(ac5eConfig.threshold ?? []),
 		fumbleThreshold: foundry.utils.duplicate(ac5eConfig.fumbleThreshold ?? []),
 		damageModifiers: foundry.utils.duplicate(ac5eConfig.damageModifiers ?? []),
@@ -713,6 +716,7 @@ function applyChecksSnapshot(ac5eConfig, snapshot) {
 	ac5eConfig.extraDice = foundry.utils.duplicate(snapshot.extraDice ?? []);
 	ac5eConfig.diceUpgrade = foundry.utils.duplicate(snapshot.diceUpgrade ?? []);
 	ac5eConfig.diceDowngrade = foundry.utils.duplicate(snapshot.diceDowngrade ?? []);
+	ac5eConfig.modifyDenomination = foundry.utils.duplicate(snapshot.modifyDenomination ?? []);
 	ac5eConfig.threshold = foundry.utils.duplicate(snapshot.threshold ?? []);
 	ac5eConfig.fumbleThreshold = foundry.utils.duplicate(snapshot.fumbleThreshold ?? []);
 	ac5eConfig.damageModifiers = foundry.utils.duplicate(snapshot.damageModifiers ?? []);
@@ -1144,7 +1148,7 @@ function _passesFriendOrFoeFilter({ sourceToken, targetToken, rawValue }) {
 	return true;
 }
 
-function _evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sourceToken, auraToken }) {
+function _evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sourceToken, auraToken, evaluationData, effect }) {
 	const parsedBoolean = _parseFlagBooleanStrict(rawValue);
 	const normalizedRaw = typeof rawValue === 'string' ? rawValue : '';
 	const fragments = normalizedRaw
@@ -1161,8 +1165,25 @@ function _evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sour
 			if (!keyedMatch) return false;
 			return keyedKeywords.has(keyedMatch[1]);
 		});
+	const expression = fragments
+		.filter((fragment) => {
+			const lower = fragment.toLowerCase();
+			if (standaloneKeywords.has(lower)) return false;
+			const keyedMatch = lower.match(/^([a-z][a-z0-9_]*)\s*[:=]\s*(.*)$/i);
+			return !keyedMatch || !keyedKeywords.has(keyedMatch[1]);
+		})
+		.join(';');
 	if (parsedBoolean === false) return false;
-	if (parsedBoolean !== true && !hasOnlyKeywordFragments) return false;
+	if (parsedBoolean !== true && !hasOnlyKeywordFragments && !expression) return false;
+	if (expression) {
+		const originTokenId = _getEffectOriginToken(effect, 'id');
+		const evaluatedExpression = expression.replaceAll('effectOriginTokenId', JSON.stringify(originTokenId));
+		try {
+			if (!_ac5eSafeEval({ expression: evaluatedExpression, sandbox: _withEffectOriginEvaluationData(evaluationData, effect), mode: 'condition' })) return false;
+		} catch {
+			return false;
+		}
+	}
 	if (scope === 'grants') return _passesFriendOrFoeFilter({ sourceToken, targetToken, rawValue });
 	if (scope !== 'aura') return true;
 	if (!_passesFriendOrFoeFilter({ sourceToken: auraToken ?? sourceToken, targetToken, rawValue })) return false;
@@ -1178,7 +1199,7 @@ function _evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sour
 	return Number.isFinite(distance) && distance <= radius;
 }
 
-function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponentToken }) {
+function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponentToken, evaluationData }) {
 	if (!actor || !statusId) return { suppressed: false, labels: [] };
 	const statusKey = statusId.capitalize();
 	const flagName = `no${statusKey}`;
@@ -1194,7 +1215,7 @@ function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponent
 		if (!actorDocument) return;
 		for (const path of flagPaths) {
 			const rawValue = foundry.utils.getProperty(actorDocument, path);
-			if (_evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sourceToken, auraToken })) {
+			if (_evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sourceToken, auraToken, evaluationData })) {
 				suppressed = true;
 				return;
 			}
@@ -1207,7 +1228,7 @@ function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponent
 			let matched = false;
 			for (const change of changes) {
 				if (!flagPaths.includes(change?.key)) continue;
-				if (!_evaluateSuppressedStatusFlagValue({ rawValue: change?.value, scope, targetToken, sourceToken, auraToken })) continue;
+				if (!_evaluateSuppressedStatusFlagValue({ rawValue: change?.value, scope, targetToken, sourceToken, auraToken, evaluationData, effect })) continue;
 				matched = true;
 				break;
 			}
@@ -1303,6 +1324,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			['nodis', 'noDisadvantage'],
 			['diceupgrade', 'diceUpgrade'],
 			['dicedowngrade', 'diceDowngrade'],
+			['modifydenomination', 'modifyDenomination'],
 			['typeoverride', 'typeOverride'],
 			['info', 'info'],
 			['dis', 'disadvantage'],
@@ -1426,6 +1448,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'itemlimited',
 		'long',
 		'longdisadvantage',
+		'modify',
 		'modifier',
 		'name',
 		'noconc',
@@ -1825,6 +1848,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			case 'diceDowngrade':
 				if (bonus !== undefined && bonus !== '') return localizeTemplate('AC5E.OptinDescription.DowngradesDamageDiceWithValue', { value: bonus }, `Downgrades damage dice (${bonus})`);
 				return localizeText('AC5E.OptinDescription.DowngradesDamageDice', 'Downgrades damage dice');
+			case 'modifyDenomination':
+				if (typeof bonus === 'string' && /^d\d+$/i.test(bonus)) return `Sets damage dice to ${bonus}`;
+				if (bonus !== undefined && bonus !== '') return `Modifies damage dice (${bonus})`;
+				return 'Modifies damage dice';
 			case 'range':
 				return localizeText('AC5E.OptinDescription.ModifiesAttackRange', 'Modifies attack range behavior');
 			default:
@@ -2262,6 +2289,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const processEffectChange = ({ change, changeIndex, effect, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		const normalizedChange = _rewriteLegacyGrantsModifyDCChange(change);
+		if (/\.damage\.(?:diceupgrade|dicedowngrade)\b/i.test(normalizedChange?.key ?? '')) {
+			foundry.utils.logCompatibilityWarning('AC5E: damage.diceUpgrade and damage.diceDowngrade are deprecated. Use damage.modifyDenomination instead.', {
+				since: '14.533.13',
+				until: '6.1',
+				once: true,
+			});
+		}
 		const effectSandbox = _withEffectOriginEvaluationData(sandbox, effect);
 		globalThis?.[Constants.MODULE_NAME_SHORT]?.contextKeywords?.applyToSandbox?.(effectSandbox);
 		globalThis?.[Constants.MODULE_NAME_SHORT]?.usageRules?.applyToSandbox?.(effectSandbox);
@@ -2753,7 +2787,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				for (const queued of updateArrays.itemUpdates.filter(matchesQueuedUpdate)) validItemUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.itemUpdatesGM.filter(matchesQueuedUpdate)) validItemUpdatesGM.push(queued.context ?? queued);
 			}
-		if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
+		if (['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'modifyDenomination', 'range'].includes(mode)) ac5eConfig[actorType][mode].push(entry);
 			else if (optin) ac5eConfig[actorType][mode].push(entry);
 			else {
 				const hasDecoratedLabel = !!(entry?.label && entry.label !== name);
@@ -2773,12 +2807,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					entryMode: mode,
 					actorType,
 					optin: !!optin,
-					storedAs: optin || ['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'range'].includes(mode) ? 'entry' : 'labelOrName',
+					storedAs: optin || ['bonus', 'targetADC', 'extraDice', 'typeOverride', 'abilityOverride', 'diceUpgrade', 'diceDowngrade', 'modifyDenomination', 'range'].includes(mode) ? 'entry' : 'labelOrName',
 					changeKey: entry?.changeKey,
 					label: entry?.label,
 				});
 			}
-			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' || mode === 'diceUpgrade' || mode === 'diceDowngrade') {
+			if (mode === 'bonus' || mode === 'targetADC' || mode === 'extraDice' || mode === 'diceUpgrade' || mode === 'diceDowngrade' || mode === 'modifyDenomination') {
 				const configMode =
 					mode === 'bonus' ? 'parts'
 					: mode === 'targetADC' ? 'targetADC'
@@ -2796,7 +2830,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (typeof bonus === 'string') {
 						const trimmedBonus = bonus.trim();
 						const isDiceMultiplier = /^\+?\s*(?:x|\^)\s*-?\d+\s*$/i.test(trimmedBonus);
-						if (!isDiceMultiplier && !(trimmedBonus.includes('+') || trimmedBonus.includes('-'))) bonus = `+${bonus}`;
+						if (mode !== 'modifyDenomination' && !isDiceMultiplier && !(trimmedBonus.includes('+') || trimmedBonus.includes('-'))) bonus = `+${bonus}`;
 					}
 					entryValues.push(bonus);
 				}
@@ -4455,6 +4489,12 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 				debug,
 			});
 	}
+	const isModifyDenomination = mode === 'modifyDenomination' ? getBlacklistedKeysValue('modify', rawValue) : false;
+	if (isModifyDenomination) {
+		const replacementModify = bonusReplacements(isModifyDenomination, evaluationData, isAura, effect, chanceKey);
+		const trimmedModify = replacementModify.trim();
+		bonus = /^d\d+$/i.test(trimmedModify) ? trimmedModify : _ac5eSafeEval({ expression: replacementModify, sandbox: evaluationData, mode: 'formula', debug });
+	}
 	const isSet =
 		lowerValue.includes('set') && (mode === 'bonus' || mode === 'targetADC' || mode === 'typeOverride' || mode === 'abilityOverride' || (['criticalThreshold', 'fumbleThreshold'].includes(mode) && hook === 'attack')) ?
 			getBlacklistedKeysValue('set', rawValue)
@@ -4515,7 +4555,8 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		}
 	}
 	if (threshold !== undefined && threshold !== '') threshold = Number(evalNumericFormulaExpression(threshold, { debug })); // we need Integers to differentiate from set
-	if (bonus && mode !== 'bonus') {
+	const isDenominationReplacement = mode === 'modifyDenomination' && typeof bonus === 'string' && /^d\d+$/i.test(bonus);
+	if (bonus && mode !== 'bonus' && !isDenominationReplacement) {
 		// Preserve extraDice multiplier literals (x2/^2) so they can be parsed downstream.
 		const isExtraDiceMultiplierLiteral = mode === 'extraDice' && typeof bonus === 'string' && /^\+?\s*(?:x|\^)\s*-?\d+\s*$/i.test(bonus.trim());
 		if (isExtraDiceMultiplierLiteral) bonus = bonus.trim();

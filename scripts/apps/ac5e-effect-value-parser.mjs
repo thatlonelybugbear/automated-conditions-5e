@@ -1,5 +1,6 @@
 const ASSIGNMENT_FIELDS = [
 	'bonus',
+	'modify',
 	'modifier',
 	'override',
 	'set',
@@ -235,6 +236,7 @@ function getAssignmentAliasState(changeKey = '') {
 	const rangeField = normalized.match(/\.range\.(short|long|reach|bonus)$/)?.[1] ?? '';
 	return {
 		isTypeOverride: normalized.endsWith('.typeoverride'),
+		isModifyDenomination: normalized.endsWith('.modifydenomination'),
 		rangeField: RANGE_VALUE_FIELDS.has(rangeField) ? rangeField : '',
 	};
 }
@@ -243,6 +245,7 @@ function resolveAssignmentField(normalizedKey, aliasState) {
 	if (aliasState.isTypeOverride) {
 		if (normalizedKey === 'override' || normalizedKey === 'set') return 'override';
 	}
+	if (aliasState.isModifyDenomination && normalizedKey === 'modify') return 'modify';
 	return ASSIGNMENT_LOOKUP.get(normalizedKey);
 }
 

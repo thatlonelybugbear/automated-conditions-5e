@@ -57,7 +57,7 @@ function applyAlteredTargetADC(ac5eConfig, rollConfig, values = []) {
 	ac5eConfig.alteredTargetADC = getAlteredTargetValueOrThreshold(baseTarget, values, type);
 }
 
-export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets = false } = {}) {
+export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets = false, message = null } = {}) {
 	const options = rollConfig.options ?? (rollConfig.options = {});
 	const hookType = ac5eConfig?.hookType;
 	const isAttackHook = hookType === 'attack';
@@ -77,8 +77,17 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 			options.alteredTargetADC = ac5eConfig.alteredTargetADC;
 		}
 		if (isAttackHook && Array.isArray(ac5eConfig.options?.targets)) {
-			for (const target of ac5eConfig.options.targets) {
-				if (target && typeof target === 'object') target.ac = nextTarget;
+			for (const [index, target] of ac5eConfig.options.targets.entries()) {
+				if (!target || typeof target !== 'object') continue;
+				const tokenUuid = target.tokenUuid ?? target.token?.uuid;
+				const key = tokenUuid ? `token:${tokenUuid}` : target.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
+				const baseTargetAC = ac5eConfig.preAC5eConfig?.baseTargetAcByKey?.[key]?.ac;
+				const targetAC = ac5eConfig.alteredTargetADCs?.[key]?.ac
+					?? (typeof baseTargetAC === 'number' && Array.isArray(ac5eConfig.targetADC)
+						? getAlteredTargetValueOrThreshold(baseTargetAC, ac5eConfig.targetADC, 'acBonus')
+						: undefined);
+				if (typeof targetAC === 'number' && Number.isFinite(targetAC)) target.ac = targetAC;
+				else if (ac5eConfig.options.targets.length === 1) target.ac = nextTarget;
 			}
 		}
 	} else if (Array.isArray(ac5eConfig.optinBaseTargetADC) && ac5eConfig.optinBaseTargetADCValue !== undefined) {
@@ -102,7 +111,7 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 		}
 	}
 	if (syncAttackTargets && isAttackHook) {
-		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], null, {
+		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], message, {
 			Constants,
 			getMessageFlagScope: _getMessageFlagScope,
 			getMessageDnd5eFlags: _getMessageDnd5eFlags,

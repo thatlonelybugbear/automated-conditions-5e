@@ -273,6 +273,7 @@ const FLAG_REGISTRY_MODE_NAMES = new Set([
 	'critical',
 	'diceUpgrade',
 	'diceDowngrade',
+	'modifyDenomination',
 	'disadvantage',
 	'fail',
 	'fumble',
@@ -1911,6 +1912,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectDiceUpgradeLabels.length, `<span style="display: block; text-align: left;">Dice Upgrade: ${subjectDiceUpgradeLabels.join(', ')}</span>`);
 		const subjectDiceDowngradeLabels = mapEntryLabels(filterOptinEntries(subject.diceDowngrade));
 		addTooltip(subjectDiceDowngradeLabels.length, `<span style="display: block; text-align: left;">Dice Downgrade: ${subjectDiceDowngradeLabels.join(', ')}</span>`);
+		const subjectModifyDenominationLabels = mapEntryLabels(filterOptinEntries(subject.modifyDenomination));
+		addTooltip(subjectModifyDenominationLabels.length, `<span style="display: block; text-align: left;">Modify Denomination: ${subjectModifyDenominationLabels.join(', ')}</span>`);
 		const subjectTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(subject.typeOverride)) : [];
 		addTooltip(subjectTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Type Override: ${subjectTypeOverrideLabels.join(', ')}</span>`);
 		const subjectAbilityOverrideLabels = mapAbilityOverrideLabels(filterOptinEntries(subject.abilityOverride));
@@ -1961,6 +1964,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponentDiceUpgradeLabels.length, `<span style="display: block; text-align: left;">Target Grants Dice Upgrade: ${opponentDiceUpgradeLabels.join(', ')}</span>`);
 		const opponentDiceDowngradeLabels = mapEntryLabels(filterOptinEntries(opponent.diceDowngrade));
 		addTooltip(opponentDiceDowngradeLabels.length, `<span style="display: block; text-align: left;">Target Grants Dice Downgrade: ${opponentDiceDowngradeLabels.join(', ')}</span>`);
+		const opponentModifyDenominationLabels = mapEntryLabels(filterOptinEntries(opponent.modifyDenomination));
+		addTooltip(opponentModifyDenominationLabels.length, `<span style="display: block; text-align: left;">Target Grants Modify Denomination: ${opponentModifyDenominationLabels.join(', ')}</span>`);
 		const opponentTypeOverrideLabels = hookType === 'damage' ? mapTypeOverrideLabels(filterOptinEntries(opponent.typeOverride)) : [];
 		addTooltip(opponentTypeOverrideLabels.length, `<span style="display: block; text-align: left;">Target Grants Type Override: ${opponentTypeOverrideLabels.join(', ')}</span>`);
 		const opponentAbilityOverrideLabels = mapAbilityOverrideLabels(filterOptinEntries(opponent.abilityOverride));
@@ -3108,12 +3113,9 @@ export function _generateAC5eFlags() {
 		`${moduleFlagScope}.damage.typeOverride`,
 		`${moduleFlagScope}.grants.damage.typeOverride`,
 		`${moduleFlagScope}.aura.damage.typeOverride`,
-		`${moduleFlagScope}.damage.diceUpgrade`,
-		`${moduleFlagScope}.grants.damage.diceUpgrade`,
-		`${moduleFlagScope}.aura.damage.diceUpgrade`,
-		`${moduleFlagScope}.damage.diceDowngrade`,
-		`${moduleFlagScope}.grants.damage.diceDowngrade`,
-		`${moduleFlagScope}.aura.damage.diceDowngrade`,
+		`${moduleFlagScope}.damage.modifyDenomination`,
+		`${moduleFlagScope}.grants.damage.modifyDenomination`,
+		`${moduleFlagScope}.aura.damage.modifyDenomination`,
 		`${moduleFlagScope}.modifyAC`,
 		`${moduleFlagScope}.grants.modifyAC`,
 		`${moduleFlagScope}.aura.modifyAC`,
