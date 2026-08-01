@@ -17,6 +17,7 @@
 		"Title": "Risorse & Supporto"
 	},
 	"AC5E.ActiveEffect.ChangeTypes.AC5E": "AC5E",
+	"AC5E.ActiveEffect.ChangeTypes.AutomatedConditions5e": "Automated Conditions 5e",
 	"AC5E.ShowTooltipsName": "Mostra suggerimenti AC5E",
 	"AC5E.ShowTooltipsHint": "Mostra i suggerimenti AC5E nei dialoghi di tiro, nei messaggi in chat o in entrambi, spiegando i motivi del risultato suggerito.",
 	"AC5E.ShowToolTipsChoicesBoth": "Dialoghi Tiro e Messaggi Chat",
