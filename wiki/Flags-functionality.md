@@ -119,6 +119,9 @@ Replace `MODE` with one of the following:
      - `bonus=1` will be multiplied on a crit
 - `diceUpgrade` - Upgrades damage dice step (`d6` -> `d8`) by the provided steps.
 - `diceDowngrade` - Downgrades damage dice step (`d8` -> `d6`) by the provided steps.
+- `modifyDenomination` - The preferred way to change damage dice from `14.533.14` onward.
+  - Use `modify=1` to upgrade one configured die size, or `modify=-1` to downgrade one size.
+  - Use `modify=dX` to set a specific die size, such as `modify=d12`.
 - `typeOverride` - Replaces the damage type set of matching base/native damage rolls.
    - Include `override=fire` to force a single type.
    - Include `override=fire,lightning,thunder` to offer multiple damage types through D&D 5e's native dropdown.
@@ -213,7 +216,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `optin`                | Shows the flag as an optional checkbox in the relevant roll dialog |
 | `optinId=identifier`   | Assigns an optional flag a stable selection identifier. Use it with `optin` when another flag needs to react to that selection. |
 | `optinScale` / `bonusScale` | Formula tokens for scaled opt-ins. `optinScale` is the selected slider value. `bonusScale` is the resolved scale value (selected slider value when present, otherwise resolved fallback scale). |
-| `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `critical`) |
+| `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `modifyDenomination`, `critical`) |
 | `addTo=types(fire,cold)` | Targets only matching damage types |
 | `addTo=optin(identifier)` | Targets the opted-in `damage.bonus` part with that `optinId` |
 | `chance=Number`        | Applies only when a d100 roll is greater than or equal to the threshold |

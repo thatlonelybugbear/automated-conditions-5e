@@ -215,6 +215,13 @@ key: flags.automated-conditions-5e.damage.diceUpgrade
 
 value: bonus=1; addTo=optin(sneak-attack); optinSelected['venomous-strike-1']
 ```
+
+From `14.533.14` onward, prefer `damage.modifyDenomination` for new effects:
+```
+key: flags.automated-conditions-5e.damage.modifyDenomination
+
+value: modify=1; addTo=optin(sneak-attack); optinSelected['venomous-strike-1']
+```
 ## Random Examples of Functionality
 ### Aura of save disadvantage
 If an enemy creature within 60 units of distance rolls a save associated with an activity doing Fire or Radiant damage, they get disadvantage;
