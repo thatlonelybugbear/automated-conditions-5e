@@ -397,7 +397,8 @@ If the roll involves a specific action or item, you'll also have access to:
 ### `item`
 - `item.name`, `item.school` (for spells), etc
 - `item.identifier`
-- `item.classIdentifier`
+- `item.classIdentifier` - Stable system identifier for a class-linked item. Available since AC5E `13.5300.1`.
+- `item.sourceClass` - The source class of a spell or item, such as `cleric`. Available since AC5E `13.5250.10`.
 - `item.sourceItem`
 - `activity.school`
 - `originItem.classIdentifier`, `originItem.sourceItem`, `originItem.school`
