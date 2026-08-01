@@ -1,3 +1,12 @@
+## 14.533.14
+
+- Added `damage.modifyDenomination` for changing damage dice: use a positive or negative number to step through the system's dice sizes, or `dX` to set a specific die size.
+- Improved damage bonuses so extra damage dice apply only to the activity's original damage, not to AC5E-added bonus damage.
+- Added `mod` and `prof` helpers to the Effect Value Editor for roll-aware conditions and formulas.
+- Added `hasItems` filtering to `checkNearby()`.
+- Improved modified target AC handling so attack dialogs, results, and tooltips remain in sync.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 ## 14.533.13.1
 
 - Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
