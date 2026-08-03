@@ -4,29 +4,50 @@ import { refreshAttackAutoRangeState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
 import { getMessageTargetsFromFlags, resolveTargets, syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
 
-export function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message, deps) {
+export function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message, rolls, deps) {
 	if (!config || !ac5eConfig || ac5eConfig.hookType !== 'attack') return;
 	if (Number.isInteger(ac5eConfig?.buildRollConfig?.index) && ac5eConfig.buildRollConfig.index !== 0) return;
 	const preservedD20State = captureAppliedAttackRollState(config, ac5eConfig);
 	refreshAttackAutoRangeState(ac5eConfig, config);
 
-	const messageForRead = message ?? getMessageForConfigTargets(config, 'attack', ac5eConfig.options?.activity, deps) ?? dialog?.message;
+	const originatingMessage = getMessageForConfigTargets(config, 'attack', ac5eConfig.options?.activity, deps) ?? dialog?.message;
+	const messageForRead = message ?? originatingMessage;
 	const targetDeps = {
 		Constants,
 		getMessageFlagScope: _getMessageFlagScope,
 		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	};
 	const messageTargets = getMessageTargetsFromFlags(messageForRead, targetDeps);
-	const finalTargets = resolveTargets(messageForRead, messageTargets, { hook: 'attack', activity: ac5eConfig.options?.activity }, targetDeps);
+	const persistedFinalTargets =
+		rolls?.[0]?.options?.[Constants.MODULE_ID]?.finalizedTargets
+		?? ac5eConfig?.finalizedTargets
+		?? _getMessageFlagScope(messageForRead, Constants.MODULE_ID)?.finalizedTargets
+		?? _getMessageFlagScope(originatingMessage, Constants.MODULE_ID)?.finalizedTargets;
+	const finalTargets = (Array.isArray(persistedFinalTargets) ? persistedFinalTargets : ac5eConfig.options?.targets ?? resolveTargets(messageForRead, messageTargets, { hook: 'attack', activity: ac5eConfig.options?.activity }, targetDeps)).map((target, index) => {
+		const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
+		const key = tokenUuid ? `token:${tokenUuid}` : target?.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
+		const finalizedAC = Array.isArray(persistedFinalTargets) ? target?.ac : ac5eConfig.alteredTargetADCs?.[key]?.ac;
+		return Number.isFinite(Number(finalizedAC)) ? { ...target, ac: Number(finalizedAC) } : target;
+	});
 	if (!finalTargets.length) return;
+	const target = Math.min(...finalTargets.map((entry) => Number(entry?.ac)).filter(Number.isFinite));
+	if (Number.isFinite(target)) {
+		config.target = target;
+		for (const roll of rolls ?? []) {
+			roll.options ??= {};
+			roll.options.target = target;
+		}
+	}
 
 	syncTargetsToConfigAndMessage(ac5eConfig, finalTargets, message, targetDeps);
 	config.advantage = undefined;
 	config.disadvantage = undefined;
 	deps.calcAdvantageMode(ac5eConfig, config, undefined, undefined, { skipSetProperties: true });
 	deps.applyExplicitModeOverride(ac5eConfig, config);
+	if (game.modules.get('midi-qol')?.active) {
+		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? finalTargets, message, targetDeps);
+	}
 	restoreAppliedAttackRollState(config, ac5eConfig, preservedD20State);
-	syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? finalTargets, message, targetDeps);
 }
 
 function captureAppliedAttackRollState(config, ac5eConfig) {

@@ -23,7 +23,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 		hookDebugEnabled: deps.hookDebugEnabled,
 		getExplicitModeOverride,
 	});
-	refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message, {
+	refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message, rolls, {
 		calcAdvantageMode: deps.calcAdvantageMode,
 		applyExplicitModeOverride,
 	});

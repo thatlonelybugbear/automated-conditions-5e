@@ -6,7 +6,7 @@ export function getMessageTargetsFromFlags(messageLike, deps) {
 
 export function getTargets({ message } = {}, deps) {
 	const explicitMessage = message?.document ?? message;
-	const preTargets = deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets ?? deps.getMessageDnd5eFlags(explicitMessage)?.targets;
+	const preTargets = deps.getMessageDnd5eFlags(explicitMessage)?.targets ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
 	if (Array.isArray(preTargets) && preTargets.length) return preTargets;
 	return [];
 }

@@ -63,15 +63,23 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 	const isAttackHook = hookType === 'attack';
 	const isAttackLikeHook = isAttackHook || hookType === 'damage';
 	const roll0Target = getExistingRoll(rollConfig, 0);
+	const coverTargetAcByKey = ac5eConfig?.preAC5eConfig?.simpleCoverTargetAcByKey ?? {};
+	const setAttackTarget = (target) => {
+		rollConfig.target = target;
+		if (roll0Target) {
+			roll0Target.target = target;
+			if (roll0Target.options && typeof roll0Target.options === 'object') roll0Target.options.target = target;
+		}
+		options.target = target;
+	};
 	if (ac5eConfig.alteredTargetADC !== undefined) {
-		const nextTarget = ac5eConfig.alteredTargetADC;
+		const coverAcs = Object.values(coverTargetAcByKey)
+			.filter((target) => !target?.total && Number.isFinite(Number(target?.ac)))
+			.map((target) => getAlteredTargetValueOrThreshold(Number(target.ac), ac5eConfig.targetADC ?? [], 'acBonus'));
+		const nextTarget = coverAcs.length ? Math.min(...coverAcs) : ac5eConfig.alteredTargetADC;
+		if (coverAcs.length) ac5eConfig.alteredTargetADC = nextTarget;
 		if (isAttackLikeHook) {
-			rollConfig.target = nextTarget;
-			if (roll0Target) {
-				roll0Target.target = nextTarget;
-				if (roll0Target.options && typeof roll0Target.options === 'object') roll0Target.options.target = nextTarget;
-			}
-			options.target = nextTarget;
+			setAttackTarget(nextTarget);
 		} else {
 			options.initialTargetADC = ac5eConfig.initialTargetADC;
 			options.alteredTargetADC = ac5eConfig.alteredTargetADC;
@@ -81,8 +89,15 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 				if (!target || typeof target !== 'object') continue;
 				const tokenUuid = target.tokenUuid ?? target.token?.uuid;
 				const key = tokenUuid ? `token:${tokenUuid}` : target.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
-				const baseTargetAC = ac5eConfig.preAC5eConfig?.baseTargetAcByKey?.[key]?.ac;
-				const targetAC = ac5eConfig.alteredTargetADCs?.[key]?.ac
+				const coverTarget = coverTargetAcByKey[key];
+				if (coverTarget?.total) {
+					target.ac = 999;
+					continue;
+				}
+				const baseTargetAC = coverTarget?.ac ?? ac5eConfig.preAC5eConfig?.baseTargetAcByKey?.[key]?.ac;
+				const targetAC = (typeof coverTarget?.ac === 'number' && Array.isArray(ac5eConfig.targetADC)
+					? getAlteredTargetValueOrThreshold(coverTarget.ac, ac5eConfig.targetADC, 'acBonus')
+					: ac5eConfig.alteredTargetADCs?.[key]?.ac)
 					?? (typeof baseTargetAC === 'number' && Array.isArray(ac5eConfig.targetADC)
 						? getAlteredTargetValueOrThreshold(baseTargetAC, ac5eConfig.targetADC, 'acBonus')
 						: undefined);
@@ -94,12 +109,7 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 		const baseTarget = getBaseTargetADCValue(rollConfig, ac5eConfig);
 		ac5eConfig.optinBaseTargetADCValue = baseTarget;
 		if (isAttackLikeHook) {
-			rollConfig.target = baseTarget;
-			if (roll0Target) {
-				roll0Target.target = baseTarget;
-				if (roll0Target.options && typeof roll0Target.options === 'object') roll0Target.options.target = baseTarget;
-			}
-			options.target = baseTarget;
+			setAttackTarget(baseTarget);
 		} else {
 			options.initialTargetADC = ac5eConfig.initialTargetADC ?? baseTarget;
 			delete options.alteredTargetADC;
@@ -108,6 +118,28 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 			for (const target of ac5eConfig.options.targets) {
 				if (target && typeof target === 'object') target.ac = baseTarget;
 			}
+		}
+	} else if (isAttackHook && Object.keys(coverTargetAcByKey).length && Array.isArray(ac5eConfig.options?.targets)) {
+		const activeTargets = [];
+		for (const [index, target] of ac5eConfig.options.targets.entries()) {
+			const coverTarget = coverTargetAcByKey[getTargetKey(target, index)];
+			if (!coverTarget) continue;
+			target.ac = coverTarget.ac;
+			if (!coverTarget.total) activeTargets.push(coverTarget.ac);
+		}
+		if (activeTargets.length) setAttackTarget(Math.min(...activeTargets));
+		else if (ac5eConfig.options.targets.length === 1) setAttackTarget(999);
+	}
+	if (isAttackHook && Object.keys(coverTargetAcByKey).length && Array.isArray(ac5eConfig.options?.targets)) {
+		const totalCoverTargets = ac5eConfig.options.targets.filter((target, index) => {
+			const coverTarget = coverTargetAcByKey[getTargetKey(target, index)];
+			if (!coverTarget?.total) return false;
+			target.ac = 999;
+			return true;
+		});
+		if (totalCoverTargets.length === 1 && ac5eConfig.options.targets.length === 1) {
+			setAttackTarget(999);
+			if (roll0Target?.options) roll0Target.options.criticalSuccess = 21;
 		}
 	}
 	if (syncAttackTargets && isAttackHook) {
@@ -137,6 +169,8 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 	const hookType = ac5eConfig?.hookType;
 	const useTargetAcs = hookType === 'attack' || hookType === 'damage';
 	if (useTargetAcs) {
+		const byCoverTargets = collectNestedAcs(ac5eConfig?.preAC5eConfig?.simpleCoverTargetAcByKey);
+		if (byCoverTargets.length) return Math.min(...byCoverTargets);
 		const optinBaseTargetADCValue = Number(ac5eConfig?.optinBaseTargetADCValue);
 		if (Number.isFinite(optinBaseTargetADCValue) && !isForcedSentinelAC(optinBaseTargetADCValue)) return optinBaseTargetADCValue;
 		const byInitialTargets = collectNestedAcs(ac5eConfig?.initialTargetADCs);
@@ -156,6 +190,11 @@ function getBaseTargetADCValue(config, ac5eConfig) {
 	if (direct.length) return direct[0];
 
 	return 10;
+}
+
+function getTargetKey(target, index) {
+	const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
+	return tokenUuid ? `token:${tokenUuid}` : target?.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
 }
 
 function getTargetADCEntriesForHook(ac5eConfig, hookType) {

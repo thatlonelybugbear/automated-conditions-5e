@@ -2014,9 +2014,14 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(combinedArray.length, `<span style="display: block; text-align: left;">${_localize(translationString)}: ${combinedArray.join(', ')}</span>`);
 	}
 	const combinedTargetEntries = suppressUseOwnedTargetDCTooltip ? [] : filterOptinEntries([...(subject?.targetADC ?? []), ...(opponent?.targetADC ?? [])]);
-	const combinedTargetADC = suppressUseOwnedTargetDCTooltip ? [] : mapEntryLabels(combinedTargetEntries);
+	const totalCover = hookType === 'attack' && ac5eConfig?.simpleCoverEntries?.some((entry) => entry.ac === 999);
+	const winningSetEntry = [...combinedTargetEntries].reverse().find((entry) => entry?.set !== undefined && entry?.set !== null && String(entry.set).trim() !== '');
+	const displayedTargetEntries = totalCover ? [] : (winningSetEntry ? [winningSetEntry] : combinedTargetEntries);
+	const combinedTargetADC = suppressUseOwnedTargetDCTooltip ? [] : mapEntryLabels(displayedTargetEntries).map((label) => winningSetEntry ? `${label} (SET)` : label);
 	if (!suppressUseOwnedTargetDCTooltip && combinedTargetADC.length) {
 		let tooltipInitialTargetADC = getPreferredBaseTargetADC();
+		const coverAcs = (ac5eConfig?.simpleCoverEntries ?? []).map((entry) => Number(entry.ac)).filter((value) => Number.isFinite(value) && value !== 999);
+		if (hookType === 'attack' && coverAcs.length) tooltipInitialTargetADC = Math.min(...coverAcs);
 		const numericAlteredTargetAcs = Object.values(ac5eConfig?.alteredTargetADCs ?? {})
 			.map((entry) => Number(entry?.ac))
 			.filter((value) => Number.isFinite(value));
@@ -2044,7 +2049,9 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(true, `<span style="display: block; text-align: left;">${translationString}: ${combinedTargetADC.join(', ')}</span>`);
 	}
 	if (hookType === 'attack' && ac5eConfig?.simpleCoverEntries?.length) {
-		const coverEntries = ac5eConfig.simpleCoverEntries.map((entry) => `${_localize('AC5E.ModifyAC')} ${entry.ac} (${entry.base}): ${entry.label}`);
+		const coverEntries = ac5eConfig.simpleCoverEntries.map((entry) => entry.ac === 999
+			? `${_localize('AC5E.ModifyAC')} ${entry.ac} (${entry.base}): ${entry.label} (SET)`
+			: `Base AC ${entry.ac} (${entry.base}): ${entry.label}`);
 		addTooltip(true, `<span style="display: block; text-align: left;">${coverEntries.join(', ')}</span>`);
 	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;

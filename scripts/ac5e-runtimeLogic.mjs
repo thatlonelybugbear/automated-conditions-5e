@@ -323,6 +323,17 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const messageTargets = Array.isArray(dnd5eFlags?.targets) ? dnd5eFlags.targets : null;
 		return messageTargets ?? [];
 	};
+	const getSimpleCoverBonus = (target) => {
+		if (!game.modules.get('simplecover5e')?.api?.getLibraryMode?.()) return 0;
+		const coverTargets = message?.data?.flags?.simplecover5e?.targets ?? message?.flags?.simplecover5e?.targets;
+		const coverTarget = coverTargets?.find((entry) => entry?.tokenUuid === target?.tokenUuid || entry?.uuid === target?.uuid);
+		switch (coverTarget?.newCover ?? coverTarget?.originalCover) {
+			case 'total': return null;
+			case 'half': return Number(CONFIG.DND5E.statusEffects.coverHalf?.coverBonus ?? 0);
+			case 'threeQuarters': return Number(CONFIG.DND5E.statusEffects.coverThreeQuarters?.coverBonus ?? 0);
+			default: return 0;
+		}
+	};
 	ac5eConfig.preAC5eConfig ??= {};
 	if (!ac5eConfig.preAC5eConfig.baseRoll0Options) {
 		const targetCollections = hook === 'attack' || hook === 'damage' ? getMutableAttackTargetCollections() : [];
@@ -366,7 +377,13 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			for (let i = 0; i < targets.length; i++) {
 				const baseEntry = baseTargetAcByKey[getTargetKey(targets[i], i)];
 				if (!baseEntry?.hasAC) continue;
-				targets[i].ac = baseEntry.ac;
+				const selectedCover = ac5eConfig.preAC5eConfig?.simpleCoverTargetAcByKey?.[getTargetKey(targets[i], i)];
+				if (Number.isFinite(Number(selectedCover?.ac))) {
+					targets[i].ac = Number(selectedCover.ac);
+					continue;
+				}
+				const coverBonus = getSimpleCoverBonus(targets[i]);
+				targets[i].ac = coverBonus === null ? 999 : baseEntry.ac + coverBonus;
 			}
 		}
 	}
@@ -530,7 +547,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.options.criticalFailure = finalThreshold;
 				ac5eConfig.alteredFumbleThreshold = finalThreshold;
 			}
-			if (ac5eConfig.targetADC?.length) {
+			if (ac5eConfig.targetADC?.length || getMutableAttackTargetCollections()[0]?.some((target) => getSimpleCoverBonus(target) !== 0)) {
 				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: apply attack/damage', { hook, targetADC: ac5eConfig.targetADC, rollTarget: roll0?.options?.target, configTarget: config?.target });
 				const targetCollections = getMutableAttackTargetCollections();
 				const primaryTargets = targetCollections[0];
@@ -544,10 +561,18 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 						targets.forEach((target, index) => {
 							const key = getTargetKey(target, index);
 							const baseEntry = baseTargetAcByKey[key];
+							const coverTarget = ac5eConfig.preAC5eConfig?.simpleCoverTargetAcByKey?.[key];
 							const sourceTarget = targets[index] ?? target ?? {};
-							const initialPerTargetADC = pickNonSentinelNumber(baseEntry?.ac, getLiveTargetAC(sourceTarget), sourceTarget?.ac);
+							const coverBonus = getSimpleCoverBonus(sourceTarget);
+							if (coverTarget?.total || coverBonus === null) {
+								targets[index].ac = ac5eForcedRollTarget;
+								return;
+							}
+							const initialPerTargetADC = Number.isFinite(Number(coverTarget?.ac))
+								? Number(coverTarget.ac)
+								: pickNonSentinelNumber(baseEntry?.ac, getLiveTargetAC(sourceTarget), sourceTarget?.ac) + coverBonus;
 							if (!Number.isFinite(initialPerTargetADC)) return;
-							const alteredTargetADC = getAlteredTargetValueOrThreshold(initialPerTargetADC, ac5eConfig.targetADC, 'acBonus');
+							const alteredTargetADC = getAlteredTargetValueOrThreshold(initialPerTargetADC, ac5eConfig.targetADC ?? [], 'acBonus');
 							if (!isNaN(alteredTargetADC)) {
 								targets[index].ac = alteredTargetADC;
 								initialTargetADC = initialTargetADC === undefined || initialPerTargetADC < initialTargetADC ? initialPerTargetADC : initialTargetADC;
@@ -585,6 +610,11 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 					if (config) config.target = lowerTargetADC;
 					ac5eConfig.alteredTargetADC = lowerTargetADC;
 					ac5eConfig.initialTargetADC = initialTargetADC ?? fallbackInitialTargetADC;
+				} else if (primaryTargets?.length === 1 && Number(primaryTargets[0]?.ac) === ac5eForcedRollTarget) {
+					roll0.options.target = ac5eForcedRollTarget;
+					roll0.options.criticalSuccess = 21;
+					roll0.target = ac5eForcedRollTarget;
+					config.target = ac5eForcedRollTarget;
 				}
 				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: result attack/damage', { initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
 			} else {

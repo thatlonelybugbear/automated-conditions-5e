@@ -1,6 +1,8 @@
 const MODULE_ID = 'simplecover5e';
 const TOTAL_COVER_AC = 999;
-const COVER_BONUSES = Object.freeze({ none: 0, half: 2, threeQuarters: 5, total: null });
+const COVER_TYPES = new Set(['none', 'half', 'threeQuarters', 'total']);
+
+import { getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
 
 
 export function applySimpleCover5eLibraryMode({ config, message, messages = [], activity, attacker, targets } = {}) {
@@ -22,11 +24,10 @@ export function applySimpleCover5eLibraryMode({ config, message, messages = [], 
 		const tokenUuid = result?.target?.document?.uuid;
 		if (!actor) continue;
 		const cover = result?.result?.cover ?? 'none';
-		const bonus = result?.result?.bonus ?? COVER_BONUSES[cover];
-		const target = targets.find((entry) => entry?.tokenUuid === tokenUuid);
+		const bonus = cover === 'total' ? null : (result?.result?.bonus ?? getCoverBonus(cover));
+		const target = targets.find((entry) => entry?.tokenUuid === tokenUuid || entry?.uuid === actor.uuid);
 		const ac = bonus === null ? TOTAL_COVER_AC : Number(actor.system?.attributes?.ac?.value ?? 0) + bonus;
 		if (target) target.ac = ac;
-		for (const targetMessage of targetMessages) setMessageTargetAC(targetMessage, actor.uuid, ac);
 		coverTargets.push({ newCover: null, originalCover: cover, uuid: actor.uuid, tokenUuid });
 	}
 	if (!coverTargets.length) return;
@@ -40,7 +41,7 @@ export function applySimpleCover5eTooltip(ac5eConfig, message) {
 	ac5eConfig.simpleCoverEntries = coverTargets
 		.map((target) => {
 			const cover = target.newCover ?? target.originalCover ?? 'none';
-			const bonus = COVER_BONUSES[cover];
+			const bonus = getCoverBonus(cover);
 			if (!bonus && bonus !== null) return null;
 			const actor = fromUuidSync(target.uuid);
 			const base = Number(actor?.system?.attributes?.ac?.value);
@@ -66,8 +67,9 @@ export function applySimpleCover5eDialogTooltip(ac5eConfig, message, root) {
 	if (!Array.isArray(coverTargets)) return false;
 	const previous = coverTargets.map((target, index) => target?.newCover);
 	for (const [index, cover] of selectedCovers) {
-		if (coverTargets[index] && Object.hasOwn(COVER_BONUSES, cover)) coverTargets[index].newCover = cover === coverTargets[index].originalCover ? null : cover;
+		if (coverTargets[index] && COVER_TYPES.has(cover)) coverTargets[index].newCover = cover === coverTargets[index].originalCover ? null : cover;
 	}
+	applySimpleCover5eDialogTargets(ac5eConfig, coverTargets);
 	applySimpleCover5eTooltip(ac5eConfig, message);
 	for (const [index, cover] of selectedCovers) {
 		if (coverTargets[index]) coverTargets[index].newCover = previous[index];
@@ -86,33 +88,85 @@ export function applySimpleCover5eBuildOverride(ac5eConfig, rollConfig, message,
 	if (!Array.isArray(targets) || !targets.length) return false;
 	for (const [index, coverTarget] of coverTargets.entries()) {
 		const selected = values[`${MODULE_ID}.targets.${index}.newCover`];
-		if (selected && Object.hasOwn(COVER_BONUSES, selected)) coverTarget.newCover = selected === coverTarget.originalCover ? null : selected;
+		if (selected && COVER_TYPES.has(selected)) coverTarget.newCover = selected === coverTarget.originalCover ? null : selected;
 		const cover = coverTarget.newCover ?? coverTarget.originalCover ?? 'none';
-		const bonus = COVER_BONUSES[cover];
+		const bonus = getCoverBonus(cover);
 		const target = targets.find((entry) => entry?.tokenUuid === coverTarget.tokenUuid || entry?.uuid === coverTarget.uuid);
 		const actor = fromUuidSync(coverTarget.uuid);
 		if (!target || !actor) continue;
 		const ac = bonus === null ? TOTAL_COVER_AC : Number(actor.system?.attributes?.ac?.value ?? 0) + bonus;
 		target.ac = ac;
-		setMessageTargetAC(coverMessage, actor.uuid, ac);
+		const key = getTargetKey(target, targets.indexOf(target));
+		ac5eConfig.preAC5eConfig ??= {};
+		(ac5eConfig.preAC5eConfig.simpleCoverTargetAcByKey ??= {})[key] = { ac, total: bonus === null };
 	}
-	const activeTargets = targets.filter((target) => Number.isFinite(Number(target?.ac)));
-	if (targets.length === 1 && Number(targets[0]?.ac) === TOTAL_COVER_AC) {
-		applySingleTargetTotalCover(rollConfig, TOTAL_COVER_AC);
-		return true;
-	}
-	if (!activeTargets.length) return false;
-	const baseline = Math.min(...activeTargets.map((target) => Number(target.ac)));
-	ac5eConfig.preAC5eConfig ??= {};
-	ac5eConfig.preAC5eConfig.baseRoll0Options ??= {};
-	ac5eConfig.preAC5eConfig.baseRoll0Options.target = baseline;
-	for (const entry of Object.values(ac5eConfig.preAC5eConfig.baseTargetAcByKey ?? {})) {
-		const target = targets.find((candidate) => candidate?.uuid === entry.uuid || candidate?.tokenUuid === entry.tokenUuid);
-		if (target) entry.ac = target.ac;
-	}
-	delete ac5eConfig.initialTargetADCs;
-	delete ac5eConfig.alteredTargetADCs;
 	return false;
+}
+
+function applySimpleCover5eDialogTargets(ac5eConfig, coverTargets) {
+	const targets = ac5eConfig?.options?.targets ?? [];
+	const initialTargetADCs = {};
+	const alteredTargetADCs = {};
+	for (const [index, coverTarget] of coverTargets.entries()) {
+		const target = targets.find((entry) => entry?.tokenUuid === coverTarget?.tokenUuid || entry?.uuid === coverTarget?.uuid);
+		const cover = coverTarget.newCover ?? coverTarget.originalCover ?? 'none';
+		const bonus = getCoverBonus(cover);
+		const actor = fromUuidSync(coverTarget.uuid);
+		const initial = bonus === null ? TOTAL_COVER_AC : Number(actor?.system?.attributes?.ac?.value ?? 0) + bonus;
+		const key = target ? getTargetKey(target, targets.indexOf(target)) : `actor:${coverTarget.uuid}:index:${index}`;
+		const altered = initial === TOTAL_COVER_AC ? TOTAL_COVER_AC : getAlteredTargetValueOrThreshold(initial, ac5eConfig.targetADC ?? [], 'acBonus');
+		initialTargetADCs[key] = { ac: initial };
+		alteredTargetADCs[key] = { ac: altered };
+	}
+	if (!Object.keys(initialTargetADCs).length) return;
+	ac5eConfig.initialTargetADCs = initialTargetADCs;
+	ac5eConfig.alteredTargetADCs = alteredTargetADCs;
+	ac5eConfig.initialTargetADC = Math.min(...Object.values(initialTargetADCs).map((entry) => entry.ac));
+	ac5eConfig.alteredTargetADC = Math.min(...Object.values(alteredTargetADCs).map((entry) => entry.ac));
+}
+
+export function finalizeSimpleCover5eTargets(ac5eConfig, rollConfig, message) {
+	if (_activeModule('midi-qol') || !game.modules.get(MODULE_ID)?.api?.getLibraryMode?.()) return false;
+	const targets = ac5eConfig?.options?.targets;
+	const coverTargetAcByKey = ac5eConfig?.preAC5eConfig?.simpleCoverTargetAcByKey;
+	if (!Array.isArray(targets) || !targets.length || !coverTargetAcByKey || !Object.keys(coverTargetAcByKey).length) return false;
+	const initialTargetADCs = {};
+	const alteredTargetADCs = {};
+	const activeTargets = [];
+	for (const [index, target] of targets.entries()) {
+		const key = getTargetKey(target, index);
+		const coverTarget = coverTargetAcByKey[key];
+		if (!coverTarget) continue;
+		const initial = Number(coverTarget.ac);
+		if (coverTarget.total || initial === TOTAL_COVER_AC) {
+			target.ac = TOTAL_COVER_AC;
+			initialTargetADCs[key] = { ac: TOTAL_COVER_AC };
+			alteredTargetADCs[key] = { ac: TOTAL_COVER_AC };
+			continue;
+		}
+		const altered = getAlteredTargetValueOrThreshold(initial, ac5eConfig.targetADC ?? [], 'acBonus');
+		target.ac = altered;
+		initialTargetADCs[key] = { ac: initial };
+		alteredTargetADCs[key] = { ac: altered };
+		activeTargets.push({ initial, altered });
+	}
+	ac5eConfig.initialTargetADCs = initialTargetADCs;
+	ac5eConfig.alteredTargetADCs = alteredTargetADCs;
+	ac5eConfig.finalizedTargets = foundry.utils.duplicate(targets);
+	const target = activeTargets.length ? Math.min(...activeTargets.map((entry) => entry.altered)) : TOTAL_COVER_AC;
+	ac5eConfig.initialTargetADC = activeTargets.length ? Math.min(...activeTargets.map((entry) => entry.initial)) : TOTAL_COVER_AC;
+	ac5eConfig.alteredTargetADC = target;
+	rollConfig.target = target;
+	rollConfig.options ??= {};
+	rollConfig.options.target = target;
+	for (const roll of rollConfig.rolls ?? []) {
+		roll.target = target;
+		roll.options ??= {};
+		roll.options.target = target;
+		if (target === TOTAL_COVER_AC) roll.options.criticalSuccess = 21;
+	}
+	if (message) foundry.utils.setProperty(message, 'data.flags.automated-conditions-5e.finalizedTargets', foundry.utils.duplicate(targets));
+	return true;
 }
 
 export function applySimpleCover5eSingleTargetTotalCover(config, message, targets) {
@@ -125,7 +179,6 @@ export function applySimpleCover5eSingleTargetTotalCover(config, message, target
 	);
 	if (!totalCover) return false;
 	target.ac = TOTAL_COVER_AC;
-	setMessageTargetAC(message, target.uuid, TOTAL_COVER_AC);
 	applySingleTargetTotalCover(config, TOTAL_COVER_AC);
 	return true;
 }
@@ -147,12 +200,16 @@ function applySingleTargetTotalCover(config, ac) {
 	config.options.criticalSuccess = 21;
 }
 
-function setMessageTargetAC(message, uuid, ac) {
-	const targets = foundry.utils.getProperty(message, 'data.flags.dnd5e.targets');
-	if (!Array.isArray(targets)) return;
-	for (const target of targets) {
-		if (target?.uuid === uuid) target.ac = ac;
-	}
+function getCoverBonus(cover) {
+	if (cover === 'total') return null;
+	if (cover === 'half') return Number(CONFIG.DND5E.statusEffects.coverHalf?.coverBonus ?? 0);
+	if (cover === 'threeQuarters') return Number(CONFIG.DND5E.statusEffects.coverThreeQuarters?.coverBonus ?? 0);
+	return 0;
+}
+
+function getTargetKey(target, index) {
+	const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
+	return tokenUuid ? `token:${tokenUuid}` : target?.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
 }
 
 function _activeModule(moduleId) {

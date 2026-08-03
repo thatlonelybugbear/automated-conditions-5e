@@ -19,7 +19,7 @@ import { applyExplicitModeOverride, mirrorD20ModeState } from './ac5e-hooks-roll
 import { getBonusEntriesForHook } from './ac5e-hooks-roll-selections.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
 import { getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
-import { applySimpleCover5eBuildOverride, applySimpleCover5eSingleTargetTotalCover, applySimpleCover5eTooltip } from '../integrations/ac5e-simplecover5e.mjs';
+import { applySimpleCover5eBuildOverride, applySimpleCover5eSingleTargetTotalCover, applySimpleCover5eTooltip, finalizeSimpleCover5eTargets } from '../integrations/ac5e-simplecover5e.mjs';
 
 export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (deps.buildDebug || deps.hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
@@ -36,7 +36,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 		const resolvedTargets = resolveTargets(targetMessage, messageTargets, { hook: activeHook, activity: ac5eConfig.options?.activity }, targetDeps);
 		syncTargetsToConfigAndMessage(ac5eConfig, resolvedTargets, null, targetDeps);
 	}
-	const simpleCoverTotal = activeHook === 'attack' && applySimpleCover5eBuildOverride(ac5eConfig, rollConfig, targetMessage, formData, app);
+	if (activeHook === 'attack') applySimpleCover5eBuildOverride(ac5eConfig, rollConfig, targetMessage, formData, app);
 	if (activeHook === 'attack') applySimpleCover5eTooltip(ac5eConfig, app?.message ?? targetMessage);
 	if (ac5eConfig.hookType === 'damage') {
 		const optins = getOptinsFromForm(formData);
@@ -60,7 +60,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, activeHook);
 	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, rollConfig);
 	let targetADCEntries = [];
-	if (ac5eConfig.hookType === 'attack' && !simpleCoverTotal) {
+	if (ac5eConfig.hookType === 'attack') {
 		if (ac5e?.debugTargetADC)
 			console.warn('AC5E targetADC: buildRollConfig entries', {
 				hook: ac5eConfig.hookType,
@@ -81,7 +81,14 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	deps.calcAdvantageMode(ac5eConfig, rollConfig, undefined, undefined, { skipSetProperties: true });
 	applyExplicitModeOverride(ac5eConfig, rollConfig);
 	if (ac5eConfig.hookType === 'attack') {
-		applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAttackTargets: true, message: targetMessage });
+		const finalizedSimpleCover = finalizeSimpleCover5eTargets(ac5eConfig, rollConfig, app?.message ?? targetMessage);
+		if (!finalizedSimpleCover) applyTargetADCStateToD20Config(ac5eConfig, rollConfig);
+		if (finalizedSimpleCover) applySimpleCover5eTooltip(ac5eConfig, app?.message ?? targetMessage);
+		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], targetMessage, {
+			Constants,
+			getMessageFlagScope: _getMessageFlagScope,
+			getMessageDnd5eFlags: _getMessageDnd5eFlags,
+		});
 		applySimpleCover5eSingleTargetTotalCover(rollConfig, targetMessage, ac5eConfig.options?.targets);
 		if (ac5e?.debugTargetADC)
 			console.warn('AC5E targetADC: buildRollConfig target', {
@@ -107,6 +114,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 			roll.options[Constants.MODULE_ID].hasTransitAdvantage = !!ac5eConfig.hasTransitAdvantage;
 			roll.options[Constants.MODULE_ID].hasTransitDisadvantage = !!ac5eConfig.hasTransitDisadvantage;
 			roll.options[Constants.MODULE_ID].modeCounts = ac5eConfig?.modeCounts ? foundry.utils.duplicate(ac5eConfig.modeCounts) : undefined;
+			roll.options[Constants.MODULE_ID].finalizedTargets = ac5eConfig?.finalizedTargets ? foundry.utils.duplicate(ac5eConfig.finalizedTargets) : undefined;
 		}
 	}
 	const entries = getBonusEntriesForHook(ac5eConfig, ac5eConfig.hookType).filter((entry) => entry.optin);
