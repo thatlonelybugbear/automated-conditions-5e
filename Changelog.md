@@ -1,3 +1,12 @@
+## 14.533.14.1
+
+- Simple Cover 5e integration fixes.
+  - Fixed Simple Cover selections made in the attack-roll dialog applying the correct AC to hit checks and chat-card targets.
+  - Fixed cover bonuses combining correctly with Automated Conditions 5e `modifyAC` effects.
+  - Fixed Total Cover preventing normal AC modifiers from changing its result.
+  - Updated cover bonuses to use the D&D5e system’s configured cover values.
+  - Improved attack-roll tooltips to show cover-adjusted base AC and correctly identify AC-setting effects.
+
 ## 14.533.14
 
 - Added `damage.modifyDenomination` for changing damage dice: use a positive or negative number to step through the system's dice sizes, or `dX` to set a specific die size.
