@@ -1,3 +1,7 @@
+## 14.533.14.2
+
+- Fix parser bug with scale references.
+
 ## 14.533.14.1
 
 - Simple Cover 5e integration fixes.

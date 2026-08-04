@@ -310,7 +310,7 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 	for (const actorName of actorNames) {
 		const actor = sandbox[actorName];
 		if (!actor) continue;
-		const refRegex = new RegExp(`\\b${actorName}\\.[\\w.-]+`, 'g');
+		const refRegex = new RegExp(`(?:\\b|(?<=d))${actorName}\\.[\\w.-]+`, 'g');
 		for (const m of [...out.matchAll(refRegex)]) {
 			const ref = m[0];
 			try {
