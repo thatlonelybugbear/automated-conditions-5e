@@ -755,10 +755,6 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 	}
 }
 
-export function _getMessageDnd5eFlags(message) {
-	return _getMessageFlagScope(message, 'dnd5e');
-}
-
 export function _getMessageSpellLevel(message, _messageData, item = null) {
 	const messageLevel = Number(message?.system?.spellLevel);
 	if (Number.isFinite(messageLevel)) return messageLevel;

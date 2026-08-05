@@ -1,4 +1,4 @@
-import { _getMessageDnd5eFlags, _getMessageFlagScope, _isOptinSelectionActive, getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
+import { _getMessageFlagScope, _isOptinSelectionActive, getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
 import { getExistingRoll } from './ac5e-hooks-ui-utils.mjs';
@@ -146,7 +146,6 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], message, {
 			Constants,
 			getMessageFlagScope: _getMessageFlagScope,
-			getMessageDnd5eFlags: _getMessageDnd5eFlags,
 		});
 	}
 }

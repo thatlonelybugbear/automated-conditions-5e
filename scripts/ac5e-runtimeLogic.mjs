@@ -11,7 +11,6 @@ import {
 	_filterOptinEntries,
 	_getActivityEffectsStatusRiders,
 	_getLightLevel,
-	_getMessageDnd5eFlags,
 	_getTooltip,
 	_setMessageFlagScope,
 	_safeFromUuidSync,
@@ -319,8 +318,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		return collections;
 	};
 	const getMessageAttackTargets = () => {
-		const dnd5eFlags = _getMessageDnd5eFlags(message);
-		const messageTargets = Array.isArray(dnd5eFlags?.targets) ? dnd5eFlags.targets : null;
+		const messageTargets = Array.isArray(message?.system?.targets) ? message.system.targets : null;
 		return messageTargets ?? [];
 	};
 	const getSimpleCoverBonus = (target) => {

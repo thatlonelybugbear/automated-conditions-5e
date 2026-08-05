@@ -1,4 +1,4 @@
-import { _activeModule, _getMessageDnd5eFlags, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
@@ -241,7 +241,7 @@ function normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps)
 
 function syncPostRollTargets(ac5eConfig, config, rolls, message) {
 	if (ac5eConfig?.hookType === 'attack') {
-		const currentTargets = getPersistedTargetsForHook(ac5eConfig, config, message, { getMessageDnd5eFlags: _getMessageDnd5eFlags });
+		const currentTargets = getPersistedTargetsForHook(ac5eConfig, config, message, {});
 		const finiteAcs = currentTargets.map((target) => Number(target?.ac)).filter((value) => Number.isFinite(value));
 		const nextTarget = finiteAcs.length ? Math.min(...finiteAcs) : undefined;
 		if (nextTarget !== undefined) {
@@ -256,7 +256,7 @@ function syncPostRollTargets(ac5eConfig, config, rolls, message) {
 		return;
 	}
 	if (ac5eConfig?.hookType !== 'damage') return;
-	const currentTargets = getPersistedTargetsForHook(ac5eConfig, config, message, { getMessageDnd5eFlags: _getMessageDnd5eFlags });
+	const currentTargets = getPersistedTargetsForHook(ac5eConfig, config, message, {});
 	if (Array.isArray(currentTargets)) syncResolvedTargetsToMessage(message, foundry.utils.duplicate(currentTargets), { Constants, getMessageFlagScope: _getMessageFlagScope });
 }
 

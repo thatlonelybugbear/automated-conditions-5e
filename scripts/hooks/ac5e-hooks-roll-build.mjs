@@ -1,6 +1,5 @@
 import {
 	_entryMatchesTransientState,
-	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
 	_getOptinSelectionScale,
 	_getTooltip,
@@ -31,7 +30,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	const shouldSyncAttackTargets = activeHook === 'attack' || activeHook === 'damage';
 	const targetMessage = getMessageForConfigTargets(rollConfig, activeHook, ac5eConfig.options?.activity);
 	if (shouldSyncAttackTargets) {
-		const targetDeps = { Constants, getMessageFlagScope: _getMessageFlagScope, getMessageDnd5eFlags: _getMessageDnd5eFlags };
+		const targetDeps = { Constants, getMessageFlagScope: _getMessageFlagScope };
 		const messageTargets = getMessageTargetsFromFlags(targetMessage, targetDeps);
 		const resolvedTargets = resolveTargets(targetMessage, messageTargets, { hook: activeHook, activity: ac5eConfig.options?.activity }, targetDeps);
 		syncTargetsToConfigAndMessage(ac5eConfig, resolvedTargets, null, targetDeps);
@@ -87,7 +86,6 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 		syncTargetsToConfigAndMessage(ac5eConfig, ac5eConfig.options?.targets ?? [], targetMessage, {
 			Constants,
 			getMessageFlagScope: _getMessageFlagScope,
-			getMessageDnd5eFlags: _getMessageDnd5eFlags,
 		});
 		applySimpleCover5eSingleTargetTotalCover(rollConfig, targetMessage, ac5eConfig.options?.targets);
 		if (ac5e?.debugTargetADC)
