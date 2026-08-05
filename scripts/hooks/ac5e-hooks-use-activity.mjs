@@ -5,6 +5,7 @@ import {
 	_getActivityEffectsStatusRiders,
 	_getDistance,
 	_getMessageFlagScope,
+	_getMessageOriginId,
 	_getMessageScaling,
 	_getMessageSpellLevel,
 	_getTokenFromActor,
@@ -194,7 +195,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, messageData?.activity);
 	_setUseConfigInflightCache({
 		messageId: message.id,
-		originatingMessageId: message.system?.origin,
+		originatingMessageId: _getMessageOriginId(message),
 		useConfig: safeUseConfig,
 	});
 	const persistedMessage = typeof message?.setFlag === 'function' ? message : (message?.id ? game.messages?.get?.(message.id) : null);

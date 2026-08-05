@@ -42,6 +42,11 @@ function getRollTargetValue(roll) {
 	return roll?.options?.target ?? roll?.d20?.options?.target ?? roll?.dice?.[0]?.options?.target;
 }
 
+function getRollOriginatingMessageId(roll) {
+	const origin = roll?.options?.originatingMessage ?? roll?.parent?.system?.origin;
+	return origin?.id ?? origin;
+}
+
 function getMessageTargets(message) {
 	return (
 		message?.getFlag?.(Constants.MODULE_ID, 'optionsSnapshot')?.targets ??
@@ -116,7 +121,7 @@ function resolveRollActivity(options, originatingMessage) {
 
 function captureAllowEffectApplicationRollResult({ roll, actor, activity, messageId, hook = 'save', targetValue } = {}) {
 	if (!roll || !actor?.uuid) return;
-	const originatingMessageId = messageId ?? roll.options?.originatingMessage ?? roll.parent?.system?.origin;
+	const originatingMessageId = messageId ?? getRollOriginatingMessageId(roll);
 	const originatingMessage = getOriginatingMessage(originatingMessageId);
 	const resolvedActivity = activity ?? resolveActivityFromMessage(originatingMessage);
 	const resolvedTargetValue = targetValue ?? getRollTargetValue(roll);
@@ -147,7 +152,7 @@ export function captureAllowEffectApplicationD20Result(rolls, options, hook = 's
 	const roll = Array.isArray(rolls) ? rolls[0] : null;
 	const actor = resolveRollSubject(options, hook);
 	if (!roll || !actor?.uuid) return;
-	const originatingMessageId = options?.originatingMessageId ?? roll.options?.originatingMessage ?? roll.parent?.system?.origin;
+	const originatingMessageId = options?.originatingMessageId ?? getRollOriginatingMessageId(roll);
 	const originatingMessage = getOriginatingMessage(originatingMessageId);
 	const activity = resolveRollActivity(options, originatingMessage);
 	if (hook === 'attack') {

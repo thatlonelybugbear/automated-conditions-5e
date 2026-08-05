@@ -774,9 +774,14 @@ function _getMessageAc5eFlags(message) {
 	return _getMessageFlagScope(message, Constants.MODULE_ID);
 }
 
+export function _getMessageOriginId(message) {
+	const origin = message?.system?.origin;
+	return origin?.id ?? origin;
+}
+
 export function _resolveUseMessageContext({ message = null, messageId = null, originatingMessageId = null } = {}) {
 	const triggerMessage = message ?? (messageId ? game.messages.get(messageId) : undefined);
-	const resolvedOriginatingMessageId = originatingMessageId ?? triggerMessage?.system?.origin ?? triggerMessage?.id;
+	const resolvedOriginatingMessageId = originatingMessageId ?? _getMessageOriginId(triggerMessage) ?? triggerMessage?.id;
 	const registryMessages = resolvedOriginatingMessageId ? dnd5e?.registry?.messages?.get(resolvedOriginatingMessageId) : undefined;
 	const originatingMessage =
 		resolvedOriginatingMessageId ?
