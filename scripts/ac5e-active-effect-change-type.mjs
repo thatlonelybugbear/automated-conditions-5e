@@ -8,10 +8,9 @@ export function applyAc5eActiveEffectChange(targetDoc, change) {
 
 export function registerAc5eActiveEffectChangeType() {
 	if (!CONFIG?.ActiveEffect?.changeTypes) return;
-	const dnd5eV6OrNewer = foundry.utils.isNewerVersion(game.system.version, 6);
 	const config = {
-		...(dnd5eV6OrNewer ? { group: "Bugbear's Den" } : {}),
-		label: dnd5eV6OrNewer ? 'AC5E.ActiveEffect.ChangeTypes.AutomatedConditions5e' : 'AC5E',
+		group: "Bugbear's Den",
+		label: 'Automated Conditions 5e',
 		defaultPriority: 20,
 		handler: applyAc5eActiveEffectChange,
 		render: null,
