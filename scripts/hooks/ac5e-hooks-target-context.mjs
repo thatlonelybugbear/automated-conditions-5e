@@ -1,12 +1,12 @@
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 
 export function getMessageTargetsFromFlags(messageLike, deps) {
-	return deps.getMessageDnd5eFlags(messageLike)?.targets ?? [];
+	return normalizeMessageTargets(messageLike?.system?.targets ?? messageLike?.data?.system?.targets);
 }
 
 export function getTargets({ message } = {}, deps) {
 	const explicitMessage = message?.document ?? message;
-	const preTargets = deps.getMessageDnd5eFlags(explicitMessage)?.targets ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
+	const preTargets = getMessageTargetsFromFlags(explicitMessage, deps) ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
 	if (Array.isArray(preTargets) && preTargets.length) return preTargets;
 	return [];
 }
@@ -99,7 +99,7 @@ export function getAssociatedRollTargets(originatingMessageId, activityType, mes
 	const directTargets = explicitMessage ? getMessageTargetsFromFlags(explicitMessage, deps) : undefined;
 	if (Array.isArray(directTargets) && directTargets.length) return directTargets;
 	if (!originatingMessageId || !activityType) return undefined;
-	return dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop()?.flags?.dnd5e?.targets;
+	return getMessageTargetsFromFlags(dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop(), deps);
 }
 
 export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
@@ -126,7 +126,7 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
 	if (ac5eConfig?.hookType !== 'attack') return;
-	if (message) foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', foundry.utils.duplicate(resolvedTargets));
+	if (message) foundry.utils.setProperty(message, 'data.system.targets', toMessageTargets(resolvedTargets));
 	const snapshotTargets = foundry.utils.duplicate(resolvedTargets);
 	const baseTargetAcByKey = ac5eConfig?.preAC5eConfig?.baseTargetAcByKey;
 	if (baseTargetAcByKey) {
@@ -160,4 +160,23 @@ function getLiveTargetAC(target = {}) {
 		if (Number.isFinite(Number(actorAC))) return Number(actorAC);
 	}
 	return null;
+}
+
+function normalizeMessageTargets(targets) {
+	if (!Array.isArray(targets)) return [];
+	return targets.map((target) => ({
+		...target,
+		uuid: target?.actor ?? target?.uuid,
+		tokenUuid: target?.token ?? target?.tokenUuid,
+	}));
+}
+
+function toMessageTargets(targets) {
+	return targets.map((target) => ({
+		ac: target?.ac,
+		actor: target?.uuid ?? target?.actor,
+		img: target?.img,
+		name: target?.name,
+		token: target?.tokenUuid ?? target?.token,
+	}));
 }
