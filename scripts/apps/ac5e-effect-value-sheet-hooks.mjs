@@ -22,12 +22,40 @@ function registerDnd5eActiveEffectSheetHook() {
 	if (!original || original.ac5eEffectValueEditorHook) return;
 	async function onRender(context, options) {
 		await original.call(this, context, options);
+		initializeDnd5eEffectValueEditors(this, this.element);
 		for (const label of this.element?.querySelectorAll('.change .effect-type .condensed') ?? []) {
 			if (label.textContent.trim() === 'Automated Conditions 5e') label.textContent = 'AC5E';
 		}
 	}
 	onRender.ac5eEffectValueEditorHook = true;
 	ActiveEffectSheet5e.prototype._onRender = onRender;
+}
+
+function initializeDnd5eEffectValueEditors(app, element) {
+	for (const row of element?.querySelectorAll('.change[data-change-id]') ?? []) {
+		const change = app.document?.system?.changes?.find((entry) => entry?._id === row.dataset.changeId);
+		if (change?.type !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
+		const icon = row.querySelector('.effect-value .fa-database');
+		if (!icon || icon.dataset.ac5eEditorReady) continue;
+		icon.dataset.ac5eEditorReady = 'true';
+		icon.classList.add('ac5e-effect-value-editor-icon');
+		icon.addEventListener('click', () => {
+			const currentChange = app.document?.system?.changes?.find((entry) => entry?._id === row.dataset.changeId);
+			if (!currentChange) return;
+			AC5EEffectValueEditor.open({
+				activeEffectSheet: app,
+				effect: app.document,
+				changeIndex: Number(row.dataset.index),
+				changeId: currentChange._id,
+				keyInput: createVirtualInput(currentChange.key),
+				valueInput: createVirtualInput(currentChange.value),
+			});
+		});
+	}
+}
+
+function createVirtualInput(value) {
+	return { ac5eVirtual: true, value, dispatchEvent: () => {} };
 }
 
 function registerDnd5eEffectChangeConfigHook() {
@@ -52,6 +80,7 @@ function enhanceActiveEffectConfig(app, element) {
 		moveAc5eChangeTypeOptionsAfterCore(root);
 	}
 	restoreAc5eChangeTypeSelections(root);
+	toggleDnd5eChangeConditions(root);
 	if (!isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
@@ -142,10 +171,20 @@ function initializeEditorButtonSync(app, root) {
 	for (const input of root.querySelectorAll('input[name="key"], textarea[name="key"], select[name="type"], input[name$=".key"], textarea[name$=".key"], select[name$=".type"]')) {
 		if (input.dataset.ac5eEditorButtonSyncReady) continue;
 		input.dataset.ac5eEditorButtonSyncReady = 'true';
-		const refresh = () => refreshEditorButtons(app, root);
+		const refresh = () => {
+			refreshEditorButtons(app, root);
+			toggleDnd5eChangeConditions(root);
+		};
 		input.addEventListener('input', refresh);
 		input.addEventListener('change', refresh);
 	}
+}
+
+function toggleDnd5eChangeConditions(root) {
+	const typeInput = root.querySelector('select[name="type"]');
+	const conditions = root.querySelector('[name="conditions"]');
+	if (!typeInput || !conditions) return;
+	conditions.closest('.form-group').hidden = `${typeInput.value ?? ''}`.trim().toLowerCase() === Constants.ACTIVE_EFFECT_CHANGE_TYPE;
 }
 
 function refreshEditorButtons(app, root) {

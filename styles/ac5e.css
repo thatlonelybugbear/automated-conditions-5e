@@ -39,6 +39,11 @@
 	padding: 0;
 }
 
+.dnd5e2 .fa-database.ac5e-effect-value-editor-icon {
+	color: var(--color-level-success);
+	cursor: pointer;
+}
+
 .ac5e-links-menu-body {
 	display: flex;
 	flex-direction: column;

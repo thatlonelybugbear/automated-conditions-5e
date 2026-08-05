@@ -205,11 +205,12 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		},
 	};
 
-	constructor({ activeEffectSheet, effect, changeIndex, keyInput, valueInput } = {}, options = {}) {
+	constructor({ activeEffectSheet, effect, changeIndex, changeId, keyInput, valueInput } = {}, options = {}) {
 		super(options);
 		this.activeEffectSheet = activeEffectSheet;
 		this.effect = effect;
 		this.changeIndex = changeIndex;
+		this.changeId = changeId;
 		this.keyInput = keyInput;
 		this.valueInput = valueInput;
 		this.keyInputName = keyInput?.name;
@@ -526,7 +527,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	async #submitActiveEffectSheet({ changeKey, value } = {}) {
 		const sheet = this.activeEffectSheet;
 		const updateData = this.#getChangeUpdateData({ changeKey, value });
-		if (sheet?.options?.changeId) {
+		if (sheet?.options?.changeId || this.changeId) {
 			await this.#ensureEffectChangeUpdated(updateData);
 			return;
 		}
@@ -565,10 +566,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!expectedChange) return;
 		const currentChange = this.effect.system?.changes?.[this.changeIndex];
 		if (currentChange?.key === expectedChange.key && currentChange?.type === expectedChange.type && currentChange?.value === expectedChange.value) return;
-		if (this.activeEffectSheet?.options?.changeId) {
+		if (this.activeEffectSheet?.options?.changeId || this.changeId) {
 			const changes = this.effect.system?.toObject?.().changes ?? [];
 			changes[this.changeIndex] = { ...changes[this.changeIndex], ...expectedChange };
-			await this.effect.update({ 'system.changes': changes }, { render: false });
+			await this.effect.update({ 'system.changes': changes });
 			return;
 		}
 		await this.effect.update(
@@ -856,13 +857,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	#getKeyInput() {
-		if (this.keyInput?.isConnected) return this.keyInput;
+		if (this.keyInput?.ac5eVirtual || this.keyInput?.isConnected) return this.keyInput;
 		this.keyInput = findInputByName(this.keyInputName);
 		return this.keyInput;
 	}
 
 	#getValueInput() {
-		if (this.valueInput?.isConnected) return this.valueInput;
+		if (this.valueInput?.ac5eVirtual || this.valueInput?.isConnected) return this.valueInput;
 		this.valueInput = findInputByName(this.valueInputName);
 		return this.valueInput;
 	}
