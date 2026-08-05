@@ -3,7 +3,6 @@ import {
 	_collectActivityDamageTypes,
 	_collectRollDamageTypes,
 	_getDistance,
-	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
 	_getActivityEffectsStatusRiders,
 	_getTokenFromActor,
@@ -357,7 +356,6 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 		applyExplicitModeOverride,
 		setAC5eProperties: _setAC5eProperties,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
@@ -382,7 +380,6 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 		applyExplicitModeOverride,
 		setAC5eProperties: _setAC5eProperties,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
@@ -408,7 +405,6 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		setAC5eProperties: _setAC5eProperties,
 		syncTargetsToConfigAndMessage,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
@@ -439,7 +435,6 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		setAC5eProperties: _setAC5eProperties,
 		syncTargetsToConfigAndMessage,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
