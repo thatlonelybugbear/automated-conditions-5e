@@ -1,4 +1,4 @@
-import { _activeModule, _cloneUseConfigShallow, _getMessageFlagScope, _getMessageScaling, _getMessageSpellLevel, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { _activeModule, _cloneUseConfigShallow, _getMessageFlagScope, _getMessageOriginId, _getMessageScaling, _getMessageSpellLevel, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _mergeUseOptions } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
@@ -80,7 +80,8 @@ export function debugMessageData(hook, context, deps) {
 }
 
 function resolveMessageFromConfig(config, messageConfig, hook, deps) {
-	const originatingMessageId = messageConfig?.data?.system?.origin;
+	const origin = messageConfig?.data?.system?.origin;
+	const originatingMessageId = origin?.id ?? origin;
 	const eventMessageId = config?.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
 	const messageId = eventMessageId ?? originatingMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
