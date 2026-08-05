@@ -25,6 +25,8 @@ export { createTroubleshooterSnapshot, exportTroubleshooterSnapshot, importTroub
 let daeFlags;
 const AC5E_LOCAL_BUILD_ID = 'v14.360.15042026';
 
+registerAc5eActiveEffectChangeType();
+
 Hooks.once('init', ac5eRegisterOnInit);
 Hooks.once('i18nInit', ac5ei18nInit);
 Hooks.once('ready', ac5eReady);
@@ -64,6 +66,7 @@ function ac5ei18nInit() {
 }
 
 function ac5eReady() {
+	registerAc5eActiveEffectChangeType();
 	ac5eQueue = new foundry.utils.Semaphore();
 	const settings = new Settings();
 	const moduleVersion = game.modules?.get(Constants.MODULE_ID)?.version ?? 'unknown';

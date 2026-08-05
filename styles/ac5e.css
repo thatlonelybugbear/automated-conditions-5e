@@ -1,4 +1,5 @@
-.active-effect-config .ac5e-effect-value-editor-control {
+.active-effect-config .ac5e-effect-value-editor-control,
+.dnd5e2 .ac5e-effect-value-editor-control {
 	align-items: center;
 	display: flex;
 	gap: 4px;
@@ -20,12 +21,15 @@
 }
 
 .active-effect-config .ac5e-effect-value-editor-control input,
-.active-effect-config .ac5e-effect-value-editor-control textarea {
+.active-effect-config .ac5e-effect-value-editor-control textarea,
+.dnd5e2 .ac5e-effect-value-editor-control input,
+.dnd5e2 .ac5e-effect-value-editor-control textarea {
 	flex: 1 1 auto;
 	min-width: 0;
 }
 
-.active-effect-config .ac5e-effect-value-editor-button {
+.active-effect-config .ac5e-effect-value-editor-button,
+.dnd5e2 .ac5e-effect-value-editor-button {
 	border-color: var(--color-level-success);
 	color: var(--color-level-success);
 	flex: 0 0 28px;

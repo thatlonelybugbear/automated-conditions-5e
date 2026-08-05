@@ -522,6 +522,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	async #submitActiveEffectSheet({ changeKey, value } = {}) {
 		const sheet = this.activeEffectSheet;
 		const updateData = this.#getChangeUpdateData({ changeKey, value });
+		if (sheet?.options?.changeId) {
+			await this.#ensureEffectChangeUpdated(updateData);
+			return;
+		}
 		try {
 			if (typeof sheet?.submit === 'function') {
 				if (typeof sheet.options?.form?.handler === 'function') {
@@ -556,10 +560,17 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const expectedChange = updateData?.system?.changes?.[this.changeIndex];
 		if (!expectedChange) return;
 		const currentChange = this.effect.system?.changes?.[this.changeIndex];
-		if (currentChange?.key === expectedChange.key && currentChange?.value === expectedChange.value) return;
+		if (currentChange?.key === expectedChange.key && currentChange?.type === expectedChange.type && currentChange?.value === expectedChange.value) return;
+		if (this.activeEffectSheet?.options?.changeId) {
+			const changes = this.effect.system?.toObject?.().changes ?? [];
+			changes[this.changeIndex] = { ...changes[this.changeIndex], ...expectedChange };
+			await this.effect.update({ 'system.changes': changes }, { render: false });
+			return;
+		}
 		await this.effect.update(
 			{
 				[`system.changes.${this.changeIndex}.key`]: expectedChange.key,
+				[`system.changes.${this.changeIndex}.type`]: expectedChange.type,
 				[`system.changes.${this.changeIndex}.value`]: expectedChange.value,
 			},
 			{ render: false },
