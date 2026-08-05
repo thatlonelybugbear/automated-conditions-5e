@@ -195,7 +195,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, dnd5eUseFlag?.activity);
 	_setUseConfigInflightCache({
 		messageId: message.id,
-		originatingMessageId: dnd5eUseFlag?.originatingMessage,
+		originatingMessageId: message.system?.origin,
 		useConfig: safeUseConfig,
 	});
 	const persistedMessage = typeof message?.setFlag === 'function' ? message : (message?.id ? game.messages?.get?.(message.id) : null);
