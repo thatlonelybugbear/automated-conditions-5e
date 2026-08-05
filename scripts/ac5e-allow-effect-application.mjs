@@ -23,10 +23,10 @@ function resolveDocumentFromRef(ref) {
 }
 
 function resolveActivityFromMessage(message) {
-	const activityRef = message?.getFlag?.('dnd5e', 'activity') ?? message?.flags?.dnd5e?.activity;
+	const activityRef = message?.system?.activity;
 	const direct = resolveDocumentFromRef(activityRef);
 	if (direct?.documentName === 'Activity') return direct;
-	const itemRef = message?.getFlag?.('dnd5e', 'item') ?? message?.flags?.dnd5e?.item;
+	const itemRef = message?.system?.item;
 	const item = resolveDocumentFromRef(itemRef);
 	const activityId = typeof activityRef === 'string' ? activityRef : activityRef?.id;
 	if (!item || !activityId) return null;
@@ -46,8 +46,7 @@ function getMessageTargets(message) {
 	return (
 		message?.getFlag?.(Constants.MODULE_ID, 'optionsSnapshot')?.targets ??
 		message?.flags?.[Constants.MODULE_ID]?.optionsSnapshot?.targets ??
-		message?.getFlag?.('dnd5e', 'targets') ??
-		message?.flags?.dnd5e?.targets ??
+		message?.system?.targets ??
 		[]
 	);
 }
@@ -117,7 +116,7 @@ function resolveRollActivity(options, originatingMessage) {
 
 function captureAllowEffectApplicationRollResult({ roll, actor, activity, messageId, hook = 'save', targetValue } = {}) {
 	if (!roll || !actor?.uuid) return;
-	const originatingMessageId = messageId ?? roll.parent?.getFlag?.('dnd5e', 'originatingMessage') ?? roll.parent?.flags?.dnd5e?.originatingMessage;
+	const originatingMessageId = messageId ?? roll.options?.originatingMessage ?? roll.parent?.system?.origin;
 	const originatingMessage = getOriginatingMessage(originatingMessageId);
 	const resolvedActivity = activity ?? resolveActivityFromMessage(originatingMessage);
 	const resolvedTargetValue = targetValue ?? getRollTargetValue(roll);
@@ -148,7 +147,7 @@ export function captureAllowEffectApplicationD20Result(rolls, options, hook = 's
 	const roll = Array.isArray(rolls) ? rolls[0] : null;
 	const actor = resolveRollSubject(options, hook);
 	if (!roll || !actor?.uuid) return;
-	const originatingMessageId = options?.originatingMessageId ?? roll.parent?.getFlag?.('dnd5e', 'originatingMessage') ?? roll.parent?.flags?.dnd5e?.originatingMessage;
+	const originatingMessageId = options?.originatingMessageId ?? roll.options?.originatingMessage ?? roll.parent?.system?.origin;
 	const originatingMessage = getOriginatingMessage(originatingMessageId);
 	const activity = resolveRollActivity(options, originatingMessage);
 	if (hook === 'attack') {

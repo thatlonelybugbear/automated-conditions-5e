@@ -782,14 +782,13 @@ function _getMessageAc5eFlags(message) {
 
 export function _resolveUseMessageContext({ message = null, messageId = null, originatingMessageId = null } = {}) {
 	const triggerMessage = message ?? (messageId ? game.messages.get(messageId) : undefined);
-	const triggerDnd5eFlags = _getMessageDnd5eFlags(triggerMessage);
-	const resolvedOriginatingMessageId = originatingMessageId ?? triggerDnd5eFlags?.originatingMessage ?? triggerMessage?.id;
+	const resolvedOriginatingMessageId = originatingMessageId ?? triggerMessage?.system?.origin ?? triggerMessage?.id;
 	const registryMessages = resolvedOriginatingMessageId ? dnd5e?.registry?.messages?.get(resolvedOriginatingMessageId) : undefined;
 	const originatingMessage =
 		resolvedOriginatingMessageId ?
 			(game.messages.get(resolvedOriginatingMessageId) ?? registryMessages?.find((msg) => msg?.id === resolvedOriginatingMessageId) ?? registryMessages?.[0])
 		:	triggerMessage;
-	const usageMessage = registryMessages?.find((msg) => _getMessageDnd5eFlags(msg)?.messageType === 'usage');
+	const usageMessage = registryMessages?.find((msg) => msg?.type === 'usage');
 	const resolvedMessage = triggerMessage ?? usageMessage ?? originatingMessage;
 	const resolvedMessageId = resolvedMessage?.id ?? messageId;
 	const useConfig = _getMessageAc5eFlags(usageMessage)?.use ?? _getMessageAc5eFlags(originatingMessage)?.use ?? null;

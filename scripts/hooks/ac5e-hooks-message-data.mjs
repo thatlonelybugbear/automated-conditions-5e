@@ -80,7 +80,7 @@ export function debugMessageData(hook, context, deps) {
 }
 
 function resolveMessageFromConfig(config, messageConfig, hook, deps) {
-	const originatingMessageId = messageConfig?.data?.['flags.dnd5e.originatingMessage'] ?? messageConfig?.data?.flags?.dnd5e?.originatingMessage;
+	const originatingMessageId = messageConfig?.data?.system?.origin;
 	const eventMessageId = config?.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
 	const messageId = eventMessageId ?? originatingMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
@@ -93,7 +93,7 @@ function resolveMessageFromConfig(config, messageConfig, hook, deps) {
 function resolveAttackerContext(message, item, deps) {
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
-	const messageTargets = _getMessageDnd5eFlags(message)?.targets;
+	const messageTargets = message?.system?.targets;
 	const attackingActor = attackingToken?.actor ?? item?.actor;
 	return { attackingActor, attackingToken, messageTargets, speaker: { sceneId, actorId, tokenId, tokenName } };
 }
