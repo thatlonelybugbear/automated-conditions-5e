@@ -6,7 +6,6 @@ import {
 	_autoArmor,
 	_autoEncumbrance,
 	_getD20TooltipOwnership,
-	_getMessageDnd5eFlags,
 	_getMessageScaling,
 	_getMessageSpellLevel,
 	_getMidiAbilityAttributionEntries,
@@ -658,18 +657,19 @@ export function _getUseConfig({ options, config } = {}) {
 		}
 	}
 	if (useConfig) {
-		const dnd5eUseFlag = _getMessageDnd5eFlags(usageMessage) ?? _getMessageDnd5eFlags(originatingMessage);
+		const messageData = usageMessage?.system ?? originatingMessage?.system;
 		useConfig = _cloneUseConfigShallow(useConfig);
-		if (dnd5eUseFlag) {
+		if (messageData) {
 			useConfig.options ??= {};
-			const spellLevel = _getMessageSpellLevel(usageMessage ?? originatingMessage, dnd5eUseFlag, useConfig.options?.item);
+			const sourceMessage = usageMessage ?? originatingMessage;
+			const spellLevel = _getMessageSpellLevel(sourceMessage, messageData, useConfig.options?.item);
 			if (spellLevel !== undefined) useConfig.options.spellLevel = spellLevel;
-			const scaling = _getMessageScaling(usageMessage ?? originatingMessage, dnd5eUseFlag);
+			const scaling = _getMessageScaling(sourceMessage);
 			if (scaling !== undefined) useConfig.options.scaling = scaling;
-			if (Array.isArray(dnd5eUseFlag.use?.effects)) useConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
-			if (Array.isArray(dnd5eUseFlag.targets)) useConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
-			if (dnd5eUseFlag.activity) useConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);
-			if (dnd5eUseFlag.item) useConfig.options.item ??= foundry.utils.duplicate(dnd5eUseFlag.item);
+			if (Array.isArray(messageData.effects)) useConfig.options.useEffects ??= foundry.utils.duplicate(messageData.effects);
+			if (Array.isArray(messageData.targets)) useConfig.options.targets ??= foundry.utils.duplicate(messageData.targets);
+			if (messageData.activity) useConfig.options.activity ??= foundry.utils.duplicate(messageData.activity);
+			if (messageData.item) useConfig.options.item ??= foundry.utils.duplicate(messageData.item);
 		}
 	}
 	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getUseConfig', { useConfig, debugMeta });

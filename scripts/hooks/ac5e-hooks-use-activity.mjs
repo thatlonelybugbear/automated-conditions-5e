@@ -4,7 +4,6 @@ import {
 	_filterOptinEntries,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
-	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
 	_getMessageScaling,
 	_getMessageSpellLevel,
@@ -35,7 +34,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 		tool,
 		hook,
 		activity,
-		targets: getTargets({ message: messageConfig }, { Constants, getMessageDnd5eFlags: _getMessageDnd5eFlags, getMessageFlagScope: _getMessageFlagScope }),
+		targets: getTargets({ message: messageConfig }, { Constants, getMessageFlagScope: _getMessageFlagScope }),
 	};
 	_collectActivityDamageTypes(activity, options);
 	options.riderStatuses = _getActivityEffectsStatusRiders(activity);
@@ -178,21 +177,21 @@ export async function postUseActivity(usageConfig, results, hook) {
 	}
 	if (!message) return true;
 
-	const dnd5eUseFlag = _getMessageDnd5eFlags(message);
-	if (dnd5eUseFlag) {
+	const messageData = message.system;
+	if (messageData) {
 		ac5eConfig.options ??= {};
-		const spellLevel = _getMessageSpellLevel(message, dnd5eUseFlag);
+		const spellLevel = _getMessageSpellLevel(message, messageData);
 		if (spellLevel !== undefined) ac5eConfig.options.spellLevel = spellLevel;
-		const scaling = _getMessageScaling(message, dnd5eUseFlag);
+		const scaling = _getMessageScaling(message);
 		if (scaling !== undefined) ac5eConfig.options.scaling = scaling;
-		if (Array.isArray(dnd5eUseFlag.use?.effects)) ac5eConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
-		if (Array.isArray(dnd5eUseFlag.targets)) ac5eConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
-		if (dnd5eUseFlag.activity) ac5eConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);
-		if (dnd5eUseFlag.item) ac5eConfig.options.item ??= foundry.utils.duplicate(dnd5eUseFlag.item);
+		if (Array.isArray(messageData.effects)) ac5eConfig.options.useEffects ??= foundry.utils.duplicate(messageData.effects);
+		if (Array.isArray(messageData.targets)) ac5eConfig.options.targets ??= foundry.utils.duplicate(messageData.targets);
+		if (messageData.activity) ac5eConfig.options.activity ??= foundry.utils.duplicate(messageData.activity);
+		if (messageData.item) ac5eConfig.options.item ??= foundry.utils.duplicate(messageData.item);
 	}
 
 	const safeUseConfig = _getSafeUseConfig(ac5eConfig);
-	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, dnd5eUseFlag?.activity);
+	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, messageData?.activity);
 	_setUseConfigInflightCache({
 		messageId: message.id,
 		originatingMessageId: message.system?.origin,

@@ -759,19 +759,17 @@ export function _getMessageDnd5eFlags(message) {
 	return _getMessageFlagScope(message, 'dnd5e');
 }
 
-export function _getMessageSpellLevel(message, dnd5eFlags = _getMessageDnd5eFlags(message), item = null) {
-	const messageLevel = Number(message?.system?.spellLevel ?? foundry.utils.getProperty(message, 'data.system.spellLevel'));
+export function _getMessageSpellLevel(message, _messageData, item = null) {
+	const messageLevel = Number(message?.system?.spellLevel);
 	if (Number.isFinite(messageLevel)) return messageLevel;
-	const scaling = Number(message?.system?.scaling ?? foundry.utils.getProperty(message, 'data.system.scaling') ?? dnd5eFlags?.use?.scaling);
+	const scaling = Number(message?.system?.scaling);
 	const itemLevel = Number(item?.system?.level);
 	if (Number.isFinite(itemLevel) && Number.isFinite(scaling)) return itemLevel + scaling;
-	const flagLevel = Number(dnd5eFlags?.use?.spellLevel);
-	if (Number.isFinite(flagLevel)) return flagLevel;
 	return Number.isFinite(itemLevel) ? itemLevel : undefined;
 }
 
-export function _getMessageScaling(message, dnd5eFlags = _getMessageDnd5eFlags(message)) {
-	const increase = Number(message?.system?.scaling ?? foundry.utils.getProperty(message, 'data.system.scaling') ?? dnd5eFlags?.use?.scaling);
+export function _getMessageScaling(message) {
+	const increase = Number(message?.system?.scaling);
 	if (!Number.isFinite(increase)) return undefined;
 	return { increase, value: increase + 1 };
 }
