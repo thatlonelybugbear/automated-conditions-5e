@@ -756,7 +756,7 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 }
 
 export function _getMessageSpellLevel(message, _messageData, item = null) {
-	const messageLevel = Number(message?.system?.spellLevel);
+	const messageLevel = Number(message?.system?.level);
 	if (Number.isFinite(messageLevel)) return messageLevel;
 	const scaling = Number(message?.system?.scaling);
 	const itemLevel = Number(item?.system?.level);
