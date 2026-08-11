@@ -103,7 +103,27 @@ function ac5eSetup() {
 	loadPersistentUsageRules();
 	statusEffectsTables = _initStatusEffectsTables();
 	const hooksRegistered = registerHooks(settings);
+	setTimeout(rehydrateVisibleChatTooltips);
 	createAc5eGlobalSpace({ hooksRegistered, buildId: AC5E_LOCAL_BUILD_ID });
+}
+
+function rehydrateVisibleChatTooltips() {
+	_incrementChatDomStat('rehydratePasses');
+	for (const element of document.querySelectorAll('.chat-message[data-message-id]')) {
+		const message = game.messages.get(element.dataset.messageId);
+		const hasAc5eRoll = message?.rolls?.some((roll) => roll?.options?.[Constants.MODULE_ID]) || message?.flags?.[Constants.MODULE_ID];
+		if (hasAc5eRoll) {
+			_incrementChatDomStat('rehydrateMessages');
+			_renderHijack('chat', message, element, 'renderChatMessageHTML');
+		}
+	}
+}
+
+function _incrementChatDomStat(key, amount = 1) {
+	const debug = globalThis.ac5e?.debug;
+	if (!debug?.chatDomCounters) return;
+	debug.chatDomStats ??= {};
+	debug.chatDomStats[key] = (debug.chatDomStats[key] ?? 0) + amount;
 }
 
 function registerHooks(settings) {
@@ -149,9 +169,13 @@ function registerHooks(settings) {
 
 	for (const hook of actionHooks.concat(renderHooks).concat(foundryHooks).concat(buildHooks)) {
 		const hookId = Hooks.on(hook.id, (...args) => {
-			if (renderHooks.some((candidate) => candidate.id === hook.id)) {
+		if (renderHooks.some((candidate) => candidate.id === hook.id)) {
 				const [render, element] = args;
 				if (settings.debug) console.warn(hook.id, { render, element });
+				if (hook.type === 'chat') return setTimeout(() => {
+					_incrementChatDomStat('renderHookPasses');
+					_renderHijack(hook.type, render, element, hook.id);
+				});
 				return _renderHijack(hook.type, ...args, hook.id);
 			}
 			if (hook.id === 'dnd5e.preUseActivity') {
