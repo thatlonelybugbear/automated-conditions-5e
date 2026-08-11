@@ -55,7 +55,7 @@ import { preRollDamage } from './hooks/ac5e-hooks-roll-damage.mjs';
 import { preRollAbilityCheck, preRollSavingThrow } from './hooks/ac5e-hooks-roll-d20.mjs';
 import { preConfigureInitiative } from './hooks/ac5e-hooks-roll-initiative.mjs';
 import { postBuildRollConfig } from './hooks/ac5e-hooks-roll-post-build.mjs';
-import { applyExplicitModeOverride, buildChatRollPayload, postRollConfiguration, setExplicitModeOverride } from './hooks/ac5e-hooks-roll-post.mjs';
+import { applyExplicitModeOverride, buildChatRollPayload, postRollConfiguration, sanitizeChatMessageRolls, setExplicitModeOverride } from './hooks/ac5e-hooks-roll-post.mjs';
 import { enforceDefaultButtonFocus, getExistingRoll, getExistingRollOptions } from './hooks/ac5e-hooks-ui-utils.mjs';
 import { postUseActivity, preActivityConsumption, preUseActivity } from './hooks/ac5e-hooks-use-activity.mjs';
 import { renderRollConfigDialogHijack } from './hooks/ac5e-hooks-render-dialog.mjs';
@@ -81,6 +81,7 @@ const rollFunctionDispatch = {
 	check: (hook, [config, dialog, message]) => _preRollAbilityCheck(config, dialog, message, hook),
 	init: (hook, [actor, rollConfig]) => _preConfigureInitiative(actor, rollConfig, hook),
 	preCreateItem: (hook, [item, updates]) => _preCreateItem(item, updates),
+	preCreateChatMessage: (hook, [message, data]) => _preCreateChatMessage(message, data),
 	preCreateActiveEffect: (hook, [effect, updates, options, userId]) => _preCreateActiveEffect(effect, updates, options, userId),
 	preUpdateActiveEffect: (hook, [effect, updates]) => _preUpdateActiveEffect(effect, updates),
 };
@@ -102,6 +103,11 @@ export function _preCreateItem(item, updates) {
 	if (!effects.length) return;
 	for (const e of effects) if (e.origin && e.origin !== itemUuid && e.type !== 'enchantment') e.origin = itemUuid; //make sure that we dont overwrite enchantment effects origins; might be from compendium template items
 	item.updateSource({ effects });
+}
+
+export function _preCreateChatMessage(message, data) {
+	sanitizeChatMessageRolls(data, { hookDebugEnabled: _hookDebugEnabled });
+	return true;
 }
 
 function _extractAllowEffectApplicationExpression(effect, data) {

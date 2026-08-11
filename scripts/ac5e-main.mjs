@@ -132,6 +132,7 @@ function registerHooks(settings) {
 	];
 	const foundryHooks = [
 		{ id: 'preCreateItem', type: 'preCreateItem' },
+		{ id: 'preCreateChatMessage', type: 'preCreateChatMessage' },
 		{ id: 'preCreateActiveEffect', type: 'preCreateActiveEffect' },
 		{ id: 'preUpdateActiveEffect', type: 'preUpdateActiveEffect' },
 	];

@@ -217,6 +217,32 @@ export function buildChatRollPayload(ac5eConfig, { chatTooltip, roll } = {}) {
 	return payload;
 }
 
+export function sanitizeChatMessageRolls(data, { hookDebugEnabled } = {}) {
+	const rolls = data?.rolls;
+	if (!Array.isArray(rolls)) return 0;
+	let sanitized = 0;
+	for (let index = 0; index < rolls.length; index++) {
+		const serialized = typeof rolls[index] === 'string';
+		let roll;
+		try {
+			roll = serialized ? JSON.parse(rolls[index]) : rolls[index];
+		} catch (_) {
+			continue;
+		}
+		const ac5eConfig = roll?.options?.[Constants.MODULE_ID];
+		if (!ac5eConfig || typeof ac5eConfig !== 'object') continue;
+		const payload = buildChatRollPayload(ac5eConfig, { roll });
+		if (!payload) continue;
+		roll.options[Constants.MODULE_ID] = payload;
+		rolls[index] = serialized ? JSON.stringify(roll) : roll;
+		sanitized++;
+	}
+	if (sanitized && hookDebugEnabled?.('chatRollPersistence')) {
+		console.warn(`AC5E chat roll persistence scrub ${JSON.stringify({ sanitized, rolls: rolls.length })}`);
+	}
+	return sanitized;
+}
+
 function normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps) {
 	if (!_activeModule('midi-qol') || !['attack', 'check', 'save'].includes(ac5eConfig?.hookType) || !Array.isArray(rolls) || !rolls[0]?.options) return;
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
