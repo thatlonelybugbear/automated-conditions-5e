@@ -12,6 +12,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	syncRollReferencesToConfig(rolls, config);
 	const options = config.options ?? {};
 	const ac5eConfig = getPostRollAc5eConfig(rolls, config, dialog);
+	applyDamageExtremeEvaluation(ac5eConfig, rolls);
 	syncOptinSelectionsToRolls(ac5eConfig, rolls);
 	syncOptinSelectionsToMessage(ac5eConfig, message);
 	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
@@ -215,6 +216,38 @@ export function buildChatRollPayload(ac5eConfig, { chatTooltip, roll } = {}) {
 	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;
 	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
 	return payload;
+}
+
+function applyDamageExtremeEvaluation(ac5eConfig, rolls) {
+	if (ac5eConfig?.hookType !== 'damage' || !Array.isArray(rolls)) return;
+	const preserved = ac5eConfig?.preservedInitialData ?? {};
+	const maximizeByRoll = Array.isArray(preserved.activeMaximize) ? preserved.activeMaximize : [];
+	const minimizeByRoll = Array.isArray(preserved.activeMinimize) ? preserved.activeMinimize : [];
+	const modifiersByRoll = Array.isArray(preserved.activeModifiers) ? preserved.activeModifiers : [];
+	const appended = Array.isArray(preserved.activeAppendedBonusRolls) ? preserved.activeAppendedBonusRolls : [];
+	const baseCount = Array.isArray(preserved.formulas) ? preserved.formulas.length : rolls.length - appended.length;
+	for (let index = 0; index < rolls.length; index++) {
+		const roll = rolls[index];
+		if (!roll || roll._evaluated || roll._ac5eExtremeEvaluation) continue;
+		const dieModifiers = String(modifiersByRoll[index] ?? '').match(/(?:min|max)\d+/gi) ?? [];
+		if (dieModifiers.length) {
+			for (const die of roll.dice ?? []) {
+				if (!Array.isArray(die?.modifiers)) continue;
+				for (const modifier of dieModifiers) if (!die.modifiers.includes(modifier)) die.modifiers.push(modifier);
+			}
+			roll.resetFormula?.();
+		}
+		const appendedEntry = index >= baseCount ? appended[index - baseCount] : null;
+		const maximize = appendedEntry ? !!appendedEntry.maximize : !!maximizeByRoll[index];
+		const minimize = !maximize && (appendedEntry ? !!appendedEntry.minimize : !!minimizeByRoll[index]);
+		if (!maximize && !minimize) continue;
+		const evaluate = roll.evaluate;
+		if (typeof evaluate !== 'function') continue;
+		roll._ac5eExtremeEvaluation = true;
+		roll.evaluate = function(options = {}) {
+			return evaluate.call(this, { ...options, maximize: maximize || !!options.maximize, minimize: !maximize && (minimize || !!options.minimize) });
+		};
+	}
 }
 
 export function sanitizeChatMessageRolls(data, { hookDebugEnabled } = {}) {
