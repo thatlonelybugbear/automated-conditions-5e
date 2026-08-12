@@ -22,6 +22,27 @@ import {
 import { _getSafeDialogConfig, _getSafeUseConfig } from './ac5e-config-logic.mjs';
 
 const settings = new Settings();
+const MUTABLE_EVALUATION_STATE_KEYS = [
+	'isMagical',
+	'isSpell',
+	'isCantrip',
+	'isScroll',
+	'isHeal',
+	'isAoE',
+	'hasAttack',
+	'hasDamage',
+	'hasHealing',
+	'hasSave',
+	'hasCheck',
+	'requiresSpellSlot',
+	'canMove',
+	'canSee',
+	'isSeen',
+	'isTurn',
+	'isOpponentTurn',
+	'isTargetTurn',
+	'singleTarget',
+];
 
 export const AC5E_ACTOR_ROLLDATA_ADDED_FIELDS = [
 	'actorId',
@@ -65,10 +86,7 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, options 
 	const activity = normalizedOptions?.activity;
 	const item = normalizedOptions?.item;
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
-	const formulaData =
-		normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ?
-			normalizedOptions.rollData
-		:	rollDataDocument?.getRollData?.() ?? {};
+	const formulaData = normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ? normalizedOptions.rollData : (rollDataDocument?.getRollData?.() ?? {});
 	const dataActor =
 		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
 		: opponentToken?.actor === (activity ?? item)?.actor ? 'opponentActor'
@@ -328,10 +346,14 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const coverTargets = message?.data?.flags?.simplecover5e?.targets ?? message?.flags?.simplecover5e?.targets;
 		const coverTarget = coverTargets?.find((entry) => entry?.tokenUuid === target?.tokenUuid || entry?.uuid === target?.uuid);
 		switch (coverTarget?.newCover ?? coverTarget?.originalCover) {
-			case 'total': return null;
-			case 'half': return Number(CONFIG.DND5E.statusEffects.coverHalf?.coverBonus ?? 0);
-			case 'threeQuarters': return Number(CONFIG.DND5E.statusEffects.coverThreeQuarters?.coverBonus ?? 0);
-			default: return 0;
+			case 'total':
+				return null;
+			case 'half':
+				return Number(CONFIG.DND5E.statusEffects.coverHalf?.coverBonus ?? 0);
+			case 'threeQuarters':
+				return Number(CONFIG.DND5E.statusEffects.coverThreeQuarters?.coverBonus ?? 0);
+			default:
+				return 0;
 		}
 	};
 	ac5eConfig.preAC5eConfig ??= {};
@@ -530,20 +552,12 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			ac5eConfig.initialTargetADCs = {};
 			ac5eConfig.alteredTargetADCs = {};
 			if (ac5eConfig.threshold?.length) {
-				const finalThreshold = getAlteredTargetValueOrThreshold(
-					getNumericOrFallback(roll0.options.criticalSuccess, defaultCriticalSuccess),
-					ac5eConfig.threshold,
-					'critThreshold',
-				);
+				const finalThreshold = getAlteredTargetValueOrThreshold(getNumericOrFallback(roll0.options.criticalSuccess, defaultCriticalSuccess), ac5eConfig.threshold, 'critThreshold');
 				roll0.options.criticalSuccess = finalThreshold;
 				ac5eConfig.alteredCritThreshold = finalThreshold;
 			}
 			if (ac5eConfig.fumbleThreshold?.length) {
-				const finalThreshold = getAlteredTargetValueOrThreshold(
-					getNumericOrFallback(roll0.options.criticalFailure, defaultCriticalFailure),
-					ac5eConfig.fumbleThreshold,
-					'fumbleThreshold',
-				);
+				const finalThreshold = getAlteredTargetValueOrThreshold(getNumericOrFallback(roll0.options.criticalFailure, defaultCriticalFailure), ac5eConfig.fumbleThreshold, 'fumbleThreshold');
 				roll0.options.criticalFailure = finalThreshold;
 				ac5eConfig.alteredFumbleThreshold = finalThreshold;
 			}
@@ -568,9 +582,8 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 								targets[index].ac = ac5eForcedRollTarget;
 								return;
 							}
-							const initialPerTargetADC = Number.isFinite(Number(coverTarget?.ac))
-								? Number(coverTarget.ac)
-								: pickNonSentinelNumber(baseEntry?.ac, getLiveTargetAC(sourceTarget), sourceTarget?.ac) + coverBonus;
+							const initialPerTargetADC =
+								Number.isFinite(Number(coverTarget?.ac)) ? Number(coverTarget.ac) : pickNonSentinelNumber(baseEntry?.ac, getLiveTargetAC(sourceTarget), sourceTarget?.ac) + coverBonus;
 							if (!Number.isFinite(initialPerTargetADC)) return;
 							const alteredTargetADC = getAlteredTargetValueOrThreshold(initialPerTargetADC, ac5eConfig.targetADC ?? [], 'acBonus');
 							if (!isNaN(alteredTargetADC)) {
@@ -622,9 +635,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			}
 		}
 		if (ac5eConfig.targetADC?.length && hook !== 'attack' && hook !== 'damage') {
-			const skipNonAttackTargetADCReapply =
-				(hook === 'save' || hook === 'check') &&
-				ac5eConfig?.useConfig?.targetADCResolvedAtUse === true;
+			const skipNonAttackTargetADCReapply = (hook === 'save' || hook === 'check') && ac5eConfig?.useConfig?.targetADCResolvedAtUse === true;
 			if (skipNonAttackTargetADCReapply) {
 				const resolvedBaseTargetADC = pickNonSentinelNumber(ac5eConfig?.useConfig?.initialTargetADC, ac5eConfig?.initialTargetADC);
 				const resolvedAlteredTargetADC = pickNonSentinelNumber(roll0?.options?.target, config?.target, ac5eConfig?.useConfig?.alteredTargetADC, ac5eConfig?.alteredTargetADC);
@@ -632,24 +643,18 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				if (resolvedAlteredTargetADC !== undefined) ac5eConfig.alteredTargetADC = resolvedAlteredTargetADC;
 				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: skipped non-attack reapply', { hook, initialTargetADC: ac5eConfig.initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
 			} else {
-			const initialTargetADC =
-				pickNonSentinelNumber(
-					ac5eConfig?.optinBaseTargetADCValue,
-					ac5eConfig?.initialTargetADC,
-					ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target,
-					config?.target,
-					roll0?.options?.target,
-				) ?? 10;
-			const alteredTargetADC = getAlteredTargetValueOrThreshold(initialTargetADC, ac5eConfig.targetADC, 'dcBonus');
-			if (!isNaN(alteredTargetADC)) {
-				ac5eConfig.initialTargetADC = roll0.options.target;
-				roll0.options.target = alteredTargetADC;
-				if (roll0) roll0.target = alteredTargetADC;
-				if (config) config.target = alteredTargetADC;
-				ac5eConfig.alteredTargetADC = alteredTargetADC;
-				ac5eConfig.initialTargetADC = initialTargetADC;
-			}
-			if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: result non-attack', { hook, initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
+				const initialTargetADC =
+					pickNonSentinelNumber(ac5eConfig?.optinBaseTargetADCValue, ac5eConfig?.initialTargetADC, ac5eConfig?.preAC5eConfig?.baseRoll0Options?.target, config?.target, roll0?.options?.target) ?? 10;
+				const alteredTargetADC = getAlteredTargetValueOrThreshold(initialTargetADC, ac5eConfig.targetADC, 'dcBonus');
+				if (!isNaN(alteredTargetADC)) {
+					ac5eConfig.initialTargetADC = roll0.options.target;
+					roll0.options.target = alteredTargetADC;
+					if (roll0) roll0.target = alteredTargetADC;
+					if (config) config.target = alteredTargetADC;
+					ac5eConfig.alteredTargetADC = alteredTargetADC;
+					ac5eConfig.initialTargetADC = initialTargetADC;
+				}
+				if (ac5e?.debugTargetADC) console.warn('AC5E targetADC: result non-attack', { hook, initialTargetADC, alteredTargetADC: ac5eConfig.alteredTargetADC });
 			}
 		}
 		const subjectFail = _filterOptinEntries(ac5eConfig.subject.fail, ac5eConfig.optinSelected);
@@ -858,8 +863,14 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const d20Faces = Number(roll0?.dice?.[0]?.faces);
 		const dieMax = Number.isFinite(d20Faces) && d20Faces > 0 ? d20Faces : 20;
 		const { maximum, minimum, maximize, minimize } = effectiveModifiers;
-		const resolvedMaximum = Number.isFinite(maximum) ? maximum : minimize ? 1 : undefined;
-		const resolvedMinimum = Number.isFinite(minimum) ? minimum : maximize ? dieMax : undefined;
+		const resolvedMaximum =
+			Number.isFinite(maximum) ? maximum
+			: minimize ? 1
+			: undefined;
+		const resolvedMinimum =
+			Number.isFinite(minimum) ? minimum
+			: maximize ? dieMax
+			: undefined;
 		if (Number.isFinite(resolvedMaximum)) roll0.options.maximum = resolvedMaximum;
 		else if ('maximum' in roll0.options) delete roll0.options.maximum;
 		if (Number.isFinite(resolvedMinimum)) roll0.options.minimum = resolvedMinimum;
@@ -980,7 +991,8 @@ function _createEvaluationSandboxLogSnapshot(value) {
 		...snapshot,
 		options: {
 			ability: options?.ability,
-			activity: options?.activity ? { id: options.activity.id, uuid: options.activity.uuid, identifier: options.activity.identifier, type: options.activity.type, name: options.activity.name } : undefined,
+			activity:
+				options?.activity ? { id: options.activity.id, uuid: options.activity.uuid, identifier: options.activity.identifier, type: options.activity.type, name: options.activity.name } : undefined,
 			attackMode: options?.attackMode,
 			damageTypes: options?.damageTypes,
 			defaultDamageType: options?.defaultDamageType,
@@ -1097,7 +1109,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isCantrip = item?.system?.level === 0 || itemData?.level === 0;
 	sandbox.magicAvailable = item?.magicAvailable;
 	sandbox.isScroll = item?.type === 'consumable' && item?.system?.type?.value === 'scroll';
-	sandbox.isSpell = activity?.isSpell || !!activity?.spell;
+	sandbox.isSpell = !!activity?.isSpell || activity?.type === 'cast';
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
 	sandbox.item.hasAttack = item?.hasAttack;
@@ -1114,13 +1126,13 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		if (itemData?.type?.value) sandbox._evalConstants[itemData.type.value] = true;
 		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
 		const ammoProperties = sandbox.ammunition?.system?.properties;
-		const itemProperties = item?.system?.properties instanceof Set ? new Set(item.system.properties) : new Set();
-		if (ammoProperties?.length) ammoProperties.forEach((p) => itemProperties.add(p));
+		const itemProperties = new Set([...(item?.system?.properties ?? []), ...(ammoProperties ?? [])]);
 		sandbox.item.properties = itemProperties;
 		for (const property of itemProperties) {
 			sandbox.itemProperties[property] = true;
 			sandbox._evalConstants[property] = true;
 		}
+		sandbox.isMagical = itemProperties.has('mgc');
 	}
 
 	const combat = game.combat;
@@ -1141,10 +1153,23 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (sandboxOptions?.tool) sandbox._evalConstants[sandboxOptions.tool] = true;
 	const isSkillCheck = sandboxOptions?.hook === 'check' && sandboxOptions?.skill;
 	const isToolCheck = sandboxOptions?.hook === 'check' && sandboxOptions?.tool;
-	sandbox.hasProficiency = sandboxOptions?.hook === 'save' ? rollingActor?.abilities?.[sandboxOptions.ability]?.proficient > 0 : isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient > 0 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier > 0 : !!sandbox.item?.hasProficiency;
-	sandbox.hasExpertise = isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 2 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 2 : false;
-	sandbox.hasHalfProficiency = isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 0.5 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 0.5 : false;
-	sandbox.hasFullProficiency = isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 1 : isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 1 : false;
+	sandbox.hasProficiency =
+		sandboxOptions?.hook === 'save' ? rollingActor?.abilities?.[sandboxOptions.ability]?.proficient > 0
+		: isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient > 0
+		: isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier > 0
+		: !!sandbox.item?.hasProficiency;
+	sandbox.hasExpertise =
+		isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 2
+		: isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 2
+		: false;
+	sandbox.hasHalfProficiency =
+		isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 0.5
+		: isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 0.5
+		: false;
+	sandbox.hasFullProficiency =
+		isSkillCheck ? rollingActor?.skills?.[sandboxOptions.skill]?.proficient === 1
+		: isToolCheck ? rollingActor?.tools?.[sandboxOptions.tool]?.prof?.multiplier === 1
+		: false;
 	sandbox.isConcentration = sandboxOptions?.isConcentration;
 	sandbox.isDeathSave = sandboxOptions?.isDeathSave;
 	sandbox.isInitiative = sandboxOptions?.isInitiative;
@@ -1186,6 +1211,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 		delete sandbox[''];
 		console.warn('AC5E sandbox.undefined detected!!!');
 	}
-	if (settings.debug || ac5e.logEvaluationData) console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: _createEvaluationSandboxLogSnapshot(sandbox) });
+	const extensionState = Object.create(null);
+	Hooks.callAll('automated-conditions-5e.prepareEvaluationState', extensionState, { subjectToken, opponentToken, options: sandboxOptions, activity, item });
+	foundry.utils.mergeObject(sandbox, Object.fromEntries(MUTABLE_EVALUATION_STATE_KEYS.filter((key) => typeof extensionState[key] === 'boolean').map((key) => [key, extensionState[key]])));
+	if (settings.debug || ac5e.logEvaluationData)
+		console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: _createEvaluationSandboxLogSnapshot(sandbox) });
 	return sandbox;
 }
