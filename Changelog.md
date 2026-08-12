@@ -1,3 +1,10 @@
+## 14.533.14.3
+
+- Improved chat-card performance to keep new roll messages smaller and help reduce world database growth over time.
+- Fixed minimum and maximum damage modifiers so they apply correctly to damage rolls.
+- Fixed some damage-roll formulas and scale-based dice expressions displaying incorrectly.
+- Improved reliability for Automated Conditions 5e tooltips on chat cards.
+
 ## 14.533.14.2
 
 - Fix parser bug with scale references.

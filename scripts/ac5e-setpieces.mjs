@@ -2830,7 +2830,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					if (typeof bonus === 'string') {
 						const trimmedBonus = bonus.trim();
 						const isDiceMultiplier = /^\+?\s*(?:x|\^)\s*-?\d+\s*$/i.test(trimmedBonus);
-						if (mode !== 'modifyDenomination' && !isDiceMultiplier && !(trimmedBonus.includes('+') || trimmedBonus.includes('-'))) bonus = `+${bonus}`;
+						if (hook !== 'damage' && mode !== 'modifyDenomination' && !isDiceMultiplier && !(trimmedBonus.includes('+') || trimmedBonus.includes('-'))) bonus = `+${bonus}`;
 					}
 					entryValues.push(bonus);
 				}

@@ -1230,9 +1230,8 @@ function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = ''
 	if (nextFormula) {
 		nextFormula = nextFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
-			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
 			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
-			return `${count || ''}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
+			return `${count || ''}d${shiftedSides}${suffix}${appliedModifiers}`;
 		});
 		for (const op of formulaOperatorTokens) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 	}
@@ -1904,14 +1903,13 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
 			if (newCount <= 0) return `0d${sides}${existing}`;
 			const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
-			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
 			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
 			const nextCount = count || newCount !== 1 || extraDiceMultiplier !== 1 || extraDiceAdditive !== 0 ? newCount : '';
-			const diceTerm = `${nextCount}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
+			const diceTerm = `${nextCount}d${shiftedSides}${suffix}${appliedModifiers}`;
 			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
 			if (criticalStaticCount > 0) {
 				const criticalAppliedModifiers = addDamageAdvantageModifier(existing, advDis);
-				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${criticalAppliedModifiers}${extremeModifier}`;
+				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${criticalAppliedModifiers}`;
 				criticalStaticParts.push(criticalDiceTerm);
 			}
 			return diceTerm;
@@ -1922,10 +1920,9 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				part.replace(diceRegex, (match, count, sides, existing = '') => {
 					const baseCount = parseInt(count || '1', 10);
 					const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
-					const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
 					const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
 					const nextCount = count || baseCount !== 1 ? baseCount : '';
-					return `${nextCount}d${shiftedSides}${suffix}${appliedModifiers}${extremeModifier}`;
+					return `${nextCount}d${shiftedSides}${suffix}${appliedModifiers}`;
 				}),
 			);
 		if (resolvedBonusParts.length) nextFormula = nextFormula ? `${nextFormula} + ${resolvedBonusParts.join(' + ')}` : resolvedBonusParts.join(' + ');

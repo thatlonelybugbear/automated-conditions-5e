@@ -12,6 +12,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	syncRollReferencesToConfig(rolls, config);
 	const options = config.options ?? {};
 	const ac5eConfig = getPostRollAc5eConfig(rolls, config, dialog);
+	applyDamageExtremeEvaluation(ac5eConfig, rolls);
 	syncOptinSelectionsToRolls(ac5eConfig, rolls);
 	syncOptinSelectionsToMessage(ac5eConfig, message);
 	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
@@ -215,6 +216,64 @@ export function buildChatRollPayload(ac5eConfig, { chatTooltip, roll } = {}) {
 	if (ac5eConfig?.hasTransitDisadvantage) payload.hasTransitDisadvantage = true;
 	if (hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip) payload.forceAc5eD20Tooltip = true;
 	return payload;
+}
+
+function applyDamageExtremeEvaluation(ac5eConfig, rolls) {
+	if (ac5eConfig?.hookType !== 'damage' || !Array.isArray(rolls)) return;
+	const preserved = ac5eConfig?.preservedInitialData ?? {};
+	const maximizeByRoll = Array.isArray(preserved.activeMaximize) ? preserved.activeMaximize : [];
+	const minimizeByRoll = Array.isArray(preserved.activeMinimize) ? preserved.activeMinimize : [];
+	const modifiersByRoll = Array.isArray(preserved.activeModifiers) ? preserved.activeModifiers : [];
+	const appended = Array.isArray(preserved.activeAppendedBonusRolls) ? preserved.activeAppendedBonusRolls : [];
+	const baseCount = Array.isArray(preserved.formulas) ? preserved.formulas.length : rolls.length - appended.length;
+	for (let index = 0; index < rolls.length; index++) {
+		const roll = rolls[index];
+		if (!roll || roll._evaluated || roll._ac5eExtremeEvaluation) continue;
+		const dieModifiers = String(modifiersByRoll[index] ?? '').match(/(?:min|max)\d+/gi) ?? [];
+		if (dieModifiers.length) {
+			for (const die of roll.dice ?? []) {
+				if (!Array.isArray(die?.modifiers)) continue;
+				for (const modifier of dieModifiers) if (!die.modifiers.includes(modifier)) die.modifiers.push(modifier);
+			}
+			roll.resetFormula?.();
+		}
+		const appendedEntry = index >= baseCount ? appended[index - baseCount] : null;
+		const maximize = appendedEntry ? !!appendedEntry.maximize : !!maximizeByRoll[index];
+		const minimize = !maximize && (appendedEntry ? !!appendedEntry.minimize : !!minimizeByRoll[index]);
+		if (!maximize && !minimize) continue;
+		const evaluate = roll.evaluate;
+		if (typeof evaluate !== 'function') continue;
+		roll._ac5eExtremeEvaluation = true;
+		roll.evaluate = function(options = {}) {
+			return evaluate.call(this, { ...options, maximize: maximize || !!options.maximize, minimize: !maximize && (minimize || !!options.minimize) });
+		};
+	}
+}
+
+export function sanitizeChatMessageRolls(data, { hookDebugEnabled } = {}) {
+	const rolls = data?.rolls;
+	if (!Array.isArray(rolls)) return 0;
+	let sanitized = 0;
+	for (let index = 0; index < rolls.length; index++) {
+		const serialized = typeof rolls[index] === 'string';
+		let roll;
+		try {
+			roll = serialized ? JSON.parse(rolls[index]) : rolls[index];
+		} catch (_) {
+			continue;
+		}
+		const ac5eConfig = roll?.options?.[Constants.MODULE_ID];
+		if (!ac5eConfig || typeof ac5eConfig !== 'object') continue;
+		const payload = buildChatRollPayload(ac5eConfig, { roll });
+		if (!payload) continue;
+		roll.options[Constants.MODULE_ID] = payload;
+		rolls[index] = serialized ? JSON.stringify(roll) : roll;
+		sanitized++;
+	}
+	if (sanitized && hookDebugEnabled?.('chatRollPersistence')) {
+		console.warn(`AC5E chat roll persistence scrub ${JSON.stringify({ sanitized, rolls: rolls.length })}`);
+	}
+	return sanitized;
 }
 
 function normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps) {

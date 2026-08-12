@@ -1,5 +1,12 @@
 import { _buildStandardTooltipFromLines } from '../ac5e-helpers.mjs';
 
+function incrementChatDomStat(key, amount = 1) {
+	const debug = globalThis.ac5e?.debug;
+	if (!debug?.chatDomCounters) return;
+	debug.chatDomStats ??= {};
+	debug.chatDomStats[key] = (debug.chatDomStats[key] ?? 0) + amount;
+}
+
 export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	const hasDomApi = typeof elem?.querySelector === 'function';
 	const hasJqueryApi = typeof elem?.find === 'function';
@@ -16,10 +23,17 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 		resolvedRoller === 'RSR' && ['attack', 'damage', 'check', 'save'].includes(deps?.rsrType) ? deps.rsrType : undefined;
 	const effectiveHookType = rsrSectionHookType ?? resolvedHookType;
 	const useJquery = resolvedRoller === 'RSR' && hasJqueryApi;
-	const queryOne = (selector) => (useJquery ? elem.find(selector)?.[0] ?? null : elem.querySelector(selector));
-	const queryAll = (selector) => (useJquery ? Array.from(elem.find(selector) ?? []) : Array.from(elem.querySelectorAll(selector)));
+	const queryOne = (selector) => {
+		incrementChatDomStat('querySelector');
+		return useJquery ? elem.find(selector)?.[0] ?? null : elem.querySelector(selector);
+	};
+	const queryAll = (selector) => {
+		incrementChatDomStat('querySelectorAll');
+		return useJquery ? Array.from(elem.find(selector) ?? []) : Array.from(elem.querySelectorAll(selector));
+	};
 	const setTooltip = (node, value) => {
 		if (!node) return;
+		incrementChatDomStat('tooltipWrites');
 		node.setAttribute('data-tooltip', value);
 		node.removeAttribute('title');
 		if (deps.hookDebugEnabled('renderHijackHook')) {
@@ -143,12 +157,16 @@ function applyPreferredDisplayFormulas(render, elem, deps) {
 	if (!displayFormulas.some(Boolean)) return;
 	if (formulaElements.length === 1) {
 		const single = displayFormulas.find(Boolean);
-		if (single) formulaElements[0].textContent = single;
+		if (single) {
+			incrementChatDomStat('formulaWrites');
+			formulaElements[0].textContent = single;
+		}
 		return;
 	}
 	for (let index = 0; index < formulaElements.length; index++) {
 		const displayFormula = displayFormulas[index];
 		if (!displayFormula) continue;
+		incrementChatDomStat('formulaWrites');
 		formulaElements[index].textContent = displayFormula;
 	}
 }

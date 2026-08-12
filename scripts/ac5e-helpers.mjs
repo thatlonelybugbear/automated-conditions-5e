@@ -3198,7 +3198,7 @@ export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', de
 	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
 
 	debug ??= {};
-	const debugLoggingEnabled = !!(ac5e?.devModeEnabled || ac5e?.debug.evaluations);
+	const debugLoggingEnabled = !!(ac5e?.devModeEnabled || ac5e?.debug?.evaluations);
 	debug.log = debugLoggingEnabled ? console.warn : undefined;
 
 	if (mode === 'condition') return evaluateCondition(expression, sandbox, debug);

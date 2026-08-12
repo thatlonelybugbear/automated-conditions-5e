@@ -1636,6 +1636,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 		buildRollConfigHook: false,
 		postRollConfigurationHook: false,
 		renderHijackHook: false,
+		chatDomCounters: false,
 		preConfigureInitiativeHook: false,
 		setAC5eProperties: false,
 		usesCount: false,
