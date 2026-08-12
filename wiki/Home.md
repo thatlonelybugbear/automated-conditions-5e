@@ -10,6 +10,8 @@ Welcome to the Automated Conditions 5e wiki!
 
 #### [Status effects overrides API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Status-Effects-Overrides-API>)
 
+#### [Evaluation state hook API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Evaluation-State-Hook-API>)
+
 #### [Cadence API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Cadence-API>)
 
 #### [Context keywords API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Context-Keywords-API>)

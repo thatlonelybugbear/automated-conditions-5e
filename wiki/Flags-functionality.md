@@ -364,6 +364,7 @@ In addition to actor data, some useful values are also available:
 | `isDeathSave`          | `true` if this is a death saving throw |
 | `isCantrip`            | `true` if the rolling item is a cantrip |
 | `isSpell`              | `true` if the rolling item is a spell |
+| `isMagical`            | `true` if the rolled item or ammunition has the magical (`mgc`) property |
 | `spellLevel`           | spell slot level used if relevant |
 | `castingLevel`         | spell slot level used if relevant |
 | `baseSpellLevel`       | the item's original spell level if relevant |

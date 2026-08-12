@@ -103,6 +103,17 @@ Hooks.on("ac5e.statusEffectsReady", ({ tables, overrides }) => {
 - `clear()` removes all overrides.
 - `list()` returns current registered overrides.
 
+## Developer hook: evaluation state
+Integrations can set supported boolean evaluation-state entries before AC5E evaluates effects.
+
+```js
+Hooks.on("automated-conditions-5e.prepareEvaluationState", (extensionState, { activity } = {}) => {
+  if (activity?.flags?.your-module?.magical) extensionState.isMagical = true;
+});
+```
+
+Supported entries: `isMagical`, `isSpell`, `isCantrip`, `isScroll`, `isHeal`, `isAoE`, `hasAttack`, `hasDamage`, `hasHealing`, `hasSave`, `hasCheck`, `requiresSpellSlot`, `canMove`, `canSee`, `isSeen`, `isTurn`, `isOpponentTurn`, `isTargetTurn`, and `singleTarget`.
+
 ### On-demand status suppression
 You can suppress a status by setting an actor flag like `noProne`.
 
