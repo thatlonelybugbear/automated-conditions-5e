@@ -1,3 +1,10 @@
+## 14.533.15
+
+- Added `isMagical` sandbox property and roll-aware pill entry, including magical ammunition properties.
+- Added the `automated-conditions-5e.prepareEvaluationState` hook for integrations to override approved boolean roll-state entries before AC5E evaluates effects.
+  - The hook receives `(extensionState, { subjectToken, opponentToken, options, activity, item })`.
+  - Supported entries: `isMagical`, `isSpell`, `isCantrip`, `isScroll`, `isHeal`, `isAoE`, `hasAttack`, `hasDamage`, `hasHealing`, `hasSave`, `hasCheck`, `requiresSpellSlot`, `canMove`, `canSee`, `isSeen`, `isTurn`, `isOpponentTurn`, `isTargetTurn`, and `singleTarget`.
+
 ## 14.533.14.3
 
 - Improved chat-card performance to keep new roll messages smaller and help reduce world database growth over time.
