@@ -11,6 +11,7 @@ Applies to version: `13.5250.18`
 - [Cloak of Flies](#cloak-of-flies)
 - [Danger Sense](#danger-sense)
 - [Disciple of Life](#disciple-of-life)
+- [Divine Fury](#divine-fury)
 - [Dwarven Resilience](#dwarven-resilience)
 - [Great Weapon Fighting](#great-weapon-fighting)
 - [Healer feat](#healer-feat)
@@ -104,7 +105,14 @@ value: ability.dex && !rollingActor.statuses.incapacitated
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
-value: bonus=2 + castingLevel; isSpell && defaultDamageType.healing
+value: bonus=2 + castingLevel; isSpell && defaultDamageType.healing //pre v14.533.11
+value: bonus=2 + castingLevel; isHeal && isSpell && defaultDamageType.healing //v14.533.11+
+```
+## Divine Fury
+```
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=1d6 + floor(@classes.barbarian.levels / 2)[necrotic, radiant]; oncePerTurn; isTurn && (unarmed || weapon)
 ```
 ## Dwarven Resilience
 ```
@@ -122,7 +130,8 @@ value: modifier=min3;twoHanded && mwak
 ```
 key: flags.automated-conditions-5e.damage.modifier
 
-value: modifier=r1;healing && isSpell
+value: modifier=r1;healing && isSpell //pre v14.533.11
+value: modifier=r1;isHeal && healing && isSpell //v14.533.11+
 ```
 ## Hexblade's Curse
 ```
@@ -156,7 +165,11 @@ value: checkNearby(opponentId, 'different', 5, {count:(distance <= 5 ? 2 : 1)})
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
+//pre D&D5e v5.3
 value: bonus=rollingActor.abilities.wis.mod; item.sourceClass === 'cleric' && isCantrip;
+
+//post D&D5e v5.3
+value: bonus=rollingActor.abilities.wis.mod; item.classIdentifier === 'cleric' && isCantrip;
 ```
 ## Protection from Evil and Good
 ```
