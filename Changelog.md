@@ -1,6 +1,8 @@
 ## 14.533.15.1
 
 - Quickfix for proper autocompletion of `itemType` and `originItemType` (the proper syntax is `itemType === 'weapon'` for example).
+- Preserve attack optin selections for MidiQOL damage rolls.
+- Verified for Foundry v14.366
 
 ## 14.533.15
 
