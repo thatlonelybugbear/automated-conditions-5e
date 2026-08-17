@@ -527,7 +527,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.target = ac5eForcedRollTarget;
 				if (config) config.target = ac5eForcedRollTarget;
 				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(-ac5eForcedRollTarget);
+					if (_activeModule('midi-qol') && !ac5eConfig.parts.includes(-ac5eForcedRollTarget)) ac5eConfig.parts.push(-ac5eForcedRollTarget);
 					for (const targets of getMutableAttackTargetCollections()) {
 						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = ac5eForcedRollTarget));
 					}
@@ -543,7 +543,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 				roll0.target = -ac5eForcedRollTarget;
 				if (config) config.target = -ac5eForcedRollTarget;
 				if (hook === 'attack') {
-					if (_activeModule('midi-qol')) ac5eConfig.parts.push(ac5eForcedRollTarget);
+					if (_activeModule('midi-qol') && !ac5eConfig.parts.includes(ac5eForcedRollTarget)) ac5eConfig.parts.push(ac5eForcedRollTarget);
 					for (const targets of getMutableAttackTargetCollections()) {
 						if (!foundry.utils.isEmpty(targets)) targets.forEach((t, index) => (targets[index].ac = -ac5eForcedRollTarget));
 					}
