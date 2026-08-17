@@ -1,3 +1,7 @@
+## 13.5250.18.5
+
+- Fix for MidiQOL long range advantageMode integration.
+
 ## 13.5250.18.4
 
 - Refactor has() method in ac5e-parser to simplify property lookup logic and prevent scope leakage.
