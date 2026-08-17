@@ -18,6 +18,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		configRoll: config?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
 		originatingUse: options?.originatingUseConfig?.options?.[moduleId]?.optinSelected
 			?? options?.originatingUseConfig?.optinSelected ?? null,
+		workflowAttack: config?.workflow?.attackRoll?.options?.[moduleId]?.optinSelected ?? null,
 	};
 	const attackOptins = Object.values(optinCandidates).find(value => value && typeof value === 'object' && Object.keys(value).length) ?? null;
 	if (attackOptins && typeof attackOptins === 'object') {
