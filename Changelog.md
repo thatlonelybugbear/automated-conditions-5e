@@ -1,3 +1,7 @@
+## 14.533.15.1
+
+- Quickfix for proper autocompletion of `itemType` and `originItemType` (the proper syntax is `itemType === 'weapon'` for example).
+
 ## 14.533.15
 
 - Added `isMagical` sandbox property and roll-aware pill entry, including magical ammunition properties.
