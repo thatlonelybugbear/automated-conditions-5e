@@ -1,3 +1,7 @@
+## 13.5250.18.6
+
+- Fix for duplicate range forced failure modifiers.
+
 ## 13.5250.18.5
 
 - Fix for MidiQOL long range advantageMode integration.
