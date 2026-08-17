@@ -170,25 +170,26 @@ export function refreshAttackAutoRangeState(ac5eConfig, config) {
 	const failLabel = _localize('AC5E.OutOfRange');
 	const nearbyLabel = _localize('AC5E.NearbyFoe');
 	const longLabel = _localize('RangeLong');
+	const isAutoRangeDisadvantage = (entry) => entry?.ac5eAutoRange && (entry.label === nearbyLabel || entry.label === longLabel);
 	ac5eConfig.subject.fail = (ac5eConfig.subject.fail ?? []).filter((entry) => {
 		if (entry === failLabel) return false;
 		if (!entry || typeof entry !== 'object') return true;
 		const label = String(entry.label ?? entry.name ?? entry.id ?? '').trim();
 		return label !== failLabel;
 	});
-	ac5eConfig.subject.disadvantage = (ac5eConfig.subject.disadvantage ?? []).filter((v) => v !== nearbyLabel && v !== longLabel);
+	ac5eConfig.subject.disadvantage = (ac5eConfig.subject.disadvantage ?? []).filter((entry) => !isAutoRangeDisadvantage(entry));
 	ac5eConfig.subject.rangeNotes = [];
 	const mergedOptions = { ...options, targets, ac5eConfig };
 	mergedOptions.distance = _getDistance(sourceToken, singleTargetToken);
 	const { nearbyFoe, inRange, range, longDisadvantage, outOfRangeFail, outOfRangeFailSourceLabel } = autoRanged(activity, sourceToken, singleTargetToken, mergedOptions);
 	ac5eConfig.options ??= {};
 	ac5eConfig.options.distance = mergedOptions.distance;
-	if (nearbyFoe) ac5eConfig.subject.disadvantage.push(nearbyLabel);
+	if (nearbyFoe) ac5eConfig.subject.disadvantage.push({ ac5eAutoRange: true, label: nearbyLabel });
 	if (!outOfRangeFail && !inRange && outOfRangeFailSourceLabel) {
 		ac5eConfig.subject.rangeNotes.push(`${failLabel} fail suppressed: ${outOfRangeFailSourceLabel}`);
 	}
 	if (outOfRangeFail && !config?.workflow?.AoO && !inRange) ac5eConfig.subject.fail.push(failLabel);
-	if (range === 'long' && longDisadvantage) ac5eConfig.subject.disadvantage.push(longLabel);
+	if (range === 'long' && longDisadvantage) ac5eConfig.subject.disadvantage.push({ ac5eAutoRange: true, label: longLabel });
 	if (ac5eConfig?.tooltipObj?.attack) delete ac5eConfig.tooltipObj.attack;
 }
 
