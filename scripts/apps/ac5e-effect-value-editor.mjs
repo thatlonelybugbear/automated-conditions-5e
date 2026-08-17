@@ -2837,6 +2837,7 @@ function resolveAssistEntryInsertion(entry) {
 	const value = `${entry ?? ''}`.trim();
 	if (!value) return '';
 	if (value === "optinSelected['']" || /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)$/.test(value)) return value;
+	if (isEqualityAssistValuePath(value)) return value;
 	if (ROOT_IDENTIFIERS.has(value)) return `${value}.`;
 	if (
 		[
@@ -3674,7 +3675,7 @@ function resolveAssistValueGroupPath(path) {
 
 function isEqualityAssistValuePath(path) {
 	const value = `${path ?? ''}`.trim();
-	return /^(?:item|originItem)\.mastery$/.test(value) || /^(?:item|originItem)\.(?:classIdentifier|sourceItem|school)$/.test(value);
+	return /^(?:itemType|originItemType)$/.test(value) || /^(?:item|originItem)\.mastery$/.test(value) || /^(?:item|originItem)\.(?:classIdentifier|sourceItem|school)$/.test(value);
 }
 
 function isItemPropertiesSetPath(path) {
@@ -3935,6 +3936,7 @@ function tryReplaceTrailingPathWithCreatureTypeClause(input, quotedValue, path, 
 function resolveAssistNodeInsertionPath(textarea, nodePath) {
 	const path = `${nodePath ?? ''}`.trim();
 	if (!path) return path;
+	if (isEqualityAssistValuePath(path)) return path;
 	if (path.endsWith('.creatureType')) return `${path}.includes('')`;
 	if (isExpandableAssistPath(path)) return `${path}.`;
 	const normalizedPath = path.toLowerCase();
@@ -3950,6 +3952,7 @@ function resolveAssistNodeInsertionPath(textarea, nodePath) {
 
 function resolveAssistNodeCompletionInsertion(textarea, node) {
 	const insertion = resolveAssistNodeInsertionPath(textarea, node?.path);
+	if (isEqualityAssistValuePath(node?.path)) return insertion;
 	if (node?.children?.length && insertion && !insertion.endsWith('.')) return `${insertion}.`;
 	return insertion;
 }
