@@ -3,7 +3,14 @@ import { forceDialogConfigureForMidiFastForward } from './ac5e-hooks-midi-fast-f
 export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	const { messageForTargets, activity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	options.isDeathSave = config.hookNames.includes('deathSave');
-	options.isConcentration = config.isConcentration;
+	options.isConcentration =
+		config?.isConcentration === true ||
+		config?.hookNames?.includes('concentration') ||
+		config?.midiOptions?.isConcentrationCheck === true ||
+		message?.data?.flags?.['midi-qol']?.isConcentrationCheck === true ||
+		config?.workflow?.item?.flags?.['midi-qol']?.isConcentrationCheck === true ||
+		config?.midiOptions?.workflow?.item?.flags?.['midi-qol']?.isConcentrationCheck === true ||
+		activity?.item?.flags?.['midi-qol']?.isConcentrationCheck === true;
 	deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' }, deps);
 	if (deps.hookDebugEnabled('preRollSavingThrowHook')) console.error('ac5e _preRollSavingThrow:', hook, options, { config, dialog, message });
 	const { subject, ability } = config || {};
