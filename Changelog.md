@@ -1,3 +1,7 @@
+## 14.533.15.2
+
+- Fixed MidiQOL damage opt-ins not recognizing attack opt-ins selected earlier in the same workflow, so conditions using `optinSelected` now work correctly between attack and damage rolls.
+
 ## 14.533.15.1
 
 - Quickfix for proper autocompletion of `itemType` and `originItemType` (the proper syntax is `itemType === 'weapon'` for example).
