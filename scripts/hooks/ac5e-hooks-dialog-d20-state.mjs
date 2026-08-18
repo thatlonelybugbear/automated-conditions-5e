@@ -281,9 +281,8 @@ function resetDialogAc5eMirrors(dialog, deps) {
 	if (roll0Options) roll0Options.advantage = undefined;
 	if (roll0Options) roll0Options.disadvantage = undefined;
 	if (roll0Options) delete roll0Options.defaultButton;
-	if (roll0) roll0.parts = [];
-	if (roll0Options) roll0Options.maximum = null;
-	if (roll0Options) roll0Options.minimum = null;
+	// Preserve system-provided base d20 composition and min/max constraints (e.g. `1d20min7`).
+	// AC5E opt-in cleanup should remove only AC5E-tracked overlays, not core roll constraints.
 }
 
 function subtractPartsByOccurrence(parts = [], toSubtract = []) {

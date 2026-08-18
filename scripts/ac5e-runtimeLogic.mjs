@@ -690,6 +690,13 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		if (!modifierConfig.literals.includes(cleaned)) modifierConfig.literals.push(cleaned);
 	};
 	const effectiveModifiers = foundry.utils.duplicate(ac5eConfig.modifiers ?? {});
+	// Preserve system-provided d20 constraints unless AC5E explicitly tightens them.
+	if (roll0?.options) {
+		if (!Number.isFinite(effectiveModifiers.maximum) && Number.isFinite(roll0.options.maximum)) effectiveModifiers.maximum = Number(roll0.options.maximum);
+		if (!Number.isFinite(effectiveModifiers.minimum) && Number.isFinite(roll0.options.minimum)) effectiveModifiers.minimum = Number(roll0.options.minimum);
+		if (!effectiveModifiers.maximize && roll0.options.maximize) effectiveModifiers.maximize = true;
+		if (!effectiveModifiers.minimize && roll0.options.minimize) effectiveModifiers.minimize = true;
+	}
 	for (const side of ['subject', 'opponent']) {
 		const sideModifiers = _filterOptinEntries(ac5eConfig?.[side]?.modifiers ?? [], ac5eConfig.optinSelected).filter((entry) => _entryMatchesTransientState(entry, ac5eConfig));
 		for (const entry of sideModifiers) {
