@@ -8,6 +8,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	const { message: messageForSource, messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
 	const moduleId = deps.Constants.MODULE_ID;
 	const optinCandidates = {
+		workflowState: config?.workflow?.ac5e?.attack?.optinSelected,
 		message: message?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
 		messageFlags: message?.flags?.[moduleId]?.optinSelected ?? null,
 		messageForSource: messageForSource?.rolls?.[0]?.options?.[moduleId]?.optinSelected ?? null,
@@ -20,7 +21,12 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 			?? options?.originatingUseConfig?.optinSelected ?? null,
 		workflowAttack: config?.workflow?.attackRoll?.options?.[moduleId]?.optinSelected ?? null,
 	};
-	const attackOptins = Object.values(optinCandidates).find(value => value && typeof value === 'object' && Object.keys(value).length) ?? null;
+	const workflowOptins = optinCandidates.workflowState && typeof optinCandidates.workflowState === 'object'
+		? optinCandidates.workflowState
+		: optinCandidates.workflowAttack;
+	const attackOptins = workflowOptins && typeof workflowOptins === 'object'
+		? workflowOptins
+		: Object.values(optinCandidates).find(value => value && typeof value === 'object' && Object.keys(value).length) ?? null;
 	if (attackOptins && typeof attackOptins === 'object') {
 		options.originatingUseConfig ??= {};
 		options.originatingUseConfig.optinSelected = foundry.utils.duplicate(attackOptins);

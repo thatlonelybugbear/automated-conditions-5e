@@ -15,6 +15,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	applyDamageExtremeEvaluation(ac5eConfig, rolls);
 	syncOptinSelectionsToRolls(ac5eConfig, rolls);
 	syncOptinSelectionsToMessage(ac5eConfig, message);
+	syncAttackOptinSelectionsToWorkflow(ac5eConfig, config);
 	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
 	reconcileResolvedD20Mode(ac5eConfig, config, rolls, message);
 	applyLiteralD20AdvantageCounts(ac5eConfig, config, rolls);
@@ -33,6 +34,13 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts);
 	debugRollStateMigration('postRoll', { hook, config, rolls, ac5eConfig, extra: { hasMessage: !!message } });
 	return true;
+}
+
+function syncAttackOptinSelectionsToWorkflow(ac5eConfig, config) {
+	if (ac5eConfig?.hookType !== 'attack' || !config?.workflow) return;
+	config.workflow.ac5e ??= {};
+	config.workflow.ac5e.attack ??= {};
+	config.workflow.ac5e.attack.optinSelected = foundry.utils.duplicate(ac5eConfig.optinSelected ?? {});
 }
 
 function syncOptinSelectionsToRolls(ac5eConfig, rolls) {
