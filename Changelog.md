@@ -1,3 +1,8 @@
+## 13.5330.1.5
+
+- Fixed system-provided d20 modifiers such as minimum and maximum die results being lost when AC5E applies advantage or disadvantage.
+- Fixed MidiQOL concentration item rolls not being recognized as concentration saves, restoring the relevant AC5E roll conditions and chat tooltip.
+
 ## 13.5330.1.4
 
 - Preserve source message for associated damage rolls
