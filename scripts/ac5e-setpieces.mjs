@@ -2794,6 +2794,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 				const preserveEntryObject =
 					(mode === 'fail' && Boolean(entry?.description)) ||
 					(mode === 'info' && Boolean(entry?.enforceMode)) ||
+					(hook === 'damage' && ['advantage', 'disadvantage'].includes(mode)) ||
 					!!entry?.chance?.enabled;
 				ac5eConfig[actorType][mode].push(
 					preserveEntryObject ? entry

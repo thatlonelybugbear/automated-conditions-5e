@@ -965,6 +965,11 @@ function applyFormulaOperatorToAllTerms(formula, token) {
 	return transformed || formula;
 }
 
+function wrapDamageFormulaAdvantage(formula, advDis = '') {
+	if (!formula || !advDis) return formula;
+	return `{${formula}, ${formula}}k${advDis === 'adv' ? 'h' : 'l'}`;
+}
+
 function getDamageFormulaReplacementData(ac5eConfig) {
 	const subjectToken = canvas?.tokens?.get(ac5eConfig?.tokenId);
 	return _buildRollEvaluationData({
@@ -1750,13 +1755,17 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			.filter((modifierEntry) => shouldApplyDamageEntryToSyntheticRoll(modifierEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes }))
 			.map((modifierEntry) => modifierEntry.value)
 			.filter((value) => typeof value === 'string');
+		const hasAdvantage = [...subjectAdvantage, ...opponentAdvantage]
+			.some((advantageEntry) => shouldApplyDamageEntryToSyntheticRoll(advantageEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes }));
+		const hasDisadvantage = [...subjectDisadvantage, ...opponentDisadvantage]
+			.some((disadvantageEntry) => shouldApplyDamageEntryToSyntheticRoll(disadvantageEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes }));
 		const baseFormula = entry.parts?.length ? entry.parts.map((part, index) => {
 			const alteration = targetedDiceStepsByOptinId.get(entry.optinIds?.[index]);
 			return alteration ? part.replace(/(\d*)d(\d+)([a-z0-9]*)?/gi, (match, count, sides, existing = '') => `${count || ''}d${_applyDamageDiceAlteration(sides, alteration, _getDamageDiceStepProgression())}${existing}`) : part;
 		}).join(' + ') : '0';
 		const formulaState = applyDamageFormulaModifiers(baseFormula, modifierValues);
 		return {
-			formula: formulaState.formula,
+			formula: wrapDamageFormulaAdvantage(formulaState.formula, getDamageAdvantageModifierToken(hasAdvantage, hasDisadvantage)),
 			criticalFormula: '',
 			type: syntheticRollType,
 			types: [...syntheticRollTypes],
@@ -1832,15 +1841,39 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		}
 		return tokens;
 	});
-	const advDisByRoll = formulas.map((_, index) => {
+	const getScopedAdvDis = (index, scope) => {
 		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+		if (scope === 'base' && index !== 0) return '';
+		const appliesToScope = (entry) => {
+			if (!hasRequiredDamageTypes(entry, allTypes)) return false;
+			const addTo = resolveEntryAddTo(entry);
+			if (!_addToAllowsRollType(addTo, rollType)) return false;
+			return addTo.parts === 'all' || addTo.parts === 'global' || addTo.parts === scope;
+		};
 		const hasAdv =
-			subjectAdvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) ||
-			opponentAdvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes }));
+			subjectAdvantage.some(appliesToScope) || opponentAdvantage.some(appliesToScope);
 		const hasDis =
-			subjectDisadvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) ||
-			opponentDisadvantage.some((entry) => shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes }));
+			subjectDisadvantage.some(appliesToScope) || opponentDisadvantage.some(appliesToScope);
 		return getDamageAdvantageModifierToken(hasAdv, hasDis);
+	};
+	const baseAdvDisByRoll = formulas.map((_, index) => getScopedAdvDis(index, 'base'));
+	const bonusAdvDisByRoll = formulas.map((_, index) => getScopedAdvDis(index, 'bonus'));
+	const wholeAdvDisByRoll = formulas.map((_, index) => {
+		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+		const appliesToWhole = (entry) => {
+			if (!hasRequiredDamageTypes(entry, allTypes)) return false;
+			const addTo = resolveEntryAddTo(entry);
+			return ['all', 'global'].includes(addTo.parts) && _addToAllowsRollType(addTo, rollType);
+		};
+		return getDamageAdvantageModifierToken(
+			[...subjectAdvantage, ...opponentAdvantage].some(appliesToWhole),
+			[...subjectDisadvantage, ...opponentDisadvantage].some(appliesToWhole),
+		);
+	});
+	const advDisByRoll = formulas.map((_, index) => {
+		const base = baseAdvDisByRoll[index] ?? '';
+		const bonus = bonusAdvDisByRoll[index] ?? '';
+		return base || bonus ? `${base}|${bonus}` : '';
 	});
 	const activeExtraDiceArray = Array.isArray(activeExtraDice) ? activeExtraDice : originals.map(() => activeExtraDice ?? 0);
 	const activeCriticalStaticExtraDiceArray = Array.isArray(activeCriticalStaticExtraDice) ? activeCriticalStaticExtraDice : originals.map(() => activeCriticalStaticExtraDice ?? 0);
@@ -1920,7 +1953,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	getConfigAC5E.preservedInitialData.modified = originals.map((formula, index) => {
 		const optinBonusParts = (bonusPartsByRoll[index] ?? []).map((part, partIndex) => applyTargetedDiceStep(part, bonusPartOptinIdsByRoll[index]?.[partIndex]));
 		const baseCriticalBonusDamage = normalizeCriticalBonusDamageFormula(getConfigAC5E.preservedInitialData?.baseCriticalBonusDamageByRoll?.[index]);
-		const advDis = advDisByRoll[index] ?? '';
+		const baseAdvDis = baseAdvDisByRoll[index] ?? '';
+		const bonusAdvDis = bonusAdvDisByRoll[index] ?? '';
 		const suffix = suffixesByRoll[index] ?? '';
 		const baseSuffix = baseSuffixesByRoll[index] ?? '';
 		const bonusSuffix = `${suffix.replace(baseSuffix, '')}${bundledBonusSuffixesByRoll[index] ?? ''}`;
@@ -1928,7 +1962,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const resolvedBaseFormula = resolveDamageFormulaDataReferences(String(baseFormula ?? formula), formulaReplacementData);
 		const baseFormulaLength = resolvedBaseFormula.length;
 		const rollOptionModifierState = rollOptionModifierStateByRoll[index] ?? {};
-		const formulaSource = advDis && baseCriticalBonusDamage ? `${formula} + ${baseCriticalBonusDamage}` : formula;
+		const formulaSource = (baseAdvDis || bonusAdvDis) && baseCriticalBonusDamage ? `${formula} + ${baseCriticalBonusDamage}` : formula;
 		const resolvedFormula = resolveDamageFormulaDataReferences(formulaSource, formulaReplacementData);
 		const extraDiceAdditive = extraDiceAdjustments[index]?.additive ?? 0;
 		const extraDiceCriticalStaticAdditive = extraDiceAdjustments[index]?.criticalStaticAdditive ?? 0;
@@ -1936,35 +1970,49 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		const extraDiceMultiplier = extraDiceAdjustments[index]?.multiplier ?? 1;
 		const diceAlteration = diceStepTotals[index] ?? { steps: 0, setSides: null };
 		const criticalStaticParts = [];
-		let nextFormula = resolvedFormula.replace(diceRegex, (match, count, sides, existing = '', offset) => {
+		const transformFormula = (source, partSuffix) => source.replace(diceRegex, (match, count, sides, existing = '') => {
 			const baseCount = parseInt(count || '1', 10);
 			const newCount = baseCount * extraDiceMultiplier + extraDiceAdditive;
 			if (newCount <= 0) return `0d${sides}${existing}`;
 			const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
-			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
 			const nextCount = count || newCount !== 1 || extraDiceMultiplier !== 1 || extraDiceAdditive !== 0 ? newCount : '';
-			const diceTerm = `${nextCount}d${shiftedSides}${offset < baseFormulaLength ? suffix : bonusSuffix}${appliedModifiers}`;
+			const diceTerm = `${nextCount}d${shiftedSides}${partSuffix}${existing}`;
 			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
 			if (criticalStaticCount > 0) {
-				const criticalAppliedModifiers = addDamageAdvantageModifier(existing, advDis);
-				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${suffix}${criticalAppliedModifiers}`;
+				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${partSuffix}${existing}`;
 				criticalStaticParts.push(criticalDiceTerm);
 			}
 			return diceTerm;
 		});
+		let baseDamageFormula = index === 0 ? transformFormula(resolvedFormula.slice(0, baseFormulaLength), suffix) : '';
+		let bonusDamageFormula = transformFormula(
+			(index === 0 ? resolvedFormula.slice(baseFormulaLength).replace(/^\s*\+\s*/, '') : resolvedFormula),
+			bonusSuffix,
+		);
 		const resolvedBonusParts = optinBonusParts
 			.map((part) => resolveDamageFormulaDataReferences(part, formulaReplacementData))
 			.map((part) =>
 				part.replace(diceRegex, (match, count, sides, existing = '') => {
 					const baseCount = parseInt(count || '1', 10);
 					const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
-					const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
 					const nextCount = count || baseCount !== 1 ? baseCount : '';
-					return `${nextCount}d${shiftedSides}${bonusSuffix}${appliedModifiers}`;
+					return `${nextCount}d${shiftedSides}${bonusSuffix}${existing}`;
 				}),
 			);
-		if (resolvedBonusParts.length) nextFormula = nextFormula ? `${nextFormula} + ${resolvedBonusParts.join(' + ')}` : resolvedBonusParts.join(' + ');
-		for (const op of formulaOperatorTokensByRoll[index] ?? []) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
+		if (resolvedBonusParts.length) bonusDamageFormula = bonusDamageFormula ? `${bonusDamageFormula} + ${resolvedBonusParts.join(' + ')}` : resolvedBonusParts.join(' + ');
+		for (const op of formulaOperatorTokensByRoll[index] ?? []) {
+			baseDamageFormula = applyFormulaOperatorToAllTerms(baseDamageFormula, op);
+			bonusDamageFormula = applyFormulaOperatorToAllTerms(bonusDamageFormula, op);
+		}
+		const wholeAdvDis = wholeAdvDisByRoll[index] ?? '';
+		let nextFormula;
+		if (baseDamageFormula && bonusDamageFormula && wholeAdvDis && baseAdvDis === wholeAdvDis && bonusAdvDis === wholeAdvDis) {
+			nextFormula = wrapDamageFormulaAdvantage(`${baseDamageFormula} + ${bonusDamageFormula}`, wholeAdvDis);
+		} else {
+			baseDamageFormula = wrapDamageFormulaAdvantage(baseDamageFormula, baseAdvDis);
+			bonusDamageFormula = wrapDamageFormulaAdvantage(bonusDamageFormula, bonusAdvDis);
+			nextFormula = [baseDamageFormula, bonusDamageFormula].filter(Boolean).join(' + ');
+		}
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) criticalBonusDamage = applyFormulaOperatorToAllTerms(criticalBonusDamage, op);
 		criticalBonusDamageByRoll[index] = criticalBonusDamage;
