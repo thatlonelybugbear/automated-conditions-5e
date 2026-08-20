@@ -1,3 +1,8 @@
+## 14.533.15.4
+
+- Fixed `flags.automated-conditions-5e.damage.advantage/disadvantage` so differently typed damage bonuses, such as `2d10[fire] + 1d4[cold]`, remain separate in damage rolls and chat messages.
+- Fixed damage chat formulas occasionally displaying unresolved references such as `@mod` instead of their calculated values.
+
 ## 14.533.15.3
 
 - Improved `flags.automated-conditions-5e.damage.modifier` targeting: **Base** now affects only the weapon’s base damage dice, while **Bonus** also covers system bonus flags, added activity damage parts, and AC5E bonus damage.
