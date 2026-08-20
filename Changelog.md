@@ -1,3 +1,9 @@
+## 14.533.15.3
+
+- Improved `flags.automated-conditions-5e.damage.modifier` targeting: **Base** now affects only the weapon’s base damage dice, while **Bonus** also covers system bonus flags, added activity damage parts, and AC5E bonus damage.
+- Improved `flags.automated-conditions-5e.damage.advantage/disadvantage`: these flags now roll the selected **Base**, **Bonus**, or **All** damage twice, keeping the higher or lower total.
+- Verified for Foundry v14.367
+
 ## 14.533.15.2
 
 - Fixed MidiQOL damage opt-ins not recognizing attack opt-ins selected earlier in the same workflow, so conditions using `optinSelected` now work correctly between attack and damage rolls.
