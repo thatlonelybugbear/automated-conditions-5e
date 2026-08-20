@@ -967,6 +967,28 @@ function applyFormulaOperatorToAllTerms(formula, token) {
 
 function wrapDamageFormulaAdvantage(formula, advDis = '') {
 	if (!formula || !advDis) return formula;
+	const knownTypes = new Set([
+		...Object.keys(CONFIG?.DND5E?.damageTypes ?? {}),
+		...Object.keys(CONFIG?.DND5E?.healingTypes ?? {}),
+	].map((type) => type.toLowerCase()));
+	const groups = new Map();
+	for (const term of splitTopLevelSignedTerms(formula)) {
+		let expression = String(term.expression ?? '').trim();
+		const flavorMatch = expression.match(/\[([^\]]+)\]\s*$/);
+		const type = flavorMatch && knownTypes.has(flavorMatch[1].trim().toLowerCase()) ? flavorMatch[1].trim().toLowerCase() : '';
+		if (type) expression = expression.slice(0, flavorMatch.index).trim();
+		if (!groups.has(type)) groups.set(type, []);
+		groups.get(type).push({ sign: term.sign, expression });
+	}
+	if ([...groups.keys()].some(Boolean)) {
+		return [...groups.entries()].map(([type, terms]) => {
+			const groupedFormula = terms.map((term, index) => {
+				if (index === 0) return term.sign === '-' ? `- ${term.expression}` : term.expression;
+				return `${term.sign} ${term.expression}`;
+			}).join(' ');
+			return `{${groupedFormula}, ${groupedFormula}}k${advDis === 'adv' ? 'h' : 'l'}${type ? `[${type}]` : ''}`;
+		}).join(' + ');
+	}
 	return `{${formula}, ${formula}}k${advDis === 'adv' ? 'h' : 'l'}`;
 }
 
