@@ -153,7 +153,9 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 function applyPreferredDisplayFormulas(render, elem, deps) {
 	const formulaElements = typeof elem?.querySelectorAll === 'function' ? Array.from(elem.querySelectorAll('.dice-formula')) : [];
 	if (!formulaElements.length) return;
-	const displayFormulas = (Array.isArray(render?.rolls) ? render.rolls : []).map((roll) => String(roll?.options?.[deps.Constants.MODULE_ID]?.displayFormula ?? '').trim());
+	const rollPayloads = (Array.isArray(render?.rolls) ? render.rolls : []).map((roll) => roll?.options?.[deps.Constants.MODULE_ID]);
+	if (rollPayloads.some((payload) => payload?.hookType === 'damage')) return;
+	const displayFormulas = rollPayloads.map((payload) => String(payload?.displayFormula ?? '').trim());
 	if (!displayFormulas.some(Boolean)) return;
 	if (formulaElements.length === 1) {
 		const single = displayFormulas.find(Boolean);
