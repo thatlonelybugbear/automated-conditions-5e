@@ -1,3 +1,7 @@
+## 14.533.15.5
+
+- Fixed item-based usage counters with hyphenated identifiers incorrectly producing formula errors.
+
 ## 14.533.15.4
 
 - Fixed `flags.automated-conditions-5e.damage.advantage/disadvantage` so differently typed damage bonuses, such as `2d10[fire] + 1d4[cold]`, remain separate in damage rolls and chat messages.
