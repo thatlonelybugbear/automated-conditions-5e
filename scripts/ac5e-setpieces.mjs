@@ -3420,7 +3420,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		if (!hasOrigin) {
 			const directTargetNumber = Number(consumptionTarget);
 			if (Number.isFinite(directTargetNumber)) isNumber = directTargetNumber;
-			else if (_looksLikeFormulaExpression(consumptionTarget)) {
+			else if (!_parseUsesCountItemTarget(consumptionTarget) && _looksLikeFormulaExpression(consumptionTarget)) {
 				isNumber = evalDiceExpression(consumptionTarget);
 				if (isNaN(isNumber)) {
 					let evaluatedTarget = _ac5eSafeEval({ expression: consumptionTarget, sandbox: evalData, mode: 'formula', debug });
@@ -4036,6 +4036,7 @@ function _resolveUsesCountConsumeValue(consumptionValue, evalData, debug) {
 }
 
 function _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug) {
+	if (_parseUsesCountItemTarget(consumptionTarget)) return null;
 	const directTargetNumber = Number(consumptionTarget);
 	if (Number.isFinite(directTargetNumber)) return directTargetNumber;
 	if (_looksLikeFormulaExpression(consumptionTarget)) {
