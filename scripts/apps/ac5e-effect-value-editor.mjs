@@ -367,11 +367,11 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	static #onApplyAction(event) {
-		return this.#onApply(event, false);
+		return this._onApply(event, false);
 	}
 
 	static #onApplyCloseAction(event) {
-		return this.#onApply(event, true);
+		return this._onApply(event, true);
 	}
 
 	static #onResetAction(event) {
@@ -449,7 +449,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		}
 	}
 
-	async #onApply(event, close) {
+	async _onApply(event, close) {
 		event.preventDefault();
 		const form = this.#getFormDataRoot(event);
 		const valueInput = this.#getValueInput();
