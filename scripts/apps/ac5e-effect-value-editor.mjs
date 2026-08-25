@@ -4005,7 +4005,7 @@ function replaceTokenAtCursorOrInsert(input, replacement, selectionState = null)
 	const end = Number(input.selectionEnd ?? cursor);
 	const replacementText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${replacementText}${input.value.slice(end)}`;
-	const nextStart = start + Math.min(insertion.selectionStartOffset, replacementText.length);
+	const nextStart = start + (isOperatorInsertion(insertion.text) ? replacementText.length : Math.min(insertion.selectionStartOffset, replacementText.length));
 	const nextEnd = nextStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(nextStart, nextEnd);
@@ -4027,7 +4027,7 @@ function insertAtCursor(input, text, selectionState = null) {
 	const end = hasExplicitSelection ? selectionState.end : input.value.length;
 	const insertionText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${insertionText}${input.value.slice(end)}`;
-	const selectionStart = start + Math.min(insertion.selectionStartOffset, insertionText.length);
+	const selectionStart = start + (isOperatorInsertion(insertion.text) ? insertionText.length : Math.min(insertion.selectionStartOffset, insertionText.length));
 	const selectionEnd = selectionStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(selectionStart, selectionEnd);
@@ -4068,7 +4068,7 @@ function togglePreviousBooleanAssistToken(input, root = null, selectionState = n
 function normalizeOperatorInsertion(source, start, end, text) {
 	const raw = `${text ?? ''}`;
 	const trimmed = raw.trim();
-	const binaryOperators = new Set(['&&', '||', '==', '!=', '>', '>=', '<', '<=']);
+	const binaryOperators = new Set(['&&', '||', '==', '===', '!=', '!==', '>', '>=', '<', '<=']);
 	const unaryOperators = new Set(['!']);
 	if (!binaryOperators.has(trimmed) && !unaryOperators.has(trimmed)) {
 		return normalizeTokenInsertion(source, start, end, raw);
@@ -4402,6 +4402,10 @@ function buildRenderedOptionalField(name, parsed, id) {
 
 function shouldUseSetMode(parsed, field = 'bonus') {
 	return hasParsedValue(parsed, 'set') && !hasParsedValue(parsed, field);
+}
+
+function isOperatorInsertion(text) {
+	return ['&&', '||'].includes(`${text ?? ''}`.trim());
 }
 
 function applySetModeToFormData(formData, setMode, field = 'bonus') {
