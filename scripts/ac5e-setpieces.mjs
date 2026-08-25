@@ -22,7 +22,7 @@ import {
 	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
-import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
+import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _createEvaluationSandboxLogSnapshot, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
 import { _doQueries, _setCombatCadenceFlag } from './ac5e-queries.mjs';
 import { ac5eQueue, statusEffectsTables } from './ac5e-main.mjs';
@@ -2192,6 +2192,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const scopedSandbox = sandbox && typeof sandbox === 'object' ? { ...sandbox } : sandbox;
 		const baseValue = getStableBaseValueForEntry({ mode, hook, sandbox });
 		if (scopedSandbox && typeof scopedSandbox === 'object') scopedSandbox.baseValue = baseValue === undefined ? 0 : baseValue;
+		if (settings.debug || ac5e.logEvaluationData) {
+			console.log(`AC5E logging evaluation data for effect change "${change.key}" on hook "${hook}":`, {
+				effectUuid: effect.uuid,
+				changeIndex,
+				actorType,
+				evaluationData: _createEvaluationSandboxLogSnapshot(scopedSandbox),
+			});
+		}
 		const { bonus, modifier, set, threshold, chance } = preEvaluateExpression({
 			value: change.value,
 			mode,

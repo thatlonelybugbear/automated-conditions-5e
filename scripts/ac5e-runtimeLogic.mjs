@@ -984,7 +984,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	if (globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.setAC5eProperties || settings.debug) console.warn('AC5e post runtime._setAC5eProperties', { ac5eConfig, config, dialog, message });
 }
 
-function _createEvaluationSandboxLogSnapshot(value) {
+export function _createEvaluationSandboxLogSnapshot(value) {
 	if (!value || typeof value !== 'object') return value;
 	const { options, ...snapshot } = value;
 	return {
@@ -1214,7 +1214,5 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const extensionState = Object.create(null);
 	Hooks.callAll('automated-conditions-5e.prepareEvaluationState', extensionState, { subjectToken, opponentToken, options: sandboxOptions, activity, item });
 	foundry.utils.mergeObject(sandbox, Object.fromEntries(MUTABLE_EVALUATION_STATE_KEYS.filter((key) => typeof extensionState[key] === 'boolean').map((key) => [key, extensionState[key]])));
-	if (settings.debug || ac5e.logEvaluationData)
-		console.log(`AC5E._createEvaluationSandbox logging the available data for hook "${sandbox.hook}":`, { evaluationData: _createEvaluationSandboxLogSnapshot(sandbox) });
 	return sandbox;
 }
