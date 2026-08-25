@@ -264,7 +264,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const changeKey = this.draftKey ?? this.keyInput?.value ?? '';
 		const parsed = this.draftData ?? parseAc5eEffectValue(this.#getValueInput()?.value ?? '', { changeKey });
 		const profile = getEditorProfile(changeKey, parsed);
-		const setMode = profile.supportsSetMode && shouldUseSetMode(parsed);
+		const setMode = profile.supportsSetMode && shouldUseSetMode(parsed, profile.setModeField);
 		const optionalFieldState = resolveOptionalFieldState(parsed, this.uiState);
 		const rangeFieldState = resolveRangeFieldState(parsed, this.uiState, profile);
 		const optionalFieldRows = buildRenderedOptionalFieldRows(parsed, this.id, optionalFieldState, profile);
@@ -470,7 +470,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const rangeFieldState = getRangeFieldUiState(form, profile);
 		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
-		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
+		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
 			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
@@ -500,7 +500,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!`${mergedData.fields.usesCount ?? ''}`.trim()) mergedData.toggles.partialConsume = false;
 		applyCadenceMode(mergedData, cadenceMode);
 		if (profile.supportsSetMode) {
-			mergedData.fields.bonus = setMode ? '' : mergedData.fields.bonus;
+			mergedData.fields[profile.setModeField] = setMode ? '' : mergedData.fields[profile.setModeField];
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
 		const outputChangeKey = getMigratedRangeChangeKey(changeKey);
@@ -790,7 +790,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const rangeFieldState = getRangeFieldUiState(form, profile);
 		const usesCountScalingInputs = getUsesCountScalingInputValues(form);
 		const cadenceMode = showCadence ? getSelectValue(form, 'ui.cadenceMode') : '';
-		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode);
+		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
 			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
@@ -823,7 +823,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			for (const toggle of CADENCE_TOGGLE_FIELDS) mergedData.toggles[toggle] = baseData.toggles[toggle];
 		}
 		if (profile.supportsSetMode) {
-			mergedData.fields.bonus = setMode ? '' : mergedData.fields.bonus;
+			mergedData.fields[profile.setModeField] = setMode ? '' : mergedData.fields[profile.setModeField];
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
 		preserveHiddenRangeFields(mergedData, baseData, profile, rangeFieldState, form);
@@ -957,7 +957,7 @@ function getEditorProfile(changeKey, parsed) {
 	if (isModifyDenomination) requiredFields.push('modify');
 	if (isModifier) requiredFields.push('modifier');
 	if (isDamageAdvantage) requiredFields.push('addTo');
-	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('bonus', 'set');
+	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('threshold', 'set');
 	if (isAura) auraFields.push('radius');
 	if (isRange) requiredFields.push(...RANGE_VALUE_FIELDS);
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
@@ -977,6 +977,7 @@ function getEditorProfile(changeKey, parsed) {
 	}
 
 	const supportsSetMode = !isTypeOverride && (isTargetADC || isCriticalThreshold || isFumbleThreshold || hasParsedValue(parsed, 'set'));
+	const setModeField = isCriticalThreshold || isFumbleThreshold ? 'threshold' : 'bonus';
 	const renderedRequiredFields = supportsSetMode ? dedupe(requiredFields).filter((field) => field !== 'set') : dedupe(requiredFields);
 	const renderedContextToggles = dedupe(contextToggles).filter((toggle) => toggle !== 'partialConsume');
 	const optionalFields = supportsUpdate ? [...OPTIONAL_FIELD_NAMES, 'optinId', 'update'] : [...OPTIONAL_FIELD_NAMES, 'optinId'];
@@ -991,6 +992,7 @@ function getEditorProfile(changeKey, parsed) {
 		commonToggles: supportsCriticalStatic ? [...COMMON_TOGGLE_FIELDS, 'criticalStatic'] : COMMON_TOGGLE_FIELDS,
 		contextToggles: renderedContextToggles,
 		supportsSetMode,
+		setModeField,
 		supportsAddTo,
 		addToAnchorField,
 		supportsUpdate,
@@ -1044,12 +1046,12 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 			.map((name) => ({
 				name,
 				label:
-					profile.supportsSetMode && name === 'bonus' ? 'Bonus / Set'
+					profile.supportsSetMode && name === profile.setModeField ? `${labelForField(name)} / Set`
 					: name === 'bonus' && profile.isRange ? 'Range Bonus'
 					: name === 'bonus' ? 'Bonus'
 					: labelForField(name),
 				hint: rangeFields.has(name) ? getToggleHint(rangeFieldHintKey(name)) : '',
-				value: profile.supportsSetMode && name === 'bonus' ? (parsed.fields[setMode ? 'set' : 'bonus'] ?? '') : (parsed.fields[name] ?? ''),
+				value: profile.supportsSetMode && name === profile.setModeField ? (parsed.fields[setMode ? 'set' : profile.setModeField] ?? '') : (parsed.fields[name] ?? ''),
 				inputId: `ac5e-value-${name}-${id}`,
 				expandable: name === 'override' && isAbilityOverride && inlineOverrideEntries.length ? false : true,
 				inlineOverrideEntries: name === 'override' && isAbilityOverride ? inlineOverrideEntries : [],
@@ -1067,7 +1069,7 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 						}
 					:	null,
 				inlineToggle:
-					profile.supportsSetMode && name === 'bonus' ?
+					profile.supportsSetMode && name === profile.setModeField ?
 						{
 							name: 'ui.setMode',
 							label: 'Set',
@@ -4398,15 +4400,15 @@ function buildRenderedOptionalField(name, parsed, id) {
 	};
 }
 
-function shouldUseSetMode(parsed) {
-	return hasParsedValue(parsed, 'set') && !hasParsedValue(parsed, 'bonus');
+function shouldUseSetMode(parsed, field = 'bonus') {
+	return hasParsedValue(parsed, 'set') && !hasParsedValue(parsed, field);
 }
 
-function applySetModeToFormData(formData, setMode) {
+function applySetModeToFormData(formData, setMode, field = 'bonus') {
 	if (!formData?.fields) return;
-	const enteredValue = String(formData.fields.bonus ?? '').trim();
+	const enteredValue = String(formData.fields[field] ?? '').trim();
 	formData.fields.set = setMode ? enteredValue : '';
-	formData.fields.bonus = setMode ? '' : enteredValue;
+	formData.fields[field] = setMode ? '' : enteredValue;
 }
 
 function getPersistedFieldNames(profile) {

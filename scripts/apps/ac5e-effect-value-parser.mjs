@@ -237,6 +237,7 @@ function getAssignmentAliasState(changeKey = '') {
 	return {
 		isTypeOverride: normalized.endsWith('.typeoverride'),
 		isModifyDenomination: normalized.endsWith('.modifydenomination'),
+		isThreshold: normalized.endsWith('.criticalthreshold') || normalized.endsWith('.critthreshold') || normalized.endsWith('.fumblethreshold'),
 		rangeField: RANGE_VALUE_FIELDS.has(rangeField) ? rangeField : '',
 	};
 }
@@ -246,6 +247,7 @@ function resolveAssignmentField(normalizedKey, aliasState) {
 		if (normalizedKey === 'override' || normalizedKey === 'set') return 'override';
 	}
 	if (aliasState.isModifyDenomination && normalizedKey === 'modify') return 'modify';
+	if (aliasState.isThreshold && (normalizedKey === 'bonus' || normalizedKey === 'threshold')) return 'threshold';
 	return ASSIGNMENT_LOOKUP.get(normalizedKey);
 }
 
