@@ -1,3 +1,9 @@
+## 14.533.15.6
+
+- Fixed the Effect Value Editor to save critical and fumble threshold adjustments as `threshold`, while keeping absolute values available through **Set**.
+- Improved condition editor operator buttons so **AND** and **OR** leave the cursor in the correct position, and strict equality operators receive proper spacing.
+- Improved evaluation-data debugging so each effect change logs the actor and origin context used when that change is evaluated.
+
 ## 14.533.15.5
 
 - Fixed item-based usage counters with hyphenated identifiers incorrectly producing formula errors.
