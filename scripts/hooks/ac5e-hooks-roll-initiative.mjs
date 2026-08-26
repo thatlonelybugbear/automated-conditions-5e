@@ -88,8 +88,5 @@ function applyInitiativeModeToRollOptions(options, advantageMode) {
 	} else if (advantageMode < 0) {
 		options.advantage = false;
 		options.disadvantage = true;
-	} else {
-		options.advantage = true;
-		options.disadvantage = true;
 	}
 }

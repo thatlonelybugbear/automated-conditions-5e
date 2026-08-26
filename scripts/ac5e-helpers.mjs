@@ -30,7 +30,6 @@ export function getResolvedD20BooleansFromMode(mode, fallback = {}) {
 	if (typeof mode === 'number' && advModes) {
 		if (mode === advModes.ADVANTAGE) return { advantage: true, disadvantage: false };
 		if (mode === advModes.DISADVANTAGE) return { advantage: false, disadvantage: true };
-		if (mode === advModes.NORMAL) return { advantage: true, disadvantage: true };
 	}
 	return {
 		advantage: fallback?.advantage === undefined ? undefined : !!fallback.advantage,
