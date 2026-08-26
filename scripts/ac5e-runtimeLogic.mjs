@@ -920,6 +920,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	if (!dialog?.configure) _applyResolvedFastForwardMode(ac5eConfig, config, roll0);
 	if (hook === 'attack') _syncMidiAttackRollModifierTracker(ac5eConfig, config);
 	else if (hook === 'check' || hook === 'save') _syncMidiAbilityRollModifierTracker(ac5eConfig, config, localDialog);
+	Hooks.callAll('ac5e.prepareAttributions', ac5eConfig, config, localDialog, message);
 	if (ac5eConfig?.tooltipObj && hook) delete ac5eConfig.tooltipObj[hook];
 	_getTooltip(ac5eConfig);
 	if (skipSetProperties) return ac5eConfig;
