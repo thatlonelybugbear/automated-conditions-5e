@@ -37,6 +37,15 @@
 		"Name": "Regras de Visibilidade",
 		"Hint": "Utiliza as regras de visibilidade de ataque do AC5E com base na visão e nos sentidos dos tokens. Quando ativado, o AC5E adiciona os motivos de ataque 'Não Pode Ver o Alvo' e 'O Alvo Não Pode Ver o Atacante'. Esses motivos são ignorados quando o Midi QOL já aplica suas próprias regras de invisibilidade ou atacante oculto."
 	},
+	"AC5E.WavesCover": {
+    	"SettingName": "Automatizar Cobertura do WAVES",
+    	"SettingHint": "Usa o WAVES para sugerir bônus de cobertura ajustáveis para jogadas de ataque e salvaguardas de Destreza.",
+    	"Label": "Cobertura do WAVES",
+    	"none": "Nenhuma",
+    	"half": "Meia-Cobertura (+2)",
+    	"threeQuarters": "Três-Quartos de Cobertura (+5)",
+    	"total": "Cobertura Total"
+  	},
 	"AC5E.ActivityUse": {
 		"Name": "Regras de Uso de Itens",
 		"Hint": "Controla se o AC5E permite, avisa ou bloqueia o uso inválido de atividades antes da rolagem. Aplica-se a verificações realizadas na fase de uso, como ações enquanto Incapacitado, restrições de conjuração de magias e falhas por alvo fora de alcance em atividades que não sejam ataques. Falhas por alvo fora de alcance em ataques são tratadas posteriormente durante a configuração da jogada de ataque, utilizando o modo de ataque selecionado.",
