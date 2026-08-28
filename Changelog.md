@@ -1,3 +1,15 @@
+## 14.533.16
+
+- Added activity rider statuses to `allowEffectApplication` evaluations, allowing an effect's application to depend on its associated conditions.
+- Added the `ac5e.prepareAttributions` hook, allowing integrations to contribute advantage, disadvantage, and informational attribution before AC5E builds roll-dialog and chat tooltips.
+  ```js
+  Hooks.on('ac5e.prepareAttributions', (ac5eConfig) => {
+      if (ac5eConfig.hookType === 'save') ac5eConfig.subject.advantageNames.add('Conditional save advantage');
+  });
+  ```
+- Added optional WAVES cover integration with adjustable roll-dialog cover controls for attack AC and Dexterity saving throw bonuses.
+  - When WAVES and Simple Cover 5e are both active, AC5E uses Simple Cover 5e for cover automation while WAVES visibility checks remain available, but the expected results might differ compared to the actual cover applied.
+
 ## 14.533.15.6
 
 - Fixed the Effect Value Editor to save critical and fumble threshold adjustments as `threshold`, while keeping absolute values available through **Set**.
