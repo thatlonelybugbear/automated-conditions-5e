@@ -37,6 +37,15 @@
 		"Name": "Visibility Rules",
 		"Hint": "Uses AC5E attack visibility rules based on token sight and senses. When enabled, AC5E adds 'Cannot See Target' and 'Target Cannot See Attacker' attack reasons. These reasons are skipped when MidiQOL already applies its invisibility or hidden-attacker rules."
 	},
+	"AC5E.WavesCover": {
+		"SettingName": "Automate WAVES Cover",
+		"SettingHint": "Use WAVES to suggest adjustable cover bonuses for attack rolls and Dexterity saving throws.",
+		"Label": "WAVES Cover",
+		"none": "None",
+		"half": "Half (+2)",
+		"threeQuarters": "Three-Quarters (+5)",
+		"total": "Total"
+	},
 	"AC5E.ActivityUse": {
 		"Name": "Item Use Rules",
 		"Hint": "Controls whether AC5E allows, warns, or blocks invalid activity use before the roll. Applies to use-phase checks such as incapacitated actions, spellcasting restrictions, and non-attack out-of-range failures. Attack out-of-range failures are handled later during attack roll configuration using the selected attack mode.",

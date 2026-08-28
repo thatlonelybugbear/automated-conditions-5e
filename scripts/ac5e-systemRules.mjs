@@ -360,6 +360,17 @@ export function canSee(source, target, status) {
 	}
 	const { tests, level } = _createVisibilityTests(target, visionSource);
 	const config = { tests, object: target, level };
+	let wavesVisibility;
+	try {
+		wavesVisibility = game.modules.get('waves')?.api?.measureVisibility?.(source, target, {
+			type: 'sight',
+			includeSurfaces: true,
+			ignoreHidden: false,
+			showTestSamples: false,
+		});
+	} catch (error) {
+		if (_canSeeDebugEnabled()) console.warn('AC5e: WAVES visibility check failed', { source: source?.id, target: target?.id, error });
+	}
 	const availableModeIds = new Set(tokenDetectionModes.map((mode) => mode?.id).filter(Boolean));
 	let validModes = ['basicSight', 'lightPerception', 'blindsight', 'seeAll', 'seeInvisibility'];
 
@@ -378,6 +389,7 @@ export function canSee(source, target, status) {
 			if (!validModes.has(detectionMode.id)) continue;
 			const mode = detectionModes[detectionMode.id];
 			const result = mode ? mode.testVisibility(visionSource, detectionMode, config) : false;
+			if (result === true && wavesVisibility?.visible === false && (mode.id === 'basicSight' || mode.id === 'lightPerception')) continue;
 			if (result === true && mode?.id) matchedModes.add(mode.id);
 		}
 		if (_canSeeDebugEnabled()) {

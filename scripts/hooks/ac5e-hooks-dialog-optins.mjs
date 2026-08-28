@@ -689,7 +689,8 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const refreshScaleText = () => {
 			const nextUsesCountSuffix = isOptinEntry ? getUsesCountLabelSuffix(entry) : '';
 			const nextDetailSuffixes = [nextUsesCountSuffix, permissionSuffix ? `(${permissionSuffix})` : '', cadenceSuffix].filter(Boolean);
-			label.textContent = nextDetailSuffixes.length ? `${indexedLabel} ${nextDetailSuffixes.join(' ')}` : indexedLabel;
+			const nextIndexedLabel = entry.scaleOptionLabels ? `Cover: ${entry.scaleOptionLabels[entry.selectedScale] ?? entry.selectedScale}` : indexedLabel;
+			label.textContent = nextDetailSuffixes.length ? `${nextIndexedLabel} ${nextDetailSuffixes.join(' ')}` : nextIndexedLabel;
 			label.title = label.textContent;
 			const nextUsesCountDescription = isOptinEntry ? getUsesCountDescriptionSuffix(entry) : '';
 			const nextScaledBaseDescription = resolveOptinScaleDescription(baseDescription, entry, ac5eConfig);
@@ -731,10 +732,11 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			});
 			const valueLabel = document.createElement('span');
 			valueLabel.className = 'ac5e-optin-scale-value';
-			valueLabel.textContent = slider.value;
-			valueLabel.style.flex = '0 0 auto';
+			const getScaleLabel = () => entry.scaleLabels?.[Number(slider.value)] ?? slider.value;
+			valueLabel.textContent = getScaleLabel();
+			valueLabel.style.flex = '0 0 3.5rem';
 			slider.addEventListener('input', () => {
-				valueLabel.textContent = slider.value;
+				valueLabel.textContent = getScaleLabel();
 				updateSingleOptinScale(ac5eConfig, entry.id, slider.value);
 				entry.selectedScale = Number(slider.value);
 				refreshScaleText();
@@ -757,7 +759,7 @@ function getOptinScaling(entry, parsedUsesCount, ac5eConfig) {
 		mode === 'criticalThreshold' ||
 		mode === 'fumbleThreshold';
 	if (!modeSupportsScaling) return null;
-	return resolveScalingConfigForEntry(parsedUsesCount?.scaling, entry, ac5eConfig);
+	return resolveScalingConfigForEntry(entry?.scaling ?? parsedUsesCount?.scaling, entry, ac5eConfig);
 }
 
 export function getRollingActorIdForOptins(ac5eConfig) {

@@ -59,6 +59,7 @@ export default class Settings {
 	static SHOW_CHAT_TOOLTIPS = 'showChatTooltips';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
 	static AUTOMATE_VISIBILITY_CHECKS = 'visibilityChecks';
+	static AUTOMATE_WAVES_COVER = 'wavesCover';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
 	static AUTOMATE_RANGE_CHECKS = 'autoRangeChecks';
 	static AUTOMATE_EXHAUSTION = 'autoExhaustion';
@@ -187,6 +188,14 @@ export default class Settings {
 			scope: 'world',
 			config: true,
 			default: true,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_WAVES_COVER, {
+			name: 'AC5E.WavesCover.SettingName',
+			hint: 'AC5E.WavesCover.SettingHint',
+			scope: 'world',
+			config: true,
+			default: false,
 			type: Boolean,
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS, {
@@ -381,6 +390,9 @@ export default class Settings {
 	}
 	get visibilityChecks() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_VISIBILITY_CHECKS);
+	}
+	get wavesCover() {
+		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_WAVES_COVER);
 	}
 	get autoHazards() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_ENVIRONMENTAL_HAZARDS);

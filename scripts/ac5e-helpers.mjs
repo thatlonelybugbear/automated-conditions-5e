@@ -1901,7 +1901,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectNoDisadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoDisadvantage')}: ${subjectNoDisadvantage.join(', ')}</span>`);
 		addTooltip(subjectSuccess.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subjectSuccess.join(', ')}</span>`);
 		addTooltip(subjectMidiSuccess.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('AC5E.Success')}: ${subjectMidiSuccess.join(', ')}</span>`);
-		const subjectBonusLabels = mapEntryLabels(filterOptinEntries(subject.bonus));
+		const subjectBonusLabels = mapEntryLabels(filterOptinEntries(subject.bonus).filter((entry) => !entry.suppressTooltipAttribution));
 		addTooltip(subjectBonusLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Bonus')}: ${subjectBonusLabels.join(', ')}</span>`);
 		const subjectModifierLabels = mapEntryLabels(filterOptinEntries(subject.modifiers));
 		addTooltip(subjectModifierLabels.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Modifier')}: ${subjectModifierLabels.join(', ')}</span>`);

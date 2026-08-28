@@ -4,6 +4,7 @@ import { applyOptinCriticalToDamageConfig, doDialogDamageRender } from './ac5e-h
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { applySimpleCover5eDialogTooltip } from '../integrations/ac5e-simplecover5e.mjs';
+import { applyWavesCoverToD20Config } from '../integrations/ac5e-waves.mjs';
 
 function logInitialOptinFormulaDebug(stage, render, ac5eConfig) {
 	if (!globalThis.ac5e?.debug?.initialOptinFormula) return;
@@ -111,6 +112,7 @@ function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps
 		.map(([id]) => id);
 	if (render?.config) {
 		deps.restoreD20ConfigFromFrozenBaseline(getConfigAC5E, render.config);
+		applyWavesCoverToD20Config(getConfigAC5E, render.config);
 		render.config.advantage = undefined;
 		render.config.disadvantage = undefined;
 		deps.calcAdvantageMode(getConfigAC5E, render.config, undefined, undefined, { skipSetProperties: true });

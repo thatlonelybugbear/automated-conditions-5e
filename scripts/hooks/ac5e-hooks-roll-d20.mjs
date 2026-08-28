@@ -1,5 +1,6 @@
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
+import { prepareWavesCover } from '../integrations/ac5e-waves.mjs';
 
 export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	const { messageForTargets, activity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
@@ -23,6 +24,7 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 		opponentToken,
 		options,
 		deps,
+		applyHookState: ({ ac5eConfig }) => prepareWavesCover(ac5eConfig, config, { sourceToken: opponentToken, targetTokens: [subjectToken], ability }),
 		captureBaseline: deps.captureFrozenD20Baseline,
 	});
 	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook, message);

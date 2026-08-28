@@ -1,8 +1,9 @@
-import { _getDistance, _hasValidTargets, _localize } from '../ac5e-helpers.mjs';
+import { _getDistance, _hasValidTargets, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
 import { applySimpleCover5eLibraryMode, applySimpleCover5eTooltip } from '../integrations/ac5e-simplecover5e.mjs';
+import { prepareWavesCover } from '../integrations/ac5e-waves.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	if (deps.hookDebugEnabled('preRollAttackHook')) {
@@ -114,6 +115,10 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 				sourceToken,
 				modernRules: deps.settings.dnd5eModernRules,
 				automateHeavy: deps.settings.automateHeavy,
+			});
+			prepareWavesCover(ac5eConfig, config, {
+				sourceToken,
+				targetTokens: (options.targets ?? []).map((target) => _safeFromUuidSync(target?.tokenUuid ?? target?.token?.uuid)?.object).filter(Boolean),
 			});
 			if (deps.hookDebugEnabled('preRollAttackHook')) {
 				console.warn(`AC5E TRACE preRollAttack.done ${JSON.stringify({

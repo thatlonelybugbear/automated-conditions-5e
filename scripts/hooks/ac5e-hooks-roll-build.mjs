@@ -20,6 +20,7 @@ import { getBonusEntriesForHook } from './ac5e-hooks-roll-selections.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
 import { getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
 import { applySimpleCover5eBuildOverride, applySimpleCover5eSingleTargetTotalCover, applySimpleCover5eTooltip, finalizeSimpleCover5eTargets } from '../integrations/ac5e-simplecover5e.mjs';
+import { applyWavesCoverToD20Config } from '../integrations/ac5e-waves.mjs';
 
 export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (deps.buildDebug || deps.hookDebugEnabled('buildRollConfigHook')) console.warn('AC5E._buildRollConfig', { hook, app, config: rollConfig, formData, index });
@@ -57,6 +58,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	_restoreD20ConfigFromFrozenBaseline(ac5eConfig, rollConfig);
 	const optins = getOptinsFromForm(formData);
 	setOptinSelections(ac5eConfig, optins);
+	if (activeHook === 'attack') applyWavesCoverToD20Config(ac5eConfig, rollConfig, formData);
 	applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, activeHook);
 	if (ac5eConfig.hookType === 'attack') refreshAttackAutoRangeState(ac5eConfig, rollConfig);
 	let targetADCEntries = [];
@@ -133,6 +135,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 		ac5eConfig._lastAppliedD20OptinParts = [];
 	}
 	appendPartsToD20Config(rollConfig, preservedExternalParts);
+	if (activeHook === 'save') applyWavesCoverToD20Config(ac5eConfig, rollConfig, formData);
 	syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
 	debugRollStateMigration('build.d20', { hook: activeHook, config: rollConfig, rolls: rollConfig?.rolls, ac5eConfig, extra: { index, optins, preservedExternalParts } });
 	return true;

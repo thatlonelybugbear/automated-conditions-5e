@@ -1023,6 +1023,7 @@ export function _getSafeDialogConfig(ac5eConfig) {
 		alteredFumbleThreshold: ac5eConfig?.alteredFumbleThreshold,
 		optinSelected: foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {}),
 		tooltipObj: foundry.utils.duplicate(ac5eConfig?.tooltipObj ?? {}),
+		wavesCover: ac5eConfig?.wavesCover ? foundry.utils.duplicate(ac5eConfig.wavesCover) : undefined,
 		preAC5eConfig: _getSafeDialogPreConfig(ac5eConfig?.preAC5eConfig),
 		frozenD20Baseline: ac5eConfig?.frozenD20Baseline ? foundry.utils.duplicate(ac5eConfig.frozenD20Baseline) : undefined,
 		frozenDamageBaseline: ac5eConfig?.frozenDamageBaseline ? foundry.utils.duplicate(ac5eConfig.frozenDamageBaseline) : undefined,
