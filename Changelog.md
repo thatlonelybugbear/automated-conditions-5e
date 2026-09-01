@@ -1,3 +1,7 @@
+## 14.533.17.1
+
+- Fixed private rolls revealing their dice formula and bonuses to players.
+
 ## 14.533.17
 
 - Added an option to preselect optin checkbox when the roll dialog opens.
