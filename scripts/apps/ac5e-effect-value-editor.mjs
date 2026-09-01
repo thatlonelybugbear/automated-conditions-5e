@@ -473,10 +473,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover', 'preselected'],
 		});
 		if (!showName) mergedData.fields.name = '';
-		if (!mergedData.toggles.optin) mergedData.fields.optinId = '';
+		if (!mergedData.toggles.optin) {
+			mergedData.fields.optinId = '';
+			mergedData.toggles.preselected = false;
+		}
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
 		if (!showUpdate) mergedData.fields.update = '';
@@ -793,11 +796,14 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover', 'preselected'],
 		});
 		if (!showName) mergedData.fields.name = baseData.fields.name;
 		if (!showDescription) mergedData.fields.description = baseData.fields.description;
-		if (!mergedData.toggles.optin) mergedData.fields.optinId = '';
+		if (!mergedData.toggles.optin) {
+			mergedData.fields.optinId = '';
+			mergedData.toggles.preselected = false;
+		}
 		if (!showUpdate) mergedData.fields.update = baseData.fields.update;
 		else {
 			mergedData.fields.update = buildUpdateValueFromUi(form, {
@@ -1104,6 +1110,7 @@ function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLa
 					label: 'Optin Id',
 					value: parsed.fields.optinId || optinIdDefault,
 					inputId: `ac5e-value-optinId-${id}`,
+					preselected: Boolean(parsed.toggles.preselected),
 				}
 			: null,
 		conditionField: {

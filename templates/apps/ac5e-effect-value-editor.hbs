@@ -143,10 +143,14 @@
 				{{/each}}
 
 				{{#if primaryLayout.optinIdField}}
-					<div class="form-group">
+					<div class="form-group ac5e-effect-value-editor-grid-span">
 						<label for="{{primaryLayout.optinIdField.inputId}}">{{primaryLayout.optinIdField.label}}</label>
-						<div class="form-fields ac5e-effect-value-editor-inline-field">
+						<div class="form-fields ac5e-effect-value-editor-inline-field ac5e-effect-value-editor-optin-fields">
 							<input id="{{primaryLayout.optinIdField.inputId}}" type="text" name="fields.{{primaryLayout.optinIdField.name}}" value="{{primaryLayout.optinIdField.value}}">
+							<label class="ac5e-effect-value-editor-inline-toggle">
+								<input type="checkbox" name="toggles.preselected" {{#if primaryLayout.optinIdField.preselected}}checked{{/if}}>
+								<span>Optin preselected</span>
+							</label>
 						</div>
 					</div>
 				{{/if}}

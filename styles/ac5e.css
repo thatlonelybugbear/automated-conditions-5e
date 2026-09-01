@@ -183,6 +183,18 @@
 	white-space: nowrap;
 }
 
+.ac5e-effect-value-editor-optin-fields > input {
+	flex: 2 1 0;
+}
+
+.ac5e-effect-value-editor-optin-fields > .ac5e-effect-value-editor-inline-toggle {
+	flex: 1 1 0;
+}
+
+.ac5e-effect-value-editor-optin-fields > .ac5e-effect-value-editor-inline-toggle > input {
+	flex: 0 0 auto;
+}
+
 .ac5e-effect-value-editor-toggle-companion {
 	display: flex;
 	flex-direction: column;
