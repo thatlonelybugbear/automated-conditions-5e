@@ -1,3 +1,7 @@
+## 14.533.17
+
+- Added an option to preselect optin checkbox when the roll dialog opens.
+
 ## 14.533.16
 
 - Added activity rider statuses to `allowEffectApplication` evaluations, allowing an effect's application to depend on its associated conditions.
