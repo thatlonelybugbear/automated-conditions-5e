@@ -15,14 +15,12 @@ const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([...AC5E_ACTOR_ROOTS.flatMap((root
 const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
 	// 'item.itemUuid',
 	// 'item.actionType',
-	// 'item.attackMode',
 	// 'item.mastery',
 	// 'activity.actionType',
 	// 'activity.damageTypes',
 	// 'activity.defaultDamageType',
 	// 'activity.healingTypes',
 	'originItem.actionType',
-	'originItem.attackMode',
 	'originItem.classIdentifier',
 	'originItem.mastery',
 	'originItem.sourceItem',
@@ -1731,7 +1729,7 @@ function addAssistFallbackPaths(pathsByRoot) {
 	for (const root of ['item', 'originItem']) {
 		const paths = pathsByRoot?.[root];
 		if (!Array.isArray(paths)) continue;
-		for (const suffix of ['type', 'type.value', 'type.subtype', 'type.baseItem', 'attackMode', 'mastery', 'properties', 'actionType']) {
+		for (const suffix of ['type', 'type.value', 'type.subtype', 'type.baseItem', 'mastery', 'properties', 'actionType']) {
 			const path = `${root}.${suffix}`;
 			if (!paths.includes(path)) paths.push(path);
 		}
@@ -2436,7 +2434,6 @@ function resolveAssistInputContext(token, assist, fullText = '', caret = 0, acti
 		damageTypes: ['activity', 'originActivity'],
 		defaultDamageType: ['activity', 'originActivity'],
 		actionType: ['activity', 'originActivity', 'item', 'originItem'],
-		attackMode: ['item', 'originItem'],
 		itemProperties: ['item', 'originItem'],
 		itemType: ['item', 'originItem'],
 		originItemProperties: ['originItem'],
