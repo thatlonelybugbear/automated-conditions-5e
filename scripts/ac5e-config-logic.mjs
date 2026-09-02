@@ -662,7 +662,7 @@ export function _getUseConfig({ options, config } = {}) {
 		if (messageData) {
 			useConfig.options ??= {};
 			const sourceMessage = usageMessage ?? originatingMessage;
-			const spellLevel = _getMessageSpellLevel(sourceMessage, messageData, useConfig.options?.item);
+			const spellLevel = _getMessageSpellLevel(sourceMessage, useConfig.options?.item);
 			if (spellLevel !== undefined) useConfig.options.spellLevel = spellLevel;
 			const scaling = _getMessageScaling(sourceMessage);
 			if (scaling !== undefined) useConfig.options.scaling = scaling;

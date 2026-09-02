@@ -80,8 +80,7 @@ export function debugMessageData(hook, context, deps) {
 }
 
 function resolveMessageFromConfig(config, messageConfig, hook, deps) {
-	const origin = messageConfig?.data?.system?.origin;
-	const originatingMessageId = origin?.id ?? origin;
+	const originatingMessageId = _getMessageOriginId(messageConfig);
 	const eventMessageId = config?.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
 	const messageId = eventMessageId ?? originatingMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
@@ -192,7 +191,7 @@ function buildMessageOptions({ config, hook, message, triggerMessageId, resolved
 	if (originatingUseConfig) options.originatingUseConfig = originatingUseConfig;
 	options.messageId = resolvedMessageId ?? triggerMessageId ?? message?.id;
 	if (hook !== 'use' && activity?.isSpell) {
-		options.spellLevel ??= _getMessageSpellLevel(sourceMessage, sourceMessage?.system, item);
+		options.spellLevel ??= _getMessageSpellLevel(sourceMessage, item);
 		options.scaling ??= _getMessageScaling(sourceMessage);
 	}
 	return options;

@@ -181,7 +181,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 	const messageData = message.system;
 	if (messageData) {
 		ac5eConfig.options ??= {};
-		const spellLevel = _getMessageSpellLevel(message, messageData);
+		const spellLevel = _getMessageSpellLevel(message);
 		if (spellLevel !== undefined) ac5eConfig.options.spellLevel = spellLevel;
 		const scaling = _getMessageScaling(message);
 		if (scaling !== undefined) ac5eConfig.options.scaling = scaling;

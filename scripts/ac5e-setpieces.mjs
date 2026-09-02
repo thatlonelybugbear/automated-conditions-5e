@@ -1224,7 +1224,7 @@ function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponent
 
 	const evaluateEffects = ({ effects, flagPaths, scope, sourceToken, auraToken, buildLabel }) => {
 		for (const effect of effects ?? []) {
-			const changes = Array.isArray(effect?.changes) ? effect.changes : [];
+			const changes = Array.isArray(effect?.system?.changes) ? effect.system.changes : [];
 			let matched = false;
 			for (const change of changes) {
 				if (!flagPaths.includes(change?.key)) continue;
@@ -2393,7 +2393,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const processAppliedEffects = ({ effects, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		effects?.forEach((effect) => {
-			effect.changes.forEach((change, changeIndex) => {
+			effect.system.changes.forEach((change, changeIndex) => {
 				processEffectChange({ change, changeIndex, effect, hook, sandbox, actorType, token, isAura, auraToken, sourceActor, sourceNameFallback });
 			});
 		});
@@ -3511,15 +3511,15 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				if (isOwner) effectDeletions.push({ name: effect.name, uuid: effect.uuid });
 				else effectDeletionsGM.push({ name: effect.name, uuid: effect.uuid });
 			} else {
-				let changes = foundry.utils.duplicate(effect.changes);
+				let changes = foundry.utils.duplicate(effect.system.changes);
 				const index = changeIndex >= 0 && changeIndex < changes.length && changes[changeIndex]?.key === change.key ? changeIndex : changes.findIndex((c) => c.key === change.key);
 
 				if (index >= 0) {
 					changes[index].value = _replaceUsesCountLiteral(changes[index].value, newUses);
 
 					if (!isTransfer) {
-						if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
-						else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
+						if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
+						else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
 					} else {
 						const hasInitialUsesFlag = effect.getFlag('automated-conditions-5e', 'initialUses')?.[effect.id]?.initialUses;
 						if (newUses === 0) {
@@ -3528,24 +3528,24 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 							} else {
 								changes[index].value = _replaceUsesCountLiteral(changes[index].value, hasInitialUsesFlag);
-								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
-								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes, disabled: true } } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes, disabled: true } } });
 							}
 						} else {
 							if (!hasInitialUsesFlag) {
 								if (isOwner)
 									effectUpdates.push({
 										name: effect.name,
-										context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
+										context: { uuid: effect.uuid, updates: { 'system.changes': changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
 									});
 								else
 									effectUpdatesGM.push({
 										name: effect.name,
-										context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
+										context: { uuid: effect.uuid, updates: { 'system.changes': changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
 									});
 							} else {
-								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
-								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
 							}
 						}
 					}

@@ -754,7 +754,7 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 	}
 }
 
-export function _getMessageSpellLevel(message, _messageData, item = null) {
+export function _getMessageSpellLevel(message, item = null) {
 	const messageLevel = Number(message?.system?.level);
 	if (Number.isFinite(messageLevel)) return messageLevel;
 	const scaling = Number(message?.system?.scaling);
@@ -774,7 +774,7 @@ function _getMessageAc5eFlags(message) {
 }
 
 export function _getMessageOriginId(message) {
-	const origin = message?.system?.origin;
+	const origin = message?.system?.origin ?? message?.data?.system?.origin;
 	return origin?.id ?? origin;
 }
 

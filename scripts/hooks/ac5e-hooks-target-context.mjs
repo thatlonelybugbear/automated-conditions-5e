@@ -1,12 +1,12 @@
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 
-export function getMessageTargetsFromFlags(messageLike, deps) {
+export function getMessageTargets(messageLike) {
 	return normalizeMessageTargets(messageLike?.system?.targets ?? messageLike?.data?.system?.targets);
 }
 
 export function getTargets({ message } = {}, deps) {
 	const explicitMessage = message?.document ?? message;
-	const preTargets = getMessageTargetsFromFlags(explicitMessage, deps) ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
+	const preTargets = getMessageTargets(explicitMessage) ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
 	if (Array.isArray(preTargets) && preTargets.length) return preTargets;
 	return [];
 }
@@ -96,10 +96,10 @@ function captureTargetTokenUuids(targets) {
 
 export function getAssociatedRollTargets(originatingMessageId, activityType, messageLike, deps) {
 	const explicitMessage = messageLike?.document ?? messageLike;
-	const directTargets = explicitMessage ? getMessageTargetsFromFlags(explicitMessage, deps) : undefined;
+	const directTargets = explicitMessage ? getMessageTargets(explicitMessage) : undefined;
 	if (Array.isArray(directTargets) && directTargets.length) return directTargets;
 	if (!originatingMessageId || !activityType) return undefined;
-	return getMessageTargetsFromFlags(dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop(), deps);
+	return getMessageTargets(dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop());
 }
 
 export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
@@ -110,8 +110,8 @@ export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
 		const associatedTargets = getAssociatedRollTargets(originatingMessageId, damageActivityType, message, deps);
 		if (Array.isArray(associatedTargets) && associatedTargets.length) return associatedTargets;
 	}
-	const flaggedTargets = getMessageTargetsFromFlags(message, deps);
-	if (Array.isArray(flaggedTargets) && flaggedTargets.length) return flaggedTargets;
+	const messageTargets = getMessageTargets(message);
+	if (Array.isArray(messageTargets) && messageTargets.length) return messageTargets;
 	return Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : [];
 }
 
@@ -126,7 +126,10 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
 	if (ac5eConfig?.hookType !== 'attack') return;
-	if (message) foundry.utils.setProperty(message, 'data.system.targets', toMessageTargets(resolvedTargets));
+	if (message) {
+		const path = message.system ? 'system.targets' : 'data.system.targets';
+		foundry.utils.setProperty(message, path, toMessageTargets(resolvedTargets));
+	}
 	const snapshotTargets = foundry.utils.duplicate(resolvedTargets);
 	const baseTargetAcByKey = ac5eConfig?.preAC5eConfig?.baseTargetAcByKey;
 	if (baseTargetAcByKey) {

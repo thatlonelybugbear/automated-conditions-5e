@@ -13,7 +13,7 @@ import { applyOptinCriticalToDamageConfig, syncCriticalStaticBonusDamageRollOpti
 import { setOptinSelections } from './ac5e-hooks-dialog-optins.mjs';
 import { appendPartsToD20Config, collectPreservedExternalD20Parts, getD20ActivePartsSnapshot, refreshAttackAutoRangeState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { getMessageForConfigTargets } from './ac5e-hooks-target-attack.mjs';
-import { getMessageTargetsFromFlags, resolveTargets, syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
+import { getMessageTargets, resolveTargets, syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
 import { applyExplicitModeOverride, mirrorD20ModeState } from './ac5e-hooks-roll-post.mjs';
 import { getBonusEntriesForHook } from './ac5e-hooks-roll-selections.mjs';
 import { applyTargetADCStateToD20Config, rebuildOptinTargetADCState } from './ac5e-hooks-roll-target-adc.mjs';
@@ -32,7 +32,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	const targetMessage = getMessageForConfigTargets(rollConfig, activeHook, ac5eConfig.options?.activity);
 	if (shouldSyncAttackTargets) {
 		const targetDeps = { Constants, getMessageFlagScope: _getMessageFlagScope };
-		const messageTargets = getMessageTargetsFromFlags(targetMessage, targetDeps);
+		const messageTargets = getMessageTargets(targetMessage);
 		const resolvedTargets = resolveTargets(targetMessage, messageTargets, { hook: activeHook, activity: ac5eConfig.options?.activity }, targetDeps);
 		syncTargetsToConfigAndMessage(ac5eConfig, resolvedTargets, null, targetDeps);
 	}

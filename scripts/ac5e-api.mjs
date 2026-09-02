@@ -1100,7 +1100,7 @@ export function lintAc5eFlags({ log = true, includeDisabled = true, includeScene
 		const effect = source.effect;
 		if (!effect) continue;
 		if (!includeDisabled && effect.disabled) continue;
-		const changes = Array.isArray(effect?.changes) ? effect.changes : [];
+		const changes = Array.isArray(effect?.system?.changes) ? effect.system.changes : [];
 		const hasAc5eChange = changes.some((change) => _isAc5eChangeKey(change?.key));
 		if (!hasAc5eChange) continue;
 		scannedEffects += 1;
