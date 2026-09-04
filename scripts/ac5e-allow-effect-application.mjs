@@ -9,8 +9,13 @@ function pruneRollResultInflightCache(now = Date.now()) {
 	}
 }
 
-function rollResultCacheKey({ messageId, actorUuid, activityUuid } = {}) {
-	return [messageId, actorUuid, activityUuid].filter(Boolean).join('|');
+function rollResultCacheKey({ messageId, actorUuid, tokenUuid, activityUuid } = {}) {
+	return [messageId, tokenUuid ?? actorUuid, activityUuid].filter(Boolean).join('|');
+}
+
+function getRollSpeakerTokenUuid(roll) {
+	const speaker = roll?.parent?.speaker;
+	return speaker?.scene && speaker?.token ? game.scenes?.get?.(speaker.scene)?.tokens?.get?.(speaker.token)?.uuid : undefined;
 }
 
 function resolveDocumentFromRef(ref) {
@@ -81,10 +86,11 @@ function resolveAttackTargets(options, originatingMessage) {
 	return [];
 }
 
-function setRollResultInflightCache({ messageId, actorUuid, activityUuid, rollResult } = {}) {
+function setRollResultInflightCache({ messageId, actorUuid, tokenUuid, activityUuid, rollResult } = {}) {
 	if (!actorUuid || !rollResult) return;
 	const expiresAt = Date.now() + ROLL_RESULT_INFLIGHT_TTL_MS;
 	const keys = [
+		tokenUuid ? rollResultCacheKey({ messageId, tokenUuid, activityUuid }) : null,
 		rollResultCacheKey({ messageId, actorUuid, activityUuid }),
 		rollResultCacheKey({ messageId, actorUuid }),
 		rollResultCacheKey({ actorUuid, activityUuid }),
@@ -121,21 +127,25 @@ function captureAllowEffectApplicationRollResult({ roll, actor, activity, messag
 	const originatingMessage = getOriginatingMessage(originatingMessageId);
 	const resolvedActivity = activity ?? resolveActivityFromMessage(originatingMessage);
 	const resolvedTargetValue = targetValue ?? getRollTargetValue(roll);
-	const d20Total = Number(roll.total);
+	const isNumericRollValue = (value) => (typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)));
+	const d20Total = isNumericRollValue(roll.total) ? Number(roll.total) : undefined;
 	const numericTargetValue = Number(resolvedTargetValue);
-	const d20ResultOverTarget = !isNaN(d20Total - numericTargetValue) ? d20Total - numericTargetValue : undefined;
+	const hasTargetValue = isNumericRollValue(resolvedTargetValue);
+	const d20TotalOverTarget = Number.isFinite(d20Total) && hasTargetValue ? d20Total - numericTargetValue : undefined;
 	setRollResultInflightCache({
 		messageId: originatingMessageId,
 		actorUuid: actor.uuid,
+		tokenUuid: hook === 'attack' ? undefined : getRollSpeakerTokenUuid(roll),
 		activityUuid: resolvedActivity?.uuid,
 		rollResult: {
 			d20Total: Number.isFinite(d20Total) ? d20Total : roll.total,
 			d20Result: roll.d20?.total,
 			targetValue: Number.isFinite(numericTargetValue) ? numericTargetValue : resolvedTargetValue,
-			d20ResultOverTarget,
+			d20TotalOverTarget,
+			d20ResultOverTarget: d20TotalOverTarget,
 			attackRollTotal: hook === 'attack' ? (Number.isFinite(d20Total) ? d20Total : roll.total) : undefined,
 			attackRollD20: hook === 'attack' ? roll.d20?.total : undefined,
-			attackRollOverAC: hook === 'attack' ? d20ResultOverTarget : undefined,
+			attackRollOverAC: hook === 'attack' ? d20TotalOverTarget : undefined,
 			isCritical: roll.isCritical,
 			isFumble: roll.isFumble,
 			isSuccess: roll.isSuccess,
@@ -148,7 +158,7 @@ export function captureAllowEffectApplicationD20Result(rolls, options, hook = 's
 	const roll = Array.isArray(rolls) ? rolls[0] : null;
 	const actor = resolveRollSubject(options, hook);
 	if (!roll || !actor?.uuid) return;
-	const originatingMessageId = options?.originatingMessageId ?? roll.parent?.getFlag?.('dnd5e', 'originatingMessage') ?? roll.parent?.flags?.dnd5e?.originatingMessage;
+	const originatingMessageId = options?.originatingMessageId ?? roll.options?.[Constants.MODULE_ID]?.options?.originatingMessageId ?? roll.parent?.getFlag?.('dnd5e', 'originatingMessage') ?? roll.parent?.flags?.dnd5e?.originatingMessage;
 	const originatingMessage = getOriginatingMessage(originatingMessageId);
 	const activity = resolveRollActivity(options, originatingMessage);
 	if (hook === 'attack') {
@@ -165,6 +175,16 @@ export function captureAllowEffectApplicationD20Result(rolls, options, hook = 's
 	captureAllowEffectApplicationRollResult({ roll, actor, activity, messageId: originatingMessageId, hook });
 }
 
+export function hydrateDamageSaveRollResult(options, { targetToken, targetActor, originActivity } = {}) {
+	if (!options || originActivity?.type !== 'save' || !options.originatingMessageId || !targetActor?.uuid) return;
+	pruneRollResultInflightCache();
+	const tokenKey = rollResultCacheKey({ messageId: options.originatingMessageId, tokenUuid: targetToken?.document?.uuid, activityUuid: originActivity.uuid });
+	const actorKey = rollResultCacheKey({ messageId: options.originatingMessageId, actorUuid: targetActor.uuid, activityUuid: originActivity.uuid });
+	const rollResult = rollResultInflightCache.get(tokenKey)?.rollResult ?? rollResultInflightCache.get(actorKey)?.rollResult;
+	if (!rollResult || rollResult.hook !== 'save') return;
+	options.d20 = { ...(options.d20 ?? {}), ...foundry.utils.duplicate(rollResult) };
+}
+
 export function hydrateAllowEffectApplicationRollResult(sandbox, { targetActor, originActivity } = {}) {
 	if (!sandbox || !targetActor?.uuid) return;
 	const rollResult = getRollResultInflightCacheEntry({
@@ -175,11 +195,18 @@ export function hydrateAllowEffectApplicationRollResult(sandbox, { targetActor, 
 	sandbox.d20Total = rollResult.d20Total;
 	sandbox.d20Result = rollResult.d20Result;
 	sandbox.targetValue = rollResult.targetValue;
-	sandbox.d20ResultOverTarget = rollResult.d20ResultOverTarget;
+	sandbox.d20TotalOverTarget = rollResult.d20TotalOverTarget ?? rollResult.d20ResultOverTarget;
+	sandbox.d20ResultOverTarget = sandbox.d20TotalOverTarget;
 	if (rollResult.attackRollTotal !== undefined) sandbox.attackRollTotal = rollResult.attackRollTotal;
 	if (rollResult.attackRollD20 !== undefined) sandbox.attackRollD20 = rollResult.attackRollD20;
 	if (rollResult.attackRollOverAC !== undefined) sandbox.attackRollOverAC = rollResult.attackRollOverAC;
 	sandbox.isCritical = rollResult.isCritical;
 	sandbox.isFumble = rollResult.isFumble;
 	sandbox.isSuccess = rollResult.isSuccess;
+	if (typeof sandbox.isSuccess !== 'boolean' && sandbox.d20TotalOverTarget !== undefined) {
+		if (rollResult.hook === 'attack' && sandbox.d20Result === 1) sandbox.isSuccess = false;
+		else if (rollResult.hook === 'attack' && sandbox.d20Result === 20) sandbox.isSuccess = true;
+		else sandbox.isSuccess = sandbox.d20TotalOverTarget >= 0;
+	}
+	sandbox.isFail = typeof sandbox.isSuccess === 'boolean' ? !sandbox.isSuccess : undefined;
 }
