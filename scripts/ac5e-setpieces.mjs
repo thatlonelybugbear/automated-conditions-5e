@@ -1467,6 +1467,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		'oncepercombat',
 		'optin',
 		'optinid',
+		'preselected',
 		'outofrangefail',
 		'override',
 		'partialconsume',
@@ -2214,6 +2215,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		const forceOptin = !!usesOverride?.forceOptin;
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
 		const optin = /(?:^|[;|])\s*optin\s*(?:$|[;|])/i.test(normalizedChangeValue) || forceOptin;
+		const preselected = optin && /(?:^|[;|])\s*preselected\s*(?:$|[;|])/i.test(normalizedChangeValue);
 		const cadence = _extractCadenceFromValue(change.value);
 		const priority = getPriorityValue(change.value);
 		const customName = getCustomName(change.value);
@@ -2258,6 +2260,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			chance,
 			evaluation,
 			optin,
+			preselected,
 			optinId,
 			forceOptin,
 			cadence,

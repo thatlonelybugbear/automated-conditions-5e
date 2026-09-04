@@ -1033,7 +1033,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
 	sandbox.opponentAC =
 		hookUsesTargetAC ?
-			(sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value)
+			(sandboxOptions?.targets?.find?.((t) => t.tokenUuid === opponentToken?.document?.uuid)?.ac ?? sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value)
 		:	opponentToken?.actor?.system?.attributes?.ac?.value;
 	sandbox.opponentId = opponentToken?.id;
 	sandbox.opponentUuid = opponentToken?.document?.uuid;
@@ -1184,12 +1184,28 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.scaling = formulaData?.scaling ?? sandboxOptions?.scaling ?? 0;
 	sandbox.d20Total = sandboxOptions?.d20?.d20Total ?? sandboxOptions?.d20?.attackRollTotal;
 	sandbox.d20Result = sandboxOptions?.d20?.d20Result ?? sandboxOptions?.d20?.attackRollD20;
-	sandbox.targetValue = hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC : sandboxOptions?.target;
-	const d20ResultOverTarget = sandbox.d20Total - sandbox.targetValue;
-	sandbox.d20ResultOverTarget = !isNaN(d20ResultOverTarget) ? d20ResultOverTarget : undefined;
+	const resolvedD20TargetValue = sandboxOptions?.d20?.targetValue;
+	sandbox.targetValue = hookType === 'damage' && activity?.type === 'save' && resolvedD20TargetValue !== undefined ?
+		resolvedD20TargetValue
+	: hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC
+	: sandboxOptions?.target;
+	const isNumericRollValue = (value) => (typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)));
+	const hasD20Total = isNumericRollValue(sandbox.d20Total);
+	const hasTargetValue = isNumericRollValue(sandbox.targetValue);
+	sandbox.d20TotalOverTarget = hasD20Total && hasTargetValue ? Number(sandbox.d20Total) - Number(sandbox.targetValue) : undefined;
+	sandbox.d20ResultOverTarget = sandbox.d20TotalOverTarget;
 	sandbox.attackRollTotal = sandboxOptions?.d20?.attackRollTotal;
 	sandbox.attackRollD20 = sandboxOptions?.d20?.attackRollD20;
 	sandbox.attackRollOverAC = sandboxOptions?.d20?.attackRollOverAC;
+	const explicitSuccess = sandboxOptions?.d20?.isSuccess ?? sandboxOptions?.isSuccess;
+	if (typeof explicitSuccess === 'boolean') sandbox.isSuccess = explicitSuccess;
+	else if (sandbox.d20TotalOverTarget !== undefined) {
+		const isAttackResult = sandbox.attackRollTotal !== undefined || sandbox.attackRollD20 !== undefined;
+		if (isAttackResult && sandbox.d20Result === 1) sandbox.isSuccess = false;
+		else if (isAttackResult && sandbox.d20Result === 20) sandbox.isSuccess = true;
+		else sandbox.isSuccess = sandbox.d20TotalOverTarget >= 0;
+	}
+	sandbox.isFail = typeof sandbox.isSuccess === 'boolean' ? !sandbox.isSuccess : undefined;
 	const resolvedD20Mode = sandboxOptions?.d20?.advantageMode ?? sandboxOptions?.advantageMode ?? sandboxOptions?.[Constants.MODULE_ID]?.advantageMode;
 	const transientRollState = _getSandboxTransientRollState(sandboxOptions);
 	sandbox.hasTransitAdvantage = transientRollState.hasTransitAdvantage;

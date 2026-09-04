@@ -64,7 +64,7 @@ import { renderActivityUsageDialogHijack } from './hooks/ac5e-hooks-render-usage
 import { getDialogAc5eConfig } from './hooks/ac5e-hooks-dialog-state.mjs';
 import { renderChatMessageHijack } from './hooks/ac5e-hooks-render-chat.mjs';
 import { renderSettings } from './settings/ac5e-settings-render.mjs';
-import { hydrateAllowEffectApplicationRollResult } from './ac5e-allow-effect-application.mjs';
+import { hydrateAllowEffectApplicationRollResult, hydrateDamageSaveRollResult } from './ac5e-allow-effect-application.mjs';
 
 const settings = new Settings();
 const _hookDebugEnabled = (flag) => Boolean(settings.debug || globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.[flag]);
@@ -429,6 +429,8 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		getDistance: _getDistance,
 		hasValidTargets: _hasValidTargets,
 		getAssociatedRollTargets,
+		hydrateDamageSaveRollResult,
+		activeModule: _activeModule,
 		getConfig: _getConfig,
 		ac5eChecks: _ac5eChecks,
 		calcAdvantageMode: _calcAdvantageMode,

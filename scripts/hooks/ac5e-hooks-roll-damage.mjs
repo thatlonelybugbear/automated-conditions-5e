@@ -67,7 +67,13 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	}
 	const sourceToken = deps.getSubjectTokenForHook(hook, messageForSource ?? messageForTargets, damageActor, deps);
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
-	let singleTargetToken = deps.getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : game.user?.targets?.first());
+	const selectedTarget = game.user?.targets?.size === 1 ? game.user.targets.first() : undefined;
+	const usesCoreRoller = !deps.activeModule('midi-qol') && !deps.activeModule('rsreforged');
+	const supportsSelectedTarget = usesCoreRoller && ['attack', 'save'].includes(activity?.type);
+	const selectedActivityTarget = supportsSelectedTarget && selectedTarget && options.targets?.some((target) =>
+		target?.tokenUuid ? target.tokenUuid === selectedTarget.document?.uuid : target?.uuid === selectedTarget.actor?.uuid
+	) ? selectedTarget : undefined;
+	let singleTargetToken = selectedActivityTarget ?? deps.getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : selectedTarget);
 	const needsTarget = deps.settings.needsTarget;
 	const invalidTargets = !deps.hasValidTargets(activity, options.targets?.length ?? game.user?.targets?.size, needsTarget);
 	if (invalidTargets) {
@@ -75,6 +81,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = deps.getDistance(sourceToken, singleTargetToken);
+	if (usesCoreRoller) deps.hydrateDamageSaveRollResult(options, { targetToken: singleTargetToken, targetActor: singleTargetToken?.actor, originActivity: activity });
 	deps.logResolvedTargets('damage', sourceToken, singleTargetToken, options);
 	const ac5eConfig = runAc5eRollPhase({
 		hook,

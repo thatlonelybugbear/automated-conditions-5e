@@ -15,14 +15,12 @@ const AC5E_ACTOR_ADDED_LAMBDA_PATHS = new Set([...AC5E_ACTOR_ROOTS.flatMap((root
 const AC5E_ITEM_ACTIVITY_ADDED_LAMBDA_PATHS = new Set([
 	// 'item.itemUuid',
 	// 'item.actionType',
-	// 'item.attackMode',
 	// 'item.mastery',
 	// 'activity.actionType',
 	// 'activity.damageTypes',
 	// 'activity.defaultDamageType',
 	// 'activity.healingTypes',
 	'originItem.actionType',
-	'originItem.attackMode',
 	'originItem.classIdentifier',
 	'originItem.mastery',
 	'originItem.sourceItem',
@@ -99,7 +97,7 @@ const AC5E_FUNCTION_ASSIST_ENTRIES = [
 	'checkRanged()',
 	'hasItem()',
 ];
-const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20ResultOverTarget', 'd20Total', 'opponentAC', 'targetOverAC', 'targetValue']);
+const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20TotalOverTarget', 'd20Total', 'opponentAC', 'targetValue']);
 const STRING_OPERATOR_ASSIST_ENTRIES = new Set([
 	'actorId',
 	'actorUuid',
@@ -141,16 +139,17 @@ const ROLL_AWARE_ENTRIES = new Set([
 	'targetValue',
 	'isCritical',
 	'isFumble',
+	'isSuccess',
+	'isFail',
 	'opponentAC',
-	'targetOverAC',
 	'd20Total',
 	'd20Result',
-	'd20ResultOverTarget',
+	'd20TotalOverTarget',
 	'attackRollTotal',
 	'attackRollD20',
 	'attackRollOverAC',
 ]);
-const COMPUTED_ROLL_AWARE_ENTRIES = new Set(['opponentAC', 'targetOverAC', 'd20Total', 'd20Result', 'd20ResultOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC']);
+const COMPUTED_ROLL_AWARE_ENTRIES = new Set(['isCritical', 'isFumble', 'isSuccess', 'isFail', 'd20Total', 'd20Result', 'd20TotalOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC']);
 const AC5E_USESCOUNT_BASE_ENTRIES = [
 	'origin',
 	'hp',
@@ -473,10 +472,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover', 'preselected'],
 		});
 		if (!showName) mergedData.fields.name = '';
-		if (!mergedData.toggles.optin) mergedData.fields.optinId = '';
+		if (!mergedData.toggles.optin) {
+			mergedData.fields.optinId = '';
+			mergedData.toggles.preselected = false;
+		}
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
 		if (!showUpdate) mergedData.fields.update = '';
@@ -793,11 +795,14 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover'],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover', 'preselected'],
 		});
 		if (!showName) mergedData.fields.name = baseData.fields.name;
 		if (!showDescription) mergedData.fields.description = baseData.fields.description;
-		if (!mergedData.toggles.optin) mergedData.fields.optinId = '';
+		if (!mergedData.toggles.optin) {
+			mergedData.fields.optinId = '';
+			mergedData.toggles.preselected = false;
+		}
 		if (!showUpdate) mergedData.fields.update = baseData.fields.update;
 		else {
 			mergedData.fields.update = buildUpdateValueFromUi(form, {
@@ -1104,6 +1109,7 @@ function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLa
 					label: 'Optin Id',
 					value: parsed.fields.optinId || optinIdDefault,
 					inputId: `ac5e-value-optinId-${id}`,
+					preselected: Boolean(parsed.toggles.preselected),
 				}
 			: null,
 		conditionField: {
@@ -1441,16 +1447,7 @@ function isLegacyCompatibilityIdentifier(identifier) {
 function isD20AssistContext(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	if (!normalized) return false;
-	const isDamageContext = normalized.includes('damage');
-	return (
-		normalized.includes('attack') ||
-		normalized.includes('check') ||
-		normalized.includes('save') ||
-		isDamageContext ||
-		normalized.includes('d20') ||
-		normalized.includes('critical') ||
-		normalized.includes('fumble')
-	);
+	return normalized.includes('alloweffectapplication') || normalized.includes('damage');
 }
 
 function isNonDamageBonusContext(changeKey) {
@@ -1478,7 +1475,7 @@ function shouldExposeBaseValueForChangeKey(changeKey) {
 function filterRollAwareEntriesForChangeKey(entries, changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	let filtered = entries;
-	if (isNonDamageBonusContext(changeKey)) filtered = filtered.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
+	if (!isD20AssistContext(changeKey)) filtered = filtered.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
 	const isAbilityOverrideOrModifyDC = normalized.endsWith('.abilityoverride') || normalized.endsWith('.modifydc');
 	if (isAbilityOverrideOrModifyDC) {
 		filtered = filtered.filter((entry) => !['hasAdvantage', 'hasDisadvantage', 'hasTransitAdvantage', 'hasTransitDisadvantage'].includes(entry));
@@ -1503,12 +1500,12 @@ function getContextSandboxFallbackEntries(changeKey) {
 	const isRollLike = isD20AssistContext(normalized) || ['all', 'd20', 'check', 'skill', 'tool'].includes(actionType);
 	if (isRollLike) {
 		entries.push('skill', 'tool', 'hasProficiency', 'hasExpertise', 'hasHalfProficiency', 'hasFullProficiency', 'isConcentration', 'isDeathSave', 'isInitiative', 'targetValue');
-		if (!isNonDamageBonusContext(normalized)) {
-			entries.push('d20Total', 'd20Result', 'd20ResultOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC');
+		if (isD20AssistContext(normalized)) {
+			entries.push('d20Total', 'd20Result', 'd20TotalOverTarget', 'isSuccess', 'isFail', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC');
 		}
 	}
 	if ((normalized.includes('attack') || normalized.includes('damage')) && !isNonDamageBonusContext(normalized)) {
-		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC', 'targetOverAC');
+		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC');
 	}
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
@@ -1724,7 +1721,7 @@ function addAssistFallbackPaths(pathsByRoot) {
 	for (const root of ['item', 'originItem']) {
 		const paths = pathsByRoot?.[root];
 		if (!Array.isArray(paths)) continue;
-		for (const suffix of ['type', 'type.value', 'type.subtype', 'type.baseItem', 'attackMode', 'mastery', 'properties', 'actionType']) {
+		for (const suffix of ['type', 'type.value', 'type.subtype', 'type.baseItem', 'mastery', 'properties', 'actionType']) {
 			const path = `${root}.${suffix}`;
 			if (!paths.includes(path)) paths.push(path);
 		}
@@ -2429,7 +2426,6 @@ function resolveAssistInputContext(token, assist, fullText = '', caret = 0, acti
 		damageTypes: ['activity', 'originActivity'],
 		defaultDamageType: ['activity', 'originActivity'],
 		actionType: ['activity', 'originActivity', 'item', 'originItem'],
-		attackMode: ['item', 'originItem'],
 		itemProperties: ['item', 'originItem'],
 		itemType: ['item', 'originItem'],
 		originItemProperties: ['originItem'],

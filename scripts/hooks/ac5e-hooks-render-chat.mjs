@@ -11,6 +11,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	const hasDomApi = typeof elem?.querySelector === 'function';
 	const hasJqueryApi = typeof elem?.find === 'function';
 	if (!hasDomApi && !hasJqueryApi) return true;
+	if (render?.isContentVisible === false) return true;
 	let getConfigAC5E = initialConfig;
 	const { hookType, roller } = getConfigAC5E || {};
 	const messageFlags = render?.flags?.[deps.Constants.MODULE_ID];

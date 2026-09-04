@@ -1,3 +1,21 @@
+## 14.533.18
+
+- Added resolved-roll conditions for damage and effect application: `d20Total`, `d20Result`, `targetValue`, `d20TotalOverTarget`, `isSuccess`, and `isFail`.
+- Renamed the Effect Value Editor pill `d20ResultOverTarget` to the clearer `d20TotalOverTarget`; existing conditions using the old name remain supported.
+- Removed roll-result pills from condition editors where those values are not available.
+- Damage bonuses can now react to the preceding attack or saving throw result and its target AC or DC.
+  - With multiple targets, select one before (re)rolling damage to use that target's result; otherwise, the first recorded target is used.
+  - This handling applies to the core D&D5e roller. MidiQOL and RSReforged workflows are unchanged.
+- Fixed preselected damage opt-ins so rules using `optinSelected` apply immediately when the dialog opens, without toggling the checkbox off and on again.
+
+## 14.533.17.1
+
+- Fixed private rolls revealing their dice formula and bonuses to players.
+
+## 14.533.17
+
+- Added an option to preselect optin checkbox when the roll dialog opens.
+
 ## 14.533.16
 
 - Added activity rider statuses to `allowEffectApplication` evaluations, allowing an effect's application to depend on its associated conditions.

@@ -710,7 +710,8 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		checkbox.dataset.ac5eOptinId = entry.id;
 		checkbox.dataset.ac5eOptin = 'true';
 		if (entry.optinId) checkbox.dataset.ac5eOptinSemanticId = entry.optinId;
-		checkbox.checked = _isOptinSelectionActive(ac5eConfig?.optinSelected?.[entry.id]);
+		const existingSelection = ac5eConfig?.optinSelected?.[entry.id];
+		checkbox.checked = existingSelection === undefined ? !!entry.preselected : _isOptinSelectionActive(existingSelection);
 		if (scaling) {
 			checkbox.dataset.ac5eOptinScaleMin = String(scaling.min);
 			const slider = document.createElement('input');

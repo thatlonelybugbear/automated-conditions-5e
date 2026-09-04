@@ -214,6 +214,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 |                        | The `Number` is optional. If omitted 1 use or relevant value will be consumed by default! |
 | `partialConsume`       | For bounded `usesCount` targets, consume only the remaining available amount instead of failing when the full requested amount would exceed the cap |
 | `optin`                | Shows the flag as an optional checkbox in the relevant roll dialog |
+| preselected          | Shows an optin checkbox as selected when the roll dialog opens |
 | `optinId=identifier`   | Assigns an optional flag a stable selection identifier. Use it with `optin` when another flag needs to react to that selection. |
 | `optinScale` / `bonusScale` | Formula tokens for scaled opt-ins. `optinScale` is the selected slider value. `bonusScale` is the resolved scale value (selected slider value when present, otherwise resolved fallback scale). |
 | `addTo=all`            | Targets all damage parts (where supported, e.g. `bonus`, `extraDice`, `diceUpgrade`, `diceDowngrade`, `modifyDenomination`, `critical`) |
@@ -370,19 +371,29 @@ In addition to actor data, some useful values are also available:
 | `baseSpellLevel`       | the item's original spell level if relevant |
 | `scaling`              | spell scaling data if relevant; use `scaling.value` for the dnd5e scale value |
 | `scaling.increase`     | the difference between `spellLevel` and `baseSpellLevel` if relevant |
-| `d20Total`             | if relevant, the total of the current d20 roll |
-| `d20Result`            | if relevant, the die result of the current d20 roll |
-| `d20ResultOverTarget`  | if relevant, the current d20 roll total minus its target value |
+| `d20Total`             | if relevant, the resolved d20 roll total including modifiers |
+| `d20Result`            | if relevant, the unmodified result shown on the d20 die |
+| `targetValue`          | if relevant, the target AC for an attack or DC for a saving throw/check |
+| `d20TotalOverTarget`   | if relevant, `d20Total - targetValue` |
 | `attackRollTotal`      | if relevant, available only when an explicit attack roll has been made |
 | `attackRollD20`        | if relevant, the attack die result from an explicit attack roll |
 | `attackRollOverAC`     | the explicit attack roll total minus the opponent's AC, or undefined |
+| `isSuccess`            | if relevant, `true` when the resolved roll succeeded |
+| `isFail`               | if relevant, `true` when the resolved roll failed |
 | `worldTime`            | Current world time in seconds |
 | `combat`               | some combat data if one is active |
 | `singleTarget`         | true if there is only 1 target selected |
 | For v5.1.x             | |
-| `movementLastSegment`  | when in combat, returns the distance of the rollingActor's token's last movement distance, between the 2 last waypoints) |
+| `movementLastSegment`  | when in combat, returns the distance of the rollingActor's token's last movement distance, between the 2 last waypoints |
 | `movementTurn`         | when in combat returns the distance the rollingActor's token has travelled during that turn |
 | `effectOriginTokenId`  | ID of the effect's origin active token |
+
+Resolved-roll values are available:
+
+- To damage conditions following an attack or saving throw when using the core D&D5e roller. With multiple targets, select one target before rolling damage to use that target's result; otherwise, AC5E uses the first recorded target.
+- To `allowEffectApplication` conditions following a resolved attack, saving throw, ability check, skill check, or tool check.
+
+`d20ResultOverTarget` remains available as a backwards-compatible alias for `d20TotalOverTarget`, but new conditions should use `d20TotalOverTarget`.
 
 ### Activity and Item Data
 
