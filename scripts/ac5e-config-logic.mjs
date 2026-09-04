@@ -838,6 +838,7 @@ function _getSafeDialogOptions(options = {}) {
 		'hook',
 		'isInitiative',
 		'mastery',
+		'originatingMessageId',
 		'riderStatuses',
 		'scaling',
 		'selectedDamageTypes',
