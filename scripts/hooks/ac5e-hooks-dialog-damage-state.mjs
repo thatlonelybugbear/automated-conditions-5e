@@ -18,8 +18,8 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 			ac5e: summarizeTypeOverrideState(getConfigAC5E),
 		});
 		const frozenDamageBaseline = getConfigAC5E?.preAC5eConfig?.frozenDamageBaseline ?? getConfigAC5E?.frozenDamageBaseline;
-		deps.setOptinSelections(getConfigAC5E, deps.readOptinSelections(elem, getConfigAC5E));
 		renderOptionalBonusesDamage(dialog, elem, getConfigAC5E, deps);
+		deps.setOptinSelections(getConfigAC5E, deps.readOptinSelections(elem, getConfigAC5E));
 		applyOptinCriticalToDamageConfig(getConfigAC5E, dialog.config);
 		const currentCritical = getConfigAC5E.isCritical ?? dialog.config.isCritical ?? false;
 		ensureDamagePreservedInitialData(getConfigAC5E, frozenDamageBaseline, dialog?.config?.rolls, currentCritical);
