@@ -97,7 +97,7 @@ const AC5E_FUNCTION_ASSIST_ENTRIES = [
 	'checkRanged()',
 	'hasItem()',
 ];
-const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20ResultOverTarget', 'd20Total', 'opponentAC', 'targetOverAC', 'targetValue']);
+const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20TotalOverTarget', 'd20Total', 'opponentAC', 'targetValue']);
 const STRING_OPERATOR_ASSIST_ENTRIES = new Set([
 	'actorId',
 	'actorUuid',
@@ -139,16 +139,17 @@ const ROLL_AWARE_ENTRIES = new Set([
 	'targetValue',
 	'isCritical',
 	'isFumble',
+	'isSuccess',
+	'isFail',
 	'opponentAC',
-	'targetOverAC',
 	'd20Total',
 	'd20Result',
-	'd20ResultOverTarget',
+	'd20TotalOverTarget',
 	'attackRollTotal',
 	'attackRollD20',
 	'attackRollOverAC',
 ]);
-const COMPUTED_ROLL_AWARE_ENTRIES = new Set(['opponentAC', 'targetOverAC', 'd20Total', 'd20Result', 'd20ResultOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC']);
+const COMPUTED_ROLL_AWARE_ENTRIES = new Set(['isCritical', 'isFumble', 'isSuccess', 'isFail', 'd20Total', 'd20Result', 'd20TotalOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC']);
 const AC5E_USESCOUNT_BASE_ENTRIES = [
 	'origin',
 	'hp',
@@ -1446,16 +1447,7 @@ function isLegacyCompatibilityIdentifier(identifier) {
 function isD20AssistContext(changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	if (!normalized) return false;
-	const isDamageContext = normalized.includes('damage');
-	return (
-		normalized.includes('attack') ||
-		normalized.includes('check') ||
-		normalized.includes('save') ||
-		isDamageContext ||
-		normalized.includes('d20') ||
-		normalized.includes('critical') ||
-		normalized.includes('fumble')
-	);
+	return normalized.includes('alloweffectapplication') || normalized.includes('damage');
 }
 
 function isNonDamageBonusContext(changeKey) {
@@ -1483,7 +1475,7 @@ function shouldExposeBaseValueForChangeKey(changeKey) {
 function filterRollAwareEntriesForChangeKey(entries, changeKey) {
 	const normalized = `${changeKey ?? ''}`.toLowerCase();
 	let filtered = entries;
-	if (isNonDamageBonusContext(changeKey)) filtered = filtered.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
+	if (!isD20AssistContext(changeKey)) filtered = filtered.filter((entry) => !COMPUTED_ROLL_AWARE_ENTRIES.has(entry));
 	const isAbilityOverrideOrModifyDC = normalized.endsWith('.abilityoverride') || normalized.endsWith('.modifydc');
 	if (isAbilityOverrideOrModifyDC) {
 		filtered = filtered.filter((entry) => !['hasAdvantage', 'hasDisadvantage', 'hasTransitAdvantage', 'hasTransitDisadvantage'].includes(entry));
@@ -1508,12 +1500,12 @@ function getContextSandboxFallbackEntries(changeKey) {
 	const isRollLike = isD20AssistContext(normalized) || ['all', 'd20', 'check', 'skill', 'tool'].includes(actionType);
 	if (isRollLike) {
 		entries.push('skill', 'tool', 'hasProficiency', 'hasExpertise', 'hasHalfProficiency', 'hasFullProficiency', 'isConcentration', 'isDeathSave', 'isInitiative', 'targetValue');
-		if (!isNonDamageBonusContext(normalized)) {
-			entries.push('d20Total', 'd20Result', 'd20ResultOverTarget', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC');
+		if (isD20AssistContext(normalized)) {
+			entries.push('d20Total', 'd20Result', 'd20TotalOverTarget', 'isSuccess', 'isFail', 'attackRollTotal', 'attackRollD20', 'attackRollOverAC');
 		}
 	}
 	if ((normalized.includes('attack') || normalized.includes('damage')) && !isNonDamageBonusContext(normalized)) {
-		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC', 'targetOverAC');
+		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC');
 	}
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
