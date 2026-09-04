@@ -7,6 +7,7 @@
   - With multiple targets, select one before (re)rolling damage to use that target's result; otherwise, the first recorded target is used.
   - This handling applies to the core D&D5e roller. MidiQOL and RSReforged workflows are unchanged.
 - Fixed preselected damage opt-ins so rules using `optinSelected` apply immediately when the dialog opens, without toggling the checkbox off and on again.
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
 
 ## 14.533.17.1
 
