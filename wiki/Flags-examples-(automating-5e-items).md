@@ -63,7 +63,7 @@ value: opponentActor.attributes.hp.pct < 100
 //entry one
 key: flags.automated-conditions-5e.attack.advantage
 
-value: opponentActor.statuses.bloodied || opponentActor.attributes.hp.pct < 50
+value: rollingActor.statuses.bloodied || rollingActor.attributes.hp.pct < 50
 
 //entry two
 key: flags.automated-conditions-5e.save.advantage
