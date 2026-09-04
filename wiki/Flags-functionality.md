@@ -384,7 +384,7 @@ In addition to actor data, some useful values are also available:
 | `combat`               | some combat data if one is active |
 | `singleTarget`         | true if there is only 1 target selected |
 | For v5.1.x             | |
-| `movementLastSegment`  | when in combat, returns the distance of the rollingActor's token's last movement distance, between the 2 last waypoints) |
+| `movementLastSegment`  | when in combat, returns the distance of the rollingActor's token's last movement distance, between the 2 last waypoints |
 | `movementTurn`         | when in combat returns the distance the rollingActor's token has travelled during that turn |
 | `effectOriginTokenId`  | ID of the effect's origin active token |
 
