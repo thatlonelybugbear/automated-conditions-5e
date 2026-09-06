@@ -422,8 +422,6 @@ function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
 	if (!['save', 'check'].includes(activityType)) return;
 	const activityData = activity?.[activityType];
 	if (!activityData?.dc || typeof activityData.dc !== 'object') return;
-	const recalculatedBaseDC = Number(activityData?.dc?.value);
-	if (Number.isFinite(recalculatedBaseDC)) ac5eConfig.initialTargetADC = recalculatedBaseDC;
 	const preservedInitialDC = Number(ac5eConfig?.initialTargetADC);
 	if (Number.isFinite(preservedInitialDC)) activityData.dc.value = preservedInitialDC;
 	ac5eConfig.alteredTargetADC = undefined;
