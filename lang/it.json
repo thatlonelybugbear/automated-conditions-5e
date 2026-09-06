@@ -37,6 +37,15 @@
 		"Name": "Regole di visibilità",
 		"Hint": "Utilizza le regole di visibilità degli attacchi di AC5E basate sulla vista e sui sensi dei token. Quando attivo, AC5E aggiunge le motivazioni 'Non può vedere il bersaglio' e 'Il bersaglio non può vedere l'attaccante'. Queste motivazioni vengono ignorate quando MidiQOL applica già le sue regole su invisibilità o attaccanti nascosti."
 	},
+	"AC5E.WavesCover": {
+		"SettingName": "Automatizza la copertura WAVES",
+		"SettingHint": "Usa WAVES per suggerire bonus di copertura regolabili per i tiri per colpire e i tiri salvezza su Destrezza.",
+		"Label": "Copertura WAVES",
+		"none": "Nessuna",
+		"half": "Mezza (+2)",
+		"threeQuarters": "Tre Quarti (+5)",
+		"total": "Totale"
+	},
 	"AC5E.ActivityUse": {
 		"Name": "Regole di utilizzo oggetti",
 		"Hint": "Controlla se AC5E consente, avvisa o blocca l'uso non valido delle attività prima del tiro. Si applica ai controlli nella fase di utilizzo come incapacità, restrizioni al lancio di incantesimi e fallimenti per distanza non valida. I fallimenti per distanza negli attacchi vengono gestiti successivamente nella configurazione del tiro.",
