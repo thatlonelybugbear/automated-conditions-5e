@@ -77,10 +77,15 @@
   ],
   "flags": {
     "hotReload": {
+      "extensions": [
+        "css",
+        "hbs",
+        "json"
+      ],
       "paths": [
-        "lang/en.json",
+        "lang",
         "styles",
-        "styles/ac5e.css"
+        "templates"
       ]
     }
   },
