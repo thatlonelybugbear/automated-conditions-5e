@@ -1,5 +1,5 @@
 import Constants from '../ac5e-constants.mjs';
-import { _buildStandardTooltipFromLines, _localize } from '../ac5e-helpers.mjs';
+import { _buildStandardTooltipFromLines, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
 import { getAskPermissionSourceSuffix, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
 import { getAbilityOverrideOptinChoices, getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
 
@@ -117,7 +117,8 @@ function renderChoiceRows(fieldset, choices, ac5eConfig, { askPermission = false
 		const input = document.createElement('input');
 		input.type = 'checkbox';
 		input.name = `ac5eOptins.${choice.id}`;
-		input.checked = !!selected?.[choice.id];
+		const existingSelection = selected?.[choice.id];
+		input.checked = existingSelection === undefined ? !!choice?.entry?.preselected : _isOptinSelectionActive(existingSelection);
 		input.dataset.ac5eUsageOptin = 'true';
 		input.dataset.ac5eOptinId = String(choice.id ?? '');
 		input.style.marginLeft = 'auto';
