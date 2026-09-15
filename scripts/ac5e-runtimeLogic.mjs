@@ -1080,6 +1080,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	if (resolvedMastery) sandbox._evalConstants[resolvedMastery] = true;
 	sandbox.damageTypes = sandboxOptions.damageTypes;
 	sandbox.defaultDamageType = sandboxOptions.defaultDamageType;
+	sandbox.baseDamage = sandboxOptions.baseDamage ?? getBaseDamagePartData(activity, sandboxOptions.attackMode);
 	if (!foundry.utils.isEmpty(sandboxOptions.damageTypes)) foundry.utils.mergeObject(sandbox._evalConstants, sandboxOptions.damageTypes);
 	sandbox.activity.damageTypes = sandboxOptions.damageTypes;
 	sandbox.activity.defaultDamageType = sandboxOptions.defaultDamageType;
@@ -1230,4 +1231,25 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	Hooks.callAll('automated-conditions-5e.prepareEvaluationState', extensionState, { subjectToken, opponentToken, options: sandboxOptions, activity, item });
 	foundry.utils.mergeObject(sandbox, Object.fromEntries(MUTABLE_EVALUATION_STATE_KEYS.filter((key) => typeof extensionState[key] === 'boolean').map((key) => [key, extensionState[key]])));
 	return sandbox;
+}
+
+function getBaseDamagePartData(activity, attackMode) {
+	const base = Array.from(activity?.damage?.parts ?? [])[0];
+	if (!base) return {};
+	let number = base.number;
+	let denomination = base.denomination;
+	let formula = base.formula;
+	if (attackMode === 'twoHanded' && activity?.item?.system?.isVersatile) {
+		const versatile = activity.item.system.damage?.versatile;
+		number = versatile?.number || number;
+		denomination = versatile?.denomination || denomination;
+		formula = versatile?.formula || formula;
+	}
+	if (!number || !denomination) {
+		const match = String(formula ?? '').match(/(\d*)\s*d\s*(\d+)/i);
+		number ||= match ? Number(match[1] || 1) : number;
+		denomination ||= match ? Number(match[2]) : denomination;
+	}
+	if (!denomination && attackMode === 'twoHanded' && activity?.item?.system?.isVersatile) denomination = base.steppedDenomination?.() || denomination;
+	return { number, denomination };
 }
