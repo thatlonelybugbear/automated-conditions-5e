@@ -1,3 +1,8 @@
+## 14.533.19.1
+
+- Hotfix for `abilityOverride` preselected opt-ins not applying immediately.
+- Removed `abilityOverride` abilities sorting by name, preserving the D&D5e order.
+
 ## 14.533.19
 
 - Fixed save/check `modifyDC` changes being applied more than once during activity use. The displayed and rolled DC now remains based on the activity's original DC.
