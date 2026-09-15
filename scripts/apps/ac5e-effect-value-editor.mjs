@@ -97,7 +97,7 @@ const AC5E_FUNCTION_ASSIST_ENTRIES = [
 	'checkRanged()',
 	'hasItem()',
 ];
-const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'd20Result', 'd20TotalOverTarget', 'd20Total', 'opponentAC', 'targetValue']);
+const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'baseDamage.denomination', 'baseDamage.number', 'd20Result', 'd20TotalOverTarget', 'd20Total', 'opponentAC', 'targetValue']);
 const STRING_OPERATOR_ASSIST_ENTRIES = new Set([
 	'actorId',
 	'actorUuid',
@@ -178,7 +178,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		id: 'ac5e-effect-value-editor-{id}',
 		classes: ['ac5e-effect-value-editor'],
 		window: {
-			title: 'AC5E Effect Value Editor',
+			title: 'AC5E.EffectValueEditor.WindowTitle',
 			icon: 'fa-solid fa-wand-magic-sparkles',
 			resizable: false,
 		},
@@ -270,7 +270,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const optionalFieldRows = buildRenderedOptionalFieldRows(parsed, this.id, optionalFieldState, profile);
 		const primaryLayout = buildPrimaryLayout(profile, parsed, this.id, {
 			setMode,
-			conditionsLabel: 'Condition',
+			conditionsLabel: editorLabel('Condition'),
 			changeKey,
 			rangeFieldState,
 			optinIdDefault: `${this.effect?.name?.slugify({ strict: true }) || 'optin'}-${this.changeIndex}`,
@@ -278,11 +278,14 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		return {
 			...context,
 			changeIndex: this.changeIndex,
-			headerLabel: `${this.effect?.name ?? 'Effect'} (change index: ${this.changeIndex})`,
+			headerLabel: game.i18n.format('AC5E.EffectValueEditor.ChangeHeader', {
+				effect: this.effect?.name ?? editorLabel('Effect'),
+				index: this.changeIndex,
+			}),
 			changeKey,
 			rangeFieldToggles: profile.rangeFields.map((name) => ({
 				name: `ui.showRange${name.replace(/^./, (char) => char.toUpperCase())}`,
-				label: name === 'bonus' ? 'Range Bonus' : labelForField(name),
+				label: name === 'bonus' ? editorLabel('RangeBonus') : labelForField(name),
 				checked: Boolean(rangeFieldState[name]),
 				hint: getToggleHint(rangeFieldHintKey(name)),
 			})),
@@ -291,25 +294,25 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			toggleBehavior: [
 				{
 					name: 'ui.showCadence',
-					label: 'Cadence',
+					label: editorLabel('Cadence'),
 					checked: optionalFieldState.cadence,
 					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowCadence'),
 				},
 				{
 					name: 'ui.showName',
-					label: 'Name',
+					label: editorLabel('Name'),
 					checked: optionalFieldState.name,
 					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowName'),
 				},
 				{
 					name: 'ui.showDescription',
-					label: 'Description',
+					label: editorLabel('Description'),
 					checked: optionalFieldState.description,
 					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowDescription'),
 				},
 				{
 					name: 'ui.showUsesCount',
-					label: 'Uses Count',
+					label: editorLabel('UsesCount'),
 					checked: optionalFieldState.usesCount,
 					hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUsesCount'),
 				},
@@ -317,7 +320,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					[
 						{
 							name: 'ui.showUpdate',
-							label: 'Update',
+							label: editorLabel('Update'),
 							checked: optionalFieldState.update,
 							hint: getToggleHint('AC5E.EffectValueEditor.Hint.ShowUpdate'),
 						},
@@ -344,9 +347,9 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			})),
 			hasContextBehavior: profile.contextToggles.length > 0,
 			contextBehaviorLabel:
-				profile.isRange && profile.isAura ? 'Range / Aura Behavior'
-				: profile.isRange ? 'Range Behavior'
-				: 'Aura Behavior',
+				profile.isRange && profile.isAura ? editorLabel('RangeAuraBehavior')
+				: profile.isRange ? editorLabel('RangeBehavior')
+				: editorLabel('AuraBehavior'),
 			hasContextToggles: profile.contextToggles.length > 0,
 		};
 	}
@@ -667,7 +670,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 						</div>
 					`
 			:	`
-					${renderAssistActionFieldset('Operators', assist.operators, 'ac5e-assist-insert', 'button')}
+					${renderAssistActionFieldset(editorAssist('Operators'), assist.operators, 'ac5e-assist-insert', 'button')}
 					<div class="ac5e-effect-value-assist-groups" data-ac5e-assist-entry-groups>
 						${renderAssistEntryGroups(assist)}
 					</div>
@@ -680,7 +683,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			const result = await foundry.applications.api.DialogV2.wait({
 				id: appId,
 				window: {
-					title: `Edit ${label}`,
+					title: game.i18n.format('AC5E.EffectValueEditor.Title.Edit', { label }),
 					id: appId,
 					resizable: false,
 				},
@@ -691,7 +694,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 								<div class="form-group stacked">
 									<label for="ac5e-expand-value">${escapedLabel}</label>
 									<div class="form-fields">
-										<textarea id="ac5e-expand-value" name="value" rows="${textAreaRows}" placeholder="${escapeHtml(isAddToScope ? 'Examples: base | bonus | types(fire,cold) | base,!types(acid)' : '')}">${escapedValue}</textarea>
+										<textarea id="ac5e-expand-value" name="value" rows="${textAreaRows}" placeholder="${escapeHtml(isAddToScope ? game.i18n.localize('AC5E.EffectValueEditor.Placeholder.AddToExamples') : '')}">${escapedValue}</textarea>
 									</div>
 								</div>
 								${assistControls}
@@ -703,14 +706,14 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				buttons: [
 					{
 						action: 'apply',
-						label: 'Apply',
+						label: game.i18n.localize('AC5E.EffectValueEditor.Button.Apply'),
 						icon: 'fa-solid fa-check',
 						default: true,
 						callback: (_event, _button, dialog) => dialog.element.querySelector('textarea[name="value"]')?.value ?? currentValue,
 					},
 					{
 						action: 'reset',
-						label: 'Reset',
+						label: game.i18n.localize('AC5E.EffectValueEditor.Button.Reset'),
 						icon: 'fa-solid fa-rotate-left',
 						callback: () => '__ac5e_reset__',
 					},
@@ -875,12 +878,16 @@ function findInputByName(name) {
 }
 
 function labelForField(name) {
-	const labels = {
-		short: 'Short Range',
-		long: 'Long Range',
-		reach: 'Reach',
-	};
-	return labels[name] ?? name.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
+	const key = name === 'short' ? 'ShortRange' : name === 'long' ? 'LongRange' : name.replace(/^./, (char) => char.toUpperCase());
+	return editorLabel(key);
+}
+
+function editorLabel(key) {
+	return game.i18n.localize(`AC5E.EffectValueEditor.Label.${key}`);
+}
+
+function editorAssist(key) {
+	return game.i18n.localize(`AC5E.EffectValueEditor.Assist.${key}`);
 }
 
 function rangeFieldHintKey(name) {
@@ -1063,9 +1070,9 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 			.map((name) => ({
 				name,
 				label:
-					profile.supportsSetMode && name === profile.setModeField ? `${labelForField(name)} / Set`
-					: name === 'bonus' && profile.isRange ? 'Range Bonus'
-					: name === 'bonus' ? 'Bonus'
+					profile.supportsSetMode && name === profile.setModeField ? `${labelForField(name)} / ${editorLabel('Set')}`
+					: name === 'bonus' && profile.isRange ? editorLabel('RangeBonus')
+					: name === 'bonus' ? editorLabel('Bonus')
 					: labelForField(name),
 				hint: rangeFields.has(name) ? getToggleHint(rangeFieldHintKey(name)) : '',
 				value: profile.supportsSetMode && name === profile.setModeField ? (parsed.fields[setMode ? 'set' : profile.setModeField] ?? '') : (parsed.fields[name] ?? ''),
@@ -1079,7 +1086,7 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 					profile.supportsAddTo && name === profile.addToAnchorField ?
 						{
 							name: 'addTo',
-							label: 'Add To',
+							label: editorLabel('AddTo'),
 							value: parsed.fields.addTo ?? '',
 							inputId: `ac5e-value-addTo-${id}`,
 							expandable: true,
@@ -1089,7 +1096,7 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 					profile.supportsSetMode && name === profile.setModeField ?
 						{
 							name: 'ui.setMode',
-							label: 'Set',
+							label: editorLabel('Set'),
 							checked: setMode,
 							hint: getToggleHint('AC5E.EffectValueEditor.Hint.SetMode'),
 						}
@@ -1118,7 +1125,7 @@ function buildPrimaryLayout(profile, parsed, id, { setMode = false, conditionsLa
 			parsed.toggles.optin ?
 				{
 					name: 'optinId',
-					label: 'Optin Id',
+					label: editorLabel('OptinId'),
 					value: parsed.fields.optinId || optinIdDefault,
 					inputId: `ac5e-value-optinId-${id}`,
 					preselected: Boolean(parsed.toggles.preselected),
@@ -1180,7 +1187,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 							hasUsesCountScaling ?
 								{
 									name: 'toggles.recover',
-									label: 'Recover',
+									label: editorLabel('Recover'),
 									checked: Boolean(parsed.toggles.recover),
 									hint: getToggleHint('AC5E.EffectValueEditor.Hint.ToggleRecover'),
 								}
@@ -1193,7 +1200,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 						showScalingToggle ?
 							{
 								name: 'ui.enableUsesCountScaling',
-								label: 'Scaling',
+								label: editorLabel('Scaling'),
 								className: 'ac5e-usescount-toggle-scaling',
 								checked: hasUsesCountScaling,
 								disabled: partialConsumeEnabled,
@@ -1203,7 +1210,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 						showPartialConsume ?
 							{
 								name: 'toggles.partialConsume',
-								label: 'Partial',
+								label: editorLabel('Partial'),
 								className: 'ac5e-usescount-toggle-partial',
 								checked: partialConsumeEnabled,
 								disabled: hasUsesCountScaling,
@@ -1279,7 +1286,7 @@ function buildLambdaAssistData(
 		{ label: '<', value: ' < ' },
 		{ label: '<=', value: ' <= ' },
 		{ label: '(...)', value: ' () ' },
-		{ label: 'Ternary', value: '(condition ? trueValue : falseValue)' },
+		{ label: editorAssist('Ternary'), value: '(condition ? trueValue : falseValue)' },
 	];
 	const sandboxIdentifiers = dedupe(entryRecords.filter((entry) => isSandboxAssistIdentifier(entry)).map((entry) => entry.identifier));
 	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier));
@@ -1420,7 +1427,7 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 	if (normalized.endsWith('.abilityoverride')) {
 		const abilitiesConfig = CONFIG?.DND5E?.abilities ?? {};
 		const entries = [
-			{ value: 'spellcasting', label: 'Spellcasting' },
+			{ value: 'spellcasting', label: editorLabel('Spellcasting') },
 			...Object.entries(abilitiesConfig)
 			.map(([value, rawLabel]) => {
 				const labelKey =
@@ -1519,6 +1526,7 @@ function getContextSandboxFallbackEntries(changeKey) {
 	if ((normalized.includes('attack') || normalized.includes('damage')) && !isNonDamageBonusContext(normalized)) {
 		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC');
 	}
+	if (normalized.includes('damage')) entries.push('baseDamage.number', 'baseDamage.denomination');
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
 }
@@ -1595,14 +1603,14 @@ function buildAddToScopedEntries() {
 		.sort((a, b) => a.localeCompare(b));
 	return {
 		parts: [
-			{ value: 'all', label: 'All' },
-			{ value: 'base', label: 'Base Damage' },
-			{ value: 'bonus', label: 'Bonus Damage' },
+			{ value: 'all', label: editorLabel('All') },
+			{ value: 'base', label: editorLabel('BaseDamage') },
+			{ value: 'bonus', label: editorLabel('BonusDamage') },
 		],
-		optin: [{ value: 'optin()', label: 'Selected Optin' }],
+		optin: [{ value: 'optin()', label: editorLabel('SelectedOptin') }],
 		targets: [
-			{ value: 'include', label: 'Include Types' },
-			{ value: 'exclude', label: 'Exclude Types' },
+			{ value: 'include', label: editorLabel('IncludeTypes') },
+			{ value: 'exclude', label: editorLabel('ExcludeTypes') },
 		],
 		damageTypes: buildLabeledAddToEntries(damageTypes),
 		healingTypes: buildLabeledAddToEntries(healingTypes),
@@ -1791,7 +1799,7 @@ function renderAssistActionFieldset(title, values, dataAttribute, kind = 'button
 		})
 		.filter(Boolean)
 		.join('');
-	const content = items || '<p class="ac5e-effect-value-assist-empty">No entries</p>';
+	const content = items || `<p class="ac5e-effect-value-assist-empty">${editorAssist('NoEntries')}</p>`;
 	const listAttr = section ? ` data-ac5e-assist-entry-list="${escapeHtml(section)}"` : '';
 	return `
 		<fieldset class="ac5e-effect-value-assist-fieldset${compact ? ' ac5e-effect-value-assist-fieldset-compact' : ''}">
@@ -1819,7 +1827,7 @@ function renderAssistCombinedFieldset(title, rootValues, entryValues, section = 
 		})
 		.filter(Boolean);
 	const items = [...rootItems, ...entryItems].join('');
-	const content = items || '<p class="ac5e-effect-value-assist-empty">No entries</p>';
+	const content = items || `<p class="ac5e-effect-value-assist-empty">${editorAssist('NoEntries')}</p>`;
 	const listAttr = section ? ` data-ac5e-assist-entry-list="${escapeHtml(section)}"` : '';
 	return `
 		<fieldset class="ac5e-effect-value-assist-fieldset${compact ? ' ac5e-effect-value-assist-fieldset-compact' : ''}">
@@ -1834,7 +1842,7 @@ function renderAssistCombinedFieldset(title, rootValues, entryValues, section = 
 function renderAssistEntryGroups(assist) {
 	if (assist?.scope === 'usesCount') {
 		return renderAssistActionFieldset(
-			'UsesCount quick targets (actor with this effect)',
+			editorAssist('UsesCountQuickTargets'),
 			resolveScopedQuickTargets(assist?.scopedEntries, 'usesCount'),
 			'ac5e-assist-entry',
 			'entry',
@@ -1843,18 +1851,18 @@ function renderAssistEntryGroups(assist) {
 		);
 	}
 	if (assist?.scope === 'update') {
-		return renderAssistActionFieldset('Update quick targets', resolveScopedQuickTargets(assist?.scopedEntries, 'update'), 'ac5e-assist-entry', 'entry', 'update', true);
+		return renderAssistActionFieldset(editorAssist('UpdateQuickTargets'), resolveScopedQuickTargets(assist?.scopedEntries, 'update'), 'ac5e-assist-entry', 'entry', 'update', true);
 	}
 	if (assist?.scope === 'typeOverride') {
 		const damageTypes = Array.isArray(assist?.scopedEntries?.damageTypes) ? assist.scopedEntries.damageTypes : [];
 		const healingTypes = Array.isArray(assist?.scopedEntries?.healingTypes) ? assist.scopedEntries.healingTypes : [];
 		return `
-			${renderAssistActionFieldset('Damage Types', damageTypes, 'ac5e-assist-entry', 'button', 'type-override-damage', true)}
-			${renderAssistActionFieldset('Healing Types', healingTypes, 'ac5e-assist-entry', 'button', 'type-override-healing', true)}
+			${renderAssistActionFieldset(editorAssist('DamageTypes'), damageTypes, 'ac5e-assist-entry', 'button', 'type-override-damage', true)}
+			${renderAssistActionFieldset(editorAssist('HealingTypes'), healingTypes, 'ac5e-assist-entry', 'button', 'type-override-healing', true)}
 		`;
 	}
 	if (assist?.scope === 'abilityOverride') {
-		return renderAssistActionFieldset('Ability Override entries', assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'ability-override', true);
+		return renderAssistActionFieldset(editorAssist('AbilityOverrideEntries'), assist.scopedEntries, 'ac5e-assist-entry', 'entry', 'ability-override', true);
 	}
 	if (assist?.scope === 'addTo') {
 		const parts = Array.isArray(assist?.scopedEntries?.parts) ? assist.scopedEntries.parts : [];
@@ -1863,18 +1871,18 @@ function renderAssistEntryGroups(assist) {
 		const damageTypes = Array.isArray(assist?.scopedEntries?.damageTypes) ? assist.scopedEntries.damageTypes : [];
 		const healingTypes = Array.isArray(assist?.scopedEntries?.healingTypes) ? assist.scopedEntries.healingTypes : [];
 		return `
-			${renderAssistActionFieldset('Which Damage Parts', parts, 'ac5e-assist-addto-part', 'button', 'addto-parts', true)}
-			${renderAssistActionFieldset('Selected Optin', optin, 'ac5e-assist-addto-optin', 'button', 'addto-optin', true)}
-			${renderAssistActionFieldset('Type Filters', targets, 'ac5e-assist-addto-target', 'button', 'addto-targets', true)}
-			${renderAssistActionFieldset('Damage Types', damageTypes, 'ac5e-assist-addto-type', 'button', 'addto-damage', true)}
-			${renderAssistActionFieldset('Healing Types', healingTypes, 'ac5e-assist-addto-type', 'button', 'addto-healing', true)}
+			${renderAssistActionFieldset(editorAssist('WhichDamageParts'), parts, 'ac5e-assist-addto-part', 'button', 'addto-parts', true)}
+			${renderAssistActionFieldset(editorAssist('SelectedOptin'), optin, 'ac5e-assist-addto-optin', 'button', 'addto-optin', true)}
+			${renderAssistActionFieldset(editorAssist('TypeFilters'), targets, 'ac5e-assist-addto-target', 'button', 'addto-targets', true)}
+			${renderAssistActionFieldset(editorAssist('DamageTypes'), damageTypes, 'ac5e-assist-addto-type', 'button', 'addto-damage', true)}
+			${renderAssistActionFieldset(editorAssist('HealingTypes'), healingTypes, 'ac5e-assist-addto-type', 'button', 'addto-healing', true)}
 		`;
 	}
 	return `
-		${renderAssistCombinedFieldset('Actor entries', assist.actorEntryButtons, assist.actorContextEntries, 'actor', true)}
-		${renderAssistCombinedFieldset('Item/Activity entries', assist.itemActivityEntryButtons, assist.itemActivityContextEntries, 'item-activity', true)}
-		${renderAssistActionFieldset('Roll-aware entries', assist.rollAwareEntries, 'ac5e-assist-entry', 'entry', 'roll-aware', true)}
-		${renderAssistActionFieldset('AC5E functions', assist.functionEntries, 'ac5e-assist-entry', 'entry', 'functions', true)}
+		${renderAssistCombinedFieldset(editorAssist('ActorEntries'), assist.actorEntryButtons, assist.actorContextEntries, 'actor', true)}
+		${renderAssistCombinedFieldset(editorAssist('ItemActivityEntries'), assist.itemActivityEntryButtons, assist.itemActivityContextEntries, 'item-activity', true)}
+		${renderAssistActionFieldset(editorAssist('RollAwareEntries'), assist.rollAwareEntries, 'ac5e-assist-entry', 'entry', 'roll-aware', true)}
+		${renderAssistActionFieldset(editorAssist('Functions'), assist.functionEntries, 'ac5e-assist-entry', 'entry', 'functions', true)}
 	`;
 }
 
@@ -1909,7 +1917,7 @@ function classifyContextEntry(identifier) {
 	if (!value) return 'actor';
 	const actorOnly = ['actorId', 'actorUuid', 'opponentId', 'opponentUuid', 'opponentActorId', 'opponentActorUuid', 'tokenId', 'tokenUuid', 'isTurn', 'isOpponentTurn', 'canMove', 'canSee', 'isSeen'];
 	if (actorOnly.includes(value)) return 'actor';
-	if (value.startsWith('item') || value.startsWith('originItem') || value.startsWith('activity') || value.startsWith('originActivity')) return 'item-activity';
+	if (value.startsWith('item') || value.startsWith('originItem') || value.startsWith('activity') || value.startsWith('originActivity') || value.startsWith('baseDamage.')) return 'item-activity';
 	const itemActivityKeys = [
 		'ability',
 		'skill',
@@ -3442,9 +3450,9 @@ function parseAssistChain(rawChain) {
 
 function renderAssistIdleStage() {
 	return `
-		<div class="ac5e-effect-value-assist-toolbar"><span>Root</span></div>
+		<div class="ac5e-effect-value-assist-toolbar"><span>${game.i18n.localize('AC5E.EffectValueEditor.Assist.Root')}</span></div>
 		<div class="ac5e-effect-value-assist-scroll">
-			<div class="ac5e-effect-value-assist-list"><p class="ac5e-effect-value-assist-empty">Type or select a supported root/path to browse available entries.</p></div>
+			<div class="ac5e-effect-value-assist-list"><p class="ac5e-effect-value-assist-empty">${game.i18n.localize('AC5E.EffectValueEditor.Assist.Idle')}</p></div>
 		</div>
 	`;
 }
@@ -3458,7 +3466,7 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 			return `<button type="button" class="ac5e-effect-value-assist-node" data-ac5e-assist-node="${escapeHtml(node.path)}" title="${escapeHtml(node.path)}">${escapeHtml(displayLabel)}${ac5eMarker ? ` ${ac5eMarker}` : ''} ${marker}</button>`;
 		})
 		.join('');
-	const empty = items || '<p class="ac5e-effect-value-assist-empty">No paths available</p>';
+	const empty = items || `<p class="ac5e-effect-value-assist-empty">${game.i18n.localize('AC5E.EffectValueEditor.Assist.NoPaths')}</p>`;
 	const values = (valueChoices ?? [])
 		.map((choice) => {
 			const rawValue = typeof choice === 'string' ? choice : `${choice?.value ?? ''}`.trim();
@@ -3468,12 +3476,13 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 		})
 		.filter(Boolean)
 		.join('');
-	const valuesSection = values ? `<div class="ac5e-effect-value-assist-toolbar"><span>Values</span></div><div class="ac5e-effect-value-assist-list">${values}</div>` : '';
-	const navigation = `<button type="button" data-ac5e-assist-roots>Roots</button>${canGoBack ? '<button type="button" data-ac5e-assist-back>Back</button>' : ''}`;
+	const valuesSection = values ? `<div class="ac5e-effect-value-assist-toolbar"><span>${game.i18n.localize('AC5E.EffectValueEditor.Assist.Values')}</span></div><div class="ac5e-effect-value-assist-list">${values}</div>` : '';
+	const navigation = `<button type="button" data-ac5e-assist-roots>${game.i18n.localize('AC5E.EffectValueEditor.Button.Roots')}</button>${canGoBack ? `<button type="button" data-ac5e-assist-back>${game.i18n.localize('AC5E.EffectValueEditor.Button.Back')}</button>` : ''}`;
+	const pathFields = game.i18n.format('AC5E.EffectValueEditor.Assist.PathFields', { path: headerPath });
 	return `
 		<div class="ac5e-effect-value-assist-toolbar">
 			${navigation}
-			<span class="ac5e-effect-value-assist-current" title="${escapeHtml(headerPath)}">Path fields: ${escapeHtml(headerPath)}</span>
+			<span class="ac5e-effect-value-assist-current" title="${escapeHtml(headerPath)}">${escapeHtml(pathFields)}</span>
 		</div>
 		<div class="ac5e-effect-value-assist-scroll">
 			<div class="ac5e-effect-value-assist-list">${empty}</div>
@@ -4459,10 +4468,10 @@ function hasNamedInput(root, name) {
 
 function buildCadenceOptions(selectedValue = '') {
 	return [
-		{ value: 'once', label: 'Once', selected: selectedValue === 'once' },
-		{ value: 'oncePerTurn', label: 'Once Per Turn', selected: selectedValue === 'oncePerTurn' },
-		{ value: 'oncePerRound', label: 'Once Per Round', selected: selectedValue === 'oncePerRound' },
-		{ value: 'oncePerCombat', label: 'Once Per Combat', selected: selectedValue === 'oncePerCombat' },
+		{ value: 'once', label: game.i18n.localize('AC5E.EffectValueEditor.Cadence.Once'), selected: selectedValue === 'once' },
+		{ value: 'oncePerTurn', label: game.i18n.localize('AC5E.EffectValueEditor.Cadence.OncePerTurn'), selected: selectedValue === 'oncePerTurn' },
+		{ value: 'oncePerRound', label: game.i18n.localize('AC5E.EffectValueEditor.Cadence.OncePerRound'), selected: selectedValue === 'oncePerRound' },
+		{ value: 'oncePerCombat', label: game.i18n.localize('AC5E.EffectValueEditor.Cadence.OncePerCombat'), selected: selectedValue === 'oncePerCombat' },
 	];
 }
 
@@ -4611,21 +4620,21 @@ function buildRenderedUsesCountScalingFields(scaling, id) {
 	return {
 		min: {
 			name: 'ui.usesCountScaling.min',
-			label: 'Min',
+			label: editorLabel('Min'),
 			value: scaling?.min ?? '',
 			inputId: `ac5e-value-usesCount-scaling-min-${id}`,
 			placeholder: '1',
 		},
 		max: {
 			name: 'ui.usesCountScaling.max',
-			label: 'Max',
+			label: editorLabel('Max'),
 			value: scaling?.max ?? '',
 			inputId: `ac5e-value-usesCount-scaling-max-${id}`,
 			placeholder: '1',
 		},
 		step: {
 			name: 'ui.usesCountScaling.step',
-			label: 'Step',
+			label: editorLabel('Step'),
 			value: scaling?.step ?? '',
 			inputId: `ac5e-value-usesCount-scaling-step-${id}`,
 			placeholder: '1',
