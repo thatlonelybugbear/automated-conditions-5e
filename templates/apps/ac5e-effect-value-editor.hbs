@@ -5,10 +5,10 @@
 
 		<header class="ac5e-effect-value-editor-header ac5e-effect-value-editor-inline-meta">
 			<p>
-				<strong>Attribute Key:</strong>
+				<strong>{{localize "AC5E.EffectValueEditor.Label.AttributeKey"}}:</strong>
 				<i
 					class="fa-solid fa-circle-question ac5e-effect-value-editor-help"
-					data-tooltip='For AC5E keys and examples, see <a href="https://github.com/thatlonelybugbear/automated-conditions-5e/wiki">the wiki</a>.'
+					data-tooltip="{{localize 'AC5E.EffectValueEditor.Hint.AttributeKey'}}"
 					data-tooltip-direction="RIGHT"
 					data-locked
 				></i>
@@ -39,7 +39,7 @@
 								class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 								data-ac5e-expand-input="fields.{{primaryLayout.radiusField.name}}"
 								data-ac5e-expand-label="{{primaryLayout.radiusField.label}}"
-								aria-label="Expand {{primaryLayout.radiusField.label}}"
+								aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=primaryLayout.radiusField.label}}"
 							></button>
 						</div>
 					</div>
@@ -59,7 +59,7 @@
 								class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 								data-ac5e-expand-input="conditions"
 								data-ac5e-expand-label="{{primaryLayout.conditionField.label}}"
-								aria-label="Expand {{primaryLayout.conditionField.label}}"
+								aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=primaryLayout.conditionField.label}}"
 							></button>
 						</div>
 					</div>
@@ -79,7 +79,7 @@
 										class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 										data-ac5e-expand-input="fields.{{name}}"
 										data-ac5e-expand-label="{{label}}"
-										aria-label="Expand {{label}}"
+										aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=label}}"
 									></button>
 								{{/if}}
 							{{/if}}
@@ -105,7 +105,7 @@
 												class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 												data-ac5e-expand-input="fields.{{companionField.name}}"
 												data-ac5e-expand-label="{{companionField.label}}"
-												aria-label="Expand {{companionField.label}}"
+											aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=companionField.label}}"
 											></button>
 										{{/if}}
 									</div>
@@ -123,7 +123,7 @@
 											class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 											data-ac5e-expand-input="fields.{{companionField.name}}"
 											data-ac5e-expand-label="{{companionField.label}}"
-											aria-label="Expand {{companionField.label}}"
+										aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=companionField.label}}"
 										></button>
 									{{/if}}
 								</div>
@@ -149,7 +149,7 @@
 							<input id="{{primaryLayout.optinIdField.inputId}}" type="text" name="fields.{{primaryLayout.optinIdField.name}}" value="{{primaryLayout.optinIdField.value}}">
 							<label class="ac5e-effect-value-editor-inline-toggle">
 								<input type="checkbox" name="toggles.preselected" {{#if primaryLayout.optinIdField.preselected}}checked{{/if}}>
-								<span>Optin preselected</span>
+								<span title="{{localize 'AC5E.EffectValueEditor.Hint.OptinPreselected'}}">{{localize "AC5E.EffectValueEditor.Label.OptinPreselected"}}</span>
 							</label>
 						</div>
 					</div>
@@ -172,7 +172,7 @@
 							class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 							data-ac5e-expand-input="conditions"
 							data-ac5e-expand-label="{{primaryLayout.conditionField.label}}"
-							aria-label="Expand {{primaryLayout.conditionField.label}}"
+							aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=primaryLayout.conditionField.label}}"
 						></button>
 					</div>
 				</div>
@@ -182,7 +182,7 @@
 	</fieldset>
 
 	<fieldset class="ac5e-effect-value-editor-fieldset">
-		<legend>Toggle Behavior</legend>
+		<legend>{{localize "AC5E.EffectValueEditor.Label.ToggleBehavior"}}</legend>
 		<div class="ac5e-effect-value-editor-toggle-grid">
 			{{#each toggleBehavior}}
 				<label title="{{hint}}">
@@ -193,7 +193,7 @@
 		</div>
 		{{#if showCadence}}
 			<div class="form-group ac5e-effect-value-editor-fieldset-select">
-				<label for="ac5e-value-cadence-{{changeIndex}}">Cadence</label>
+				<label for="ac5e-value-cadence-{{changeIndex}}">{{localize "AC5E.EffectValueEditor.Label.Cadence"}}</label>
 				<div class="form-fields">
 					<select id="ac5e-value-cadence-{{changeIndex}}" name="ui.cadenceMode">
 						{{#each cadenceOptions}}
@@ -216,7 +216,7 @@
 									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 									data-ac5e-expand-input="fields.{{left.name}}"
 									data-ac5e-expand-label="{{left.label}}"
-									aria-label="Expand {{left.label}}"
+									aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=left.label}}"
 								></button>
 							</div>
 						</div>
@@ -233,7 +233,7 @@
 									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 									data-ac5e-expand-input="fields.{{right.name}}"
 									data-ac5e-expand-label="{{right.label}}"
-									aria-label="Expand {{right.label}}"
+									aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=right.label}}"
 								></button>
 							</div>
 						</div>
@@ -253,7 +253,7 @@
 									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 									data-ac5e-expand-input="{{left.path.name}}"
 									data-ac5e-expand-label="{{left.path.label}}"
-									aria-label="Expand {{left.path.label}}"
+									aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=left.path.label}}"
 								></button>
 							</div>
 						</div>
@@ -332,7 +332,7 @@
 									class="ac5e-effect-value-editor-expand fa-solid fa-lambda fa-fw icon"
 									data-ac5e-expand-input="{{left.path.name}}"
 									data-ac5e-expand-label="{{left.path.label}}"
-									aria-label="Expand {{left.path.label}}"
+									aria-label="{{localize 'AC5E.EffectValueEditor.Button.Expand' label=left.path.label}}"
 								></button>
 							</div>
 						</div>
@@ -383,15 +383,15 @@
 	<footer class="ac5e-effect-value-editor-footer">
 		<button type="button" data-action="apply">
 			<i class="fa-solid fa-check"></i>
-			Apply
+			{{localize "AC5E.EffectValueEditor.Button.Apply"}}
 		</button>
 		<button type="button" data-action="applyClose">
 			<i class="fa-solid fa-floppy-disk"></i>
-			Apply & Close
+			{{localize "AC5E.EffectValueEditor.Button.ApplyClose"}}
 		</button>
 		<button type="button" data-action="reset">
 			<i class="fa-solid fa-rotate-left"></i>
-			Reset
+			{{localize "AC5E.EffectValueEditor.Button.Reset"}}
 		</button>
 	</footer>
 </form>
