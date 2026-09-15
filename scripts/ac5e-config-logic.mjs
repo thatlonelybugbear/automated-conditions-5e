@@ -103,7 +103,7 @@ const REEVAL_POLICY_BY_HOOK = {
 		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
 	},
 	damage: {
-		options: ['targets', 'distance', 'ability', 'attackMode', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'mastery'],
+		options: ['targets', 'distance', 'ability', 'attackMode', 'baseDamage', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'mastery'],
 		flagReEvalOn: ['targeting', 'rollProfile', 'damageTyping', 'scaling', 'other'],
 	},
 	save: {
@@ -138,10 +138,10 @@ function _getReEvalPolicy({ hookType, phase = 'hook' } = {}) {
 
 function _categorizeChangedOptionKeys(changedKeys = []) {
 	const keys = new Set(changedKeys);
-	const known = new Set(['targets', 'distance', 'ability', 'attackMode', 'skill', 'tool', 'mastery', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'spellLevel', 'scaling']);
+	const known = new Set(['targets', 'distance', 'ability', 'attackMode', 'baseDamage', 'skill', 'tool', 'mastery', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'spellLevel', 'scaling']);
 	return {
 		targeting: ['targets', 'distance'].some((key) => keys.has(key)),
-		rollProfile: ['ability', 'attackMode', 'skill', 'tool', 'mastery'].some((key) => keys.has(key)),
+		rollProfile: ['ability', 'attackMode', 'baseDamage', 'skill', 'tool', 'mastery'].some((key) => keys.has(key)),
 		damageTyping: ['defaultDamageType', 'damageTypes', 'riderStatuses'].some((key) => keys.has(key)),
 		scaling: ['spellLevel', 'scaling'].some((key) => keys.has(key)),
 		other: changedKeys.some((key) => !known.has(key)),
@@ -834,6 +834,7 @@ function _getSafeDialogOptions(options = {}) {
 	const safe = pickOptions(options, [
 		'ability',
 		'attackMode',
+		'baseDamage',
 		'damageTypes',
 		'defaultDamageType',
 		'distance',

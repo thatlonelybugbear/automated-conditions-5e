@@ -54,6 +54,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	options.ammunition = ammunition?.toObject();
 	options.attackMode = attackMode;
 	options.mastery = mastery;
+	options.baseDamage = getConfiguredBaseDamage(rolls);
 	const rollScaling = rolls?.[0]?.data?.scaling;
 	if (rolls?.[0]?.data) options.rollData = { ...rolls[0].data };
 	else if (rollScaling !== undefined) options.scaling = rollScaling;
@@ -106,6 +107,13 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	}
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage:', { ac5eConfig });
 	return ac5eConfig;
+}
+
+function getConfiguredBaseDamage(rolls) {
+	const baseRoll = rolls?.find?.((roll) => roll?.base) ?? rolls?.[0];
+	const formula = baseRoll?.parts?.[0];
+	const match = String(formula ?? '').match(/(\d*)\s*d\s*(\d+)/i);
+	return match ? { number: Number(match[1] || 1), denomination: Number(match[2]) } : undefined;
 }
 
 function _getResolvedUseAbilityOverride({ config, options, moduleId } = {}) {
