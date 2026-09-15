@@ -1,3 +1,19 @@
+## 14.533.19
+
+- Fixed save/check `modifyDC` changes being applied more than once during activity use. The displayed and rolled DC now remains based on the activity's original DC.
+- Fixed `preselected` opt-ins in save/check usage dialogs so they start checked and apply immediately, including `modifyDC` and `abilityOverride` choices.
+- Added `itemOptions` support to the `hasItems` filter in `checkNearby()` and `findNearby()`, allowing nearby items to be filtered by options such as item type, equipped state, and partial name matching.
+  - Shield Bearer example:
+    ```text
+    Key: flags.automated-conditions-5e.modifyAC
+    Type: AC5e
+    Value: bonus=Math.min(3, checkNearby(effectActor.tokenId, 'same', 5, { count: true, hasItems: ['shield'], itemOptions: { type: 'equipment', equipped: true, nameMode: 'partial' } })); checkNearby(effectActor.tokenId, 'same', 5, { count: true, hasItems: ['shield'], itemOptions: { type: 'equipment', equipped: true, nameMode: 'partial' } }) > 0
+    ```
+- Added `baseDamage.number` and `baseDamage.denomination` to damage evaluation data and the Effect Value Editor. Values come from the configured base damage roll, including the selected two-handed versatile damage.
+- Fixed Foundry Hot Reload issues by declaring supported file extensions.
+- Added missing translation keys for the AC5e Editor UI.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 ## 14.533.18
 
 - Added resolved-roll conditions for damage and effect application: `d20Total`, `d20Result`, `targetValue`, `d20TotalOverTarget`, `isSuccess`, and `isFail`.
