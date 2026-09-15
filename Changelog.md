@@ -6,7 +6,7 @@
   - Shield Bearer example:
     - Key: `flags.automated-conditions-5e.modifyAC`
     - Type: `AC5e`
-    - Value: `bonus=Math.min(3, checkNearby(effectActor.tokenId, 'same', 5, { count: true, hasItems: ['shield'], itemOptions: { type: 'equipment', equipped: true, nameMode: 'partial' } })); checkNearby(effectActor.tokenId, 'same', 5, { count: true, hasItems: ['shield'], itemOptions: { type: 'equipment', equipped: true, nameMode: 'partial' } }) > 0`
+    - Value: `bonus=Math.min(3, checkNearby(effectActor.tokenId, 'same', 5, { count: true, hasItems: ['shield'], itemOptions: { type: 'equipment', equipped: true, nameMode: 'partial' } })); checkNearby(effectActor.tokenId, 'same', 5, { count: 1, hasItems: ['shield'], itemOptions: { type: 'equipment', equipped: true, nameMode: 'partial' } })`
 - Added `baseDamage.number` and `baseDamage.denomination` to damage evaluation data and the Effect Value Editor. Values come from the configured base damage roll, including the selected two-handed versatile damage.
 - Fixed Foundry Hot Reload issues by declaring supported file extensions.
 - Added missing translation keys for the AC5e Editor UI.
