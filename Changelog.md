@@ -1,3 +1,7 @@
+## 14.533.19.2
+
+- Fix for `spellcasting` abilityOverride not applying correctly in some workflows.
+
 ## 14.533.19.1
 
 - Hotfix for `abilityOverride` preselected opt-ins not applying immediately.

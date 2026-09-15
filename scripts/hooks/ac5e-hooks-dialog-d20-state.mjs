@@ -73,7 +73,7 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 		dialog.config.disadvantage = undefined;
 		let nextConfig = ac5eConfig;
 		if (ac5eConfig.hookType === 'attack') {
-			const resolvedAttackAbility = getSelectedAttackAbilityOverride(ac5eConfig);
+			const resolvedAttackAbility = getSelectedAttackAbilityOverride(ac5eConfig, dialog.config);
 			if (preservedBaselineAttackAbility !== undefined) {
 				ac5eConfig.options ??= {};
 				ac5eConfig.options._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
@@ -148,7 +148,7 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 	}
 }
 
-function getSelectedAttackAbilityOverride(ac5eConfig) {
+function getSelectedAttackAbilityOverride(ac5eConfig, config) {
 	if (!ac5eConfig) return null;
 	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected?.[key])));
 	const entries = [
@@ -163,6 +163,7 @@ function getSelectedAttackAbilityOverride(ac5eConfig) {
 		if (!resolved) continue;
 		if (resolved === 'spellcasting') {
 			resolved =
+				config?.subject?.spellcastingAbility?.trim?.()?.toLowerCase?.() ??
 				ac5eConfig?.options?.activity?.spellcastingAbility?.trim?.()?.toLowerCase?.() ??
 				ac5eConfig?.options?.item?.actor?.system?.attributes?.spellcasting?.trim?.()?.toLowerCase?.() ??
 				ac5eConfig?.options?.spellcastingAbility?.trim?.()?.toLowerCase?.() ??
