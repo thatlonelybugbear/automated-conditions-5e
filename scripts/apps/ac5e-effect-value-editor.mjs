@@ -1415,7 +1415,6 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 	if (normalized.endsWith('.abilityoverride')) {
 		const abilitiesConfig = CONFIG?.DND5E?.abilities ?? {};
 		const entries = [
-			{ value: 'spellcasting', label: editorLabel('Spellcasting') },
 			...Object.entries(abilitiesConfig)
 			.map(([value, rawLabel]) => {
 				const labelKey =
@@ -1426,9 +1425,9 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 				const localized = labelKey ? game?.i18n?.localize?.(labelKey) : '';
 				return { value, label: directLabel || localized || value };
 			}),
+			{ value: 'spellcasting', label: editorLabel('Spellcasting') },
 		]
-			.filter((entry) => entry.value)
-			.sort((a, b) => a.label.localeCompare(b.label));
+			.filter((entry) => entry.value);
 		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride, mode: 'single' }));
 	}
 	return [];
@@ -1572,12 +1571,11 @@ function buildTypeOverrideScopedEntries() {
 
 function buildAbilityOverrideScopedEntries() {
 	return [
-		'spellcasting',
 		...Object.keys(CONFIG?.DND5E?.abilities ?? {}),
+		'spellcasting',
 	]
 		.map((entry) => `${entry ?? ''}`.trim())
-		.filter(Boolean)
-		.sort((a, b) => a.localeCompare(b));
+		.filter(Boolean);
 }
 
 function buildAddToScopedEntries() {
