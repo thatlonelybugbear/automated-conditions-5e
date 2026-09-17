@@ -1406,7 +1406,7 @@ export function _filterOptinEntries(entries = [], optinSelected = {}) {
 	return (entries ?? []).filter((entry) => {
 		if (!entry || typeof entry !== 'object') return true;
 		if (!entry.optin) return true;
-		return selected.has(entry.id);
+		return selected.has(entry.id) || (entry.optinId && selected.has(entry.optinId));
 	});
 }
 

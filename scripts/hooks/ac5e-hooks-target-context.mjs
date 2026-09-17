@@ -116,8 +116,10 @@ export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
 }
 
 export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps) {
+	const explicitTargets = getTargets({ message }, deps);
 	const resolvedTargets =
-		Array.isArray(targets) ? targets
+		explicitTargets.length ? explicitTargets
+		: Array.isArray(targets) ? targets
 		: Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets
 		: null;
 	if (!resolvedTargets) return;

@@ -1,5 +1,6 @@
 import { debugMessageData, resolveMessageDataContext } from './ac5e-hooks-message-data.mjs';
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { getTargets } from './ac5e-hooks-target-context.mjs';
 
 export function getHookMessageData(config, hook, fallbackMessage, deps) {
 	const context = resolveMessageDataContext(config, hook, fallbackMessage, deps) ?? {};
@@ -11,11 +12,14 @@ export function getHookMessageData(config, hook, fallbackMessage, deps) {
 	};
 }
 
-export function prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource = 'activity' } = {}, deps) {
+export function prepareHookTargetsAndDamage({ options, hook, activity, messageConfig, messageForTargets, messageTargets, rolls, damageSource = 'activity' } = {}, deps) {
 	if (!options || typeof options !== 'object') return;
 	options.hook = hook;
 	options.activity = activity;
-	options.targets = deps.resolveTargets(messageForTargets, messageTargets, { hook, activity }, deps);
+	const explicitTargets = getTargets({ message: messageConfig }, deps);
+	options.targets = explicitTargets.length
+		? deps.resolveTargets(messageConfig, explicitTargets, { hook, activity }, deps)
+		: deps.resolveTargets(messageForTargets, messageTargets, { hook, activity }, deps);
 	if (damageSource === 'roll') deps.collectRollDamageTypes(rolls, options);
 	else deps.collectActivityDamageTypes(activity, options);
 }

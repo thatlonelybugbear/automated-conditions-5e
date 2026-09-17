@@ -155,7 +155,7 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 		ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
 		systemMode.override = 0;
 	}
-	if (mode === 0 && modeCounts?.override === undefined) {
+	if (mode === 0 && modeCounts?.override == null) {
 		const advantageCount = _getModeCountValue(modeCounts?.advantages);
 		const disadvantageCount = _getModeCountValue(modeCounts?.disadvantages);
 		if (advantageCount > 0) {
@@ -211,6 +211,21 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 	const systemMode = { adv: 0, dis: 0 };
 	const autoArmorChecks = _autoArmor(actor);
 	const { ability, skill, tool } = options || {};
+	if (hookType === 'attack') {
+		const actionType = options?.actionType;
+		const abilityLabel = CONFIG?.DND5E?.abilities?.[ability]?.label ?? CONFIG?.DND5E?.abilities?.[ability] ?? ability;
+		const actionTypeLabel = CONFIG?.DND5E?.itemActionTypes?.[actionType] ?? actionType;
+		const sources = [
+			{ source: actor.system.abilities?.[ability]?.attack?.roll, detail: abilityLabel },
+			{ source: actor.system.rolls?.attack, detail: _localize('DND5E.Attack') },
+			{ source: actor.system.rolls?.attack?.[actionType], detail: actionTypeLabel },
+		];
+		for (const { source, detail } of sources) {
+			if (!source) continue;
+			const { mode, max, min, modeCounts } = source;
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', detail), ac5eConfig, systemMode, modeCounts });
+		}
+	}
 	if (hookType === 'check' || hookType === 'init') {
 		if (skill) {
 			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage)

@@ -6,14 +6,30 @@ import Settings from '../ac5e-settings.mjs';
 
 const CORE_CHANGE_TYPES = new Set(['custom', 'multiply', 'add', 'subtract', 'downgrade', 'upgrade', 'override']);
 
+function logEffectKeyAutocomplete(stage, data = {}) {
+	if (!isAc5eAutocompleteDebugEnabled('effectKeys')) return;
+	console.warn(JSON.stringify({ trace: 'AC5E effect key autocomplete', stage, ...data }));
+}
+
 export function registerEffectValueEditorHooks() {
 	registerDnd5eEffectChangeConfigHook();
 	registerDnd5eActiveEffectSheetHook();
 	const hooks = [
 		Hooks.on('renderActiveEffectConfig', enhanceActiveEffectConfig),
 		Hooks.on('renderEffectChangeConfig', enhanceActiveEffectConfig),
+		Hooks.on('dnd5e.getUnknownAttributeLabel', labelAc5eAttribute),
 	];
 	return hooks.join(', ');
+}
+
+function labelAc5eAttribute(attribute, options) {
+	if (!isAc5eChangeKey(attribute)) return;
+	const path = String(attribute).replace(/^flags\.(?:ac5e|automated-conditions-5e)\./i, '');
+	options.label = path
+		.split('.')
+		.filter(Boolean)
+		.map((part) => part.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (character) => character.toUpperCase()))
+		.join(' ');
 }
 
 function registerDnd5eActiveEffectSheetHook() {
@@ -112,13 +128,21 @@ function moveAc5eChangeTypeOptionsAfterCore(root) {
 }
 
 function initializeKeyAutocomplete(app, root) {
-	const Autocomplete = foundry.applications?.ux?.Autocomplete?.implementation;
+	const Autocomplete = foundry.applications?.ux?.Autocomplete?.implementation ?? foundry.applications?.ux?.Autocomplete;
 	if (!Autocomplete) return;
 
 	for (const keyInput of root.querySelectorAll('input[name="key"], textarea[name="key"], input[name$=".key"], textarea[name$=".key"]')) {
 		if (keyInput.dataset.ac5eKeyAutocompleteReady) continue;
 		keyInput.dataset.ac5eKeyAutocompleteReady = 'true';
 		const row = keyInput.closest('li, .form-group, tr, fieldset') ?? keyInput.parentElement;
+		logEffectKeyAutocomplete('bind', {
+			app: app?.constructor?.name,
+			name: keyInput.name,
+			type: findTypeInput(row, keyInput)?.value,
+			value: keyInput.value ?? '',
+			raveBound: !!keyInput.dataset.rave5eKeyAutocompleteReady,
+			bm5eBound: !!keyInput.dataset.bm5eKeyAutocompleteReady,
+		});
 		const autocomplete = new Autocomplete({
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				void prefix;
@@ -130,10 +154,10 @@ function initializeKeyAutocomplete(app, root) {
 			},
 		});
 		const activateAutocomplete = () => {
-			if (!isAc5eChangeRow(row, keyInput) && !shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
-				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
-					console.debug('AC5E | autocomplete.effectKeys | dismiss (trigger=false)', { value: keyInput.value ?? '' });
-				}
+			const ac5eRow = isAc5eChangeRow(row, keyInput);
+			const valueTrigger = shouldTriggerAc5eKeyAutocomplete(keyInput.value);
+			if (!ac5eRow && !valueTrigger) {
+				logEffectKeyAutocomplete('dismiss', { reason: 'trigger', type: findTypeInput(row, keyInput)?.value, value: keyInput.value ?? '' });
 				autocomplete.dismiss();
 				return;
 			}
@@ -144,24 +168,28 @@ function initializeKeyAutocomplete(app, root) {
 				? entries.filter((entry) => entry.identifier.toLowerCase().includes(normalizedPrefix)).slice(0, 40)
 				: entries.slice(0, 40);
 			if (!filteredEntries.length) {
-				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
-					console.debug('AC5E | autocomplete.effectKeys | dismiss (no entries)', { prefix, value: keyInput.value ?? '' });
-				}
+				logEffectKeyAutocomplete('dismiss', { reason: 'entries', prefix, totalEntries: entries.length, value: keyInput.value ?? '' });
 				autocomplete.dismiss();
 				return;
 			}
-			if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
-				console.debug('AC5E | autocomplete.effectKeys | activate', {
-					prefix,
-					value: keyInput.value ?? '',
-					candidates: filteredEntries.length,
-				});
-			}
+			logEffectKeyAutocomplete('activate', { ac5eRow, valueTrigger, prefix, value: keyInput.value ?? '', totalEntries: entries.length, candidates: filteredEntries.length });
 			autocomplete.activate(keyInput, filteredEntries, { prefix });
 			configureAc5eAutocompleteMenu(autocomplete);
+			setTimeout(() => logEffectKeyAutocomplete('settled', {
+				focused: keyInput.ownerDocument.activeElement === keyInput,
+				owned: ui.autocomplete === autocomplete,
+				menuConnected: !!autocomplete.element?.isConnected,
+				menuItems: autocomplete.element?.querySelectorAll?.('li')?.length ?? 0,
+			}), 0);
 		};
-		keyInput.addEventListener('focus', activateAutocomplete);
-		keyInput.addEventListener('input', activateAutocomplete);
+		const scheduleAutocomplete = (event) => {
+			logEffectKeyAutocomplete('event', { event: event?.type, focused: keyInput.ownerDocument.activeElement === keyInput, value: keyInput.value ?? '' });
+			window.setTimeout(() => {
+				if (keyInput.isConnected && keyInput.ownerDocument.activeElement === keyInput) activateAutocomplete();
+			}, 0);
+		};
+		keyInput.addEventListener('focus', scheduleAutocomplete);
+		keyInput.addEventListener('input', scheduleAutocomplete);
 		keyInput.addEventListener('blur', () => window.setTimeout(() => autocomplete.dismiss(), 100));
 		app.addEventListener?.('close', () => autocomplete.dismiss(), { once: true });
 	}
@@ -270,7 +298,7 @@ function restoreAc5eChangeTypeSelections(root) {
 }
 
 function isDaeActiveEffectSheet(app, root) {
-	return app?.constructor?.name === 'DAEActiveEffectConfig' || root?.classList?.contains('dae') || !!root?.querySelector?.('.dae-key-input');
+	return app?.constructor?.name === 'DAEActiveEffectConfig' || root?.classList?.contains('dae');
 }
 
 function getChangeIndex(app, row, input) {

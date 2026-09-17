@@ -1641,6 +1641,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 		setAC5eProperties: false,
 		usesCount: false,
 	};
+	ac5e.debug.timings ??= false;
 	Object.defineProperty(ac5e, 'debugGetConfigLayers', {
 		get() {
 			return Boolean(ac5e?.debug?.getConfigLayers);

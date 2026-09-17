@@ -5,7 +5,18 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 const _canSeeDebugEnabled = () => Boolean(settings.debug || globalThis?.[Constants.MODULE_NAME_SHORT]?.debug?.canSee);
 
-export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasItems = [], itemOptions = {}, hasStatuses = [], includeToken = false, includeIncapacitated = false, includeHidden = false, partyMember = false }) {
+function _matchesCreatureType(actor, creatureTypes) {
+	if (!creatureTypes.size) return true;
+	const details = actor?.system?.details;
+	const type = details?.type;
+	const values = [type?.value, type?.subtype, type?.custom, details?.race?.identifier]
+		.flatMap((value) => String(value ?? '').toLowerCase().split(/[;,]/))
+		.map((value) => value.trim())
+		.filter(Boolean);
+	return values.some((value) => creatureTypes.has(value));
+}
+
+export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasItems = [], itemOptions = {}, hasStatuses = [], includeToken = false, includeIncapacitated = false, includeHidden = false, partyMember = false, canSee: requireCanSee = false, creatureTypes = [] }) {
 	if (!canvas || !canvas.tokens?.placeables) return false;
 	const tokenInstance = foundry.canvas.placeables.Token;
 	if (token instanceof TokenDocument) {
@@ -15,6 +26,7 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
 	if (!token) return false;
+	const requiredCreatureTypes = new Set((Array.isArray(creatureTypes) ? creatureTypes : []).map((value) => String(value).trim().toLowerCase()).filter(Boolean));
 	let mult;
 	const foundryDispositionCONST = CONST.TOKEN_DISPOSITIONS;
 	const usableUserProvidedDispositions = ['all', 'ally', 'different', 'enemy', 'friendly', 'neutral', 'opposite', 'same', 'secret'];
@@ -50,9 +62,10 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 		if (hasEffects.length && !target.actor?.appliedEffects.some((e) => hasEffects.includes(e.name))) return false;
 		if (hasItems.length && !_hasItem(target, hasItems, itemOptions)) return false;
 		if (hasStatuses.length && !_hasStatuses(target.actor, hasStatuses, true)) return false;
-		if (radius === 0) return true;
-		const distance = _getDistance(token, target);
-		return distance <= radius;
+		if (!_matchesCreatureType(target.actor, requiredCreatureTypes)) return false;
+		if (radius !== 0 && _getDistance(token, target) > radius) return false;
+		if (requireCanSee && !canSee(token, target)) return false;
+		return true;
 	});
 	if (settings.debug) console.log('AC5E - findNearby():', nearbyTokens);
 	if (lengthTest === true) return nearbyTokens.length;
@@ -60,8 +73,8 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 	return nearbyTokens;
 }
 
-export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = false, hasEffects = [], hasItems = [], itemOptions = {}, hasStatuses = [], partyMember = false } = {}) {
-	return findNearby({ token, disposition, radius, hasEffects, hasItems, itemOptions, hasStatuses, includeToken, includeIncapacitated, includeHidden, lengthTest: count, partyMember });
+export function checkNearby(token, disposition, radius, { count = false, includeToken = false, includeIncapacitated = false, includeHidden = false, hasEffects = [], hasItems = [], itemOptions = {}, hasStatuses = [], partyMember = false, canSee = false, creatureTypes = [] } = {}) {
+	return findNearby({ token, disposition, radius, hasEffects, hasItems, itemOptions, hasStatuses, includeToken, includeIncapacitated, includeHidden, lengthTest: count, partyMember, canSee, creatureTypes });
 }
 
 export function autoRanged(activity, token, target, options = {}) {

@@ -65,7 +65,7 @@ function bindSimpleCover5eTooltip(render, elem, ac5eConfig, deps) {
 function bindDialogAbilityRefresh(hook, render, elem, initialConfig, deps) {
 	let getConfigAC5E = initialConfig;
 	const abilitySelect = render?.form?.querySelector?.('select[name="ability"]');
-	if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E?.hookType) && abilitySelect && !abilitySelect.dataset.ac5eAbilityReevalBound) {
+	if (hook === 'd20Dialog' && ['attack', 'check', 'save'].includes(getConfigAC5E?.hookType) && abilitySelect && !abilitySelect.dataset.ac5eAbilityReevalBound) {
 		abilitySelect.dataset.ac5eAbilityReevalBound = 'true';
 		abilitySelect.addEventListener('change', (event) => {
 			const nextAbility = event?.currentTarget?.value;
@@ -78,7 +78,7 @@ function bindDialogAbilityRefresh(hook, render, elem, initialConfig, deps) {
 		});
 	}
 	const selectedAbility = abilitySelect?.value;
-	if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E?.hookType) && selectedAbility) {
+	if (hook === 'd20Dialog' && ['attack', 'check', 'save'].includes(getConfigAC5E?.hookType) && selectedAbility) {
 		const refreshed = refreshDialogAbilityState(render, getConfigAC5E, selectedAbility, deps);
 		if (refreshed) getConfigAC5E = refreshed;
 	}
@@ -107,6 +107,12 @@ function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps
 	deps.renderOptionalBonusesRoll(render, elem, getConfigAC5E, deps);
 	const optinSelections = deps.readOptinSelections(elem, getConfigAC5E);
 	deps.setOptinSelections(getConfigAC5E, optinSelections);
+	const hasPreselectedAbilityOverride =
+		getConfigAC5E?.hookType === 'attack' &&
+		[
+			...(getConfigAC5E?.subject?.abilityOverride ?? []),
+			...(getConfigAC5E?.opponent?.abilityOverride ?? []),
+		].some((entry) => entry?.preselected && getConfigAC5E?.optinSelected?.[entry.id]);
 	const selectedVisibilityOptins = Object.entries(getConfigAC5E?.optinSelected ?? {})
 		.filter(([id, selected]) => selected && String(id).startsWith('ac5e:visibility:'))
 		.map(([id]) => id);
@@ -121,6 +127,13 @@ function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps
 		if (globalThis.ac5e?.debugTargetADC) console.warn('AC5E targetADC: render entries', { hook: getConfigAC5E.hookType, targetADCEntries, optinSelected: getConfigAC5E.optinSelected });
 		applyTargetADCStateToD20Config(getConfigAC5E, render.config, { syncAttackTargets: true });
 		syncDialogAc5eState(render, getConfigAC5E);
+	}
+	if (hasPreselectedAbilityOverride && !elem.dataset.ac5eInitialAbilityOverrideSyncApplied) {
+		elem.dataset.ac5eInitialAbilityOverrideSyncApplied = 'true';
+		requestAnimationFrame(() => {
+			const activeConfig = getDialogAc5eConfig(render, getConfigAC5E) ?? getConfigAC5E;
+			deps.handleD20OptinSelectionsChanged?.(render, activeConfig, deps);
+		});
 	}
 	if (selectedVisibilityOptins.length && !elem.dataset.ac5eInitialOptinSyncApplied) {
 		elem.dataset.ac5eInitialOptinSyncApplied = 'true';

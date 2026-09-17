@@ -4,29 +4,8 @@ import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-h
 
 export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
 	const entries = [...getAllOptinEntriesForHook(ac5eConfig, ac5eConfig.hookType), ...getRollNonBonusOptinEntries(ac5eConfig, ac5eConfig.hookType)]
-		.filter((entry) => Boolean(entry?.optin || entry?.forceOptin))
-		.filter((entry) => shouldIncludeAbilityOverrideEntry(entry, ac5eConfig));
+		.filter((entry) => Boolean(entry?.optin || entry?.forceOptin));
 	renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps);
-}
-
-function shouldIncludeAbilityOverrideEntry(entry, ac5eConfig) {
-	if (!entry || ac5eConfig?.hookType !== 'attack') return true;
-	if (entry?.mode !== 'abilityOverride') return true;
-	const isSelected = _isOptinSelectionActive(ac5eConfig?.optinSelected?.[entry?.id]);
-	if (isSelected) return true;
-	const overrideAbility = String(entry?.set ?? '').trim().toLowerCase();
-	if (!overrideAbility) return true;
-	const baselineAbility = String(
-		ac5eConfig?.options?._ac5eBaselineAttackAbility ??
-		ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility ??
-		ac5eConfig?.subject?.attack?.ability ??
-		ac5eConfig?.options?.activity?.attack?.ability ??
-		'',
-	)
-		.trim()
-		.toLowerCase();
-	if (!baselineAbility) return true;
-	return overrideAbility !== baselineAbility;
 }
 
 export function renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps) {
@@ -658,7 +637,8 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const baseLabel = rawLabel || rawName || String(entry?.id ?? '');
 		const modeLabel = String(entry?.mode ?? '').replace(/([a-z])([A-Z])/g, '$1 $2');
 		const indexedLabel =
-			labelCounts.get(baseLabel) > 1 && modeLabel ? `${baseLabel} (${modeLabel})`
+			entry.scaleOptionLabels ? `Cover: ${entry.scaleOptionLabels[entry.selectedScale] ?? entry.selectedScale}`
+			: labelCounts.get(baseLabel) > 1 && modeLabel ? `${baseLabel} (${modeLabel})`
 			: isUnnamedOptin && shouldSuffixUnnamedOptins ? `${baseLabel} #${index + 1}`
 			: baseLabel;
 		const usesCountSuffix = isOptinEntry ? getUsesCountLabelSuffix(entry) : '';
@@ -710,7 +690,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		checkbox.dataset.ac5eOptinId = entry.id;
 		checkbox.dataset.ac5eOptin = 'true';
 		if (entry.optinId) checkbox.dataset.ac5eOptinSemanticId = entry.optinId;
-		const existingSelection = ac5eConfig?.optinSelected?.[entry.id];
+		const existingSelection = ac5eConfig?.optinSelected?.[entry.id] ?? ac5eConfig?.optinSelected?.[entry.optinId];
 		checkbox.checked = existingSelection === undefined ? !!entry.preselected : _isOptinSelectionActive(existingSelection);
 		if (scaling) {
 			checkbox.dataset.ac5eOptinScaleMin = String(scaling.min);

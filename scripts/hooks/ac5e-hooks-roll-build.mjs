@@ -39,7 +39,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	if (activeHook === 'attack') applySimpleCover5eBuildOverride(ac5eConfig, rollConfig, targetMessage, formData, app);
 	if (activeHook === 'attack') applySimpleCover5eTooltip(ac5eConfig, app?.message ?? targetMessage);
 	if (ac5eConfig.hookType === 'damage') {
-		const optins = getOptinsFromForm(formData);
+		const optins = getOptinsFromForm(formData, ac5eConfig);
 		setOptinSelections(ac5eConfig, optins);
 		applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, activeHook);
 		applyOptinCriticalToDamageConfig(ac5eConfig, rollConfig, formData);
@@ -55,7 +55,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	const preRestoreParts = getD20ActivePartsSnapshot(rollConfig);
 	const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, rollConfig);
 	_restoreD20ConfigFromFrozenBaseline(ac5eConfig, rollConfig);
-	const optins = getOptinsFromForm(formData);
+	const optins = getOptinsFromForm(formData, ac5eConfig);
 	setOptinSelections(ac5eConfig, optins);
 	if (activeHook === 'attack') applyWavesCoverToD20Config(ac5eConfig, rollConfig, formData);
 	applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, activeHook);
@@ -139,7 +139,9 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	return true;
 }
 
-function getOptinsFromForm(formData) {
+function getOptinsFromForm(formData, ac5eConfig) {
+	const existing = ac5eConfig?.optinSelected ?? {};
+	if (!formData) return foundry.utils.duplicate(existing);
 	const optins = { ...(formData?.object?.ac5eOptins ?? {}) };
 	const raw = formData?.object ?? {};
 	const scales = {};
@@ -159,6 +161,16 @@ function getOptinsFromForm(formData) {
 		const scale = scales[id];
 		if (!Number.isFinite(scale)) continue;
 		optins[id] = { enabled: true, scale };
+	}
+	for (const side of ['subject', 'opponent']) {
+		for (const entries of Object.values(ac5eConfig?.[side] ?? {})) {
+			if (!Array.isArray(entries)) continue;
+			for (const entry of entries) {
+				if (!entry?.optinId) continue;
+				if (Object.hasOwn(optins, entry.id)) optins[entry.optinId] = optins[entry.id];
+				else if (Object.hasOwn(existing, entry.optinId)) optins[entry.optinId] = existing[entry.optinId];
+			}
+		}
 	}
 	return optins;
 }
@@ -195,9 +207,10 @@ function syncChatTooltipToRollConfigs(ac5eConfig, rollConfig) {
 	}
 }
 
-function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookType) {
+export function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookType) {
 	if (!['attack', 'damage'].includes(hookType)) return;
 	const subjectAttack = rollConfig?.subject?.attack;
+	const actor = rollConfig?.subject?.actor ?? ac5eConfig?.options?.activity?.actor ?? ac5eConfig?.options?.activity?.item?.actor ?? ac5eConfig?.options?.item?.actor;
 	if (hookType === 'attack' && ac5eConfig?.options) {
 		const existingBaseline =
 			ac5eConfig.options._ac5eBaselineAttackAbility ??
@@ -208,7 +221,7 @@ function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookTy
 			ac5eConfig.preAC5eConfig._ac5eBaselineAttackAbility = existingBaseline;
 		}
 	}
-	const resolvedAbility = getWinningAbilityOverride(ac5eConfig, hookType);
+	const resolvedAbility = getWinningAbilityOverride(ac5eConfig, hookType, rollConfig);
 	if (!resolvedAbility) {
 		if (ac5eConfig?.options) {
 			delete ac5eConfig.options.activityAbilityResolved;
@@ -233,7 +246,7 @@ function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookTy
 			}
 			if (hasBaseline) {
 				rollConfig.ability = baseline;
-				const baselineMod = rollConfig?.subject?.actor?.system?.abilities?.[baseline]?.mod;
+				const baselineMod = actor?.system?.abilities?.[baseline]?.mod;
 				if (Number.isFinite(baselineMod)) {
 					rollConfig.data ??= {};
 					rollConfig.data.mod = baselineMod;
@@ -266,7 +279,7 @@ function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookTy
 	if (hookType === 'attack' && subjectAttack && typeof subjectAttack === 'object' && subjectAttack.ability !== resolvedAbility) {
 		subjectAttack.ability = resolvedAbility;
 	}
-	const resolvedMod = rollConfig?.subject?.actor?.system?.abilities?.[resolvedAbility]?.mod;
+	const resolvedMod = actor?.system?.abilities?.[resolvedAbility]?.mod;
 	if (Number.isFinite(resolvedMod)) {
 		rollConfig.data ??= {};
 		rollConfig.data.mod = resolvedMod;
@@ -282,7 +295,7 @@ function applyResolvedAbilityOverrideToRollConfig(ac5eConfig, rollConfig, hookTy
 	}
 }
 
-function getWinningAbilityOverride(ac5eConfig, hookType) {
+function getWinningAbilityOverride(ac5eConfig, hookType, rollConfig) {
 	const forcedCandidates = [
 		ac5eConfig?.options?.activityAbilityResolved,
 		ac5eConfig?.options?._abilityOverrideResolvedAtUse,
@@ -297,18 +310,19 @@ function getWinningAbilityOverride(ac5eConfig, hookType) {
 	const entries = [
 		...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
 		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
-	].filter((entry) => entry && typeof entry === 'object' && (!entry.hook || entry.hook === hookType) && entry.optin);
+	].filter((entry) => entry && typeof entry === 'object' && (!entry.hook || entry.hook === hookType));
 	if (!entries.length) return null;
 	const selectedIds = new Set(Object.keys(ac5eConfig?.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	let winner = null;
 	for (const entry of entries) {
-		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		if (entry.optin && !entry.forceOptin && !selectedIds.has(entry.id) && !selectedIds.has(entry.optinId)) continue;
 		const raw = entry?.set?.trim()?.toLowerCase?.();
 		if (!raw) continue;
 		let resolved = raw;
 		if (raw === 'spellcasting') {
 			const actorSpellcasting =
-				ac5eConfig?.options?.activity?.spellcastingAbility
+				rollConfig?.subject?.spellcastingAbility
+				?? ac5eConfig?.options?.activity?.spellcastingAbility
 				?? ac5eConfig?.options?.item?.actor?.system?.attributes?.spellcasting
 				?? ac5eConfig?.options?.spellcastingAbility;
 			resolved = actorSpellcasting?.trim?.()?.toLowerCase?.() ?? '';

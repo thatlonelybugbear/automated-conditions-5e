@@ -219,7 +219,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		this.uiState = null;
 		this.instanceKey = buildEditorInstanceKey(effect, changeIndex);
 		this.autocompleteEntries = buildEffectValueAutocompleteEntries(effect);
-		const Autocomplete = foundry.applications.ux.Autocomplete.implementation;
+		const Autocomplete = foundry.applications.ux.Autocomplete.implementation ?? foundry.applications.ux.Autocomplete;
 		this.autocomplete = new Autocomplete({
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				const input = this.activeAutocompleteInput;
@@ -396,13 +396,6 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	#activateUiEnhancements(htmlElement) {
-		for (const input of htmlElement?.querySelectorAll('[data-ac5e-condition-input]:not([data-ac5e-autocomplete-ready])') ?? []) {
-			input.dataset.ac5eAutocompleteReady = 'true';
-			input.addEventListener('input', (event) => this.#onConditionInput(event));
-			input.addEventListener('blur', () => {
-				if (ui.autocomplete === this.autocomplete) this.autocomplete.dismiss();
-			});
-		}
 		for (const button of htmlElement?.querySelectorAll('[data-ac5e-expand-input]:not([data-ac5e-expand-ready])') ?? []) {
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
@@ -1439,8 +1432,7 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 				return { value, label: directLabel || localized || value };
 			}),
 		]
-			.filter((entry) => entry.value)
-			.sort((a, b) => a.label.localeCompare(b.label));
+			.filter((entry) => entry.value);
 		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride, mode: 'single' }));
 	}
 	return [];
@@ -1588,8 +1580,7 @@ function buildAbilityOverrideScopedEntries() {
 		...Object.keys(CONFIG?.DND5E?.abilities ?? {}),
 	]
 		.map((entry) => `${entry ?? ''}`.trim())
-		.filter(Boolean)
-		.sort((a, b) => a.localeCompare(b));
+		.filter(Boolean);
 }
 
 function buildAddToScopedEntries() {
@@ -1940,6 +1931,8 @@ function classifyContextEntry(identifier) {
 		'isSpell',
 		'isMagical',
 		'isCantrip',
+		'spellcastingAbility',
+		'spellcastingMod',
 		'spellLevel',
 		'scaling',
 		'scaling.increase',
@@ -3330,6 +3323,7 @@ function getRecentBooleanAssistTokenRange(textarea, root = null) {
 	if (!match) return null;
 	const token = match[2] ?? '';
 	if (!isBooleanAssistToken(token)) return null;
+	if (!token.includes('.') && root instanceof HTMLElement && !Array.from(root.querySelectorAll('[data-ac5e-assist-entry]')).some((button) => button.dataset.ac5eAssistEntry === token)) return null;
 	const leadingLength = match[0].length - `${match[1] ?? ''}${token}${match[0].match(/\s*$/)?.[0] ?? ''}`.length;
 	const negationStart = (match.index ?? 0) + leadingLength;
 	const tokenStart = negationStart + (match[1] ?? '').length;
