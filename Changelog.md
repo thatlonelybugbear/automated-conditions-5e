@@ -16,6 +16,12 @@
   - Draconic Devotion example: `checkNearby(tokenId, '!enemy', 0, { canSee: true, creatureTypes: ['dragon'], count: 1 })`
 - Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
+## 14.533.19.3
+
+- Legacy dnd5e v5 branch update. To stay on it use: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/legacy-v5/module.json>
+- D&D5e v6 for now available using: <https://github.com/thatlonelybugbear/automated-conditions-5e/releases/download/v14.603.1/module.json>
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.19.2
 
 - Fixed `spellcasting` `abilityOverride` not applying correctly in some workflows.
