@@ -1,3 +1,8 @@
+## 14.533.19.3
+
+- Legacy dnd5e v5 branch update
+- Updated pt_BR translation by [Kharmans](https://github.com/Kharmans) 🤗
+
 ## 14.533.19.2
 
 - Fix for `spellcasting` abilityOverride not applying correctly in some workflows.
