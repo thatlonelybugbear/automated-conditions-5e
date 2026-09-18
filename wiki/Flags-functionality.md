@@ -301,6 +301,8 @@ xyzActor.movementLastSegment  // If in combat, the distance travelled in the las
 #### `effects` and equipment
 ```js
 xyzActor.currencyWeight
+xyzActor.concentrationItem          // Roll data for the first item the actor is concentrating on, or null
+xyzActor.concentrationItem.school   // School of the concentrated spell, when available
 xyzActor.effects                   // List of enabled active effects
 xyzActor.equippedItems.names       // Array of equipped item names
 xyzActor.equippedItems.identifiers // Array of equipped item identifiers
@@ -366,6 +368,8 @@ In addition to actor data, some useful values are also available:
 | `isCantrip`            | `true` if the rolling item is a cantrip |
 | `isSpell`              | `true` if the rolling item is a spell |
 | `isMagical`            | `true` if the rolled item or ammunition has the magical (`mgc`) property |
+| `spellcastingAbility`  | the activity's spellcasting ability, falling back to the rolling actor's primary spellcasting ability |
+| `spellcastingMod`      | the rolling actor's modifier for `spellcastingAbility` |
 | `spellLevel`           | spell slot level used if relevant |
 | `castingLevel`         | spell slot level used if relevant |
 | `baseSpellLevel`       | the item's original spell level if relevant |

@@ -6,24 +6,106 @@ import Settings from '../ac5e-settings.mjs';
 
 const CORE_CHANGE_TYPES = new Set(['custom', 'multiply', 'add', 'subtract', 'downgrade', 'upgrade', 'override']);
 
+function logEffectKeyAutocomplete(stage, data = {}) {
+	if (!isAc5eAutocompleteDebugEnabled('effectKeys')) return;
+	console.warn(JSON.stringify({ trace: 'AC5E effect key autocomplete', stage, ...data }));
+}
+
 export function registerEffectValueEditorHooks() {
-	return Hooks.on('renderActiveEffectConfig', enhanceActiveEffectConfig);
+	registerDnd5eEffectChangeConfigHook();
+	registerDnd5eActiveEffectSheetHook();
+	const hooks = [
+		Hooks.on('renderActiveEffectConfig', enhanceActiveEffectConfig),
+		Hooks.on('renderEffectChangeConfig', enhanceActiveEffectConfig),
+		Hooks.on('dnd5e.getUnknownAttributeLabel', labelAc5eAttribute),
+	];
+	return hooks.join(', ');
+}
+
+function labelAc5eAttribute(attribute, options) {
+	if (!isAc5eChangeKey(attribute)) return;
+	const path = String(attribute).replace(/^flags\.(?:ac5e|automated-conditions-5e)\./i, '');
+	options.label = path
+		.split('.')
+		.filter(Boolean)
+		.map((part) => part.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (character) => character.toUpperCase()))
+		.join(' ');
+}
+
+function registerDnd5eActiveEffectSheetHook() {
+	const ActiveEffectSheet5e = globalThis.dnd5e?.applications?.activeEffect?.ActiveEffectSheet5e;
+	const original = ActiveEffectSheet5e?.prototype?._onRender;
+	if (!original || original.ac5eEffectValueEditorHook) return;
+	async function onRender(context, options) {
+		await original.call(this, context, options);
+		initializeDnd5eEffectValueEditors(this, this.element);
+		for (const label of this.element?.querySelectorAll('.change .effect-type .condensed') ?? []) {
+			if (label.textContent.trim() === 'Automated Conditions 5e') label.textContent = 'AC5E';
+		}
+	}
+	onRender.ac5eEffectValueEditorHook = true;
+	ActiveEffectSheet5e.prototype._onRender = onRender;
+}
+
+function initializeDnd5eEffectValueEditors(app, element) {
+	for (const row of element?.querySelectorAll('.change[data-change-id]') ?? []) {
+		const change = app.document?.system?.changes?.find((entry) => entry?._id === row.dataset.changeId);
+		if (change?.type !== Constants.ACTIVE_EFFECT_CHANGE_TYPE) continue;
+		const icon = row.querySelector('.effect-value .fa-database');
+		if (!icon || icon.dataset.ac5eEditorReady) continue;
+		icon.dataset.ac5eEditorReady = 'true';
+		icon.classList.add('ac5e-effect-value-editor-icon');
+		icon.addEventListener('click', () => {
+			const currentChange = app.document?.system?.changes?.find((entry) => entry?._id === row.dataset.changeId);
+			if (!currentChange) return;
+			AC5EEffectValueEditor.open({
+				activeEffectSheet: app,
+				effect: app.document,
+				changeIndex: Number(row.dataset.index),
+				changeId: currentChange._id,
+				keyInput: createVirtualInput(currentChange.key),
+				valueInput: createVirtualInput(currentChange.value),
+			});
+		});
+	}
+}
+
+function createVirtualInput(value) {
+	return { ac5eVirtual: true, value, dispatchEvent: () => {} };
+}
+
+function registerDnd5eEffectChangeConfigHook() {
+	const EffectChangeConfig = globalThis.dnd5e?.applications?.activeEffect?.EffectChangeConfig;
+	const original = EffectChangeConfig?.prototype?._onRender;
+	if (!original || original.ac5eEffectValueEditorHook) return;
+	async function onRender(context, options) {
+		await original.call(this, context, options);
+		enhanceActiveEffectConfig(this, this.element);
+	}
+	onRender.ac5eEffectValueEditorHook = true;
+	EffectChangeConfig.prototype._onRender = onRender;
 }
 
 function enhanceActiveEffectConfig(app, element) {
 	const root = normalizeElement(element);
 	if (!root) return;
 	registerAc5eActiveEffectChangeType();
+	abbreviateAc5eChangeTypeOption(root);
 	if (!foundry.utils.isNewerVersion(game.system.version, 6)) {
 		ensureAc5eChangeTypeOptions(root);
 		moveAc5eChangeTypeOptionsAfterCore(root);
 	}
 	restoreAc5eChangeTypeSelections(root);
+	toggleDnd5eChangeConditions(root);
 	if (!isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
 
 	refreshEditorButtons(app, root);
+}
+
+function abbreviateAc5eChangeTypeOption(root) {
+	for (const option of root.querySelectorAll(`option[value="${Constants.ACTIVE_EFFECT_CHANGE_TYPE}"]`)) option.textContent = 'AC5E';
 }
 
 function ensureAc5eChangeTypeOptions(root) {
@@ -46,13 +128,21 @@ function moveAc5eChangeTypeOptionsAfterCore(root) {
 }
 
 function initializeKeyAutocomplete(app, root) {
-	const Autocomplete = foundry.applications?.ux?.Autocomplete?.implementation;
+	const Autocomplete = foundry.applications?.ux?.Autocomplete?.implementation ?? foundry.applications?.ux?.Autocomplete;
 	if (!Autocomplete) return;
 
-	for (const keyInput of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"]')) {
+	for (const keyInput of root.querySelectorAll('input[name="key"], textarea[name="key"], input[name$=".key"], textarea[name$=".key"]')) {
 		if (keyInput.dataset.ac5eKeyAutocompleteReady) continue;
 		keyInput.dataset.ac5eKeyAutocompleteReady = 'true';
 		const row = keyInput.closest('li, .form-group, tr, fieldset') ?? keyInput.parentElement;
+		logEffectKeyAutocomplete('bind', {
+			app: app?.constructor?.name,
+			name: keyInput.name,
+			type: findTypeInput(row, keyInput)?.value,
+			value: keyInput.value ?? '',
+			raveBound: !!keyInput.dataset.rave5eKeyAutocompleteReady,
+			bm5eBound: !!keyInput.dataset.bm5eKeyAutocompleteReady,
+		});
 		const autocomplete = new Autocomplete({
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				void prefix;
@@ -64,10 +154,10 @@ function initializeKeyAutocomplete(app, root) {
 			},
 		});
 		const activateAutocomplete = () => {
-			if (!isAc5eChangeRow(row, keyInput) && !shouldTriggerAc5eKeyAutocomplete(keyInput.value)) {
-				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
-					console.debug('AC5E | autocomplete.effectKeys | dismiss (trigger=false)', { value: keyInput.value ?? '' });
-				}
+			const ac5eRow = isAc5eChangeRow(row, keyInput);
+			const valueTrigger = shouldTriggerAc5eKeyAutocomplete(keyInput.value);
+			if (!ac5eRow && !valueTrigger) {
+				logEffectKeyAutocomplete('dismiss', { reason: 'trigger', type: findTypeInput(row, keyInput)?.value, value: keyInput.value ?? '' });
 				autocomplete.dismiss();
 				return;
 			}
@@ -78,41 +168,55 @@ function initializeKeyAutocomplete(app, root) {
 				? entries.filter((entry) => entry.identifier.toLowerCase().includes(normalizedPrefix)).slice(0, 40)
 				: entries.slice(0, 40);
 			if (!filteredEntries.length) {
-				if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
-					console.debug('AC5E | autocomplete.effectKeys | dismiss (no entries)', { prefix, value: keyInput.value ?? '' });
-				}
+				logEffectKeyAutocomplete('dismiss', { reason: 'entries', prefix, totalEntries: entries.length, value: keyInput.value ?? '' });
 				autocomplete.dismiss();
 				return;
 			}
-			if (isAc5eAutocompleteDebugEnabled('effectKeys')) {
-				console.debug('AC5E | autocomplete.effectKeys | activate', {
-					prefix,
-					value: keyInput.value ?? '',
-					candidates: filteredEntries.length,
-				});
-			}
+			logEffectKeyAutocomplete('activate', { ac5eRow, valueTrigger, prefix, value: keyInput.value ?? '', totalEntries: entries.length, candidates: filteredEntries.length });
 			autocomplete.activate(keyInput, filteredEntries, { prefix });
 			configureAc5eAutocompleteMenu(autocomplete);
+			setTimeout(() => logEffectKeyAutocomplete('settled', {
+				focused: keyInput.ownerDocument.activeElement === keyInput,
+				owned: ui.autocomplete === autocomplete,
+				menuConnected: !!autocomplete.element?.isConnected,
+				menuItems: autocomplete.element?.querySelectorAll?.('li')?.length ?? 0,
+			}), 0);
 		};
-		keyInput.addEventListener('focus', activateAutocomplete);
-		keyInput.addEventListener('input', activateAutocomplete);
+		const scheduleAutocomplete = (event) => {
+			logEffectKeyAutocomplete('event', { event: event?.type, focused: keyInput.ownerDocument.activeElement === keyInput, value: keyInput.value ?? '' });
+			window.setTimeout(() => {
+				if (keyInput.isConnected && keyInput.ownerDocument.activeElement === keyInput) activateAutocomplete();
+			}, 0);
+		};
+		keyInput.addEventListener('focus', scheduleAutocomplete);
+		keyInput.addEventListener('input', scheduleAutocomplete);
 		keyInput.addEventListener('blur', () => window.setTimeout(() => autocomplete.dismiss(), 100));
 		app.addEventListener?.('close', () => autocomplete.dismiss(), { once: true });
 	}
 }
 
 function initializeEditorButtonSync(app, root) {
-	for (const input of root.querySelectorAll('input[name$=".key"], textarea[name$=".key"], select[name$=".type"]')) {
+	for (const input of root.querySelectorAll('input[name="key"], textarea[name="key"], select[name="type"], input[name$=".key"], textarea[name$=".key"], select[name$=".type"]')) {
 		if (input.dataset.ac5eEditorButtonSyncReady) continue;
 		input.dataset.ac5eEditorButtonSyncReady = 'true';
-		const refresh = () => refreshEditorButtons(app, root);
+		const refresh = () => {
+			refreshEditorButtons(app, root);
+			toggleDnd5eChangeConditions(root);
+		};
 		input.addEventListener('input', refresh);
 		input.addEventListener('change', refresh);
 	}
 }
 
+function toggleDnd5eChangeConditions(root) {
+	const typeInput = root.querySelector('select[name="type"]');
+	const conditions = root.querySelector('[name="conditions"]');
+	if (!typeInput || !conditions) return;
+	conditions.closest('.form-group').hidden = `${typeInput.value ?? ''}`.trim().toLowerCase() === Constants.ACTIVE_EFFECT_CHANGE_TYPE;
+}
+
 function refreshEditorButtons(app, root) {
-	for (const valueInput of root.querySelectorAll('input[name$=".value"], textarea[name$=".value"]')) {
+	for (const valueInput of root.querySelectorAll('input[name="value"], textarea[name="value"], input[name$=".value"], textarea[name$=".value"]')) {
 		const row = valueInput.closest('li, .form-group, tr, fieldset') ?? valueInput.parentElement;
 		if (!row) continue;
 		const keyInput = findKeyInput(row, valueInput);
@@ -140,7 +244,7 @@ function addEditorButton({ app, row, keyInput, valueInput }) {
 		AC5EEffectValueEditor.open({
 			activeEffectSheet: app,
 			effect: app.document,
-			changeIndex: getChangeIndex(row, valueInput),
+			changeIndex: getChangeIndex(app, row, valueInput),
 			keyInput,
 			valueInput,
 		});
@@ -165,12 +269,14 @@ function ensureValueEditorWrapper(valueInput) {
 }
 
 function findKeyInput(row, valueInput) {
+	if (['key', 'type', 'value'].includes(valueInput.name)) return valueInput.ownerDocument.querySelector('[name="key"]');
 	const keyName = valueInput.name.replace(/\.(?:type|value)$/, '.key');
 	const escapedKeyName = globalThis.CSS?.escape?.(keyName) ?? keyName.replaceAll('"', '\\"');
 	return row?.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row?.querySelector('input[name$=".key"], textarea[name$=".key"]');
 }
 
 function findTypeInput(row, input) {
+	if (['key', 'type', 'value'].includes(input.name)) return input.ownerDocument.querySelector('[name="type"]');
 	const typeName = input.name.replace(/\.(?:key|value)$/, '.type');
 	const escapedTypeName = globalThis.CSS?.escape?.(typeName) ?? typeName.replaceAll('"', '\\"');
 	return row?.querySelector(`[name="${escapedTypeName}"]`) ?? input.ownerDocument.querySelector(`[name="${escapedTypeName}"]`) ?? row?.querySelector('select[name$=".type"], input[name$=".type"]');
@@ -182,7 +288,7 @@ function isAc5eChangeRow(row, input) {
 }
 
 function restoreAc5eChangeTypeSelections(root) {
-	for (const select of root.querySelectorAll('select[name$=".type"]')) {
+	for (const select of root.querySelectorAll('select[name="type"], select[name$=".type"]')) {
 		if (`${select.value ?? ''}`.trim().toLowerCase() !== 'custom') continue;
 		const row = select.closest('li, .form-group, tr, fieldset') ?? select.parentElement;
 		const keyInput = findKeyInput(row, select);
@@ -192,15 +298,20 @@ function restoreAc5eChangeTypeSelections(root) {
 }
 
 function isDaeActiveEffectSheet(app, root) {
-	return app?.constructor?.name === 'DAEActiveEffectConfig' || root?.classList?.contains('dae') || !!root?.querySelector?.('.dae-key-input');
+	return app?.constructor?.name === 'DAEActiveEffectConfig' || root?.classList?.contains('dae');
 }
 
-function getChangeIndex(row, input) {
+function getChangeIndex(app, row, input) {
+	const changeId = app?.options?.changeId;
+	if (changeId) {
+		const index = app.document?.system?.changes?.findIndex?.((change) => change?._id === changeId);
+		if (Number.isInteger(index) && index >= 0) return index;
+	}
 	const rowIndex = Number(row?.dataset?.index);
 	if (Number.isInteger(rowIndex)) return rowIndex;
 	const match = input.name.match(/(?:^|\.)changes\.(\d+)\.(?:key|type|value)$/);
 	if (match) return Number(match[1]);
-	const rows = Array.from(row?.parentElement?.children ?? []).filter((element) => element.querySelector?.('input[name$=".value"], textarea[name$=".value"]'));
+	const rows = Array.from(row?.parentElement?.children ?? []).filter((element) => element.querySelector?.('input[name="value"], textarea[name="value"], input[name$=".value"], textarea[name$=".value"]'));
 	const index = rows.indexOf(row);
 	return index >= 0 ? index : null;
 }

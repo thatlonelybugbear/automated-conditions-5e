@@ -6,7 +6,6 @@ import {
 	_autoArmor,
 	_autoEncumbrance,
 	_getD20TooltipOwnership,
-	_getMessageDnd5eFlags,
 	_getMessageScaling,
 	_getMessageSpellLevel,
 	_getMidiAbilityAttributionEntries,
@@ -156,7 +155,7 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 		ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
 		systemMode.override = 0;
 	}
-	if (mode === 0 && modeCounts?.override === undefined) {
+	if (mode === 0 && modeCounts?.override == null) {
 		const advantageCount = _getModeCountValue(modeCounts?.advantages);
 		const disadvantageCount = _getModeCountValue(modeCounts?.disadvantages);
 		if (advantageCount > 0) {
@@ -212,6 +211,21 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 	const systemMode = { adv: 0, dis: 0 };
 	const autoArmorChecks = _autoArmor(actor);
 	const { ability, skill, tool } = options || {};
+	if (hookType === 'attack') {
+		const actionType = options?.actionType;
+		const abilityLabel = CONFIG?.DND5E?.abilities?.[ability]?.label ?? CONFIG?.DND5E?.abilities?.[ability] ?? ability;
+		const actionTypeLabel = CONFIG?.DND5E?.itemActionTypes?.[actionType] ?? actionType;
+		const sources = [
+			{ source: actor.system.abilities?.[ability]?.attack?.roll, detail: abilityLabel },
+			{ source: actor.system.rolls?.attack, detail: _localize('DND5E.Attack') },
+			{ source: actor.system.rolls?.attack?.[actionType], detail: actionTypeLabel },
+		];
+		for (const { source, detail } of sources) {
+			if (!source) continue;
+			const { mode, max, min, modeCounts } = source;
+			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', detail), ac5eConfig, systemMode, modeCounts });
+		}
+	}
 	if (hookType === 'check' || hookType === 'init') {
 		if (skill) {
 			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage)
@@ -658,18 +672,19 @@ export function _getUseConfig({ options, config } = {}) {
 		}
 	}
 	if (useConfig) {
-		const dnd5eUseFlag = _getMessageDnd5eFlags(usageMessage) ?? _getMessageDnd5eFlags(originatingMessage);
+		const messageData = usageMessage?.system ?? originatingMessage?.system;
 		useConfig = _cloneUseConfigShallow(useConfig);
-		if (dnd5eUseFlag) {
+		if (messageData) {
 			useConfig.options ??= {};
-			const spellLevel = _getMessageSpellLevel(usageMessage ?? originatingMessage, dnd5eUseFlag, useConfig.options?.item);
+			const sourceMessage = usageMessage ?? originatingMessage;
+			const spellLevel = _getMessageSpellLevel(sourceMessage, useConfig.options?.item);
 			if (spellLevel !== undefined) useConfig.options.spellLevel = spellLevel;
-			const scaling = _getMessageScaling(usageMessage ?? originatingMessage, dnd5eUseFlag);
+			const scaling = _getMessageScaling(sourceMessage);
 			if (scaling !== undefined) useConfig.options.scaling = scaling;
-			if (Array.isArray(dnd5eUseFlag.use?.effects)) useConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
-			if (Array.isArray(dnd5eUseFlag.targets)) useConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
-			if (dnd5eUseFlag.activity) useConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);
-			if (dnd5eUseFlag.item) useConfig.options.item ??= foundry.utils.duplicate(dnd5eUseFlag.item);
+			if (Array.isArray(messageData.effects)) useConfig.options.useEffects ??= foundry.utils.duplicate(messageData.effects);
+			if (Array.isArray(messageData.targets)) useConfig.options.targets ??= foundry.utils.duplicate(messageData.targets);
+			if (messageData.activity) useConfig.options.activity ??= foundry.utils.duplicate(messageData.activity);
+			if (messageData.item) useConfig.options.item ??= foundry.utils.duplicate(messageData.item);
 		}
 	}
 	if (_debugFlagEnabled('getConfigLayers', 'debugGetConfigLayers')) console.warn('AC5E getUseConfig', { useConfig, debugMeta });

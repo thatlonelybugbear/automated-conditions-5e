@@ -1,11 +1,29 @@
+## 14.603.1
+
+- Minimum versions:
+  - Foundry v14.367
+  - D&D5e v6.0.0
+- Updated compatibility for D&D5e v6, including chat message, activity use, target storage, and Active Effect workflows.
+- Fixed Effect Value Editor and key autocomplete integration with D&D5e v6 Active Effect sheets.
+- Improved roll-evaluation performance by deferring expensive visibility and actor-data calculations until needed.
+- Added support for D&D5e system-defined attack roll modes from global, ability, and action specific attack configuration.
+- Fixed attack roll modes not being recalculated when changing the selected ability or attack mode.
+- Reworked `abilityOverride` handling for attack workflows, including normal, optional, preselected, and forced optional changes.
+  - Known issue: attack `abilityOverride` opt-in toggling may not update the Ability dropdown until a different ability has been selected manually once.
+- Added `rollingActor.concentrationItem` roll data, when available, including autocomplete for `rollingActor.concentrationItem.school`.
+- Added `spellcastingAbility` and `spellcastingMod` evaluation data for formulas such as `bonus=spellcastingMod`.
+- Added `canSee` and `creatureTypes` options to `checkNearby()` and `findNearby()` for filtering nearby tokens by visibility from the source token and creature type.
+  - Draconic Devotion example: `checkNearby(tokenId, '!enemy', 0, { canSee: true, creatureTypes: ['dragon'], count: 1 })`
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 14.533.19.2
 
-- Fix for `spellcasting` abilityOverride not applying correctly in some workflows.
+- Fixed `spellcasting` `abilityOverride` not applying correctly in some workflows.
 
 ## 14.533.19.1
 
-- Hotfix for `abilityOverride` preselected opt-ins not applying immediately.
-- Removed `abilityOverride` abilities sorting by name, preserving the D&D5e order.
+- Fixed `abilityOverride` preselected opt-ins not applying immediately.
+- Removed `abilityOverride` ability sorting by name, preserving the D&D5e order.
 
 ## 14.533.19
 

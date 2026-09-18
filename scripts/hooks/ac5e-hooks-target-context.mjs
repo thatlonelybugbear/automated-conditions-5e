@@ -1,12 +1,12 @@
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 
-export function getMessageTargetsFromFlags(messageLike, deps) {
-	return deps.getMessageDnd5eFlags(messageLike)?.targets ?? [];
+export function getMessageTargets(messageLike) {
+	return normalizeMessageTargets(messageLike?.system?.targets ?? messageLike?.data?.system?.targets);
 }
 
 export function getTargets({ message } = {}, deps) {
 	const explicitMessage = message?.document ?? message;
-	const preTargets = deps.getMessageDnd5eFlags(explicitMessage)?.targets ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
+	const preTargets = getMessageTargets(explicitMessage) ?? deps.getMessageFlagScope(explicitMessage, deps.Constants.MODULE_ID)?.optionsSnapshot?.targets;
 	if (Array.isArray(preTargets) && preTargets.length) return preTargets;
 	return [];
 }
@@ -96,10 +96,10 @@ function captureTargetTokenUuids(targets) {
 
 export function getAssociatedRollTargets(originatingMessageId, activityType, messageLike, deps) {
 	const explicitMessage = messageLike?.document ?? messageLike;
-	const directTargets = explicitMessage ? getMessageTargetsFromFlags(explicitMessage, deps) : undefined;
+	const directTargets = explicitMessage ? getMessageTargets(explicitMessage) : undefined;
 	if (Array.isArray(directTargets) && directTargets.length) return directTargets;
 	if (!originatingMessageId || !activityType) return undefined;
-	return dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop()?.flags?.dnd5e?.targets;
+	return getMessageTargets(dnd5e.registry?.messages?.get(originatingMessageId, activityType)?.pop());
 }
 
 export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
@@ -110,14 +110,16 @@ export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
 		const associatedTargets = getAssociatedRollTargets(originatingMessageId, damageActivityType, message, deps);
 		if (Array.isArray(associatedTargets) && associatedTargets.length) return associatedTargets;
 	}
-	const flaggedTargets = getMessageTargetsFromFlags(message, deps);
-	if (Array.isArray(flaggedTargets) && flaggedTargets.length) return flaggedTargets;
+	const messageTargets = getMessageTargets(message);
+	if (Array.isArray(messageTargets) && messageTargets.length) return messageTargets;
 	return Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : [];
 }
 
 export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps) {
+	const explicitTargets = getTargets({ message }, deps);
 	const resolvedTargets =
-		Array.isArray(targets) ? targets
+		explicitTargets.length ? explicitTargets
+		: Array.isArray(targets) ? targets
 		: Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets
 		: null;
 	if (!resolvedTargets) return;
@@ -126,7 +128,10 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 		if (Object.isExtensible(ac5eConfig.options)) ac5eConfig.options.targets = foundry.utils.duplicate(resolvedTargets);
 	}
 	if (ac5eConfig?.hookType !== 'attack') return;
-	if (message) foundry.utils.setProperty(message, 'data.flags.dnd5e.targets', foundry.utils.duplicate(resolvedTargets));
+	if (message) {
+		const path = message.system ? 'system.targets' : 'data.system.targets';
+		foundry.utils.setProperty(message, path, toMessageTargets(resolvedTargets));
+	}
 	const snapshotTargets = foundry.utils.duplicate(resolvedTargets);
 	const baseTargetAcByKey = ac5eConfig?.preAC5eConfig?.baseTargetAcByKey;
 	if (baseTargetAcByKey) {
@@ -160,4 +165,23 @@ function getLiveTargetAC(target = {}) {
 		if (Number.isFinite(Number(actorAC))) return Number(actorAC);
 	}
 	return null;
+}
+
+function normalizeMessageTargets(targets) {
+	if (!Array.isArray(targets)) return [];
+	return targets.map((target) => ({
+		...target,
+		uuid: target?.actor ?? target?.uuid,
+		tokenUuid: target?.token ?? target?.tokenUuid,
+	}));
+}
+
+function toMessageTargets(targets) {
+	return targets.map((target) => ({
+		ac: target?.ac,
+		actor: target?.uuid ?? target?.actor,
+		img: target?.img,
+		name: target?.name,
+		token: target?.tokenUuid ?? target?.token,
+	}));
 }

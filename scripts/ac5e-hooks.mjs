@@ -3,7 +3,6 @@ import {
 	_collectActivityDamageTypes,
 	_collectRollDamageTypes,
 	_getDistance,
-	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
 	_getActivityEffectsStatusRiders,
 	_getTokenFromActor,
@@ -117,7 +116,7 @@ function _extractAllowEffectApplicationExpression(effect, data) {
 		effect?._source?.flags?.[Constants.MODULE_ID]?.allowEffectApplication ??
 		data?.flags?.[Constants.MODULE_ID]?.allowEffectApplication;
 	if (typeof scopedFlag === 'string' && scopedFlag.trim()) return scopedFlag.trim();
-	const changeSets = [effect?.changes, effect?._source?.changes, data?.changes];
+	const changeSets = [effect?.system?.changes, effect?._source?.system?.changes, data?.system?.changes];
 	for (const changes of changeSets) {
 		for (const change of changes ?? []) {
 			const key = change?.key;
@@ -189,7 +188,7 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 		const expression = _extractAllowEffectApplicationExpression(effect, updates);
 		if (!expression) {
 			traceSkip('no-expression', {
-				changeCount: (effect?.changes?.length ?? 0) + (effect?._source?.changes?.length ?? 0) + (updates?.changes?.length ?? 0),
+				changeCount: (effect?.system?.changes?.length ?? 0) + (effect?._source?.system?.changes?.length ?? 0) + (updates?.system?.changes?.length ?? 0),
 			});
 			return true;
 		}
@@ -288,7 +287,7 @@ export function _preUpdateActiveEffect(effect, updates) {
 }
 
 function _getEffectChanges(effect) {
-	return foundry.utils.getProperty(effect, 'system.changes') ?? foundry.utils.getProperty(effect, '_source.system.changes') ?? effect?.changes ?? [];
+	return foundry.utils.getProperty(effect, 'system.changes') ?? foundry.utils.getProperty(effect, '_source.system.changes') ?? [];
 }
 
 function _isAc5eChangeKey(changeKey) {
@@ -357,7 +356,6 @@ export function _preRollSavingThrow(config, dialog, message, hook) {
 		applyExplicitModeOverride,
 		setAC5eProperties: _setAC5eProperties,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
@@ -382,7 +380,6 @@ export function _preRollAbilityCheck(config, dialog, message, hook, reEval) {
 		applyExplicitModeOverride,
 		setAC5eProperties: _setAC5eProperties,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
@@ -408,7 +405,6 @@ export function _preRollAttack(config, dialog, message, hook, reEval) {
 		setAC5eProperties: _setAC5eProperties,
 		syncTargetsToConfigAndMessage,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 
@@ -441,7 +437,6 @@ export function _preRollDamage(config, dialog, message, hook, reEval) {
 		setAC5eProperties: _setAC5eProperties,
 		syncTargetsToConfigAndMessage,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	});
 }
 

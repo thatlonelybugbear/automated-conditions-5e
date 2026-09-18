@@ -204,11 +204,12 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		},
 	};
 
-	constructor({ activeEffectSheet, effect, changeIndex, keyInput, valueInput } = {}, options = {}) {
+	constructor({ activeEffectSheet, effect, changeIndex, changeId, keyInput, valueInput } = {}, options = {}) {
 		super(options);
 		this.activeEffectSheet = activeEffectSheet;
 		this.effect = effect;
 		this.changeIndex = changeIndex;
+		this.changeId = changeId;
 		this.keyInput = keyInput;
 		this.valueInput = valueInput;
 		this.keyInputName = keyInput?.name;
@@ -218,7 +219,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		this.uiState = null;
 		this.instanceKey = buildEditorInstanceKey(effect, changeIndex);
 		this.autocompleteEntries = buildEffectValueAutocompleteEntries(effect);
-		const Autocomplete = foundry.applications.ux.Autocomplete.implementation;
+		const Autocomplete = foundry.applications.ux.Autocomplete.implementation ?? foundry.applications.ux.Autocomplete;
 		this.autocomplete = new Autocomplete({
 			onSelect: (identifier, _label, { prefix } = {}) => {
 				const input = this.activeAutocompleteInput;
@@ -395,13 +396,6 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	#activateUiEnhancements(htmlElement) {
-		for (const input of htmlElement?.querySelectorAll('[data-ac5e-condition-input]:not([data-ac5e-autocomplete-ready])') ?? []) {
-			input.dataset.ac5eAutocompleteReady = 'true';
-			input.addEventListener('input', (event) => this.#onConditionInput(event));
-			input.addEventListener('blur', () => {
-				if (ui.autocomplete === this.autocomplete) this.autocomplete.dismiss();
-			});
-		}
 		for (const button of htmlElement?.querySelectorAll('[data-ac5e-expand-input]:not([data-ac5e-expand-ready])') ?? []) {
 			button.dataset.ac5eExpandReady = 'true';
 			button.addEventListener('click', (event) => void this.#onExpandInput(event));
@@ -528,6 +522,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	async #submitActiveEffectSheet({ changeKey, value } = {}) {
 		const sheet = this.activeEffectSheet;
 		const updateData = this.#getChangeUpdateData({ changeKey, value });
+		if (sheet?.options?.changeId || this.changeId) {
+			await this.#ensureEffectChangeUpdated(updateData);
+			return;
+		}
 		try {
 			if (typeof sheet?.submit === 'function') {
 				if (typeof sheet.options?.form?.handler === 'function') {
@@ -562,10 +560,17 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const expectedChange = updateData?.system?.changes?.[this.changeIndex];
 		if (!expectedChange) return;
 		const currentChange = this.effect.system?.changes?.[this.changeIndex];
-		if (currentChange?.key === expectedChange.key && currentChange?.value === expectedChange.value) return;
+		if (currentChange?.key === expectedChange.key && currentChange?.type === expectedChange.type && currentChange?.value === expectedChange.value) return;
+		if (this.activeEffectSheet?.options?.changeId || this.changeId) {
+			const changes = this.effect.system?.toObject?.().changes ?? [];
+			changes[this.changeIndex] = { ...changes[this.changeIndex], ...expectedChange };
+			await this.effect.update({ 'system.changes': changes });
+			return;
+		}
 		await this.effect.update(
 			{
 				[`system.changes.${this.changeIndex}.key`]: expectedChange.key,
+				[`system.changes.${this.changeIndex}.type`]: expectedChange.type,
 				[`system.changes.${this.changeIndex}.value`]: expectedChange.value,
 			},
 			{ render: false },
@@ -847,13 +852,13 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	#getKeyInput() {
-		if (this.keyInput?.isConnected) return this.keyInput;
+		if (this.keyInput?.ac5eVirtual || this.keyInput?.isConnected) return this.keyInput;
 		this.keyInput = findInputByName(this.keyInputName);
 		return this.keyInput;
 	}
 
 	#getValueInput() {
-		if (this.valueInput?.isConnected) return this.valueInput;
+		if (this.valueInput?.ac5eVirtual || this.valueInput?.isConnected) return this.valueInput;
 		this.valueInput = findInputByName(this.valueInputName);
 		return this.valueInput;
 	}
@@ -1415,6 +1420,7 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 	if (normalized.endsWith('.abilityoverride')) {
 		const abilitiesConfig = CONFIG?.DND5E?.abilities ?? {};
 		const entries = [
+			{ value: 'spellcasting', label: editorLabel('Spellcasting') },
 			...Object.entries(abilitiesConfig)
 			.map(([value, rawLabel]) => {
 				const labelKey =
@@ -1425,7 +1431,6 @@ function getInlineOverrideEntries(changeKey, currentOverrideValue = '') {
 				const localized = labelKey ? game?.i18n?.localize?.(labelKey) : '';
 				return { value, label: directLabel || localized || value };
 			}),
-			{ value: 'spellcasting', label: editorLabel('Spellcasting') },
 		]
 			.filter((entry) => entry.value);
 		return entries.map((entry) => ({ ...entry, selected: entry.value === currentOverride, mode: 'single' }));
@@ -1571,8 +1576,8 @@ function buildTypeOverrideScopedEntries() {
 
 function buildAbilityOverrideScopedEntries() {
 	return [
-		...Object.keys(CONFIG?.DND5E?.abilities ?? {}),
 		'spellcasting',
+		...Object.keys(CONFIG?.DND5E?.abilities ?? {}),
 	]
 		.map((entry) => `${entry ?? ''}`.trim())
 		.filter(Boolean);
@@ -1926,6 +1931,8 @@ function classifyContextEntry(identifier) {
 		'isSpell',
 		'isMagical',
 		'isCantrip',
+		'spellcastingAbility',
+		'spellcastingMod',
 		'spellLevel',
 		'scaling',
 		'scaling.increase',
@@ -3316,6 +3323,7 @@ function getRecentBooleanAssistTokenRange(textarea, root = null) {
 	if (!match) return null;
 	const token = match[2] ?? '';
 	if (!isBooleanAssistToken(token)) return null;
+	if (!token.includes('.') && root instanceof HTMLElement && !Array.from(root.querySelectorAll('[data-ac5e-assist-entry]')).some((button) => button.dataset.ac5eAssistEntry === token)) return null;
 	const leadingLength = match[0].length - `${match[1] ?? ''}${token}${match[0].match(/\s*$/)?.[0] ?? ''}`.length;
 	const negationStart = (match.index ?? 0) + leadingLength;
 	const tokenStart = negationStart + (match[1] ?? '').length;

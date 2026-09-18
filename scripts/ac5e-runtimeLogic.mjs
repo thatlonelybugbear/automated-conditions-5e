@@ -11,7 +11,6 @@ import {
 	_filterOptinEntries,
 	_getActivityEffectsStatusRiders,
 	_getLightLevel,
-	_getMessageDnd5eFlags,
 	_getTooltip,
 	_setMessageFlagScope,
 	_safeFromUuidSync,
@@ -57,6 +56,8 @@ export const AC5E_ACTOR_ROLLDATA_ADDED_FIELDS = [
 	'tokenSenses',
 	'currencyWeight',
 	'canMove',
+	'concentrationItem',
+	'concentrationItem.school',
 	'creatureType',
 	'lightLevel',
 	'isTurn',
@@ -82,17 +83,30 @@ function _duplicateEvaluationOptions(options) {
 }
 
 export function _buildRollEvaluationData({ subjectToken, opponentToken, options } = {}) {
+	const timingStart = performance.now();
 	const normalizedOptions = _duplicateEvaluationOptions(options);
 	const activity = normalizedOptions?.activity;
 	const item = normalizedOptions?.item;
 	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
 	const formulaData = normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ? normalizedOptions.rollData : (rollDataDocument?.getRollData?.() ?? {});
+	const formulaCompletedAt = performance.now();
 	const dataActor =
 		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
 		: opponentToken?.actor === (activity ?? item)?.actor ? 'opponentActor'
 		: null;
 	const rollingActor = dataActor === 'rollingActor' ? _ac5eActorRollData(subjectToken, formulaData) : _ac5eActorRollData(subjectToken);
+	const rollingActorCompletedAt = performance.now();
 	const opponentActor = dataActor === 'opponentActor' ? _ac5eActorRollData(opponentToken, formulaData) : _ac5eActorRollData(opponentToken);
+	const completedAt = performance.now();
+	if (globalThis.ac5e?.debug?.timings && opponentToken && completedAt - timingStart >= 25) {
+		console.warn(JSON.stringify({
+			trace: 'AC5E evaluation data timing',
+			total: Math.round(completedAt - timingStart),
+			formula: Math.round(formulaCompletedAt - timingStart),
+			rollingActor: Math.round(rollingActorCompletedAt - formulaCompletedAt),
+			opponentActor: Math.round(completedAt - rollingActorCompletedAt),
+		}));
+	}
 	return {
 		rollingActor,
 		opponentActor,
@@ -267,6 +281,20 @@ function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
 	};
 	defineCachedValue('items', () => getItemViews().items);
 	defineCachedValue('equippedItems', () => getItemViews().equippedItems);
+	defineCachedValue('concentrationItem', () => {
+		const item = actor.concentration?.items?.values?.().next?.().value;
+		if (!item) return null;
+		const data = item.getRollData?.()?.item ?? {};
+		return {
+			...data,
+			id: data.id ?? item.id,
+			uuid: data.uuid ?? item.uuid,
+			name: data.name ?? item.name,
+			type: data.type ?? item.type,
+			identifier: data.identifier ?? item.identifier,
+			flags: data.flags ?? item.flags,
+		};
+	});
 	defineCachedValue('creatureType', () => Array.from(new Set(Object.values(_raceOrType(actor, 'all')).filter(Boolean))));
 	defineCachedValue('movementLastSegment', () => {
 		if (!active || !token?.document) return active ? false : active;
@@ -337,8 +365,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		return collections;
 	};
 	const getMessageAttackTargets = () => {
-		const dnd5eFlags = _getMessageDnd5eFlags(message);
-		const messageTargets = Array.isArray(dnd5eFlags?.targets) ? dnd5eFlags.targets : null;
+		const messageTargets = Array.isArray(message?.system?.targets) ? message.system.targets : null;
 		return messageTargets ?? [];
 	};
 	const getSimpleCoverBonus = (target) => {
@@ -1009,7 +1036,9 @@ export function _createEvaluationSandboxLogSnapshot(value) {
 }
 
 export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
+	const timingStart = performance.now();
 	const { rollingActor, opponentActor, activityData, itemData, formulaData } = _buildRollEvaluationData({ subjectToken, opponentToken, options });
+	const rollDataCompletedAt = performance.now();
 	const sandbox = {
 		...lazySandbox,
 		_evalConstants: { ...lazySandbox._evalConstants },
@@ -1028,7 +1057,15 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.actorId = subjectToken?.actor?.id;
 	sandbox.actorUuid = subjectToken?.actor?.uuid;
 	sandbox.canMove = sandbox.rollingActor?.canMove;
-	sandbox.canSee = canSee(subjectToken, opponentToken);
+	const beforeVisibilityAt = performance.now();
+	let canSeeValue;
+	Object.defineProperty(sandbox, 'canSee', {
+		configurable: true,
+		enumerable: true,
+		get: () => (canSeeValue ??= canSee(subjectToken, opponentToken)),
+		set: (value) => (canSeeValue = value),
+	});
+	const canSeeCompletedAt = performance.now();
 	const hookType = sandboxOptions?.hook;
 	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
 	sandbox.opponentAC =
@@ -1039,7 +1076,14 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.opponentUuid = opponentToken?.document?.uuid;
 	sandbox.opponentActorId = opponentToken?.actor?.id;
 	sandbox.opponentActorUuid = opponentToken?.actor?.uuid;
-	sandbox.isSeen = canSee(opponentToken, subjectToken);
+	let isSeenValue;
+	Object.defineProperty(sandbox, 'isSeen', {
+		configurable: true,
+		enumerable: true,
+		get: () => (isSeenValue ??= canSee(opponentToken, subjectToken)),
+		set: (value) => (isSeenValue = value),
+	});
+	const isSeenCompletedAt = performance.now();
 	sandbox.targetActor = sandbox.opponentActor;
 	sandbox.targetId = opponentToken?.id;
 
@@ -1071,7 +1115,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.isAoE = activity?.target?.template?.type in CONFIG.DND5E.areaTargetTypes;
 	sandbox.isScaledScroll = activity?.isScaledScroll;
 	sandbox.requiresSpellSlot = activity?.requiresSpellSlot;
-	sandbox.spellcastingAbility = activity?.spellcastingAbility;
+	sandbox.spellcastingAbility = activity?.spellcastingAbility || sandbox.rollingActor?.attributes?.spellcasting;
+	sandbox.spellcastingMod = sandbox.rollingActor?.abilities?.[sandbox.spellcastingAbility]?.mod;
 	sandbox.messageFlags = activity?.messageFlags;
 	sandbox.activityName = activity ? { [activity.name]: true } : {};
 	const actionType = activity?.getActionType?.(sandboxOptions.attackMode);
@@ -1197,7 +1242,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.d20ResultOverTarget = sandbox.d20TotalOverTarget;
 	sandbox.attackRollTotal = sandboxOptions?.d20?.attackRollTotal;
 	sandbox.attackRollD20 = sandboxOptions?.d20?.attackRollD20;
-	sandbox.attackRollOverAC = sandboxOptions?.d20?.attackRollOverAC;
+	sandbox.attackRollOverAC = sandboxOptions?.d20?.attackRollOverAC ?? (hookType === 'attack' ? sandbox.d20TotalOverTarget : undefined);
 	const explicitSuccess = sandboxOptions?.d20?.isSuccess ?? sandboxOptions?.isSuccess;
 	if (typeof explicitSuccess === 'boolean') sandbox.isSuccess = explicitSuccess;
 	else if (sandbox.d20TotalOverTarget !== undefined) {
@@ -1232,6 +1277,18 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const extensionState = Object.create(null);
 	Hooks.callAll('automated-conditions-5e.prepareEvaluationState', extensionState, { subjectToken, opponentToken, options: sandboxOptions, activity, item });
 	foundry.utils.mergeObject(sandbox, Object.fromEntries(MUTABLE_EVALUATION_STATE_KEYS.filter((key) => typeof extensionState[key] === 'boolean').map((key) => [key, extensionState[key]])));
+	const completedAt = performance.now();
+	if (globalThis.ac5e?.debug?.timings && opponentToken && completedAt - timingStart >= 25) {
+		console.warn(JSON.stringify({
+			trace: 'AC5E evaluation sandbox timing',
+			total: Math.round(completedAt - timingStart),
+			rollData: Math.round(rollDataCompletedAt - timingStart),
+			beforeVisibility: Math.round(beforeVisibilityAt - rollDataCompletedAt),
+			canSee: Math.round(canSeeCompletedAt - beforeVisibilityAt),
+			isSeen: Math.round(isSeenCompletedAt - canSeeCompletedAt),
+			rest: Math.round(completedAt - isSeenCompletedAt),
+		}));
+	}
 	return sandbox;
 }
 

@@ -1,8 +1,8 @@
-import { _getMessageDnd5eFlags, _getMessageFlagScope, _resolveUseMessageContext } from '../ac5e-helpers.mjs';
+import { _getMessageFlagScope, _resolveUseMessageContext } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { refreshAttackAutoRangeState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
-import { getMessageTargetsFromFlags, resolveTargets, syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
+import { getMessageTargets, resolveTargets, syncTargetsToConfigAndMessage } from './ac5e-hooks-target-context.mjs';
 
 export function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, message, rolls, deps) {
 	if (!config || !ac5eConfig || ac5eConfig.hookType !== 'attack') return;
@@ -15,9 +15,8 @@ export function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, me
 	const targetDeps = {
 		Constants,
 		getMessageFlagScope: _getMessageFlagScope,
-		getMessageDnd5eFlags: _getMessageDnd5eFlags,
 	};
-	const messageTargets = getMessageTargetsFromFlags(messageForRead, targetDeps);
+	const messageTargets = getMessageTargets(messageForRead);
 	const persistedFinalTargets =
 		rolls?.[0]?.options?.[Constants.MODULE_ID]?.finalizedTargets
 		?? ac5eConfig?.finalizedTargets

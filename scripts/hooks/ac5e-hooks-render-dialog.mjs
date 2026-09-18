@@ -65,7 +65,7 @@ function bindSimpleCover5eTooltip(render, elem, ac5eConfig, deps) {
 function bindDialogAbilityRefresh(hook, render, elem, initialConfig, deps) {
 	let getConfigAC5E = initialConfig;
 	const abilitySelect = render?.form?.querySelector?.('select[name="ability"]');
-	if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E?.hookType) && abilitySelect && !abilitySelect.dataset.ac5eAbilityReevalBound) {
+	if (hook === 'd20Dialog' && ['attack', 'check', 'save'].includes(getConfigAC5E?.hookType) && abilitySelect && !abilitySelect.dataset.ac5eAbilityReevalBound) {
 		abilitySelect.dataset.ac5eAbilityReevalBound = 'true';
 		abilitySelect.addEventListener('change', (event) => {
 			const nextAbility = event?.currentTarget?.value;
@@ -78,7 +78,7 @@ function bindDialogAbilityRefresh(hook, render, elem, initialConfig, deps) {
 		});
 	}
 	const selectedAbility = abilitySelect?.value;
-	if (hook === 'd20Dialog' && ['check', 'save'].includes(getConfigAC5E?.hookType) && selectedAbility) {
+	if (hook === 'd20Dialog' && ['attack', 'check', 'save'].includes(getConfigAC5E?.hookType) && selectedAbility) {
 		const refreshed = refreshDialogAbilityState(render, getConfigAC5E, selectedAbility, deps);
 		if (refreshed) getConfigAC5E = refreshed;
 	}

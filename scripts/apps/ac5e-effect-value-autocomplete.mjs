@@ -64,6 +64,8 @@ const CURATED_AC5E_PATHS = [
 	'hasTransitDisadvantage',
 	'isSpell',
 	'isCantrip',
+	'spellcastingAbility',
+	'spellcastingMod',
 	'spellLevel',
 	'scaling',
 	'scaling.increase',

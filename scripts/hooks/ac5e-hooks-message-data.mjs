@@ -1,4 +1,4 @@
-import { _activeModule, _cloneUseConfigShallow, _getMessageDnd5eFlags, _getMessageFlagScope, _getMessageScaling, _getMessageSpellLevel, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { _activeModule, _cloneUseConfigShallow, _getMessageFlagScope, _getMessageOriginId, _getMessageScaling, _getMessageSpellLevel, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _mergeUseOptions } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
@@ -38,7 +38,7 @@ export function resolveMessageDataContext(config, hook, messageConfig, deps) {
 		deps,
 	);
 	const { attackingActor, attackingToken } = resolveAttackerContext(primaryMessage, item, deps);
-	const messageTargets = _getMessageDnd5eFlags(messageForTargets)?.targets;
+	const messageTargets = messageForTargets?.system?.targets;
 	return {
 		messageId: primaryMessage?.id,
 		message: primaryMessage,
@@ -80,7 +80,7 @@ export function debugMessageData(hook, context, deps) {
 }
 
 function resolveMessageFromConfig(config, messageConfig, hook, deps) {
-	const originatingMessageId = messageConfig?.data?.['flags.dnd5e.originatingMessage'] ?? messageConfig?.data?.flags?.dnd5e?.originatingMessage;
+	const originatingMessageId = _getMessageOriginId(messageConfig);
 	const eventMessageId = config?.event?.currentTarget?.dataset?.messageId ?? config?.event?.target?.closest?.('[data-message-id]')?.dataset?.messageId;
 	const messageId = eventMessageId ?? originatingMessageId;
 	const messageUuid = config?.midiOptions?.itemCardUuid ?? config?.workflow?.itemCardUuid;
@@ -93,7 +93,7 @@ function resolveMessageFromConfig(config, messageConfig, hook, deps) {
 function resolveAttackerContext(message, item, deps) {
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
 	const attackingToken = canvas.tokens.get(tokenId);
-	const messageTargets = _getMessageDnd5eFlags(message)?.targets;
+	const messageTargets = message?.system?.targets;
 	const attackingActor = attackingToken?.actor ?? item?.actor;
 	return { attackingActor, attackingToken, messageTargets, speaker: { sceneId, actorId, tokenId, tokenName } };
 }
@@ -101,10 +101,7 @@ function resolveAttackerContext(message, item, deps) {
 function resolveActivityItemUse({ config, message, originatingMessage, usageMessage, registryMessages, useConfig } = {}, deps) {
 	const candidates = [message, usageMessage, originatingMessage, ...(Array.isArray(registryMessages) ? registryMessages : [])].filter(Boolean);
 	const sourceMessage =
-		candidates.find((msg) => {
-			const flags = _getMessageDnd5eFlags(msg);
-			return flags?.activity !== undefined || flags?.item !== undefined || flags?.use !== undefined;
-		}) ??
+		candidates.find((msg) => msg?.system?.activity !== undefined || msg?.system?.item !== undefined || msg?.system?.effects !== undefined) ??
 		message ??
 		usageMessage ??
 		originatingMessage;
@@ -112,12 +109,11 @@ function resolveActivityItemUse({ config, message, originatingMessage, usageMess
 	const originatingUseConfig = config?.originatingUseConfig ?? configOptions?.originatingUseConfig ?? {};
 	const originatingUseOptions = originatingUseConfig?.options ?? {};
 	const useConfigOptions = useConfig?.options ?? {};
-	const flagItemRef = firstDnd5eFlagValue(candidates, 'item', deps);
-	const flagActivityRef = firstDnd5eFlagValue(candidates, 'activity', deps);
-	const flagUse = firstDnd5eFlagValue(candidates, 'use', deps);
-	const use = firstDefined(flagUse, configOptions?.use, config?.use, originatingUseConfig?.use, useConfig?.use);
-	const itemRef = firstDefined(flagItemRef, configOptions?.item, config?.item, originatingUseOptions?.item, useConfigOptions?.item, use?.item);
-	const activityRef = firstDefined(flagActivityRef, configOptions?.activity, config?.activity, originatingUseOptions?.activity, useConfigOptions?.activity, use?.activity);
+	const messageItemRef = firstMessageSystemValue(candidates, 'item');
+	const messageActivityRef = firstMessageSystemValue(candidates, 'activity');
+	const use = firstDefined(configOptions?.use, config?.use, originatingUseConfig?.use, useConfig?.use);
+	const itemRef = firstDefined(messageItemRef, configOptions?.item, config?.item, originatingUseOptions?.item, useConfigOptions?.item, use?.item);
+	const activityRef = firstDefined(messageActivityRef, configOptions?.activity, config?.activity, originatingUseOptions?.activity, useConfigOptions?.activity, use?.activity);
 	let item = resolveDocumentFromRef(itemRef);
 	let activity = resolveDocumentFromRef(activityRef);
 	if (!activity && item) activity = resolveActivityFromItem(item, activityRef);
@@ -195,17 +191,15 @@ function buildMessageOptions({ config, hook, message, triggerMessageId, resolved
 	if (originatingUseConfig) options.originatingUseConfig = originatingUseConfig;
 	options.messageId = resolvedMessageId ?? triggerMessageId ?? message?.id;
 	if (hook !== 'use' && activity?.isSpell) {
-		const sourceDnd5eFlags = _getMessageDnd5eFlags(sourceMessage);
-		options.spellLevel ??= _getMessageSpellLevel(sourceMessage, sourceDnd5eFlags, item);
-		options.scaling ??= _getMessageScaling(sourceMessage, sourceDnd5eFlags);
+		options.spellLevel ??= _getMessageSpellLevel(sourceMessage, item);
+		options.scaling ??= _getMessageScaling(sourceMessage);
 	}
 	return options;
 }
 
-function firstDnd5eFlagValue(messages, key, deps) {
+function firstMessageSystemValue(messages, key) {
 	for (const msg of messages) {
-		const flags = _getMessageDnd5eFlags(msg);
-		const value = flags?.[key];
+		const value = msg?.system?.[key];
 		if (value !== undefined && value !== null) return value;
 	}
 	return undefined;

@@ -1,3 +1,4 @@
+import { _filterOptinEntries } from '../ac5e-helpers.mjs';
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
 
@@ -38,17 +39,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	const damageActor = sourceActor ?? activity?.actor;
 	if (!damageActor && !activity) return true;
 	const resolvedAbilityOverride = _getResolvedUseAbilityOverride({ config, options, moduleId: deps?.Constants?.MODULE_ID });
-	if (resolvedAbilityOverride) {
-		options.ability = resolvedAbilityOverride;
-		config.ability = resolvedAbilityOverride;
-		if (activity?.attack && typeof activity.attack === 'object') activity.attack.ability = resolvedAbilityOverride;
-		if (Array.isArray(rolls)) {
-			for (const roll of rolls) {
-				roll.options ??= {};
-				roll.options.ability = resolvedAbilityOverride;
-			}
-		}
-	}
+	if (resolvedAbilityOverride) applyDamageAbilityOverride(resolvedAbilityOverride, { config, options, rolls, actor: damageActor });
 	const directDamageTargets = deps.getAssociatedRollTargets(options?.originatingMessageId, activity?.type, messageForTargets, deps);
 	options.ammo = ammunition;
 	options.ammunition = ammunition?.toObject();
@@ -64,7 +55,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		options.targets = foundry.utils.duplicate(directDamageTargets);
 		deps.collectRollDamageTypes(rolls, options);
 	} else {
-		deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, rolls, damageSource: 'roll' }, deps);
+		deps.prepareHookTargetsAndDamage({ options, hook, activity, messageConfig: message, messageForTargets, messageTargets, rolls, damageSource: 'roll' }, deps);
 	}
 	const sourceToken = deps.getSubjectTokenForHook(hook, messageForSource ?? messageForTargets, damageActor, deps);
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
@@ -101,12 +92,46 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
 		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
+	const evaluatedAbilityOverride = resolvedAbilityOverride ?? _getResolvedConfigAbilityOverride(ac5eConfig, damageActor);
+	if (evaluatedAbilityOverride) applyDamageAbilityOverride(evaluatedAbilityOverride, { config, options, rolls, actor: damageActor });
 	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook, message);
 	if (deps.applyDamageFormulaStateToConfig?.(ac5eConfig, config)) {
 		deps.setAC5eProperties(ac5eConfig, config, dialog, message);
 	}
 	if (deps.hookDebugEnabled('preRollDamageHook')) console.warn('AC5E._preRollDamage:', { ac5eConfig });
 	return ac5eConfig;
+}
+
+function _getResolvedConfigAbilityOverride(ac5eConfig, actor) {
+	const entries = _filterOptinEntries([
+		...(ac5eConfig?.subject?.abilityOverride ?? []),
+		...(ac5eConfig?.opponent?.abilityOverride ?? []),
+	], ac5eConfig?.optinSelected).filter((entry) => entry && (!entry.hook || entry.hook === 'damage'));
+	let winner = null;
+	for (const entry of entries) {
+		let resolved = entry?.set?.trim?.()?.toLowerCase?.();
+		if (resolved === 'spellcasting') resolved = actor?.system?.attributes?.spellcasting?.trim?.()?.toLowerCase?.();
+		if (!resolved || !Object.hasOwn(CONFIG?.DND5E?.abilities ?? {}, resolved)) continue;
+		const score = Number.isFinite(entry?.priority) ? entry.priority : 0;
+		if (!winner || score >= winner.score) winner = { resolved, score };
+	}
+	return winner?.resolved ?? null;
+}
+
+function applyDamageAbilityOverride(ability, { config, options, rolls, actor }) {
+	options.ability = ability;
+	options.activityAbilityResolved = ability;
+	options._abilityOverrideResolvedAtUse = ability;
+	config.ability = ability;
+	const resolvedMod = actor?.system?.abilities?.[ability]?.mod;
+	for (const roll of rolls ?? []) {
+		roll.options ??= {};
+		roll.options.ability = ability;
+		if (Number.isFinite(resolvedMod)) {
+			roll.data ??= {};
+			roll.data.mod = resolvedMod;
+		}
+	}
 }
 
 function getConfiguredBaseDamage(rolls) {

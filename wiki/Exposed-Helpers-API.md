@@ -14,6 +14,34 @@ ac5e.checkVisibility(sourceToken, targetToken)
 ac5e.getLightLevel(token, options = {})
 ```
 
+`ac5e.checkNearby(token, disposition, distance, options)` supports:
+```js
+{
+  count: false,
+  includeToken: false,
+  includeIncapacitated: false,
+  includeHidden: false,
+  hasEffects: [],
+  hasItems: [],
+  itemOptions: {},
+  hasStatuses: [],
+  partyMember: false,
+  canSee: false,
+  creatureTypes: []
+}
+```
+
+Use `canSee: true` to return only tokens visible to the source token:
+```js
+ac5e.checkNearby(token.id, '!enemy', 0, { canSee: true })
+```
+
+Use `creatureTypes` to filter by creature type:
+```js
+ac5e.checkNearby(token.id, '!enemy', 0, { canSee: true, creatureTypes: ['dragon'], count: 1 })
+ac5e.checkNearby(token.id, '!enemy', 0, { creatureTypes: ['dragon', 'fiend'] })
+```
+
 `ac5e.getLightLevel(token, options)` returns:
 - `bright`
 - `dim`

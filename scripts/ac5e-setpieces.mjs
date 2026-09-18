@@ -189,14 +189,13 @@ function _withEffectOriginEvaluationData(sandbox, effect) {
 	const originActivityData = _getOriginActivityRollData(originActivity);
 	const originItemProperties = _getItemPropertiesMap(originItem);
 	if (originItemData) originItemData.properties = _getItemPropertiesSet(originItem);
-	return {
-		...sandbox,
+	return Object.assign(Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox)), {
 		effectOriginActor: _ac5eActorRollData(null, null, originContext.originActor),
 		originItem: originItemData,
 		originActivity: originActivityData,
 		originItemType: originItem?.type,
 		originItemProperties,
-	};
+	});
 }
 
 function _getItemPropertiesMap(item) {
@@ -512,6 +511,7 @@ export function listStatusEffectOverrides() {
 }
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
+	const timingStart = performance.now();
 	//ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
 	const checksCache = ac5eConfig.options._ac5eHookChecksCache ?? (ac5eConfig.options._ac5eHookChecksCache = {});
 	const cacheKey = getChecksCacheKey({ ac5eConfig, subjectToken, opponentToken });
@@ -560,11 +560,15 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 		subject: subjectToken?.actor,
 		opponent: opponentToken?.actor,
 	};
+	const setupCompletedAt = performance.now();
+	let statusSandboxCompletedAt = setupCompletedAt;
+	let statusEvaluationData;
 
 	if (settings.automateStatuses) {
 		const tables = statusEffectsTables;
-		const statusEvaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
+		statusEvaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
 		statusEvaluationData.ac5eConfig = ac5eConfig;
+		statusSandboxCompletedAt = performance.now();
 		if (!tables) {
 			console.warn('AC5E status effects tables unavailable during check evaluation; skipping status automation for this roll.');
 		}
@@ -610,10 +614,30 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			}
 		}
 	}
+	const statusesCompletedAt = performance.now();
 
-	ac5eConfig = ac5eFlags({ ac5eConfig, subjectToken, opponentToken });
+	ac5eConfig = ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: statusEvaluationData });
+	const flagsCompletedAt = performance.now();
 	if (settings.automateStatuses) addSyntheticVisibilityAttackOptins(ac5eConfig, subjectToken, opponentToken);
+	const visibilityCompletedAt = performance.now();
 	if (cacheKey) checksCache[cacheKey] = createChecksSnapshot(ac5eConfig);
+	const completedAt = performance.now();
+	if (ac5e?.debug?.timings && opponentToken && completedAt - timingStart >= 25) {
+		console.warn(JSON.stringify({
+			trace: 'AC5E checks timing',
+			hook: options.hook,
+			total: Math.round(completedAt - timingStart),
+			setup: Math.round(setupCompletedAt - timingStart),
+			statuses: Math.round(statusesCompletedAt - setupCompletedAt),
+			statusSandbox: Math.round(statusSandboxCompletedAt - setupCompletedAt),
+			statusRules: Math.round(statusesCompletedAt - statusSandboxCompletedAt),
+			flags: Math.round(flagsCompletedAt - statusesCompletedAt),
+			visibility: Math.round(visibilityCompletedAt - flagsCompletedAt),
+			snapshot: Math.round(completedAt - visibilityCompletedAt),
+			subjectEffects: subjectToken?.actor?.appliedEffects?.length ?? 0,
+			opponentEffects: opponentToken?.actor?.appliedEffects?.length ?? 0,
+		}));
+	}
 	if (settings.debug) console.log('AC5E._ac5eChecks:', { ac5eConfig });
 	return ac5eConfig;
 }
@@ -1224,7 +1248,7 @@ function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponent
 
 	const evaluateEffects = ({ effects, flagPaths, scope, sourceToken, auraToken, buildLabel }) => {
 		for (const effect of effects ?? []) {
-			const changes = Array.isArray(effect?.changes) ? effect.changes : [];
+			const changes = Array.isArray(effect?.system?.changes) ? effect.system.changes : [];
 			let matched = false;
 			for (const change of changes) {
 				if (!flagPaths.includes(change?.key)) continue;
@@ -1289,7 +1313,7 @@ function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken }) {
 // 	}
 // }
 
-function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
+function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: existingEvaluationData }) {
 	const options = ac5eConfig.options;
 	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = options;
 	const subject = subjectToken?.actor;
@@ -1305,7 +1329,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	const distanceToSource = (token, wallsBlock) => _getDistance(token, subjectToken, false, true, wallsBlock, true);
 	const distanceToTarget = (token, wallsBlock) => _getDistance(token, opponentToken, false, true, wallsBlock, true);
 
-	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
+	const evaluationData = existingEvaluationData ?? _createEvaluationSandbox({ subjectToken, opponentToken, options });
 	evaluationData.ac5eConfig = ac5eConfig;
 	evaluationData.optinSelected = ac5eConfig?.optinSelected ?? {};
 
@@ -2190,7 +2214,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 			}
 		}
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
-		const scopedSandbox = sandbox && typeof sandbox === 'object' ? { ...sandbox } : sandbox;
+		const scopedSandbox = sandbox && typeof sandbox === 'object' ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox)) : sandbox;
 		const baseValue = getStableBaseValueForEntry({ mode, hook, sandbox });
 		if (scopedSandbox && typeof scopedSandbox === 'object') scopedSandbox.baseValue = baseValue === undefined ? 0 : baseValue;
 		if (settings.debug || ac5e.logEvaluationData) {
@@ -2393,7 +2417,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 	};
 	const processAppliedEffects = ({ effects, hook, sandbox, actorType, token = null, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
 		effects?.forEach((effect) => {
-			effect.changes.forEach((change, changeIndex) => {
+			effect.system.changes.forEach((change, changeIndex) => {
 				processEffectChange({ change, changeIndex, effect, hook, sandbox, actorType, token, isAura, auraToken, sourceActor, sourceNameFallback });
 			});
 		});
@@ -2405,12 +2429,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 		// }
 		//const distanceTokenToAuraSource = distanceToSource(token, false);
 		const currentCombatant = game.combat?.active ? game.combat.combatant?.tokenId : null;
-		const auraTokenEvaluationData = {
-			...evaluationData,
+		const auraTokenEvaluationData = Object.assign(Object.defineProperties({}, Object.getOwnPropertyDescriptors(evaluationData)), {
 			auraActor: _ac5eActorRollData(token),
 			isAuraSourceTurn: currentCombatant === token?.id,
 			auraTokenId: token.id,
-		};
+		});
 		auraTokenEvaluationData.effectActor = auraTokenEvaluationData.auraActor;
 		processAppliedEffects({
 			effects: token.actor.appliedEffects,
@@ -2984,7 +3007,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken }) {
 					(sandbox?._evalConstants?.[normalizedClause] === true);
 				return mult ? !abilityMatch : abilityMatch;
 			}
-			const clauseSandbox = { ...sandbox, _evalConstants: { ...mergedConstants } };
+			const clauseSandbox = Object.assign(Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox)), { _evalConstants: { ...mergedConstants } });
 			const result = _ac5eSafeEval({ expression: clause, sandbox: clauseSandbox, mode: 'condition', debug });
 			return mult ? !result : result;
 		});
@@ -3511,15 +3534,15 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				if (isOwner) effectDeletions.push({ name: effect.name, uuid: effect.uuid });
 				else effectDeletionsGM.push({ name: effect.name, uuid: effect.uuid });
 			} else {
-				let changes = foundry.utils.duplicate(effect.changes);
+				let changes = foundry.utils.duplicate(effect.system.changes);
 				const index = changeIndex >= 0 && changeIndex < changes.length && changes[changeIndex]?.key === change.key ? changeIndex : changes.findIndex((c) => c.key === change.key);
 
 				if (index >= 0) {
 					changes[index].value = _replaceUsesCountLiteral(changes[index].value, newUses);
 
 					if (!isTransfer) {
-						if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
-						else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
+						if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
+						else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
 					} else {
 						const hasInitialUsesFlag = effect.getFlag('automated-conditions-5e', 'initialUses')?.[effect.id]?.initialUses;
 						if (newUses === 0) {
@@ -3528,24 +3551,24 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { disabled: true } } });
 							} else {
 								changes[index].value = _replaceUsesCountLiteral(changes[index].value, hasInitialUsesFlag);
-								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
-								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes, disabled: true } } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes, disabled: true } } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes, disabled: true } } });
 							}
 						} else {
 							if (!hasInitialUsesFlag) {
 								if (isOwner)
 									effectUpdates.push({
 										name: effect.name,
-										context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
+										context: { uuid: effect.uuid, updates: { 'system.changes': changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
 									});
 								else
 									effectUpdatesGM.push({
 										name: effect.name,
-										context: { uuid: effect.uuid, updates: { changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
+										context: { uuid: effect.uuid, updates: { 'system.changes': changes, 'flags.automated-conditions-5e': { initialUses: { [effect.id]: { initialUses: isNumber } } } } },
 									});
 							} else {
-								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
-								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { changes } } });
+								if (isOwner) effectUpdates.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
+								else effectUpdatesGM.push({ name: effect.name, context: { uuid: effect.uuid, updates: { 'system.changes': changes } } });
 							}
 						}
 					}

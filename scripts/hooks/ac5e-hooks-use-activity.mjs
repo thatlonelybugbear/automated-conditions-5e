@@ -4,8 +4,8 @@ import {
 	_filterOptinEntries,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
-	_getMessageDnd5eFlags,
 	_getMessageFlagScope,
+	_getMessageOriginId,
 	_getMessageScaling,
 	_getMessageSpellLevel,
 	_getTokenFromActor,
@@ -15,6 +15,7 @@ import {
 	_localize,
 	_setMessageFlagScope,
 	_setUseConfigInflightCache,
+	_safeFromUuidSync,
 } from '../ac5e-helpers.mjs';
 import { _getConfig, _getSafeUseConfig } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
@@ -24,6 +25,7 @@ import { _ac5eChecks, _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { getTargets } from './ac5e-hooks-target-context.mjs';
 
 export function preUseActivity(activity, usageConfig, dialogConfig, messageConfig, hook, deps) {
+	const timingStart = performance.now();
 	const { item, ability, skill, tool } = activity || {};
 	const sourceActor = item.actor;
 	if (deps.hookDebugEnabled('preUseActivityHook')) console.error('AC5e preUseActivity:', { item, sourceActor, activity, usageConfig, dialogConfig, messageConfig });
@@ -35,7 +37,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 		tool,
 		hook,
 		activity,
-		targets: getTargets({ message: messageConfig }, { Constants, getMessageDnd5eFlags: _getMessageDnd5eFlags, getMessageFlagScope: _getMessageFlagScope }),
+		targets: getTargets({ message: messageConfig }, { Constants, getMessageFlagScope: _getMessageFlagScope }),
 	};
 	_collectActivityDamageTypes(activity, options);
 	options.riderStatuses = _getActivityEffectsStatusRiders(activity);
@@ -66,8 +68,10 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 
 	const sourceToken = _getTokenFromActor(sourceActor) ?? sourceActor?.getActiveTokens?.()?.[0];
 	const isTargetSelf = activity.target?.affects?.type === 'self';
-	let targets = game.user?.targets;
-	let singleTargetToken = isTargetSelf ? sourceToken : targets?.first();
+	const targets = options.targets.length
+		? new Set(options.targets.map((target) => _safeFromUuidSync(target.tokenUuid ?? target.token)?.object).filter(Boolean))
+		: game.user?.targets;
+	let singleTargetToken = isTargetSelf ? sourceToken : targets?.values().next().value;
 	const needsTarget = deps.settings.needsTarget;
 	const placesTemplate = !!activity?.target?.template?.type;
 	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
@@ -76,8 +80,11 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 		singleTargetToken = undefined;
 	}
 	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
+	const targetsResolvedAt = performance.now();
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
+	const configBuiltAt = performance.now();
 	ac5eConfig = _ac5eChecks({ ac5eConfig, subjectToken: sourceToken, opponentToken: singleTargetToken });
+	const checksCompletedAt = performance.now();
 	_applyPreUseActivityAbilityOverride(activity, ac5eConfig);
 	_rebuildPreUseTargetADCState(ac5eConfig, activity);
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
@@ -154,6 +161,19 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	}
 
 	_setAC5eProperties(ac5eConfig, usageConfig, dialogConfig, messageConfig);
+	const completedAt = performance.now();
+	if (globalThis.ac5e?.debug?.timings && targets?.size && completedAt - timingStart >= 25) {
+		console.warn(JSON.stringify({
+			trace: 'AC5E preUseActivity timing',
+			activity: activity?.uuid ?? activity?.id,
+			targets: targets.size,
+			total: Math.round(completedAt - timingStart),
+			targetContext: Math.round(targetsResolvedAt - timingStart),
+			getConfig: Math.round(configBuiltAt - targetsResolvedAt),
+			checks: Math.round(checksCompletedAt - configBuiltAt),
+			postChecks: Math.round(completedAt - checksCompletedAt),
+		}));
+	}
 	return true;
 }
 
@@ -178,24 +198,24 @@ export async function postUseActivity(usageConfig, results, hook) {
 	}
 	if (!message) return true;
 
-	const dnd5eUseFlag = _getMessageDnd5eFlags(message);
-	if (dnd5eUseFlag) {
+	const messageData = message.system;
+	if (messageData) {
 		ac5eConfig.options ??= {};
-		const spellLevel = _getMessageSpellLevel(message, dnd5eUseFlag);
+		const spellLevel = _getMessageSpellLevel(message);
 		if (spellLevel !== undefined) ac5eConfig.options.spellLevel = spellLevel;
-		const scaling = _getMessageScaling(message, dnd5eUseFlag);
+		const scaling = _getMessageScaling(message);
 		if (scaling !== undefined) ac5eConfig.options.scaling = scaling;
-		if (Array.isArray(dnd5eUseFlag.use?.effects)) ac5eConfig.options.useEffects ??= foundry.utils.duplicate(dnd5eUseFlag.use.effects);
-		if (Array.isArray(dnd5eUseFlag.targets)) ac5eConfig.options.targets ??= foundry.utils.duplicate(dnd5eUseFlag.targets);
-		if (dnd5eUseFlag.activity) ac5eConfig.options.activity ??= foundry.utils.duplicate(dnd5eUseFlag.activity);
-		if (dnd5eUseFlag.item) ac5eConfig.options.item ??= foundry.utils.duplicate(dnd5eUseFlag.item);
+		if (Array.isArray(messageData.effects)) ac5eConfig.options.useEffects ??= foundry.utils.duplicate(messageData.effects);
+		if (Array.isArray(messageData.targets)) ac5eConfig.options.targets ??= foundry.utils.duplicate(messageData.targets);
+		if (messageData.activity) ac5eConfig.options.activity ??= foundry.utils.duplicate(messageData.activity);
+		if (messageData.item) ac5eConfig.options.item ??= foundry.utils.duplicate(messageData.item);
 	}
 
 	const safeUseConfig = _getSafeUseConfig(ac5eConfig);
-	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, dnd5eUseFlag?.activity);
+	const resolvedTargetADCState = _getResolvedTargetADCMessageState(ac5eConfig, messageData?.activity);
 	_setUseConfigInflightCache({
 		messageId: message.id,
-		originatingMessageId: dnd5eUseFlag?.originatingMessage,
+		originatingMessageId: _getMessageOriginId(message),
 		useConfig: safeUseConfig,
 	});
 	const persistedMessage = typeof message?.setFlag === 'function' ? message : (message?.id ? game.messages?.get?.(message.id) : null);
@@ -220,7 +240,8 @@ export function getTargetADCOptinChoices(ac5eConfig, activity) {
 
 export function getAbilityOverrideOptinChoices(ac5eConfig, activity) {
 	const activityType = (activity?.type ?? '').toLowerCase();
-	if (!['save', 'check'].includes(activityType)) return [];
+	if (!activityType) return [];
+	if (activityType === 'attack' && activity?.item?.type !== 'spell') return [];
 	const entries = [
 		...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
 		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
@@ -318,9 +339,22 @@ function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
 function _applyPreUseActivityAbilityOverride(activity, ac5eConfig) {
 	const activityType = activity?.type;
 	const isSaveOrCheck = ['save', 'check'].includes(activityType);
-	const isAttack = activityType === 'attack';
 	const activityData = isSaveOrCheck ? activity?.[activityType] : null;
 	if (isSaveOrCheck && (!activityData?.dc || typeof activityData.dc !== 'object')) return false;
+	ac5eConfig.options ??= {};
+	ac5eConfig.preAC5eConfig ??= {};
+	const baseline = ac5eConfig.preAC5eConfig;
+	if (!baseline.activityAbilityBaselineCaptured) {
+		baseline.activityAbilityBaselineCaptured = true;
+		baseline.previousActivityHasOptionAbility = Object.hasOwn(ac5eConfig.options, 'ability');
+		baseline.previousActivityOptionAbility = ac5eConfig.options.ability;
+		baseline.previousActivityHasInitialTargetADC = Object.hasOwn(ac5eConfig, 'initialTargetADC');
+		baseline.previousActivityInitialTargetADC = ac5eConfig.initialTargetADC;
+		if (isSaveOrCheck) {
+			baseline.previousActivityDcCalculation = activityData.dc.calculation ?? null;
+			baseline.previousActivityDcValue = activityData.dc.value;
+		}
+	}
 	const candidateEntries = _filterOptinEntries(
 		[
 			...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
@@ -328,11 +362,23 @@ function _applyPreUseActivityAbilityOverride(activity, ac5eConfig) {
 		],
 		ac5eConfig?.optinSelected,
 	).filter((entry) => entry && typeof entry === 'object');
-	if (!candidateEntries.length) return false;
-	const resolvedAbilityOverride = _getResolvedWinningAbilityOverride(activity, ac5eConfig, candidateEntries);
-	if (!resolvedAbilityOverride) return false;
+	const resolvedAbilityOverride = candidateEntries.length ? _getResolvedWinningAbilityOverride(activity, ac5eConfig, candidateEntries) : null;
+	if (!resolvedAbilityOverride) {
+		if (isSaveOrCheck) {
+			activityData.dc.calculation = baseline.previousActivityDcCalculation;
+			activityData.dc.value = baseline.previousActivityDcValue;
+		}
+		if (baseline.previousActivityHasOptionAbility) ac5eConfig.options.ability = baseline.previousActivityOptionAbility;
+		else delete ac5eConfig.options.ability;
+		if (baseline.previousActivityHasInitialTargetADC) ac5eConfig.initialTargetADC = baseline.previousActivityInitialTargetADC;
+		else delete ac5eConfig.initialTargetADC;
+		delete ac5eConfig.options.activityAbilityResolved;
+		delete ac5eConfig.options._abilityOverrideResolvedAtUse;
+		delete baseline.activityAbilityResolved;
+		delete baseline._abilityOverrideResolvedAtUse;
+		return false;
+	}
 	const sourceActor = activity?.item?.actor;
-	const previousDcCalculation = (activityData?.dc?.calculation ?? '').trim().toLowerCase();
 	const calculation = resolvedAbilityOverride.raw;
 	const resolvedAbility = resolvedAbilityOverride.resolved;
 	const appliedAbility = resolvedAbility || calculation;
@@ -347,15 +393,9 @@ function _applyPreUseActivityAbilityOverride(activity, ac5eConfig) {
 			}
 		}
 	}
-	if (isAttack && activity?.attack && typeof activity.attack === 'object') {
-		activity.attack.ability = appliedAbility;
-	}
-	ac5eConfig.options ??= {};
 	if (resolvedAbility) ac5eConfig.options.ability = resolvedAbility;
 	ac5eConfig.options.activityAbilityResolved = appliedAbility;
 	ac5eConfig.options._abilityOverrideResolvedAtUse = appliedAbility;
-	ac5eConfig.preAC5eConfig ??= {};
-	if (isSaveOrCheck) ac5eConfig.preAC5eConfig.previousActivityDcCalculation = previousDcCalculation || null;
 	ac5eConfig.preAC5eConfig.activityAbilityResolved = appliedAbility;
 	ac5eConfig.preAC5eConfig._abilityOverrideResolvedAtUse = appliedAbility;
 	return true;
@@ -407,7 +447,8 @@ function _ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig
 
 function _ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
 	const activityType = (activity?.type ?? '').toLowerCase();
-	if (!['save', 'check'].includes(activityType)) return;
+	if (!activityType) return;
+	if (activityType === 'attack' && activity?.item?.type !== 'spell') return;
 	const abilityOverrideEntries = [
 		...(Array.isArray(ac5eConfig?.subject?.abilityOverride) ? ac5eConfig.subject.abilityOverride : []),
 		...(Array.isArray(ac5eConfig?.opponent?.abilityOverride) ? ac5eConfig.opponent.abilityOverride : []),
@@ -415,6 +456,7 @@ function _ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usage
 	if (!abilityOverrideEntries.length) return;
 	dialogConfig.configure = true;
 	usageConfig.configure = true;
+	if (usageConfig?.scaling === false) usageConfig.scaling = 0;
 }
 
 function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {

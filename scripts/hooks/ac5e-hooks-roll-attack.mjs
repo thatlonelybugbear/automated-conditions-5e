@@ -6,6 +6,7 @@ import { applySimpleCover5eLibraryMode, applySimpleCover5eTooltip } from '../int
 import { prepareWavesCover } from '../integrations/ac5e-waves.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
+	const timingStart = performance.now();
 	if (deps.hookDebugEnabled('preRollAttackHook')) {
 		console.warn(`AC5E TRACE preRollAttack.start ${JSON.stringify({
 			hook,
@@ -16,6 +17,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	}
 	const { subject: { actor: sourceActor, ability } = {}, subject: configActivity, ammunition, attackMode, mastery } = config || {};
 	const { messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
+	const messageContextResolvedAt = performance.now();
 	const activity = messageActivity || configActivity;
 	const attackActor = sourceActor ?? activity?.actor;
 	if (!attackActor) return true;
@@ -30,11 +32,10 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		options?.originatingUseConfig?.options?._ac5eBaselineAttackAbility ??
 		config?.originatingUseConfig?.options?._ac5eBaselineAttackAbility ??
 		config?.useConfig?.options?._ac5eBaselineAttackAbility ??
+		config?.ability ??
 		config?.subject?.ability ??
 		configActivity?.attack?.ability ??
 		activity?.attack?.ability;
-	const hasBaselineAbility = baselineAbility !== undefined && baselineAbility !== null;
-	const resolvedAbility = resolvedAbilityOverride || (hasBaselineAbility ? baselineAbility : ability);
 	if (options && options._ac5eBaselineAttackAbility === undefined) {
 		const initialBaseline = baselineAbility ?? ability ?? '';
 		options._ac5eBaselineAttackAbility = initialBaseline;
@@ -46,18 +47,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		const baseline = options._ac5eBaselineAttackAbility;
 		options.ability = baseline;
 		config.ability = baseline;
-		if (configActivity?.attack && typeof configActivity.attack === 'object') configActivity.attack.ability = baseline;
-		if (activity?.attack && typeof activity.attack === 'object') activity.attack.ability = baseline;
 		if (config?.rolls?.[0]?.options) config.rolls[0].options.ability = baseline;
-	}
-	const nextAttackAbility = resolvedAbilityOverride || null;
-	if (nextAttackAbility) {
-		if (configActivity?.attack && typeof configActivity.attack === 'object' && configActivity.attack.ability !== nextAttackAbility) {
-			configActivity.attack.ability = nextAttackAbility;
-		}
-		if (activity?.attack && typeof activity.attack === 'object' && activity.attack.ability !== nextAttackAbility) {
-			activity.attack.ability = nextAttackAbility;
-		}
 	}
 	if (Array.isArray(config?.rolls)) {
 		for (const roll of config.rolls) {
@@ -71,7 +61,8 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	const actionType = activity?.getActionType(attackMode);
 	options.actionType = actionType;
 	options.mastery = mastery;
-	deps.prepareHookTargetsAndDamage({ options, hook, activity, messageForTargets, messageTargets, damageSource: 'activity' }, deps);
+	deps.prepareHookTargetsAndDamage({ options, hook, activity, messageConfig: message, messageForTargets, messageTargets, damageSource: 'activity' }, deps);
+	const targetsPreparedAt = performance.now();
 	const item = activity?.item;
 	const needsTarget = deps.settings.needsTarget;
 	const { invalidTargets, sourceToken, singleTargetToken } = resolveAttackRollTargetContext({
@@ -86,6 +77,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		getSingleTargetToken: deps.getSingleTargetToken,
 		logResolvedTargets: deps.logResolvedTargets,
 	});
+	const targetContextResolvedAt = performance.now();
 	if (invalidTargets && needsTarget !== 'source') return false;
 	applySimpleCover5eLibraryMode({
 		config,
@@ -131,7 +123,33 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		syncTargets: ({ ac5eConfig: finalizedConfig }) => deps.syncTargetsToConfigAndMessage(finalizedConfig, options.targets ?? [], message, deps),
 		debugExtra: { activity: activity?.uuid ?? activity?.id ?? null },
 	});
+	const rollPhaseCompletedAt = performance.now();
+	const evaluatedAbilityOverride = _getResolvedOptinAbilityFromAc5eConfig(ac5eConfig, hook);
+	if (evaluatedAbilityOverride) {
+		options.ability = evaluatedAbilityOverride;
+		options.activityAbilityResolved = evaluatedAbilityOverride;
+		options._abilityOverrideResolvedAtUse = evaluatedAbilityOverride;
+		config.ability = evaluatedAbilityOverride;
+		for (const roll of config?.rolls ?? []) {
+			roll.options ??= {};
+			roll.options.ability = evaluatedAbilityOverride;
+		}
+	}
 	forceDialogConfigureForOptins(ac5eConfig, config, dialog, hook, message);
+	const completedAt = performance.now();
+	if (globalThis.ac5e?.debug?.timings && options.targets?.length && completedAt - timingStart >= 25) {
+		console.warn(JSON.stringify({
+			trace: 'AC5E preRollAttack timing',
+			activity: activity?.uuid ?? activity?.id,
+			targets: options.targets.length,
+			total: Math.round(completedAt - timingStart),
+			messageContext: Math.round(messageContextResolvedAt - timingStart),
+			setup: Math.round(targetsPreparedAt - messageContextResolvedAt),
+			targetContext: Math.round(targetContextResolvedAt - targetsPreparedAt),
+			rollPhase: Math.round(rollPhaseCompletedAt - targetContextResolvedAt),
+			postRollPhase: Math.round(completedAt - rollPhaseCompletedAt),
+		}));
+	}
 	return ac5eConfig;
 }
 
@@ -176,7 +194,7 @@ function _getResolvedOptinAbilityFromAc5eConfig(ac5eConfig, hookType) {
 	if (!entries.length) return null;
 	let winner = null;
 	for (const entry of entries) {
-		if (entry.optin && !entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		if (entry.optin && !entry.forceOptin && !selectedIds.has(entry.id) && !selectedIds.has(entry.optinId)) continue;
 		let resolved = entry.set?.trim?.()?.toLowerCase?.();
 		if (!resolved) continue;
 		if (resolved === 'spellcasting') {
@@ -202,7 +220,8 @@ function _isValidAbilityKey(value) {
 export function resolveAttackRollTargetContext({ hook, config, messageForTargets, activity, options, sourceActor, needsTarget, getSubjectTokenForHook, getSingleTargetToken, logResolvedTargets }) {
 	const sourceToken = getSubjectTokenForHook(hook, messageForTargets, sourceActor);
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
-	let singleTargetToken = getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : game.user?.targets?.first());
+	const hasResolvedTargets = Array.isArray(options.targets) && options.targets.length > 0;
+	let singleTargetToken = getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : hasResolvedTargets ? undefined : game.user?.targets?.first());
 	const invalidTargets = !_hasValidTargets(activity, options.targets?.length ?? game.user?.targets?.size, needsTarget);
 	if (invalidTargets) {
 		if (needsTarget !== 'source') return { invalidTargets, sourceToken, singleTargetToken };

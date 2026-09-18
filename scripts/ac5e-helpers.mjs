@@ -754,23 +754,17 @@ export function _setMessageFlagScope(messageLike, scope, patch, { merge = true }
 	}
 }
 
-export function _getMessageDnd5eFlags(message) {
-	return _getMessageFlagScope(message, 'dnd5e');
-}
-
-export function _getMessageSpellLevel(message, dnd5eFlags = _getMessageDnd5eFlags(message), item = null) {
-	const messageLevel = Number(message?.system?.spellLevel ?? foundry.utils.getProperty(message, 'data.system.spellLevel'));
+export function _getMessageSpellLevel(message, item = null) {
+	const messageLevel = Number(message?.system?.level);
 	if (Number.isFinite(messageLevel)) return messageLevel;
-	const scaling = Number(message?.system?.scaling ?? foundry.utils.getProperty(message, 'data.system.scaling') ?? dnd5eFlags?.use?.scaling);
+	const scaling = Number(message?.system?.scaling);
 	const itemLevel = Number(item?.system?.level);
 	if (Number.isFinite(itemLevel) && Number.isFinite(scaling)) return itemLevel + scaling;
-	const flagLevel = Number(dnd5eFlags?.use?.spellLevel);
-	if (Number.isFinite(flagLevel)) return flagLevel;
 	return Number.isFinite(itemLevel) ? itemLevel : undefined;
 }
 
-export function _getMessageScaling(message, dnd5eFlags = _getMessageDnd5eFlags(message)) {
-	const increase = Number(message?.system?.scaling ?? foundry.utils.getProperty(message, 'data.system.scaling') ?? dnd5eFlags?.use?.scaling);
+export function _getMessageScaling(message) {
+	const increase = Number(message?.system?.scaling);
 	if (!Number.isFinite(increase)) return undefined;
 	return { increase, value: increase + 1 };
 }
@@ -779,16 +773,20 @@ function _getMessageAc5eFlags(message) {
 	return _getMessageFlagScope(message, Constants.MODULE_ID);
 }
 
+export function _getMessageOriginId(message) {
+	const origin = message?.system?.origin ?? message?.data?.system?.origin;
+	return origin?.id ?? origin;
+}
+
 export function _resolveUseMessageContext({ message = null, messageId = null, originatingMessageId = null } = {}) {
 	const triggerMessage = message ?? (messageId ? game.messages.get(messageId) : undefined);
-	const triggerDnd5eFlags = _getMessageDnd5eFlags(triggerMessage);
-	const resolvedOriginatingMessageId = originatingMessageId ?? triggerDnd5eFlags?.originatingMessage ?? triggerMessage?.id;
+	const resolvedOriginatingMessageId = originatingMessageId ?? _getMessageOriginId(triggerMessage) ?? triggerMessage?.id;
 	const registryMessages = resolvedOriginatingMessageId ? dnd5e?.registry?.messages?.get(resolvedOriginatingMessageId) : undefined;
 	const originatingMessage =
 		resolvedOriginatingMessageId ?
 			(game.messages.get(resolvedOriginatingMessageId) ?? registryMessages?.find((msg) => msg?.id === resolvedOriginatingMessageId) ?? registryMessages?.[0])
 		:	triggerMessage;
-	const usageMessage = registryMessages?.find((msg) => _getMessageDnd5eFlags(msg)?.messageType === 'usage');
+	const usageMessage = registryMessages?.find((msg) => msg?.type === 'usage');
 	const resolvedMessage = triggerMessage ?? usageMessage ?? originatingMessage;
 	const resolvedMessageId = resolvedMessage?.id ?? messageId;
 	const useConfig = _getMessageAc5eFlags(usageMessage)?.use ?? _getMessageAc5eFlags(originatingMessage)?.use ?? null;
@@ -1408,7 +1406,7 @@ export function _filterOptinEntries(entries = [], optinSelected = {}) {
 	return (entries ?? []).filter((entry) => {
 		if (!entry || typeof entry !== 'object') return true;
 		if (!entry.optin) return true;
-		return selected.has(entry.id);
+		return selected.has(entry.id) || (entry.optinId && selected.has(entry.optinId));
 	});
 }
 

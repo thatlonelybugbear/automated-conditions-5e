@@ -5,10 +5,29 @@ import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-st
 import { getSubjectTokenIdFromConfig } from './ac5e-hooks-ui-utils.mjs';
 
 export function refreshDialogAbilityState(dialog, ac5eConfig, selectedAbility, deps) {
-	if (!dialog?.config || !selectedAbility || !['check', 'save'].includes(ac5eConfig?.hookType)) return null;
+	if (!dialog?.config || !selectedAbility || !['attack', 'check', 'save'].includes(ac5eConfig?.hookType)) return null;
+	if (ac5eConfig.hookType === 'attack') captureDialogAttackAbilityState(dialog, ac5eConfig);
 	const currentAbility = ac5eConfig?.options?.ability ?? dialog?.config?.ability;
 	if (!selectedAbility || selectedAbility === currentAbility) return null;
+	if (ac5eConfig.hookType === 'attack') {
+		const preservedOptinSelected = foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {});
+		const resolvedAbilityOverride = getSelectedAttackAbilityOverride(ac5eConfig, dialog.config);
+		persistDialogAttackBaseline(dialog, ac5eConfig, selectedAbility);
+		resetDialogD20State(dialog, ac5eConfig, deps, { resetMidiOptions: true });
+		dialog.config.ability = resolvedAbilityOverride ?? selectedAbility;
+		const transientDialog = { options: { window: { title: dialog?.message?.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+		const refreshedConfig =
+			deps.preRollAttack(dialog.config, transientDialog, dialog.message, 'attack', ac5eConfig?.reEval) ??
+			dialog?.config?.rolls?.[0]?.options?.[deps.Constants.MODULE_ID] ??
+			dialog?.config?.[deps.Constants.MODULE_ID] ??
+			ac5eConfig;
+		refreshedConfig.optinSelected = { ...(refreshedConfig.optinSelected ?? {}), ...preservedOptinSelected };
+		persistDialogAttackBaseline(dialog, refreshedConfig, selectedAbility);
+		syncDialogAc5eState(dialog, refreshedConfig);
+		return refreshedConfig;
+	}
 	const activeHook = ac5eConfig.hookType === 'save' ? 'save' : 'check';
+	const preservedOptinSelected = foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {});
 	resetDialogD20State(dialog, ac5eConfig, deps, { restoreBaseTarget: true, resetTargetADC: true });
 	dialog.config.ability = selectedAbility;
 	const transientDialog = { options: { window: { title: dialog?.message?.flavor }, advantageMode: 0, defaultButton: 'normal' } };
@@ -16,7 +35,10 @@ export function refreshDialogAbilityState(dialog, ac5eConfig, selectedAbility, d
 		activeHook === 'save' ?
 			deps.preRollSavingThrow(dialog.config, transientDialog, dialog.message, activeHook)
 		:	deps.preRollAbilityCheck(dialog.config, transientDialog, dialog.message, activeHook, ac5eConfig?.reEval);
-	return refreshedConfig ?? dialog?.config?.rolls?.[0]?.options?.[deps.Constants.MODULE_ID] ?? dialog?.config?.[deps.Constants.MODULE_ID] ?? ac5eConfig;
+	const nextConfig = refreshedConfig ?? dialog?.config?.rolls?.[0]?.options?.[deps.Constants.MODULE_ID] ?? dialog?.config?.[deps.Constants.MODULE_ID] ?? ac5eConfig;
+	nextConfig.optinSelected = { ...(nextConfig.optinSelected ?? {}), ...preservedOptinSelected };
+	syncDialogAc5eState(dialog, nextConfig);
+	return nextConfig;
 }
 
 export function doDialogAttackRender(dialog, elem, getConfigAC5E, deps) {
@@ -59,7 +81,9 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 	if (dialog._ac5eOptinReevalInProgress) return false;
 	dialog._ac5eOptinReevalInProgress = true;
 	try {
+		const attackAbilityState = ac5eConfig.hookType === 'attack' ? captureDialogAttackAbilityState(dialog, ac5eConfig) : null;
 		const preservedOptinSelected = foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {});
+		const preservedAbilityOptions = [...(attackAbilityState?.abilityOptions ?? dialog?.options?.abilityOptions ?? [])];
 		const preservedBaselineAttackAbility =
 			dialog?._ac5eBaselineAttackAbility ??
 			ac5eConfig?.options?._ac5eBaselineAttackAbility ??
@@ -108,16 +132,24 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 				ac5eConfig.options.ability = baselineAbility;
 				delete ac5eConfig.options.activityAbilityResolved;
 				delete ac5eConfig.options._abilityOverrideResolvedAtUse;
+				if (ac5eConfig.preAC5eConfig) {
+					delete ac5eConfig.preAC5eConfig.activityAbilityResolved;
+					delete ac5eConfig.preAC5eConfig._abilityOverrideResolvedAtUse;
+				}
 			}
+			applyDialogAttackAbilitySelection(dialog, preservedAbilityOptions, resolvedAttackAbility ?? dialog.config.ability);
+			syncDialogAc5eState(dialog, ac5eConfig);
 			const transientDialog = {
 				options: {
 					window: { title: dialog?.message?.flavor },
 					advantageMode: 0,
 					defaultButton: 'normal',
+					abilityOptions: [...(dialog.options.abilityOptions ?? preservedAbilityOptions)],
 				},
 			};
 			const rebuiltConfig = deps.preRollAttack(dialog.config, transientDialog, dialog.message, 'attack', ac5eConfig?.reEval);
 			if (rebuiltConfig) {
+				preserveAttackAbilityOverrideEntries(rebuiltConfig, ac5eConfig);
 				rebuiltConfig.optinSelected = { ...(rebuiltConfig.optinSelected ?? {}), ...preservedOptinSelected };
 				if (preservedBaselineAttackAbility !== undefined) {
 					rebuiltConfig.options ??= {};
@@ -126,6 +158,13 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 					rebuiltConfig.preAC5eConfig._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
 				}
 				nextConfig = rebuiltConfig;
+			}
+			const rebuiltAbility = getSelectedAttackAbilityOverride(nextConfig, dialog.config) ?? preservedBaselineAttackAbility;
+			if (rebuiltAbility) {
+				dialog.config.ability = rebuiltAbility;
+				nextConfig.options ??= {};
+				nextConfig.options.ability = rebuiltAbility;
+				applyDialogAttackAbilitySelection(dialog, transientDialog.options.abilityOptions, rebuiltAbility);
 			}
 		} else {
 			deps.calcAdvantageMode(ac5eConfig, dialog.config, undefined, undefined, { skipSetProperties: true });
@@ -157,8 +196,7 @@ function getSelectedAttackAbilityOverride(ac5eConfig, config) {
 	].filter((entry) => entry && (!entry.hook || entry.hook === 'attack'));
 	let winner = null;
 	for (const entry of entries) {
-		if (!(entry.optin || entry.forceOptin)) continue;
-		if (!entry.forceOptin && !selectedIds.has(entry.id)) continue;
+		if (entry.optin && !entry.forceOptin && !selectedIds.has(entry.id) && !selectedIds.has(entry.optinId)) continue;
 		let resolved = entry.set?.trim?.()?.toLowerCase?.();
 		if (!resolved) continue;
 		if (resolved === 'spellcasting') {
@@ -174,6 +212,76 @@ function getSelectedAttackAbilityOverride(ac5eConfig, config) {
 		if (!winner || score >= winner.score) winner = { resolved, score };
 	}
 	return winner?.resolved ?? null;
+}
+
+function preserveAttackAbilityOverrideEntries(targetConfig, sourceConfig) {
+	for (const side of ['subject', 'opponent']) {
+		const preserved = Array.isArray(sourceConfig?.[side]?.abilityOverride) ? sourceConfig[side].abilityOverride : [];
+		if (!preserved.length) continue;
+		targetConfig[side] ??= {};
+		const current = Array.isArray(targetConfig[side].abilityOverride) ? targetConfig[side].abilityOverride : [];
+		const currentIds = new Set(current.map((entry) => entry?.id).filter(Boolean));
+		targetConfig[side].abilityOverride = [...current, ...preserved.filter((entry) => !entry?.id || !currentIds.has(entry.id))];
+	}
+}
+
+function captureDialogAttackAbilityState(dialog, ac5eConfig) {
+	if (dialog._ac5eAttackAbilityState) return dialog._ac5eAttackAbilityState;
+	const abilityOptions = dialog?.options?.abilityOptions ?? [];
+	const activityAbilities = dialog?.config?.subject?.attack?.abilities ?? ac5eConfig?.options?.activity?.attack?.abilities ?? [];
+	const systemAbilities = [...new Set([...Array.from(abilityOptions, (option) => option?.ac5eAbilityOverride ? null : option?.value), ...Array.from(activityAbilities)].filter(Boolean))];
+	const initialSystemAbility =
+		ac5eConfig?.options?._ac5eBaselineAttackAbility ??
+		ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility ??
+		dialog?.config?.ability;
+	dialog._ac5eAttackAbilityState = Object.freeze({
+		abilityOptions: Object.freeze(abilityOptions.map((option) => Object.freeze({ ...option }))),
+		systemAbilities: Object.freeze(systemAbilities),
+		initialSystemAbility,
+	});
+	return dialog._ac5eAttackAbilityState;
+}
+
+function applyDialogAttackAbilitySelection(dialog, abilityOptions, ability) {
+	if (!ability) return;
+	const options = abilityOptions.filter((option) => !option?.ac5eAbilityOverride || option.value === ability).map((option) => ({ ...option }));
+	if (!options.some((option) => option.value === ability)) {
+		options.push({
+			value: ability,
+			label: CONFIG?.DND5E?.abilities?.[ability]?.label ?? ability,
+			ac5eAbilityOverride: true,
+		});
+	}
+	dialog.options = Object.freeze({ ...dialog.options, abilityOptions: options });
+	dialog.config.ability = ability;
+	const select = dialog.form?.querySelector?.('select[name="ability"]');
+	if (!select) return;
+	if (![...select.options].some((option) => option.value === ability)) {
+		const option = document.createElement('option');
+		option.value = ability;
+		option.textContent = CONFIG?.DND5E?.abilities?.[ability]?.label ?? ability;
+		select.append(option);
+	}
+	select.value = ability;
+}
+
+function persistDialogAttackBaseline(dialog, ac5eConfig, ability) {
+	dialog._ac5eBaselineAttackAbility = ability;
+	ac5eConfig.options ??= {};
+	ac5eConfig.options._ac5eBaselineAttackAbility = ability;
+	ac5eConfig.preAC5eConfig ??= {};
+	ac5eConfig.preAC5eConfig._ac5eBaselineAttackAbility = ability;
+	dialog.config.options ??= {};
+	dialog.config.options._ac5eBaselineAttackAbility = ability;
+	dialog.config.options.originatingUseConfig ??= {};
+	dialog.config.options.originatingUseConfig.options ??= {};
+	dialog.config.options.originatingUseConfig.options._ac5eBaselineAttackAbility = ability;
+	dialog.config.originatingUseConfig ??= {};
+	dialog.config.originatingUseConfig.options ??= {};
+	dialog.config.originatingUseConfig.options._ac5eBaselineAttackAbility = ability;
+	dialog.config.useConfig ??= {};
+	dialog.config.useConfig.options ??= {};
+	dialog.config.useConfig.options._ac5eBaselineAttackAbility = ability;
 }
 
 export function getD20ActivePartsSnapshot(config) {
@@ -244,6 +352,7 @@ export function refreshAttackAutoRangeState(ac5eConfig, config) {
 
 function refreshDialogAttackState(dialog, ac5eConfig, nextSelections = {}, deps) {
 	if (!dialog?.config || ac5eConfig?.hookType !== 'attack') return null;
+	captureDialogAttackAbilityState(dialog, ac5eConfig);
 	const currentSelections = {
 		ammunition: ac5eConfig?.options?.ammo ?? dialog?.config?.ammunition,
 		attackMode: ac5eConfig?.options?.attackMode ?? dialog?.config?.attackMode,
@@ -253,17 +362,29 @@ function refreshDialogAttackState(dialog, ac5eConfig, nextSelections = {}, deps)
 	const nextAttackMode = nextSelections.attackMode ?? currentSelections.attackMode;
 	const nextMastery = nextSelections.mastery ?? currentSelections.mastery;
 	if (nextAmmunition === currentSelections.ammunition && nextAttackMode === currentSelections.attackMode && nextMastery === currentSelections.mastery) return null;
+	const preservedOptinSelected = foundry.utils.duplicate(ac5eConfig?.optinSelected ?? {});
+	const preservedBaselineAttackAbility =
+		dialog?._ac5eBaselineAttackAbility ??
+		ac5eConfig?.options?._ac5eBaselineAttackAbility ??
+		ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility ??
+		dialog.config.ability;
+	const resolvedAbilityOverride = getSelectedAttackAbilityOverride(ac5eConfig, dialog.config);
+	persistDialogAttackBaseline(dialog, ac5eConfig, preservedBaselineAttackAbility);
 	resetDialogD20State(dialog, ac5eConfig, deps, { resetMidiOptions: true });
+	dialog.config.ability = resolvedAbilityOverride ?? preservedBaselineAttackAbility;
 	dialog.config.ammunition = nextAmmunition;
 	dialog.config.attackMode = nextAttackMode;
 	dialog.config.mastery = nextMastery;
 	const transientDialog = { options: { window: { title: dialog?.message?.flavor }, advantageMode: 0, defaultButton: 'normal' } };
-	return (
+	const refreshedConfig =
 		deps.preRollAttack(dialog.config, transientDialog, dialog.message, 'attack') ??
 		dialog?.config?.rolls?.[0]?.options?.[deps.Constants.MODULE_ID] ??
 		dialog?.config?.[deps.Constants.MODULE_ID] ??
-		ac5eConfig
-	);
+		ac5eConfig;
+	refreshedConfig.optinSelected = { ...(refreshedConfig.optinSelected ?? {}), ...preservedOptinSelected };
+	persistDialogAttackBaseline(dialog, refreshedConfig, preservedBaselineAttackAbility);
+	syncDialogAc5eState(dialog, refreshedConfig);
+	return refreshedConfig;
 }
 
 function resetDialogD20State(dialog, ac5eConfig, deps, { resetMidiOptions = false, restoreBaseTarget = false, resetTargetADC = false } = {}) {
