@@ -1,3 +1,11 @@
+## 14.603.2
+
+- Improved WAVES cover integration.
+ - Controls in roll dialogs: each target has a labeled slider in a shared Cover section, with one help tooltip and token highlighting when hovering over a target name.
+ - Cover shows a concise AC calculation for each target.
+ - Fixed Total cover showing an attack as a hit on the chat card.
+- Improved chat tooltips: roll details appear on the dice icon or reroll button when Bugbear's Mechanics 5e is enabled.
+
 ## 14.603.1
 
 - Minimum versions:
