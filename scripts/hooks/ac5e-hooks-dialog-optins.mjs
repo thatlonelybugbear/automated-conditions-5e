@@ -610,7 +610,12 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 }
 
 function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission = false } = {}) {
-	for (const row of fieldset.querySelectorAll('.form-group')) row.remove();
+	for (const row of fieldset.querySelectorAll('.form-group')) {
+		row.ac5eClearTargetHover?.();
+		row.remove();
+	}
+	fieldset.querySelector('.ac5e-cover-fieldset')?.remove();
+	let coverFieldset;
 	const shouldSuffixUnnamedOptins = visibleEntries.length > 1;
 	const labelCounts = new Map();
 	for (const entry of visibleEntries) {
@@ -636,8 +641,10 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const isUnnamedOptin = isOptinEntry && !rawLabel && !rawName;
 		const baseLabel = rawLabel || rawName || String(entry?.id ?? '');
 		const modeLabel = String(entry?.mode ?? '').replace(/([a-z])([A-Z])/g, '$1 $2');
+		const isCoverEntry = Boolean(entry.targetUuid && entry.scaleOptionLabels);
 		const indexedLabel =
-			entry.scaleOptionLabels ? `Cover: ${entry.scaleOptionLabels[entry.selectedScale] ?? entry.selectedScale}`
+			isCoverEntry ? entry.targetLabel
+			: entry.scaleOptionLabels ? `Cover: ${entry.scaleOptionLabels[entry.selectedScale] ?? entry.selectedScale}`
 			: labelCounts.get(baseLabel) > 1 && modeLabel ? `${baseLabel} (${modeLabel})`
 			: isUnnamedOptin && shouldSuffixUnnamedOptins ? `${baseLabel} #${index + 1}`
 			: baseLabel;
@@ -645,7 +652,37 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const cadenceSuffix = isOptinEntry ? getCadenceLabelSuffix(entry?.cadence) : '';
 		const permissionSuffix = getAskPermissionSourceSuffix(entry, askPermission);
 		const detailSuffixes = [usesCountSuffix, permissionSuffix ? `(${permissionSuffix})` : '', cadenceSuffix].filter(Boolean);
-		label.textContent = detailSuffixes.length ? `${indexedLabel} ${detailSuffixes.join(' ')}` : indexedLabel;
+		const setLabelText = (text) => {
+			if (!entry.targetUuid || !entry.targetLabel) {
+				label.textContent = text;
+				return;
+			}
+			const targetText = entry.targetLabel;
+			const targetIndex = text.indexOf(targetText);
+			if (targetIndex < 0) {
+				label.textContent = text;
+				return;
+			}
+			label.replaceChildren(document.createTextNode(text.slice(0, targetIndex)));
+			const targetName = document.createElement('span');
+			targetName.textContent = targetText;
+			targetName.style.cursor = 'pointer';
+			let hoveredToken;
+			targetName.addEventListener('mouseenter', (event) => {
+				const token = fromUuidSync(entry.targetUuid)?.object;
+				if (!token?.isVisible || token.controlled) return;
+				token._onHoverIn(event, { hoverOutOthers: true });
+				hoveredToken = token;
+			});
+			const clearHover = (event) => {
+				hoveredToken?._onHoverOut(event);
+				hoveredToken = null;
+			};
+			targetName.addEventListener('mouseleave', clearHover);
+			row.ac5eClearTargetHover = clearHover;
+			label.append(targetName, document.createTextNode(text.slice(targetIndex + targetText.length)));
+		};
+		setLabelText(detailSuffixes.length ? `${indexedLabel} ${detailSuffixes.join(' ')}` : indexedLabel);
 		label.title = label.textContent;
 		const baseDescription =
 			typeof entry.description === 'string' ? entry.description.trim()
@@ -658,7 +695,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			hasStatusUpdateDescription ? usesCountDescription
 			: [scaledBaseDescription, usesCountDescription].filter(Boolean).join(scaledBaseDescription && usesCountDescription ? ' ' : '');
 		let descriptionPill = null;
-		if (description) {
+		if (description && !isCoverEntry) {
 			descriptionPill = document.createElement('i');
 			descriptionPill.className = 'ac5e-optin-description-pill';
 			descriptionPill.classList.add('fa-solid', 'fa-circle-info');
@@ -669,8 +706,9 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const refreshScaleText = () => {
 			const nextUsesCountSuffix = isOptinEntry ? getUsesCountLabelSuffix(entry) : '';
 			const nextDetailSuffixes = [nextUsesCountSuffix, permissionSuffix ? `(${permissionSuffix})` : '', cadenceSuffix].filter(Boolean);
-			const nextIndexedLabel = entry.scaleOptionLabels ? `Cover: ${entry.scaleOptionLabels[entry.selectedScale] ?? entry.selectedScale}` : indexedLabel;
-			label.textContent = nextDetailSuffixes.length ? `${nextIndexedLabel} ${nextDetailSuffixes.join(' ')}` : nextIndexedLabel;
+			const nextIndexedLabel = isCoverEntry ? entry.targetLabel : entry.scaleOptionLabels ? `Cover: ${entry.scaleOptionLabels[entry.selectedScale] ?? entry.selectedScale}` : indexedLabel;
+			row.ac5eClearTargetHover?.();
+			setLabelText(nextDetailSuffixes.length ? `${nextIndexedLabel} ${nextDetailSuffixes.join(' ')}` : nextIndexedLabel);
 			label.title = label.textContent;
 			const nextUsesCountDescription = isOptinEntry ? getUsesCountDescriptionSuffix(entry) : '';
 			const nextScaledBaseDescription = resolveOptinScaleDescription(baseDescription, entry, ac5eConfig);
@@ -726,7 +764,25 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			else row.append(label, slider, valueLabel, checkbox);
 		} else if (descriptionPill) row.append(label, checkbox, descriptionPill);
 		else row.append(label, checkbox);
-		fieldset.append(row);
+		if (isCoverEntry) {
+			if (!coverFieldset) {
+				coverFieldset = document.createElement('fieldset');
+				coverFieldset.className = 'ac5e-cover-fieldset';
+				const legend = document.createElement('legend');
+				legend.append(document.createTextNode('Cover '));
+				if (description) {
+					const info = document.createElement('i');
+					info.className = 'ac5e-optin-description-pill fa-solid fa-circle-info';
+					info.title = description;
+					info.setAttribute('role', 'note');
+					applyDescriptionPillTooltip(info, description);
+					legend.append(info);
+				}
+				coverFieldset.append(legend);
+				fieldset.append(coverFieldset);
+			}
+			coverFieldset.append(row);
+		} else fieldset.append(row);
 	});
 }
 

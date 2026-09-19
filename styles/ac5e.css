@@ -683,6 +683,11 @@
 	overflow-x: hidden;
 }
 
+.ac5e-cover-fieldset {
+	min-width: 0;
+	margin: 0;
+}
+
 .ac5e-optin-row > * {
 	min-width: 0;
 }

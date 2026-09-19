@@ -17,6 +17,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	const messageFlags = render?.flags?.[deps.Constants.MODULE_ID];
 	applyPreferredDisplayFormulas(render, elem, deps);
 	if (!['both', 'chat'].includes(deps.settings.showTooltips)) return true;
+	applyRollResultTooltips(render, elem, deps);
 	const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
 	const resolvedHookType = hookType ?? messageFlags?.hookType ?? deps?.rsrType;
 	const resolvedRoller = roller ?? messageFlags?.roller ?? (deps?.rsrType ? 'RSR' : undefined);
@@ -89,11 +90,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[effectiveHookType] || messageFlags?.tooltipObj?.[messageFlags.hookType] || messageFlags?.tooltipObj?.[resolvedHookType] || '';
 	if (resolvedRoller === 'Core') {
 		if (tooltip === '') return true;
-		if (['attack', 'damage'].includes(effectiveHookType)) {
-			targetElement = queryOne('.dice-formula');
-		} else {
-			targetElement = queryOne('.message-content .dice-roll .dice-result .dice-formula') ?? queryOne('.chat-message header .flavor-text');
-		}
+		targetElement = queryOne('.icon-row:has(> .dice-roll) > .bm5e-reroll-button, .icon-row:has(> .dice-roll) > i.fa-dice');
 	} else if (resolvedRoller === 'RSR') {
 		if (deps.hookDebugEnabled('renderHijackHook')) {
 			const sectionAttackCount = queryAll('.rsr-section-attack').length;
@@ -149,6 +146,36 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	if (targetElement) setTooltip(targetElement, tooltip);
 	bindUseMessageTargetADCTooltip(elem, messageFlags, deps, queryAll, setTooltip);
 	return true;
+}
+
+function applyRollResultTooltips(message, html, deps) {
+	if (typeof html?.querySelectorAll !== 'function') return;
+	const summaries = html.querySelectorAll('.card-summary[data-message-id]');
+	const cards = summaries.length
+		? Array.from(summaries, (root) => ({ root, rollMessage: game.messages.get(root.dataset.messageId) }))
+		: [{ root: html, rollMessage: message }];
+	for (const { root, rollMessage } of cards) {
+		if (!rollMessage?.rolls?.length || rollMessage.isContentVisible === false) continue;
+		const flags = rollMessage.flags?.[deps.Constants.MODULE_ID];
+		const visibility = flags && typeof flags === 'object' ? flags : rollMessage.rolls[0]?.options?.[deps.Constants.MODULE_ID];
+		if (!game.user.isGM) {
+			if (deps.settings.showChatTooltips === 'none') continue;
+			if (deps.settings.showChatTooltips === 'players' && !visibility?.hasPlayerOwner) continue;
+			if (deps.settings.showChatTooltips === 'owned' && visibility?.ownership?.[game.user.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) continue;
+		}
+		const results = Array.from(root.querySelectorAll('.dice-roll'));
+		for (const [index, result] of results.entries()) {
+			const roll = rollMessage.rolls[results.length === rollMessage.rolls.length ? index : 0];
+			const payload = roll?.options?.[deps.Constants.MODULE_ID];
+			const tooltip = payload?.chatTooltip || flags?.tooltipObj?.[payload?.hookType ?? rollMessage.type] || '';
+			if (!tooltip) continue;
+			const icon = result.closest('.icon-row')?.querySelector(':scope > .bm5e-reroll-button, :scope > i.fa-dice');
+			if (!icon) continue;
+			icon.setAttribute('data-tooltip', tooltip);
+			icon.removeAttribute('title');
+			incrementChatDomStat('tooltipWrites');
+		}
+	}
 }
 
 function applyPreferredDisplayFormulas(render, elem, deps) {

@@ -2046,10 +2046,12 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(true, `<span style="display: block; text-align: left;">${translationString}: ${combinedTargetADC.join(', ')}</span>`);
 	}
 	if (hookType === 'attack' && ac5eConfig?.simpleCoverEntries?.length) {
-		const coverEntries = ac5eConfig.simpleCoverEntries.map((entry) => entry.ac === 999
+		const wavesCover = !!ac5eConfig.wavesCover?.entries?.length;
+		const coverEntries = ac5eConfig.simpleCoverEntries.map((entry) => wavesCover ? entry.label : entry.ac === 999
 			? `${_localize('AC5E.ModifyAC')} ${entry.ac} (${entry.base}): ${entry.label} (SET)`
 			: `Base AC ${entry.ac} (${entry.base}): ${entry.label}`);
-		addTooltip(true, `<span style="display: block; text-align: left;">${coverEntries.join(', ')}</span>`);
+		const heading = wavesCover ? `${_localize('AC5E.WavesCover.Label')}: ` : '';
+		addTooltip(true, `<span style="display: block; text-align: left;">${heading}${coverEntries.join(', ')}</span>`);
 	}
 	tooltip += tooltip.includes('span') ? '</div>' : `<div style="text-align:center;"><strong>${_localize('AC5E.NoChanges')}</strong></div></div>`;
 	ac5eConfig.tooltipObj ||= {};

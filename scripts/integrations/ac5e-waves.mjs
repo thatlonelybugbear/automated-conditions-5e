@@ -64,6 +64,8 @@ function addWavesCoverOptins(ac5eConfig) {
 		ac5eConfig.subject.bonus.push({
 			id: entry.optinId,
 			name: `Cover: ${COVER_LEVEL_LABELS[COVER_TYPES.indexOf(entry.selected)]}`,
+			targetLabel: entry.label,
+			targetUuid: entry.targetUuid,
 			description: COVER_TYPES.map((cover, coverIndex) => `${coverIndex}: ${coverLabel(cover)}`).join(', '),
 			hook: ac5eConfig.hookType,
 			mode: 'bonus',
@@ -72,7 +74,7 @@ function addWavesCoverOptins(ac5eConfig) {
 			optin: true,
 			scaling: { min: 0, max: 3, step: 1 },
 			scaleOptionLabels: COVER_LEVEL_LABELS,
-			scaleLabels: ['(+0)', '(+2)', '(+5)', ac5eConfig.hookType === 'attack' ? '(\u221e)' : '(+5)'],
+			scaleLabels: ['(0)', '(1/2)', '(3/4)', ac5eConfig.hookType === 'attack' ? '(\u221e)' : '(Total)'],
 		});
 		ac5eConfig.optinSelected[entry.optinId] = { enabled: true, scale: COVER_TYPES.indexOf(entry.measured) };
 	}
@@ -100,10 +102,12 @@ function applyWavesCoverTooltip(ac5eConfig) {
 	if (ac5eConfig.hookType === 'attack') {
 		ac5eConfig.simpleCoverEntries = entries.filter((entry) => entry.selected !== 'none').map((entry) => {
 			const total = entry.selected === 'total';
+			const ac = total ? TOTAL_COVER_AC : entry.baseAc + COVER_BONUSES[COVER_TYPES.indexOf(entry.selected)];
+			const cover = total ? '\u221e' : COVER_LEVEL_LABELS[COVER_TYPES.indexOf(entry.selected)];
 			return {
 				base: entry.baseAc,
-				ac: total ? TOTAL_COVER_AC : entry.baseAc + COVER_BONUSES[COVER_TYPES.indexOf(entry.selected)],
-				label: `${game.i18n.localize('AC5E.WavesCover.Label')}: ${coverLabel(entry.selected)}`,
+				ac,
+				label: `${entry.label} AC ${total ? cover : ac} (${entry.baseAc} + ${cover})`,
 			};
 		});
 	}

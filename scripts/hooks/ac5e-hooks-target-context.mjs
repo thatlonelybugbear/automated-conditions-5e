@@ -115,8 +115,8 @@ export function getPersistedTargetsForHook(ac5eConfig, config, message, deps) {
 	return Array.isArray(ac5eConfig?.options?.targets) ? ac5eConfig.options.targets : [];
 }
 
-export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps) {
-	const explicitTargets = getTargets({ message }, deps);
+export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps, { preferTargets = false } = {}) {
+	const explicitTargets = preferTargets ? [] : getTargets({ message }, deps);
 	const resolvedTargets =
 		explicitTargets.length ? explicitTargets
 		: Array.isArray(targets) ? targets
@@ -134,7 +134,7 @@ export function syncTargetsToConfigAndMessage(ac5eConfig, targets, message, deps
 	}
 	const snapshotTargets = foundry.utils.duplicate(resolvedTargets);
 	const baseTargetAcByKey = ac5eConfig?.preAC5eConfig?.baseTargetAcByKey;
-	if (baseTargetAcByKey) {
+	if (baseTargetAcByKey && !preferTargets) {
 		for (const [index, target] of snapshotTargets.entries()) {
 			const tokenUuid = target?.tokenUuid ?? target?.token?.uuid;
 			const key = tokenUuid ? `token:${tokenUuid}` : target?.uuid ? `actor:${target.uuid}:index:${index}` : `index:${index}`;
