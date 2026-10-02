@@ -877,7 +877,7 @@ function buildStatusEffectsTables() {
 
 		charmed: mkStatus('charmed', _i18nConditions('Charmed'), {
 			// check: { subject: (ctx) => (hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'advantage' : '') },
-			use: { subject: (ctx) => ((hasAttack || hasDamage) && hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'fail' : '') },
+			use: { subject: (ctx) => ((ctx.hasAttack || ctx.hasDamage) && hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'fail' : '') },
 		}),
 
 		deafened: mkStatus('deafened', _i18nConditions('Deafened'), {}),
