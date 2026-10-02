@@ -1,5 +1,10 @@
 ## 13.5250.18.6
 
+- Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
+- Changes to Charmed condition:
+  - `Use` fail, is limited to Attack activities, or ones that would damage the Charmer.
+  - `Check` automation is removed entirely. It will be added in a different way only for the v6 version of the module.## 13.5250.18.6
+
 - Fix for duplicate range forced failure modifiers.
 
 ## 13.5250.18.5
