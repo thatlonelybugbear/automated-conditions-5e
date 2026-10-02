@@ -1,4 +1,4 @@
-## 13.5250.18.6
+## 13.5250.18.7
 
 - Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
 - Changes to Charmed condition:
