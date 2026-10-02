@@ -1,3 +1,10 @@
+## 14.533.19.4
+
+- Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
+- Changes to Charmed condition:
+  - `Use` fail, is limited to Attack activities, or ones that would damage the Charmer.
+  - `Check` automation is removed entirely. It will be added in a different way only for the v6 version of the module.
+
 ## 14.533.19.3
 
 - Legacy dnd5e v5 branch update. To stay on it use: <https://raw.githubusercontent.com/thatlonelybugbear/automated-conditions-5e/legacy-v5/module.json>
