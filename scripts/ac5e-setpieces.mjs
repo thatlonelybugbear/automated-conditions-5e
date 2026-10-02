@@ -633,7 +633,6 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	if (activity && !_activeModule('midi-qol')) activity.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts); //Cannot set property hasDamage of #<MidiActivityMixin> which has only a getter
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
@@ -646,6 +645,8 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 		distance,
 		distanceUnit,
 		exhaustionLvl,
+		hasAttack: !foundry.utils.isEmpty(activity?.attack),
+		hasDamage: !foundry.utils.isEmpty(activity?.damage?.parts),
 		hook,
 		isConcentration,
 		isDeathSave,
@@ -766,8 +767,8 @@ function buildStatusEffectsTables() {
 		}),
 
 		charmed: mkStatus('charmed', _i18nConditions('Charmed'), {
-			check: { subject: (ctx) => (hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'advantage' : '') },
-			use: { subject: (ctx) => (hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'fail' : '') },
+			// check: { subject: (ctx) => (hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'advantage' : '') },
+			use: { subject: (ctx) => ((ctx.hasAttack || ctx.hasDamage) && hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'fail' : '') },
 		}),
 
 		deafened: mkStatus('deafened', _i18nConditions('Deafened'), {}),
@@ -804,7 +805,7 @@ function buildStatusEffectsTables() {
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: (ctx) => (['str', 'dex'].includes(ctx.ability) ? 'fail' : '') },
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.activity?.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -840,7 +841,7 @@ function buildStatusEffectsTables() {
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.activity?.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 			save: { subject: (ctx) => (['dex', 'str'].includes(ctx.ability) ? 'fail' : '') },
 		}),
 
