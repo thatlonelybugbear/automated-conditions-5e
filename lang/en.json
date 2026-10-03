@@ -1,4 +1,5 @@
 {
+	"AC5E.StatusEffectsOverrides.ConditionError": "AC5E: Status override \"{name}\" (id: {id}) was skipped for {status}/{hook}/{type}. Condition: {condition}. Error: {error}. Correct its condition using ac5e.statusEffectsOverrides.register with the same id, or remove it using ac5e.statusEffectsOverrides.remove({removeId}). Access to game/canvas identifiers is prohibited; use sandbox fields instead. Quoted names containing those words are allowed.",
 	"AC5E.AutomateStatuses": {
 		"Name": "D&D 5e Condition Rules",
 		"Hint": "Enables AC5E handling for D&D 5e conditions, expanding on the D&D 5e system's built-in advantage mode automation with broader and more precise rule handling, especially for attack rolls."

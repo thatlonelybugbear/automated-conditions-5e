@@ -63,6 +63,7 @@ export function evaluateCondition(expression, sandbox, debug) {
 		else reason = `${err.name}: ${err.message}`;
 
 		debug.log?.(`AC5E._ac5eSafeEval [condition fail to false]: ${reason}`, { expression, effect: debug.effectUuid, change: debug.changeKey, proxySandbox, sandbox });
+		if (debug.throwErrors) throw err;
 		return false; // always fail safe
 	}
 }

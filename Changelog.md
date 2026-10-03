@@ -3,7 +3,7 @@
 - Added sidebar Actor support for AC5E roll flags, statuses, opt-ins, and scaling when no scene Token is available. Spatial rules require Tokens.
 - Fixed `usesCount` scaling bounds ignoring `effectActor` and `effectOriginActor` references and falling back to the full resource amount. Added `effectActor` support to actor formula-reference resolution. Stored opt-in scales are also clamped to current bounds and steps, keeping selections and sliders consistent.
 - Fixed condition and formula guards rejecting quoted names such as "Endgame"; actual `game` and `canvas` identifiers remain blocked.
-- Fixed persistent status override refreshes changing equal-priority precedence. Failed override conditions are skipped with a GM warning identifying the condition, trigger, error, and correction options.
+- Fixed persistent status override refreshes changing equal-priority precedence. Failed override conditions are skipped with a console warning identifying the condition, trigger, error, and correction options.
 - Fixed existing-effect reapplication bypassing `allowEffectApplication`, including re-enabling and refreshing expired effects.
 - Fixed `damage.typeOverride` ignoring healing types such as `temphp`.
 - Added additive `damage.typeOverride` values with a `+` prefix and an "Add to existing type choices" checkbox with a hint tooltip in Edit Override, preserving existing choices and the selected type.
@@ -13,6 +13,7 @@
 - Fixed Charmed social-check advantage to benefit the charmer, with a preselected opt-in for Charisma checks and Deception, Persuasion, Performance, and Intimidation. Added an optional use restriction against your charmer, preselected for attacks and damaging activities, and improved effect-origin Actor matching.
 - `allowEffectApplication` now uses the full AC5E sandbox and evaluates each recipient Actor independently, including `opponentActor.creatureType` with multiple targets. Token checks use an unlinked Actor's Token or the first active Token for a linked Actor; linked Actors with multiple Tokens may use a different Token than the one selected.
 - Added persistent Status Effects Overrides API entries with sandboxed string conditions via `persistent: true` and `condition`. Status rules cleared by overrides now appear in the Suppressed Statuses tooltip with the override name.
+  - Extended status override diagnostics to syntax and type errors.
 - Fixed AC5E losing native D&D5e advantage and disadvantage stored in the first roll's options, including roll-profile snapshots.
 - Fixed Paralyzed and Unconscious conditions triggering critical damage not only for Attacks.
 

@@ -1207,9 +1207,16 @@ function applyStatusEffectOverrides({ status, hook, type, context, evaluationDat
 	let overrideName;
 	for (const entry of matches) {
 		try {
-			if (entry.condition && !_ac5eSafeEval({ expression: entry.condition, sandbox: evaluationData, mode: 'condition', debug: { statusEffectOverrideId: entry.id } })) continue;
+			if (entry.condition && !_ac5eSafeEval({ expression: entry.condition, sandbox: evaluationData, mode: 'condition', debug: { statusEffectOverrideId: entry.id, throwErrors: true } })) continue;
 		} catch (error) {
-			const message = `AC5E: Status override "${entry.name ?? entry.id}" (id: ${entry.id}) was skipped for ${status}/${hook}/${type}. Condition: ${entry.condition}. Error: ${error.message ?? error}. Correct its condition using ac5e.statusEffectsOverrides.register with the same id, or remove it using ac5e.statusEffectsOverrides.remove(${JSON.stringify(entry.id)}). Access to game/canvas identifiers is prohibited; use sandbox fields instead. Quoted names containing those words are allowed.`;
+			const message = game.i18n.format('AC5E.StatusEffectsOverrides.ConditionError', {
+				name: entry.name ?? entry.id,
+				id: entry.id,
+				status, hook, type,
+				condition: entry.condition,
+				error: error.message ?? error,
+				removeId: JSON.stringify(entry.id),
+			});
 			console.warn(message, { override: entry, status, hook, type, error });
 			if (game.user?.isGM) ui.notifications.warn(message);
 			continue;

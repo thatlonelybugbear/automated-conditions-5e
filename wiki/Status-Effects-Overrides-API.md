@@ -129,7 +129,7 @@ ac5e.statusEffectsOverrides.register({
 
 Conditions use sandbox fields, such as `hasAttack` and `opponentActor`. Direct `game` and `canvas` identifiers are prohibited. Quoted names such as `item.name === "Endgame"` are allowed.
 
-If condition evaluation throws, AC5E skips that override, preserves the result computed so far, and continues with other matching overrides. The console records the failure, and a GM evaluating the condition receives a warning identifying the override ID, condition, status/hook/side, error, and correction options. Register the corrected entry with the same ID and `persistent: true`, or remove it with `ac5e.statusEffectsOverrides.remove(id)`. Conditions that simply evaluate to false are skipped without a warning.
+If condition evaluation fails, including syntax or type errors, AC5E skips that override, preserves the result computed so far, and continues with other matching overrides. A console warning identifies the override ID, condition, status/hook/side, error, and correction options. A GM evaluating the condition also receives a notification warning. Register the corrected entry with the same ID and `persistent: true`, or remove it with `ac5e.statusEffectsOverrides.remove(id)`. Conditions that simply evaluate to false are skipped without a warning.
 
 ### `apply` (optional)
 
