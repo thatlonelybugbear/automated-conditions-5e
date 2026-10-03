@@ -18,7 +18,7 @@ import {
 	_setMessageFlagScope,
 } from './ac5e-helpers.mjs';
 import { _getConfig } from './ac5e-config-logic.mjs';
-import { _calcAdvantageMode, _setAC5eProperties } from './ac5e-runtimeLogic.mjs';
+import { _calcAdvantageMode, _createEvaluationSandbox, _setAC5eProperties } from './ac5e-runtimeLogic.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _ac5eChecks } from './ac5e-setpieces.mjs';
@@ -129,24 +129,6 @@ function _extractAllowEffectApplicationExpression(effect, data) {
 	return null;
 }
 
-function _toActorRollData(actor) {
-	return actor?.getRollData?.() ?? {};
-}
-
-function _toItemRollData(item) {
-	return item?.getRollData?.() ?? {};
-}
-
-function _toActivityData(activity) {
-	return {
-		id: activity?.id ?? null,
-		uuid: activity?.uuid ?? null,
-		identifier: activity?.identifier ?? null,
-		type: activity?.type ?? null,
-		name: activity?.name ?? null,
-	};
-}
-
 function _formatAllowEffectApplicationBypassKeys(bindings) {
 	if (!Array.isArray(bindings) || !bindings.length) return '';
 	const labels = bindings
@@ -221,18 +203,19 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 		const targetActor = effect?.parent instanceof CONFIG.Actor.documentClass ? effect.parent : null;
 		const targetsCount = game.user?.targets?.size ?? 0;
 		const hasSingleTarget = targetsCount === 1;
-		const opponentActor = hasSingleTarget && targetActor ? targetActor : null;
-		const sandbox = {
-			rollingActor: _toActorRollData(rollingActor),
-			opponentActor: _toActorRollData(opponentActor),
-			item: _toItemRollData(originItem),
-			activity: originActivity ? _toActivityData(originActivity) : null,
-			riderStatuses: _getActivityEffectsStatusRiders(originActivity),
-			hook: 'effectApplication',
-			hasSingleTarget,
-			singleTarget: hasSingleTarget,
-			targetsCount,
-		};
+		const subjectToken = rollingActor.token?.object ?? rollingActor.getActiveTokens?.()?.[0] ?? null;
+		const opponentToken = targetActor?.token?.object ?? targetActor?.getActiveTokens?.()?.[0] ?? null;
+		const sandbox = _createEvaluationSandbox({
+			subjectToken,
+			opponentToken,
+			sourceActor: rollingActor,
+			targetActor,
+			options: { activity: originActivity, item: originItem, hook: 'effectApplication', riderStatuses: _getActivityEffectsStatusRiders(originActivity) },
+		});
+		if (!originActivity) sandbox.activity = null;
+		sandbox.hasSingleTarget = hasSingleTarget;
+		sandbox.singleTarget = hasSingleTarget;
+		sandbox.targetsCount = targetsCount;
 		hydrateAllowEffectApplicationRollResult(sandbox, { targetActor, originActivity });
 		const result = _ac5eSafeEval({ expression, sandbox, mode: 'condition' });
 		if (trace) {
@@ -241,7 +224,7 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 				result,
 				effect: effect?.uuid ?? effect?.id,
 				rollingActor: rollingActor?.uuid ?? rollingActor?.id,
-				opponentActor: opponentActor?.uuid ?? opponentActor?.id,
+				opponentActor: targetActor?.uuid ?? targetActor?.id,
 				hasSingleTarget,
 				targetsCount,
 			});
@@ -262,7 +245,7 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 					originItem: originItem?.uuid ?? originItem?.id ?? null,
 					originActivity: originActivity?.uuid ?? originActivity?.id ?? null,
 					rollingActor: rollingActor?.uuid ?? rollingActor?.id ?? null,
-					opponentActor: opponentActor?.uuid ?? opponentActor?.id ?? null,
+					opponentActor: targetActor?.uuid ?? targetActor?.id ?? null,
 					hasSingleTarget,
 					targetsCount,
 				});

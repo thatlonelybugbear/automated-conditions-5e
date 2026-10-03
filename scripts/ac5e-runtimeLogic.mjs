@@ -82,21 +82,22 @@ function _duplicateEvaluationOptions(options) {
 		:	{};
 }
 
-export function _buildRollEvaluationData({ subjectToken, opponentToken, options } = {}) {
+export function _buildRollEvaluationData({ subjectToken, opponentToken, sourceActor, targetActor, options } = {}) {
 	const timingStart = performance.now();
 	const normalizedOptions = _duplicateEvaluationOptions(options);
 	const activity = normalizedOptions?.activity;
 	const item = normalizedOptions?.item;
-	const rollDataDocument = activity ?? item ?? subjectToken?.actor;
+	const rollDataDocument = activity ?? item ?? subjectToken?.actor ?? sourceActor;
 	const formulaData = normalizedOptions?.rollData && typeof normalizedOptions.rollData === 'object' ? normalizedOptions.rollData : (rollDataDocument?.getRollData?.() ?? {});
 	const formulaCompletedAt = performance.now();
+	const dataSourceActor = (activity ?? item)?.actor;
 	const dataActor =
-		subjectToken?.actor === (activity ?? item)?.actor ? 'rollingActor'
-		: opponentToken?.actor === (activity ?? item)?.actor ? 'opponentActor'
+		dataSourceActor && (subjectToken?.actor ?? sourceActor) === dataSourceActor ? 'rollingActor'
+		: dataSourceActor && (opponentToken?.actor ?? targetActor) === dataSourceActor ? 'opponentActor'
 		: null;
-	const rollingActor = dataActor === 'rollingActor' ? _ac5eActorRollData(subjectToken, formulaData) : _ac5eActorRollData(subjectToken);
+	const rollingActor = dataActor === 'rollingActor' ? _ac5eActorRollData(subjectToken, formulaData, sourceActor) : _ac5eActorRollData(subjectToken, null, sourceActor);
 	const rollingActorCompletedAt = performance.now();
-	const opponentActor = dataActor === 'opponentActor' ? _ac5eActorRollData(opponentToken, formulaData) : _ac5eActorRollData(opponentToken);
+	const opponentActor = dataActor === 'opponentActor' ? _ac5eActorRollData(opponentToken, formulaData, targetActor) : _ac5eActorRollData(opponentToken, null, targetActor);
 	const completedAt = performance.now();
 	if (globalThis.ac5e?.debug?.timings && opponentToken && completedAt - timingStart >= 25) {
 		console.warn(JSON.stringify({
@@ -1035,9 +1036,9 @@ export function _createEvaluationSandboxLogSnapshot(value) {
 	};
 }
 
-export function _createEvaluationSandbox({ subjectToken, opponentToken, options }) {
+export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceActor, targetActor, options }) {
 	const timingStart = performance.now();
-	const { rollingActor, opponentActor, activityData, itemData, formulaData } = _buildRollEvaluationData({ subjectToken, opponentToken, options });
+	const { rollingActor, opponentActor, activityData, itemData, formulaData } = _buildRollEvaluationData({ subjectToken, opponentToken, sourceActor, targetActor, options });
 	const rollDataCompletedAt = performance.now();
 	const sandbox = {
 		...lazySandbox,
@@ -1045,7 +1046,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	};
 	const sandboxOptions = options;
 	const activity = options.activity;
-	const item = activity?.item;
+	const item = activity?.item ?? options.item;
 	const resolvedMastery = sandboxOptions.mastery || itemData?.mastery || item?.system?.mastery;
 	sandbox.rollingActor = rollingActor || {};
 	sandbox.opponentActor = opponentActor || {};
@@ -1054,8 +1055,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	sandbox.optinSelected = sandboxOptions?.[Constants.MODULE_ID]?.optinSelected ?? {};
 	sandbox.tokenId = subjectToken?.id;
 	sandbox.tokenUuid = subjectToken?.document?.uuid;
-	sandbox.actorId = subjectToken?.actor?.id;
-	sandbox.actorUuid = subjectToken?.actor?.uuid;
+	sandbox.actorId = subjectToken?.actor?.id ?? sourceActor?.id;
+	sandbox.actorUuid = subjectToken?.actor?.uuid ?? sourceActor?.uuid;
 	sandbox.canMove = sandbox.rollingActor?.canMove;
 	const beforeVisibilityAt = performance.now();
 	let canSeeValue;
@@ -1070,12 +1071,12 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, options 
 	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
 	sandbox.opponentAC =
 		hookUsesTargetAC ?
-			(sandboxOptions?.targets?.find?.((t) => t.tokenUuid === opponentToken?.document?.uuid)?.ac ?? sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value)
-		:	opponentToken?.actor?.system?.attributes?.ac?.value;
+			(sandboxOptions?.targets?.find?.((t) => t.tokenUuid === opponentToken?.document?.uuid)?.ac ?? sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value ?? targetActor?.system?.attributes?.ac?.value)
+		:	(opponentToken?.actor ?? targetActor)?.system?.attributes?.ac?.value;
 	sandbox.opponentId = opponentToken?.id;
 	sandbox.opponentUuid = opponentToken?.document?.uuid;
-	sandbox.opponentActorId = opponentToken?.actor?.id;
-	sandbox.opponentActorUuid = opponentToken?.actor?.uuid;
+	sandbox.opponentActorId = opponentToken?.actor?.id ?? targetActor?.id;
+	sandbox.opponentActorUuid = opponentToken?.actor?.uuid ?? targetActor?.uuid;
 	let isSeenValue;
 	Object.defineProperty(sandbox, 'isSeen', {
 		configurable: true,
