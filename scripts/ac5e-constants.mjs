@@ -9,4 +9,5 @@ export default class Constants {
 	static GM_COMBAT_CADENCE_UPDATE = 'automated-conditions-5e.gmCombatCadenceUpdate';
 	static GM_CONTEXT_KEYWORDS_UPDATE = 'automated-conditions-5e.gmContextKeywordsUpdate';
 	static GM_USAGE_RULES_UPDATE = 'automated-conditions-5e.gmUsageRulesUpdate';
+	static GM_STATUS_EFFECT_OVERRIDES_UPDATE = 'automated-conditions-5e.gmStatusEffectOverridesUpdate';
 }

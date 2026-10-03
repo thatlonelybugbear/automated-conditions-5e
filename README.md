@@ -103,6 +103,8 @@ Hooks.on("ac5e.statusEffectsReady", ({ tables, overrides }) => {
 - `clear()` removes all overrides.
 - `list()` returns current registered overrides.
 
+For world-persistent overrides, use `persistent: true`, a stable `id`, and a sandboxed `condition` string. Function-valued `when` and `apply` callbacks remain runtime-only. See the [Status Effects Overrides API](wiki/Status-Effects-Overrides-API.md) for an example and details.
+
 ## Developer hook: evaluation state
 Integrations can set supported boolean evaluation-state entries before AC5E evaluates effects.
 

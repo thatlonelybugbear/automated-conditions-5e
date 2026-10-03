@@ -78,6 +78,7 @@ export default class Settings {
 	static REMOVE_NON5E_STATUSES = 'displayOnly5eStatuses';
 	static CONTEXT_KEYWORDS_REGISTRY = 'contextKeywordsRegistry';
 	static USAGE_RULES_REGISTRY = 'usageRulesRegistry';
+	static STATUS_EFFECT_OVERRIDES_REGISTRY = 'statusEffectOverridesRegistry';
 	static CONTEXT_KEYWORDS_ALLOW_PLAYER_PERSIST = 'contextKeywordsAllowPlayerPersist';
 	static DEV_MODE_ENABLED = 'devModeEnabled';
 	static ADVANTAGE_BEHAVIOR_OVERRIDE = 'advantageBehaviorOverride';
@@ -335,6 +336,13 @@ export default class Settings {
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.USAGE_RULES_REGISTRY, {
 			name: 'Usage rules registry',
+			scope: 'world',
+			config: false,
+			default: {},
+			type: Object,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.STATUS_EFFECT_OVERRIDES_REGISTRY, {
+			name: 'Status effect overrides registry',
 			scope: 'world',
 			config: false,
 			default: {},

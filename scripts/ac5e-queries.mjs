@@ -114,6 +114,23 @@ export async function _setUsageRulesSetting({ state } = {}) {
 	}
 }
 
+export async function _setStatusEffectOverridesSetting({ state } = {}) {
+	if (!state || typeof state !== 'object') return false;
+	const activeGM = game.users.activeGM;
+	if (!activeGM) return false;
+	try {
+		if (activeGM.id === game.user?.id) {
+			await game.settings.set(Constants.MODULE_ID, Settings.STATUS_EFFECT_OVERRIDES_REGISTRY, state);
+			return true;
+		}
+		await activeGM.query(Constants.GM_STATUS_EFFECT_OVERRIDES_UPDATE, { state });
+		return true;
+	} catch (err) {
+		console.error('setStatusEffectOverridesSetting failed:', err);
+		return false;
+	}
+}
+
 export function _gmEffectDeletions({ validEffectDeletionsGM = [] } = {}) {
 	const uuids = Array.from(new Set(validEffectDeletionsGM || []));
 	if (!uuids.length) return;
@@ -209,6 +226,18 @@ export async function _gmUsageRulesUpdate({ state } = {}) {
 		return true;
 	} catch (err) {
 		console.error(`${Constants.GM_USAGE_RULES_UPDATE} failed:`, err);
+		return false;
+	}
+}
+
+export async function _gmStatusEffectOverridesUpdate({ state } = {}) {
+	if (!game.user?.isGM) return false;
+	if (!state || typeof state !== 'object') return false;
+	try {
+		await game.settings.set(Constants.MODULE_ID, Settings.STATUS_EFFECT_OVERRIDES_REGISTRY, state);
+		return true;
+	} catch (err) {
+		console.error(`${Constants.GM_STATUS_EFFECT_OVERRIDES_UPDATE} failed:`, err);
 		return false;
 	}
 }

@@ -2,8 +2,8 @@ import { _autoArmor, _activeModule, _buildFlagRegistry, _generateAC5eFlags, _get
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _renderHijack, _renderSettings, _rollFunctions } from './ac5e-hooks.mjs';
 import { _migrate } from './ac5e-migrations.mjs';
-import { _gmCombatCadenceUpdate, _gmContextKeywordsUpdate, _gmDocumentUpdates, _gmEffectDeletions, _gmStatusToggles, _gmUsageRulesUpdate } from './ac5e-queries.mjs';
-import { _initStatusEffectsTables, _syncCombatCadenceFlags } from './ac5e-setpieces.mjs';
+import { _gmCombatCadenceUpdate, _gmContextKeywordsUpdate, _gmDocumentUpdates, _gmEffectDeletions, _gmStatusEffectOverridesUpdate, _gmStatusToggles, _gmUsageRulesUpdate } from './ac5e-queries.mjs';
+import { _initStatusEffectsTables, _syncCombatCadenceFlags, loadPersistentStatusEffectOverrides, onStatusEffectOverridesRegistrySettingUpdate } from './ac5e-setpieces.mjs';
 import { autoRanged, canSee, checkNearby, checkRanged, overtimeHazards } from './ac5e-systemRules.mjs';
 import { registerEffectValueEditorHooks } from './apps/ac5e-effect-value-sheet-hooks.mjs';
 import {
@@ -104,6 +104,7 @@ function ac5eSetup() {
 	});
 	loadPersistentContextKeywords();
 	loadPersistentUsageRules();
+	loadPersistentStatusEffectOverrides();
 	statusEffectsTables = _initStatusEffectsTables();
 	const hooksRegistered = registerHooks(settings);
 	setTimeout(rehydrateVisibleChatTooltips);
@@ -219,6 +220,7 @@ function registerHooks(settings) {
 	hooksRegistered['updateCombat.hazards'] = Hooks.on('updateCombat', overtimeHazards);
 	hooksRegistered['updateSetting.contextKeywords'] = Hooks.on('updateSetting', onContextKeywordsRegistrySettingUpdate);
 	hooksRegistered['updateSetting.usageRules'] = Hooks.on('updateSetting', onUsageRulesRegistrySettingUpdate);
+	hooksRegistered['updateSetting.statusEffectOverrides'] = Hooks.on('updateSetting', onStatusEffectOverridesRegistrySettingUpdate);
 	hooksRegistered.renderActiveEffectConfig = registerEffectValueEditorHooks();
 	for (const hookName of ['createActor', 'updateActor', 'deleteActor', 'createItem', 'updateItem', 'deleteItem', 'createActiveEffect', 'updateActiveEffect', 'deleteActiveEffect']) {
 		hooksRegistered[hookName] = Hooks.on(hookName, (document) => _reindexFlagRegistryActor(document));
@@ -305,4 +307,5 @@ function registerQueries() {
 	CONFIG.queries[Constants.GM_COMBAT_CADENCE_UPDATE] = _gmCombatCadenceUpdate;
 	CONFIG.queries[Constants.GM_CONTEXT_KEYWORDS_UPDATE] = _gmContextKeywordsUpdate;
 	CONFIG.queries[Constants.GM_USAGE_RULES_UPDATE] = _gmUsageRulesUpdate;
+	CONFIG.queries[Constants.GM_STATUS_EFFECT_OVERRIDES_UPDATE] = _gmStatusEffectOverridesUpdate;
 }

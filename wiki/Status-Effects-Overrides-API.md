@@ -1,8 +1,8 @@
 # Status Effects Overrides API
 
-Applies to version: `13.5250.6`
+Runtime API since `13.5250.6`; persistent overrides since `14.605.1`.
 
-This page documents the runtime API for overriding AC5e built-in status automation rules.
+This page documents the API for overriding AC5e built-in status automation rules.
 
 ## Overview
 
@@ -25,12 +25,14 @@ You can register from `Hooks.on("ac5e.statusEffectsReady", ...)` or at runtime (
 
 ```js
 const id = ac5e.statusEffectsOverrides.register({
-  id,        // optional string
+  id,         // optional string
+  persistent, // optional boolean, default false
   name,      // optional string
   priority,  // optional number, default 0
   status,    // optional string | string[], default "*"
   hook,      // optional string | string[], default "*"
-  type,      // optional string | string[], default "*"
+  type,       // optional string | string[], default "*"
+  condition,  // optional AC5E sandbox expression
   when,      // optional function | false
   apply,     // optional function
   result     // optional fallback result
@@ -105,6 +107,24 @@ Function signature:
 ```js
 when({ status, hook, type, context, result }) => boolean
 ```
+
+### `persistent` and `condition` (optional)
+
+Set `persistent: true` to save a static override in the world settings so it survives reloads. Use a stable `id` to update or remove it later. A generated ID avoids collisions with existing overrides, but may differ between sessions. Use a serializable AC5E sandbox expression in `condition`, for example:
+
+```js
+ac5e.statusEffectsOverrides.register({
+  id: "ignore-prone-low-hp",
+  persistent: true,
+  status: "prone",
+  hook: "attack",
+  type: "opponent",
+  condition: "opponentActor.attributes.hp.value < 120",
+  result: ""
+});
+```
+
+`when: false` remains disabled after reload. Function-valued `when` and `apply` callbacks remain runtime-only and cause a requested persistent override to fall back to runtime registration. Registering a runtime override with the same `id` removes the saved version.
 
 ### `apply` (optional)
 

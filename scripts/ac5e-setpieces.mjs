@@ -24,7 +24,7 @@ import {
 import { _parseAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _createEvaluationSandboxLogSnapshot, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
-import { _doQueries, _setCombatCadenceFlag } from './ac5e-queries.mjs';
+import { _doQueries, _setCombatCadenceFlag, _setStatusEffectOverridesSetting } from './ac5e-queries.mjs';
 import { ac5eQueue, statusEffectsTables } from './ac5e-main.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -34,6 +34,50 @@ const statusEffectsOverrideState = {
 	list: [],
 	seq: 1,
 };
+
+function _buildStatusEffectOverridesState() {
+	const entries = {};
+	for (const entry of statusEffectsOverrideState.list) {
+		if (!entry.persistent) continue;
+		entries[entry.id] = {
+			name: entry.name,
+			priority: entry.priority,
+			status: entry.status,
+			hook: entry.hook,
+			type: entry.type,
+			when: entry.when === false ? false : undefined,
+			condition: entry.condition,
+			result: entry.result,
+		};
+	}
+	return { schema: 1, updatedAt: Date.now(), entries };
+}
+
+function _persistStatusEffectOverrides() {
+	return _setStatusEffectOverridesSetting({ state: _buildStatusEffectOverridesState() });
+}
+
+export function loadPersistentStatusEffectOverrides(state = null) {
+	const source = state ?? game.settings.get(Constants.MODULE_ID, Settings.STATUS_EFFECT_OVERRIDES_REGISTRY) ?? {};
+	const root = source?.entries && typeof source.entries === 'object' ? source.entries : source;
+	statusEffectsOverrideState.list = statusEffectsOverrideState.list.filter((entry) => !entry.persistent);
+	for (const [id, override] of Object.entries(root ?? {})) {
+		if (!override || typeof override !== 'object') continue;
+		statusEffectsOverrideState.list.push({
+			id,
+			name: override.name ?? undefined,
+			priority: Number.isFinite(override.priority) ? override.priority : 0,
+			status: override.status ?? '*',
+			hook: override.hook ?? '*',
+			type: override.type ?? '*',
+			when: override.when === false ? false : undefined,
+			condition: typeof override.condition === 'string' ? override.condition.trim() : undefined,
+			result: override.result,
+			persistent: true,
+		});
+	}
+	return statusEffectsOverrideState.list.filter((entry) => entry.persistent).length;
+}
 const CADENCE_FLAG_KEY = 'cadence';
 
 function _buildCadenceFlagReplacement(state) {
@@ -481,8 +525,16 @@ export function registerStatusEffectOverride(override = {}) {
 	//   apply: ({ result }) => (result === "disadvantage" ? "" : result),
 	// });
 	// ac5e.statusEffectsOverrides.remove(id);
+	const requestedPersistent = Boolean(override.persistent);
+	const hasRuntimeCallbacks = typeof override.when === 'function' || typeof override.apply === 'function';
+	if (requestedPersistent && hasRuntimeCallbacks) console.warn('AC5E status effect override callbacks cannot be persisted; registering runtime only.');
+	let id = override.id;
+	if (id == null) {
+		do id = `ac5e-status-override-${statusEffectsOverrideState.seq++}`;
+		while (statusEffectsOverrideState.list.some((candidate) => candidate.id === id));
+	}
 	const entry = {
-		id: override.id ?? `ac5e-status-override-${statusEffectsOverrideState.seq++}`,
+		id,
 		name: override.name ?? undefined,
 		priority: Number.isFinite(override.priority) ? override.priority : 0,
 		status: override.status ?? '*',
@@ -490,24 +542,39 @@ export function registerStatusEffectOverride(override = {}) {
 		type: override.type ?? '*',
 		when: override.when,
 		apply: override.apply,
+		condition: typeof override.condition === 'string' ? override.condition.trim() : undefined,
 		result: override.result,
+		persistent: requestedPersistent && !hasRuntimeCallbacks,
 	};
+	const existing = statusEffectsOverrideState.list.findIndex((candidate) => candidate.id === entry.id);
+	const replacedPersistent = existing >= 0 && statusEffectsOverrideState.list[existing].persistent;
+	if (existing >= 0) statusEffectsOverrideState.list.splice(existing, 1);
 	statusEffectsOverrideState.list.push(entry);
+	if (entry.persistent || replacedPersistent) _persistStatusEffectOverrides();
 	return entry.id;
 }
 
 export function removeStatusEffectOverride(id) {
 	const index = statusEffectsOverrideState.list.findIndex((entry) => entry.id === id);
+	const persistent = index >= 0 && statusEffectsOverrideState.list[index].persistent;
 	if (index >= 0) statusEffectsOverrideState.list.splice(index, 1);
+	if (persistent) _persistStatusEffectOverrides();
 	return index >= 0;
 }
 
 export function clearStatusEffectOverrides() {
+	const hadPersistent = statusEffectsOverrideState.list.some((entry) => entry.persistent);
 	statusEffectsOverrideState.list.length = 0;
+	if (hadPersistent) _persistStatusEffectOverrides();
 }
 
 export function listStatusEffectOverrides() {
 	return statusEffectsOverrideState.list.slice();
+}
+
+export function onStatusEffectOverridesRegistrySettingUpdate(setting) {
+	if (setting?.key !== `${Constants.MODULE_ID}.${Settings.STATUS_EFFECT_OVERRIDES_REGISTRY}`) return;
+	loadPersistentStatusEffectOverrides(setting?.value ?? setting?._source?.value ?? null);
 }
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
@@ -599,10 +666,15 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 					hook: options.hook,
 					type,
 					context,
+					evaluationData: statusEvaluationData,
 					exhaustionLvl,
 					isSubjectExhausted,
 				});
 				const test = statusOutcome?.result ?? '';
+				if (statusOutcome?.suppressed) {
+					ac5eConfig[type].suppressedStatuses ??= [];
+					ac5eConfig[type].suppressedStatuses.push(withStatusOverrideLabel(tables?.[status]?.name, statusOutcome.overrideName));
+				}
 
 				if (!test) continue;
 				if (settings.debug) console.log(type, test);
@@ -1094,15 +1166,15 @@ function isFrightenedByVisibleSource(ctx) {
 	});
 }
 
-function getStatusEffectResult({ status, statusEntry, hook, type, context, exhaustionLvl, isSubjectExhausted }) {
+function getStatusEffectResult({ status, statusEntry, hook, type, context, evaluationData, exhaustionLvl, isSubjectExhausted }) {
 	if (!statusEntry) return { result: '', overrideName: undefined };
 	if (status === 'exhaustion' && isSubjectExhausted) {
 		const levelRules = statusEntry.rules?.levels?.[exhaustionLvl];
 		const result = evaluateStatusRule(levelRules?.[hook]?.[type], context);
-		return applyStatusEffectOverrides({ status, hook, type, context, result });
+		return applyStatusEffectOverrides({ status, hook, type, context, evaluationData, result });
 	}
 	const result = evaluateStatusRule(statusEntry.rules?.[hook]?.[type], context);
-	return applyStatusEffectOverrides({ status, hook, type, context, result });
+	return applyStatusEffectOverrides({ status, hook, type, context, evaluationData, result });
 }
 
 function evaluateStatusRule(rule, context) {
@@ -1119,13 +1191,14 @@ function withStatusOverrideLabel(baseName, overrideName) {
 	return `${base} (${override})`;
 }
 
-function applyStatusEffectOverrides({ status, hook, type, context, result }) {
+function applyStatusEffectOverrides({ status, hook, type, context, evaluationData, result }) {
 	if (!statusEffectsOverrideState.list.length) return { result, overrideName: undefined };
 	const matches = statusEffectsOverrideState.list.filter((entry) => matchesStatusEffectOverride(entry, status, hook, type)).sort((a, b) => (a.priority || 0) - (b.priority || 0));
 	if (!matches.length) return { result, overrideName: undefined };
 	let nextResult = result;
 	let overrideName;
 	for (const entry of matches) {
+		if (entry.condition && !_ac5eSafeEval({ expression: entry.condition, sandbox: evaluationData, mode: 'condition', debug: { statusEffectOverrideId: entry.id } })) continue;
 		if (typeof entry.when === 'function') {
 			if (!entry.when({ status, hook, type, context, result: nextResult })) continue;
 		} else if (entry.when === false) {
@@ -1140,7 +1213,7 @@ function applyStatusEffectOverrides({ status, hook, type, context, result }) {
 		}
 		if (entry.result !== undefined) nextResult = entry.result;
 	}
-	return { result: nextResult, overrideName };
+	return { result: nextResult, overrideName, suppressed: Boolean(result) && !nextResult };
 }
 
 function matchesStatusEffectOverride(entry, status, hook, type) {
