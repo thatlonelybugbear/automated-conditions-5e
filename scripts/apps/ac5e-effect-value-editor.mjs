@@ -1878,6 +1878,7 @@ function renderAssistEntryGroups(assist) {
 		const damageTypes = Array.isArray(assist?.scopedEntries?.damageTypes) ? assist.scopedEntries.damageTypes : [];
 		const healingTypes = Array.isArray(assist?.scopedEntries?.healingTypes) ? assist.scopedEntries.healingTypes : [];
 		return `
+			<label class="ac5e-effect-value-editor-inline-toggle" title="${escapeHtml(editorAssist('AddTypeChoicesHint'))}"><input type="checkbox" data-ac5e-add-type-choices><span>${escapeHtml(editorAssist('AddTypeChoices'))}</span></label>
 			${renderAssistActionFieldset(editorAssist('DamageTypes'), damageTypes, 'ac5e-assist-entry', 'button', 'type-override-damage', true)}
 			${renderAssistActionFieldset(editorAssist('HealingTypes'), healingTypes, 'ac5e-assist-entry', 'button', 'type-override-healing', true)}
 		`;
@@ -1988,6 +1989,16 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 	if (assistScope) assistRoot.dataset.ac5eAssistScope = assistScope;
 	const textarea = assistRoot.querySelector('textarea[name="value"]');
 	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	const addTypeChoices = assistRoot.querySelector('[data-ac5e-add-type-choices]');
+	if (addTypeChoices) {
+		const sync = () => { addTypeChoices.checked = textarea.value.trim().startsWith('+'); };
+		addTypeChoices.addEventListener('change', () => {
+			textarea.value = `${addTypeChoices.checked ? '+' : ''}${textarea.value.trim().replace(/^\+/, '')}`;
+			textarea.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		textarea.addEventListener('input', sync);
+		sync();
+	}
 	if (isEditorAutocompleteDebugEnabled()) {
 		console.debug('AC5E | autocomplete.editor | prepare assist', {
 			scope: assistScope,
@@ -2115,7 +2126,7 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 				return;
 			}
 			if (assistScope === 'typeOverride' || assistScope === 'abilityOverride') {
-				insertDelimitedAssistEntry(textarea, value, selectionState);
+				insertDelimitedAssistEntry(textarea, value, selectionState, assistScope === 'typeOverride');
 				return;
 			}
 			if (applyProfileAssistEntrySelection(textarea, value, assistRoot, assist, selectionState)) return;
@@ -2677,6 +2688,7 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 		assistScope === 'typeOverride' ?
 			new Set(
 				`${textarea.value ?? ''}`
+					.trim().replace(/^\+/, '')
 					.split(',')
 					.map((entry) => entry.trim().toLowerCase())
 					.filter(Boolean),
@@ -3078,14 +3090,15 @@ function syncAddToAssistUi(root, textarea) {
 	}
 }
 
-function insertDelimitedAssistEntry(input, rawValue, selectionState = null) {
+function insertDelimitedAssistEntry(input, rawValue, selectionState = null, allowAddTypes = false) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 	const value = `${rawValue ?? ''}`.trim();
 	if (!value) return;
-	const current = `${input.value ?? ''}`.trim();
+	const prefix = allowAddTypes && input.value.trim().startsWith('+') ? '+' : '';
+	const current = `${input.value ?? ''}`.trim().slice(prefix.length);
 	if (!current) {
-		input.value = value;
-		const cursor = value.length;
+		input.value = `${prefix}${value}`;
+		const cursor = input.value.length;
 		input.focus();
 		input.setSelectionRange(cursor, cursor);
 		if (selectionState) {
@@ -3101,7 +3114,7 @@ function insertDelimitedAssistEntry(input, rawValue, selectionState = null) {
 		.map((entry) => entry.trim())
 		.filter(Boolean);
 	if (parts.includes(value)) return;
-	const next = `${parts.join(', ')}, ${value}`;
+	const next = `${prefix}${parts.join(', ')}, ${value}`;
 	input.value = next;
 	const cursor = next.length;
 	input.focus();

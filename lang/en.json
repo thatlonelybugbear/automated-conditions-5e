@@ -602,6 +602,8 @@
 			"UpdateQuickTargets": "Update quick targets",
 			"DamageTypes": "Damage Types",
 			"HealingTypes": "Healing Types",
+			"AddTypeChoices": "Add to existing type choices",
+			"AddTypeChoicesHint": "Adds the selected types to each affected part's existing dropdown choices instead of replacing them. Does not add extra damage. Stores a + prefix in the override value.",
 			"AbilityOverrideEntries": "Ability Override entries",
 			"WhichDamageParts": "Which Damage Parts",
 			"SelectedOptin": "Selected Optin",

@@ -526,15 +526,17 @@ function syncDamageRollTypeOverrideOptions(ac5eConfig, rolls) {
 	}
 }
 
-function parseDamageTypeOverrideSet(value) {
+function parseDamageTypeOverrideSet(value, currentTypes = []) {
 	const validOverrideTypes = new Set([
 		...Object.keys(CONFIG?.DND5E?.damageTypes ?? {}),
 		...Object.keys(CONFIG?.DND5E?.healingTypes ?? {}),
 	].map((key) => key.toLowerCase()));
-	return String(value ?? '')
+	const raw = String(value ?? '').trim();
+	const addedTypes = raw.startsWith('+') ? normalizeDamageTypeList(currentTypes) : [];
+	return [...addedTypes, ...raw.replace(/^\+/, '')
 		.split(',')
 		.map((part) => String(part ?? '').trim().toLowerCase())
-		.filter((part) => part && validOverrideTypes.has(part))
+		.filter((part) => part && validOverrideTypes.has(part))]
 		.filter((part, index, arr) => arr.indexOf(part) === index);
 }
 
@@ -1515,7 +1517,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		let rollType = baseDamageTypeArray[index] ?? getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 		for (const entry of baseDamageTypeOverrideEntries) {
 			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) continue;
-			const overrideTypes = parseDamageTypeOverrideSet(entry?.set);
+			const overrideTypes = parseDamageTypeOverrideSet(entry?.set, [rollType]);
 			if (overrideTypes.length) rollType = overrideTypes[0];
 		}
 		return rollType;
@@ -1745,8 +1747,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			const part = bonusPartsByRoll[index][partIndex];
 			const optinId = bonusPartOptinIdsByRoll[index][partIndex];
 			const overrideEntry = targetedDamageTypeOverrideEntries.find((entry) => resolveEntryAddTo(entry).optinId === optinId);
-			const overrideTypes = parseDamageTypeOverrideSet(overrideEntry?.set);
 			const baseType = getEffectiveDamageRollType(index);
+			const overrideTypes = parseDamageTypeOverrideSet(overrideEntry?.set, [baseType]);
 			if (!overrideTypes.length || (overrideTypes.length === 1 && overrideTypes[0] === baseType)) {
 				retainedParts.push(part);
 				retainedOptinIds.push(optinId);
@@ -1774,7 +1776,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		let syntheticRollType = typeof entry.type === 'string' && entry.type.trim() ? entry.type.trim().toLowerCase() : syntheticRollTypes[0];
 		for (const typeOverrideEntry of baseDamageTypeOverrideEntries) {
 			if (!shouldApplyDamageEntryToSyntheticRoll(typeOverrideEntry, syntheticRollType, syntheticRollTypes, { selectedTypes: allTypes })) continue;
-			const overrideTypes = parseDamageTypeOverrideSet(typeOverrideEntry?.set);
+			const overrideTypes = parseDamageTypeOverrideSet(typeOverrideEntry?.set, syntheticRollTypes.length ? syntheticRollTypes : [syntheticRollType]);
 			if (!overrideTypes.length) continue;
 			syntheticRollTypes = [...overrideTypes];
 			syntheticRollType = overrideTypes.includes(syntheticRollType) ? syntheticRollType : overrideTypes[0];
@@ -1945,11 +1947,11 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				applies,
 			});
 			if (!applies) continue;
-			const overrideTypes = parseDamageTypeOverrideSet(entry?.set);
+			const overrideTypes = parseDamageTypeOverrideSet(entry?.set, nextTypes.length ? nextTypes : [nextType]);
 			if (!overrideTypes.length) continue;
 			const currentSelectedType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
 			nextTypes = [...overrideTypes];
-			nextType = overrideTypes[0];
+			nextType = String(entry?.set ?? '').trim().startsWith('+') && overrideTypes.includes(nextType) ? nextType : overrideTypes[0];
 			debugTypeOverrideLog('apply base override', {
 				index,
 				label: entry?.label ?? entry?.name,
