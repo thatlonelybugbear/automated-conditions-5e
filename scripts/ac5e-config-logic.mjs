@@ -43,8 +43,9 @@ function _getResolvedAdvantageMode(config = {}) {
 	if (typeof optionMode === 'number') return optionMode;
 	const rollMode = config?.rolls?.[0]?.options?.advantageMode;
 	if (typeof rollMode === 'number') return rollMode;
-	const advantage = config?.advantage;
-	const disadvantage = config?.disadvantage;
+	const rollOptions = config?.rolls?.[0]?.options ?? {};
+	const advantage = config?.advantage === true || rollOptions.advantage === true;
+	const disadvantage = config?.disadvantage === true || rollOptions.disadvantage === true;
 	if (advantage === true && disadvantage !== true) return CONFIG?.Dice?.D20Roll?.ADV_MODE?.ADVANTAGE ?? 1;
 	if (disadvantage === true && advantage !== true) return CONFIG?.Dice?.D20Roll?.ADV_MODE?.DISADVANTAGE ?? -1;
 	if (advantage === true || disadvantage === true) return CONFIG?.Dice?.D20Roll?.ADV_MODE?.NORMAL ?? 0;
@@ -463,8 +464,9 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		ac5eConfig.preAC5eConfig.forceChatTooltip = needsAbilityTooltipFallback;
 	}
 	ac5eConfig.roller = roller;
-	ac5eConfig.preAC5eConfig.adv = config.advantage;
-	ac5eConfig.preAC5eConfig.dis = config.disadvantage;
+	const rollOptions = config?.rolls?.[0]?.options ?? {};
+	ac5eConfig.preAC5eConfig.adv = config?.advantage === true || rollOptions.advantage === true;
+	ac5eConfig.preAC5eConfig.dis = config?.disadvantage === true || rollOptions.disadvantage === true;
 	ac5eConfig.preAC5eConfig.advantageMode = _getResolvedAdvantageMode(config);
 	return { ac5eConfig, actor, midiRoller, roller };
 }
@@ -586,8 +588,8 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	ac5eConfig.subject.midiFail = midiAbilityFailAttribution;
 	ac5eConfig.subject.midiSuccess = midiAbilitySuccessAttribution;
 	const incomingAdvantageMode = ac5eConfig.preAC5eConfig?.advantageMode;
-	const incomingAdvantage = _modeHasAdvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && config.advantage === true && config.disadvantage !== true);
-	const incomingDisadvantage = _modeHasDisadvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && config.disadvantage === true && config.advantage !== true);
+	const incomingAdvantage = _modeHasAdvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && ac5eConfig.preAC5eConfig.adv === true && ac5eConfig.preAC5eConfig.dis !== true);
+	const incomingDisadvantage = _modeHasDisadvantage(incomingAdvantageMode) || (incomingAdvantageMode === null && ac5eConfig.preAC5eConfig.dis === true && ac5eConfig.preAC5eConfig.adv !== true);
 	if (hookType === 'attack' && globalThis.ac5e?.debug?.midiVisibilityImport) {
 		const midiConfig = globalThis.MidiQOL?.configSettings?.();
 		_logMidiVisibilityDebug({

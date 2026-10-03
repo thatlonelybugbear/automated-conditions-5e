@@ -1572,8 +1572,8 @@ function freezeRollProfileSnapshot(profile = {}, roll0 = {}, config = {}, ac5eCo
 	const frozenParts = Object.freeze(foundry.utils.duplicate(parts));
 	const frozenAppliedParts = Object.freeze(foundry.utils.duplicate(appliedParts));
 	const frozenButtons = Object.freeze({
-		advantage: !!config?.advantage,
-		disadvantage: !!config?.disadvantage,
+		advantage: config?.advantage === true || roll0Options.advantage === true,
+		disadvantage: config?.disadvantage === true || roll0Options.disadvantage === true,
 		advantageMode: roll0Options.advantageMode ?? ac5eConfig?.advantageMode ?? null,
 		defaultButton: ac5eConfig?.defaultButton ?? null,
 	});
