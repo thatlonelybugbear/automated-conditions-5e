@@ -577,7 +577,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 			if (foundry.utils.isEmpty(actor)) continue;
 			const isSubjectExhausted = settings.autoExhaustion && type === 'subject' && actor?.statuses.has('exhaustion');
 			const exhaustionLvl = isSubjectExhausted && actor.system?.attributes.exhaustion >= 3 ? 3 : 1;
-			const context = buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type });
+			const context = buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type, evaluationData: statusEvaluationData });
 			let actorStatuses = Array.from(actor.statuses ?? []);
 			const raging = actor.appliedEffects.some((effect) => {
 				return ['rage', 'raging'].includes(effect.parent?.identifier) || [_localize('AC5E.Rage'), _localize('AC5E.Raging')].includes(effect.name);
@@ -759,14 +759,13 @@ function cloneCheckSide(side = {}) {
 	return clone;
 }
 
-function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type } = {}) {
+function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type, evaluationData } = {}) {
 	const { ability, activity, attackMode, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
 	const distanceUnit = canvas.grid.distance;
 	const subject = subjectToken?.actor;
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	const hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
 	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
@@ -780,7 +779,8 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 		distanceUnit,
 		exhaustionLvl,
 		hook,
-		hasDamage,
+		hasAttack: evaluationData?.hasAttack,
+		hasDamage: evaluationData?.hasDamage,
 		isConcentration,
 		isDeathSave,
 		isInitiative,
@@ -938,7 +938,7 @@ function buildStatusEffectsTables() {
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: (ctx) => (['str', 'dex'].includes(ctx.ability) ? 'fail' : '') },
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -974,7 +974,7 @@ function buildStatusEffectsTables() {
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 			save: { subject: (ctx) => (['dex', 'str'].includes(ctx.ability) ? 'fail' : '') },
 		}),
 

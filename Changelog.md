@@ -1,6 +1,7 @@
 ## 14.605.1
 
 - Fixed `damage.typeOverride` ignoring healing types such as `temphp`.
+- Fixed Paralyzed and Unconscious conditions triggering critical damage not only for Attacks.
 
 ## 14.603.2
 
