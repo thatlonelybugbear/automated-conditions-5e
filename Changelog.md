@@ -1,3 +1,7 @@
+## 14.605.1
+
+- Fixed `damage.typeOverride` ignoring healing types such as `temphp`.
+
 ## 14.603.2
 
 - Improved WAVES cover integration.

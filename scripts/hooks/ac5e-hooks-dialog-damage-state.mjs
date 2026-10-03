@@ -527,11 +527,14 @@ function syncDamageRollTypeOverrideOptions(ac5eConfig, rolls) {
 }
 
 function parseDamageTypeOverrideSet(value) {
-	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => key.toLowerCase()));
+	const validOverrideTypes = new Set([
+		...Object.keys(CONFIG?.DND5E?.damageTypes ?? {}),
+		...Object.keys(CONFIG?.DND5E?.healingTypes ?? {}),
+	].map((key) => key.toLowerCase()));
 	return String(value ?? '')
 		.split(',')
 		.map((part) => String(part ?? '').trim().toLowerCase())
-		.filter((part) => part && knownDamageTypes.has(part))
+		.filter((part) => part && validOverrideTypes.has(part))
 		.filter((part, index, arr) => arr.indexOf(part) === index);
 }
 
