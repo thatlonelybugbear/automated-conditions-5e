@@ -616,6 +616,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const assistScope = resolveAssistScope(inputName, currentValue, changeKey);
 		const normalizedInputName = `${inputName ?? ''}`.trim().toLowerCase();
 		const isBonusExpand = normalizedInputName === 'fields.bonus' || normalizedInputName === 'fields.set';
+		const isDamageBonusExpand = normalizedInputName === 'fields.bonus' && /\.damage\.bonus$/i.test(changeKey);
 		const hasUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const assist = buildLambdaAssistData(this.autocompleteEntries, {
 			includeAuraActor: assistProfile.isAura,
@@ -690,6 +691,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 										<textarea id="ac5e-expand-value" name="value" rows="${textAreaRows}" placeholder="${escapeHtml(isAddToScope ? game.i18n.localize('AC5E.EffectValueEditor.Placeholder.AddToExamples') : '')}">${escapedValue}</textarea>
 									</div>
 								</div>
+								${isDamageBonusExpand ? renderAssistActionFieldset(editorAssist('DamageTypes'), buildTypeOverrideScopedEntries().damageTypes, 'ac5e-bonus-damage-type', 'button', 'bonus-damage-types', true) : ''}
 								${assistControls}
 							</section>
 							${asideMarkup}
@@ -740,6 +742,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					}
 					const assistRoot = textarea.closest('form') ?? dialog.element;
 					prepareLambdaAssist(assistRoot, assist, assistScope);
+					if (isDamageBonusExpand) bindBonusDamageTypeButtons(assistRoot, textarea);
 					textarea.focus();
 					const cursor = textarea.value.length;
 					textarea.setSelectionRange(cursor, cursor);
@@ -1800,6 +1803,32 @@ function renderAssistActionFieldset(title, values, dataAttribute, kind = 'button
 			</div>
 		</fieldset>
 	`;
+}
+
+function bindBonusDamageTypeButtons(root, textarea) {
+	const buttons = root.querySelectorAll('[data-ac5e-bonus-damage-type]');
+	const parse = () => {
+		const match = textarea.value.match(/^(.*?)\s*\[([^\[\]]*)\]\s*$/s);
+		return { formula: match ? match[1].trimEnd() : textarea.value.trimEnd(), types: match ? match[2].split(',').map((type) => type.trim()).filter(Boolean) : [] };
+	};
+	const sync = () => {
+		const selected = new Set(parse().types);
+		for (const button of buttons) button.classList.toggle('active', selected.has(button.dataset.ac5eBonusDamageType));
+	};
+	for (const button of buttons) {
+		button.addEventListener('click', () => {
+			const type = button.dataset.ac5eBonusDamageType;
+			const { formula, types } = parse();
+			const selected = new Set(types);
+			if (selected.has(type)) selected.delete(type);
+			else selected.add(type);
+			textarea.value = `${formula}${selected.size ? `[${[...selected].join(',')}]` : ''}`;
+			textarea.dispatchEvent(new Event('input', { bubbles: true }));
+			textarea.focus();
+		});
+	}
+	textarea.addEventListener('input', sync);
+	sync();
 }
 
 function renderAssistCombinedFieldset(title, rootValues, entryValues, section = '', compact = false) {
