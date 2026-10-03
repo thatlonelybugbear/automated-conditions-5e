@@ -1,7 +1,7 @@
 import Constants from '../ac5e-constants.mjs';
 import { _buildStandardTooltipFromLines, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
 import { getAskPermissionSourceSuffix, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
-import { getAbilityOverrideOptinChoices, getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
+import { getAbilityOverrideOptinChoices, getCharmedUseOptinChoices, getResolvedUseDisplayState, getTargetADCOptinChoices } from './ac5e-hooks-use-activity.mjs';
 
 export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	if (!dialog || !elem) return true;
@@ -11,7 +11,7 @@ export function renderActivityUsageDialogHijack(dialog, elem, deps = {}) {
 	const activity = dialog.activity;
 	if (!ac5eConfig || !activity) return true;
 
-	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity)];
+	const choices = [...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity), ...getCharmedUseOptinChoices(ac5eConfig)];
 	const root = elem instanceof HTMLElement ? elem : elem?.[0] ?? null;
 	logUsageDialogRenderDebug('renderActivityUsageDialogHijack.entry', {
 		dialogClass: dialog?.constructor?.name ?? null,
@@ -148,7 +148,7 @@ function syncSelectionsToUsageConfig(fieldset, usageConfig, root, choices, ac5eC
 		usageConfig[Constants.MODULE_ID].optinSelected[optinId] = !!target.checked;
 		const refreshedChoices =
 			activity ?
-				[...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity)]
+				[...getTargetADCOptinChoices(ac5eConfig, activity), ...getAbilityOverrideOptinChoices(ac5eConfig, activity), ...getCharmedUseOptinChoices(ac5eConfig)]
 			:	choices;
 		if (activity) {
 			const groupedChoices = groupChoicesForDisplay(refreshedChoices, ac5eConfig);

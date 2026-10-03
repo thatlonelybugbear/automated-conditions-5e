@@ -608,6 +608,32 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 				if (settings.debug) console.log(type, test);
 				const effectName = withStatusOverrideLabel(tables?.[status]?.name, statusOutcome?.overrideName);
 				if (effectName) {
+					if (status === 'charmed' && options.hook === 'use' && type === 'subject' && test === 'fail') {
+						const id = `ac5e:charmed:${subjectToken.actor.uuid}:${opponentToken.actor.uuid}:use`;
+						const preselected = !!(context.hasAttack || context.hasDamage);
+						ac5eConfig.subject.fail.push({
+							id, name: effectName, label: _localize('AC5E.TargetIsYourCharmer'), tooltipLabel: effectName,
+							hook: 'use', mode: 'fail', actorType: 'subject', target: 'subject',
+							optin: true, preselected, forceOptin: false, evaluation: true,
+							sourceActorId: subjectToken.actor.id, sourceActorName: subjectToken.actor.name,
+							changeKey: 'ac5e.synthetic.charmed.use',
+						});
+						addDefaultOptinSelection(ac5eConfig, id, preselected);
+						continue;
+					}
+					if (status === 'charmed' && options.hook === 'check' && type === 'opponent' && test === 'advantage') {
+						const id = `ac5e:charmed:${subjectToken.actor.uuid}:${opponentToken.actor.uuid}:check`;
+						ac5eConfig.opponent.advantage.push({
+							id, name: effectName, label: _localize('AC5E.TargetCharmedByYou'), tooltipLabel: effectName, hook: 'check', mode: 'advantage',
+							description: _localize('AC5E.TargetCharmedByYouDescription'),
+							actorType: 'opponent', target: 'opponent', optin: true, preselected: true,
+							forceOptin: false, evaluation: true,
+							sourceActorId: opponentToken.actor.id, sourceActorName: opponentToken.actor.name,
+							changeKey: 'ac5e.synthetic.charmed.check',
+						});
+						addDefaultOptinSelection(ac5eConfig, id, true);
+						continue;
+					}
 					if (test.includes('advantageNames')) ac5eConfig[type][test].add(effectName);
 					else ac5eConfig[type][test].push(effectName);
 				}
@@ -760,7 +786,7 @@ function cloneCheckSide(side = {}) {
 }
 
 function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type, evaluationData } = {}) {
-	const { ability, activity, attackMode, distance, hook, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
+	const { ability, activity, attackMode, distance, hook, skill, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
 	const distanceUnit = canvas.grid.distance;
 	const subject = subjectToken?.actor;
 	const opponent = opponentToken?.actor;
@@ -790,6 +816,7 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 		opponentAlert2014,
 		opponentMove,
 		opponentToken,
+		skill,
 		subject,
 		subjectAlert2014,
 		subjectMove,
@@ -900,7 +927,7 @@ function buildStatusEffectsTables() {
 		}),
 
 		charmed: mkStatus('charmed', _i18nConditions('Charmed'), {
-			check: { subject: (ctx) => (hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'advantage' : '') },
+			check: { opponent: (ctx) => ((ctx.ability === 'cha' || ['dec', 'per', 'prf', 'itm'].includes(ctx.skill)) && hasStatusFromOpponent(ctx.opponent, 'charmed', ctx.subject) ? 'advantage' : '') },
 			use: { subject: (ctx) => (hasStatusFromOpponent(ctx.subject, 'charmed', ctx.opponent) ? 'fail' : '') },
 		}),
 
@@ -1046,7 +1073,14 @@ function buildStatusEffectsTables() {
 }
 
 function hasStatusFromOpponent(actor, status, origin) {
-	return actor?.appliedEffects.some((effect) => effect.statuses.has(status) && effect.origin && _getEffectOriginToken(effect, 'token')?.actor.uuid === origin?.uuid);
+	if (!actor || !origin?.uuid) return false;
+	return actor.appliedEffects.some((effect) => {
+		if (!effect.statuses.has(status) || !effect.origin) return false;
+		const originContext = _resolveEffectOriginContext(effect);
+		const source = originContext.sourceDocument;
+		const originActor = source instanceof CONFIG.Actor.documentClass ? source : source?.actor ?? originContext.originActor;
+		return originActor?.uuid === origin.uuid;
+	});
 }
 
 function isAttackingGrappler(ctx) {

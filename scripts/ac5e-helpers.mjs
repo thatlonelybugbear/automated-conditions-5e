@@ -1736,7 +1736,7 @@ export function _getTooltip(ac5eConfig = {}) {
 		entries
 			.map((entry) => {
 				if (typeof entry !== 'object') return entry;
-				const label = entry?.label ?? entry?.name ?? entry?.id ?? entry?.bonus ?? entry?.modifier ?? entry?.set ?? entry?.threshold;
+				const label = entry?.tooltipLabel ?? entry?.label ?? entry?.name ?? entry?.id ?? entry?.bonus ?? entry?.modifier ?? entry?.set ?? entry?.threshold;
 				if (label === undefined) return undefined;
 				return `${String(label)}${getChanceTooltipSuffix(entry?.chance)}`;
 			})

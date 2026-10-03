@@ -90,6 +90,11 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	ac5eConfig.targetADCResolvedAtUse = _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps);
 	_ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig, dialogConfig, ac5eConfig);
 	_ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usageConfig, dialogConfig, ac5eConfig);
+	if (getCharmedUseOptinChoices(ac5eConfig).length) {
+		dialogConfig.configure = true;
+		usageConfig.configure = true;
+		if (usageConfig.scaling === false) usageConfig.scaling = 0;
+	}
 	if (globalThis.ac5e?.debug?.abilityOverrideTrace) {
 		console.warn('AC5E TRACE preUseActivity.configureState', {
 			activityType: activity?.type,
@@ -133,7 +138,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 
 	const subjectFail = _filterOptinEntries(ac5eConfig?.subject?.fail ?? [], ac5eConfig?.optinSelected);
 	const opponentFail = _filterOptinEntries(ac5eConfig?.opponent?.fail ?? [], ac5eConfig?.optinSelected);
-	const failEntries = [...subjectFail, ...opponentFail];
+	const failEntries = [...subjectFail, ...opponentFail].filter((entry) => entry?.changeKey !== 'ac5e.synthetic.charmed.use');
 	if (failEntries.length && useWarnings) {
 		const failText = _localize('AC5E.Fail');
 		const itemName = item?.name ?? 'activity';
@@ -180,6 +185,11 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 export function preActivityConsumption(activity, usageConfig, _messageConfig, _hook, deps) {
 	const ac5eConfig = usageConfig?.[Constants.MODULE_ID];
 	if (!ac5eConfig) return true;
+	const charmedEntries = getCharmedUseOptinChoices(ac5eConfig).map((choice) => choice.entry);
+	if (_filterOptinEntries(charmedEntries, ac5eConfig.optinSelected).length) {
+		ui.notifications.warn(`${_localize('AC5E.Fail')}: ${_localize('AC5E.TargetIsYourCharmer')}`);
+		return false;
+	}
 	_applyPreUseActivityAbilityOverride(activity, ac5eConfig);
 	_refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps);
 	return true;
@@ -236,6 +246,12 @@ export function getTargetADCOptinChoices(ac5eConfig, activity) {
 	const baseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
 	if (!Number.isFinite(baseDC)) return _buildTargetADCOptinChoiceList(ac5eConfig, NaN);
 	return _buildTargetADCOptinChoiceList(ac5eConfig, baseDC);
+}
+
+export function getCharmedUseOptinChoices(ac5eConfig) {
+	return (ac5eConfig?.subject?.fail ?? [])
+		.filter((entry) => entry?.changeKey === 'ac5e.synthetic.charmed.use')
+		.map((entry) => ({ id: entry.id, label: entry.label, displayLabel: entry.label, entry }));
 }
 
 export function getAbilityOverrideOptinChoices(ac5eConfig, activity) {
@@ -302,6 +318,10 @@ export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected
 	}
 	const resolvedTargetADC = _getResolvedTargetADCMessageState(tempConfig, activity);
 	const hoverLines = Array.isArray(resolvedTargetADC?.hoverLines) ? resolvedTargetADC.hoverLines.filter(Boolean) : [];
+	const charmedEntries = getCharmedUseOptinChoices(tempConfig).map((choice) => choice.entry);
+	if (_filterOptinEntries(charmedEntries, tempConfig.optinSelected).length) {
+		hoverLines.push(`${_localize('AC5E.Fail')}: ${charmedEntries[0].tooltipLabel}`);
+	}
 	const hoverText = hoverLines.join('\n');
 	return { resolvedTargetADC, hoverLines, hoverText };
 }
