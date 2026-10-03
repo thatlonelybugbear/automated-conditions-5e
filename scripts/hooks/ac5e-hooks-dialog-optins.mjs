@@ -1,4 +1,4 @@
-import { _ac5eSafeEval, _getOptinSelectionScale, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
+import { _ac5eSafeEval, _getOptinSelectionScale, _isOptinSelectionActive, _localize, _resolveEffectOriginContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _ac5eActorRollData } from '../ac5e-runtimeLogic.mjs';
 import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-hooks-roll-selections.mjs';
 
@@ -218,9 +218,11 @@ function parseScalingObjectEntries(scaling) {
 	return typeof source === 'object' ? source : null;
 }
 
-function buildScalingEvaluationSandbox(context, ac5eConfig) {
+function buildScalingEvaluationSandbox(context, ac5eConfig, entry) {
 	const token = canvas?.tokens?.get(ac5eConfig?.tokenId) ?? null;
 	const targetToken = canvas?.tokens?.get(ac5eConfig?.targetId) ?? null;
+	const effect = _safeFromUuidSync(entry?.effectUuid);
+	const originContext = effect ? _resolveEffectOriginContext(effect, { relative: effect.parent ?? effect.target }) : null;
 	return {
 		usesAvailable: context.usesAvailable,
 		usesMissing: context.usesMissing,
@@ -228,17 +230,19 @@ function buildScalingEvaluationSandbox(context, ac5eConfig) {
 		rollingActor: _ac5eActorRollData(token),
 		opponentActor: _ac5eActorRollData(targetToken),
 		actor: _ac5eActorRollData(token),
+		effectActor: _ac5eActorRollData(null, null, effect?.parent?.actor ?? effect?.parent ?? effect?.target),
+		effectOriginActor: _ac5eActorRollData(null, null, originContext?.originActor),
 	};
 }
 
-function evaluateScalingNumber(rawValue, context, ac5eConfig, fallback = null) {
+function evaluateScalingNumber(rawValue, context, ac5eConfig, fallback = null, entry = null) {
 	if (rawValue === undefined || rawValue === null || rawValue === '') return fallback;
 	if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : fallback;
 	if (typeof rawValue !== 'string') return fallback;
 	let expression = rawValue.trim();
 	const direct = Number(expression);
 	if (Number.isFinite(direct)) return direct;
-	const sandbox = buildScalingEvaluationSandbox(context, ac5eConfig);
+	const sandbox = buildScalingEvaluationSandbox(context, ac5eConfig, entry);
 	try {
 		const evaluated = _ac5eSafeEval({ expression, sandbox, mode: 'formula' });
 		const numericEvaluated = Number(evaluated);
@@ -271,9 +275,9 @@ function resolveScalingConfigForEntry(scaling, entry, ac5eConfig) {
 	const usesMax = finiteAvailable !== null && finiteMissing !== null ? finiteAvailable + finiteMissing : finiteAvailable;
 	const context = { usesAvailable: finiteAvailable, usesMissing: finiteMissing, usesMax };
 	const isRestore = !!entry?.recover || /,\s*-\s*\{/.test(String(entry?.usesCount ?? ''));
-	const min = Math.floor(evaluateScalingNumber(source.min, context, ac5eConfig, 1));
-	let max = Math.floor(evaluateScalingNumber(source.max, context, ac5eConfig, usesMax ?? finiteAvailable));
-	const step = Math.floor(evaluateScalingNumber(source.step, context, ac5eConfig, 1));
+	const min = Math.floor(evaluateScalingNumber(source.min, context, ac5eConfig, 1, entry));
+	let max = Math.floor(evaluateScalingNumber(source.max, context, ac5eConfig, usesMax ?? finiteAvailable, entry));
+	const step = Math.floor(evaluateScalingNumber(source.step, context, ac5eConfig, 1, entry));
 	const cap = isRestore ? finiteMissing : finiteAvailable;
 	if (Number.isFinite(cap)) max = Math.min(max, cap);
 	if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step)) return null;

@@ -1,5 +1,6 @@
 ## 14.605.1
 
+- Fixed `usesCount` scaling bounds ignoring `effectActor` and `effectOriginActor` references and falling back to the full resource amount. Added `effectActor` support to actor formula-reference resolution.
 - Fixed condition and formula guards rejecting quoted names such as "Endgame"; actual `game` and `canvas` identifiers remain blocked.
 - Fixed persistent status override refreshes changing equal-priority precedence. Failed override conditions are skipped with a GM warning identifying the condition, trigger, error, and correction options.
 - Fixed existing-effect reapplication bypassing `allowEffectApplication`, including re-enabling and refreshing expired effects.

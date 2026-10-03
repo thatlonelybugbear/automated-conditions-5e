@@ -92,7 +92,7 @@ export function prepareRollFormula(expression, sandbox, debug) {
 	// 1) Reduce only parens that contain a *top-level* ternary; dive only into chosen branch
 	resultExpr = reduceTernaryParens(resultExpr, { evaluateCondition, sandbox: proxySandbox, debug });
 	// 2) Resolve @ actor references (mutate rollingActor.x into @x, via Roll(formula, actorData))
-	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectOriginActor'];
+	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectActor', 'effectOriginActor'];
 	resultExpr = resolveActorAtRefs(resultExpr, sandbox, actorNames, Roll, debug);
 	// 3) Resolve whitelisted helper calls + property chains up-front
 	resultExpr = resolveWhitelistedCalls(resultExpr, proxySandbox, debug);
