@@ -72,12 +72,15 @@ function normalizeRollDamageTypes(roll) {
 }
 
 function valueHasMultipleInlineDamageTypes(value) {
-	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => key.toLowerCase()));
+	const validBonusTypes = new Set([
+		...Object.keys(CONFIG?.DND5E?.damageTypes ?? {}),
+		...Object.keys(CONFIG?.DND5E?.healingTypes ?? {}),
+	].map((key) => key.toLowerCase()));
 	const detectedTypes = new Set();
 	String(value ?? '').replace(/\[([^\]]+)\]/g, (_match, inner) => {
 		for (const type of String(inner ?? '').split(',')) {
 			const normalized = String(type ?? '').trim().toLowerCase();
-			if (knownDamageTypes.has(normalized)) detectedTypes.add(normalized);
+			if (validBonusTypes.has(normalized)) detectedTypes.add(normalized);
 		}
 		return '';
 	});

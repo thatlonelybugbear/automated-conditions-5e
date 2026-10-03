@@ -1188,14 +1188,17 @@ function shouldTriggerBaseRollPreviewResync(dialog, baseCount = 0) {
 function extractImplicitBonusDamageType(value) {
 	const raw = String(value ?? '').trim();
 	if (!raw) return { formula: '', type: undefined, types: [] };
-	const knownDamageTypes = new Set(Object.keys(CONFIG?.DND5E?.damageTypes ?? {}).map((key) => key.toLowerCase()));
+	const validBonusTypes = new Set([
+		...Object.keys(CONFIG?.DND5E?.damageTypes ?? {}),
+		...Object.keys(CONFIG?.DND5E?.healingTypes ?? {}),
+	].map((key) => key.toLowerCase()));
 	const detectedTypes = [];
 	const formula = raw.replace(/\[([^\]]+)\]/g, (match, inner) => {
 		const normalizedTypes = String(inner ?? '')
 			.split(',')
 			.map((part) => String(part ?? '').trim().toLowerCase())
 			.filter(Boolean)
-			.filter((part) => knownDamageTypes.has(part));
+			.filter((part) => validBonusTypes.has(part));
 		if (!normalizedTypes.length) return match;
 		for (const normalized of normalizedTypes) {
 			if (!detectedTypes.includes(normalized)) detectedTypes.push(normalized);

@@ -692,6 +692,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 									</div>
 								</div>
 								${isDamageBonusExpand ? renderAssistActionFieldset(editorAssist('DamageTypes'), buildTypeOverrideScopedEntries().damageTypes, 'ac5e-bonus-damage-type', 'button', 'bonus-damage-types', true) : ''}
+								${isDamageBonusExpand ? renderAssistActionFieldset(editorAssist('HealingTypes'), buildTypeOverrideScopedEntries().healingTypes, 'ac5e-bonus-damage-type', 'button', 'bonus-healing-types', true) : ''}
 								${assistControls}
 							</section>
 							${asideMarkup}
