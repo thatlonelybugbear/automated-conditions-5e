@@ -83,7 +83,7 @@ const rollFunctionDispatch = {
 	preCreateItem: (hook, [item, updates]) => _preCreateItem(item, updates),
 	preCreateChatMessage: (hook, [message, data]) => _preCreateChatMessage(message, data),
 	preCreateActiveEffect: (hook, [effect, updates, options, userId]) => _preCreateActiveEffect(effect, updates, options, userId),
-	preUpdateActiveEffect: (hook, [effect, updates]) => _preUpdateActiveEffect(effect, updates),
+	preUpdateActiveEffect: (hook, [effect, updates, options, userId]) => _preUpdateActiveEffect(effect, updates, options, userId),
 };
 
 export function _rollFunctions(hook, ...args) {
@@ -264,8 +264,12 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 	}
 }
 
-export function _preUpdateActiveEffect(effect, updates) {
-	// @to-do: what else could we add in AC5e here?
+export function _preUpdateActiveEffect(effect, updates, options, userId) {
+	const expanded = foundry.utils.expandObject(updates);
+	if (expanded.disabled === false || expanded.duration?.expired === false) {
+		const updatedEffect = effect.clone(updates, { keepId: true });
+		return _preCreateActiveEffect(updatedEffect, updatedEffect.toObject(), options, userId);
+	}
 	return true;
 }
 

@@ -46,12 +46,15 @@ Affects **rolls made against the actor** (i.e., when the actor is the *target* o
 
 ### `flags.automated-conditions-5e.allowEffectApplication`
 
-Controls whether an Active Effect is allowed to be created at application time.
+Controls whether an Active Effect is allowed to be created or reapplied at application time.
 
 - Evaluated in `preCreateActiveEffect`.
 - If the expression evaluates to `false`, AC5E blocks the effect creation.
 - If it evaluates to `true`, the effect is created normally.
 - On hard evaluation failures, AC5E falls back to system-default behavior (effect creation proceeds).
+- The full AC5E sandbox is available. `opponentActor` is the recipient Actor for each application, so `opponentActor.creatureType.includes('undead')` works with multiple targets.
+- Token checks use the unlinked Actor's Token or the first active Token for a linked Actor. With multiple linked Tokens, that Token may differ from the selected one.
+- The same check runs when an existing effect is re-enabled or refreshed, using its updated origin and recipient. Blocking reapplication preserves the existing effect's state; it does not remove an already active effect.
 
 Current scope notes:
 - This check currently runs only for effect applications that resolve to an origin item context.
@@ -122,9 +125,10 @@ Replace `MODE` with one of the following:
 - `modifyDenomination` - The preferred way to change damage dice from `14.533.14` onward.
   - Use `modify=1` to upgrade one configured die size, or `modify=-1` to downgrade one size.
   - Use `modify=dX` to set a specific die size, such as `modify=d12`.
-- `typeOverride` - Replaces the damage type set of matching base/native damage rolls.
+- `typeOverride` - Replaces or extends the damage type set of matching damage rolls.
    - Include `override=fire` to force a single type.
    - Include `override=fire,lightning,thunder` to offer multiple damage types through D&D 5e's native dropdown.
+   - Include `override=+fire; addTo=all` to add fire as a dropdown choice to every damage part while keeping each part's existing types.
    - `set=...` is still accepted for backwards compatibility.
    - `addTo=...` targeting works the same way as other damage-entry modes.
    - `addTo=optin(identifier)` targets an opted-in `damage.bonus` part with the matching `optinId`. When it changes that part to a different type, AC5E moves the part into a synthetic damage roll and preserves the base roll's type.

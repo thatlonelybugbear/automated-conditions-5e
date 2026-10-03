@@ -60,6 +60,7 @@ Execution order for matching overrides.
 
 - Lower values run first.
 - Higher values run later.
+- Equal priorities run in registration order; refreshing persisted entries preserves their existing order relative to runtime entries.
 - If you want your override to win last, use a higher priority.
 
 ### `status` (optional, default `"*"`)
@@ -126,6 +127,10 @@ ac5e.statusEffectsOverrides.register({
 
 `when: false` remains disabled after reload. Function-valued `when` and `apply` callbacks remain runtime-only and cause a requested persistent override to fall back to runtime registration. Registering a runtime override with the same `id` removes the saved version.
 
+Conditions use sandbox fields, such as `hasAttack` and `opponentActor`. Direct `game` and `canvas` identifiers are prohibited. Quoted names such as `item.name === "Endgame"` are allowed.
+
+If condition evaluation throws, AC5E skips that override, preserves the result computed so far, and continues with other matching overrides. The console records the failure, and a GM evaluating the condition receives a warning identifying the override ID, condition, status/hook/side, error, and correction options. Register the corrected entry with the same ID and `persistent: true`, or remove it with `ac5e.statusEffectsOverrides.remove(id)`. Conditions that simply evaluate to false are skipped without a warning.
+
 ### `apply` (optional)
 
 Main transform function for the matched result.
@@ -176,6 +181,8 @@ Example:
 ```txt
 Prone (Ignore Prone in Rage)
 ```
+
+When an override clears an active status rule, its label appears in the **Suppressed Statuses** tooltip bucket.
 
 ## Practical Examples
 

@@ -3194,7 +3194,9 @@ export function _generateAC5eFlags() {
  */
 export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', debug }) {
 	if (!expression || typeof expression !== 'string') return undefined;
-	if (expression.includes('game') || expression.includes('canvas')) throw new Error(`Roll.safeEval expression cannot contain game/canvas.`);
+	const code = expression.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\$]|\$(?!\{))*`|\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, ' ');
+	const identifiers = code.match(/[\p{ID_Start}$_][\p{ID_Continue}$\u200c\u200d]*/gu) ?? [];
+	if (identifiers.some((identifier) => identifier === 'game' || identifier === 'canvas')) throw new Error(`Roll.safeEval expression cannot access game/canvas identifiers; use sandbox fields instead.`);
 
 	debug ??= {};
 	const debugLoggingEnabled = !!(ac5e?.devModeEnabled || ac5e?.debug?.evaluations);

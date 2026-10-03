@@ -1,6 +1,17 @@
 ## 14.605.1
 
+- Fixed condition and formula guards rejecting quoted names such as "Endgame"; actual `game` and `canvas` identifiers remain blocked.
+- Fixed persistent status override refreshes changing equal-priority precedence. Failed override conditions are skipped with a GM warning identifying the condition, trigger, error, and correction options.
+- Fixed existing-effect reapplication bypassing `allowEffectApplication`, including re-enabling and refreshing expired effects.
 - Fixed `damage.typeOverride` ignoring healing types such as `temphp`.
+- Added additive `damage.typeOverride` values with a `+` prefix and an "Add to existing type choices" checkbox with a hint tooltip in Edit Override, preserving existing choices and the selected type.
+- Added damage-type selection buttons to Edit Bonus for `damage.bonus` flags, supporting multiple selected types.
+- Added a Healing Types group to Edit Bonus and support for system healing types in inline `damage.bonus` formulas, including multiple type choices.
+- Fixed Dodging movement checks for the D&D5e v6 schema. Dexterity saves now use the system's native advantage, labeled Dodging in the tooltip, without adding a duplicate AC5E source.
+- Fixed Charmed social-check advantage to benefit the charmer, with a preselected opt-in for Charisma checks and Deception, Persuasion, Performance, and Intimidation. Added an optional use restriction against your charmer, preselected for attacks and damaging activities, and improved effect-origin Actor matching.
+- `allowEffectApplication` now uses the full AC5E sandbox and evaluates each recipient Actor independently, including `opponentActor.creatureType` with multiple targets. Token checks use an unlinked Actor's Token or the first active Token for a linked Actor; linked Actors with multiple Tokens may use a different Token than the one selected.
+- Added persistent Status Effects Overrides API entries with sandboxed string conditions via `persistent: true` and `condition`. Status rules cleared by overrides now appear in the Suppressed Statuses tooltip with the override name.
+- Fixed AC5E losing native D&D5e advantage and disadvantage stored in the first roll's options, including roll-profile snapshots.
 - Fixed Paralyzed and Unconscious conditions triggering critical damage not only for Attacks.
 
 ## 14.603.2

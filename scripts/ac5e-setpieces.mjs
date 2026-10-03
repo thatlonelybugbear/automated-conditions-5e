@@ -60,10 +60,10 @@ function _persistStatusEffectOverrides() {
 export function loadPersistentStatusEffectOverrides(state = null) {
 	const source = state ?? game.settings.get(Constants.MODULE_ID, Settings.STATUS_EFFECT_OVERRIDES_REGISTRY) ?? {};
 	const root = source?.entries && typeof source.entries === 'object' ? source.entries : source;
-	statusEffectsOverrideState.list = statusEffectsOverrideState.list.filter((entry) => !entry.persistent);
+	const savedEntries = new Map();
 	for (const [id, override] of Object.entries(root ?? {})) {
 		if (!override || typeof override !== 'object') continue;
-		statusEffectsOverrideState.list.push({
+		savedEntries.set(id, {
 			id,
 			name: override.name ?? undefined,
 			priority: Number.isFinite(override.priority) ? override.priority : 0,
@@ -76,6 +76,13 @@ export function loadPersistentStatusEffectOverrides(state = null) {
 			persistent: true,
 		});
 	}
+	statusEffectsOverrideState.list = statusEffectsOverrideState.list.flatMap((entry) => {
+		if (!entry.persistent) return [entry];
+		const saved = savedEntries.get(entry.id);
+		savedEntries.delete(entry.id);
+		return saved ? [saved] : [];
+	});
+	statusEffectsOverrideState.list.push(...savedEntries.values());
 	return statusEffectsOverrideState.list.filter((entry) => entry.persistent).length;
 }
 const CADENCE_FLAG_KEY = 'cadence';
@@ -1198,7 +1205,14 @@ function applyStatusEffectOverrides({ status, hook, type, context, evaluationDat
 	let nextResult = result;
 	let overrideName;
 	for (const entry of matches) {
-		if (entry.condition && !_ac5eSafeEval({ expression: entry.condition, sandbox: evaluationData, mode: 'condition', debug: { statusEffectOverrideId: entry.id } })) continue;
+		try {
+			if (entry.condition && !_ac5eSafeEval({ expression: entry.condition, sandbox: evaluationData, mode: 'condition', debug: { statusEffectOverrideId: entry.id } })) continue;
+		} catch (error) {
+			const message = `AC5E: Status override "${entry.name ?? entry.id}" (id: ${entry.id}) was skipped for ${status}/${hook}/${type}. Condition: ${entry.condition}. Error: ${error.message ?? error}. Correct its condition using ac5e.statusEffectsOverrides.register with the same id, or remove it using ac5e.statusEffectsOverrides.remove(${JSON.stringify(entry.id)}). Access to game/canvas identifiers is prohibited; use sandbox fields instead. Quoted names containing those words are allowed.`;
+			console.warn(message, { override: entry, status, hook, type, error });
+			if (game.user?.isGM) ui.notifications.warn(message);
+			continue;
+		}
 		if (typeof entry.when === 'function') {
 			if (!entry.when({ status, hook, type, context, result: nextResult })) continue;
 		} else if (entry.when === false) {
