@@ -17,6 +17,7 @@ import {
 	_localize,
 	_midiOwnsAbilityTooltipPipeline,
 	_resolveUseMessageContext,
+	_safeFromUuidSync,
 	getActorAbilityRollObject,
 	getActorSkillRollObject,
 	getActorToolRollObject,
@@ -309,16 +310,23 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 				return false;
 		}
 	};
-	const token = canvas.tokens.get(tokenId);
-	const actor = token?.actor;
+	const token = canvas?.tokens?.get(tokenId);
+	const rollSubject = config?.subject;
+	const actor = token?.actor ?? rollSubject?.actor ?? (rollSubject?.documentName === 'Actor' ? rollSubject : null) ?? _safeFromUuidSync(options.sourceActorUuid) ?? options.activity?.actor;
+	options.sourceActorUuid = actor?.uuid;
+	const targetToken = canvas?.tokens?.get(targetId);
+	const activityActor = options.activity?.actor;
+	const targetActor = targetToken?.actor ?? (['save', 'check'].includes(hookType) && activityActor !== actor ? activityActor : null);
+	options.targetActorUuid = targetActor?.uuid ?? (options.activity?.target?.affects?.type === 'self' && !['save', 'check'].includes(hookType) ? actor?.uuid : undefined);
+	if (!token || !targetToken) delete options.distance;
 	const persistedAc5eConfig = getPersistedHookConfig(config, hookType) ?? getPersistedHookConfig(dialog?.config, hookType);
 	const originatingUseConfig = options?.originatingUseConfig;
 	const ac5eConfig = {
 		hookType,
 		tokenId,
 		targetId,
-		isOwner: token?.document.isOwner,
-		hasPlayerOwner: token?.document.hasPlayerOwner,
+		isOwner: token?.document.isOwner ?? actor?.isOwner,
+		hasPlayerOwner: token?.document.hasPlayerOwner ?? actor?.hasPlayerOwner,
 		ownership: actor?.ownership,
 		subject: {
 			advantage: [],

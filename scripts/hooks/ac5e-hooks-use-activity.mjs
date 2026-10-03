@@ -32,6 +32,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	if (!sourceActor) return;
 
 	const options = {
+		sourceActorUuid: sourceActor.uuid,
 		ability,
 		skill,
 		tool,
@@ -79,7 +80,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 		if (needsTarget !== 'source') return false;
 		singleTargetToken = undefined;
 	}
-	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
+	if (sourceToken && singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	const targetsResolvedAt = performance.now();
 	let ac5eConfig = _getConfig(usageConfig, dialogConfig, hook, sourceToken?.id, singleTargetToken?.id, options);
 	const configBuiltAt = performance.now();
@@ -119,7 +120,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	});
 
 	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
-	const shouldCheckPreUseRange = singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type !== 'attack';
+	const shouldCheckPreUseRange = sourceToken && singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type !== 'attack';
 	if (shouldCheckPreUseRange) {
 		ac5eConfig.subject.rangeNotes = [];
 		const failLabel = _localize('AC5E.OutOfRange');

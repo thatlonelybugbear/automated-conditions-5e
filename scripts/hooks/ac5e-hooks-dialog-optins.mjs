@@ -227,9 +227,9 @@ function buildScalingEvaluationSandbox(context, ac5eConfig, entry) {
 		usesAvailable: context.usesAvailable,
 		usesMissing: context.usesMissing,
 		usesMax: context.usesMax,
-		rollingActor: _ac5eActorRollData(token),
-		opponentActor: _ac5eActorRollData(targetToken),
-		actor: _ac5eActorRollData(token),
+		rollingActor: _ac5eActorRollData(token, null, _safeFromUuidSync(ac5eConfig?.options?.sourceActorUuid)),
+		opponentActor: _ac5eActorRollData(targetToken, null, _safeFromUuidSync(ac5eConfig?.options?.targetActorUuid)),
+		actor: _ac5eActorRollData(token, null, _safeFromUuidSync(ac5eConfig?.options?.sourceActorUuid)),
 		effectActor: _ac5eActorRollData(null, null, effect?.parent?.actor ?? effect?.parent ?? effect?.target),
 		effectOriginActor: _ac5eActorRollData(null, null, originContext?.originActor),
 	};
@@ -805,9 +805,8 @@ function getOptinScaling(entry, parsedUsesCount, ac5eConfig) {
 
 export function getRollingActorIdForOptins(ac5eConfig) {
 	const tokenId = ac5eConfig?.tokenId;
-	if (!tokenId) return null;
 	const token = canvas?.tokens?.get(tokenId);
-	return token?.actor?.id ?? null;
+	return token?.actor?.id ?? _safeFromUuidSync(ac5eConfig?.options?.sourceActorUuid)?.id ?? null;
 }
 
 export function shouldAskPermissionForOptinEntry(entry, ac5eConfig, rollingActorId) {

@@ -1,4 +1,4 @@
-import { _filterOptinEntries, _getOptinSelectionScale, _isOptinSelectionActive } from '../ac5e-helpers.mjs';
+import { _filterOptinEntries, _getOptinSelectionScale, _isOptinSelectionActive, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _addToAllowsAnySelectedType, _addToAllowsRollType, _resolveAddToSpec, _shouldApplyAddToRoll } from '../ac5e-addTo.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _buildRollEvaluationData } from '../ac5e-runtimeLogic.mjs';
@@ -1001,6 +1001,7 @@ function getDamageFormulaReplacementData(ac5eConfig) {
 	const subjectToken = canvas?.tokens?.get(ac5eConfig?.tokenId);
 	return _buildRollEvaluationData({
 		subjectToken,
+		sourceActor: _safeFromUuidSync(ac5eConfig?.options?.sourceActorUuid),
 		options: ac5eConfig?.options,
 	})?.formulaData;
 }

@@ -40,7 +40,8 @@ export function getSubjectTokenForHook(hook, message, actor, deps) {
 		if (actor) return deps.getTokenFromActor(actor) ?? actor.getActiveTokens?.()?.[0];
 	}
 	const speakerTokenId = message?.speaker?.token;
-	if (speakerTokenId) return canvas.tokens.get(speakerTokenId);
+	const speakerToken = speakerTokenId ? canvas?.tokens?.get(speakerTokenId) : null;
+	if (speakerToken && (!actor || speakerToken.actor === actor)) return speakerToken;
 	if (actor) return deps.getTokenFromActor(actor) ?? actor.getActiveTokens?.()?.[0];
 	return undefined;
 }

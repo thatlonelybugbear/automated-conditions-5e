@@ -108,7 +108,7 @@
 	"AC5E.TokenlessActorWarning": {
 		"Hint": "Shows a warning when rolling for an actor that has no token on the current scene.",
 		"Name": "Show Tokenless Actor Warning",
-		"Text": "AC5E warning: The actor being rolled does not have a token on the scene. Results may be inaccurate."
+		"Text": "AC5E warning: The actor being rolled does not have a token on the scene. Actor-based rules still apply; distance, visibility, cover, and aura checks require a scene token."
 	},
 	"AC5E.Statuses": {
 		"UnderwaterCombat": "Underwater Combat"

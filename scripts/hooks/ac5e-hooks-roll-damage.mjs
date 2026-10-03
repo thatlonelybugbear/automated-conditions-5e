@@ -72,7 +72,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		if (needsTarget !== 'source') return false;
 		singleTargetToken = undefined;
 	}
-	if (singleTargetToken) options.distance = deps.getDistance(sourceToken, singleTargetToken);
+	if (sourceToken && singleTargetToken) options.distance = deps.getDistance(sourceToken, singleTargetToken);
 	if (usesCoreRoller) deps.hydrateDamageSaveRollResult(options, { targetToken: singleTargetToken, targetActor: singleTargetToken?.actor, originActivity: activity });
 	deps.logResolvedTargets('damage', sourceToken, singleTargetToken, options);
 	const ac5eConfig = runAc5eRollPhase({

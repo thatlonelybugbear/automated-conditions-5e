@@ -3350,10 +3350,10 @@ export function _getItemOrActivity(itemID, activityID, actor) {
 }
 
 export function _getTokenFromActor(actor) {
-	let token;
+	let token = actor?.token?.object ?? actor?.getActiveTokens?.()?.[0] ?? null;
 	const tokenId = ChatMessage.getSpeaker({ actor })?.token;
-	if (tokenId) token = canvas.tokens.get(tokenId);
-	else token = null;
+	const speakerToken = tokenId ? canvas?.tokens?.get(tokenId) : null;
+	if (speakerToken?.actor === actor) token = speakerToken;
 	if (!token && settings.tokenlessActorWarn) ui.notifications.warn(_localize('AC5E.TokenlessActorWarning.Text'));
 	return token;
 }

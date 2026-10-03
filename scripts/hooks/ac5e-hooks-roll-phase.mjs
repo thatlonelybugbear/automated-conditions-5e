@@ -32,6 +32,8 @@ export function runAc5eRollPhase({
 	syncTargets,
 	debugExtra,
 } = {}) {
+	const subjectActor = subjectToken?.actor ?? config?.subject?.actor ?? (config?.subject?.documentName === 'Actor' ? config.subject : null);
+	if (subjectActor) options.sourceActorUuid = subjectActor.uuid;
 	const initialCritical = !!(config?.isCritical ?? config?.midiOptions?.isCritical);
 	if (hook === 'damage') options.isCritical = initialCritical;
 	let ac5eConfig = deps.getConfig(config, dialog, hook, subjectToken?.id, opponentToken?.id, options, reEval);
@@ -85,6 +87,7 @@ export function runAc5eInitiativePhase({
 	finalizeApplied,
 	debugExtra,
 } = {}) {
+	options.sourceActorUuid = subject?.uuid;
 	let ac5eConfig = getConfig(config, {}, hook, subject?.token?.object?.id ?? subject?.getActiveTokens?.()?.[0]?.id, undefined, options);
 	const phaseContext = {
 		hook,

@@ -227,13 +227,13 @@ export function resolveAttackRollTargetContext({ hook, config, messageForTargets
 		if (needsTarget !== 'source') return { invalidTargets, sourceToken, singleTargetToken };
 		singleTargetToken = undefined;
 	}
-	if (singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
+	if (sourceToken && singleTargetToken) options.distance = _getDistance(sourceToken, singleTargetToken);
 	logResolvedTargets('attack', sourceToken, singleTargetToken, options);
 	return { invalidTargets, sourceToken, singleTargetToken };
 }
 
 export function applyAttackRangeState({ ac5eConfig, activity, sourceToken, singleTargetToken, options, config }) {
-	if (!singleTargetToken) return;
+	if (!sourceToken || !singleTargetToken) return;
 	ac5eConfig.subject.rangeNotes = [];
 	const failLabel = _localize('AC5E.OutOfRange');
 	const nearbyLabel = _localize('AC5E.NearbyFoe');
@@ -262,7 +262,7 @@ export function applyAttackHeavyState({ ac5eConfig, item, actionType, sourceActo
 	const isSmall =
 		modernRules ?
 			(actionType === 'mwak' && sourceActor.system.abilities.str.value < 13) || (actionType === 'rwak' && sourceActor.system.abilities.dex.value < 13)
-		:	sourceToken.document.width * sourceToken.document.height * sourceToken.document.texture.scaleX * sourceToken.document.texture.scaleY < 1;
+		:	sourceToken ? sourceToken.document.width * sourceToken.document.height * sourceToken.document.texture.scaleX * sourceToken.document.texture.scaleY < 1 : ['tiny', 'sm'].includes(sourceActor.system.traits.size);
 	if (!isSmall) return;
 	const localizationStr = 'DND5E.ITEM.Property.Heavy';
 	ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize(localizationStr)}`);

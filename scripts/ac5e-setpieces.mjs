@@ -631,8 +631,8 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 	}
 	const { options } = ac5eConfig;
 	const actorTokens = {
-		subject: subjectToken?.actor,
-		opponent: opponentToken?.actor,
+		subject: subjectToken?.actor ?? _safeFromUuidSync(options.sourceActorUuid),
+		opponent: opponentToken?.actor ?? _safeFromUuidSync(options.targetActorUuid),
 	};
 	const setupCompletedAt = performance.now();
 	let statusSandboxCompletedAt = setupCompletedAt;
@@ -640,7 +640,7 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 
 	if (settings.automateStatuses) {
 		const tables = statusEffectsTables;
-		statusEvaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, options });
+		statusEvaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, sourceActor: actorTokens.subject, targetActor: actorTokens.opponent, options });
 		statusEvaluationData.ac5eConfig = ac5eConfig;
 		statusSandboxCompletedAt = performance.now();
 		if (!tables) {
@@ -688,26 +688,26 @@ export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
 				const effectName = withStatusOverrideLabel(tables?.[status]?.name, statusOutcome?.overrideName);
 				if (effectName) {
 					if (status === 'charmed' && options.hook === 'use' && type === 'subject' && test === 'fail') {
-						const id = `ac5e:charmed:${subjectToken.actor.uuid}:${opponentToken.actor.uuid}:use`;
+						const id = `ac5e:charmed:${actorTokens.subject.uuid}:${actorTokens.opponent.uuid}:use`;
 						const preselected = !!(context.hasAttack || context.hasDamage);
 						ac5eConfig.subject.fail.push({
 							id, name: effectName, label: _localize('AC5E.TargetIsYourCharmer'), tooltipLabel: effectName,
 							hook: 'use', mode: 'fail', actorType: 'subject', target: 'subject',
 							optin: true, preselected, forceOptin: false, evaluation: true,
-							sourceActorId: subjectToken.actor.id, sourceActorName: subjectToken.actor.name,
+							sourceActorId: actorTokens.subject.id, sourceActorName: actorTokens.subject.name,
 							changeKey: 'ac5e.synthetic.charmed.use',
 						});
 						addDefaultOptinSelection(ac5eConfig, id, preselected);
 						continue;
 					}
 					if (status === 'charmed' && options.hook === 'check' && type === 'opponent' && test === 'advantage') {
-						const id = `ac5e:charmed:${subjectToken.actor.uuid}:${opponentToken.actor.uuid}:check`;
+						const id = `ac5e:charmed:${actorTokens.subject.uuid}:${actorTokens.opponent.uuid}:check`;
 						ac5eConfig.opponent.advantage.push({
 							id, name: effectName, label: _localize('AC5E.TargetCharmedByYou'), tooltipLabel: effectName, hook: 'check', mode: 'advantage',
 							description: _localize('AC5E.TargetCharmedByYouDescription'),
 							actorType: 'opponent', target: 'opponent', optin: true, preselected: true,
 							forceOptin: false, evaluation: true,
-							sourceActorId: opponentToken.actor.id, sourceActorName: opponentToken.actor.name,
+							sourceActorId: actorTokens.opponent.id, sourceActorName: actorTokens.opponent.name,
 							changeKey: 'ac5e.synthetic.charmed.check',
 						});
 						addDefaultOptinSelection(ac5eConfig, id, true);
@@ -761,16 +761,16 @@ function getChecksCacheKey({ ac5eConfig, subjectToken, opponentToken }) {
 	if (!hookType) return null;
 	const subjectTokenId = subjectToken?.id ?? ac5eConfig?.tokenId ?? 'none';
 	const opponentTokenId = opponentToken?.id ?? ac5eConfig?.targetId ?? 'none';
-	const subjectSignature = getActorContextSignature(subjectToken);
-	const opponentSignature = getActorContextSignature(opponentToken);
+	const subjectSignature = getActorContextSignature(subjectToken, ac5eConfig.options.sourceActorUuid);
+	const opponentSignature = getActorContextSignature(opponentToken, ac5eConfig.options.targetActorUuid);
 	const targetsSignature = getTargetsSignature(ac5eConfig?.options?.targets);
 	const distance = ac5eConfig?.options?.distance ?? 'none';
 	const rollProfileSignature = getRollProfileSignature(ac5eConfig?.options ?? {});
 	return `${hookType}:${subjectTokenId}:${opponentTokenId}:${distance}:${targetsSignature}:${subjectSignature}:${opponentSignature}:${rollProfileSignature}`;
 }
 
-function getActorContextSignature(token) {
-	const actor = token?.actor;
+function getActorContextSignature(token, actorUuid) {
+	const actor = token?.actor ?? _safeFromUuidSync(actorUuid);
 	if (!actor) return 'none';
 	const statuses = Array.from(actor.statuses ?? [])
 		.sort()
@@ -866,9 +866,9 @@ function cloneCheckSide(side = {}) {
 
 function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type, evaluationData } = {}) {
 	const { ability, activity, attackMode, distance, hook, skill, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
-	const distanceUnit = canvas.grid.distance;
-	const subject = subjectToken?.actor;
-	const opponent = opponentToken?.actor;
+	const distanceUnit = canvas?.grid?.distance;
+	const subject = subjectToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.sourceActorUuid);
+	const opponent = opponentToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.targetActorUuid);
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
 	const subjectMove = (subject?.system.attributes.movement.max ?? 0) > 0;
@@ -1000,8 +1000,8 @@ function buildStatusEffectsTables() {
 	const tables = {
 		blinded: mkStatus('blinded', _i18nConditions('Blinded'), {
 			attack: {
-				subject: (ctx) => (!settings.visibilityChecks && !canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
-				opponent: (ctx) => (!settings.visibilityChecks && !canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.subjectAlert2014 ? 'advantage' : ''),
+				subject: (ctx) => (!settings.visibilityChecks && ctx.subjectToken && ctx.opponentToken && !canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
+				opponent: (ctx) => (!settings.visibilityChecks && ctx.subjectToken && ctx.opponentToken && !canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.subjectAlert2014 ? 'advantage' : ''),
 			},
 		}),
 
@@ -1035,8 +1035,8 @@ function buildStatusEffectsTables() {
 
 		invisible: mkStatus('invisible', _i18nConditions('Invisible'), {
 			attack: {
-				subject: (ctx) => (!settings.visibilityChecks && !ctx.opponentAlert2014 && !canSee(ctx.opponentToken, ctx.subjectToken) ? 'advantage' : ''),
-				opponent: (ctx) => (!settings.visibilityChecks && !canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
+				subject: (ctx) => (!settings.visibilityChecks && ctx.subjectToken && ctx.opponentToken && !ctx.opponentAlert2014 && !canSee(ctx.opponentToken, ctx.subjectToken) ? 'advantage' : ''),
+				opponent: (ctx) => (!settings.visibilityChecks && ctx.subjectToken && ctx.opponentToken && !canSee(ctx.subjectToken, ctx.opponentToken) ? 'disadvantage' : ''),
 			},
 			check: { subject: (ctx) => (ctx.modernRules && ctx.isInitiative ? 'advantage' : '') },
 		}),
@@ -1044,7 +1044,7 @@ function buildStatusEffectsTables() {
 		paralyzed: mkStatus('paralyzed', _i18nConditions('Paralyzed'), {
 			save: { subject: (ctx) => (['str', 'dex'].includes(ctx.ability) ? 'fail' : '') },
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && Number.isFinite(ctx.distance) && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 		}),
 
 		petrified: mkStatus('petrified', _i18nConditions('Petrified'), {
@@ -1060,7 +1060,7 @@ function buildStatusEffectsTables() {
 		prone: mkStatus('prone', _i18nConditions('Prone'), {
 			attack: {
 				subject: () => 'disadvantage',
-				opponent: (ctx) => (ctx.distance <= ctx.distanceUnit ? 'advantage' : 'disadvantage'),
+				opponent: (ctx) => (Number.isFinite(ctx.distance) ? ctx.distance <= ctx.distanceUnit ? 'advantage' : 'disadvantage' : ''),
 			},
 		}),
 
@@ -1080,7 +1080,7 @@ function buildStatusEffectsTables() {
 
 		unconscious: mkStatus('unconscious', _i18nConditions('Unconscious'), {
 			attack: { opponent: () => 'advantage' },
-			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
+			damage: { opponent: (ctx) => (ctx.hasAttack && ctx.hasDamage && Number.isFinite(ctx.distance) && ctx.distance <= ctx.distanceUnit ? 'critical' : '') },
 			save: { subject: (ctx) => (['dex', 'str'].includes(ctx.ability) ? 'fail' : '') },
 		}),
 
@@ -1160,6 +1160,7 @@ function hasStatusFromOpponent(actor, status, origin) {
 }
 
 function isAttackingGrappler(ctx) {
+	if (!ctx.opponentToken) return hasStatusFromOpponent(ctx.subject, 'grappled', ctx.opponent);
 	return ctx.subject?.appliedEffects.some((effect) => effect.statuses.has('grappled') && effect.origin && _getEffectOriginToken(effect, 'token') === ctx.opponentToken);
 }
 
@@ -1169,7 +1170,7 @@ function isFrightenedByVisibleSource(ctx) {
 	if (ctx.subject?.statuses.has('frightened') && !frightenedEffects.length) return true; //if none of the effects that apply frightened status on the actor have an origin, force true
 	return frightenedEffects.some((effect) => {
 		const originToken = _getEffectOriginToken(effect, 'token'); //undefined if no effect.origin
-		return originToken && canSee(ctx.subjectToken, originToken);
+		return ctx.subjectToken && originToken && canSee(ctx.subjectToken, originToken);
 	});
 }
 
@@ -1328,6 +1329,7 @@ function _evaluateSuppressedStatusFlagValue({ rawValue, scope, targetToken, sour
 	}
 	if (scope === 'grants') return _passesFriendOrFoeFilter({ sourceToken, targetToken, rawValue });
 	if (scope !== 'aura') return true;
+	if (!targetToken) return false;
 	if (!_passesFriendOrFoeFilter({ sourceToken: auraToken ?? sourceToken, targetToken, rawValue })) return false;
 	const normalized = normalizedRaw.toLowerCase();
 	if (auraToken?.id && targetToken?.id && auraToken.id === targetToken.id && !normalized.includes('includeself')) return false;
@@ -1385,7 +1387,7 @@ function getSuppressedStatusData({ actor, statusId, type, subjectToken, opponent
 	evaluateActorFlags({ actorDocument: actor, flagPaths: sourceFlagPaths, scope: 'source', sourceToken: targetToken });
 	evaluateEffects({ effects: actor.appliedEffects, flagPaths: sourceFlagPaths, scope: 'source', sourceToken: targetToken, buildLabel: (effect) => `${effect.name} (${flagName})` });
 
-	const relatedActor = relatedToken?.actor;
+	const relatedActor = relatedToken?.actor ?? _safeFromUuidSync(type === 'opponent' ? evaluationData?.actorUuid : evaluationData?.opponentActorUuid);
 	evaluateActorFlags({ actorDocument: relatedActor, flagPaths: grantsFlagPaths, scope: 'grants', sourceToken: relatedToken });
 	evaluateEffects({ effects: relatedActor?.appliedEffects, flagPaths: grantsFlagPaths, scope: 'grants', sourceToken: relatedToken, buildLabel: (effect) => `${effect.name} (grants.${flagName})` });
 
@@ -1434,8 +1436,8 @@ function automatedItemsTables({ ac5eConfig, subjectToken, opponentToken }) {
 function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: existingEvaluationData }) {
 	const options = ac5eConfig.options;
 	const { ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative } = options;
-	const subject = subjectToken?.actor;
-	const opponent = opponentToken?.actor;
+	const subject = subjectToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.sourceActorUuid);
+	const opponent = opponentToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.targetActorUuid);
 	const item = activity?.item;
 
 	//flags.ac5e.<actionType>.<mode>
@@ -1447,7 +1449,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 	const distanceToSource = (token, wallsBlock) => _getDistance(token, subjectToken, false, true, wallsBlock, true);
 	const distanceToTarget = (token, wallsBlock) => _getDistance(token, opponentToken, false, true, wallsBlock, true);
 
-	const evaluationData = existingEvaluationData ?? _createEvaluationSandbox({ subjectToken, opponentToken, options });
+	const evaluationData = existingEvaluationData ?? _createEvaluationSandbox({ subjectToken, opponentToken, sourceActor: subject, targetActor: opponent, options });
 	evaluationData.ac5eConfig = ac5eConfig;
 	evaluationData.optinSelected = ac5eConfig?.optinSelected ?? {};
 
@@ -1560,13 +1562,13 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 
 	//Will return false only in case of both tokens being available AND the value includes allies OR enemies and the test of dispositionCheck returns false;
 	const friendOrFoe = (tokenA, tokenB, value) => {
-		if (!tokenA || !tokenB) return true;
 		const normalizedValue = String(value ?? '').toLowerCase();
 		const alliesOrEnemies =
 			normalizedValue.includes('allies') ? 'allies'
 			: normalizedValue.includes('enemies') ? 'enemies'
 			: null;
 		if (!alliesOrEnemies) return true;
+		if (!tokenA || !tokenB) return false;
 		return alliesOrEnemies === 'allies' ? _dispositionCheck(tokenA, tokenB, 'same') : !_dispositionCheck(tokenA, tokenB, 'same');
 	};
 
@@ -1768,6 +1770,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		if (normalizedChangeValue.includes('itemlimited') && evalData.originItem?.id !== evalData.item?.id && evalData.originItem?.uuid !== evalData.item?.uuid) return false;
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
+			if (!(isModifyAC ? opponentToken : subjectToken)) return false;
 			const auraToken = canvas.tokens.get(auraTokenEvaluationData.auraTokenId);
 			if (auraTokenEvaluationData.auraTokenId === (isModifyAC ? opponentToken.id : subjectToken.id) && !normalizedChangeValue.includes('includeself')) return false;
 			if (!friendOrFoe(auraToken, isModifyAC ? opponentToken : subjectToken, change.value)) return false;
@@ -2541,7 +2544,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		});
 	};
 	// const placeablesWithRelevantAuras = {};
-	canvas.tokens.placeables.filter((token) => {
+	(canvas?.tokens?.placeables ?? []).filter((token) => {
 		if (!token.actor) return false;
 		// if (token.actor.items.getName(_localize('AC5E.Items.AuraOfProtection'))) {
 		// }

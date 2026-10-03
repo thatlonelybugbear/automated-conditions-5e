@@ -525,3 +525,7 @@ Useful options include `match: "name" | "identifier" | "id" | "uuid" | "any"`, `
 ---
 
 This sandbox gives you powerful control over **when** a specific AC5e module flags should apply, letting you create smart, context-sensitive automation with minimal code.
+
+### Rolling without a scene Token
+
+AC5E evaluates Actor flags, statuses, opt-ins, scaling, and resource updates when rolling from a sidebar Actor without a scene Token. `rollingActor` remains available. Token identifiers are absent, and automatic distance, visibility, cover, and aura rules require scene Tokens. Unlinked Actors use their own Token; linked Actors may use an active Token on the current scene.
