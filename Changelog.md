@@ -16,6 +16,7 @@
   - Extended status override diagnostics to syntax and type errors.
 - Fixed AC5E losing native D&D5e advantage and disadvantage stored in the first roll's options, including roll-profile snapshots.
 - Fixed Paralyzed and Unconscious conditions triggering critical damage not only for Attacks.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
 
 ## 14.603.2
 
