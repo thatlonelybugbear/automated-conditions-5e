@@ -132,6 +132,20 @@ function updateSingleOptinScale(ac5eConfig, optinId, scale) {
 	setOptinSelections(ac5eConfig, nextSelections);
 }
 
+function normalizeOptinScaleSelection(entry, scaling, ac5eConfig) {
+	const selection = ac5eConfig?.optinSelected?.[entry.id] ?? ac5eConfig?.optinSelected?.[entry.optinId];
+	const selectedScale = _getOptinSelectionScale(selection);
+	const boundedScale = Number.isFinite(selectedScale) ? Math.min(scaling.max, Math.max(scaling.min, selectedScale)) : scaling.min;
+	const scale = scaling.min + Math.floor((boundedScale - scaling.min) / scaling.step) * scaling.step;
+	if (Number.isFinite(selectedScale) && selectedScale !== scale) {
+		setOptinSelections(ac5eConfig, {
+			...ac5eConfig.optinSelected,
+			[entry.id]: { enabled: _isOptinSelectionActive(selection), scale },
+		});
+	}
+	return scale;
+}
+
 function getUsesCountLabelSuffix(entry) {
 	const updateSummary = getUpdateSummaryText(entry, { compact: true });
 	if (updateSummary) return `(${updateSummary})`;
@@ -632,8 +646,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		if (!isOptinEntry) return;
 		const parsedUsesCount = parseUsesCountSpec(entry?.usesCount);
 		const scaling = getOptinScaling(entry, parsedUsesCount, ac5eConfig);
-		const selectedScale = _getOptinSelectionScale(ac5eConfig?.optinSelected?.[entry.id]);
-		if (scaling) entry.selectedScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
+		if (scaling) entry.selectedScale = normalizeOptinScaleSelection(entry, scaling, ac5eConfig);
 		else delete entry.selectedScale;
 		const row = document.createElement('div');
 		row.className = 'form-group ac5e-optin-row';
@@ -744,7 +757,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			slider.min = scaling.min;
 			slider.max = scaling.max;
 			slider.step = scaling.step;
-			const initialScale = Number.isFinite(selectedScale) ? selectedScale : scaling.min;
+			const initialScale = entry.selectedScale;
 			entry.selectedScale = initialScale;
 			slider.value = String(initialScale);
 			slider.disabled = !checkbox.checked;
