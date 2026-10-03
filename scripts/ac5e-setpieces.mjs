@@ -792,8 +792,8 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 	const opponent = opponentToken?.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	const subjectMove = Object.values(subject?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
-	const opponentMove = Object.values(opponent?.system.attributes.movement || {}).some((v) => typeof v === 'number' && v);
+	const subjectMove = (subject?.system.attributes.movement.max ?? 0) > 0;
+	const opponentMove = (opponent?.system.attributes.movement.max ?? 0) > 0;
 	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
 	const opponentAlert2014 = !modernRules && opponent?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
 
@@ -1021,9 +1021,6 @@ function buildStatusEffectsTables() {
 					settings.expandedConditions && ctx.opponentToken && ctx.subject && canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.opponent?.statuses.has('incapacitated') && ctx.opponentMove ?
 						'disadvantage'
 					:	'',
-			},
-			save: {
-				subject: (ctx) => (settings.expandedConditions && ctx.ability === 'dex' && ctx.subject && !ctx.subject?.statuses.has('incapacitated') && ctx.subjectMove ? 'advantage' : ''),
 			},
 		}),
 

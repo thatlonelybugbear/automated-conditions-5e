@@ -150,6 +150,7 @@ function _categorizeChangedOptionKeys(changedKeys = []) {
 function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfig, systemMode, type, modeCounts }) {
 	const capitalizeHook = hookType.capitalize();
 	const resolvedTypeLabel = String(typeLabel ?? '').trim() ? String(typeLabel).trim() : _localize('AC5E.SystemMode');
+	const advantageLabel = hookType === 'save' && ac5eConfig.options?.ability === 'dex' && actor.statuses.has('dodging') && actor.hasConditionEffect('dexteritySaveAdvantage') ? _i18nConditions('Dodging') : resolvedTypeLabel;
 	if (modeCounts?.override === 0) {
 		ac5eConfig.subject.noAdvantage = [_localize('AC5E.NoAdvantage')];
 		ac5eConfig.subject.noDisadvantage = [_localize('AC5E.NoDisadvantage')];
@@ -160,7 +161,7 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 		const disadvantageCount = _getModeCountValue(modeCounts?.disadvantages);
 		if (advantageCount > 0) {
 			systemMode.adv += advantageCount;
-			ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
+			ac5eConfig.subject.advantageNames.add(advantageLabel);
 		}
 		if (disadvantageCount > 0) {
 			systemMode.dis += disadvantageCount;
@@ -176,7 +177,7 @@ function collectRollMode({ actor, mode, max, min, hookType, typeLabel, ac5eConfi
 			systemMode.suppressed = 'noDis';
 		} else {
 			systemMode.adv++;
-			if (!actor.hasConditionEffect(`ability${capitalizeHook}Advantage`)) ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
+			if (!actor.hasConditionEffect(`ability${capitalizeHook}Advantage`)) ac5eConfig.subject.advantageNames.add(advantageLabel);
 			if (type === 'init' && !actor.hasConditionEffect('initiativeAdvantage')) ac5eConfig.subject.advantageNames.add(resolvedTypeLabel);
 		}
 	}
