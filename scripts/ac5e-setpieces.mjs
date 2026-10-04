@@ -520,7 +520,7 @@ export function _initStatusEffectsTables() {
 	return buildStatusEffectsTables();
 }
 
-export function registerStatusEffectOverride(override = {}) {
+export function registerStatusEffectOverride(override = {}, { persist = true } = {}) {
 	// Example:
 	// const id = ac5e.statusEffectsOverrides.register({
 	//   name: "Minotaur ignores prone melee disadvantage",
@@ -557,8 +557,21 @@ export function registerStatusEffectOverride(override = {}) {
 	const replacedPersistent = existing >= 0 && statusEffectsOverrideState.list[existing].persistent;
 	if (existing >= 0) statusEffectsOverrideState.list.splice(existing, 1);
 	statusEffectsOverrideState.list.push(entry);
-	if (entry.persistent || replacedPersistent) _persistStatusEffectOverrides();
+	if (persist && (entry.persistent || replacedPersistent)) _persistStatusEffectOverrides();
 	return entry.id;
+}
+
+export async function _importStatusEffectOverrideDefinitions(definitions) {
+	const previous = statusEffectsOverrideState.list.slice();
+	const ids = new Set(definitions.map((entry) => entry.id));
+	const needsSave = definitions.some((entry) => entry.persistent) || previous.some((entry) => ids.has(entry.id) && entry.persistent);
+	try {
+		for (const definition of definitions) registerStatusEffectOverride(definition, { persist: false });
+		if (needsSave && !(await _persistStatusEffectOverrides())) throw new Error(game.i18n.localize('AC5E.RegistryImport.SaveFailed'));
+	} catch (error) {
+		statusEffectsOverrideState.list = previous;
+		throw error;
+	}
 }
 
 export function removeStatusEffectOverride(id) {

@@ -1,4 +1,9 @@
 {
+	"AC5E.RegistryImport.InvalidSnapshot": "AC5E: This file is not a supported JSON export for this registry.",
+	"AC5E.RegistryImport.InvalidEntry": "AC5E: Entry {index} is invalid or repeats a key or ID. No entries were imported.",
+	"AC5E.RegistryImport.NoActiveGM": "AC5E: An active GM is required to import changes to persistent entries.",
+	"AC5E.RegistryImport.SaveFailed": "AC5E: Unable to save imported entries. The previous registry state was restored.",
+	"AC5E.RegistryExport.Skipped": "AC5E: Skipped {count} entries during JSON export because they contain callbacks or other values JSON cannot preserve. See the skipped entries below.",
 	"AC5E.StatusEffectsOverrides.ConditionError": "AC5E: Status override \"{name}\" (id: {id}) was skipped for {status}/{hook}/{type}. Condition: {condition}. Error: {error}. Correct its condition using ac5e.statusEffectsOverrides.register with the same id, or remove it using ac5e.statusEffectsOverrides.remove({removeId}). Access to game/canvas identifiers is prohibited; use sandbox fields instead. Quoted names containing those words are allowed.",
 	"AC5E.AutomateStatuses": {
 		"Name": "D&D 5e Condition Rules",
