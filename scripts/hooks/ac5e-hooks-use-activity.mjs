@@ -202,7 +202,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 	if (!ac5eConfig) return true;
 	if ((hook === 'use' || hook === 'postUse') && ac5eConfig?.pendingUses?.length && !ac5eConfig.pendingUsesApplied) {
 		const optins = ac5eConfig.optinSelected ?? {};
-		const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
+		const selectedIds = new Set(Object.keys(optins).filter((key) => _isOptinSelectionActive(optins[key])));
 		const pending = ac5eConfig.pendingUses.filter((entry) => !entry.optin || selectedIds.has(entry.id));
 		if (pending.length) await _applyPendingUses(pending);
 		ac5eConfig.pendingUsesApplied = true;

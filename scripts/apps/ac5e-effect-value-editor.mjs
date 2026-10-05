@@ -7,6 +7,7 @@ import {
 	shouldActivateEffectValueAutocomplete,
 } from './ac5e-effect-value-autocomplete.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { parseSpellSlotTarget } from '../ac5e-spell-slots.mjs';
 import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS } from '../ac5e-runtimeLogic.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from '../ac5e-addTo.mjs';
 
@@ -45,6 +46,9 @@ const OPTIONAL_FIELD_NAMES = ['name', 'description', 'usesCount'];
 const CADENCE_TOGGLE_FIELDS = ['once', 'oncePerTurn', 'oncePerRound', 'oncePerCombat'];
 const DEFAULT_USESCOUNT_SCALING = { min: 1, max: 1, step: 1 };
 const SPELL_SLOT_USESCOUNT_ENTRIES = [
+	'spell[slot,pact]',
+	'spell[slot]',
+	'spell[pact]',
 	'pact',
 	...Array.from(
 		{
@@ -1165,6 +1169,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 						path: {
 							name: 'ui.usesCountPath',
 							label: game.i18n.localize('AC5E.EffectValueEditor.Label.ConsumptionType'),
+							hint: parseSpellSlotTarget(parsedUsesCountParts.path) ? getToggleHint('AC5E.OptinSpellSlot.EditorHint') : undefined,
 							value: parsedUsesCountParts.path,
 							inputId: `ac5e-value-usesCount-path-${id}`,
 							expandable: true,
@@ -4570,10 +4575,8 @@ function updateUsesCountScaling(rawValue, enabled) {
 function parseUsesCountUiParts(baseValue) {
 	const current = typeof baseValue === 'string' ? baseValue.trim() : '';
 	if (!current) return { path: '', amount: '', setMode: false };
-	const firstComma = current.indexOf(',');
-	if (firstComma < 0) return { path: current, amount: '', setMode: false };
-	const path = current.slice(0, firstComma).trim();
-	const consumeRaw = current.slice(firstComma + 1).trim();
+	const [path, ...consumeParts] = splitTopLevelCsv(current).map((part) => part.trim());
+	const consumeRaw = consumeParts.join(',').trim();
 	if (!consumeRaw) return { path, amount: '', setMode: false };
 	if (consumeRaw.startsWith('=')) return { path, amount: consumeRaw.slice(1).trim(), setMode: true };
 	return { path, amount: consumeRaw, setMode: false };

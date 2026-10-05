@@ -21,6 +21,7 @@ import {
 	_safeFromUuidSync,
 	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
+import { consumeSpellSlot, getSpellSlotChoices, parseSpellSlotTarget } from './ac5e-spell-slots.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _createEvaluationSandboxLogSnapshot, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
@@ -2444,6 +2445,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
 			usesCountMissing: usesCountAvailability.missing,
+			spellSlotChoices: usesCountAvailability.spellSlotChoices,
 			requiresTransitAdvantage,
 			requiresTransitDisadvantage,
 			changeIndex,
@@ -2876,6 +2878,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
 			usesCountMissing: usesCountAvailability.missing,
+			spellSlotChoices: usesCountAvailability.spellSlotChoices,
 			requiresTransitAdvantage,
 			requiresTransitDisadvantage,
 			changeIndex: 0,
@@ -3583,6 +3586,20 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		} else {
 			return false;
 		}
+	} else if (hasCount && parseSpellSlotTarget(_parseUsesCountSpec(hasCount).target)) {
+		const parsedCount = _parseUsesCountSpec(hasCount);
+		if (!isOptin || recover || parsedCount.op !== 'delta' || parsedCount.scalingSign < 0) return false;
+		if (!parsedCount.scaling && Number(parsedCount.consume) !== 1) return false;
+		const actor = effect.target;
+		if (!(actor instanceof Actor)) return false;
+		const availability = _getUsesCountAvailabilityData({ rawUsesCount: hasCount, effect, evalData, debug });
+		const selection = _getOptinSelectionValueById(evalData, id, baseId);
+		const choice = selection?.slot ? availability.spellSlotChoices.find((choice) => choice.slot === selection.slot) : availability.spellSlotChoices[0];
+		if (!choice || (selection?.slot && _getOptinSelectionScale(selection) !== choice.scale)) return false;
+		const updates = { [`system.spells.${choice.slot}.value`]: choice.available - 1 };
+		const entry = { name: effect.name, context: { uuid: actor.uuid, updates, spellSlot: { slot: choice.slot, scale: choice.scale } } };
+		if (actor.isOwner) actorUpdates.push(entry);
+		else actorUpdatesGM.push(entry);
 	} else if (hasCount) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
@@ -4145,7 +4162,7 @@ export function _applyPendingUses(pendingUses = []) {
 						const updates = getUpdates(v);
 						if (typeof uuid !== 'string' || !updates) return Promise.resolve(null);
 						const doc = _safeFromUuidSync(uuid);
-						return doc ? doc.update(updates, getOptions(v)) : Promise.resolve(null);
+						return doc ? (v.spellSlot ? consumeSpellSlot(doc, v.spellSlot) : doc.update(updates, getOptions(v))) : Promise.resolve(null);
 					}),
 				);
 				allPromises.push(
@@ -4274,6 +4291,18 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	const parsedCount = _parseUsesCountSpec(rawUsesCount);
 	const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
 	if (!consumptionTarget) return result();
+	if (parseSpellSlotTarget(consumptionTarget)) {
+		const bound = (value, fallback) => {
+			const level = String(value ?? '').match(/^spell([1-9])$/i);
+			return level ? Number(level[1]) : _resolveUsesCountScalingNumber(value, {}, evalData, debug, fallback);
+		};
+		const spellSlotChoices = getSpellSlotChoices(consumptionTarget, effect?.target?.system?.spells, {
+			min: bound(parsedCount.scaling?.min, 1),
+			max: bound(parsedCount.scaling?.max, 9),
+			step: bound(parsedCount.scaling?.step, 1),
+		});
+		return { available: spellSlotChoices.length, missing: null, spellSlotChoices };
+	}
 	const lowerConsumptionTarget = consumptionTarget.toLowerCase();
 	const hasOrigin = lowerConsumptionTarget === 'origin';
 	const consume = _resolveUsesCountConsumeValue(parsedCount.consume, evalData, debug);

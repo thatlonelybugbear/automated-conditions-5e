@@ -1,4 +1,4 @@
-import { _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { _isOptinSelectionActive, _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
@@ -332,7 +332,7 @@ function applyPendingUsesIfNeeded(ac5eConfig, rolls) {
 	if (ac5eConfig.pendingUsesApplied) return;
 	if (Array.isArray(rolls) && !rolls.length) return;
 	const optins = ac5eConfig.optinSelected ?? {};
-	const selectedIds = new Set(Object.keys(optins).filter((key) => optins[key]));
+	const selectedIds = new Set(Object.keys(optins).filter((key) => _isOptinSelectionActive(optins[key])));
 	const explicitOverride = getExplicitModeOverride(ac5eConfig);
 	const pending = ac5eConfig.pendingUses
 		.filter((entry) => !entry.optin || selectedIds.has(entry.id))
