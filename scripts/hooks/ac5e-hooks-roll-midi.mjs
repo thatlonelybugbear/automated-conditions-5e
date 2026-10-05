@@ -77,16 +77,20 @@ export function syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls,
 		if (mode === advModes.ADVANTAGE) {
 			tracker.advantage.setOverride();
 			tracker.disadvantage.clearOverride();
+			tracker.disadvantage.clear();
 			continue;
 		}
 		if (mode === advModes.DISADVANTAGE) {
 			tracker.disadvantage.setOverride();
 			tracker.advantage.clearOverride();
+			tracker.advantage.clear();
 			continue;
 		}
 		if (mode === advModes.NORMAL) {
-			tracker.advantage.setOverride();
-			tracker.disadvantage.setOverride();
+			tracker.advantage.clearOverride();
+			tracker.disadvantage.clearOverride();
+			tracker.advantage.clear();
+			tracker.disadvantage.clear();
 			continue;
 		}
 		tracker.advantage.clearOverride();
