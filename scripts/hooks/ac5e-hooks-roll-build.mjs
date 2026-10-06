@@ -158,6 +158,7 @@ function getOptinsFromForm(formData, ac5eConfig) {
 		const numericValue = Number(value);
 		if (Number.isFinite(numericValue)) scales[id] = numericValue;
 	}
+	for (const [id, slot] of Object.entries(slots)) optins[id] = !!slot;
 	for (const [id, selected] of Object.entries(optins)) {
 		if (!selected) continue;
 		const slot = slots[id] ?? existing[id]?.slot;

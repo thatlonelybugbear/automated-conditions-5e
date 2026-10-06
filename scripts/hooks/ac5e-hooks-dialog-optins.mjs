@@ -76,6 +76,14 @@ export function readOptinSelections(elem, ac5eConfig) {
 	const sliders = elem.querySelectorAll('[data-ac5e-optin-scale="true"]');
 	for (const slider of sliders) {
 		const id = slider.dataset.ac5eOptinId;
+		if (id && slider.tagName === 'SELECT') {
+			const option = slider.selectedOptions[0];
+			const previous = selected[id];
+			selected[id] = slider.value ? { enabled: true, scale: Number(option?.dataset.scale), slot: slider.value }
+				: { ...(previous && typeof previous === 'object' ? previous : {}), enabled: false };
+			if (slider.dataset.ac5eOptinSemanticId) selected[slider.dataset.ac5eOptinSemanticId] = selected[id];
+			continue;
+		}
 		if (!id || !selected[id]) continue;
 		const slotOption = slider.tagName === 'SELECT' ? slider.selectedOptions[0] : null;
 		const scale = Number(slotOption?.dataset.scale ?? slider.value);
@@ -760,13 +768,17 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const existingSelection = ac5eConfig?.optinSelected?.[entry.id] ?? ac5eConfig?.optinSelected?.[entry.optinId];
 		checkbox.checked = existingSelection === undefined ? !!entry.preselected : _isOptinSelectionActive(existingSelection);
 		if (slotChoices) {
-			checkbox.disabled = !selectedSlot;
-			if (!selectedSlot) checkbox.checked = false;
 			const select = document.createElement('select');
 			select.name = `ac5eOptinSlot.${entry.id}`;
 			select.dataset.ac5eOptinId = entry.id;
 			select.dataset.ac5eOptinScale = 'true';
-			select.setAttribute('aria-label', _localize('AC5E.OptinSpellSlot.Choice'));
+			if (entry.optinId) select.dataset.ac5eOptinSemanticId = entry.optinId;
+			const prompt = `${game.i18n.format('DND5E.UseItem', { item: indexedLabel })}?`;
+			select.setAttribute('aria-label', prompt);
+			const unusedOption = document.createElement('option');
+			unusedOption.value = '';
+			unusedOption.textContent = prompt;
+			select.append(unusedOption);
 			for (const choice of slotChoices) {
 				const option = document.createElement('option');
 				option.value = choice.slot;
@@ -774,19 +786,15 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 				option.textContent = game.i18n.format(choice.slot === 'pact' ? 'AC5E.OptinSpellSlot.Pact' : 'AC5E.OptinSpellSlot.Spell', { level: choice.scale, available: choice.available });
 				select.append(option);
 			}
-			select.value = selectedSlot?.slot ?? '';
-			select.disabled = !checkbox.checked;
-			select.style.flex = '0 1 auto';
-			checkbox.addEventListener('change', () => {
-				select.disabled = !checkbox.checked;
-				setOptinSelections(ac5eConfig, readOptinSelections(fieldset, ac5eConfig));
-			});
+			select.value = checkbox.checked ? selectedSlot?.slot ?? '' : '';
+			select.style.flex = '1 1 0';
+			select.style.minWidth = '0';
 			select.addEventListener('change', () => {
 				setOptinSelections(ac5eConfig, readOptinSelections(fieldset, ac5eConfig));
-				entry.selectedScale = Number(select.selectedOptions[0]?.dataset.scale);
+				if (select.value) entry.selectedScale = Number(select.selectedOptions[0]?.dataset.scale);
 				refreshScaleText();
 			});
-			row.append(label, select, checkbox);
+			row.append(select);
 			if (descriptionPill) row.append(descriptionPill);
 		} else if (scaling) {
 			checkbox.dataset.ac5eOptinScaleMin = String(scaling.min);
