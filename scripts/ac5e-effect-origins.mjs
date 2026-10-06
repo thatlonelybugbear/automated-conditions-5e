@@ -19,7 +19,7 @@ export function repairCopiedItemEffectOrigins(item, data = {}, resolveUuid = () 
 		const origin = effect.system?.origin;
 		const references = [effect.origin, effect.flags?.core?.originText, origin?.item, origin?.activity, origin?.effect, effect.flags?.dnd5e?.item, effect.flags?.dnd5e?.activity];
 		const effectSources = new Set(sources);
-		// Actor-to-Actor drops preserve the source Item ID but may not record duplicateSource.
+		// Other copy paths may preserve the source Item ID without recording duplicateSource.
 		if (sourceId && effect._id) for (const reference of references) {
 			if (typeof reference !== 'string' || reference.startsWith('.')) continue;
 			const uuid = reference.replace(/\.(?:Activity|ActiveEffect)\.[^.]+$/, '');
