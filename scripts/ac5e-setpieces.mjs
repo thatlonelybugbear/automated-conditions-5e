@@ -22,7 +22,7 @@ import {
 	_safeFromUuidSync,
 	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
-import { consumeSpellSlot, getSpellSlotChoices, parseSpellSlotTarget } from './ac5e-spell-slots.mjs';
+import { consumeSpellSlot, getMaxSpellSlotLevel, getSpellSlotChoices, parseSpellSlotTarget } from './ac5e-spell-slots.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _createEvaluationSandboxLogSnapshot, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
@@ -4293,12 +4293,12 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	if (!consumptionTarget) return result();
 	if (parseSpellSlotTarget(consumptionTarget)) {
 		const bound = (value, fallback) => {
-			const level = String(value ?? '').match(/^spell([1-9])$/i);
+			const level = String(value ?? '').match(/^spell([1-9]\d*)$/i);
 			return level ? Number(level[1]) : _resolveUsesCountScalingNumber(value, {}, evalData, debug, fallback);
 		};
 		const spellSlotChoices = getSpellSlotChoices(consumptionTarget, effect?.target?.system?.spells, {
 			min: bound(parsedCount.scaling?.min, 1),
-			max: bound(parsedCount.scaling?.max, 9),
+			max: bound(parsedCount.scaling?.max, getMaxSpellSlotLevel()),
 			step: bound(parsedCount.scaling?.step, 1),
 		});
 		return { available: spellSlotChoices.length, missing: null, spellSlotChoices };

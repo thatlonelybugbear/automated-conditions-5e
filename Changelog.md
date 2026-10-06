@@ -1,3 +1,7 @@
+## 14.605.3
+
+- Spell-slot opt-in scaling now follows the system's configured spell level limit, including custom levels above 9, while respecting explicit level bounds.
+
 ## 14.605.2
 
 - Improved how AC5E identifies the source of effects on copied items, repairing references when the original source can be identified.

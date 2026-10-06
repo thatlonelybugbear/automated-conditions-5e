@@ -537,7 +537,7 @@ AC5E evaluates Actor flags, statuses, opt-ins, scaling, and resource updates whe
 flags.automated-conditions-5e.damage.bonus | AC5E | bonus=(optinScale)d8[radiant]; usesCount=spell[slot,pact],{min:1,max:4}; optin
 ```
 
-The dropdown offers only the effect actor's available slots within the configured level bounds. The same item works for actors with spell slots, Pact slots, or both. Spell and Pact pools remain separate choices even when their levels match. Pact uses its actual level; bounds also apply to Pact slots. Omit the bounds to allow levels 1 through 9. Bounds accept numbers or `spell1` through `spell9`.
+The dropdown offers only the effect actor's available slots within the configured level bounds. The same item works for actors with spell slots, Pact slots, or both. Spell and Pact pools remain separate choices even when their levels match. Pact uses its actual level; bounds also apply to Pact slots. Omit the bounds to allow levels 1 through the maximum configured in `CONFIG.DND5E.spellLevels`. Bounds accept numbers or slot names such as `spell1` or `spell10`.
 
 `optinScale` and `bonusScale` use the chosen slot's level, while consumption is always **one slot** from its selected pool. For example, selecting a level-3 Pact slot adds 3d8 and consumes one Pact slot. Exhausted pools are omitted; with no eligible slots the opt-in is unavailable. Availability is checked during flag evaluation and again immediately before consuming the slot, including GM-routed consumption. The dropdown's `Use <name>?` option disables the opt-in and does not consume a slot; choosing a slot enables it.
 
