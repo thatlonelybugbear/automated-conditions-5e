@@ -7,7 +7,6 @@
     ```text
     flags.automated-conditions-5e.damage.bonus | AC5E | bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;
     ```
-    This formula grants 2d8-5d8 radiant damage, and 1d8 extra damage against Fiends/Undead, and consumes one slot when the opt-in is used.
 - Added JSON export and import for usage rules and status effect overrides, including persistent-only exports, reporting entries that cannot be serialized, import validation, and explicit duplicate replacement.
   - Download each registry as JSON:
 
@@ -31,6 +30,7 @@
     ```
 
     To export only entries saved in world settings, pass `{ persistentOnly: true }` to either export call.
+- Updated wiki item examples, including Assassinate 2024 and Dwarven Resilience 2014.
 
 ## 14.605.1
 
