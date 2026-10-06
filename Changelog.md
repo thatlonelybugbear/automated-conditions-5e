@@ -31,6 +31,7 @@
 
     To export only entries saved in world settings, pass `{ persistentOnly: true }` to either export call.
 - Updated wiki item examples, including Assassinate 2024 and Dwarven Resilience 2014.
+- Initial support work for MidiQOL compatibility. Fixed some AdvantageMode discrepancies.
 
 ## 14.605.1
 
