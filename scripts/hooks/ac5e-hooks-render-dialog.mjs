@@ -37,6 +37,7 @@ export function renderRollConfigDialogHijack(hook, render, elem, initialConfig, 
 	getConfigAC5E = hook === 'damageDialog' ? syncDamageDialogState(render, elem, getConfigAC5E, deps) : syncD20DialogState(hook, render, elem, getConfigAC5E, deps);
 	const { hookType } = getConfigAC5E || {};
 	if (!hookType) return true;
+	bindDialogModeOverrides(render, elem, getConfigAC5E, deps);
 	const { title, newTitle } = applyDialogTitleOverrides(render, elem, getConfigAC5E);
 	if (newTitle && title) title.textContent = newTitle;
 	if (!['both', 'dialog'].includes(deps.settings.showTooltips)) return true;
@@ -221,18 +222,8 @@ function applyDialogTitleOverrides(render, elem, getConfigAC5E) {
 	return { title, newTitle };
 }
 
-function applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip, deps) {
-	if (render?.message) deps.setMessageFlagScope(render.message, deps.Constants.MODULE_ID, { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType }, { merge: true });
-	const ac5eForButton = getDialogAc5eConfig(render, getConfigAC5E);
-	let defaultButton = ac5eForButton?.defaultButton ?? 'normal';
-	const hasRequestedButton = !!elem.querySelector(`button[data-action="${defaultButton}"]`);
-	if (!hasRequestedButton) {
-		const fallbackButton = elem.querySelector('button[data-action="normal"]') ?? elem.querySelector('button[data-action]');
-		defaultButton = fallbackButton?.dataset?.action ?? 'normal';
-		if (ac5eForButton && typeof ac5eForButton === 'object') ac5eForButton.defaultButton = defaultButton;
-	}
-	const allButtons = elem.querySelectorAll('button[data-action]');
-	for (const button of allButtons) {
+function bindDialogModeOverrides(render, elem, getConfigAC5E, deps) {
+	for (const button of elem.querySelectorAll('button[data-action]')) {
 		if (!button.dataset.ac5eOverrideBound) {
 			button.dataset.ac5eOverrideBound = 'true';
 			button.addEventListener('click', (event) => {
@@ -246,6 +237,21 @@ function applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip
 				deps.setExplicitModeOverride(liveConfig, { action, source: 'dialog' });
 			});
 		}
+	}
+}
+
+function applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip, deps) {
+	if (render?.message) deps.setMessageFlagScope(render.message, deps.Constants.MODULE_ID, { tooltipObj: getConfigAC5E.tooltipObj, hookType: getConfigAC5E.hookType }, { merge: true });
+	const ac5eForButton = getDialogAc5eConfig(render, getConfigAC5E);
+	let defaultButton = ac5eForButton?.defaultButton ?? 'normal';
+	const hasRequestedButton = !!elem.querySelector(`button[data-action="${defaultButton}"]`);
+	if (!hasRequestedButton) {
+		const fallbackButton = elem.querySelector('button[data-action="normal"]') ?? elem.querySelector('button[data-action]');
+		defaultButton = fallbackButton?.dataset?.action ?? 'normal';
+		if (ac5eForButton && typeof ac5eForButton === 'object') ac5eForButton.defaultButton = defaultButton;
+	}
+	const allButtons = elem.querySelectorAll('button[data-action]');
+	for (const button of allButtons) {
 		button.classList.remove('ac5e-button');
 		button.style.backgroundColor = '';
 		button.style.border = '';
