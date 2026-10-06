@@ -138,9 +138,9 @@ export default class Settings {
 			type: String,
 			choices: {
 				all: 'AC5E.ShowTooltipChatVisibility.All',
-				none: 'AC5E.ShowTooltipChatVisibility.None',
-				owned: 'AC5E.ShowTooltipChatVisibility.Owned',
 				players: 'AC5E.ShowTooltipChatVisibility.Players',
+				owned: 'AC5E.ShowTooltipChatVisibility.Owned',
+				none: 'AC5E.ShowTooltipChatVisibility.None',
 			},
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.ColorPicker_Enabled, {
