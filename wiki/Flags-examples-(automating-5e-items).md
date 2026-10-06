@@ -12,6 +12,8 @@ Applies to version: `13.5250.18`
 - [Danger Sense](#danger-sense)
 - [Disciple of Life](#disciple-of-life)
 - [Divine Fury](#divine-fury)
+- [Divine Smite 2014](#divine-smite-2014)
+- [Divine Smite 2024](#divine-smite-2024)
 - [Dwarven Resilience](#dwarven-resilience)
 - [Great Weapon Fighting](#great-weapon-fighting)
 - [Healer feat](#healer-feat)
@@ -113,6 +115,20 @@ value: bonus=2 + castingLevel; isHeal && isSpell && defaultDamageType.healing //
 key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=1d6 + floor(@classes.barbarian.levels / 2)[necrotic, radiant]; oncePerTurn; isTurn && (unarmed || weapon)
+```
+## Divine Smite 2014
+```
+// v14.605.2+
+key: flags.automated-conditions-5e.damage.bonus
+mode: AC5E
+value: bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;
+```
+## Divine Smite 2024
+```
+// v14.605.2+
+key: flags.automated-conditions-5e.damage.bonus
+mode: AC5E
+value: bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 9, step: 1 }; name=Divine Smite; optinId=divine-smite; oncePerTurn; optin; mwak && rollingActor.isTurn;
 ```
 ## Dwarven Resilience
 ```

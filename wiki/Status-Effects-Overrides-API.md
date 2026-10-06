@@ -18,6 +18,8 @@ Methods:
 - `remove(id)` -> returns `true` if removed
 - `clear()` -> removes all registered overrides
 - `list()` -> returns a shallow copy of current entries
+- `exportJSON(options)` -> downloads JSON and returns the snapshot (v14.605.2+)
+- `importJSON(data, options)` -> imports a snapshot and returns a report (v14.605.2+)
 
 You can register from `Hooks.on("ac5e.statusEffectsReady", ...)` or at runtime (for example from a macro).
 
@@ -248,3 +250,43 @@ ac5e.statusEffectsOverrides.clear();
 - Guard against missing fields in `context`.
 - Prefer narrow filters (`status`, `hook`, `type`) for performance and clarity.
 - Use explicit `priority` when combining multiple overrides.
+
+## JSON export and import (v14.605.2+)
+
+```js
+ac5e.statusEffectsOverrides.exportJSON();
+ac5e.statusEffectsOverrides.exportJSON({ filename: "my-statusEffectsOverrides.json", persistentOnly: true });
+const snapshot = ac5e.statusEffectsOverrides.exportJSON({ download: false });
+```
+
+`exportJSON({ filename = null, download = true, persistentOnly = false } = {})` downloads a JSON file and returns the same snapshot as an object. It does not change registrations or world settings.
+
+The snapshot contains `schema: 1`, `moduleId`, `moduleVersion`, `kind`, `generatedAt`, `entries`, and `skipped`. Each entry is a registration definition, preserving its key or ID, condition, payload, and persistence setting. Document UUIDs remain unchanged; they may need updating when moving definitions between worlds.
+
+By default, export includes the active runtime and persistent definitions. `persistentOnly: true` exports saved definitions only. Entries containing callbacks such as `when` or `apply` or other values JSON cannot preserve are omitted entirely and reported in `skipped`, with a console warning. This prevents an exported entry from losing its predicate and becoming unconditional.
+
+### Import
+
+```js
+// Pick a JSON export file.
+const report = await ac5e.statusEffectsOverrides.importJSON();
+
+// Import an exported object or JSON string; existing keys or IDs are skipped.
+await ac5e.statusEffectsOverrides.importJSON(snapshot);
+
+// Explicitly replace matching entries.
+await ac5e.statusEffectsOverrides.importJSON(snapshot, { overwrite: true });
+
+// Import every definition as runtime-only, regardless of its saved setting.
+await ac5e.statusEffectsOverrides.importJSON(snapshot, { persistent: false });
+```
+
+`importJSON(data = null, { overwrite = false, persistent = null } = {})` accepts an exported object, JSON string, or `File`. Without data it opens a file picker; cancellation returns `null`.
+
+The entire snapshot is validated before applying any entries. Unsupported schema, module, or registry kind; invalid definitions; and repeated keys or IDs in the file reject the import. Callback definitions are not accepted. Document UUIDs and sandbox conditions are retained, but their applicability in the destination world is not verified.
+
+Existing entries are skipped unless `overwrite: true`. Other registrations remain intact. The returned report contains `imported` (keys or IDs) and `skipped` (entries with `reason: "exists"`). Entries omitted during export are not restored.
+
+Persistence is preserved by default. `persistent: true` or `false` overrides it for all imported entries. An active GM is required for changes to saved definitions, including replacing a persistent entry with a runtime one. Imports await persistence and restore the previous local registry state if saving fails.
+
+Overrides are imported in file order; equal-priority precedence follows registration order.

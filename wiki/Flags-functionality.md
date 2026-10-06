@@ -213,6 +213,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `usesCount=Item.ID.Activity.ID`| `ID` can be either an `id`, `identifier` or `name`. The `Activity.ID` part is optional. If added, the uses from that activity will be consumed, otherwise from the relevant Item. |
 | `usesCount=_, Number`  | If a comma separated Number is added, multiple uses will be consumed if available |
 | `usesCount=ActorAttr, Number`   | Use consumable resources on the Actor instead of item/activity uses |
+| `usesCount=spell[slot,pact]` | For opt-ins, choose an available spell or Pact slot and consume one slot. Use `spell[slot]` or `spell[pact]` to restrict pools. |
 | | `ActorAttr` can be `hp`, `hpmax`, `hptemp`, `hd`, `hdlargest`, `hdsmallest`, `abilityXYZ` (like `str`), `senseXYZ` (like `darkvision`), `currency` (like `gp`), `spellXYZ` (like `pact` or `spell3`), `movementXYZ` (like `walk`), `exhaustion`, `inspiration`, `resources` (like `primary`, `legact` etc), or any of the actor's `flags` . |
 | | For any hp `ActorAttr` which would lead to hp loss (temp or current), using `noconc` (or `noconcentration`, `noconcentrationcheck`) will disable concentration checks on that loss. |
 |                        | The `Number` is optional. If omitted 1 use or relevant value will be consumed by default! |
@@ -529,3 +530,15 @@ This sandbox gives you powerful control over **when** a specific AC5e module fla
 ### Rolling without a scene Token
 
 AC5E evaluates Actor flags, statuses, opt-ins, scaling, and resource updates when rolling from a sidebar Actor without a scene Token. `rollingActor` remains available. Token identifiers are absent, and automatic distance, visibility, cover, and aura rules require scene Tokens. Unlinked Actors use their own Token; linked Actors may use an active Token on the current scene.
+
+### Spell-slot opt-in scaling
+
+```text
+flags.automated-conditions-5e.damage.bonus | AC5E | bonus=(optinScale)d8[radiant]; usesCount=spell[slot,pact],{min:1,max:4}; optin
+```
+
+The dropdown offers only the effect actor's available slots within the configured level bounds. The same item works for actors with spell slots, Pact slots, or both. Spell and Pact pools remain separate choices even when their levels match. Pact uses its actual level; bounds also apply to Pact slots. Omit the bounds to allow levels 1 through 9. Bounds accept numbers or `spell1` through `spell9`.
+
+`optinScale` and `bonusScale` use the chosen slot's level, while consumption is always **one slot** from its selected pool. For example, selecting a level-3 Pact slot adds 3d8 and consumes one Pact slot. Exhausted pools are omitted; with no eligible slots the opt-in is unavailable. Availability is checked during flag evaluation and again immediately before consuming the slot, including GM-routed consumption. The dropdown's `Use <name>?` option disables the opt-in and does not consume a slot; choosing a slot enables it.
+
+In the effect editor, choose `spell[slot,pact]`, `spell[slot]`, or `spell[pact]` from the consumption quick targets. Enable Scaling to configure level bounds. Existing fixed `spell1` through `spell9` and `pact` consumption retain their behavior. Slot selection requires `optin`; recovery, absolute setting, and consumption amounts other than one are unsupported for this syntax.
