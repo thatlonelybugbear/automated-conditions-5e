@@ -24,6 +24,19 @@ import { autoRanged, canSee, checkNearby, checkRanged } from './ac5e-systemRules
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
+export function canSeeChatTooltip(roll) {
+	if (!game.modules.get(Constants.MODULE_ID)?.active) return false;
+	if (!['both', 'chat'].includes(game.settings.get(Constants.MODULE_ID, Settings.SHOW_TOOLTIPS))) return false;
+	if (game.user.isGM) return true;
+	const context = roll?.options?.[Constants.MODULE_ID];
+	switch (game.settings.get(Constants.MODULE_ID, Settings.SHOW_CHAT_TOOLTIPS)) {
+		case 'all': return true;
+		case 'players': return !!context?.hasPlayerOwner;
+		case 'owned': return context?.ownership?.[game.user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+		default: return false;
+	}
+}
+
 const contextKeywordRegistryState = {
 	runtime: new Map(),
 	persistent: new Map(),
@@ -1757,6 +1770,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.checkNearby = checkNearby;
 	ac5e.checkRanged = checkRanged;
 	ac5e.checkVisibility = canSee;
+	ac5e.canSeeChatTooltip = canSeeChatTooltip;
 	ac5e.getLightLevel = _getLightLevel;
 	ac5e.debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;
 	ac5e.evaluationData = _createEvaluationSandbox;

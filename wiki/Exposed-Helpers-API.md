@@ -2,6 +2,18 @@
 
 AC5E exposes helper functions on the global `ac5e` object for macros, module integrations, and advanced condition authoring.
 
+## Chat tooltip visibility
+
+`ac5e.canSeeChatTooltip(roll)` returns whether the current client may display AC5E attribution for a roll. It respects the user's Show AC5E Tooltips setting and the world's Show Chat Tooltips to Players for setting. GMs bypass only the world filter. Player ownership checks use the roll's AC5E context; missing context fails those checks.
+
+```js
+const roll = message.rolls[index];
+const tooltip = ac5e.canSeeChatTooltip(roll)
+  ? roll.options['automated-conditions-5e']?.chatTooltip
+  : null;
+button.dataset.tooltip = tooltip || rerollLabel;
+```
+
 ## Roll and scene helpers
 
 ```js
