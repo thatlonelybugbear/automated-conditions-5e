@@ -1,3 +1,8 @@
+## 14.605.3.1
+
+- Fixed system damage rule bonuses being counted twice when submitting the damage dialog.
+  - AC5E formula transformations, such as `extraDice`, do not currently affect these rule bonuses.
+
 ## 14.605.3
 
 - Spell-slot opt-in scaling now follows the system's configured spell level limit, including custom levels above 9, while respecting explicit level bounds.
@@ -10,35 +15,20 @@
 - Improved how AC5E identifies the source of effects on copied items, repairing references when the original source can be identified.
 - Added spell-slot consumption for scaled opt-ins with `usesCount=spell[slot,pact]`, including an actor-specific dropdown for available spell and Pact slots, optional level bounds, and damage scaling from the selected slot level. Each selection consumes one slot from its chosen pool.
   - Example: a Divine Smite 2014 damage opt-in for melee weapon attacks using 1st-4th-level spell or Pact slots, with an additional die against Fiends/Undead. Add this Active Effect change with mode **AC5E**:
-
-    ```js
-    key: flags.automated-conditions-5e.damage.bonus
-    mode: AC5E
-    value: bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;
-    ```
+    - **key**: `flags.automated-conditions-5e.damage.bonus`
+    - **type**: `AC5E`
+    - **value**: `bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;`
 - Added JSON export and import for usage rules and status effect overrides, including persistent-only exports, reporting entries that cannot be serialized, import validation, and explicit duplicate replacement.
   - Download each registry as JSON:
-
-    ```js
-    ac5e.usageRules.exportJSON();
-    ac5e.statusEffectsOverrides.exportJSON();
-    ```
-
+    - `ac5e.usageRules.exportJSON();`
+    - `ac5e.statusEffectsOverrides.exportJSON();`
   - Open a file picker to import the corresponding JSON export:
-
-    ```js
-    await ac5e.usageRules.importJSON();
-    await ac5e.statusEffectsOverrides.importJSON();
-    ```
-
-    Importing skips entries whose IDs already exist. Add `{ overwrite: true }` as the second argument to either import call to replace those entries:
-
-    ```js
-    await ac5e.usageRules.importJSON(null, { overwrite: true });
-    await ac5e.statusEffectsOverrides.importJSON(null, { overwrite: true });
-    ```
-
-    To export only entries saved in world settings, pass `{ persistentOnly: true }` to either export call.
+    - `await ac5e.usageRules.importJSON();`
+    - `await ac5e.statusEffectsOverrides.importJSON();`
+  - Importing skips entries whose IDs already exist. Add `{ overwrite: true }` as the second argument to either import call to replace those entries:
+    - `await ac5e.usageRules.importJSON(null, { overwrite: true });`
+    - `await ac5e.statusEffectsOverrides.importJSON(null, { overwrite: true });`
+  - To export only entries saved in world settings, pass `{ persistentOnly: true }` to either export call.
 - Updated wiki item examples, including Assassinate 2024 and Dwarven Resilience 2014.
 - Initial support work for MidiQOL compatibility. Fixed some AdvantageMode discrepancies.
 
