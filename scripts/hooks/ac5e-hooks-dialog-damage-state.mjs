@@ -191,7 +191,7 @@ export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
 			if (!roll) continue;
 			const baseFormula = preservedBaseFormulas?.[i] ?? reEval.initialFormulas?.[i] ?? currentRollsSnapshot?.[i]?.formula;
 			if (typeof baseFormula === 'string' && baseFormula.trim().length) {
-				roll.formula = baseFormula;
+				roll.formula = baseFormula.includes('@ruleBonus') ? resolveDamageFormulaDataReferences(baseFormula, roll.data) : baseFormula;
 				roll.parts = baseFormula
 					.split('+')
 					.map((part) => part.trim())
@@ -571,7 +571,8 @@ function getDamageBaselineFormulas(baseline) {
 	const rolls = Array.isArray(baseline?.rolls) ? baseline.rolls : [];
 	return rolls
 		.map((roll) =>
-			typeof roll?.formula === 'string' ? roll.formula
+			roll?.parts?.includes('@ruleBonus') ? roll.parts.join(' + ')
+			: typeof roll?.formula === 'string' ? roll.formula
 			: Array.isArray(roll?.parts) && roll.parts.length ? roll.parts.join(' + ')
 			: undefined,
 		)
@@ -581,7 +582,8 @@ function getDamageBaselineFormulas(baseline) {
 function getDamageFormulasFromRolls(rolls = []) {
 	return getNonSyntheticDamageRolls(rolls)
 		.map((roll) =>
-			typeof roll?.formula === 'string' ? roll.formula
+			roll?.parts?.includes('@ruleBonus') ? roll.parts.join(' + ')
+			: typeof roll?.formula === 'string' ? roll.formula
 			: Array.isArray(roll?.parts) && roll.parts.length ? roll.parts.join(' + ')
 			: undefined,
 		)
@@ -1295,10 +1297,10 @@ function syncAppendedBonusRolls(dialog, ac5eConfig, formulas = []) {
 	for (let index = 0; index < baseCount; index++) {
 		const roll = rolls[index];
 		if (!roll || !formulas[index]) continue;
-		roll.formula = formulas[index];
+		roll.formula = formulas[index].includes('@ruleBonus') ? resolveDamageFormulaDataReferences(formulas[index], roll.data) : formulas[index];
 		roll.options ??= {};
 		roll.options[Constants.MODULE_ID] ??= {};
-		roll.options[Constants.MODULE_ID].displayFormula = formulas[index];
+		roll.options[Constants.MODULE_ID].displayFormula = roll.formula;
 		const activeTypes = normalizeDamageTypeList(preserved.activeDamageTypesByRoll?.[index]);
 		const activeType = typeof preserved.activeDamageTypeByRoll?.[index] === 'string' ? preserved.activeDamageTypeByRoll[index].trim().toLowerCase() : undefined;
 		if (activeTypes.length) roll.options.types = [...activeTypes];
@@ -1982,6 +1984,10 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	};
 	const criticalBonusDamageByRoll = originals.map(() => '');
 	getConfigAC5E.preservedInitialData.modified = originals.map((formula, index) => {
+		// dnd5e must retain this standalone part to refresh its applied rule bonus.
+		const formulaParts = formula.split('+').map((part) => part.trim());
+		const hasRuleBonus = formulaParts.includes('@ruleBonus');
+		if (hasRuleBonus) formula = formulaParts.filter((part) => part !== '@ruleBonus').join(' + ');
 		const optinBonusParts = (bonusPartsByRoll[index] ?? []).map((part, partIndex) => applyTargetedDiceStep(part, bonusPartOptinIdsByRoll[index]?.[partIndex]));
 		const baseCriticalBonusDamage = normalizeCriticalBonusDamageFormula(getConfigAC5E.preservedInitialData?.baseCriticalBonusDamageByRoll?.[index]);
 		const baseAdvDis = baseAdvDisByRoll[index] ?? '';
@@ -2047,7 +2053,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		let criticalBonusDamage = [...criticalStaticParts, ...(criticalBonusPartsByRoll[index] ?? [])].filter(Boolean).join(' + ');
 		for (const op of formulaOperatorTokensByRoll[index] ?? []) criticalBonusDamage = applyFormulaOperatorToAllTerms(criticalBonusDamage, op);
 		criticalBonusDamageByRoll[index] = criticalBonusDamage;
-		return nextFormula;
+		return hasRuleBonus ? [nextFormula, '@ruleBonus'].filter(Boolean).join(' + ') : nextFormula;
 	});
 	for (const entry of appendedBonusRolls) criticalBonusDamageByRoll.push(entry.criticalFormula ?? '');
 	const suffixChanged = !areStringArraysEqual(activeModifiersArray, activeModifierStateByRoll);
