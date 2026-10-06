@@ -1,6 +1,9 @@
 ## 14.605.3
 
 - Spell-slot opt-in scaling now follows the system's configured spell level limit, including custom levels above 9, while respecting explicit level bounds.
+- Fixed roll dialog mode choices being ignored when dialog tooltips are disabled or empty. Clicking Advantage, Disadvantage, Normal, or Critical now records the choice independently of tooltip visibility.
+- Added `ac5e.canSeeChatTooltip(roll)` for module integrations to check whether the current client may display AC5E chat attribution, respecting personal tooltip preferences and the world's player visibility setting.
+- Clarified chat tooltip visibility labels and hints, with choices ordered as All Actors, Players, Owned, and None.
 
 ## 14.605.2
 
