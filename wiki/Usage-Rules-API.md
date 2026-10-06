@@ -14,6 +14,8 @@ ac5e.usageRules
 - `remove(key)` -> `boolean`
 - `clear()` -> `void` (runtime entries only)
 - `list()` -> `Array`
+- `exportJSON(options)` -> `Object` (v14.605.2+)
+- `importJSON(data, options)` -> `Promise<Object | null>` (v14.605.2+)
 - `showKeys()` -> `Object`
 - `canPersist()` -> `boolean`
 - `reloadPersistent()` -> `Array`
@@ -179,3 +181,43 @@ For usage-rule opt-ins, labels resolve as:
 3. Optional suffix name: inline `name=...` from the rule value, shown only when distinct from primary.
 
 This avoids duplicate labels and supports explicit API-first naming.
+
+## JSON export and import (v14.605.2+)
+
+```js
+ac5e.usageRules.exportJSON();
+ac5e.usageRules.exportJSON({ filename: "my-usageRules.json", persistentOnly: true });
+const snapshot = ac5e.usageRules.exportJSON({ download: false });
+```
+
+`exportJSON({ filename = null, download = true, persistentOnly = false } = {})` downloads a JSON file and returns the same snapshot as an object. It does not change registrations or world settings.
+
+The snapshot contains `schema: 1`, `moduleId`, `moduleVersion`, `kind`, `generatedAt`, `entries`, and `skipped`. Each entry is a registration definition, preserving its key or ID, condition, payload, and persistence setting. Document UUIDs remain unchanged; they may need updating when moving definitions between worlds.
+
+By default, export includes the active runtime and persistent definitions. `persistentOnly: true` exports saved definitions only (including saved rules shadowed by a runtime rule with the same key). Entries containing callbacks such as `evaluate` or other values JSON cannot preserve are omitted entirely and reported in `skipped`, with a console warning. This prevents an exported entry from losing its predicate and becoming unconditional.
+
+### Import
+
+```js
+// Pick a JSON export file.
+const report = await ac5e.usageRules.importJSON();
+
+// Import an exported object or JSON string; existing keys or IDs are skipped.
+await ac5e.usageRules.importJSON(snapshot);
+
+// Explicitly replace matching entries.
+await ac5e.usageRules.importJSON(snapshot, { overwrite: true });
+
+// Import every definition as runtime-only, regardless of its saved setting.
+await ac5e.usageRules.importJSON(snapshot, { persistent: false });
+```
+
+`importJSON(data = null, { overwrite = false, persistent = null } = {})` accepts an exported object, JSON string, or `File`. Without data it opens a file picker; cancellation returns `null`.
+
+The entire snapshot is validated before applying any entries. Unsupported schema, module, or registry kind; invalid definitions; and repeated keys or IDs in the file reject the import. Callback definitions are not accepted. Document UUIDs and sandbox conditions are retained, but their applicability in the destination world is not verified.
+
+Existing entries are skipped unless `overwrite: true`. Other registrations remain intact. The returned report contains `imported` (keys or IDs) and `skipped` (entries with `reason: "exists"`). Entries omitted during export are not restored.
+
+Persistence is preserved by default. `persistent: true` or `false` overrides it for all imported entries. An active GM is required for changes to saved definitions, including replacing a persistent entry with a runtime one. Imports await persistence and restore the previous local registry state if saving fails.
+
+Replacing a usage-rule key removes both its runtime and persistent definitions before adding the imported definition, so an older runtime rule cannot shadow an imported saved rule.

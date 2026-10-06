@@ -73,13 +73,22 @@ export function readOptinSelections(elem, ac5eConfig) {
 		const optinId = input.dataset.ac5eOptinSemanticId;
 		if (optinId) selected[optinId] = input.checked;
 	}
-	const sliders = elem.querySelectorAll('input[data-ac5e-optin-scale="true"]');
+	const sliders = elem.querySelectorAll('[data-ac5e-optin-scale="true"]');
 	for (const slider of sliders) {
 		const id = slider.dataset.ac5eOptinId;
+		if (id && slider.tagName === 'SELECT') {
+			const option = slider.selectedOptions[0];
+			const previous = selected[id];
+			selected[id] = slider.value ? { enabled: true, scale: Number(option?.dataset.scale), slot: slider.value }
+				: { ...(previous && typeof previous === 'object' ? previous : {}), enabled: false };
+			if (slider.dataset.ac5eOptinSemanticId) selected[slider.dataset.ac5eOptinSemanticId] = selected[id];
+			continue;
+		}
 		if (!id || !selected[id]) continue;
-		const scale = Number(slider.value);
+		const slotOption = slider.tagName === 'SELECT' ? slider.selectedOptions[0] : null;
+		const scale = Number(slotOption?.dataset.scale ?? slider.value);
 		if (!Number.isFinite(scale)) continue;
-		selected[id] = { enabled: true, scale };
+		selected[id] = { enabled: true, scale, ...(slotOption ? { slot: slider.value } : {}) };
 	}
 	return selected;
 }
@@ -97,7 +106,7 @@ export function setOptinSelections(ac5eConfig, nextSelections) {
 		if (prevEnabled !== nextEnabled) return true;
 		const prevScale = _getOptinSelectionScale(prevValue);
 		const nextScale = _getOptinSelectionScale(nextValue);
-		return prevScale !== nextScale;
+		return prevScale !== nextScale || prevValue?.slot !== nextValue?.slot;
 	});
 	if (changed) {
 		if (ac5eConfig?.tooltipObj && ac5eConfig.hookType) delete ac5eConfig.tooltipObj[ac5eConfig.hookType];
@@ -116,7 +125,7 @@ function updateSingleOptinSelection(ac5eConfig, optinId, checked, { scaleMin = n
 	const nextScale = Number.isFinite(priorScale) ? priorScale : Number(scaleMin);
 	const nextSelections = {
 		...previous,
-		[optinId]: checked ? (Number.isFinite(nextScale) ? { enabled: true, scale: nextScale } : true) : false,
+		[optinId]: checked ? (Number.isFinite(nextScale) ? { enabled: true, scale: nextScale, ...(priorSelection?.slot ? { slot: priorSelection.slot } : {}) } : true) : false,
 	};
 	if (semanticId) nextSelections[semanticId] = checked;
 	setOptinSelections(ac5eConfig, nextSelections);
@@ -147,6 +156,7 @@ function normalizeOptinScaleSelection(entry, scaling, ac5eConfig) {
 }
 
 function getUsesCountLabelSuffix(entry) {
+	if (entry.spellSlotChoices) return _localize('AC5E.OptinSpellSlot.Cost');
 	const updateSummary = getUpdateSummaryText(entry, { compact: true });
 	if (updateSummary) return `(${updateSummary})`;
 	const counterDisplay = getCounterDisplaySpec(entry);
@@ -348,6 +358,7 @@ function formatUsesCountType(target) {
 }
 
 function getUsesCountDescriptionSuffix(entry) {
+	if (entry.spellSlotChoices) return _localize('AC5E.OptinSpellSlot.Hint');
 	const updateSummary = getUpdateSummaryText(entry, { compact: false });
 	if (updateSummary) return `(${updateSummary})`;
 	const counterDisplay = getCounterDisplaySpec(entry);
@@ -610,7 +621,8 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 		const activeDialog = activeFieldset?._ac5eDialog ?? dialog;
 		const activeConfig = activeFieldset?._ac5eConfig ?? ac5eConfig;
 		const input = event.target;
-		if (input?.dataset?.ac5eOptinScale === 'true') updateSingleOptinScale(activeConfig, input?.dataset?.ac5eOptinId, input?.value);
+		if (input?.tagName === 'SELECT' && input?.dataset?.ac5eOptinScale === 'true') setOptinSelections(activeConfig, readOptinSelections(elem, activeConfig));
+		else if (input?.dataset?.ac5eOptinScale === 'true') updateSingleOptinScale(activeConfig, input?.dataset?.ac5eOptinId, input?.value);
 		else updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked, {
 			scaleMin: Number(input?.dataset?.ac5eOptinScaleMin),
 			semanticId: input?.dataset?.ac5eOptinSemanticId,
@@ -645,9 +657,17 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		const isOptinEntry = Boolean(entry?.optin || entry?.forceOptin);
 		if (!isOptinEntry) return;
 		const parsedUsesCount = parseUsesCountSpec(entry?.usesCount);
-		const scaling = getOptinScaling(entry, parsedUsesCount, ac5eConfig);
+		const slotChoices = entry.spellSlotChoices;
+		const scaling = slotChoices ? null : getOptinScaling(entry, parsedUsesCount, ac5eConfig);
+		let selectedSlot;
+		if (slotChoices) {
+			const previous = ac5eConfig?.optinSelected?.[entry.id] ?? ac5eConfig?.optinSelected?.[entry.optinId];
+			selectedSlot = slotChoices.find((choice) => choice.slot === previous?.slot) ?? slotChoices[0];
+			entry.selectedScale = selectedSlot?.scale;
+			if (selectedSlot) setOptinSelections(ac5eConfig, { ...ac5eConfig.optinSelected, [entry.id]: { enabled: previous === undefined ? !!entry.preselected : _isOptinSelectionActive(previous), scale: selectedSlot.scale, slot: selectedSlot.slot } });
+		}
 		if (scaling) entry.selectedScale = normalizeOptinScaleSelection(entry, scaling, ac5eConfig);
-		else delete entry.selectedScale;
+		else if (!slotChoices) delete entry.selectedScale;
 		const row = document.createElement('div');
 		row.className = 'form-group ac5e-optin-row';
 		const label = document.createElement('label');
@@ -747,7 +767,36 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 		if (entry.optinId) checkbox.dataset.ac5eOptinSemanticId = entry.optinId;
 		const existingSelection = ac5eConfig?.optinSelected?.[entry.id] ?? ac5eConfig?.optinSelected?.[entry.optinId];
 		checkbox.checked = existingSelection === undefined ? !!entry.preselected : _isOptinSelectionActive(existingSelection);
-		if (scaling) {
+		if (slotChoices) {
+			const select = document.createElement('select');
+			select.name = `ac5eOptinSlot.${entry.id}`;
+			select.dataset.ac5eOptinId = entry.id;
+			select.dataset.ac5eOptinScale = 'true';
+			if (entry.optinId) select.dataset.ac5eOptinSemanticId = entry.optinId;
+			const prompt = `${game.i18n.format('DND5E.UseItem', { item: indexedLabel })}?`;
+			select.setAttribute('aria-label', prompt);
+			const unusedOption = document.createElement('option');
+			unusedOption.value = '';
+			unusedOption.textContent = prompt;
+			select.append(unusedOption);
+			for (const choice of slotChoices) {
+				const option = document.createElement('option');
+				option.value = choice.slot;
+				option.dataset.scale = String(choice.scale);
+				option.textContent = game.i18n.format(choice.slot === 'pact' ? 'AC5E.OptinSpellSlot.Pact' : 'AC5E.OptinSpellSlot.Spell', { level: choice.scale, available: choice.available });
+				select.append(option);
+			}
+			select.value = checkbox.checked ? selectedSlot?.slot ?? '' : '';
+			select.style.flex = '1 1 0';
+			select.style.minWidth = '0';
+			select.addEventListener('change', () => {
+				setOptinSelections(ac5eConfig, readOptinSelections(fieldset, ac5eConfig));
+				if (select.value) entry.selectedScale = Number(select.selectedOptions[0]?.dataset.scale);
+				refreshScaleText();
+			});
+			row.append(select);
+			if (descriptionPill) row.append(descriptionPill);
+		} else if (scaling) {
 			checkbox.dataset.ac5eOptinScaleMin = String(scaling.min);
 			const slider = document.createElement('input');
 			slider.type = 'range';

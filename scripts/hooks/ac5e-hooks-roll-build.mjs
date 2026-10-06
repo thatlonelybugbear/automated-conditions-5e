@@ -145,19 +145,31 @@ function getOptinsFromForm(formData, ac5eConfig) {
 	const optins = { ...(formData?.object?.ac5eOptins ?? {}) };
 	const raw = formData?.object ?? {};
 	const scales = {};
+	const slots = { ...(raw.ac5eOptinSlot ?? {}) };
 	for (const [key, value] of Object.entries(raw)) {
 		if (!key.startsWith('ac5eOptins.')) continue;
 		const id = key.slice('ac5eOptins.'.length);
 		optins[id] = !!value;
 	}
 	for (const [key, value] of Object.entries(raw)) {
+		if (key.startsWith('ac5eOptinSlot.')) slots[key.slice('ac5eOptinSlot.'.length)] = value;
 		if (!key.startsWith('ac5eOptinScale.')) continue;
 		const id = key.slice('ac5eOptinScale.'.length);
 		const numericValue = Number(value);
 		if (Number.isFinite(numericValue)) scales[id] = numericValue;
 	}
+	for (const [id, slot] of Object.entries(slots)) optins[id] = !!slot;
 	for (const [id, selected] of Object.entries(optins)) {
 		if (!selected) continue;
+		const slot = slots[id] ?? existing[id]?.slot;
+		if (slot) {
+			const entry = ['subject', 'opponent']
+				.flatMap((side) => Object.values(ac5eConfig?.[side] ?? {}).flat())
+				.find((entry) => entry?.id === id);
+			const choice = entry?.spellSlotChoices?.find((choice) => choice.slot === slot);
+			optins[id] = choice ? { enabled: true, scale: choice.scale, slot: choice.slot } : false;
+			continue;
+		}
 		const scale = scales[id];
 		if (!Number.isFinite(scale)) continue;
 		optins[id] = { enabled: true, scale };

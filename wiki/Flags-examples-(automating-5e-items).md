@@ -1,22 +1,26 @@
 ## Table of Contents
 
-Applies to version: `13.5250.18`
+Examples include AC5E `v14.605.2+` features. Older syntax variants are labelled where applicable.
 
-- [Assassinate](#assassinate)
+- [Assassinate 2024](#assassinate-2024)
 - [Aura of Protection](#aura-of-protection)
 - [Blood Frenzy](#blood-frenzy)
 - [Bloodied Frenzy](#bloodied-frenzy)
 - [Bugbear's Surprise Attack](#bugbears-surprise-attack)
 - [Charger (incomplete)](#charger-incomplete)
 - [Cloak of Flies](#cloak-of-flies)
-- [Danger Sense](#danger-sense)
-- [Disciple of Life](#disciple-of-life)
+- [Danger Sense 2024](#danger-sense-2024)
+- [Disciple of Life 2014](#disciple-of-life-2014)
 - [Divine Fury](#divine-fury)
-- [Dwarven Resilience](#dwarven-resilience)
-- [Great Weapon Fighting](#great-weapon-fighting)
-- [Healer feat](#healer-feat)
+- [Divine Smite 2014](#divine-smite-2014)
+- [Divine Smite 2024](#divine-smite-2024)
+- [Dwarven Resilience 2014](#dwarven-resilience-2014)
+- [Dwarven Resilience 2024](#dwarven-resilience-2024)
+- [Great Weapon Fighting 2024](#great-weapon-fighting-2024)
+- [Healer feat 2024](#healer-feat-2024)
 - [Hexblade's Curse](#hexblades-curse)
-- [Hunter's Mark](#hunters-mark)
+- [Hunter's Mark 2024](#hunters-mark-2024)
+- [Lantern of Revealing](#lantern-of-revealing)
 - [Magic Resistance](#magic-resistance)
 - [Pack Tactics](#pack-tactics)
 - [Potent Spellcasting](#potent-spellcasting)
@@ -32,58 +36,79 @@ Applies to version: `13.5250.18`
 - [Modified Save DC](#modified-save-dc)
 <hr>
 
-> 💡 The active effect's change mode doesn't matter currently. Recommendation, use Custom or Override.
+> Use **AC5E** mode for module flag changes on D&D5e v6, otherwise **CUSTOM**.
 
-## Assassinate
+## Assassinate 2024
+
+Add these three changes. The initiative change uses dnd5e's native roll mode; the extra damage requires your Sneak Attack opt-in to use `optinId=sneak-attack`.
+
 ```
+// Initiative advantage (dnd5e 5.0+)
+key: system.attributes.init.roll.mode
+mode: Add
+value: 1
+
+// Surprising Strikes: attack advantage before the target's first turn
 key: flags.automated-conditions-5e.attack.advantage
 
-value: combat.round === 1 && rollingActor.combatTurn < opponentActor.combatTurn
+value: combat.active && combat.round === 1 && opponentActor.combatTurn > combat.turn
+
+// Surprising Strikes: extra damage with Sneak Attack in the first round
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=rollingActor.classes.rogue.levels; combat.active && combat.round === 1 && optinSelected['sneak-attack']
 ```
+
 ## Aura of Protection
+
 ```
 key: flags.automated-conditions-5e.aura.save.bonus
 
-value: bonus=auraActor.abilities.cha.mod; radius=(auraActor.details.level < 18 ? 10 : 30); allies; singleAura; includeSelf
+value: bonus=max(1, auraActor.abilities.cha.mod); radius=(auraActor.classes.paladin.levels < 18 ? 10 : 30); allies; singleAura; includeSelf; !auraActor.statuses.incapacitated;
 ```
-## Lantern of Revealing
-```
-key: flags.automated-conditions-5e.aura.noInvisible
 
-value: radius=30
-```
 ## Blood Frenzy
+
 ```
 key: flags.automated-conditions-5e.attack.advantage
 
 value: opponentActor.attributes.hp.pct < 100
 ```
+
 ## Bloodied Frenzy
+
 ```
 //entry one
 key: flags.automated-conditions-5e.attack.advantage
 
-value: rollingActor.statuses.bloodied || rollingActor.attributes.hp.pct < 50
+value: rollingActor.statuses.bloodied || rollingActor.attributes.hp.pct <= 50
 
 //entry two
 key: flags.automated-conditions-5e.save.advantage
 
-value: opponentActor.statuses.bloodied || opponentActor.attributes.hp.pct < 50
+value: rollingActor.statuses.bloodied || rollingActor.attributes.hp.pct <= 50
 ```
+
 ## Bugbear's Surprise Attack
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=2d6; hasAttack && combat.round === 1 && rollingActor.combatTurn < opponentActor.combatTurn
 ```
+
 ## Charger (incomplete)
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
-value: bonus=1d8; actionType.mwak && movementLastSegment >= 10
+value: bonus=1d8; actionType.mwak && movementLastSegment >= 10; oncePerTurn
 ```
+
 ## Cloak of Flies
+
 Needs two active effects
+
 ```
 === Effect 1 ===
 key: flags.automated-conditions-5e.check.disadvantage
@@ -95,45 +120,97 @@ key: flags.automated-conditions-5e.check.advantage
 
 value: ability.cha && skill.itm
 ```
-## Danger Sense
+
+## Danger Sense 2024
+
+The 2014 version additionally requires an effect you can see and does not work while Blinded or Deafened.
+
 ```
 key: flags.automated-conditions-5e.save.advantage
 
 value: ability.dex && !rollingActor.statuses.incapacitated
 ```
-## Disciple of Life
+
+## Disciple of Life 2014
+
+For the 2024 version, the spell must be cast with a spell slot, and the extra healing applies only on the turn of casting. The example below does not enforce those 2024 restrictions.
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=2 + castingLevel; isSpell && defaultDamageType.healing //pre v14.533.11
 value: bonus=2 + castingLevel; isHeal && isSpell && defaultDamageType.healing //v14.533.11+
 ```
+
 ## Divine Fury
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
-value: bonus=1d6 + floor(@classes.barbarian.levels / 2)[necrotic, radiant]; oncePerTurn; isTurn && (unarmed || weapon)
+value: bonus=1d6 + floor(rollingActor.classes.barbarian.levels / 2)[necrotic, radiant]; oncePerTurn; isTurn && (unarmed || weapon)
 ```
-## Dwarven Resilience
+
+## Divine Smite 2014
+
+```
+// v14.605.2+
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;
+```
+
+## Divine Smite 2024
+
+This opt-in automates damage and slot consumption. `oncePerTurn` and `rollingActor.isTurn` restrict its timing; the Bonus Action cost and other spellcasting restrictions must be handled separately.
+
+```
+// v14.605.2+
+key: flags.automated-conditions-5e.damage.bonus
+
+value: bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 9, step: 1 }; name=Divine Smite; optinId=divine-smite; oncePerTurn; optin; mwak && rollingActor.isTurn;
+```
+
+## Dwarven Resilience 2014
+
+This example covers saves against poison when the activity exposes Poison damage or the Poisoned condition. Configure Poison damage resistance on the actor separately.
+
+```text
+key: flags.automated-conditions-5e.save.advantage
+mode: AC5E
+value: riderStatuses.poisoned || damageTypes.poison
+```
+
+## Dwarven Resilience 2024
+
+This example covers saves to avoid or end the Poisoned condition when that condition is supplied in `riderStatuses`. Configure Poison damage resistance on the actor separately. The 2014 version also grants advantage on saves against poison that only deals damage.
+
 ```
 key: flags.automated-conditions-5e.save.advantage
 
 value: riderStatuses.poisoned
 ```
-## Great Weapon Fighting
+
+## Great Weapon Fighting 2024
+
 ```
 key: flags.automated-conditions-5e.damage.modifier
 
 value: modifier=min3;twoHanded && mwak
 ```
-## Healer feat
+
+## Healer feat 2024
+
+This example covers the Healing Rerolls benefit for spells. Battle Medic healing requires separate configuration. The 2014 feat does not grant this spell-healing reroll benefit.
+
 ```
 key: flags.automated-conditions-5e.damage.modifier
 
 value: modifier=r1;healing && isSpell //pre v14.533.11
 value: modifier=r1;isHeal && healing && isSpell //v14.533.11+
 ```
+
 ## Hexblade's Curse
+
 ```
 key: flags.automated-conditions-5e.grants.attack.criticalThreshold
 value: set=19; effectOriginTokenId === tokenId
@@ -141,7 +218,11 @@ value: set=19; effectOriginTokenId === tokenId
 key: flags.automated-conditions-5e.grants.damage.bonus
 value: bonus=rollingActor.attributes.prof; effectOriginTokenId === tokenId;
 ```
-## Hunter's Mark
+
+## Hunter's Mark 2024
+
+The example uses the 2024 spell's Force damage. It automates the marked-target damage bonus; casting, Concentration, and moving the mark are handled separately.
+
 ```
 key: flags.automated-conditions-5e.grants.damage.bonus
 
@@ -149,19 +230,33 @@ value: bonus=1d6[force]; effectOriginTokenId === tokenId && hasAttack;
 
 setup: Activity applies an Active Effect on a target, then the source actor can get a bonus to damage rolls against their mark!
 ```
+
+## Lantern of Revealing
+
+```
+key: flags.automated-conditions-5e.aura.noInvisible
+
+value: radius=30
+```
+
 ## Magic Resistance
+
 ```
 key: flags.automated-conditions-5e.save.advantage
 
 value: mgc
 ```
+
 ## Pack Tactics
+
 ```
 key: flags.automated-conditions-5e.attack.advantage
 
-value: checkNearby(opponentId, 'different', 5, {count:(distance <= 5 ? 2 : 1)}) 
+value: checkNearby(opponentId, 'different', 5, {count:(distance <= 5 ? 2 : 1)})
 ```
+
 ## Potent Spellcasting
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
@@ -171,26 +266,34 @@ value: bonus=rollingActor.abilities.wis.mod; item.sourceClass === 'cleric' && is
 //post D&D5e v5.3
 value: bonus=rollingActor.abilities.wis.mod; item.classIdentifier === 'cleric' && isCantrip;
 ```
+
 ## Protection from Evil and Good
+
 ```
 key: flags.automated-conditions-5e.grants.attack.disadvantage
 
 value: ['aberration', 'celestial', 'elemental', 'fey', 'fiend', 'undead'].some(type => rollingActor.creatureType.includes(type));
 ```
+
 ## Sure Footed
+
 ```
 key: flags.automated-conditions-5e.save.advantage
 
 Either - value: riderStatuses.prone && ['dex', 'str'].some(a=>ability[a]);
 Or - value: riderStatuses.prone && ['dex', 'str'].includes(options.ability);
 ```
-## Thrown Weapon Fighting Style by @Michael 
+
+## Thrown Weapon Fighting Style by @Michael
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=2; activity.attackMode.includes('thrown');
 ```
+
 ## True Strike 2024
+
 Use these three Active Effect changes on an automated True Strike effect. Selecting the attack opt-in uses the activity's spellcasting ability, or the actor's primary spellcasting ability when the activity does not provide one. The damage bonus then applies automatically, while the damage-type choice remains optional.
 
 ```
@@ -209,7 +312,11 @@ key: flags.automated-conditions-5e.damage.bonus
 
 value: bonus=(rollingActor.details.level >= 17 ? 3 : (rollingActor.details.level >= 11 ? 2 : 1))d6[radiant]; optinSelected['true-strike-0'] && rollingActor.details.level >= 5
 ```
+
 ## Venomous Strike
+
+This is a custom damage-part targeting example, not an implementation of the 2024 Assassin's Envenom Weapons feature. Adjust the fixed Sneak Attack dice and eligibility to suit the actor.
+
 Use this with an opted-in Sneak Attack bonus. Selecting Venomous Strike moves only the selected Sneak Attack dice into a poison synthetic damage part and upgrades those dice from d6 to d8.
 
 ```
@@ -230,14 +337,19 @@ value: bonus=1; addTo=optin(sneak-attack); optinSelected['venomous-strike-1']
 ```
 
 From `14.533.14` onward, prefer `damage.modifyDenomination` for new effects:
+
 ```
 key: flags.automated-conditions-5e.damage.modifyDenomination
 
 value: modify=1; addTo=optin(sneak-attack); optinSelected['venomous-strike-1']
 ```
+
 ## Random Examples of Functionality
+
 ### Aura of save disadvantage
+
 If an enemy creature within 60 units of distance rolls a save associated with an activity doing Fire or Radiant damage, they get disadvantage;
+
 ```
 key: flags.automated-conditions-5e.aura.save.disadvantage
 
@@ -247,7 +359,9 @@ value: radius=60; enemies; fire; radiant;
 ```
 
 ## New Syntax Examples (v13.5250.5)
+
 ### Range override using the shared `range` flag
+
 ```
 key: flags.automated-conditions-5e.range
 
@@ -255,6 +369,7 @@ value: short=120; noLongDisadvantage
 ```
 
 ### Optional attack bonus with cadence and custom text
+
 ```
 key: flags.automated-conditions-5e.attack.bonus
 
@@ -262,6 +377,7 @@ value: bonus=2; optin; oncePerTurn; name=Precise Strike; description=Add +2 to t
 ```
 
 ### Damage bonus targeted by damage type
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
@@ -269,6 +385,7 @@ value: bonus=2d6[acid]; addTo=fire;
 ```
 
 ### Bonus damage with multiple offered types
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
@@ -276,6 +393,7 @@ value: bonus=1d4[fire, lightning, thunder];
 ```
 
 ### Override a base damage part to a single type
+
 ```
 key: flags.automated-conditions-5e.damage.typeOverride
 
@@ -283,6 +401,7 @@ value: override=fire;
 ```
 
 ### Override a base damage part to a selected type from multiple options
+
 ```
 key: flags.automated-conditions-5e.damage.typeOverride
 
@@ -291,11 +410,12 @@ value: override=fire, lightning, thunder; addTo=fire;
 
 Notes:
 
-- `damage.typeOverride` currently applies to base/native damage rolls only.
-- Synthetic appended bonus damage rolls created by AC5E are not currently targeted by `damage.typeOverride`.
+- Use `addTo=base` to target base/native damage parts, or `addTo=bonus` to target synthetic bonus rolls.
+- Use `addTo=optin(identifier)` to target a specific opted-in bonus damage part, as shown in Venomous Strike.
 - `set=...` is still supported for backwards compatibility, but `override=...` is the preferred syntax.
 
 ### Extra dice multiplier on matching damage types
+
 ```
 key: flags.automated-conditions-5e.damage.extraDice
 
@@ -303,6 +423,7 @@ value: bonus=^2; addTo=fire;
 ```
 
 ### Crit-only extra dice multiplier that scales with the base dice term
+
 ```
 key: flags.automated-conditions-5e.damage.extraDice
 
@@ -310,6 +431,7 @@ value: criticalStatic; bonus=x2;
 ```
 
 ### Localized critical on damage
+
 ```
 key: flags.automated-conditions-5e.damage.critical
 
@@ -317,6 +439,7 @@ value: optin; addTo=fire; name=Critical Fire;
 ```
 
 ### Finishing blow death-fail pressure with partial capped consume
+
 ```
 key: flags.automated-conditions-5e.damage.bonus
 
@@ -324,6 +447,7 @@ value: bonus=info; usesCount=death.fail,(isCritical ? 2 : 1); partialConsume; na
 ```
 
 ### Chance-gated use fail
+
 ```
 key: flags.automated-conditions-5e.use.fail
 
@@ -331,7 +455,9 @@ value: chance=25; rollingActor.effects.some(e => e.name === "Dazed"); descriptio
 ```
 
 ### Actor update instruction
+
 This example will not respect damage types currently, but showcases the idea of an informational entry that applies an actor update instruction on use, which could be used for things like a monster's reactive damage trait that reduces the attacker's HP when triggered.
+
 ```
 key: flags.automated-conditions-5e.grants.damage.info
 
@@ -339,7 +465,9 @@ value: update=rollingActor.hp,-3d6; name=Heated Body; description=A creature tha
 ```
 
 ## Enforced Roll Mode
+
 ### Force advantage from an informational entry
+
 ```
 key: flags.automated-conditions-5e.attack.info
 
@@ -347,6 +475,7 @@ value: enforceMode=advantage; name=Steady Aim;
 ```
 
 ### Force normal mode after other d20-state calculations
+
 ```
 key: flags.automated-conditions-5e.save.info
 
@@ -360,7 +489,9 @@ Notes:
 - When `enforceMode` wins, overridden pure d20-state entries do not consume `once`, cadence, or `usesCount`.
 
 ## Modified Save DC
+
 ### Increase save DC by 2
+
 ```
 key: flags.automated-conditions-5e.save.modifyDC
 
@@ -373,6 +504,7 @@ Behavior:
 - This does not create duplicate DC buttons on the chat card. AC5E rewrites the normal save/check button to the final resolved DC.
 
 ### Set save DC to a fixed value when a condition matches
+
 ```
 key: flags.automated-conditions-5e.save.modifyDC
 
@@ -380,6 +512,7 @@ value: set=17; rollingActor.attributes.hp.pct < 50;
 ```
 
 ### Optional save DC increase chosen in the usage dialog
+
 ```
 key: flags.automated-conditions-5e.save.modifyDC
 

@@ -15,9 +15,11 @@ import {
 	_ac5eSafeEval,
 	_hasValidTargets,
 	_resolveEffectOriginContext,
+	_safeFromUuidSync,
 	_setMessageFlagScope,
 } from './ac5e-helpers.mjs';
 import { _getConfig } from './ac5e-config-logic.mjs';
+import { repairCopiedItemEffectOrigins } from './ac5e-effect-origins.mjs';
 import { _calcAdvantageMode, _createEvaluationSandbox, _setAC5eProperties } from './ac5e-runtimeLogic.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -96,13 +98,7 @@ function _postBuildRollConfig(processConfig, config, index) {
 }
 
 export function _preCreateItem(item, updates) {
-	// if (_activeModule('dnd5e-scriptlets') && game.settings.get('dnd5e-scriptlets', 'UpdateCreatedOrigins')) return; //@to-do: integration with scriptlets when it's fixed
-	const itemUuid = item.uuid;
-	if (!itemUuid) return;
-	const effects = foundry.utils.duplicate(item._source.effects);
-	if (!effects.length) return;
-	for (const e of effects) if (e.origin && e.origin !== itemUuid && e.type !== 'enchantment') e.origin = itemUuid; //make sure that we dont overwrite enchantment effects origins; might be from compendium template items
-	item.updateSource({ effects });
+	repairCopiedItemEffectOrigins(item, updates, _safeFromUuidSync);
 }
 
 export function _preCreateChatMessage(message, data) {

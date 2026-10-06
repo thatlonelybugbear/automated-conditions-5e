@@ -1377,6 +1377,10 @@ export function _isOptinSelectionActive(value) {
 	return !!value;
 }
 
+export function _getOptinSelectionBooleans(selections = {}) {
+	return Object.fromEntries(Object.entries(selections ?? {}).map(([id, value]) => [id, _isOptinSelectionActive(value)]));
+}
+
 export function _getOptinSelectionScale(value) {
 	if (value && typeof value === 'object') {
 		const scale = Number(value.scale);
@@ -2959,7 +2963,8 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 
 	const origin = effect.origin ? _safeFromUuidSync(effect.origin, { relative: relativeDocument }) : null;
 	context.sourceDocument = origin;
-	if (_isItemDocument(origin)) context.originItem ??= origin;
+	if (_isActorDocument(origin)) context.originActor = origin;
+	else if (_isItemDocument(origin)) context.originItem ??= origin;
 	else if (_isActivityDocument(origin)) {
 		context.originActivity ??= origin;
 		context.originItem ??= _isItemDocument(origin.item) ? origin.item : _isItemDocument(origin.parent) ? origin.parent : null;

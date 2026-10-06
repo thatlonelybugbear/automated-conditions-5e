@@ -1,4 +1,9 @@
 {
+	"AC5E.RegistryImport.InvalidSnapshot": "AC5E: This file is not a supported JSON export for this registry.",
+	"AC5E.RegistryImport.InvalidEntry": "AC5E: Entry {index} is invalid or repeats a key or ID. No entries were imported.",
+	"AC5E.RegistryImport.NoActiveGM": "AC5E: An active GM is required to import changes to persistent entries.",
+	"AC5E.RegistryImport.SaveFailed": "AC5E: Unable to save imported entries. The previous registry state was restored.",
+	"AC5E.RegistryExport.Skipped": "AC5E: Skipped {count} entries during JSON export because they contain callbacks or other values JSON cannot preserve. See the skipped entries below.",
 	"AC5E.StatusEffectsOverrides.ConditionError": "AC5E: Status override \"{name}\" (id: {id}) was skipped for {status}/{hook}/{type}. Condition: {condition}. Error: {error}. Correct its condition using ac5e.statusEffectsOverrides.register with the same id, or remove it using ac5e.statusEffectsOverrides.remove({removeId}). Access to game/canvas identifiers is prohibited; use sandbox fields instead. Quoted names containing those words are allowed.",
 	"AC5E.AutomateStatuses": {
 		"Name": "D&D 5e Condition Rules",
@@ -252,6 +257,13 @@
 	"AC5E.OptinCadence.OncePerTurn": "(1/turn)",
 	"AC5E.OptinCadence.OncePerRound": "(1/round)",
 	"AC5E.OptinCadence.OncePerCombat": "(1/combat)",
+	"AC5E.OptinSpellSlot.EditorHint": "Use spell[slot,pact], spell[slot], or spell[pact] with optin. The actor's available pools appear in a dropdown. Consumption is always one slot. Enable Scaling to restrict slot levels with Min and Max; these bounds also apply to Pact slots.",
+	"AC5E.OptinSpellSlot.Unavailable": "AC5E: {actor} no longer has the selected {slot} slot available at its selected level. Slot consumption was skipped.",
+	"AC5E.OptinSpellSlot.Choice": "Spell slot to consume",
+	"AC5E.OptinSpellSlot.Spell": "Spell slot {level} ({available} available)",
+	"AC5E.OptinSpellSlot.Pact": "Pact slot level {level} ({available} available)",
+	"AC5E.OptinSpellSlot.Cost": "(consumes 1 slot)",
+	"AC5E.OptinSpellSlot.Hint": "Consume one slot from the selected pool. optinScale and bonusScale use its level. Only available slots within the configured bounds are offered.",
 	"AC5E.OptinLegend.Optional": "AC5E",
 	"AC5E.OptinLegend.FromOtherSources": "AC5E From other sources (ask for permission)",
 	"AC5E.EnvironmentalHazards": {

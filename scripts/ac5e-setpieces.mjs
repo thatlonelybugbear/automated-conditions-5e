@@ -4,6 +4,7 @@ import {
 	_dispositionCheck,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
+	_getOptinSelectionBooleans,
 	_getOptinSelectionScale,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
@@ -21,6 +22,7 @@ import {
 	_safeFromUuidSync,
 	_resolveEffectOriginContext,
 } from './ac5e-helpers.mjs';
+import { consumeSpellSlot, getSpellSlotChoices, parseSpellSlotTarget } from './ac5e-spell-slots.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from './ac5e-addTo.mjs';
 import { _ac5eActorRollData, _calcAdvantageMode, _createEvaluationSandbox, _createEvaluationSandboxLogSnapshot, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { autoRanged, canSee } from './ac5e-systemRules.mjs';
@@ -520,7 +522,7 @@ export function _initStatusEffectsTables() {
 	return buildStatusEffectsTables();
 }
 
-export function registerStatusEffectOverride(override = {}) {
+export function registerStatusEffectOverride(override = {}, { persist = true } = {}) {
 	// Example:
 	// const id = ac5e.statusEffectsOverrides.register({
 	//   name: "Minotaur ignores prone melee disadvantage",
@@ -557,8 +559,21 @@ export function registerStatusEffectOverride(override = {}) {
 	const replacedPersistent = existing >= 0 && statusEffectsOverrideState.list[existing].persistent;
 	if (existing >= 0) statusEffectsOverrideState.list.splice(existing, 1);
 	statusEffectsOverrideState.list.push(entry);
-	if (entry.persistent || replacedPersistent) _persistStatusEffectOverrides();
+	if (persist && (entry.persistent || replacedPersistent)) _persistStatusEffectOverrides();
 	return entry.id;
+}
+
+export async function _importStatusEffectOverrideDefinitions(definitions) {
+	const previous = statusEffectsOverrideState.list.slice();
+	const ids = new Set(definitions.map((entry) => entry.id));
+	const needsSave = definitions.some((entry) => entry.persistent) || previous.some((entry) => ids.has(entry.id) && entry.persistent);
+	try {
+		for (const definition of definitions) registerStatusEffectOverride(definition, { persist: false });
+		if (needsSave && !(await _persistStatusEffectOverrides())) throw new Error(game.i18n.localize('AC5E.RegistryImport.SaveFailed'));
+	} catch (error) {
+		statusEffectsOverrideState.list = previous;
+		throw error;
+	}
 }
 
 export function removeStatusEffectOverride(id) {
@@ -1458,7 +1473,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 
 	const evaluationData = existingEvaluationData ?? _createEvaluationSandbox({ subjectToken, opponentToken, sourceActor: subject, targetActor: opponent, options });
 	evaluationData.ac5eConfig = ac5eConfig;
-	evaluationData.optinSelected = ac5eConfig?.optinSelected ?? {};
+	evaluationData.optinSelected = _getOptinSelectionBooleans(ac5eConfig?.optinSelected);
 
 	const getActorAndModeType = (el, includeAuras = false) => {
 		const key = el.key?.toLowerCase() ?? '';
@@ -2335,11 +2350,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
 		const optinId = getOptinId(change.value);
 		if (optinId) {
-			const selection = _getOptinSelectionValueById(sandbox, entryId);
-			if (_isOptinSelectionActive(selection)) {
-				sandbox.optinSelected ??= {};
-				sandbox.optinSelected[optinId] = selection;
-			}
+			const selection = _getOptinSelectionValueById(sandbox, entryId, optinId);
+			sandbox.optinSelected ??= {};
+			sandbox.optinSelected[optinId] = _isOptinSelectionActive(selection);
+			if (selection !== null && sandbox.ac5eConfig?.optinSelected) sandbox.ac5eConfig.optinSelected[optinId] = selection;
 		}
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
 		const scopedSandbox = sandbox && typeof sandbox === 'object' ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox)) : sandbox;
@@ -2431,6 +2445,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
 			usesCountMissing: usesCountAvailability.missing,
+			spellSlotChoices: usesCountAvailability.spellSlotChoices,
 			requiresTransitAdvantage,
 			requiresTransitDisadvantage,
 			changeIndex,
@@ -2863,6 +2878,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			usesCountHp: isHpUsesTarget(usesCountTarget),
 			usesCountAvailable: usesCountAvailability.available,
 			usesCountMissing: usesCountAvailability.missing,
+			spellSlotChoices: usesCountAvailability.spellSlotChoices,
 			requiresTransitAdvantage,
 			requiresTransitDisadvantage,
 			changeIndex: 0,
@@ -3350,11 +3366,11 @@ function _getPendingUseModeFamily(mode, hook = '') {
 function _getOptinSelectionValueById(evalData, entryId, baseId) {
 	const optins =
 		evalData?.ac5eConfig?.optinSelected
-		?? evalData?.optinSelected
 		?? evalData?.options?.[Constants.MODULE_ID]?.optinSelected
 		?? evalData?.rollConfig?.[Constants.MODULE_ID]?.optinSelected
 		?? evalData?.config?.[Constants.MODULE_ID]?.optinSelected
 		?? evalData?.roll?.options?.[Constants.MODULE_ID]?.optinSelected
+		?? evalData?.optinSelected
 		?? null;
 	if (!optins || typeof optins !== 'object') return null;
 	if (entryId in optins) return optins[entryId];
@@ -3570,6 +3586,20 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		} else {
 			return false;
 		}
+	} else if (hasCount && parseSpellSlotTarget(_parseUsesCountSpec(hasCount).target)) {
+		const parsedCount = _parseUsesCountSpec(hasCount);
+		if (!isOptin || recover || parsedCount.op !== 'delta' || parsedCount.scalingSign < 0) return false;
+		if (!parsedCount.scaling && Number(parsedCount.consume) !== 1) return false;
+		const actor = effect.target;
+		if (!(actor instanceof Actor)) return false;
+		const availability = _getUsesCountAvailabilityData({ rawUsesCount: hasCount, effect, evalData, debug });
+		const selection = _getOptinSelectionValueById(evalData, id, baseId);
+		const choice = selection?.slot ? availability.spellSlotChoices.find((choice) => choice.slot === selection.slot) : availability.spellSlotChoices[0];
+		if (!choice || (selection?.slot && _getOptinSelectionScale(selection) !== choice.scale)) return false;
+		const updates = { [`system.spells.${choice.slot}.value`]: choice.available - 1 };
+		const entry = { name: effect.name, context: { uuid: actor.uuid, updates, spellSlot: { slot: choice.slot, scale: choice.scale } } };
+		if (actor.isOwner) actorUpdates.push(entry);
+		else actorUpdatesGM.push(entry);
 	} else if (hasCount) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
@@ -4132,7 +4162,7 @@ export function _applyPendingUses(pendingUses = []) {
 						const updates = getUpdates(v);
 						if (typeof uuid !== 'string' || !updates) return Promise.resolve(null);
 						const doc = _safeFromUuidSync(uuid);
-						return doc ? doc.update(updates, getOptions(v)) : Promise.resolve(null);
+						return doc ? (v.spellSlot ? consumeSpellSlot(doc, v.spellSlot) : doc.update(updates, getOptions(v))) : Promise.resolve(null);
 					}),
 				);
 				allPromises.push(
@@ -4261,6 +4291,18 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	const parsedCount = _parseUsesCountSpec(rawUsesCount);
 	const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
 	if (!consumptionTarget) return result();
+	if (parseSpellSlotTarget(consumptionTarget)) {
+		const bound = (value, fallback) => {
+			const level = String(value ?? '').match(/^spell([1-9])$/i);
+			return level ? Number(level[1]) : _resolveUsesCountScalingNumber(value, {}, evalData, debug, fallback);
+		};
+		const spellSlotChoices = getSpellSlotChoices(consumptionTarget, effect?.target?.system?.spells, {
+			min: bound(parsedCount.scaling?.min, 1),
+			max: bound(parsedCount.scaling?.max, 9),
+			step: bound(parsedCount.scaling?.step, 1),
+		});
+		return { available: spellSlotChoices.length, missing: null, spellSlotChoices };
+	}
 	const lowerConsumptionTarget = consumptionTarget.toLowerCase();
 	const hasOrigin = lowerConsumptionTarget === 'origin';
 	const consume = _resolveUsesCountConsumeValue(parsedCount.consume, evalData, debug);

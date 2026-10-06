@@ -1,4 +1,16 @@
-import { _autoArmor, _activeModule, _buildFlagRegistry, _generateAC5eFlags, _getDistance, _getItems, _getItem, _getItemOrActivity, _getLightLevel, _hasItem, _reindexFlagRegistryActor } from './ac5e-helpers.mjs';
+import {
+	_autoArmor,
+	_activeModule,
+	_buildFlagRegistry,
+	_generateAC5eFlags,
+	_getDistance,
+	_getItems,
+	_getItem,
+	_getItemOrActivity,
+	_getLightLevel,
+	_hasItem,
+	_reindexFlagRegistryActor,
+} from './ac5e-helpers.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _renderHijack, _renderSettings, _rollFunctions } from './ac5e-hooks.mjs';
 import { _migrate } from './ac5e-migrations.mjs';
@@ -173,13 +185,14 @@ function registerHooks(settings) {
 
 	for (const hook of actionHooks.concat(renderHooks).concat(foundryHooks).concat(buildHooks)) {
 		const hookId = Hooks.on(hook.id, (...args) => {
-		if (renderHooks.some((candidate) => candidate.id === hook.id)) {
+			if (renderHooks.some((candidate) => candidate.id === hook.id)) {
 				const [render, element] = args;
 				if (settings.debug) console.warn(hook.id, { render, element });
-				if (hook.type === 'chat') return setTimeout(() => {
-					_incrementChatDomStat('renderHookPasses');
-					_renderHijack(hook.type, render, element, hook.id);
-				});
+				if (hook.type === 'chat')
+					return setTimeout(() => {
+						_incrementChatDomStat('renderHookPasses');
+						_renderHijack(hook.type, render, element, hook.id);
+					});
 				return _renderHijack(hook.type, ...args, hook.id);
 			}
 			if (hook.id === 'dnd5e.preUseActivity') {

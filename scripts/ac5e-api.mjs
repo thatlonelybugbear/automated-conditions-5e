@@ -19,7 +19,7 @@ import {
 import { _parseAddToSpec } from './ac5e-addTo.mjs';
 import { _createEvaluationSandbox, _raceOrType } from './ac5e-runtimeLogic.mjs';
 import { _setContextKeywordsSetting, _setUsageRulesSetting } from './ac5e-queries.mjs';
-import { clearStatusEffectOverrides, inspectCadenceFlags, listStatusEffectOverrides, registerStatusEffectOverride, removeStatusEffectOverride, resetCadenceFlags } from './ac5e-setpieces.mjs';
+import { _importStatusEffectOverrideDefinitions, clearStatusEffectOverrides, inspectCadenceFlags, listStatusEffectOverrides, registerStatusEffectOverride, removeStatusEffectOverride, resetCadenceFlags } from './ac5e-setpieces.mjs';
 import { autoRanged, canSee, checkNearby, checkRanged } from './ac5e-systemRules.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -1540,6 +1540,157 @@ export function createTroubleshooterSnapshot({ includeLint = true, lintOptions =
 	};
 }
 
+function exportRegistryJSON(kind, definitions, { filename = null, download = true, persistentOnly = false } = {}) {
+	const entries = [];
+	const skipped = [];
+	for (const definition of definitions) {
+		if (persistentOnly && !definition.persistent) continue;
+		try {
+			const json = JSON.stringify(definition, (_key, value) => {
+				if (['function', 'symbol', 'bigint'].includes(typeof value)) throw new TypeError('nonSerializable');
+				if (typeof value === 'number' && !Number.isFinite(value)) throw new TypeError('nonSerializable');
+				return value;
+			});
+			entries.push(JSON.parse(json));
+		} catch {
+			skipped.push({ id: definition.key ?? definition.id, reason: 'nonSerializable' });
+		}
+	}
+	const snapshot = {
+		schema: 1,
+		moduleId: Constants.MODULE_ID,
+		moduleVersion: game.modules.get(Constants.MODULE_ID)?.version ?? null,
+		kind,
+		generatedAt: new Date().toISOString(),
+		entries,
+		skipped,
+	};
+	if (skipped.length) console.warn(game.i18n.format('AC5E.RegistryExport.Skipped', { count: skipped.length }), skipped);
+	if (download) foundry.utils.saveDataToFile(JSON.stringify(snapshot, null, 2), 'application/json', filename || `ac5e-${kind}.json`);
+	return snapshot;
+}
+
+function exportUsageRuleAddTo(spec) {
+	if (!spec) return undefined;
+	if (spec.optinId) return `optin(${spec.optinId})`;
+	const clauses = [];
+	if (spec.parts && spec.explicitParts) clauses.push(spec.parts);
+	if (spec.includeTypes.length || spec.explicitIncludeClause) clauses.push(`types(${spec.includeTypes.join(',')})`);
+	if (spec.excludeTypes.length || spec.explicitExcludeClause) clauses.push(`!types(${spec.excludeTypes.join(',')})`);
+	return clauses.join(',') || spec.parts || undefined;
+}
+
+export function exportUsageRulesJSON(options = {}) {
+	const entries = options.persistentOnly ? Array.from(usageRulesRegistryState.persistent.values()) : _listUsageRuleEntriesMerged();
+	const definitions = entries.map(({ id, source, updatedAt, ...definition }) => ({
+		...definition,
+		// Export authoring syntax so registration preserves inferred versus explicit part targeting.
+		addTo: exportUsageRuleAddTo(definition.addTo),
+		persistent: source === 'persistent',
+	}));
+	return exportRegistryJSON('usageRules', definitions, options);
+}
+
+export function exportStatusEffectOverridesJSON(options = {}) {
+	return exportRegistryJSON('statusEffectsOverrides', listStatusEffectOverrides(), options);
+}
+
+async function readRegistryImport(data, kind) {
+	if (data == null) data = await pickTroubleshooterSnapshotFile();
+	if (data == null) return null;
+	if (typeof File !== 'undefined' && data instanceof File) data = await (foundry.utils.readTextFromFile?.(data) ?? readTextFromFile(data));
+	try {
+		if (typeof data === 'string') data = JSON.parse(data);
+		data = JSON.parse(JSON.stringify(data, (_key, value) => {
+			if (['function', 'symbol', 'bigint'].includes(typeof value) || (typeof value === 'number' && !Number.isFinite(value))) throw new TypeError();
+			return value;
+		}));
+	} catch {
+		throw new Error(game.i18n.localize('AC5E.RegistryImport.InvalidSnapshot'));
+	}
+	if (data?.schema !== 1 || data.moduleId !== Constants.MODULE_ID || data.kind !== kind || !Array.isArray(data.entries)) {
+		throw new Error(game.i18n.localize('AC5E.RegistryImport.InvalidSnapshot'));
+	}
+	return data;
+}
+
+function validateRegistryImportEntry(entry, kind, persistent) {
+	if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+	if (entry.condition != null && typeof entry.condition !== 'string') return null;
+	if (entry.persistent != null && typeof entry.persistent !== 'boolean') return null;
+	if (entry.priority != null && (typeof entry.priority !== 'number' || !Number.isFinite(entry.priority))) return null;
+	const definition = { ...entry, persistent: persistent ?? entry.persistent ?? false };
+	if (kind === 'usageRules') {
+		if (entry.evaluate != null || (entry.expression != null && typeof entry.expression !== 'string')) return null;
+		return _parseUsageRuleDefinition(definition);
+	}
+	if (typeof entry.id !== 'string' || !entry.id.trim() || entry.apply != null || (entry.when != null && typeof entry.when !== 'boolean')) return null;
+	for (const key of ['status', 'hook', 'type']) {
+		const value = entry[key];
+		if (value != null && !(typeof value === 'string' || (Array.isArray(value) && value.every((part) => typeof part === 'string')))) return null;
+	}
+	const results = ['', 'advantage', 'disadvantage', 'advantageNames', 'disadvantageNames', 'noAdvantage', 'noDisadvantage', 'critical', 'noCritical', 'fail', 'success', 'info', 'fumble', 'modifiers', 'criticalThreshold', 'fumbleThreshold', 'targetADC', 'abilityOverride', 'extraDice', 'typeOverride', 'diceUpgrade', 'diceDowngrade', 'modifyDenomination', 'range'];
+	if (entry.result != null && entry.result !== false && !results.includes(entry.result)) return null;
+	return definition;
+}
+
+async function importUsageRuleDefinitions(definitions) {
+	const previousRuntime = new Map(usageRulesRegistryState.runtime);
+	const previousPersistent = new Map(usageRulesRegistryState.persistent);
+	const needsSave = definitions.some((entry) => entry.persistent || previousPersistent.has(entry.key));
+	try {
+		for (const definition of definitions) {
+			usageRulesRegistryState.runtime.delete(definition.key);
+			usageRulesRegistryState.persistent.delete(definition.key);
+			const source = definition.persistent ? 'persistent' : 'runtime';
+			usageRulesRegistryState[source].set(definition.key, {
+				...definition,
+				id: definition.persistent ? `ac5e-usage-rule-persistent-${definition.key}` : `ac5e-usage-rule-runtime-${usageRulesRegistryState.seq++}`,
+				source,
+				updatedAt: Date.now(),
+			});
+		}
+		if (needsSave && !(await _persistUsageRulesState())) throw new Error(game.i18n.localize('AC5E.RegistryImport.SaveFailed'));
+	} catch (error) {
+		usageRulesRegistryState.runtime = previousRuntime;
+		usageRulesRegistryState.persistent = previousPersistent;
+		throw error;
+	}
+}
+
+async function importRegistryJSON(kind, data, { overwrite = false, persistent = null } = {}) {
+	if (typeof overwrite !== 'boolean' || (persistent !== null && typeof persistent !== 'boolean')) throw new Error(game.i18n.localize('AC5E.RegistryImport.InvalidSnapshot'));
+	const snapshot = await readRegistryImport(data, kind);
+	if (!snapshot) return null;
+	const existing = kind === 'usageRules' ? _listUsageRuleEntriesMerged() : listStatusEffectOverrides();
+	const keyField = kind === 'usageRules' ? 'key' : 'id';
+	const existingIds = new Set(existing.map((entry) => entry[keyField]));
+	const seen = new Set();
+	const definitions = [];
+	const skipped = [];
+	for (const [index, entry] of snapshot.entries.entries()) {
+		const definition = validateRegistryImportEntry(entry, kind, persistent);
+		if (!definition || seen.has(definition[keyField])) throw new Error(game.i18n.format('AC5E.RegistryImport.InvalidEntry', { index: index + 1 }));
+		const id = definition[keyField];
+		seen.add(id);
+		if (!overwrite && existingIds.has(id)) skipped.push({ id, reason: 'exists' });
+		else definitions.push(definition);
+	}
+	const needsSave = definitions.some((entry) => entry.persistent || (kind === 'usageRules' && usageRulesRegistryState.persistent.has(entry.key)) || existing.some((previous) => previous[keyField] === entry[keyField] && (previous.persistent || previous.source === 'persistent')));
+	if (needsSave && !game.users?.activeGM) throw new Error(game.i18n.localize('AC5E.RegistryImport.NoActiveGM'));
+	if (kind === 'usageRules') await importUsageRuleDefinitions(definitions);
+	else await _importStatusEffectOverrideDefinitions(definitions);
+	return { imported: definitions.map((entry) => entry[keyField]), skipped };
+}
+
+export async function importUsageRulesJSON(data = null, options = {}) {
+	return importRegistryJSON('usageRules', data, options);
+}
+
+export async function importStatusEffectOverridesJSON(data = null, options = {}) {
+	return importRegistryJSON('statusEffectsOverrides', data, options);
+}
+
 export function exportTroubleshooterSnapshot({ filename = null } = {}) {
 	const snapshot = createTroubleshooterSnapshot();
 	const json = JSON.stringify(snapshot, null, 2);
@@ -1566,6 +1717,7 @@ function pickTroubleshooterSnapshotFile() {
 		input.type = 'file';
 		input.accept = '.json,application/json';
 		input.style.display = 'none';
+		input.addEventListener('cancel', () => { input.remove(); resolve(null); }, { once: true });
 		input.addEventListener(
 			'change',
 			() => {
@@ -1677,6 +1829,8 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 		remove: removeStatusEffectOverride,
 		clear: clearStatusEffectOverrides,
 		list: listStatusEffectOverrides,
+		exportJSON: exportStatusEffectOverridesJSON,
+		importJSON: importStatusEffectOverridesJSON,
 	};
 	ac5e.cadence = {
 		reset: resetCadenceFlags,
@@ -1708,6 +1862,8 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 		remove: removeUsageRule,
 		clear: clearUsageRules,
 		list: listUsageRules,
+		exportJSON: exportUsageRulesJSON,
+		importJSON: importUsageRulesJSON,
 		showKeys: showUsageRuleKeys,
 		canPersist: _canPersistUsageRules,
 		reloadPersistent: reloadPersistentUsageRules,
