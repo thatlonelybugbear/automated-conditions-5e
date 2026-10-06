@@ -4,8 +4,10 @@
 - Added spell-slot consumption for scaled opt-ins with `usesCount=spell[slot,pact]`, including an actor-specific dropdown for available spell and Pact slots, optional level bounds, and damage scaling from the selected slot level. Each selection consumes one slot from its chosen pool.
   - Example: a Divine Smite 2014 damage opt-in for melee weapon attacks using 1st-4th-level spell or Pact slots, with an additional die against Fiends/Undead. Add this Active Effect change with mode **AC5E**:
 
-    ```text
-    flags.automated-conditions-5e.damage.bonus | AC5E | bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;
+    ```js
+    key: flags.automated-conditions-5e.damage.bonus
+    mode: AC5E
+    value: bonus=((opponentActor.creatureType.includes('fiend') || opponentActor.creatureType.includes('undead')) ? (2 + optinScale) : (1 + optinScale))d8[radiant]; usesCount=spell[slot,pact], { min: 1, max: 4, step: 1 }; name=Divine Smite; optinId=divine-smite; optin; mwak && !unarmed;
     ```
 - Added JSON export and import for usage rules and status effect overrides, including persistent-only exports, reporting entries that cannot be serialized, import validation, and explicit duplicate replacement.
   - Download each registry as JSON:
