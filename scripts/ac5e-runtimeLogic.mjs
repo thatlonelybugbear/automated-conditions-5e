@@ -9,6 +9,7 @@ import {
 	_ac5eSafeEval,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
+	_getOptinSelectionBooleans,
 	_getActivityEffectsStatusRiders,
 	_getLightLevel,
 	_getTooltip,
@@ -1052,7 +1053,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.opponentActor = opponentActor || {};
 	sandbox.mod = formulaData?.mod;
 	sandbox.prof = formulaData?.prof;
-	sandbox.optinSelected = sandboxOptions?.[Constants.MODULE_ID]?.optinSelected ?? {};
+	sandbox.optinSelected = _getOptinSelectionBooleans(sandboxOptions?.[Constants.MODULE_ID]?.optinSelected);
 	sandbox.tokenId = subjectToken?.id;
 	sandbox.tokenUuid = subjectToken?.document?.uuid;
 	sandbox.actorId = subjectToken?.actor?.id ?? sourceActor?.id;

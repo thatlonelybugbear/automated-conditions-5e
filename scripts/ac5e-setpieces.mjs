@@ -4,6 +4,7 @@ import {
 	_dispositionCheck,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
+	_getOptinSelectionBooleans,
 	_getOptinSelectionScale,
 	_getActivityEffectsStatusRiders,
 	_getDistance,
@@ -1472,7 +1473,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 
 	const evaluationData = existingEvaluationData ?? _createEvaluationSandbox({ subjectToken, opponentToken, sourceActor: subject, targetActor: opponent, options });
 	evaluationData.ac5eConfig = ac5eConfig;
-	evaluationData.optinSelected = ac5eConfig?.optinSelected ?? {};
+	evaluationData.optinSelected = _getOptinSelectionBooleans(ac5eConfig?.optinSelected);
 
 	const getActorAndModeType = (el, includeAuras = false) => {
 		const key = el.key?.toLowerCase() ?? '';
@@ -2349,11 +2350,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			isAura && auraToken?.document?.uuid ? `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:aura:${auraToken.document.uuid}` : `${effect.uuid ?? effect.id}:${changeIndex}:${hook}:${actorType}`;
 		const optinId = getOptinId(change.value);
 		if (optinId) {
-			const selection = _getOptinSelectionValueById(sandbox, entryId);
-			if (_isOptinSelectionActive(selection)) {
-				sandbox.optinSelected ??= {};
-				sandbox.optinSelected[optinId] = selection;
-			}
+			const selection = _getOptinSelectionValueById(sandbox, entryId, optinId);
+			sandbox.optinSelected ??= {};
+			sandbox.optinSelected[optinId] = _isOptinSelectionActive(selection);
+			if (selection !== null && sandbox.ac5eConfig?.optinSelected) sandbox.ac5eConfig.optinSelected[optinId] = selection;
 		}
 		const usesOverride = getUsesOverride({ entryId, effect, changeIndex, hookType: hook });
 		const scopedSandbox = sandbox && typeof sandbox === 'object' ? Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox)) : sandbox;
@@ -3366,11 +3366,11 @@ function _getPendingUseModeFamily(mode, hook = '') {
 function _getOptinSelectionValueById(evalData, entryId, baseId) {
 	const optins =
 		evalData?.ac5eConfig?.optinSelected
-		?? evalData?.optinSelected
 		?? evalData?.options?.[Constants.MODULE_ID]?.optinSelected
 		?? evalData?.rollConfig?.[Constants.MODULE_ID]?.optinSelected
 		?? evalData?.config?.[Constants.MODULE_ID]?.optinSelected
 		?? evalData?.roll?.options?.[Constants.MODULE_ID]?.optinSelected
+		?? evalData?.optinSelected
 		?? null;
 	if (!optins || typeof optins !== 'object') return null;
 	if (entryId in optins) return optins[entryId];

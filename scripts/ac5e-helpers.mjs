@@ -1377,6 +1377,10 @@ export function _isOptinSelectionActive(value) {
 	return !!value;
 }
 
+export function _getOptinSelectionBooleans(selections = {}) {
+	return Object.fromEntries(Object.entries(selections ?? {}).map(([id, value]) => [id, _isOptinSelectionActive(value)]));
+}
+
 export function _getOptinSelectionScale(value) {
 	if (value && typeof value === 'object') {
 		const scale = Number(value.scale);
