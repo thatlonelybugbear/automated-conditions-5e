@@ -1,3 +1,7 @@
+## 14.533.19.5
+
+- Fix for `Token#shape` being undefined.
+
 ## 14.533.19.4
 
 - Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
