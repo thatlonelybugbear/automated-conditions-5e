@@ -965,6 +965,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isModifier = normalized.endsWith('.modifier') || normalized.endsWith('.modifiers') || normalized.includes('.modifier.');
 	const isDamageContext = normalized.includes('.damage.');
 	const isDamageAdvantage = isDamageContext && (normalized.endsWith('.advantage') || normalized.endsWith('.disadvantage'));
+	const isDamageCritical = isDamageContext && normalized.endsWith('.critical');
 	const isTargetADC = normalized.endsWith('.modifyac') || normalized.endsWith('.modifydc');
 	const isInfo = normalized.endsWith('.info');
 	const supportsUpdate = true;
@@ -981,13 +982,13 @@ function getEditorProfile(changeKey, parsed) {
 	if (isTargetADC) requiredFields.push('set');
 	if (isModifyDenomination) requiredFields.push('modify');
 	if (isModifier) requiredFields.push('modifier');
-	if (isDamageAdvantage) requiredFields.push('addTo');
+	if (isDamageAdvantage || isDamageCritical) requiredFields.push('addTo');
 	if (isCriticalThreshold || isFumbleThreshold) requiredFields.push('threshold', 'set');
 	if (isAura) auraFields.push('radius');
 	if (isRange) requiredFields.push(...RANGE_VALUE_FIELDS);
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
 	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
-	const supportsAddTo = isDamageContext && (isBonus || isModifyDenomination || isTypeOverride || isModifier || isDamageAdvantage || hasParsedValue(parsed, 'addTo'));
+	const supportsAddTo = isDamageContext && (isBonus || isModifyDenomination || isTypeOverride || isModifier || isDamageAdvantage || isDamageCritical || hasParsedValue(parsed, 'addTo'));
 	const addToAnchorField =
 		isTypeOverride ? 'override'
 		: isModifier ? 'modifier'

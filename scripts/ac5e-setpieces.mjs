@@ -2970,6 +2970,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			else {
 				const hasDecoratedLabel = !!(entry?.label && entry.label !== name);
 				const preserveEntryObject =
+					(hook === 'damage' && mode === 'critical' && Boolean(entry?.addTo)) ||
 					(mode === 'fail' && Boolean(entry?.description)) ||
 					(mode === 'info' && Boolean(entry?.enforceMode)) ||
 					(hook === 'damage' && ['advantage', 'disadvantage'].includes(mode)) ||
