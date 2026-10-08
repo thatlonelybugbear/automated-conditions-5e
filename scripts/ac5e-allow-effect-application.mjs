@@ -10,7 +10,8 @@ function pruneRollResultInflightCache(now = Date.now()) {
 }
 
 function rollResultCacheKey({ messageId, actorUuid, tokenUuid, activityUuid } = {}) {
-	return [messageId, tokenUuid ?? actorUuid, activityUuid].filter(Boolean).join('|');
+	const id = typeof messageId === 'string' ? messageId.replace(/^ChatMessage\./, '') : messageId?.id;
+	return [id, tokenUuid ?? actorUuid, activityUuid].filter(Boolean).join('|');
 }
 
 function getRollSpeakerTokenUuid(roll) {
@@ -91,29 +92,20 @@ function resolveAttackTargets(options, originatingMessage) {
 }
 
 function setRollResultInflightCache({ messageId, actorUuid, tokenUuid, activityUuid, rollResult } = {}) {
-	if (!actorUuid || !rollResult) return;
+	if (!messageId || !actorUuid || !rollResult) return;
 	const expiresAt = Date.now() + ROLL_RESULT_INFLIGHT_TTL_MS;
 	const keys = [
 		tokenUuid ? rollResultCacheKey({ messageId, tokenUuid, activityUuid }) : null,
 		rollResultCacheKey({ messageId, actorUuid, activityUuid }),
 		rollResultCacheKey({ messageId, actorUuid }),
-		rollResultCacheKey({ actorUuid, activityUuid }),
 	].filter(Boolean);
 	for (const key of keys) rollResultInflightCache.set(key, { rollResult: foundry.utils.duplicate(rollResult), expiresAt });
 }
 
 function getRollResultInflightCacheEntry({ messageId, actorUuid, activityUuid } = {}) {
+	if (!messageId || !actorUuid) return null;
 	pruneRollResultInflightCache();
-	for (const key of [
-		rollResultCacheKey({ messageId, actorUuid, activityUuid }),
-		rollResultCacheKey({ messageId, actorUuid }),
-		rollResultCacheKey({ actorUuid, activityUuid }),
-	]) {
-		if (!key) continue;
-		const entry = rollResultInflightCache.get(key);
-		if (entry?.rollResult) return entry;
-	}
-	return null;
+	return rollResultInflightCache.get(rollResultCacheKey({ messageId, actorUuid, activityUuid })) ?? null;
 }
 
 function resolveRollSubject(options, hook) {
@@ -189,9 +181,10 @@ export function hydrateDamageSaveRollResult(options, { targetToken, targetActor,
 	options.d20 = { ...(options.d20 ?? {}), ...foundry.utils.duplicate(rollResult) };
 }
 
-export function hydrateAllowEffectApplicationRollResult(sandbox, { targetActor, originActivity } = {}) {
+export function hydrateAllowEffectApplicationRollResult(sandbox, { targetActor, originActivity, messageId } = {}) {
 	if (!sandbox || !targetActor?.uuid) return;
 	const rollResult = getRollResultInflightCacheEntry({
+		messageId,
 		actorUuid: targetActor.uuid,
 		activityUuid: originActivity?.uuid,
 	})?.rollResult;

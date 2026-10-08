@@ -170,7 +170,6 @@ function registerHooks(settings) {
 		{ id: 'preCreateItem', type: 'preCreateItem' },
 		{ id: 'preCreateChatMessage', type: 'preCreateChatMessage' },
 		{ id: 'preCreateActiveEffect', type: 'preCreateActiveEffect' },
-		{ id: 'preUpdateActiveEffect', type: 'preUpdateActiveEffect' },
 	];
 	const renderHooks = [
 		{ id: 'renderChatMessageHTML', type: 'chat' },

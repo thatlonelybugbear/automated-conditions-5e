@@ -46,7 +46,7 @@ Affects **rolls made against the actor** (i.e., when the actor is the *target* o
 
 ### `flags.automated-conditions-5e.allowEffectApplication`
 
-Controls whether an Active Effect is allowed to be created or reapplied at application time.
+Controls whether an enabled Active Effect is allowed to be created on an Actor at initial application time.
 
 - Evaluated in `preCreateActiveEffect`.
 - If the expression evaluates to `false`, AC5E blocks the effect creation.
@@ -54,11 +54,12 @@ Controls whether an Active Effect is allowed to be created or reapplied at appli
 - On hard evaluation failures, AC5E falls back to system-default behavior (effect creation proceeds).
 - The full AC5E sandbox is available. `opponentActor` is the recipient Actor for each application, so `opponentActor.creatureType.includes('undead')` works with multiple targets.
 - Token checks use the unlinked Actor's Token or the first active Token for a linked Actor. With multiple linked Tokens, that Token may differ from the selected one.
-- The same check runs when an existing effect is re-enabled or refreshed, using its updated origin and recipient. Blocking reapplication preserves the existing effect's state; it does not remove an already active effect.
+- Disabled effects and effects created on Items bypass this check. Later edits, enabling, and refreshes of existing effects do not evaluate it again.
 
 Current scope notes:
 - This check currently runs only for effect applications that resolve to an origin item context.
 - Activity data is not guaranteed in `preCreateActiveEffect` with current dnd5e payloads and may be `null` in the sandbox.
+- Cached roll results are matched to the effect's originating chat message and recipient (and activity when available). Without an originating message or matching cached result, roll-result variables are not populated from previous uses.
 - Transfer effects and enchantment-style effects are currently excluded from this gate.
 
 ---

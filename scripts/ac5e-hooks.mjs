@@ -85,7 +85,6 @@ const rollFunctionDispatch = {
 	preCreateItem: (hook, [item, updates]) => _preCreateItem(item, updates),
 	preCreateChatMessage: (hook, [message, data]) => _preCreateChatMessage(message, data),
 	preCreateActiveEffect: (hook, [effect, updates, options, userId]) => _preCreateActiveEffect(effect, updates, options, userId),
-	preUpdateActiveEffect: (hook, [effect, updates, options, userId]) => _preUpdateActiveEffect(effect, updates, options, userId),
 };
 
 export function _rollFunctions(hook, ...args) {
@@ -131,10 +130,10 @@ function _formatAllowEffectApplicationBypassKeys(bindings) {
 		.map((binding) => {
 			const parts = [];
 			const keyLabel = binding?.key === 'ShiftLeft' ? 'Left Shift' : binding?.key === 'ShiftRight' ? 'Right Shift' : binding?.key ?? '';
-			if (binding?.modifiers?.shift && keyLabel !== 'Left Shift' && keyLabel !== 'Right Shift') parts.push('Shift');
-			if (binding?.modifiers?.control) parts.push('Ctrl');
-			if (binding?.modifiers?.alt) parts.push('Alt');
-			if (binding?.modifiers?.meta) parts.push('Meta');
+			for (const modifier of binding?.modifiers ?? []) {
+				if (foundry.helpers.interaction.KeyboardManager.MODIFIER_CODES[modifier]?.includes(binding.key)) continue;
+				parts.push(modifier === 'Control' ? 'Ctrl' : modifier);
+			}
 			if (keyLabel) parts.push(keyLabel);
 			return parts.join('+').trim();
 		})
@@ -153,6 +152,14 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 				...extra,
 			});
 		};
+		if (effect?.parent?.documentName === 'Item') {
+			traceSkip('item-parent');
+			return true;
+		}
+		if (updates?.disabled ?? effect?.disabled) {
+			traceSkip('disabled-effect');
+			return true;
+		}
 		const isEnchantment = updates?.type === 'enchantment';
 		const isTransfer = updates?.transfer;
 		if (isTransfer) {
@@ -172,7 +179,11 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 		}
 		const bindings = game.keybindings?.get?.(Constants.MODULE_ID, 'allowEffectApplicationBypassModifier');
 		const downKeys = game.keyboard?.downKeys;
-		const keybindingActive = Array.isArray(bindings) && downKeys?.has ? bindings.some((binding) => downKeys.has(binding?.key)) : false;
+		const keybindingActive = Array.isArray(bindings) && downKeys?.has ? bindings.some((binding) =>
+			downKeys.has(binding?.key) && Object.entries(foundry.helpers.interaction.KeyboardManager.MODIFIER_CODES).every(([modifier, codes]) =>
+				codes.includes(binding.key) || game.keyboard.isModifierActive(modifier) === (binding.modifiers ?? []).includes(modifier)
+			)
+		) : false;
 		if (game.user?.isGM && keybindingActive) {
 			traceSkip('gm-keypress-bypass', {
 				effect: effect?.uuid ?? effect?.id ?? null,
@@ -212,7 +223,11 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 		sandbox.hasSingleTarget = hasSingleTarget;
 		sandbox.singleTarget = hasSingleTarget;
 		sandbox.targetsCount = targetsCount;
-		hydrateAllowEffectApplicationRollResult(sandbox, { targetActor, originActivity });
+		hydrateAllowEffectApplicationRollResult(sandbox, {
+			targetActor,
+			originActivity,
+			messageId: effect?.system?.origin?.message ?? updates?.system?.origin?.message,
+		});
 		const result = _ac5eSafeEval({ expression, sandbox, mode: 'condition' });
 		if (trace) {
 			console.warn('AC5E allowEffectApplication', {
@@ -258,15 +273,6 @@ export function _preCreateActiveEffect(effect, updates, options, userId) {
 		}
 		return true;
 	}
-}
-
-export function _preUpdateActiveEffect(effect, updates, options, userId) {
-	const expanded = foundry.utils.expandObject(updates);
-	if (expanded.disabled === false || expanded.duration?.expired === false) {
-		const updatedEffect = effect.clone(updates, { keepId: true });
-		return _preCreateActiveEffect(updatedEffect, updatedEffect.toObject(), options, userId);
-	}
-	return true;
 }
 
 function _getEffectChanges(effect) {
