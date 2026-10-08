@@ -235,7 +235,13 @@ function registerHooks(settings) {
 	hooksRegistered['updateSetting.statusEffectOverrides'] = Hooks.on('updateSetting', onStatusEffectOverridesRegistrySettingUpdate);
 	hooksRegistered.renderActiveEffectConfig = registerEffectValueEditorHooks();
 	for (const hookName of ['createActor', 'updateActor', 'deleteActor', 'createItem', 'updateItem', 'deleteItem', 'createActiveEffect', 'updateActiveEffect', 'deleteActiveEffect']) {
-		hooksRegistered[hookName] = Hooks.on(hookName, (document) => _reindexFlagRegistryActor(document));
+		hooksRegistered[hookName] = Hooks.on(hookName, (document, changes) => {
+			if (hookName === 'updateActor' && changes) {
+				const paths = Object.keys(foundry.utils.flattenObject(changes)).filter((path) => path !== '_id' && path !== '_stats' && !path.startsWith('_stats.'));
+				if (paths.length === 1 && paths[0] === 'flags.dnd5e.lastMovedToken') return;
+			}
+			return _reindexFlagRegistryActor(document);
+		});
 	}
 	_buildFlagRegistry();
 	console.warn('Automated Conditions 5e added the following (mainly) dnd5e hooks:', hooksRegistered);
