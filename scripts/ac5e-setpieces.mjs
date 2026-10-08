@@ -1800,8 +1800,8 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			if (radius) {
 				radius = bonusReplacements(radius, auraTokenEvaluationData, true, effect);
 				if (!radius) return false;
-				radius = _ac5eSafeEval({ expression: radius, sandbox: auraTokenEvaluationData, mode: 'formula', debug });
-				if (!radius) return false;
+				radius = Number(_ac5eSafeEval({ expression: `(${radius})`, sandbox: auraTokenEvaluationData, mode: 'formula', debug }));
+				if (!Number.isFinite(radius) || !radius) return false;
 				const distanceTokenToAuraSource =
 					!isModifyAC ?
 						distanceToSource(auraToken, normalizedChangeValue.includes('wallsblock') && 'sight')
@@ -2040,7 +2040,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		if (!raw.length) return undefined;
 		const operation = /^[+-]/.test(raw) ? 'delta' : 'set';
 		const replacement = bonusReplacements(raw, evaluationData, isAura, effect);
-		let evaluated = _ac5eSafeEval({ expression: replacement, sandbox: evaluationData, mode: 'formula', debug });
+		let evaluated = _ac5eSafeEval({ expression: `(${replacement})`, sandbox: evaluationData, mode: 'formula', debug });
 		if (!Number.isFinite(Number(evaluated))) evaluated = evalDiceExpression(evaluated);
 		const value = Number(evaluated);
 		if (!Number.isFinite(value)) return undefined;
