@@ -483,7 +483,7 @@ function nudgeToward(point, center, distance = 0.2) {
 }
 
 function getHexPerimeterPoints(t) {
-	const clipperP = t.shape.toClipperPoints();
+	const clipperP = (t.shape ?? t.getShape()).toClipperPoints();
 
 	const points = [];
 	clipperP.forEach((r) => points.push({ x: t.x + r.X, y: t.y + r.Y }));
@@ -528,7 +528,7 @@ function getGridlessSquaresOnPerimeter(t) {
 
 function getSquaresOnPerimeter(t) {
 	const perimeterCenterPoints = {};
-	const clipperPoints = t.shape.toClipperPoints();
+	const clipperPoints = (t.shape ?? t.getShape()).toClipperPoints();
 	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
 		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
 			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
