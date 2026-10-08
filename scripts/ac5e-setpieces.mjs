@@ -886,8 +886,8 @@ function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, ex
 	const opponent = opponentToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.targetActorUuid);
 	const modernRules = settings.dnd5eModernRules;
 	const item = activity?.item;
-	const subjectMove = (subject?.system.attributes.movement.max ?? 0) > 0;
-	const opponentMove = (opponent?.system.attributes.movement.max ?? 0) > 0;
+	const subjectMove = (subject?.system?.attributes?.movement?.max ?? 0) > 0;
+	const opponentMove = (opponent?.system?.attributes?.movement?.max ?? 0) > 0;
 	const subjectAlert2014 = !modernRules && subject?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
 	const opponentAlert2014 = !modernRules && opponent?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
 
