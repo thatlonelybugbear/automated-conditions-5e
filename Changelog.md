@@ -1,3 +1,7 @@
+## 14.605.3.2
+
+- Fix for `Token#shape` being undefined.
+
 ## 14.605.3.1
 
 - Fixed system damage rule bonuses being counted twice when submitting the damage dialog.
