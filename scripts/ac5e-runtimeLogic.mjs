@@ -727,7 +727,9 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 			}
 		}
 		const hasDamageGlobalCritical = hook === 'damage' ? subjectGlobalDamageCritical.length || opponentGlobalDamageCritical.length : false;
-		if ((hook === 'damage' && hasDamageGlobalCritical) || (hook !== 'damage' && (ac5eConfig.subject.critical.length || ac5eConfig.opponent.critical.length))) {
+		const subjectCritical = _filterOptinEntries(ac5eConfig.subject.critical, ac5eConfig.optinSelected);
+		const opponentCritical = _filterOptinEntries(ac5eConfig.opponent.critical, ac5eConfig.optinSelected);
+		if ((hook === 'damage' && hasDamageGlobalCritical) || (hook !== 'damage' && (subjectCritical.length || opponentCritical.length))) {
 			ac5eConfig.isCritical = true;
 			if (roll0) {
 				roll0.options.criticalSuccess = 1;
