@@ -742,7 +742,13 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 	const opponentNoCritical = _filterOptinEntries(ac5eConfig.opponent.noCritical, ac5eConfig.optinSelected);
 	if (subjectNoCritical.length || opponentNoCritical.length) {
 		if (hook === 'attack') roll0.options.criticalSuccess = 21;
-		if (hook === 'damage') localDialog.options.defaultButton = 'normal';
+		if (hook === 'damage') {
+			localDialog.options.defaultButton = 'normal';
+			for (const roll of config.rolls ?? []) {
+				roll.options ??= {};
+				roll.options.isCritical = false;
+			}
+		}
 		ac5eConfig.isCritical = false;
 		config.isCritical = false;
 	}

@@ -619,6 +619,7 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	};
 	const optionBaseCritical = config?.options?.[Constants.MODULE_ID]?.baseCritical ?? config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.baseCritical;
 	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
+	const hasNoCritical = _filterOptinEntries([...(ac5eConfig.subject?.noCritical ?? []), ...(ac5eConfig.opponent?.noCritical ?? [])], ac5eConfig.optinSelected).length > 0;
 	const allCriticalEntries = (ac5eConfig.subject?.critical ?? [])
 		.concat(ac5eConfig.opponent?.critical ?? [])
 		.filter((entry) => {
@@ -658,7 +659,7 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 		}
 	}
 
-	if (hasGlobalCritical) {
+	if (hasGlobalCritical && !hasNoCritical) {
 		if (!wasOptinForced && ac5eConfig.optinBaseCritical === undefined) {
 			ac5eConfig.optinBaseCritical = baseCritical;
 		}
@@ -668,10 +669,10 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 		ac5eConfig.options.isCritical = true;
 		if (config.midiOptions) config.midiOptions.isCritical = true;
 	} else {
-		ac5eConfig.isCritical = baseCritical;
-		config.isCritical = baseCritical;
-		ac5eConfig.options.isCritical = baseCritical;
-		if (config.midiOptions) config.midiOptions.isCritical = baseCritical;
+		ac5eConfig.isCritical = !hasNoCritical && baseCritical;
+		config.isCritical = ac5eConfig.isCritical;
+		ac5eConfig.options.isCritical = ac5eConfig.isCritical;
+		if (config.midiOptions) config.midiOptions.isCritical = ac5eConfig.isCritical;
 		ac5eConfig.optinForcedCritical = false;
 	}
 	if (ac5eConfig.isCritical === undefined && config.isCritical !== undefined) {
@@ -699,7 +700,7 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 					roll.options.type.toLowerCase()
 				:	(getRollDamageTypeFromForm(formData, config, i) ?? getDamageRollTypeAtIndex(ac5eConfig, undefined, i));
 			const localizedCritical = localizedCriticalEntries.some((entry) => shouldApplyCriticalToRoll(entry, i, rollType, allTypes));
-			const effectiveRollCritical = config.isCritical || localizedCritical;
+			const effectiveRollCritical = !hasNoCritical && (config.isCritical || localizedCritical);
 			roll.options.isCritical = effectiveRollCritical;
 			rollCriticalByIndex[i] = effectiveRollCritical;
 		}
