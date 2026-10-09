@@ -311,18 +311,28 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 	for (const actorName of actorNames) {
 		const actor = sandbox[actorName];
 		if (!actor) continue;
-		const refRegex = new RegExp(`(?:\\b|(?<=d))${actorName}\\.[\\w.-]+`, 'g');
-		for (const m of [...out.matchAll(refRegex)]) {
-			const ref = m[0];
+		const quotedString = '"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\'|`(?:\\\\.|[^`\\\\])*`';
+		const helperRanges = [];
+		const helperRegex = new RegExp(`${quotedString}|([A-Za-z_$][\\w$]*)\\(`, 'g');
+		for (const match of out.matchAll(helperRegex)) {
+			if (!match[1] || !lazySandbox[match[1]]) continue;
+			const end = findMatchingParen(out, match.index + match[0].length - 1);
+			if (end !== -1) helperRanges.push([match.index, end]);
+		}
+		const refRegex = new RegExp(`${quotedString}|((?:\\b|(?<=d))${actorName}\\.[\\w.-]+)`, 'g');
+		out = out.replace(refRegex, (match, ref, offset) => {
+			if (!ref) return match;
 			try {
+				const value = foundry.utils.getProperty(actor, ref.slice(actorName.length + 1));
+				if (typeof value === 'string' && helperRanges.some(([start, end]) => offset > start && offset < end)) return JSON.stringify(value);
 				const atExpr = ref.replace(new RegExp(`^${actorName}\\.`), '@');
 				const roll = new Roll(atExpr, actor);
-				const formula = roll.formula ?? atExpr;
-				out = out.replace(ref, formula);
+				return roll.formula ?? atExpr;
 			} catch (e) {
 				debug.log?.(`AC5E resolveActorAtRefs @ref parse failed for ${ref}`, { effect: debug.effectUuid, change: debug.changeKey }, e.message);
+				return ref;
 			}
-		}
+		});
 	}
 	return out;
 }
