@@ -1802,12 +1802,15 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 				if (!radius) return false;
 				radius = Number(_ac5eSafeEval({ expression: `(${radius})`, sandbox: auraTokenEvaluationData, mode: 'formula', debug }));
 				if (!Number.isFinite(radius) || !radius) return false;
+			}
+			const wallsBlock = normalizedChangeValue.includes('wallsblock') && 'sight';
+			if (radius || wallsBlock) {
 				const distanceTokenToAuraSource =
 					!isModifyAC ?
-						distanceToSource(auraToken, normalizedChangeValue.includes('wallsblock') && 'sight')
-					:	distanceToTarget(auraToken, normalizedChangeValue.includes('wallsblock') && 'sight');
-				if (distanceTokenToAuraSource <= radius) auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
-				else return false;
+						distanceToSource(auraToken, wallsBlock)
+					:	distanceToTarget(auraToken, wallsBlock);
+				if (!Number.isFinite(distanceTokenToAuraSource) || (radius && distanceTokenToAuraSource > radius)) return false;
+				auraTokenEvaluationData.distanceTokenToAuraSource = distanceTokenToAuraSource;
 			}
 		} else if (change.key.includes('grants')) {
 			//isGrants
