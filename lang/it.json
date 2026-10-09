@@ -1,4 +1,10 @@
 {
+	"AC5E.RegistryImport.InvalidSnapshot": "AC5E: Questo file non è un'esportazione JSON supportata per questo registro.",
+	"AC5E.RegistryImport.InvalidEntry": "AC5E: La voce {index} non è valida oppure contiene una chiave o un ID duplicato. Non è stata importata alcuna voce.",
+	"AC5E.RegistryImport.NoActiveGM": "AC5E: È necessario che un GM sia attivo per importare modifiche alle voci persistenti.",
+	"AC5E.RegistryImport.SaveFailed": "AC5E: Impossibile salvare le voci importate. È stato ripristinato lo stato precedente del registro.",
+	"AC5E.RegistryExport.Skipped": "AC5E: Durante l'esportazione JSON sono state ignorate {count} voci perché contengono callback o altri valori che il formato JSON non può preservare. Consulta l'elenco delle voci ignorate qui sotto.",
+	"AC5E.StatusEffectsOverrides.ConditionError": "AC5E: La sovrascrittura dello stato \"{name}\" (id: {id}) è stata ignorata per {status}/{hook}/{type}. Condizione: {condition}. Errore: {error}. Correggi la condizione usando ac5e.statusEffectsOverrides.register con lo stesso id oppure rimuovila usando ac5e.statusEffectsOverrides.remove({removeId}). L'accesso agli identificatori game/canvas è vietato; utilizza invece i campi sandbox. I nomi tra virgolette che contengono queste parole sono consentiti.",
 	"AC5E.AutomateStatuses": {
 		"Name": "Regole Condizioni D&D 5e",
 		"Hint": "Abilita la gestione AC5E delle condizioni di D&D 5e, estendendo l'automazione della modalità vantaggio integrata nel sistema D&D 5e con una gestione delle regole più ampia e precisa, soprattutto per i tiri per colpire."
@@ -25,9 +31,9 @@
 	"AC5E.ShowToolTipsChoicesChat": "Solo Messaggi Chat",
 	"AC5E.ShowToolTipsChoicesNone": "Non mostrare",
 	"AC5E.ShowModuleNameInTooltipsName": "Mostra Nome Modulo nei suggerimenti",
-	"AC5E.ShowTooltipChatVisibility.Name": "Mostra suggerimenti in chat per",
-	"AC5E.ShowTooltipChatVisibility.Hint": "Scegli quali tiri mostrano i suggerimenti AC5E in chat. Il GM vede sempre tutti i suggerimenti.",
-	"AC5E.ShowTooltipChatVisibility.All": "Tutti",
+	"AC5E.ShowTooltipChatVisibility.Name": "Mostra ai Giocatori Tooltip della Chat per",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Scegli per quali tiri i giocatori possono visualizzare i tooltip di AC5E nella chat. L'opzione Nessuno li nasconde a tutti i giocatori. I GM non sono soggetti a questo filtro, ma devono comunque rispettare la propria impostazione Mostra tooltip AC5E.",
+	"AC5E.ShowTooltipChatVisibility.All": "Tutti i personaggi",
 	"AC5E.ShowTooltipChatVisibility.None": "Nessuno",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Propri",
 	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
@@ -108,7 +114,7 @@
 	"AC5E.TokenlessActorWarning": {
 		"Hint": "Mostra un avviso quando si tira per un attore senza un token nella scena corrente.",
 		"Name": "Mostra avviso attore senza token",
-		"Text": "Avviso AC5E: l'attore su cui si effettua il tiro non ha un token nella scena. I risultati potrebbero essere imprecisi."
+		"Text": "Avviso AC5E: l'attore su cui si effettua il tiro non ha un token nella scena. Le regole basate sul personaggio si applicano ancora; distanza, visibilità, copertura e i controlli dell'aura richiedono un token di scena."
 	},
 	"AC5E.Statuses": {
 		"UnderwaterCombat": "Combattimento subacqueo"
@@ -180,6 +186,9 @@
 	"AC5E.Flags": "flag",
 	"AC5E.FlagsInitiativeAdv": "Vantaggio del sistema all'iniziativa",
 	"AC5E.FlagsInitiativeDisadv": "Svantaggio del sistema all'iniziativa",
+	"AC5E.TargetCharmedByYou": "Il bersaglio è Affascinato da te",
+	"AC5E.TargetCharmedByYouDescription": "Concede vantaggio a questa prova. Deseleziona se non si tratta di un'interazione sociale con il bersaglio Affascinato.",
+	"AC5E.TargetIsYourCharmer": "Il bersaglio ti ha Affascinato. Bloccare l'utilizzo?",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Concede vant",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Concede svant",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Concede crit",
@@ -248,6 +257,13 @@
 	"AC5E.OptinCadence.OncePerTurn": "(1/turno)",
 	"AC5E.OptinCadence.OncePerRound": "(1/round)",
 	"AC5E.OptinCadence.OncePerCombat": "(1/combattimento)",
+	"AC5E.OptinSpellSlot.EditorHint": "Usa spell[slot,pact], spell[slot] o spell[pact] con optin. Le risorse disponibili del personaggio vengono mostrate in un menu a discesa. Il consumo è sempre di un solo slot. Abilita Scaling per limitare i livelli degli slot tramite Min e Max; questi limiti si applicano anche agli slot del Patto.",
+	"AC5E.OptinSpellSlot.Unavailable": "AC5E: {actor} non ha più disponibile lo slot {slot} selezionato al livello scelto. Il consumo dello slot è stato ignorato.",
+	"AC5E.OptinSpellSlot.Choice": "Slot incantesimo da consumare",
+	"AC5E.OptinSpellSlot.Spell": "Slot incantesimo di livello {level} ({available} disponibili)",
+	"AC5E.OptinSpellSlot.Pact": "Slot del Patto di livello {level} ({available} disponibili)",
+	"AC5E.OptinSpellSlot.Cost": "(consuma 1 slot)",
+	"AC5E.OptinSpellSlot.Hint": "Consuma uno slot dalla risorsa selezionata. optinScale e bonusScale utilizzano il livello dello slot. Vengono proposti solo gli slot disponibili che rientrano nei limiti configurati.",
 	"AC5E.OptinLegend.Optional": "AC5E",
 	"AC5E.OptinLegend.FromOtherSources": "AC5E Da altre fonti (chiedere permesso)",
 	"AC5E.EnvironmentalHazards": {
@@ -599,6 +615,8 @@
 		  "UpdateQuickTargets": "Aggiorna bersagli rapidi",
 		  "DamageTypes": "Tipi di danno",
 		  "HealingTypes": "Tipi di guarigione",
+		  "AddTypeChoices": "Aggiungi alle scelte di tipo esistenti",
+		  "AddTypeChoicesHint": "Aggiunge i tipi selezionati alle opzioni già presenti nel menu a discesa di ciascuna parte interessata, invece di sostituirle. Non aggiunge danni extra. Memorizza un prefisso + nel valore di sovrascrittura.",
 		  "AbilityOverrideEntries": "Voci sovrascrittura capacità",
 		  "WhichDamageParts": "Parti del danno",
 		  "SelectedOptin": "Scelta opzionale selezionata",
