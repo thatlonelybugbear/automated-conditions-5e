@@ -781,7 +781,8 @@ function getChecksCacheKey({ ac5eConfig, subjectToken, opponentToken }) {
 	const targetsSignature = getTargetsSignature(ac5eConfig?.options?.targets);
 	const distance = ac5eConfig?.options?.distance ?? 'none';
 	const rollProfileSignature = getRollProfileSignature(ac5eConfig?.options ?? {});
-	return `${hookType}:${subjectTokenId}:${opponentTokenId}:${distance}:${targetsSignature}:${subjectSignature}:${opponentSignature}:${rollProfileSignature}`;
+	const optinSignature = JSON.stringify(Object.entries(ac5eConfig?.optinSelected ?? {}).sort(([left], [right]) => left.localeCompare(right)));
+	return `${hookType}:${subjectTokenId}:${opponentTokenId}:${distance}:${targetsSignature}:${subjectSignature}:${opponentSignature}:${rollProfileSignature}:${optinSignature}`;
 }
 
 function getActorContextSignature(token, actorUuid) {

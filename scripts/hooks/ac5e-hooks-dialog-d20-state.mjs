@@ -166,6 +166,14 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 				nextConfig.options.ability = rebuiltAbility;
 				applyDialogAttackAbilitySelection(dialog, transientDialog.options.abilityOptions, rebuiltAbility);
 			}
+		} else if (['save', 'check'].includes(ac5eConfig.hookType)) {
+			restoreDialogBaseTarget(dialog, ac5eConfig, deps);
+			syncDialogAc5eState(dialog, ac5eConfig);
+			const transientDialog = { options: { window: { title: dialog?.message?.flavor }, advantageMode: 0, defaultButton: 'normal' } };
+			nextConfig =
+				(ac5eConfig.hookType === 'save' ?
+					deps.preRollSavingThrow(dialog.config, transientDialog, dialog.message, 'save')
+				:		deps.preRollAbilityCheck(dialog.config, transientDialog, dialog.message, 'check', ac5eConfig?.reEval)) ?? ac5eConfig;
 		} else {
 			deps.calcAdvantageMode(ac5eConfig, dialog.config, undefined, undefined, { skipSetProperties: true });
 			deps.applyExplicitModeOverride(ac5eConfig, dialog.config);
