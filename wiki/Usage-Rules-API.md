@@ -89,7 +89,7 @@ Treat it as an authoring reference helper, not a strict machine-stable schema co
 ## Opt-in compatibility note
 
 - AC5E opt-in selection depends on roll configuration dialogs.
-- If another module forces `dialog.configure = false`, AC5E opt-in controls cannot be displayed.
+- AC5E attempts to show roll configuration dialogs when relevant opt-ins are available with MidiQOL or RSReforged. Modules that subsequently suppress or bypass these dialogs may prevent opt-in selection.
 
 ## Standalone boolean keywords in object-form registration
 

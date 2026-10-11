@@ -169,7 +169,7 @@ Persistence notes:
 - `scope: "effect"` (default) is keyword-only (for effect-driven flags).
 - `scope: "universal"` also injects a global pseudo-rule entry.
 - Standalone booleans such as `optin`, `criticalStatic`, and `partialConsume` are supported in object-form `register({...})` definitions as well as raw `value: "..."` strings.
-- Compatibility note: AC5E opt-ins depend on roll configuration dialogs. If another module forces `dialog.configure = false`, opt-in selection UI will not appear.
+- Compatibility note: AC5E attempts to show roll configuration dialogs when relevant opt-ins are available with MidiQOL or RSReforged. Modules that subsequently suppress or bypass these dialogs may prevent opt-in selection.
 
 See full developer API details in `wiki/Usage-Rules-API.md`.
 

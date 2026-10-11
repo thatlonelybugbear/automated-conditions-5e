@@ -1,3 +1,36 @@
+## 14.606.1
+
+- Verified compatibility with Foundry v14.369 and D&D5e v6.0.6.
+- Save/check dialogs now reevaluate `optinSelected` dependent conditions when selections change, preserving selections and replacing stale pending updates. Updates apply once on submission, never when toggling a checkbox.
+- Added combined `usesCount=` and `update=` support on one flag, so an opt-in can consume a use and update an actor together. Unavailable uses or invalid updates prevent the entry from applying.
+- Added `cancel` for roll `.info` flags, with a Cancel roll editor toggle. Applied entries cancel before dice evaluation while still processing selected consumption and updates; death saves do not update their counters. Example:
+  - `key`: `flags.automated-conditions-5e.death.info`
+  - `type`: `AC5E`
+  - `value`: `usesCount=Item.channel-divinity, 1; update=rollingActor.hp, Math.floor(rollingActor.attributes.hp.max/2); name=Resist Death; optinId=death-undeath-0; optin; cancel`
+  - Add a second change to remove Prone when Resist Death is selected:
+    - `key`: `flags.automated-conditions-5e.death.info`
+    - `type`: `AC5E`
+    - `value`: `update=rollingActor.statuses.prone, 0; optinSelected['death-undeath-0']`
+- Added supported update targets and actor-path browsing to the Effect Value Editor, including HP, death counters, ability values, and configured statuses.
+- Fixed unprefixed update targets such as `hp` resolving empty actor data, and bare actor-property update formulas being rejected. Debug messages now explain when update expressions retry through the sandbox evaluator.
+- Restricted `save.modifyDC` and `check.modifyDC` to matching activity use, from the caster's effects or an applicable aura. They no longer change DCs when rolling saves or checks directly from the character sheet or as an activity recipient.
+- Fixed actor token IDs and other string values in bonus helper arguments, such as `checkNearby(effectActor.tokenId, ...)`, causing formula errors.
+- Fixed aura `wallsBlock` being ignored without `radius`. Auras without a radius remain unlimited in distance but respect sight-blocking walls when requested.
+- Fixed `damage.critical` ignoring `addTo` targeting without `optin` or `chance`, and added Add To controls for damage critical flags in the Effect Value Editor.
+- Fixed `damage.noCritical` retaining critical damage when rolling without a configuration dialog, including fast-forward and MidiQOL workflows.
+- Fixed arithmetic expressions in aura radii and range overrides, including multiplication, division, and decimal values, without requiring enclosing parentheses.
+- Fixed unchecked critical opt-ins forcing critical results on attacks, saving throws, and ability checks.
+- Fixed status checks interrupting rolls when an actor has no movement data.
+- `allowEffectApplication` now checks only initial creation of enabled effects on Actors. Copying effects onto Items, creating disabled effects, and later editing, enabling, or refreshing existing effects bypass the check.
+  - Roll-result conditions now use cached results from the effect's originating chat message and recipient, matching the activity when available. Unrelated previous rolls are no longer used as a fallback.
+  - Fixed custom GM bypass keybindings to respect required modifiers and display them in the bypass hint.
+- Added `activity.activation.*` and `originActivity.activation.*` autocomplete suggestions in the Effect Value Editor.
+- Corrected armor autocomplete suggestions to `hasArmorLight`, `hasArmorMedium`, and `hasArmorHeavy`. Conditions also accept `hasLightArmor`, `hasMediumArmor`, and `hasHeavyArmor` as compatibility aliases.
+- Updated Effect Value Editor suggestions for `effectOriginActor` to use the resolved effect source, including its actor roll data when available.
+- Avoided unnecessary flag registry rebuilds when dnd5e updates only its last-moved token reference, including updates from BM5E's linked-token Falling refresh.
+- Clarified documentation: AC5E attempts to show dialogs for relevant opt-ins with MidiQOL or RSReforged, but other modules may still suppress or bypass those dialogs.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 ## 14.605.3.2
 
 - Fix for `Token#shape` being undefined.
@@ -854,7 +887,7 @@
 
 ## 13.5250.6
 
-- Compatibility note: AC5E opt-ins require roll configuration dialogs; if another module enforces `dialog.configure = false`, opt-in controls cannot be presented.
+- Compatibility note: AC5E attempts to show roll configuration dialogs when relevant opt-ins are available with MidiQOL or RSReforged. Modules that subsequently suppress or bypass these dialogs may prevent opt-in selection.
 - Opt-in dialog entries are now split into two `<fieldset>` groups:
   - `AC5E` for normal self-sourced opt-ins.
   - `AC5E Ask for permission` for opt-ins sourced from actors other than the rolling actor.

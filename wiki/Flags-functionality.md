@@ -32,7 +32,7 @@ Affects **rolls made by other actors** whose token is within range of the source
 - `includeSelf;` – Affects the aura source as well.
 - `allies;` – Affects only allies of the aura source.
 - `enemies;` – Affects only enemies of the aura source.
-- `wallsBlock;` - Walls between the aura source and subject actor will block the aura.
+- `wallsBlock;` - Sight-blocking walls between the aura source and recipient block the aura, even without `radius`. Without a radius, distance is unlimited. The recipient is the rolling actor, or the opponent for `aura.modifyAC`.
 
 If neither `allies` nor `enemies` is used, the aura affects all tokens in range.
 
@@ -159,6 +159,7 @@ Replace `MODE` with one of the following:
    - Include `bonus=XXX` in the effect value, following the same logic as a normal bonus to be added or subtracted from the default roll's DC.
    - Or include `set=XXX` in the effect value to **set** the DC to the specified value (number or dice roll).
    - For `save` and `check` activities, AC5E resolves `modifyDC` during activity use so the created chat message shows the final DC directly.
+   - `save.modifyDC` and `check.modifyDC` apply only during matching activity use, from the caster's effects or an applicable aura. They do not change DCs when rolling saves or checks directly from the character sheet or as an activity recipient. This restriction applies to both `bonus=` and `set=`.
    - `optin` `modifyDC` entries for `save` and `check` activities are chosen in D&D 5e's normal usage dialog, not later in the save/check roll configuration dialog.
    - The resulting activity card keeps a single final save/check DC button rather than creating duplicate alternative DC buttons.
    - With MidiQOL save/check cards, AC5E updates the displayed item-card DC after final resolution.
@@ -172,6 +173,8 @@ Replace `MODE` with one of the following:
 - `fumbleThreshold` - Alters the threshold for fumble on d20 attack rolls.
     - Same logic like the `criticalThreshold` flag above.
 - `info` - Adds an informational AC5E entry without changing the rolled formula by itself.
+   - Roll `info` entries can include `cancel` to stop the roll after configuration but before dice evaluation. The Effect Value Editor exposes this as **Cancel roll** under **Toggle Behavior**.
+   - Cancellation requires the entry's conditions to pass and, for opt-ins, the entry to be selected. Selected `usesCount=` consumption and `update=` operations are still queued. A cancelled death save does not roll dice or change death-save counters.
    - Can be paired with `enforceMode=advantage`, `enforceMode=disadvantage`, or `enforceMode=normal` to force the final d20 roll mode after other advantage/disadvantage calculations.
    - Short aliases are also accepted: `adv`, `dis`, `norm`.
    - Canonical Active Effect usage:
@@ -207,6 +210,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 |------------------------|-------------|
 | `itemLimited`          | Will limit the effect to rolls of the source item |
 | `enforceMode=normal/advantage/disadvantage` | For `info` entries on d20 hooks, forces the final resolved roll mode |
+| `cancel` | For roll `info` entries, cancels before dice evaluation while retaining selected consumption and updates |
 | `once`                 | Will apply the effect once |
 | `usesCount=Number`     | Will limit the effect to the number of uses provided |
 | `usesCount=origin`     | For actor owned items, uses from the item or activity origin of the effect will be consumed |
@@ -237,6 +241,34 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 If multiple same-action-type entries are present on the same effect, AC5e disambiguates labels automatically (for example by appending `#2`).
 
 `optinSelected['identifier']` is available in the evaluation sandbox. It is `true` when the matching `optinId` was selected and stays available to downstream roll phases, such as an attack opt-in enabling a damage opt-in or automatic damage bonus.
+
+Save/check dialogs reevaluate conditions using `optinSelected` when selections change, preserving existing selections and replacing stale pending updates. Updates apply once on submission, never on checkbox changes or when closing the dialog without submitting.
+
+#### Combining consumption, updates, and cancellation
+
+`usesCount=` and `update=` can share one entry. Both validate before their operations are queued; an unavailable cost or invalid update prevents the entry from applying. For opt-ins, selecting the entry and submitting the dialog applies both operations. Closing the dialog without rolling does not apply them. `once` retains its existing precedence over these operations.
+
+An unprefixed update target such as `hp` updates the actor carrying the effect. Use `rollingActor.hp` or `opponentActor.hp` to explicitly choose the roller or opponent. Update amounts accept sandbox property paths and expressions. Without `=`, the amount is added to the current value; `=` sets an absolute value:
+
+```text
+update=rollingActor.hp,=rollingActor.attributes.hp.max
+```
+
+The **Edit Update Target** dialog offers supported quick targets. Selecting an actor opens its supported paths, including `hp`, `hpTemp`, `hpMax`, death counters, ability values, and configured `statuses.<id>` paths. For status updates, positive values apply the status; zero or negative values remove it.
+
+Example: consume one Channel Divinity use, restore half maximum HP (rounded down), and replace the death save. Add this change with mode **AC5E**:
+
+```text
+flags.ac5e.death.info | AC5E | usesCount=Item.channel-divinity,1; name=Resist Death; optinId=resist-death; optin; cancel; update=rollingActor.hp,=Math.floor(rollingActor.attributes.hp.max/2)
+```
+
+Add a separate change to remove Prone only when that opt-in is selected:
+
+```text
+flags.ac5e.death.info | AC5E | update=rollingActor.statuses.prone,0; optinSelected['resist-death']
+```
+
+Consumption, healing, and Prone removal complete asynchronously through AC5E's existing update queue on submission. This example does not automate damage to nearby creatures or blindness.
 
 > When `enforceMode` forces the final d20 mode, AC5E and MidiQOL attribution surfaces show the forced result and suppress overridden d20-state reasons for clarity.
 
@@ -276,6 +308,7 @@ Depending on the type of roll, actors are categorized like this:
     - `targetActor` for backwards compatibility only; use opponentActor instead.
 - **`auraActor`** – only present if the roll is affected by an aura. Represents the aura's source.
 - **`effectOriginActor`** - the actor that is the owner/source of the origin of an effect.
+  - The Effect Value Editor offers this actor and its roll-data paths when the effect's source actor can be resolved.
 
 ---
 #### What Data Can I Use?

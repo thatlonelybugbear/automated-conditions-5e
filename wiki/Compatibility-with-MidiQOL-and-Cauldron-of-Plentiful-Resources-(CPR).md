@@ -2,7 +2,7 @@ Generally, they can all work together, but I would recommend some settings adjus
 - Automate D&D5e statuses: Choose either CPR + MidiQOL flags integration or AC5e 
 - Range checks: Choose either MidiQOL or AC5e
 - Visibility checks: Choose either MidiQOL optional visibility rules or AC5E visibility checks
-- AC5E opt-ins require roll dialogs to be configurable. If another module forces `dialog.configure = false`, optional AC5E selections cannot be shown.
+- AC5E attempts to show roll configuration dialogs when relevant opt-ins are available with MidiQOL or RSReforged. Modules that subsequently suppress or bypass these dialogs may prevent opt-in selection.
 - AC5E `enforceMode` is reflected in MidiQOL attribution, so overridden d20-state reasons are hidden in favor of the final forced roll mode.
 - AC5E `modifyDC` updates visible MidiQOL save/check item-card DC labels after resolution. When a shared card represents mixed per-target DCs, the shared label is marked with `(*)` and the per-target attribution remains the detailed source of truth.
 
