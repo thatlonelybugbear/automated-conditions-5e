@@ -1118,7 +1118,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 		sandbox.consumptionItemIdentifier[targetItem.identifier] = true;
 	});
 	sandbox.activity.ability = activity?.ability;
-	sandbox.riderStatuses = sandboxOptions.riderStatuses || _getActivityEffectsStatusRiders(activity) || {};
+	sandbox.riderStatuses = Object.defineProperty({ ...sandboxOptions.riderStatuses, ..._getActivityEffectsStatusRiders(activity) }, 'any', {
+		enumerable: false,
+		get() { return Object.values(this).some(Boolean); },
+	});
 	sandbox.hasAttack = !foundry.utils.isEmpty(activity?.attack);
 	sandbox.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);

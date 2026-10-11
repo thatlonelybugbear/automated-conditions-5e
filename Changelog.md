@@ -1,3 +1,8 @@
+## 14.606.2
+
+- Added `riderStatuses.any` to check whether any supplied rider status is enabled, with Effect Value Editor suggestions. Use it as the condition for `save.advantage` to grant advantage against activities with condition riders.
+- Fixed rider status detection for D&D5e v6 activity effect profiles, including direct statuses, separate condition riders, and implied conditions such as Prone from Unconscious. Cached empty status data no longer prevents detection from the current activity.
+
 ## 14.606.1
 
 - Verified compatibility with Foundry v14.369 and D&D5e v6.0.6.

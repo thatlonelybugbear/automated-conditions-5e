@@ -3552,7 +3552,7 @@ function resolveAssistValueChoices(path, enumValues) {
 	if (/^(?:ability)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.abilities ?? [], CONFIG?.DND5E?.abilities);
 	if (/^(?:skill)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.skills ?? [], CONFIG?.DND5E?.skills);
 	if (/^(?:tool)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.tools ?? [], getToolLabelConfig());
-	if (/^(?:riderStatuses)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.statuses ?? []);
+	if (/^(?:riderStatuses)$/.test(sourcePath)) return toAssistValueChoices(['any', ...(enumValues?.statuses ?? [])]);
 	if (/^(?:damageTypes|defaultDamageType)$/.test(sourcePath)) return toAssistValueChoices(dedupe([...(enumValues?.damageTypes ?? []), ...(enumValues?.healingTypes ?? [])]));
 	if (/^(?:actionType)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.actionTypes ?? []);
 	if (/^(?:attackMode)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.attackModes ?? []);

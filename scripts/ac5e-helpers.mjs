@@ -3285,18 +3285,22 @@ export function _collectRollDamageTypes(rolls, options) {
 
 export function _getActivityEffectsStatusRiders(activity) {
 	const statuses = {};
-	// const riders = {};
-	activity?.applicableEffects?.filter((effect) => {
-		Array.from(effect?.statuses ?? []).forEach((status) => (statuses[status] = true));
-		effect.flags?.dnd5e?.riders?.statuses?.forEach((rider) => (statuses[rider] = true));
-	});
-	/* For v6
-	activity?.applicableEffects?.filter((e) => {
-		const effect = e.getEffect();
-		Array.from(effect?.statuses ?? []).forEach((status) => (statuses[status] = true));
-		effect.flags?.dnd5e?.riders?.statuses?.forEach((rider) => (statuses[rider] = true));
-	});
-	*/
+	const addStatus = (status) => {
+		if (!status || statuses[status]) return;
+		statuses[status] = true;
+		const config = CONFIG.statusEffects?.[status] ?? Array.from(CONFIG.statusEffects ?? []).find((entry) => entry.id === status);
+		config?.riders?.forEach(addStatus);
+	};
+	for (const profile of activity?.applicableEffects ?? []) {
+		const effect = typeof profile.getEffect === 'function'
+			? (profile.uuid ? _safeFromUuidSync(profile.uuid, { relative: activity.item }) : profile.getEffect())
+			: profile;
+		if (!effect || typeof effect.then === 'function') continue;
+		Array.from(effect.statuses ?? []).forEach(addStatus);
+		if (effect.type === 'condition') addStatus(effect.system?.type);
+		effect.system?.rider?.statuses?.forEach(addStatus);
+		effect.flags?.dnd5e?.riders?.statuses?.forEach(addStatus);
+	}
 	if (settings.debug) console.log('AC5E._getActivityEffectsStatusRiders:', { statuses });
 	return statuses;
 }

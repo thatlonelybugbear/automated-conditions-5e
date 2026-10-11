@@ -509,6 +509,20 @@ originActivity.hasAttack && damageTypes.fire
 itemLimited && originItem.hasLimitedUses
 ```
 
+### Rider Statuses
+
+`riderStatuses` contains statuses identified from the activity's applicable effects. Use `riderStatuses.poisoned` for a specific status, or `riderStatuses.any` for any enabled status.
+
+This includes direct effect statuses, separate condition riders in `system.rider.statuses`, and implied conditions such as Prone from Unconscious. Separate riders are detected even when they can remain after the source effect is removed. Referenced effects must be available for synchronous resolution; unloaded compendium effects are not fetched during condition evaluation.
+
+Example: advantage on saving throws against activities with condition riders:
+
+```text
+flags.automated-conditions-5e.save.advantage | AC5E | riderStatuses.any
+```
+
+Roll the save from the activity's chat card so AC5E can identify the originating activity; standalone character-sheet saves have no activity to inspect. Conditions described only in spell or item text are not detected. Bare `riderStatuses` is an object and remains truthy even when empty; use `.any` instead. The getter is excluded from `Object.keys(riderStatuses)`, preserving existing status counts.
+
 ### Damage Types
 If the activity deals specific damage types, each one is added to the sandbox:
 ```text

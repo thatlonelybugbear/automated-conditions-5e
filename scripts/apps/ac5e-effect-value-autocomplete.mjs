@@ -63,6 +63,7 @@ const CURATED_AC5E_PATHS = [
 	'originItemProperties',
 	'damageTypes',
 	'defaultDamageType',
+	'riderStatuses.any',
 	'actionType',
 	'actionType.mwak',
 	'actionType.rwak',
