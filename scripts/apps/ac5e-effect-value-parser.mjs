@@ -34,6 +34,7 @@ const TOGGLE_FIELDS = [
 	'criticalStatic',
 	'recover',
 	'optin',
+	'cancel',
 	'preselected',
 	'longDisadvantage',
 	'noLongDisadvantage',

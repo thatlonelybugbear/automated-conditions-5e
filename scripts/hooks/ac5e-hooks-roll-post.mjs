@@ -1,4 +1,4 @@
-import { _isOptinSelectionActive, _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { _filterOptinEntries, _isOptinSelectionActive, _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
@@ -12,6 +12,13 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	syncRollReferencesToConfig(rolls, config);
 	const options = config.options ?? {};
 	const ac5eConfig = getPostRollAc5eConfig(rolls, config, dialog);
+	if (rolls?.length && _filterOptinEntries([
+		...(ac5eConfig?.subject?.info ?? []),
+		...(ac5eConfig?.opponent?.info ?? []),
+	], ac5eConfig?.optinSelected).some((entry) => entry?.cancel && entry.hook === ac5eConfig.hookType)) {
+		applyPendingUsesIfNeeded(ac5eConfig, rolls);
+		return false;
+	}
 	applyDamageExtremeEvaluation(ac5eConfig, rolls);
 	syncOptinSelectionsToRolls(ac5eConfig, rolls);
 	syncOptinSelectionsToMessage(ac5eConfig, message);

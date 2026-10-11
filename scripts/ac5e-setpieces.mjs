@@ -1600,6 +1600,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		'allies',
 		'bonus',
 		'cadence',
+		'cancel',
 		'chance',
 		'convertadvantage',
 		'convertdisadvantage',
@@ -2436,6 +2437,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			priority,
 			criticalStatic,
 			enforceMode,
+			cancel: mode === 'info' && /(?:^|[;|])\s*cancel\s*(?:$|[;|])/i.test(change.value),
 			requiredDamageTypes,
 			addTo,
 			usesCount,
@@ -2869,6 +2871,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			priority,
 			criticalStatic,
 			enforceMode,
+			cancel: mode === 'info' && /(?:^|[;|])\s*cancel\s*(?:$|[;|])/i.test(ruleValue),
 			requiredDamageTypes,
 			addTo,
 			usesCount,
@@ -2975,7 +2978,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 				const preserveEntryObject =
 					(hook === 'damage' && mode === 'critical' && Boolean(entry?.addTo)) ||
 					(mode === 'fail' && Boolean(entry?.description)) ||
-					(mode === 'info' && Boolean(entry?.enforceMode)) ||
+					(mode === 'info' && Boolean(entry?.enforceMode || entry?.cancel)) ||
 					(hook === 'damage' && ['advantage', 'disadvantage'].includes(mode)) ||
 					!!entry?.chance?.enabled;
 				ac5eConfig[actorType][mode].push(

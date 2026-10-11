@@ -904,6 +904,7 @@ function rangeFieldHintKey(name) {
 function toggleHintKey(name) {
 	const map = {
 		optin: 'AC5E.EffectValueEditor.Hint.ToggleOptin',
+		cancel: 'AC5E.EffectValueEditor.Hint.ToggleCancel',
 		itemLimited: 'AC5E.EffectValueEditor.Hint.ToggleItemLimited',
 		criticalStatic: 'AC5E.EffectValueEditor.Hint.ToggleCriticalStatic',
 		allies: 'AC5E.EffectValueEditor.Hint.ToggleAllies',
@@ -1015,7 +1016,7 @@ function getEditorProfile(changeKey, parsed) {
 		requiredFields: renderedRequiredFields,
 		auraFields: dedupe(auraFields),
 		optionalFields,
-		commonToggles: supportsCriticalStatic ? [...COMMON_TOGGLE_FIELDS, 'criticalStatic'] : COMMON_TOGGLE_FIELDS,
+		commonToggles: isInfo ? [...COMMON_TOGGLE_FIELDS, 'cancel'] : supportsCriticalStatic ? [...COMMON_TOGGLE_FIELDS, 'criticalStatic'] : COMMON_TOGGLE_FIELDS,
 		contextToggles: renderedContextToggles,
 		supportsSetMode,
 		setModeField,
