@@ -1773,6 +1773,11 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
 		const isGrantsKey = change.key.includes('grants');
+		const dcActivityType = change.key.match(/\.(save|check)\.modifyDC$/)?.[1];
+		if (dcActivityType) {
+			if (hook !== 'use' || activity?.type !== dcActivityType) return false;
+			if (!change.key.includes('aura') && (isGrantsKey || actorType !== 'subject')) return false;
+		}
 		const hasHook = change.key.includes(hook) || isAll || isD20 || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
 		if (!hasHook) return false;
 		validateFlagKeywords({ rawValue: change.value, actorName: evalData?.effectActor?.name ?? evalData?.rollingActor?.name, effect, change, changeIndex, sandbox: evalData });
