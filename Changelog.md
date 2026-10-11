@@ -3,10 +3,11 @@
 - Verified compatibility with Foundry v14.369 and D&D5e v6.0.6.
 - Save/check dialogs now reevaluate `optinSelected` dependent conditions when selections change, preserving selections and replacing stale pending updates. Updates apply once on submission, never when toggling a checkbox.
 - Added combined `usesCount=` and `update=` support on one flag, so an opt-in can consume a use and update an actor together. Unavailable uses or invalid updates prevent the entry from applying.
-- Added `cancel` for roll `.info` flags, with a Cancel roll editor toggle. Applied entries cancel before dice evaluation while still processing selected consumption and updates; death saves do not update their counters. Example:
-  - `key`: `flags.automated-conditions-5e.death.info`
-  - `type`: `AC5E`
-  - `value`: `usesCount=Item.channel-divinity, 1; update=rollingActor.hp, Math.floor(rollingActor.attributes.hp.max/2); name=Resist Death; optinId=death-undeath-0; optin; cancel`
+- Added `cancel` for roll `.info` flags, with a Cancel roll editor toggle. Applied entries cancel before dice evaluation while still processing selected consumption and updates; death saves do not update their counters. 
+  - Example:
+    - `key`: `flags.automated-conditions-5e.death.info`
+    - `type`: `AC5E`
+    - `value`: `usesCount=Item.channel-divinity, 1; update=rollingActor.hp, Math.floor(rollingActor.attributes.hp.max/2); name=Resist Death; optinId=death-undeath-0; optin; cancel`
   - Add a second change to remove Prone when Resist Death is selected:
     - `key`: `flags.automated-conditions-5e.death.info`
     - `type`: `AC5E`
