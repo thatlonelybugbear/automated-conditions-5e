@@ -664,9 +664,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 				`
 			: isCounterScope ?
 				`
-						<div class="ac5e-effect-value-assist-groups">
+						<div class="ac5e-effect-value-assist-groups" ${assistScope === 'update' ? 'data-ac5e-assist-entry-groups' : ''}>
 							${renderAssistEntryGroups(assist)}
 						</div>
+						${assistScope === 'update' ? '<div class="ac5e-effect-value-assist-stage ac5e-effect-value-assist-main-stage" data-ac5e-main-assist-stage data-ac5e-assist-stage hidden></div>' : ''}
 					`
 			:	`
 					${renderAssistActionFieldset(editorAssist('Operators'), assist.operators, 'ac5e-assist-insert', 'button')}
@@ -1939,7 +1940,12 @@ function resolveScopedQuickTargets(scopedEntries, scope = '') {
 		// Always expose origin/item template targets for usesCount authoring.
 		return dedupe([...preferred, ...entries]).filter((entry) => preferred.includes(entry));
 	}
-	return entries.filter((entry) => AC5E_UPDATE_BASE_ENTRIES.includes(entry) || entry === 'auraActor');
+	const roots = entries.filter((entry) => AC5E_UPDATE_BASE_ENTRIES.includes(entry) || entry === 'auraActor');
+	const paths = entries
+		.filter(isCounterPathRoot)
+		.map((entry) => entry.slice(entry.indexOf('.') + 1))
+		.filter((path) => ['hp', 'hpTemp', 'hpMax', 'inspiration', 'exhaustion', 'death.fail', 'death.success', 'flags.<path>'].includes(path) || path.startsWith('abilities.') || path.startsWith('statuses.'));
+	return dedupe([...roots, ...paths]);
 }
 
 function classifyContextEntry(identifier) {
@@ -3210,6 +3216,10 @@ function applyCounterAssistEntrySelection(textarea, entryValue, assistRoot, assi
 	if (isCounterActorRoot(entryValue)) {
 		applyCounterAssistRootSelection(textarea, entryValue, assistRoot, assist, selectionState);
 		return;
+	}
+	if (assist?.scope === 'update' && !isCounterPathRoot(entryValue)) {
+		const actorRoot = textarea.value.split('.')[0];
+		if (isCounterActorRoot(actorRoot)) entryValue = `${actorRoot}.${entryValue}`;
 	}
 	applyCounterTargetTemplate(textarea, entryValue, selectionState);
 	resetAssistBrowserContext(assistRoot, assist, selectionState, textarea);
