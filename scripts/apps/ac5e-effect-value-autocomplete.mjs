@@ -157,6 +157,7 @@ export function buildEffectValueAutocompleteEntries(effect) {
 	addCollectedSchemaEntries(entries);
 
 	addDocumentRollData(entries, 'rollingActor', getActorDocument(effect?.target ?? effect?.parent), 'Actor roll data');
+	addDocumentRollData(entries, 'effectOriginActor', origin.originActor, 'Effect origin actor roll data');
 	addDocumentRollData(entries, 'item', getItemParent(effect), 'Item roll data', 'item');
 	addDocumentRollData(entries, 'activity', origin.originActivity, 'Activity roll data', 'activity');
 	addDocumentRollData(entries, 'originItem', origin.originItem, 'Origin item roll data', 'item');
@@ -520,7 +521,7 @@ function logSeedCoverage(actors, collectedPathsByRoot = null) {
 function collectAc5eRuntimeAdditions(pathsByRoot) {
 	const actorArmorEntries = Array.from(foundry.utils.iterateKeys(CONFIG.DND5E.armorTypes)).map(e => {
 		if (e === 'shield') return `has${e.capitalize()}`;
-		return `has${e.capitalize()}Armor`
+		return `hasArmor${e.capitalize()}`;
 	});
 	const additions = {
 		rollingActor: [
@@ -622,6 +623,7 @@ function walkData(entries, root, value, source, depth = 0, seen = new WeakSet())
 }
 
 function addEntry(entries, identifier, source) {
+	if (/^(rollingActor|opponentActor|auraActor|effectActor|nonEffectActor|effectOriginActor)\.has[A-Z]\w*Armor$/.test(identifier)) return;
 	if (!identifier || entries.has(identifier)) return;
 	const suffix = isAc5eOwnedSource(source) ? ` - ${source}` : '';
 	entries.set(identifier, {

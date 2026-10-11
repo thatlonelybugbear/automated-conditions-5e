@@ -205,7 +205,10 @@ export function _ac5eActorRollData(token, rollData, actor, initializing = false)
 	actorData.level = actorData.details?.level || actorData.details?.cr;
 	actorData.levelCr = actorData.level;
 	actorData.hasArmor = !!actorData.attributes?.ac?.equippedArmor;
-	if (actorData.hasArmor) actorData[`hasArmor${actorData.attributes.ac.equippedArmor.system.type.value.capitalize()}`] = true;
+	if (actorData.hasArmor) {
+		const armorType = actorData.attributes.ac.equippedArmor.system.type.value.capitalize();
+		actorData[`hasArmor${armorType}`] = actorData[`has${armorType}Armor`] = true;
+	}
 	actorData.hasShield = !!actorData.attributes?.ac?.equippedShield;
 	actorData.type = resolvedActor.type;
 	actorData.canMove = !!resolvedActor.system?.attributes?.movement?.max;

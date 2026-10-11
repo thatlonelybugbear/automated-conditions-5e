@@ -7,6 +7,7 @@ import {
 	shouldActivateEffectValueAutocomplete,
 } from './ac5e-effect-value-autocomplete.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { _resolveEffectOriginContext } from '../ac5e-helpers.mjs';
 import { parseSpellSlotTarget } from '../ac5e-spell-slots.mjs';
 import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS } from '../ac5e-runtimeLogic.mjs';
 import { _parseAddToSpec, _stringifyAddToSpec } from '../ac5e-addTo.mjs';
@@ -624,7 +625,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const hasUsesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const assist = buildLambdaAssistData(this.autocompleteEntries, {
 			includeAuraActor: assistProfile.isAura,
-			includeEffectOriginActor: !!this.effect?.origin && !this.effect?.transfer,
+			includeEffectOriginActor: !!_resolveEffectOriginContext(this.effect, { relative: this.effect?.parent ?? this.effect?.target }).originActor,
 			changeKey,
 			assistScope,
 			includeScaleValue: isBonusExpand && hasUsesCountScaling,
