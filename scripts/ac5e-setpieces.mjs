@@ -3315,8 +3315,7 @@ function _evaluateCounterExpression(rawValue, evalData, debug, fallback = null) 
 	const trimmed = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
 	const directNumber = Number(trimmed);
 	if (Number.isFinite(directNumber)) return directNumber;
-	if (!_looksLikeFormulaExpression(String(trimmed ?? ''))) return fallback;
-	let evaluated = evalDiceExpression(String(trimmed ?? ''));
+	let evaluated = evalDiceExpression(String(trimmed ?? ''), { retryWithSandbox: true });
 	if (!isNaN(evaluated)) return evaluated;
 	evaluated = _ac5eSafeEval({ expression: trimmed, sandbox: evalData, mode: 'formula', debug });
 	const evaluatedNumber = Number(evaluated);
@@ -3456,11 +3455,12 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
 						: lowerConsumptionTarget.startsWith('noneffectactor') ? evalData.nonEffectActor
 							: lowerConsumptionTarget.startsWith('effectoriginactor') ? evalData.effectOriginActor
-								: lowerConsumptionTarget.startsWith('effectactor') ? (evalData.effectActor ?? _ac5eActorRollData(actor))
-									: _ac5eActorRollData(actor);
+								: lowerConsumptionTarget.startsWith('effectactor') ? (evalData.effectActor ?? _ac5eActorRollData(null, null, actor))
+									: _ac5eActorRollData(null, null, actor);
 		const uuid = consumptionActor?.uuid ?? actor.uuid;
 		const attr = consumptionTarget.toLowerCase();
 		const consume = _evaluateCounterExpression(parsedUpdate.value, evalData, debug, null);
+		if (consume === null && !(attr.includes('flag') && parsedUpdate.op === 'set')) return false;
 		const customName = _extractCustomNameFromValue(change.value);
 		const applyFinalStandOverride = (finalStandLabel) => {
 			if (!finalStandLabel) return;
@@ -3590,7 +3590,8 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		} else {
 			return false;
 		}
-	} else if (hasCount && parseSpellSlotTarget(_parseUsesCountSpec(hasCount).target)) {
+	}
+	if (!isOnce && hasCount && parseSpellSlotTarget(_parseUsesCountSpec(hasCount).target)) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
 		if (!isOptin || recover || parsedCount.op !== 'delta' || parsedCount.scalingSign < 0) return false;
 		if (!parsedCount.scaling && Number(parsedCount.consume) !== 1) return false;
@@ -3604,7 +3605,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		const entry = { name: effect.name, context: { uuid: actor.uuid, updates, spellSlot: { slot: choice.slot, scale: choice.scale } } };
 		if (actor.isOwner) actorUpdates.push(entry);
 		else actorUpdatesGM.push(entry);
-	} else if (hasCount) {
+	} else if (!isOnce && hasCount) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
 		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
 		const consumptionValue = parsedCount.consume;
@@ -4789,14 +4790,14 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	return { bonus, set, modifier, threshold, chance };
 }
 
-function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e.debug.evaluations } = {}) {
+function evalDiceExpression(expr, { maxDice = 100, maxSides = 1000, debug = ac5e.debug.evaluations, retryWithSandbox = false } = {}) {
 	// expanded logic for unary minus: `((1d4) - 1)` returns from formulas like -1d4
 	if (typeof expr === 'number') return expr;
 	if (typeof expr !== 'string') return NaN;
 
 	const allowed = /^[0-9dc+\-*\s()]+$/i; // added 1dc for coin flips
 	if (!allowed.test(expr)) {
-		if (debug) console.warn(`${Constants.MODULE_ID} - evalDiceExpression: Invalid characters in expression: "${expr}"`);
+		if (debug) console.warn(`${Constants.MODULE_ID} - evalDiceExpression: ${retryWithSandbox ? 'Not a simple dice expression; retrying with the sandbox evaluator' : 'Invalid characters in expression'}: "${expr}"`);
 		return NaN;
 	}
 
