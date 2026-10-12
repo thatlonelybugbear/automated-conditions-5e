@@ -319,18 +319,21 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 			const end = findMatchingParen(out, match.index + match[0].length - 1);
 			if (end !== -1) helperRanges.push([match.index, end]);
 		}
-		const refRegex = new RegExp(`${quotedString}|((?:\\b|(?<=d))${actorName}\\.[\\w.-]+)`, 'g');
-		out = out.replace(refRegex, (match, ref, offset) => {
+		const refRegex = new RegExp(`${quotedString}|((?:\\b|(?<=d))${actorName}\\.[\\w.-]+)|(\\b\\d+)(${actorName}\\.[\\w.-]+)`, 'g');
+		out = out.replace(refRegex, (match, ref, diceCount, attachedRef, offset) => {
+			ref ??= attachedRef;
 			if (!ref) return match;
 			try {
 				const value = foundry.utils.getProperty(actor, ref.slice(actorName.length + 1));
+				if (diceCount && (typeof value !== 'string' || !/^d\d+/i.test(value))) return match;
 				if (typeof value === 'string' && helperRanges.some(([start, end]) => offset > start && offset < end)) return JSON.stringify(value);
+				if (typeof value === 'string' && /^d\d+/i.test(value)) return `${diceCount ?? ''}${value}`;
 				const atExpr = ref.replace(new RegExp(`^${actorName}\\.`), '@');
 				const roll = new Roll(atExpr, actor);
-				return roll.formula ?? atExpr;
+				return `${diceCount ?? ''}${roll.formula ?? atExpr}`;
 			} catch (e) {
 				debug.log?.(`AC5E resolveActorAtRefs @ref parse failed for ${ref}`, { effect: debug.effectUuid, change: debug.changeKey }, e.message);
-				return ref;
+				return match;
 			}
 		});
 	}
