@@ -387,7 +387,7 @@ In addition to actor data, some useful values are also available:
 | `opponentAC`           | The opponent actor's AC value |
 | `isSeen`               | `true` if the opponent can see the rolling actor |
 | `isOpponentTurn`       | `true` if it's the opponent's turn |
-| `ability`              | the associated ability of a roll; usage `ability.str` |
+| `ability`              | the associated ability of a roll; usage `ability.str`. Use `ability.physical` or `ability.mental` for the system-configured ability category. Both are false when no ability is resolved. Use `ability.mental` for mental rolls: `!ability.physical` also matches rolls without an ability, such as death saves. |
 | `skill`                | if relevant roll; usage `skill.acr` |
 | `tool`                 | if relevant roll; usage `tool.thief` |
 | `distance`             | Distance between rolling and target token if both available |

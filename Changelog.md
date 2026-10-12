@@ -1,3 +1,8 @@
+## 14.606.2.1
+
+- Added `ability.physical` and `ability.mental` conditions and Effect Value Editor choices, using the system's classification of the selected roll ability. Use `ability.mental` for mental rolls; `!ability.physical` also matches rolls without an ability, such as death saves.
+- Fixed scaled damage bonuses combining `optinScale` with a scale die reference, such as `bonus=(optinScale)@scale.feature.damage.die`.
+
 ## 14.606.2
 
 - Added `riderStatuses.any` to check whether any supplied rider status is enabled, with Effect Value Editor suggestions. Use it as the condition for `save.advantage` to grant advantage against activities with condition riders.
