@@ -1209,6 +1209,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.worldTime = game.time?.worldTime;
 	sandbox.options = sandboxOptions;
 	sandbox.ability = sandboxOptions.ability ? { [sandboxOptions.ability]: true } : {};
+	sandbox.ability.physical = CONFIG.DND5E.abilities[sandboxOptions.ability]?.type === 'physical';
+	sandbox.ability.mental = CONFIG.DND5E.abilities[sandboxOptions.ability]?.type === 'mental';
 	sandbox.skill = sandboxOptions.skill ? { [sandboxOptions.skill]: true } : {};
 	sandbox.tool = sandboxOptions.tool ? { [sandboxOptions.tool]: true } : {};
 	if (sandboxOptions?.ability) sandbox._evalConstants[sandboxOptions.ability] = true;

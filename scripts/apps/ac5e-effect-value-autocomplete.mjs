@@ -3,6 +3,8 @@ import { _generateAC5eFlags, _resolveEffectOriginContext } from '../ac5e-helpers
 import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS, _ac5eActorRollData } from '../ac5e-runtimeLogic.mjs';
 
 const CURATED_AC5E_PATHS = [
+	'ability.physical',
+	'ability.mental',
 	'rollingActor',
 	'opponentActor',
 	'effectActor',

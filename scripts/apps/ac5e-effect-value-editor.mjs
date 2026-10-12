@@ -3549,7 +3549,7 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 function resolveAssistValueChoices(path, enumValues) {
 	const sourcePath = `${path ?? ''}`.trim();
 	if (!sourcePath) return [];
-	if (/^(?:ability)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.abilities ?? [], CONFIG?.DND5E?.abilities);
+	if (/^(?:ability)$/.test(sourcePath)) return toAssistValueChoices(['physical', 'mental', ...(enumValues?.abilities ?? [])], CONFIG?.DND5E?.abilities);
 	if (/^(?:skill)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.skills ?? [], CONFIG?.DND5E?.skills);
 	if (/^(?:tool)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.tools ?? [], getToolLabelConfig());
 	if (/^(?:riderStatuses)$/.test(sourcePath)) return toAssistValueChoices(['any', ...(enumValues?.statuses ?? [])]);
