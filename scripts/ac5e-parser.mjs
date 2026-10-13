@@ -319,16 +319,27 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 			const end = findMatchingParen(out, match.index + match[0].length - 1);
 			if (end !== -1) helperRanges.push([match.index, end]);
 		}
-		const refRegex = new RegExp(`${quotedString}|((?:\\b|(?<=d))${actorName}\\.[\\w.-]+)|(\\b\\d+)(${actorName}\\.[\\w.-]+)`, 'g');
+		const indexPattern = `\\[\\s*(?:"[\\w-]+"|'[\\w-]+'|\\d+|[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)+)\\s*\\]`;
+		const actorPath = `${actorName}\\.[\\w-]+(?:\\.[\\w-]+|${indexPattern})*`;
+		const refRegex = new RegExp(`${quotedString}|((?:\\b|(?<=d))${actorPath})|(\\b\\d+)(${actorPath})`, 'g');
 		out = out.replace(refRegex, (match, ref, diceCount, attachedRef, offset) => {
 			ref ??= attachedRef;
 			if (!ref) return match;
 			try {
-				const value = foundry.utils.getProperty(actor, ref.slice(actorName.length + 1));
+				const path = ref.slice(actorName.length + 1).replace(/\[\s*([^\]]+?)\s*\]/g, (_, index) => {
+					if (index.split('.').some((key) => BLOCKED.has(key))) throw new Error('Blocked actor index');
+					const key = /^["']/.test(index) ? index.slice(1, -1) : /^\d+$/.test(index) ? index : foundry.utils.getProperty(sandbox, index);
+					if (typeof key !== 'string' && typeof key !== 'number') throw new Error('Unresolved actor index');
+					if (!/^[\w-]+$/.test(String(key)) || BLOCKED.has(String(key))) throw new Error('Invalid actor index');
+					return `.${key}`;
+				});
+				if (path.split('.').some((key) => BLOCKED.has(key))) throw new Error('Blocked actor reference');
+				const value = foundry.utils.getProperty(actor, path);
+				if (ref.includes('[') && value == null) return match;
 				if (diceCount && (typeof value !== 'string' || !/^d\d+/i.test(value))) return match;
 				if (typeof value === 'string' && helperRanges.some(([start, end]) => offset > start && offset < end)) return JSON.stringify(value);
 				if (typeof value === 'string' && /^d\d+/i.test(value)) return `${diceCount ?? ''}${value}`;
-				const atExpr = ref.replace(new RegExp(`^${actorName}\\.`), '@');
+				const atExpr = `@${path}`;
 				const roll = new Roll(atExpr, actor);
 				return `${diceCount ?? ''}${roll.formula ?? atExpr}`;
 			} catch (e) {
