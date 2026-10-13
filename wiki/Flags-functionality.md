@@ -322,6 +322,23 @@ xyzActor.abilities.cha.mod       // Charisma modifier
 xyzActor.attributes.hp.value     // Current HP
 ```
 
+Actor references in bonus formulas support quoted keys, numeric indexes, and dotted sandbox paths inside brackets:
+
+```js
+rollingActor.abilities['cha'].mod
+rollingActor.abilities[options.ability].mod
+```
+
+`options.ability` is the current roll's ability key, such as `str`. Use `!!options.ability` in the flag's conditions before accessing its modifier. For example, this optional d20 bonus substitutes Charisma's modifier when it is higher than the original modifier:
+
+```text
+Type: AC5E
+Key: flags.automated-conditions-5e.d20.bonus
+Value: bonus=rollingActor.abilities.cha.mod - rollingActor.abilities[options.ability].mod; optin; name=Charisma Modifier; !!options.ability && rollingActor.abilities.cha.mod > rollingActor.abilities[options.ability].mod
+```
+
+The complete indexed reference resolves before roll parsing. Unresolved indexed references remain intact. Unquoted damage flavor tags remain separate: `rollingActor.abilities[options.ability].mod[fire]` becomes `2[fire]` when the selected ability's modifier is 2. General JavaScript expressions inside actor indexes are not supported; use a quoted key, numeric index, or dotted sandbox path.
+
 #### `token` Data (from the active scene token)
 Includes token-specific information:
 ```js

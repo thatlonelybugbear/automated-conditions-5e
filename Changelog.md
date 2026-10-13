@@ -1,3 +1,7 @@
+## 14.606.2.2
+
+- Fixed indexed actor references in bonus formulas, such as `rollingActor.abilities[options.ability].mod`. Complete indexed paths now resolve before roll parsing, while unresolved indexed references remain intact. Existing dice-count references and unquoted damage flavor tags are preserved.
+
 ## 14.606.2.1
 
 - Added `ability.physical` and `ability.mental` conditions and Effect Value Editor choices, using the system's classification of the selected roll ability. Use `ability.mental` for mental rolls; `!ability.physical` also matches rolls without an ability, such as death saves.
