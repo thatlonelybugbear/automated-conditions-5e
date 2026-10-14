@@ -1,3 +1,8 @@
+## 14.606.2.3
+
+- Negative synthetic damage bonuses, including `criticalStatic` reductions, now begin with explicit subtraction (`0 - 1d6`) so Foundry keeps the die at the top level for the system's damage breakdown.
+- Preserved standalone negative dice bonuses after resolving actor references, including coin dice (`dc`). Resolved parenthesized denominations such as `bonus=-1d(@abilities.cha.mod)` now normalize to `-1d4` when the modifier is 4, before roll simplification can rewrite the negative die as multiplication.
+
 ## 14.606.2.2
 
 - Fixed indexed actor references in bonus formulas, such as `rollingActor.abilities[options.ability].mod`. Complete indexed paths now resolve before roll parsing, while unresolved indexed references remain intact. Existing dice-count references and unquoted damage flavor tags are preserved.

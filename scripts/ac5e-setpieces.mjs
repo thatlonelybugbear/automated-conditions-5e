@@ -106,7 +106,7 @@ function _preserveStandaloneSignedDiceFormula(expression) {
 	if (/[()@]/.test(trimmed)) return null;
 	const unsigned = trimmed.slice(1).trim();
 	if (!unsigned) return null;
-	const signedDicePattern = /^(?:(?:\d*)d(?:\d+|%)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
+	const signedDicePattern = /^(?:(?:\d*)d(?:\d+|%|c)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?|(?:\d+))(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i;
 	return signedDicePattern.test(unsigned) ? `${trimmed[0]}${unsigned}` : null;
 }
 

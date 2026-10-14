@@ -1797,7 +1797,8 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			const alteration = targetedDiceStepsByOptinId.get(entry.optinIds?.[index]);
 			return alteration ? part.replace(/(\d*)d(\d+)([a-z0-9]*)?/gi, (match, count, sides, existing = '') => `${count || ''}d${_applyDamageDiceAlteration(sides, alteration, _getDamageDiceStepProgression())}${existing}`) : part;
 		}).join(' + ') : '0';
-		const formulaState = applyDamageFormulaModifiers(baseFormula, modifierValues);
+		// Keep leading negative dice at the top level for the system's damage breakdown.
+		const formulaState = applyDamageFormulaModifiers(baseFormula.startsWith('-') ? `0 ${baseFormula}` : baseFormula, modifierValues);
 		return {
 			formula: wrapDamageFormulaAdvantage(formulaState.formula, getDamageAdvantageModifierToken(hasAdvantage, hasDisadvantage)),
 			criticalFormula: '',

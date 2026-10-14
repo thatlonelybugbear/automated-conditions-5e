@@ -103,7 +103,11 @@ export function prepareRollFormula(expression, sandbox, debug) {
 	resultExpr = inlineSimpleIdentifiers(resultExpr, sandbox, proxySandbox, actorNames, debug);
 	// 6) Strip remnant quotes around numeric literals (backwards compatibility)
 	resultExpr = coerceQuotedNumbersAndFlavors(resultExpr);
+	// Actor-derived denominations can resolve to forms such as 1d(4).
+	resultExpr = resultExpr.replace(/\b(\d*)d\(\s*(\d+)\s*\)/gi, '$1d$2');
 	// 7) Fold deterministic sub-terms using your simplify (dice & flavors preserved)
+	// Preserve a resolved standalone signed die before Roll rewrites it as multiplication.
+	if (/^[+-]\s*\d*d(?:\d+|%|c)(?:r[<>=]?\d+)?(?:x\d+)?(?:kh\d+|kl\d+|k\d+|dh\d+|dl\d+|d\d+|min\d+|max\d+)?(?:\s*\[[^\]]*\])*(?:\s*[*/]\s*\d+(?:\.\d+)?)?$/i.test(resultExpr.trim())) return resultExpr.trim();
 	const finalExpr = simplifyFormula(resultExpr, /* removeFlavor */ false, debug);
 	return finalExpr;
 }
