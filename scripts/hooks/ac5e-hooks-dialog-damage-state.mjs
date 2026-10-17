@@ -1517,15 +1517,69 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 		bonusPartOptinIdsByRoll[index].push(String(entry?.optinId ?? entry?.id ?? '').trim().toLowerCase());
 	};
 	const criticalBonusPartsByRoll = formulas.map(() => []);
-	const getEffectiveDamageRollType = (index) => {
-		let rollType = baseDamageTypeArray[index] ?? getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+	const activeDamageTypesArray = Array.isArray(activeDamageTypesByRoll) ? activeDamageTypesByRoll.map((types) => normalizeDamageTypeList(types)) : originals.map(() => []);
+	const effectiveDamageTypeStateByRoll = formulas.map((_, index) => {
+		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index) ?? baseDamageTypeArray[index];
+		const baselineTypes = normalizeDamageTypeList(baseDamageTypesArray[index]);
+		const baselineType =
+			typeof baseDamageTypeArray[index] === 'string' && baseDamageTypeArray[index].trim() ? baseDamageTypeArray[index].trim().toLowerCase()
+			: baselineTypes[0];
+		let nextTypes = baselineTypes.length ? [...baselineTypes] : [];
+		let nextType = baselineType;
 		for (const entry of baseDamageTypeOverrideEntries) {
-			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) continue;
-			const overrideTypes = parseDamageTypeOverrideSet(entry?.set, [rollType]);
-			if (overrideTypes.length) rollType = overrideTypes[0];
+			const typeOverrideSelectedTypes = new Set([...allTypes, ...baselineTypes, baselineType].filter(Boolean));
+			const typeOverrideGateType = baselineType ?? rollType;
+			const applies = shouldApplyDamageEntryToRoll(entry, index, typeOverrideGateType, { selectedTypes: typeOverrideSelectedTypes });
+			debugTypeOverrideBreakpoint('base-override-decision', {
+				index,
+				label: entry?.label ?? entry?.name,
+				id: entry?.id,
+				rollType,
+				typeOverrideGateType,
+				baselineType,
+				baselineTypes,
+				currentTypes: nextTypes,
+				overrideSet: entry?.set,
+				addTo: entry?.addTo,
+				requiredDamageTypes: entry?.requiredDamageTypes,
+				selectedTypes: [...typeOverrideSelectedTypes],
+				applies,
+			});
+			if (!applies) continue;
+			const overrideTypes = parseDamageTypeOverrideSet(entry?.set, nextTypes.length ? nextTypes : [nextType]);
+			if (!overrideTypes.length) continue;
+			const currentSelectedType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
+			const activityRef = getConfigAC5E.options?.activity;
+			const activity = activityRef?.item ? activityRef : _safeFromUuidSync(activityRef?.uuid ?? activityRef ?? getConfigAC5E.options?.damageActivityUuid);
+			const lastType = activity?.id ? activity.item?.getFlag?.('dnd5e', `last.${activity.id}.damageType.${index}`) : undefined;
+			nextTypes = [...overrideTypes];
+			nextType =
+				areStringArraysEqual(activeDamageTypesArray[index], overrideTypes) && overrideTypes.includes(currentSelectedType) ? currentSelectedType
+				: String(entry?.set ?? '').trim().startsWith('+') && overrideTypes.includes(nextType) ? nextType
+				: overrideTypes.includes(lastType) ? lastType
+				: overrideTypes[0];
+			debugTypeOverrideLog('apply base override', {
+				index,
+				label: entry?.label ?? entry?.name,
+				rollType,
+				currentSelectedType,
+				lastType,
+				activityUuid: activity?.uuid,
+				overrideTypes,
+				nextType,
+			});
 		}
-		return rollType;
-	};
+		const resolved = { type: nextType, types: nextTypes };
+		debugTypeOverrideLog('resolved base roll state', {
+			index,
+			rollType,
+			baselineType,
+			baselineTypes,
+			resolved,
+		});
+		return resolved;
+	});
+	const getEffectiveDamageRollType = (index) => effectiveDamageTypeStateByRoll[index]?.type;
 	const existingRollIndexByType = new Map();
 	formulas.forEach((_, index) => {
 		const rollType = getEffectiveDamageRollType(index);
@@ -1923,59 +1977,6 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	const activeMinimizeArray = Array.isArray(activeMinimize) ? activeMinimize.map((value) => !!value) : originals.map(() => !!activeMinimize);
 	const activeAdvDisArray = Array.isArray(activeAdvDis) ? activeAdvDis : originals.map(() => activeAdvDis ?? '');
 	const activeDamageTypeArray = Array.isArray(activeDamageTypeByRoll) ? activeDamageTypeByRoll : originals.map(() => undefined);
-	const activeDamageTypesArray = Array.isArray(activeDamageTypesByRoll) ? activeDamageTypesByRoll.map((types) => normalizeDamageTypeList(types)) : originals.map(() => []);
-	const effectiveDamageTypeStateByRoll = formulas.map((_, index) => {
-		const rollType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index) ?? baseDamageTypeArray[index];
-		const baselineTypes = normalizeDamageTypeList(baseDamageTypesArray[index]);
-		const baselineType =
-			typeof baseDamageTypeArray[index] === 'string' && baseDamageTypeArray[index].trim() ? baseDamageTypeArray[index].trim().toLowerCase()
-			: baselineTypes[0];
-		let nextTypes = baselineTypes.length ? [...baselineTypes] : [];
-		let nextType = baselineType;
-		for (const entry of baseDamageTypeOverrideEntries) {
-			const typeOverrideSelectedTypes = new Set([...allTypes, ...baselineTypes, baselineType].filter(Boolean));
-			const typeOverrideGateType = baselineType ?? rollType;
-			const applies = shouldApplyDamageEntryToRoll(entry, index, typeOverrideGateType, { selectedTypes: typeOverrideSelectedTypes });
-			debugTypeOverrideBreakpoint('base-override-decision', {
-				index,
-				label: entry?.label ?? entry?.name,
-				id: entry?.id,
-				rollType,
-				typeOverrideGateType,
-				baselineType,
-				baselineTypes,
-				currentTypes: nextTypes,
-				overrideSet: entry?.set,
-				addTo: entry?.addTo,
-				requiredDamageTypes: entry?.requiredDamageTypes,
-				selectedTypes: [...typeOverrideSelectedTypes],
-				applies,
-			});
-			if (!applies) continue;
-			const overrideTypes = parseDamageTypeOverrideSet(entry?.set, nextTypes.length ? nextTypes : [nextType]);
-			if (!overrideTypes.length) continue;
-			const currentSelectedType = getDamageRollTypeAtIndex(getConfigAC5E, damageTypesByIndex, index);
-			nextTypes = [...overrideTypes];
-			nextType = String(entry?.set ?? '').trim().startsWith('+') && overrideTypes.includes(nextType) ? nextType : overrideTypes[0];
-			debugTypeOverrideLog('apply base override', {
-				index,
-				label: entry?.label ?? entry?.name,
-				rollType,
-				currentSelectedType,
-				overrideTypes,
-				nextType,
-			});
-		}
-		const resolved = { type: nextType, types: nextTypes };
-		debugTypeOverrideLog('resolved base roll state', {
-			index,
-			rollType,
-			baselineType,
-			baselineTypes,
-			resolved,
-		});
-		return resolved;
-	});
 	const formulaReplacementData = getDamageFormulaReplacementData(getConfigAC5E);
 	const diceRegex = /(\d*)d(\d+)([a-z0-9]*)?/gi;
 	const diceProgression = _getDamageDiceStepProgression();

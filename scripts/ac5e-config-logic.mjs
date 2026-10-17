@@ -1006,6 +1006,7 @@ export function _getSafeDialogConfig(ac5eConfig) {
 			reEval: ac5eConfig?.reEval && typeof ac5eConfig.reEval === 'object' ? { ...ac5eConfig.reEval } : ac5eConfig?.reEval,
 		};
 		if (safe?.options && typeof safe.options === 'object') {
+			safe.options.damageActivityUuid = safe.options.activity?.uuid ?? safe.options.damageActivityUuid;
 			delete safe.options.activity;
 			delete safe.options.ammo;
 			delete safe.options.ammunition;
