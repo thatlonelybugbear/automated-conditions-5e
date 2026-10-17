@@ -1,3 +1,12 @@
+## 14.606.3
+
+- Damage type overrides now preserve the current dialog selection and restore the system's remembered damage type on subsequent activity uses when it remains an available choice.
+- Fixed typed damage bonuses being merged into the wrong damage type when the selected override type differs from the first available type.
+- Replaced Expanded Conditions with an Additional Automated Rules multiselect for Dodging, Hiding, Raging spell restrictions, Underwater Combat, and Heavy. Each rule can be enabled independently.
+  - Added a one-time migration of saved Expanded Conditions and Heavy settings, including upgrades from older versions. Existing multiselect selections are preserved. The active GM receives a notification and private chat message explaining the migrated settings.
+- Legacy Heavy weapon restrictions now use the actor's size instead of token dimensions.
+- Added Heavy support to status overrides using `status: "heavy"`, `hook: "attack"`, and `type: "subject"`, allowing actor-specific exceptions under legacy and modern rules.
+
 ## 14.606.2.3
 
 - Negative synthetic damage bonuses, including `criticalStatic` reductions, now begin with explicit subtraction (`0 - 1d6`) so Foundry keeps the die at the top level for the system's damage breakdown.

@@ -188,6 +188,27 @@ When an override clears an active status rule, its label appears in the **Suppre
 
 ## Practical Examples
 
+### Ignore the Heavy weapon restriction for a specific actor
+
+Heavy uses `status: "heavy"`, `hook: "attack"`, and `type: "subject"`. It is evaluated when Heavy is selected in Additional Automated Rules and the weapon has the Heavy property. The actor does not need a Heavy status effect. Both legacy size restrictions and modern ability-score restrictions support overrides.
+
+Replace the actor UUID below with the actor's full UUID:
+
+```js
+ac5e.statusEffectsOverrides.register({
+  id: "ignore-heavy-for-actor",
+  persistent: true,
+  name: "Ignores Heavy",
+  status: "heavy",
+  hook: "attack",
+  type: "subject",
+  condition: 'actorUuid === "Actor.YOUR_ACTOR_ID"',
+  result: ""
+});
+```
+
+Suppressed Heavy penalties appear in the Suppressed Statuses tooltip bucket. Other disadvantage sources remain in effect.
+
 ### Example 1: Remove prone melee disadvantage for a specific actor
 
 ```js

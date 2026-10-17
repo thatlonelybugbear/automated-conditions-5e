@@ -1,7 +1,11 @@
-Applies to version: `13.5250.5`
-## Expanded Conditions (default off)
-- `Dodging`: Attacker disadvantage if target not incapacitated, restrained and can see attacker. Also advantage on dex saves.
-- `Hiding`: Advantage on attacks rolls.
+Applies to version: `14.606.3` and later.
+## Additional Automated Rules (default none selected)
+Select each automation independently. Saved Boolean Expanded Conditions and Heavy settings are migrated once to the selection. Existing selections, including an empty selection, are preserved.
+- `Dodging`: Attacker disadvantage when the target can see the attacker, can move, and is not incapacitated.
+- `Hiding`: Advantage on attacks, disadvantage for attackers, and initiative advantage under modern rules.
+- `Raging`: Spellcasting restrictions, following the Item Use Rules setting.
+- `Underwater Combat`: Underwater weapon attack restrictions.
+- `Heavy`: Under legacy rules, disadvantage for Tiny or Small actors. Under modern rules, disadvantage for melee weapon attacks with Strength below 13 or ranged weapon attacks with Dexterity below 13.
 
 ## Environmental Hazards (default off)
 - `Burning`: A burning creature or object takes 1d4 Fire damage at the start of each of its turns.
@@ -51,14 +55,6 @@ Conditions affecting concentration saving throws.
 
 ## Hidden settings (API only)
 These are internal AC5e settings (`config: false`) and are not shown in the UI.
-
-### Heavy property automation (internal toggle)
-Setting key: `automateHeavy`
-
-```js
-await game.settings.set("automated-conditions-5e", "automateHeavy", true);
-await game.settings.set("automated-conditions-5e", "automateHeavy", false);
-```
 
 ### Show only D&D5E statuses (internal toggle)
 Setting key: `displayOnly5eStatuses`

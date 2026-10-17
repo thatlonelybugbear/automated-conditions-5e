@@ -222,9 +222,10 @@ Snapshot includes:
 <details>
   <summary><b>Quick walkthrough</b></summary>
   
-- `Expanded Conditions` **(default off)**
-  - `Dodging`: Attacker disadvantage if target not incapacitated, restrained and can see attacker (attacker doesn't have the Hiding condition). Also advantage on dex saves.
-  - `Hiding`: Advantage on attacks.
+- `Additional Automated Rules` **(default none selected)**
+  - Choose Dodging, Hiding, Raging spell restrictions, Underwater Combat, and Heavy independently.
+  - Saved Expanded Conditions and Heavy settings are migrated once to the selection.
+  - Legacy Heavy uses the actor's size: Tiny and Small actors have disadvantage.
 - `Armor automation` **(default off)**
   - Ability Checks, Saves and Attack Rolls for (STR || DEX) based rolls, if the Actor is not proficient in the equipped suit of Armor.
   - Imposes disadvantage on Stealth checks when the relevant property of the Armor is selected.
