@@ -964,7 +964,7 @@ function addSyntheticVisibilityAttackOptins(ac5eConfig, subjectToken, opponentTo
 	const subject = subjectToken.actor;
 	const modernRules = settings.dnd5eModernRules;
 	const opponentAlert2014 = !modernRules && opponentToken.actor?.items.some((item) => item.name.includes(_localize('AC5E.Alert')));
-	const hidingAlreadyGrantsAttackAdvantage = settings.expandedConditions && subject?.statuses.has('hiding') && !opponentAlert2014;
+	const hidingAlreadyGrantsAttackAdvantage = settings.additionalAutomations.has('hiding') && subject?.statuses.has('hiding') && !opponentAlert2014;
 	const syntheticEntries = [];
 
 	if (!subjectCanSeeTarget) {
@@ -1113,7 +1113,7 @@ function buildStatusEffectsTables() {
 		dodging: mkStatus('dodging', _i18nConditions('Dodging'), {
 			attack: {
 				opponent: (ctx) =>
-					settings.expandedConditions && ctx.opponentToken && ctx.subject && canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.opponent?.statuses.has('incapacitated') && ctx.opponentMove ?
+					settings.additionalAutomations.has('dodging') && ctx.opponentToken && ctx.subject && canSee(ctx.opponentToken, ctx.subjectToken) && !ctx.opponent?.statuses.has('incapacitated') && ctx.opponentMove ?
 						'disadvantage'
 					:	'',
 			},
@@ -1122,12 +1122,12 @@ function buildStatusEffectsTables() {
 		hiding: mkStatus('hiding', _i18nConditions('Hiding'), {
 			attack: {
 				subject: (ctx) =>
-					!settings.expandedConditions ? ''
+					!settings.additionalAutomations.has('hiding') ? ''
 					: !ctx.opponentAlert2014 ? 'advantage'
 					: '',
-				opponent: () => (!settings.expandedConditions ? '' : 'disadvantage'),
+				opponent: () => (!settings.additionalAutomations.has('hiding') ? '' : 'disadvantage'),
 			},
-			check: { subject: (ctx) => (settings.expandedConditions && ctx.modernRules && ctx.isInitiative ? 'advantage' : '') },
+			check: { subject: (ctx) => (settings.additionalAutomations.has('hiding') && ctx.modernRules && ctx.isInitiative ? 'advantage' : '') },
 		}),
 
 		raging: mkStatus('raging', _localize('AC5E.Raging'), {
@@ -1137,13 +1137,13 @@ function buildStatusEffectsTables() {
 			// check: {
 			// 	subject: (ctx) => (settings.expandedConditions && ctx.ability === 'str' && ctx.subject?.armor?.system.type.value !== 'heavy' ? 'advantage' : ''),
 			// },
-			use: { subject: (ctx) => (settings.expandedConditions && ctx.item?.type === 'spell' ? 'fail' : '') },
+			use: { subject: (ctx) => (settings.additionalAutomations.has('raging') && ctx.item?.type === 'spell' ? 'fail' : '') },
 		}),
 
 		underwaterCombat: mkStatus('underwater', _localize('AC5E.Statuses.UnderwaterCombat'), {
 			attack: {
 				subject: (ctx) => {
-					if (!settings.expandedConditions) return '';
+					if (!settings.additionalAutomations.has('underwaterCombat')) return '';
 					const isMelee =
 						ctx.activity?.getActionType(ctx.attackMode) === 'mwak' &&
 						!ctx.subject?.system.attributes.movement.swim &&
@@ -1213,6 +1213,17 @@ function withStatusOverrideLabel(baseName, overrideName) {
 	if (!override) return base;
 	if (!base) return override;
 	return `${base} (${override})`;
+}
+
+export function getHeavyWeaponStatusResult({ ac5eConfig, sourceActor, subjectToken, opponentToken, result }) {
+	const baseName = _localize('AC5E.HeavyWeapon');
+	if (!statusEffectsOverrideState.list.some((entry) => matchesStatusEffectOverride(entry, 'heavy', 'attack', 'subject'))) return { result, label: baseName };
+	const evaluationData = _createEvaluationSandbox({ subjectToken, opponentToken, sourceActor, targetActor: opponentToken?.actor, options: ac5eConfig.options });
+	evaluationData.ac5eConfig = ac5eConfig;
+	const context = buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, type: 'subject', evaluationData });
+	context.subject = sourceActor;
+	const outcome = applyStatusEffectOverrides({ status: 'heavy', hook: 'attack', type: 'subject', context, evaluationData, result });
+	return { ...outcome, label: withStatusOverrideLabel(baseName, outcome.overrideName) };
 }
 
 function applyStatusEffectOverrides({ status, hook, type, context, evaluationData, result }) {

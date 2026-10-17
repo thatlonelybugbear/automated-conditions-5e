@@ -4,7 +4,8 @@ import Settings from './ac5e-settings.mjs';
 const settings = new Settings();
 
 export async function _migrate() {
-	const migration = '14.533.6.2';
+	if (game?.user?.isActiveGM) await migrateAdditionalAutomations();
+	const migration = '14.606.2.3';
 	const lastMigratedPoint = settings.migrated;
 	if (lastMigratedPoint === migration) {
 		console.warn(`${Constants.MODULE_ID} no migration needed`);
@@ -16,6 +17,34 @@ export async function _migrate() {
 		await game.settings.set(Constants.MODULE_ID, 'lastMigratedPoint', migration);
 		console.warn(`${Constants.MODULE_ID} migrated to post ${migration}`);
 	}
+}
+
+async function migrateAdditionalAutomations() {
+	const worldSettings = game.settings.storage.get('world');
+	if (worldSettings.getSetting(`${Constants.MODULE_ID}.${Settings.ADDITIONAL_AUTOMATIONS}`)) return;
+	const expanded = worldSettings.getSetting(`${Constants.MODULE_ID}.${Settings.AUTOMATE_EXPANDED_CONDITIONS}`)
+		? game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS) : undefined;
+	const heavy = worldSettings.getSetting(`${Constants.MODULE_ID}.${Settings.AUTOMATE_HEAVY}`)
+		? game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY) : undefined;
+	if (typeof expanded !== 'boolean' && typeof heavy !== 'boolean') return;
+	const selected = [
+		...(expanded === true ? ['dodging', 'hiding', 'raging', 'underwaterCombat'] : []),
+		...(heavy === true ? ['heavy'] : []),
+	];
+	await game.settings.set(Constants.MODULE_ID, Settings.ADDITIONAL_AUTOMATIONS, new Set(selected));
+	const labels = {
+		dodging: 'EFFECT.DND5E.StatusDodging',
+		hiding: 'EFFECT.DND5E.StatusHiding',
+		raging: 'AC5E.Raging',
+		underwaterCombat: 'AC5E.Statuses.UnderwaterCombat',
+		heavy: 'DND5E.ITEM.Property.Heavy',
+	};
+	const enabled = selected.map((key) => game.i18n.localize(labels[key])).join(', ') || game.i18n.localize('AC5E.AdditionalAutomations.Migration.None');
+	await ChatMessage.create({
+		whisper: [game.user.id],
+		content: game.i18n.format('AC5E.AdditionalAutomations.Migration.Message', { selected: foundry.utils.escapeHTML(enabled) }),
+	});
+	ui.notifications.info(game.i18n.localize('AC5E.AdditionalAutomations.Migration.Notification'));
 }
 
 async function migrateRangeSubkeyChanges() {

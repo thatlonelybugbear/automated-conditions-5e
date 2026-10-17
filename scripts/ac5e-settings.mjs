@@ -58,6 +58,7 @@ export default class Settings {
 	static SHOW_MODULE_NAME_IN_TOOLTIPS = 'showNameTooltips';
 	static SHOW_CHAT_TOOLTIPS = 'showChatTooltips';
 	static AUTOMATE_EXPANDED_CONDITIONS = 'expandedConditions';
+	static ADDITIONAL_AUTOMATIONS = 'additionalAutomations';
 	static AUTOMATE_VISIBILITY_CHECKS = 'visibilityChecks';
 	static AUTOMATE_WAVES_COVER = 'wavesCover';
 	static AUTOMATE_ARMOR_PROF_SPELL_USE = 'autoArmorSpellUse';
@@ -179,9 +180,34 @@ export default class Settings {
 			name: 'AC5E.ExpandedConditionsName',
 			hint: 'AC5E.ExpandedConditionsHint',
 			scope: 'world',
-			config: true,
+			config: false,
 			default: false,
 			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY, {
+			name: 'Heavy property',
+			scope: 'world',
+			config: false,
+			default: false,
+			type: Boolean,
+		});
+		game.settings.register(Constants.MODULE_ID, Settings.ADDITIONAL_AUTOMATIONS, {
+			name: 'AC5E.AdditionalAutomations.Name',
+			hint: 'AC5E.AdditionalAutomations.Hint',
+			type: new foundry.data.fields.SetField(
+				new foundry.data.fields.StringField({
+					choices: () => ({
+						dodging: { label: 'EFFECT.DND5E.StatusDodging' },
+						hiding: { label: 'EFFECT.DND5E.StatusHiding' },
+						raging: { label: 'AC5E.Raging' },
+						underwaterCombat: { label: 'AC5E.Statuses.UnderwaterCombat' },
+						heavy: { label: 'DND5E.ITEM.Property.Heavy' },
+					}),
+				}),
+			),
+			scope: 'world',
+			config: true,
+			default: [],
 		});
 		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_VISIBILITY_CHECKS, {
 			name: 'AC5E.VisibilityChecksSetting.Name',
@@ -313,13 +339,6 @@ export default class Settings {
 			default: '',
 			type: String,
 		});
-		game.settings.register(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY, {
-			name: 'Heavy property',
-			scope: 'world',
-			config: false,
-			default: false,
-			type: Boolean,
-		});
 		game.settings.register(Constants.MODULE_ID, Settings.REMOVE_NON5E_STATUSES, {
 			name: 'Remove non 5e statuses',
 			scope: 'world',
@@ -394,7 +413,10 @@ export default class Settings {
 		else return 'none';
 	}
 	get expandedConditions() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_EXPANDED_CONDITIONS);
+		return ['dodging', 'hiding', 'raging', 'underwaterCombat'].some((condition) => this.additionalAutomations.has(condition));
+	}
+	get additionalAutomations() {
+		return game.settings.get(Constants.MODULE_ID, Settings.ADDITIONAL_AUTOMATIONS);
 	}
 	get visibilityChecks() {
 		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_VISIBILITY_CHECKS);
@@ -454,7 +476,7 @@ export default class Settings {
 		return game.settings.get(Constants.MODULE_ID, Settings.MIGRATION);
 	}
 	get automateHeavy() {
-		return game.settings.get(Constants.MODULE_ID, Settings.AUTOMATE_HEAVY);
+		return this.additionalAutomations.has('heavy');
 	}
 	get displayOnly5eStatuses() {
 		return game.settings.get(Constants.MODULE_ID, Settings.REMOVE_NON5E_STATUSES);

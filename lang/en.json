@@ -38,7 +38,17 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Owned",
 	"AC5E.ShowTooltipChatVisibility.Players": "Players",
 	"AC5E.ExpandedConditionsName": "Expanded Conditions",
+	"AC5E.HeavyWeapon": "Heavy Weapon",
 	"AC5E.ExpandedConditionsHint": "Enables automation for additional conditions and combat states such as Dodging, Hiding, Rage spell restrictions, and Underwater Combat.",
+	"AC5E.AdditionalAutomations": {
+		"Name": "Additional Automated Rules",
+		"Hint": "Choose which additional rules AC5E automates: Dodging, Hiding, Rage spell restrictions, Underwater Combat, and the Heavy weapon property.",
+		"Migration": {
+			"Notification": "AC5E: Your additional automation settings were migrated. See the private chat message for details.",
+			"None": "None",
+			"Message": "<h3>Automated Conditions 5e: Settings Migrated</h3><p>Your saved Expanded Conditions and Heavy weapon settings were moved to the Additional Automated Rules multiselect. Expanded Conditions enables Dodging, Hiding, Raging spell restrictions, and Underwater Combat; Heavy is enabled only if its previous setting was on.</p><p><strong>Enabled rules:</strong> {selected}</p><p>You can now select each rule independently under Configure Settings → Automated Conditions 5e → Additional Automated Rules.</p>"
+		}
+	},
 	"AC5E.VisibilityChecksSetting": {
 		"Name": "Visibility Rules",
 		"Hint": "Uses AC5E attack visibility rules based on token sight and senses. When enabled, AC5E adds 'Cannot See Target' and 'Target Cannot See Attacker' attack reasons. These reasons are skipped when MidiQOL already applies its invisibility or hidden-attacker rules."

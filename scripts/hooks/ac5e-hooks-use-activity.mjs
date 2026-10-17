@@ -49,7 +49,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 		: 'Enforce';
 	if (item.type === 'spell' && useWarnings) {
 		const notProficient = _autoArmor(sourceActor).notProficient;
-		const raging = sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
+		const raging = deps.settings.additionalAutomations.has('raging') && sourceActor.appliedEffects.some((effect) => [_localize('AC5E.Raging'), _localize('AC5E.Rage')].includes(effect.name));
 		const silenced =
 			item.system.properties.has('vocal') &&
 			sourceActor.statuses.has('silenced') &&

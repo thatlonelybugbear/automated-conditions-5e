@@ -4,6 +4,7 @@ import { autoRanged } from '../ac5e-systemRules.mjs';
 import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
 import { applySimpleCover5eLibraryMode, applySimpleCover5eTooltip } from '../integrations/ac5e-simplecover5e.mjs';
 import { prepareWavesCover } from '../integrations/ac5e-waves.mjs';
+import { getHeavyWeaponStatusResult } from '../ac5e-setpieces.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	const timingStart = performance.now();
@@ -105,6 +106,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 				actionType,
 				sourceActor: attackActor,
 				sourceToken,
+				opponentToken: singleTargetToken,
 				modernRules: deps.settings.dnd5eModernRules,
 				automateHeavy: deps.settings.automateHeavy,
 			});
@@ -256,14 +258,19 @@ export function applyAttackRangeState({ ac5eConfig, activity, sourceToken, singl
 	}
 }
 
-export function applyAttackHeavyState({ ac5eConfig, item, actionType, sourceActor, sourceToken, modernRules, automateHeavy }) {
+export function applyAttackHeavyState({ ac5eConfig, item, actionType, sourceActor, sourceToken, opponentToken, modernRules, automateHeavy }) {
 	if (!automateHeavy) return;
 	if (!item?.system?.properties?.has('hvy')) return;
 	const isSmall =
 		modernRules ?
 			(actionType === 'mwak' && sourceActor.system.abilities.str.value < 13) || (actionType === 'rwak' && sourceActor.system.abilities.dex.value < 13)
-		:	sourceToken ? sourceToken.document.width * sourceToken.document.height * sourceToken.document.texture.scaleX * sourceToken.document.texture.scaleY < 1 : ['tiny', 'sm'].includes(sourceActor.system.traits.size);
-	if (!isSmall) return;
-	const localizationStr = 'DND5E.ITEM.Property.Heavy';
-	ac5eConfig.subject.disadvantage = ac5eConfig.subject.disadvantage.concat(`${_localize('DND5E.ItemWeaponProperties')}: ${_localize(localizationStr)}`);
+		:	['tiny', 'sm'].includes(sourceActor.system.traits.size);
+	const outcome = getHeavyWeaponStatusResult({ ac5eConfig, sourceActor, subjectToken: sourceToken, opponentToken, result: isSmall ? 'disadvantage' : '' });
+	if (outcome.suppressed) {
+		ac5eConfig.subject.suppressedStatuses ??= [];
+		ac5eConfig.subject.suppressedStatuses.push(outcome.label);
+	}
+	if (!outcome.result) return;
+	if (outcome.result.includes('advantageNames')) ac5eConfig.subject[outcome.result].add(outcome.label);
+	else ac5eConfig.subject[outcome.result].push(outcome.label);
 }
