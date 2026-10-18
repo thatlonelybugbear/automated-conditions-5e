@@ -5,6 +5,7 @@ import { applyResolvedAbilityOverrideToRollConfig } from './ac5e-hooks-roll-buil
 
 export function postBuildRollConfig(processConfig, config, index) {
 	if (!processConfig || !config || typeof config !== 'object') return true;
+	moveAttackOptinPartsToEnd(config);
 	const sourceAc5eConfig =
 		config?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
 		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
@@ -42,4 +43,13 @@ export function postBuildRollConfig(processConfig, config, index) {
 		: 'normal';
 	mirrorD20ModeState(ac5eConfig, config, { action: normalizedAction, advantageMode: ac5eMode, defaultButton: normalizedAction, explicitOverride });
 	return true;
+}
+
+function moveAttackOptinPartsToEnd(config) {
+	const order = config._ac5eOptinPartOrder;
+	delete config._ac5eOptinPartOrder;
+	if (!order || !Array.isArray(config.parts)) return;
+	const { start, prefix } = order;
+	if (config.parts.length <= prefix.length || !prefix.every((part, index) => config.parts[index] === part)) return;
+	config.parts = [...config.parts.slice(0, start), ...config.parts.slice(prefix.length), ...prefix.slice(start)];
 }

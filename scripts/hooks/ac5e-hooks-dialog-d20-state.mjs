@@ -88,7 +88,8 @@ export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
 			dialog?._ac5eBaselineAttackAbility ??
 			ac5eConfig?.options?._ac5eBaselineAttackAbility ??
 			ac5eConfig?.preAC5eConfig?._ac5eBaselineAttackAbility ??
-			dialog?.config?.options?.[Constants.MODULE_ID]?.options?._ac5eBaselineAttackAbility;
+			dialog?.config?.options?.[Constants.MODULE_ID]?.options?._ac5eBaselineAttackAbility ??
+			attackAbilityState?.initialSystemAbility;
 		if (preservedBaselineAttackAbility !== undefined) dialog._ac5eBaselineAttackAbility = preservedBaselineAttackAbility;
 		const preRestoreParts = getD20ActivePartsSnapshot(dialog.config);
 		const preservedExternalParts = collectPreservedExternalD20Parts(ac5eConfig, preRestoreParts, dialog.config);

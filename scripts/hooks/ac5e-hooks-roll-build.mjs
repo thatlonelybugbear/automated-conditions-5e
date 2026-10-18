@@ -128,7 +128,11 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 			for (const value of values) partsToAdd.push(resolveEntryOptinScaleValue(value, entry, optins));
 		}
 		ac5eConfig._lastAppliedD20OptinParts = [...partsToAdd];
+		const optinPartStart = rollConfig.parts?.length ?? 0;
 		appendPartsToD20Config(rollConfig, partsToAdd);
+		if (activeHook === 'attack' && rollConfig.parts?.length > optinPartStart) {
+			rollConfig._ac5eOptinPartOrder = { start: optinPartStart, prefix: [...rollConfig.parts] };
+		}
 	} else {
 		ac5eConfig._lastAppliedD20OptinParts = [];
 	}
