@@ -142,6 +142,7 @@ function _testDistanceCollision(pointA, pointB, source, checkCollision) {
 		source,
 		mode: 'any',
 		type: checkCollision,
+		edgeTypes: { source: false },
 	});
 }
 
