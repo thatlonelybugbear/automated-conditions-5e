@@ -1,3 +1,8 @@
+## 13.5330.1.7
+
+- Fixed magical darkness being treated as a wall by distance checks using `wallsBlock`. Darkness still affects visibility normally.
+- Corrected wall-aware distance checks to run from source to target, so one-way walls are checked in the correct direction, including for auras.
+
 ## 13.5330.1.6
 
 - Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
