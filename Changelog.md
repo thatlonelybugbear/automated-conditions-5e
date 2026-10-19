@@ -1,3 +1,10 @@
+## 13.5330.1.6
+
+- Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
+- Changes to Charmed condition:
+  - `Use` fail, is limited to Attack activities, or ones that would damage the Charmer.
+  - `Check` automation is removed entirely. It will be added in a different way only for the v6 version of the module.
+
 ## 13.5330.1.5
 
 - Fixed system-provided d20 modifiers such as minimum and maximum die results being lost when AC5E applies advantage or disadvantage.
