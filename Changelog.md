@@ -1,3 +1,9 @@
+## 14.533.19.7
+
+- Optional attack bonuses now appear after the normal attack modifiers and proficiency bonus in the roll formula.
+- Fixed magical darkness being treated as a wall by distance checks using `wallsBlock`. Darkness still affects visibility normally.
+- Corrected wall-aware distance checks to run from source to target, so one-way walls are checked in the correct direction, including for auras.
+
 ## 14.533.19.6
 
 - Fixed toggling optional attack bonuses removing the attack’s ability modifier, such as Strength or Dexterity.
