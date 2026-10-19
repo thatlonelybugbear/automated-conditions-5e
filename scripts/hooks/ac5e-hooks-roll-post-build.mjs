@@ -3,8 +3,9 @@ import Constants from '../ac5e-constants.mjs';
 import { mirrorD20ModeState } from './ac5e-hooks-roll-post.mjs';
 
 export function postBuildRollConfig(processConfig, config, index) {
-	if (!_activeModule('midi-qol')) return true;
 	if (!processConfig || !config || typeof config !== 'object') return true;
+	moveAttackOptinPartsToEnd(config);
+	if (!_activeModule('midi-qol')) return true;
 	const processRollOptions = processConfig?.rolls?.[index]?.options ?? processConfig?.rolls?.[0]?.options;
 	if (!processRollOptions || typeof processRollOptions !== 'object') return true;
 	const ac5eConfig =
@@ -37,4 +38,13 @@ export function postBuildRollConfig(processConfig, config, index) {
 		: 'normal';
 	mirrorD20ModeState(ac5eConfig, config, { action: normalizedAction, advantageMode: ac5eMode, defaultButton: normalizedAction, explicitOverride });
 	return true;
+}
+
+function moveAttackOptinPartsToEnd(config) {
+	const order = config._ac5eOptinPartOrder;
+	delete config._ac5eOptinPartOrder;
+	if (!order || !Array.isArray(config.parts)) return;
+	const { start, prefix } = order;
+	if (config.parts.length <= prefix.length || !prefix.every((part, index) => config.parts[index] === part)) return;
+	config.parts = [...config.parts.slice(0, start), ...config.parts.slice(prefix.length), ...prefix.slice(start)];
 }
