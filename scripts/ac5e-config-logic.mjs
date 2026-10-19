@@ -832,6 +832,7 @@ export function _getSafeUseConfig(ac5eConfig) {
 function _getSafeDialogOptions(options = {}) {
 	if (!options || typeof options !== 'object') return {};
 	const safe = pickOptions(options, [
+		'_ac5eBaselineAttackAbility',
 		'ability',
 		'attackMode',
 		'baseDamage',
@@ -922,6 +923,7 @@ function _getSafeDialogPreConfig(preConfig = {}) {
 	if (!preConfig || typeof preConfig !== 'object') return {};
 	const safe = {};
 	for (const key of [
+		'_ac5eBaselineAttackAbility',
 		'activeDamageRollProfileKey',
 		'activeRollProfileKey',
 		'adv',
