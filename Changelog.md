@@ -1,3 +1,7 @@
+## 14.533.19.6
+
+- Fixed toggling optional attack bonuses removing the attack’s ability modifier, such as Strength or Dexterity.
+
 ## 14.533.19.5
 
 - Fix for `Token#shape` being undefined.
