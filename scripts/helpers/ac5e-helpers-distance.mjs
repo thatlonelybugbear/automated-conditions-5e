@@ -30,7 +30,7 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 
 		outer: for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
-				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+				if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
 				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
 				if (adjacent2D && meleeDiagonals) {
 					totalDistance = gridDistance;
@@ -59,7 +59,7 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
 			for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+					if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
 						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false;
@@ -77,7 +77,7 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 
 			outer: for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+					if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
 					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
 					if (adjacent2D && meleeDiagonals) {
 						totalDistance = gridDistance;
@@ -137,10 +137,11 @@ function _testDistanceCollision(pointA, pointB, source, checkCollision) {
 	if (!checkCollision) return false;
 	const backend = CONFIG.Canvas?.polygonBackends?.[checkCollision];
 	if (!backend?.testCollision) return false;
-	return backend.testCollision(pointB, pointA, {
+	return backend.testCollision(pointA, pointB, {
 		source,
 		mode: 'any',
 		type: checkCollision,
+		edgeOptions: { darkness: false },
 	});
 }
 
@@ -339,7 +340,7 @@ function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false
 		const tokenBHexes = getCachedPerimeterCenters(tokenB);
 		outer: for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
-				if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+				if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
 				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
 				if (adjacent2D && meleeDiagonals) {
 					totalDistance = gridDistance;
@@ -369,7 +370,7 @@ function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false
 			const tokenBSquares = getCachedPerimeterCenters(tokenB);
 			for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+					if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
 					const { distance: distance2D, diagonals: pathDiagonals, spaces: pathSpaces } = grid.measurePath([pointA, pointB]);
 					if (distance2D < totalDistance) {
 						const leeway = settings.autoRangeChecks.has('meleeOoR') ? gridDistance * 2 : false;
@@ -385,7 +386,7 @@ function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false
 			const tokenBSquares = getCachedPerimeterCenters(tokenB);
 			outer: for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
-					if (_testDistanceCollision(pointA, pointB, tokenB.document, checkCollision)) continue;
+					if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
 					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
 					if (adjacent2D && meleeDiagonals) {
 						totalDistance = gridDistance;
