@@ -153,12 +153,15 @@ function initializeKeyAutocomplete(app, root) {
 				refreshEditorButtons(app, root);
 			},
 		});
+		const dismissAutocomplete = () => {
+			if (ui.autocomplete === autocomplete) autocomplete.dismiss();
+		};
 		const activateAutocomplete = () => {
 			const ac5eRow = isAc5eChangeRow(row, keyInput);
 			const valueTrigger = shouldTriggerAc5eKeyAutocomplete(keyInput.value);
-			if (!ac5eRow && !valueTrigger) {
+			if (!ac5eRow && (game.modules.get('dae')?.active || !valueTrigger)) {
 				logEffectKeyAutocomplete('dismiss', { reason: 'trigger', type: findTypeInput(row, keyInput)?.value, value: keyInput.value ?? '' });
-				autocomplete.dismiss();
+				dismissAutocomplete();
 				return;
 			}
 			const prefix = getAutocompletePrefix(keyInput);
@@ -169,7 +172,7 @@ function initializeKeyAutocomplete(app, root) {
 				: entries.slice(0, 40);
 			if (!filteredEntries.length) {
 				logEffectKeyAutocomplete('dismiss', { reason: 'entries', prefix, totalEntries: entries.length, value: keyInput.value ?? '' });
-				autocomplete.dismiss();
+				dismissAutocomplete();
 				return;
 			}
 			logEffectKeyAutocomplete('activate', { ac5eRow, valueTrigger, prefix, value: keyInput.value ?? '', totalEntries: entries.length, candidates: filteredEntries.length });
@@ -190,8 +193,8 @@ function initializeKeyAutocomplete(app, root) {
 		};
 		keyInput.addEventListener('focus', scheduleAutocomplete);
 		keyInput.addEventListener('input', scheduleAutocomplete);
-		keyInput.addEventListener('blur', () => window.setTimeout(() => autocomplete.dismiss(), 100));
-		app.addEventListener?.('close', () => autocomplete.dismiss(), { once: true });
+		keyInput.addEventListener('blur', () => window.setTimeout(dismissAutocomplete, 100));
+		app.addEventListener?.('close', dismissAutocomplete, { once: true });
 	}
 }
 
