@@ -1,3 +1,8 @@
+## 14.606.4.1
+
+- Fixed `itemLimited` on transferred Item effects, including enchantments, to match the Item carrying the effect. Retained compendium origins no longer prevent matching the weapon used by an unlinked token. Actor-applied effects continue to use their resolved origin Item.
+- Item matching now prefers UUIDs when both are available, preventing Items on different actors with the same ID from matching. Effects without a usable Item identity no longer pass `itemLimited`.
+
 ## 14.606.4
 
 - Fixed toggling optional attack bonuses removing the attack's ability modifier, such as Strength or Dexterity.

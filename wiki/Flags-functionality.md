@@ -208,7 +208,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 
 | Key                    | Description |
 |------------------------|-------------|
-| `itemLimited`          | Will limit the effect to rolls of the source item |
+| `itemLimited`          | Limits the flag to rolls of its Item. For transferred Item effects, including enchantments, matches the Item carrying the effect; otherwise uses the resolved origin Item. UUIDs take precedence when both are available, with an ID fallback otherwise. A usable matching Item identity is required. |
 | `enforceMode=normal/advantage/disadvantage` | For `info` entries on d20 hooks, forces the final resolved roll mode |
 | `cancel` | For roll `info` entries, cancels before dice evaluation while retaining selected consumption and updates |
 | `once`                 | Will apply the effect once |
