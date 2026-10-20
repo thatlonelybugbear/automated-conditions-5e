@@ -19,7 +19,7 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 		applyPendingUsesIfNeeded(ac5eConfig, rolls);
 		return false;
 	}
-	applyDamageExtremeEvaluation(ac5eConfig, rolls);
+	applyDamageExtremeModifiers(ac5eConfig, rolls);
 	syncOptinSelectionsToRolls(ac5eConfig, rolls);
 	syncOptinSelectionsToMessage(ac5eConfig, message);
 	syncAttackOptinSelectionsToWorkflow(ac5eConfig, config);
@@ -233,7 +233,7 @@ export function buildChatRollPayload(ac5eConfig, { chatTooltip, roll } = {}) {
 	return payload;
 }
 
-function applyDamageExtremeEvaluation(ac5eConfig, rolls) {
+function applyDamageExtremeModifiers(ac5eConfig, rolls) {
 	if (ac5eConfig?.hookType !== 'damage' || !Array.isArray(rolls)) return;
 	const preserved = ac5eConfig?.preservedInitialData ?? {};
 	const maximizeByRoll = Array.isArray(preserved.activeMaximize) ? preserved.activeMaximize : [];
@@ -243,7 +243,7 @@ function applyDamageExtremeEvaluation(ac5eConfig, rolls) {
 	const baseCount = Array.isArray(preserved.formulas) ? preserved.formulas.length : rolls.length - appended.length;
 	for (let index = 0; index < rolls.length; index++) {
 		const roll = rolls[index];
-		if (!roll || roll._evaluated || roll._ac5eExtremeEvaluation) continue;
+		if (!roll || roll._evaluated) continue;
 		const dieModifiers = String(modifiersByRoll[index] ?? '').match(/(?:min|max)\d+/gi) ?? [];
 		if (dieModifiers.length) {
 			for (const die of roll.dice ?? []) {
@@ -256,12 +256,15 @@ function applyDamageExtremeEvaluation(ac5eConfig, rolls) {
 		const maximize = appendedEntry ? !!appendedEntry.maximize : !!maximizeByRoll[index];
 		const minimize = !maximize && (appendedEntry ? !!appendedEntry.minimize : !!minimizeByRoll[index]);
 		if (!maximize && !minimize) continue;
-		const evaluate = roll.evaluate;
-		if (typeof evaluate !== 'function') continue;
-		roll._ac5eExtremeEvaluation = true;
-		roll.evaluate = function(options = {}) {
-			return evaluate.call(this, { ...options, maximize: maximize || !!options.maximize, minimize: !maximize && (minimize || !!options.minimize) });
-		};
+		for (const die of roll.dice ?? []) {
+			if (!Array.isArray(die?.modifiers) || !Number.isFinite(die.faces) || die.faces < 1) continue;
+			const modifier = maximize ? `min${die.faces}` : 'max1';
+			if (!die.modifiers.includes(modifier)) die.modifiers.push(modifier);
+			die.options ??= {};
+			die.options[Constants.MODULE_ID] ??= {};
+			die.options[Constants.MODULE_ID].extremeModifier = modifier;
+		}
+		roll.resetFormula?.();
 	}
 }
 

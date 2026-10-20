@@ -16,6 +16,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	const { hookType, roller } = getConfigAC5E || {};
 	const messageFlags = render?.flags?.[deps.Constants.MODULE_ID];
 	applyPreferredDisplayFormulas(render, elem, deps);
+	applyDamageExtremeResultLabels(render, elem, deps);
 	if (!['both', 'chat'].includes(deps.settings.showTooltips)) return true;
 	applyRollResultTooltips(render, elem, deps);
 	const visibilityContext = messageFlags && typeof messageFlags === 'object' ? messageFlags : getConfigAC5E;
@@ -174,6 +175,82 @@ function applyRollResultTooltips(message, html, deps) {
 			icon.setAttribute('data-tooltip', tooltip);
 			icon.removeAttribute('title');
 			incrementChatDomStat('tooltipWrites');
+		}
+	}
+}
+
+function applyDamageExtremeResultLabels(message, html, deps) {
+	if (typeof html?.querySelectorAll !== 'function') return;
+	const summaries = html.querySelectorAll('.card-summary[data-message-id]');
+	const cards = summaries.length
+		? Array.from(summaries, (root) => ({ root, rollMessage: game.messages.get(root.dataset.messageId) }))
+		: [{ root: html, rollMessage: message }];
+	for (const { root, rollMessage } of cards) {
+		if (!rollMessage?.rolls?.length || rollMessage.isContentVisible === false) continue;
+		applyCoreDamageExtremeResultLabels(root, rollMessage, deps);
+		const results = Array.from(root.querySelectorAll('.dice-roll'));
+		if (results.length !== rollMessage.rolls.length) continue;
+		for (const [index, result] of results.entries()) {
+			const dice = rollMessage.rolls[index]?.dice ?? [];
+			const parts = result.querySelectorAll('.dice-tooltip .tooltip-part:not(.constant-term)');
+			for (const [dieIndex, die] of dice.entries()) {
+				if (!die.options?.[deps.Constants.MODULE_ID]?.extremeModifier) continue;
+				const labels = parts[dieIndex]?.querySelectorAll('.dice-rolls .roll');
+				for (const [resultIndex, rolled] of (die.results ?? []).entries()) {
+					const label = labels?.[resultIndex];
+					if (!label || rolled.active === false || rolled.discarded || !Number.isFinite(rolled.count)) continue;
+					// Native min/max keeps the raw face in result and the effective value in count.
+					label.textContent = String(rolled.count);
+					label.classList.remove('rerolled', 'min', 'max');
+					if (rolled.success === undefined && rolled.failure === undefined) {
+						label.classList.toggle('min', rolled.count === 1);
+						label.classList.toggle('max', rolled.count === die.faces);
+					}
+				}
+			}
+		}
+	}
+}
+
+function applyCoreDamageExtremeResultLabels(root, message, deps) {
+	if (deps.activeModule?.('midi-qol') || message.type !== 'damage') return;
+	if (!message.rolls.some((roll) => roll.dice?.some((die) => die.options?.[deps.Constants.MODULE_ID]?.extremeModifier))) return;
+	const aggregateDamageRolls = globalThis.dnd5e?.dice?.aggregateDamageRolls;
+	if (!aggregateDamageRolls) return;
+	const breakdown = root.querySelector('.icon-row > .dice-roll + .roll-breakdown');
+	if (!breakdown) return;
+	let changed = false;
+	// Work on presentation copies so recorded results and damage totals stay intact.
+	const copies = message.rolls.map((roll) => roll.constructor.fromData(foundry.utils.deepClone(roll.toJSON())));
+	for (const roll of copies) {
+		for (const die of roll.dice ?? []) {
+			const modifier = die.options?.[deps.Constants.MODULE_ID]?.extremeModifier;
+			if (!modifier) continue;
+			for (const result of die.results ?? []) {
+				if (result.active === false || result.discarded || !Number.isFinite(result.count)) continue;
+				if (result.count !== (modifier === 'max1' ? 1 : die.faces)) continue;
+				result.result = result.count;
+				result.rerolled = false;
+				changed = true;
+			}
+		}
+	}
+	if (!changed) return;
+	const rolls = CONFIG.DND5E.aggregateDamageDisplay ? aggregateDamageRolls(copies) : copies;
+	const parts = rolls.map((roll) => roll.aggregateTerms());
+	const sections = breakdown.querySelectorAll('.dice-tooltip > .tooltip-part');
+	if (sections.length !== parts.length) return;
+	for (const [index, part] of parts.entries()) {
+		const labels = sections[index].querySelectorAll('.dice-rolls .roll');
+		if (labels.length !== part.dice.length) return;
+	}
+	for (const [index, part] of parts.entries()) {
+		const labels = sections[index].querySelectorAll('.dice-rolls .roll');
+		for (const [dieIndex, die] of part.dice.entries()) {
+			const label = labels[dieIndex];
+			label.textContent = String(die.result);
+			const classes = new Set(die.classes.split(/\s+/));
+			for (const name of ['rerolled', 'min', 'max']) label.classList.toggle(name, classes.has(name));
 		}
 	}
 }

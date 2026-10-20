@@ -1275,7 +1275,7 @@ function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = ''
 		nextFormula = nextFormula.replace(diceRegex, (match, count, sides, existing = '') => {
 			const shiftedSides = _shiftDamageDieSize(sides, diceStepTotal, diceProgression);
 			const appliedModifiers = addDamageAdvantageModifier(existing, advDis);
-			return `${count || ''}d${shiftedSides}${suffix}${appliedModifiers}`;
+			return `${count || ''}d${shiftedSides}${suffix}${appliedModifiers}${getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides)}`;
 		});
 		for (const op of formulaOperatorTokens) nextFormula = applyFormulaOperatorToAllTerms(nextFormula, op);
 	}
@@ -2016,10 +2016,11 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			if (newCount <= 0) return `0d${sides}${existing}`;
 			const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
 			const nextCount = count || newCount !== 1 || extraDiceMultiplier !== 1 || extraDiceAdditive !== 0 ? newCount : '';
-			const diceTerm = `${nextCount}d${shiftedSides}${partSuffix}${existing}`;
+			const extremeModifier = getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides);
+			const diceTerm = `${nextCount}d${shiftedSides}${partSuffix}${existing}${extremeModifier}`;
 			const criticalStaticCount = baseCount * Math.max(0, extraDiceCriticalStaticMultiplier - 1) + extraDiceCriticalStaticAdditive;
 			if (criticalStaticCount > 0) {
-				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${partSuffix}${existing}`;
+				const criticalDiceTerm = `${criticalStaticCount}d${shiftedSides}${partSuffix}${existing}${extremeModifier}`;
 				criticalStaticParts.push(criticalDiceTerm);
 			}
 			return diceTerm;
@@ -2036,7 +2037,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 					const baseCount = parseInt(count || '1', 10);
 					const shiftedSides = _applyDamageDiceAlteration(sides, diceAlteration, diceProgression);
 					const nextCount = count || baseCount !== 1 ? baseCount : '';
-					return `${nextCount}d${shiftedSides}${bonusSuffix}${existing}`;
+					return `${nextCount}d${shiftedSides}${bonusSuffix}${existing}${getDamageExtremeDieModifier(rollOptionModifierState, shiftedSides)}`;
 				}),
 			);
 		if (resolvedBonusParts.length) bonusDamageFormula = bonusDamageFormula ? `${bonusDamageFormula} + ${resolvedBonusParts.join(' + ')}` : resolvedBonusParts.join(' + ');
