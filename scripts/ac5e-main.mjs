@@ -28,6 +28,7 @@ import {
 } from './ac5e-api.mjs';
 import { registerAc5eActiveEffectChangeType } from './ac5e-active-effect-change-type.mjs';
 import { captureAllowEffectApplicationD20Result } from './ac5e-allow-effect-application.mjs';
+import { prepareDiceSoNiceDamageRoll } from './integrations/ac5e-dice-so-nice.mjs';
 import Constants from './ac5e-constants.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -160,6 +161,7 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.postRollConfiguration', type: 'postRollConfig' },
 	];
 	const resultHooks = [
+		{ id: 'diceSoNiceRollStart', handler: prepareDiceSoNiceDamageRoll },
 		{ id: 'dnd5e.rollSavingThrow', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'save') },
 		{ id: 'dnd5e.rollAbilityCheck', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'check') },
 		{ id: 'dnd5e.rollSkill', handler: (...args) => captureAllowEffectApplicationD20Result(...args, 'check') },
