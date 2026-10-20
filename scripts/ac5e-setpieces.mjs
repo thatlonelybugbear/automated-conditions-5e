@@ -1807,7 +1807,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			}
 			return false;
 		}
-		if (normalizedChangeValue.includes('itemlimited') && evalData.originItem?.id !== evalData.item?.id && evalData.originItem?.uuid !== evalData.item?.uuid) return false;
+		if (normalizedChangeValue.includes('itemlimited')) {
+			const limitedItem = effect.transfer && effect.parent instanceof Item ? effect.parent : evalData.originItem;
+			const rollingItem = evalData.item;
+			const matchesItem = limitedItem?.uuid && rollingItem?.uuid
+				? limitedItem.uuid === rollingItem.uuid
+				: !!limitedItem?.id && limitedItem.id === rollingItem?.id;
+			if (!matchesItem) return false;
+		}
 		if (change.key.includes('aura') && auraTokenEvaluationData) {
 			//isAura
 			if (!(isModifyAC ? opponentToken : subjectToken)) return false;
