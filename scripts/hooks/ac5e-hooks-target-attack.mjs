@@ -38,7 +38,7 @@ export function refreshAttackTargetsForSubmission(dialog, config, ac5eConfig, me
 		}
 	}
 
-	syncTargetsToConfigAndMessage(ac5eConfig, finalTargets, message, targetDeps, { preferTargets: !!ac5eConfig.wavesCover?.entries?.length });
+	syncTargetsToConfigAndMessage(ac5eConfig, finalTargets, message, targetDeps, { preferTargets: true });
 	config.advantage = undefined;
 	config.disadvantage = undefined;
 	deps.calcAdvantageMode(ac5eConfig, config, undefined, undefined, { skipSetProperties: true });
