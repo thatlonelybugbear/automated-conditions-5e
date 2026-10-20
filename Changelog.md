@@ -1,3 +1,9 @@
+## 14.606.4.2
+
+- Preserved DAE Attribute Key autocomplete suggestions when the change Type is not AC5E. AC5E now dismisses only its own autocomplete menu.
+- Replaced damage maximize/minimize evaluation overrides with native dice modifiers for base and bonus damage. Updated dialog formulas and chat dice displays to reflect the modified results, including the core damage card. The core-specific display correction is skipped when Midi-QOL is active.
+- Added Dice So Nice support so animated dice reflect AC5E maximize/minimize results. Uses a display-only roll copy while preserving recorded rolls, damage totals, and Dice So Nice visibility and user settings.
+
 ## 14.606.4.1
 
 - Fixed `itemLimited` on transferred Item effects, including enchantments, to match the Item carrying the effect. Retained compendium origins no longer prevent matching the weapon used by an unlinked token. Actor-applied effects continue to use their resolved origin Item.
