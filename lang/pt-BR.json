@@ -1,4 +1,10 @@
 {
+  	"AC5E.RegistryImport.InvalidSnapshot": "AC5E: Este arquivo não é uma exportação de JSON compatível com este registro.",
+  	"AC5E.RegistryImport.InvalidEntry": "AC5E: A entrada {index} é inválida ou possui uma chave ou ID duplicado. Nenhuma entrada foi importada.",
+  	"AC5E.RegistryImport.NoActiveGM": "AC5E: É necessário um Mestre ativo para importar alterações em entradas persistentes.",
+  	"AC5E.RegistryImport.SaveFailed": "AC5E: Não foi possível salvar as entradas importadas. O estado anterior do registro foi restaurado.",
+  	"AC5E.RegistryExport.Skipped": "AC5E: {count} entradas foram ignoradas durante a exportação do JSON porque contêm funções de retorno ou outros valores que o JSON não consegue preservar. Consulte as entradas ignoradas abaixo.",
+  	"AC5E.StatusEffectsOverrides.ConditionError": "AC5E: A substituição de status \"{name}\" (ID: {id}) foi ignorada para {status}/{hook}/{type}. Condição: {condition}. Erro: {error}. Corrija sua condição usando ac5e.statusEffectsOverrides.register com o mesmo ID ou remova-a usando ac5e.statusEffectsOverrides.remove({removeId}). O acesso aos identificadores de game/canvas é proibido; use os campos do ambiente isolado. Nomes entre aspas que contenham essas palavras são permitidos.",
 	"AC5E.AutomateStatuses": {
 		"Name": "Regras de Condições do D&D 5e",
 		"Hint": "Ativa o tratamento de condições do AC5E para D&D 5e, expandindo a automação nativa de vantagem do sistema D&D 5e com uma aplicação de regras mais ampla e precisa, especialmente para jogadas de ataque."
@@ -25,14 +31,24 @@
 	"AC5E.ShowToolTipsChoicesChat": "Somente em Chat",
 	"AC5E.ShowToolTipsChoicesNone": "Não Exibir",
 	"AC5E.ShowModuleNameInTooltipsName": "Mostrar o Nome do Módulo nas Dicas",
-	"AC5E.ShowTooltipChatVisibility.Name": "Mostrar Dicas de Chat para",
-	"AC5E.ShowTooltipChatVisibility.Hint": "Escolha quais rolagens exibem as dicas de ferramenta do AC5E no chat. O Mestre sempre vê todas as dicas de ferramenta.",
-	"AC5E.ShowTooltipChatVisibility.All": "Todos",
+	"AC5E.ShowTooltipChatVisibility.Name": "Mostrar Dicas de Chat de Jogadores para",
+	"AC5E.ShowTooltipChatVisibility.Hint": "Escolha para quais jogadores as dicas do AC5E ficarão visíveis. 'Ninguém' oculta as dicas de todos os jogadores. Mestres ignoram este filtro, mas ainda seguem sua própria configuração 'Mostrar Dicas de AC5E'.",
+	"AC5E.ShowTooltipChatVisibility.All": "Todos os Atores",
 	"AC5E.ShowTooltipChatVisibility.None": "Ninguém",
 	"AC5E.ShowTooltipChatVisibility.Owned": "Próprias",
 	"AC5E.ShowTooltipChatVisibility.Players": "Jogadores",
 	"AC5E.ExpandedConditionsName": "Condições Expandidas",
+	"AC5E.HeavyWeapon": "Arma Pesada",
 	"AC5E.ExpandedConditionsHint": "Ativa a automação para condições e estados de combate adicionais, como Esquivar, Furtividade, restrições de magia durante Fúria e Combate Submerso.",
+  	"AC5E.AdditionalAutomations": {
+    	"Name": "Regras Automatizadas Adicionais",
+    	"Hint": "Escolha quais regras adicionais o AC5E automatiza: Esquiva, Se Esconder, restrições de conjuração em Fúria, Combate Submerso e a propriedade Pesada das armas.",
+    	"Migration": {
+      		"Notification": "AC5E: Suas configurações de automação adicional foram migradas. Consulte a mensagem privada no chat para obter mais detalhes.",
+      		"None": "Nenhuma",
+      		"Message": "<h3>Automated Conditions 5e: Configurações Migradas</h3><p>Suas configurações salvas de Condições Expandidas e da propriedade Pesada das armas foram movidas para a seleção múltipla de Regras Automatizadas Adicionais. Condições Expandidas ativa as regras de Esquiva, Se Esconder, restrições de conjuração em Fúria e Combate Submerso. A propriedade Pesada será ativada apenas se sua configuração anterior estiver ativada.</p><p><strong>Regras ativadas:</strong> {selected}</p><p>Agora você pode selecionar cada regra individualmente em Definir Configurações → Automated Conditions 5e → Regras Automatizadas Adicionais.</p>"
+    	}
+  	},
 	"AC5E.VisibilityChecksSetting": {
 		"Name": "Regras de Visibilidade",
 		"Hint": "Utiliza as regras de visibilidade de ataque do AC5E com base na visão e nos sentidos dos tokens. Quando ativado, o AC5E adiciona os motivos de ataque 'Não Pode Ver o Alvo' e 'O Alvo Não Pode Ver o Atacante'. Esses motivos são ignorados quando o Midi QOL já aplica suas próprias regras de invisibilidade ou atacante oculto."
@@ -108,7 +124,7 @@
 	"AC5E.TokenlessActorWarning": {
 		"Hint": "Exibe um aviso ao realizar uma rolagem para um ator que não possui um token na cena atual",
 		"Name": "Exibir Aviso de Ator sem Token",
-		"Text": "Aviso do AC5E: O ator para o qual você está rolando os dados não possui um token na cena. Os resultados podem ser distorcidos"
+		"Text": "Aviso do AC5E: O ator que está realizando a jogada não possui um token na cena. As regras baseadas no ator continuam sendo aplicadas, porém as verificações de distância, visibilidade, cobertura e auras exigem um token na cena."
 	},
 	"AC5E.Statuses": {
 		"UnderwaterCombat": "Combate Submerso"
@@ -180,6 +196,9 @@
 	"AC5E.Flags": "flags",
 	"AC5E.FlagsInitiativeAdv": "Vantagem na Iniciativa",
 	"AC5E.FlagsInitiativeDisadv": "Desvantagem na Iniciativa",
+  	"AC5E.TargetCharmedByYou": "Alvo Enfeitiçado por Você",
+  	"AC5E.TargetCharmedByYouDescription": "Concede Vantagem neste teste. Desmarque se esta não for uma interação social com o alvo Enfeitiçado.",
+  	"AC5E.TargetIsYourCharmer": "O alvo está Enfeitiçando você. Bloquear uso?",
 	"AC5E.TargetGrantsAdvantageAbbreviated": "Vantagem Concedida",
 	"AC5E.TargetGrantsDisadvantageAbbreviated": "Desvantagem Concedida",
 	"AC5E.TargetGrantsCriticalAbbreviated": "Crítico Concedido",
@@ -248,6 +267,13 @@
 	"AC5E.OptinCadence.OncePerTurn": "(1/turno)",
 	"AC5E.OptinCadence.OncePerRound": "(1/rodada)",
 	"AC5E.OptinCadence.OncePerCombat": "(1/combate)",
+  	"AC5E.OptinSpellSlot.EditorHint": "Use spell[slot,pact], spell[slot], ou spell[pact] com optin. Os espaços disponíveis do ator aparecem em um menu suspenso. O consumo é sempre de um espaço. Ative Escalonamento para restringir os níveis dos espaços usando Mín. e Máx. Esses limites também se aplicam aos espaços de pacto.",
+  	"AC5E.OptinSpellSlot.Unavailable": "AC5E: {actor} não possui mais um espaço de {slot} disponível no nível selecionado. O consumo do espaço foi ignorado.",
+  	"AC5E.OptinSpellSlot.Choice": "Espaço de magia a consumir",
+  	"AC5E.OptinSpellSlot.Spell": "Espaço de magia de {level}º nível ({available} disponíveis)",
+  	"AC5E.OptinSpellSlot.Pact": "Espaço de pacto de {level}º nível ({available} disponíveis)",
+  	"AC5E.OptinSpellSlot.Cost": "(consome 1 espaço)",
+  	"AC5E.OptinSpellSlot.Hint": "Consome um espaço do conjunto selecionado. optinScale e bonusScale utilizam o nível desse espaço. Apenas espaços disponíveis dentro dos limites configurados são oferecidos.",
 	"AC5E.OptinLegend.Optional": "AC5E",
 	"AC5E.OptinLegend.FromOtherSources": "AC5E De outras fontes (solicite permissão)",
 	"AC5E.EnvironmentalHazards": {
@@ -539,6 +565,7 @@
       		"OptinPreselected": "Opcional Pré-Selecionado",
       		"ItemLimited": "Limitado ao Item",
       		"CriticalStatic": "Crítico Estático",
+			"Cancel": "Cancelar Jogada",
       		"RangeBonus": "Bônus de Alcance",
       		"ShortRange": "Alcance Curto",
       		"LongRange": "Alcance Longo",
@@ -599,6 +626,8 @@
       		"UpdateQuickTargets": "Atualizar Alvos Rápidos",
       		"DamageTypes": "Tipos de Dano",
       		"HealingTypes": "Tipos de Cura",
+			"AddTypeChoices": "Adicionar às Opções de Tipo Existentes",
+      		"AddTypeChoicesHint": "Adiciona os tipos selecionados às opções existentes do menu suspenso de cada parte afetada, em vez de substituí-las. Não adiciona dano extra. Armazena um prefixo + no valor de substituição.",
       		"AbilityOverrideEntries": "Entradas de Substituição de Atributo",
       		"WhichDamageParts": "Quais Partes do Dano",
       		"SelectedOptin": "Opcional Selecionado",
@@ -635,6 +664,7 @@
 			"UpdateAmountInspiration": "Valores positivos ou =1 concedem Inspiração. Zero, valores negativos ou =0 a removem.",
 			"UpdateAmountExhaustion": "Valores positivos adicionam níveis de Exaustão. Valores negativos removem níveis. Use =0 para remover toda a Exaustão.",
 			"ToggleOptin": "Exibe esta entrada como opcional para que os usuários possam ativá-la em cada rolagem.",
+	      	"ToggleCancel": "Cancela a rolagem antes da avaliação dos dados quando esta entrada de informação for aplicada. Para entradas opcionais, o cancelamento exige que sejam selecionadas. As atualizações selecionadas e o consumo de usesCount ainda são aplicados.",
 			"ToggleItemLimited": "Aplica apenas quando o item/atividade de origem corresponder ao contexto de origem limitado.",
 			"ToggleCriticalStatic": "Aplica este bônus de dano ou estes dados adicionais exatamente como estão, sem seguir as regras normais de acerto crítico.",
 			"ToggleAllies": "A aura se aplica a tokens aliados.",
