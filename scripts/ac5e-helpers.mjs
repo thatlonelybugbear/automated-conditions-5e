@@ -25,6 +25,16 @@ export function _cloneUseConfigShallow(useConfig) {
 	return cloned;
 }
 
+export function isD20ModeSuppressed(ac5eConfig, mode) {
+	if (!['attack', 'check', 'save', 'init', 'initiative'].includes(ac5eConfig?.hookType)) return false;
+	const key = mode === 'advantage' ? 'noAdvantage' : mode === 'disadvantage' ? 'noDisadvantage' : null;
+	if (!key) return false;
+	return [ac5eConfig.subject, ac5eConfig.opponent].some((side) =>
+		_filterOptinEntries(side?.[key] ?? [], ac5eConfig.optinSelected).some((entry) =>
+			entry?.evaluation !== false && _entryMatchesTransientState(entry, ac5eConfig)),
+	);
+}
+
 export function getNativeD20SourceState(ac5eConfig, state) {
 	if (_activeModule('midi-qol') || !['attack', 'check', 'save', 'init'].includes(ac5eConfig.hookType)) return state;
 	const override = ac5eConfig.systemRollMode?.override;
@@ -1839,6 +1849,8 @@ export function _getTooltip(ac5eConfig = {}) {
 	const suppressDamageCalculated = explicitOverride?.family === 'damage';
 	const enforcedD20Mode = ['advantage', 'disadvantage', 'normal'].includes(ac5eConfig?.enforcedD20Mode) ? ac5eConfig.enforcedD20Mode : null;
 	const suppressResolvedD20Buckets = suppressD20Calculated || !!enforcedD20Mode;
+	const advantageSuppressed = !suppressResolvedD20Buckets && isD20ModeSuppressed(ac5eConfig, 'advantage');
+	const disadvantageSuppressed = !suppressResolvedD20Buckets && isD20ModeSuppressed(ac5eConfig, 'disadvantage');
 	const explicitOverrideBucketLabel =
 		explicitOverride?.source === 'dialog' ? 'Roll dialog user input'
 		: explicitOverride?.source === 'keypress' ? 'Override keypress'
@@ -1905,16 +1917,16 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(subjectSuppressedStatuses.length, `<span style="display: block; text-align: left;">Suppressed Statuses: ${subjectSuppressedStatuses.join(', ')}</span>`);
 		addTooltip(subjectCritical.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Critical')}: ${subjectCritical.join(', ')}</span>`);
 		addTooltip(subjectNoCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoCritical')}: ${subjectNoCritical.join(', ')}</span>`);
-		addTooltip(subjectAdvantageModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subjectAdvantageModes.join(', ')}</span>`);
+		addTooltip(subjectAdvantageModes.length && !advantageSuppressed, `<span style="display: block; text-align: left;">${_localize('DND5E.Advantage')}: ${subjectAdvantageModes.join(', ')}</span>`);
 		addTooltip(subjectNormalModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Normal')}: ${subjectNormalModes.join(', ')}</span>`);
-		addTooltip(subjectMidiAdvantage.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Advantage')}: ${subjectMidiAdvantage.join(', ')}</span>`);
-		addTooltip(subjectMidiDisadvantage.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Disadvantage')}: ${subjectMidiDisadvantage.join(', ')}</span>`);
+		addTooltip(subjectMidiAdvantage.length && !advantageSuppressed, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Advantage')}: ${subjectMidiAdvantage.join(', ')}</span>`);
+		addTooltip(subjectMidiDisadvantage.length && !disadvantageSuppressed, `<span style="display: block; text-align: left;">MidiQOL ${_localize('DND5E.Disadvantage')}: ${subjectMidiDisadvantage.join(', ')}</span>`);
 		addTooltip(subjectNoAdvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoAdvantage')}: ${subjectNoAdvantage.join(', ')}</span>`);
 		addTooltip(subjectRangeNotes.length, `<span style="display: block; text-align: left;">Range: ${subjectRangeNotes.join(', ')}</span>`);
 		addTooltip(subjectFail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fail')}: ${subjectFail.join(', ')}</span>`);
 		addTooltip(subjectMidiFail.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('AC5E.Fail')}: ${subjectMidiFail.join(', ')}</span>`);
 		addTooltip(subjectFumble.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Fumble')}: ${subjectFumble.join(', ')}</span>`);
-		addTooltip(subjectDisadvantageModes.length, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subjectDisadvantageModes.join(', ')}</span>`);
+		addTooltip(subjectDisadvantageModes.length && !disadvantageSuppressed, `<span style="display: block; text-align: left;">${_localize('DND5E.Disadvantage')}: ${subjectDisadvantageModes.join(', ')}</span>`);
 		addTooltip(subjectNoDisadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.NoDisadvantage')}: ${subjectNoDisadvantage.join(', ')}</span>`);
 		addTooltip(subjectSuccess.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Success')}: ${subjectSuccess.join(', ')}</span>`);
 		addTooltip(subjectMidiSuccess.length, `<span style="display: block; text-align: left;">MidiQOL ${_localize('AC5E.Success')}: ${subjectMidiSuccess.join(', ')}</span>`);
@@ -1961,10 +1973,10 @@ export function _getTooltip(ac5eConfig = {}) {
 		addTooltip(opponentCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsCriticalAbbreviated')}: ${opponentCritical.join(', ')}</span>`);
 		addTooltip(opponentNoCritical.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsNoCritical')}: ${opponentNoCritical.join(', ')}</span>`);
 		addTooltip(opponentFail.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsFail')}: ${opponentFail.join(', ')}</span>`);
-		addTooltip(opponentAdvantageModes.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${opponentAdvantageModes.join(', ')}</span>`);
+		addTooltip(opponentAdvantageModes.length && !advantageSuppressed, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsAdvantageAbbreviated')}: ${opponentAdvantageModes.join(', ')}</span>`);
 		addTooltip(opponentNoAdvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsNoAdvantage')}: ${opponentNoAdvantage.join(', ')}</span>`);
 		addTooltip(
-			opponentDisadvantageModes.length,
+			opponentDisadvantageModes.length && !disadvantageSuppressed,
 			`<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsDisadvantageAbbreviated')}: ${opponentDisadvantageModes.join(', ')}</span>`,
 		);
 		addTooltip(opponentNoDisadvantage.length, `<span style="display: block; text-align: left;">${_localize('AC5E.TargetGrantsNoDisadvantage')}: ${opponentNoDisadvantage.join(', ')}</span>`);

@@ -2,6 +2,7 @@ import {
 	_ac5eSafeEval,
 	_activeModule,
 	getNativeD20SourceState,
+	isD20ModeSuppressed,
 	_dispositionCheck,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
@@ -2934,6 +2935,19 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 	const validItemUpdates = [];
 	const validItemUpdatesGM = [];
 	const enforcedD20Mode = getEnforcedD20ModeFromValidFlags();
+	const suppressionConfig = {
+		...ac5eConfig,
+		subject: {
+			...ac5eConfig.subject,
+			noAdvantage: [...(ac5eConfig.subject.noAdvantage ?? []), ...getValidFlagsBySideAndMode('subject', 'noAdvantage')],
+			noDisadvantage: [...(ac5eConfig.subject.noDisadvantage ?? []), ...getValidFlagsBySideAndMode('subject', 'noDisadvantage')],
+		},
+		opponent: {
+			...ac5eConfig.opponent,
+			noAdvantage: [...(ac5eConfig.opponent.noAdvantage ?? []), ...getValidFlagsBySideAndMode('opponent', 'noAdvantage')],
+			noDisadvantage: [...(ac5eConfig.opponent.noDisadvantage ?? []), ...getValidFlagsBySideAndMode('opponent', 'noDisadvantage')],
+		},
+	};
 
 	for (const entry of validFlags) {
 		let { actorType, evaluation, mode, name, bonus, modifier, set, threshold, isAura, optin } = entry;
@@ -2978,7 +2992,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 					});
 				}
 			}
-			if (!suppressQueuedUses) {
+			if (!suppressQueuedUses && !isD20ModeSuppressed(suppressionConfig, mode)) {
 				for (const queued of updateArrays.activityUpdates.filter(matchesQueuedUpdate)) validActivityUpdates.push(queued.context ?? queued);
 				for (const queued of updateArrays.activityUpdatesGM.filter(matchesQueuedUpdate)) validActivityUpdatesGM.push(queued.context ?? queued);
 				for (const queued of updateArrays.actorUpdates.filter(matchesQueuedUpdate)) validActorUpdates.push(queued.context ?? queued);

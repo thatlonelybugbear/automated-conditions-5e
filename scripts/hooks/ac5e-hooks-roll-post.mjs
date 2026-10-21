@@ -1,4 +1,4 @@
-import { _filterOptinEntries, _isOptinSelectionActive, _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { isD20ModeSuppressed, _filterOptinEntries, _isOptinSelectionActive, _activeModule, _getMessageFlagScope, _getTooltip, _setMessageFlagScope, debugRollStateMigration, getResolvedD20BooleansFromMode, getRollModeCounts } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _applyPendingUses } from '../ac5e-setpieces.mjs';
 import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
@@ -346,6 +346,7 @@ function applyPendingUsesIfNeeded(ac5eConfig, rolls) {
 	const explicitOverride = getExplicitModeOverride(ac5eConfig);
 	const pending = ac5eConfig.pendingUses
 		.filter((entry) => !entry.optin || selectedIds.has(entry.id))
+		.filter((entry) => !isD20ModeSuppressed(ac5eConfig, entry.modeKey))
 		.filter((entry) => entry?.modeFamily !== explicitOverride?.family || !explicitOverride?.replacesCalculatedMode);
 	if (ac5e?.debug?.auraCadenceOptins) {
 		const auraPending = ac5eConfig.pendingUses.filter((entry) => String(entry?.id ?? '').includes(':aura:'));
