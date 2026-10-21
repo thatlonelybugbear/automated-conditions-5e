@@ -38,6 +38,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 		if (!node) return;
 		incrementChatDomStat('tooltipWrites');
 		node.setAttribute('data-tooltip', value);
+		if (node.matches('.bm5e-reroll-button, i.fa-dice')) node.setAttribute('data-tooltip-direction', 'LEFT');
 		node.removeAttribute('title');
 		if (deps.hookDebugEnabled('renderHijackHook')) {
 			console.warn(`AC5E TRACE tooltip.apply ${JSON.stringify({
@@ -173,6 +174,7 @@ function applyRollResultTooltips(message, html, deps) {
 			const icon = result.closest('.icon-row')?.querySelector(':scope > .bm5e-reroll-button, :scope > i.fa-dice');
 			if (!icon) continue;
 			icon.setAttribute('data-tooltip', tooltip);
+			icon.setAttribute('data-tooltip-direction', 'LEFT');
 			icon.removeAttribute('title');
 			incrementChatDomStat('tooltipWrites');
 		}
