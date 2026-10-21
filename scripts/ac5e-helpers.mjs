@@ -35,6 +35,20 @@ export function isD20ModeSuppressed(ac5eConfig, mode) {
 	);
 }
 
+export function isD20SuppressionNeeded(ac5eConfig, mode) {
+	if (!['attack', 'check', 'save', 'init', 'initiative'].includes(ac5eConfig?.hookType)) return true;
+	const sourceMode = mode === 'noAdvantage' ? 'advantage' : mode === 'noDisadvantage' ? 'disadvantage' : null;
+	if (!sourceMode) return true;
+	const override = ac5eConfig.systemRollMode?.override;
+	if (override != null) return sourceMode === 'advantage' ? override > 0 : override < 0;
+	return [ac5eConfig.subject, ac5eConfig.opponent].some((side) => {
+		const names = side?.[`${sourceMode}Names`];
+		return (names?.size ?? names?.length ?? 0) > 0 ||
+			_filterOptinEntries(side?.[sourceMode] ?? [], ac5eConfig.optinSelected).some((entry) =>
+				entry?.evaluation !== false && _entryMatchesTransientState(entry, ac5eConfig));
+	});
+}
+
 export function getNativeD20SourceState(ac5eConfig, state) {
 	if (_activeModule('midi-qol') || !['attack', 'check', 'save', 'init'].includes(ac5eConfig.hookType)) return state;
 	const override = ac5eConfig.systemRollMode?.override;
@@ -1879,8 +1893,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		const calculatedSubjectDisadvantageModes = [...mapEntryLabels(filterOptinEntries(subject?.disadvantage ?? [])), ...([...subject?.disadvantageNames] ?? [])].filter(
 			(label) => !midiDisadvantageSet.has(normalizeTooltipLabel(label)),
 		);
-		const calculatedSubjectNoAdvantage = mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? []));
-		const calculatedSubjectNoDisadvantage = mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? []));
+		const calculatedSubjectNoAdvantage = isD20SuppressionNeeded(ac5eConfig, 'noAdvantage') ? mapEntryLabels(filterOptinEntries(subject?.noAdvantage ?? [])) : [];
+		const calculatedSubjectNoDisadvantage = isD20SuppressionNeeded(ac5eConfig, 'noDisadvantage') ? mapEntryLabels(filterOptinEntries(subject?.noDisadvantage ?? [])) : [];
 		if (enforcedD20Mode) {
 			hiddenResolvedD20TooltipEntries +=
 				calculatedSubjectAdvantageModes.length +
@@ -1953,8 +1967,8 @@ export function _getTooltip(ac5eConfig = {}) {
 		const opponentNoCritical = suppressDamageCalculated ? [] : mapEntryLabels(filterOptinEntries(opponent?.noCritical ?? []));
 		const calculatedOpponentAdvantageModes = [...mapEntryLabels(filterOptinEntries(opponent?.advantage ?? [])), ...([...opponent?.advantageNames] ?? [])];
 		const calculatedOpponentDisadvantageModes = [...mapEntryLabels(filterOptinEntries(opponent?.disadvantage ?? [])), ...([...opponent?.disadvantageNames] ?? [])];
-		const calculatedOpponentNoAdvantage = mapEntryLabels(filterOptinEntries(opponent?.noAdvantage ?? []));
-		const calculatedOpponentNoDisadvantage = mapEntryLabels(filterOptinEntries(opponent?.noDisadvantage ?? []));
+		const calculatedOpponentNoAdvantage = isD20SuppressionNeeded(ac5eConfig, 'noAdvantage') ? mapEntryLabels(filterOptinEntries(opponent?.noAdvantage ?? [])) : [];
+		const calculatedOpponentNoDisadvantage = isD20SuppressionNeeded(ac5eConfig, 'noDisadvantage') ? mapEntryLabels(filterOptinEntries(opponent?.noDisadvantage ?? [])) : [];
 		if (enforcedD20Mode) {
 			hiddenResolvedD20TooltipEntries +=
 				calculatedOpponentAdvantageModes.length +
@@ -2411,8 +2425,8 @@ function _collectMidiTrackerCoreLabels(ac5eConfig) {
 		enforcedModeLabels,
 		advantageLabels: collectLabels('advantage', 'advantage', true),
 		disadvantageLabels: collectLabels('disadvantage', 'disadvantage', true),
-		noAdvantageLabels: collectLabels('noAdvantage'),
-		noDisadvantageLabels: collectLabels('noDisadvantage'),
+		noAdvantageLabels: isD20SuppressionNeeded(ac5eConfig, 'noAdvantage') ? collectLabels('noAdvantage') : [],
+		noDisadvantageLabels: isD20SuppressionNeeded(ac5eConfig, 'noDisadvantage') ? collectLabels('noDisadvantage') : [],
 		infoLabels,
 	};
 }
