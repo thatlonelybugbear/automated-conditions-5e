@@ -115,8 +115,14 @@ export function applyTargetADCStateToD20Config(ac5eConfig, rollConfig, { syncAtt
 			delete options.alteredTargetADC;
 		}
 		if (isAttackHook && Array.isArray(ac5eConfig.options?.targets)) {
-			for (const target of ac5eConfig.options.targets) {
-				if (target && typeof target === 'object') target.ac = baseTarget;
+			for (const [index, target] of ac5eConfig.options.targets.entries()) {
+				if (!target || typeof target !== 'object') continue;
+				const key = getTargetKey(target, index);
+				const targetAC = coverTargetAcByKey[key]?.ac
+					?? ac5eConfig.preAC5eConfig?.baseTargetAcByKey?.[key]?.ac
+					?? ac5eConfig.initialTargetADCs?.[key]?.ac;
+				if (typeof targetAC === 'number' && Number.isFinite(targetAC)) target.ac = targetAC;
+				else if (ac5eConfig.options.targets.length === 1) target.ac = baseTarget;
 			}
 		}
 	} else if (isAttackHook && Object.keys(coverTargetAcByKey).length && Array.isArray(ac5eConfig.options?.targets)) {
