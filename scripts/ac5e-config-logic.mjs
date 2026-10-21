@@ -230,7 +230,8 @@ function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config
 	} else if (initiative) fields = [`abilities.${ability}.check.roll`, 'attributes.init.roll', 'rolls.ability.check'];
 	else if (skill || tool) fields = [`abilities.${ability}.check.roll`, 'rolls.ability.check', `rolls.ability.${type}`, `${type}s.${type === 'skill' ? skill : tool}.roll`];
 	else fields = [`abilities.${ability}.${hookType}.roll`, `rolls.ability.${hookType}`];
-	const counts = category ? dnd5e.documents.AppliedRules.collect(`${category}:advantage`, actor, item).filterWith(rollData).toAdvantageCounts()
+	const matchedRules = new Set();
+	const counts = category ? dnd5e.documents.AppliedRules.collect(`${category}:advantage`, actor, item).filterWith(rollData, { consumed: matchedRules }).toAdvantageCounts()
 		: { override: null, advantages: { count: 0, suppressed: false }, disadvantages: { count: 0, suppressed: false } };
 	if (skill || tool) {
 		const relevant = type === 'skill' ? actor.system.skills?.[skill] : actor.system.tools?.[tool];
@@ -253,7 +254,11 @@ function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config
 	for (const [side, key, suppressedKey] of [['advantages', 'advantage', 'noAdvantage'], ['disadvantages', 'disadvantage', 'noDisadvantage']]) {
 		counts[side].count = Math.max(0, counts[side].count);
 		ac5eConfig.subject[key].push(...Array.from({ length: counts[side].count }, () => _localize('AC5E.SystemMode')));
-		if (counts[side].suppressed) ac5eConfig.subject[suppressedKey].push(_localize(side === 'advantages' ? 'AC5E.NoAdvantage' : 'AC5E.NoDisadvantage'));
+		if (counts[side].suppressed) {
+			const value = side === 'advantages' ? '<=0' : '>=0';
+			const names = [...new Set([...matchedRules].filter((rule) => String(rule.value) === value).map((rule) => rule.effect?.name).filter(Boolean))];
+			ac5eConfig.subject[suppressedKey].push(...(names.length ? names : [_localize(side === 'advantages' ? 'AC5E.NoAdvantage' : 'AC5E.NoDisadvantage')]));
+		}
 	}
 	if (counts.override != null) ac5eConfig.subject.modifiers.push(_localize(counts.override > 0 ? 'AC5E.ForcedAdvantage' : counts.override < 0 ? 'AC5E.ForcedDisadvantage' : 'AC5E.SystemMode'));
 	return { adv: counts.advantages.count, dis: counts.disadvantages.count, override: counts.override };
