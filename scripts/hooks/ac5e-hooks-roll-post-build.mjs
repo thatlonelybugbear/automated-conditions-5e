@@ -7,7 +7,7 @@ export function preserveD20Mode(processConfig, config, index, { app } = {}) {
 	if (app || index !== 0) return;
 	const ac5eConfig = config?.options?.[Constants.MODULE_ID];
 	if (!['attack', 'check', 'save', 'init'].includes(ac5eConfig?.hookType) || typeof ac5eConfig.advantageMode !== 'number') return;
-	if (_activeModule('midi-qol')) return;
+	if (_activeModule('midi-qol') && ac5eConfig.hookType !== 'attack') return;
 	// Native keybindings run after the pre-roll hooks; retain AC5E's resolved suppression and enforcement.
 	const override = ac5eConfig.explicitModeOverride;
 	const action = override?.family === 'd20' ? override.action : ac5eConfig.defaultButton;

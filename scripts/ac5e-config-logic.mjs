@@ -209,7 +209,7 @@ function _resolveSystemModeLabel(baseKey, detail) {
 	return `${base} (${detailLabel})`;
 }
 
-function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config }) {
+function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config, midiTracker }) {
 	const { ability, skill, tool } = options;
 	const initiative = hookType === 'init' || options.isInitiative;
 	const type = initiative ? 'initiative' : config.hookNames?.includes('toolCheck') ? 'tool' : skill ? 'skill' : tool ? 'tool' : (config[`${hookType}Type`] ?? 'ability');
@@ -231,7 +231,14 @@ function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config
 	else if (skill || tool) fields = [`abilities.${ability}.check.roll`, 'rolls.ability.check', `rolls.ability.${type}`, `${type}s.${type === 'skill' ? skill : tool}.roll`];
 	else fields = [`abilities.${ability}.${hookType}.roll`, `rolls.ability.${hookType}`];
 	const matchedRules = new Set();
-	const counts = category ? dnd5e.documents.AppliedRules.collect(`${category}:advantage`, actor, item).filterWith(rollData, { consumed: matchedRules }).toAdvantageCounts()
+	// Midi's raw counts exclude system fields and rules, which are merged below.
+	const midiCounts = midiTracker?.counts;
+	if (midiCounts && !ac5eConfig.explicitModeOverride?.replacesCalculatedMode) {
+		for (const [key, side] of [['advantage', 'advantages'], ['disadvantage', 'disadvantages']]) {
+			if ((config[key] === true || config.midiOptions?.[key] === true) && !midiTracker.claims?.[key]) midiCounts[side].count++;
+		}
+	}
+	const counts = category ? dnd5e.documents.AppliedRules.collect(`${category}:advantage`, actor, item).filterWith(rollData, { consumed: matchedRules }).toAdvantageCounts(midiCounts)
 		: { override: null, advantages: { count: 0, suppressed: false }, disadvantages: { count: 0, suppressed: false } };
 	if (skill || tool) {
 		const relevant = type === 'skill' ? actor.system.skills?.[skill] : actor.system.tools?.[tool];
@@ -253,11 +260,13 @@ function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config
 	}
 	for (const [side, key, suppressedKey] of [['advantages', 'advantage', 'noAdvantage'], ['disadvantages', 'disadvantage', 'noDisadvantage']]) {
 		counts[side].count = Math.max(0, counts[side].count);
-		ac5eConfig.subject[key].push(...Array.from({ length: counts[side].count }, () => _localize('AC5E.SystemMode')));
+		const labels = midiTracker ? _getMidiAttackAttributionEntries(config.workflow, side === 'advantages' ? 'ADV' : 'DIS') : [];
+		ac5eConfig.subject[key].push(...Array.from({ length: counts[side].count }, (_, index) => labels[index] ?? labels[0] ?? _localize('AC5E.SystemMode')));
 		if (counts[side].suppressed) {
 			const value = side === 'advantages' ? '<=0' : '>=0';
 			const names = [...new Set([...matchedRules].filter((rule) => String(rule.value) === value).map((rule) => rule.effect?.name).filter(Boolean))];
-			ac5eConfig.subject[suppressedKey].push(...(names.length ? names : [_localize(side === 'advantages' ? 'AC5E.NoAdvantage' : 'AC5E.NoDisadvantage')]));
+			if (midiTracker) names.push(..._getMidiAttackAttributionEntries(config.workflow, side === 'advantages' ? 'NOADV' : 'NODIS'));
+			ac5eConfig.subject[suppressedKey].push(...(names.length ? [...new Set(names)] : [_localize(side === 'advantages' ? 'AC5E.NoAdvantage' : 'AC5E.NoDisadvantage')]));
 		}
 	}
 	if (counts.override != null) ac5eConfig.subject.modifiers.push(_localize(counts.override > 0 ? 'AC5E.ForcedAdvantage' : counts.override < 0 ? 'AC5E.ForcedDisadvantage' : 'AC5E.SystemMode'));
@@ -270,27 +279,15 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig, config = {}
 	const autoArmorChecks = _autoArmor(actor);
 	const { ability, skill, tool } = options || {};
 	const native = !_activeModule('midi-qol');
-	if (native) {
-		Object.assign(systemMode, collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config }));
+	const midiTracker = !native && hookType === 'attack' ? config.workflow?.attackRollModifierTracker : null;
+	if (native || hookType === 'attack') {
+		Object.assign(systemMode, collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config, midiTracker }));
+		if (!native) systemMode.midiAttack = true;
+		if (midiTracker?.counts) systemMode.midiSources = true;
 		if (options.isConcentration && _hasItem(actor, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
 		if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage) {
 			ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
 			systemMode.dis++;
-		}
-	}
-	if (!native && hookType === 'attack') {
-		const actionType = options?.actionType;
-		const abilityLabel = CONFIG?.DND5E?.abilities?.[ability]?.label ?? CONFIG?.DND5E?.abilities?.[ability] ?? ability;
-		const actionTypeLabel = CONFIG?.DND5E?.itemActionTypes?.[actionType] ?? actionType;
-		const sources = [
-			{ source: actor.system.abilities?.[ability]?.attack?.roll, detail: abilityLabel },
-			{ source: actor.system.rolls?.attack, detail: _localize('DND5E.Attack') },
-			{ source: actor.system.rolls?.attack?.[actionType], detail: actionTypeLabel },
-		];
-		for (const { source, detail } of sources) {
-			if (!source) continue;
-			const { mode, max, min, modeCounts } = source;
-			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', detail), ac5eConfig, systemMode, modeCounts });
 		}
 	}
 	if (!native && (hookType === 'check' || hookType === 'init')) {
@@ -353,7 +350,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig, config = {}
 
 function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, reEval) {
 	const areKeysPressed = game.system.utils.areKeysPressed;
-	const event = config?.event;
+	const event = config?.event ?? (hookType === 'attack' && _activeModule('midi-qol') ? config?.workflow?.rollOptions?.event : undefined);
 	const getPersistedHookConfig = (source, desiredHookType) => {
 		if (!source || typeof source !== 'object') return undefined;
 		const direct = source?.options?.[Constants.MODULE_ID] ?? source?.[Constants.MODULE_ID];
@@ -363,7 +360,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	};
 	const isPressed = (name) => {
 		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
-		if (!_activeModule('midi-qol') && hookType !== 'damage' && hookType !== 'use' && areKeysPressed instanceof Function) return !!viaSystem;
+		if ((!_activeModule('midi-qol') || hookType === 'attack') && hookType !== 'damage' && hookType !== 'use' && areKeysPressed instanceof Function) return !!viaSystem;
 		if (viaSystem) return true;
 		switch (name) {
 			case 'skipDialogAdvantage':
@@ -599,7 +596,8 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	const keypressDisadvantageSource = !deferD20KeypressToMidi && skipDialogDisadvantage && !returnEarly;
 	if (returnEarly) {
 		const explicitKeypressAction =
-			skipDialogAdvantage ?
+			midiRoller && hookType === 'attack' && skipDialogAdvantage && skipDialogDisadvantage ? 'normal'
+			: skipDialogAdvantage ?
 				hookType === 'damage' ?
 					'critical'
 				:	'advantage'
@@ -619,7 +617,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 				replacesCalculatedMode: true,
 			};
 		}
-		ac5eConfig.returnEarly = hookType === 'damage' || hookType === 'use' || midiRoller;
+		ac5eConfig.returnEarly = hookType === 'damage' || hookType === 'use' || (midiRoller && hookType !== 'attack');
 		if (skipDialogAdvantage) {
 			if (hookType === 'damage') {
 				config.isCritical = true;
@@ -698,9 +696,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 	if (!options.preConfigInitiative) {
 		if (
 			hookType !== 'damage' &&
+			!ac5eConfig.systemRollMode?.midiSources &&
 			!returnEarly &&
 			!adv &&
-			((incomingAdvantage && !deferD20KeypressToMidi && !keypressAdvantageSource) ||
+			((incomingAdvantage && !deferD20KeypressToMidi && (!keypressAdvantageSource || (midiRoller && hookType === 'attack'))) ||
 				ac5eConfig.preAC5eConfig.midiOptions?.advantage ||
 				hasMidiAdvAttribution)
 		) {
@@ -711,9 +710,10 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 		}
 		if (
 			hookType !== 'damage' &&
+			!ac5eConfig.systemRollMode?.midiSources &&
 			!returnEarly &&
 			!dis &&
-			((incomingDisadvantage && !deferD20KeypressToMidi && !keypressDisadvantageSource) ||
+			((incomingDisadvantage && !deferD20KeypressToMidi && (!keypressDisadvantageSource || (midiRoller && hookType === 'attack'))) ||
 				ac5eConfig.preAC5eConfig.midiOptions?.disadvantage ||
 				hasMidiDisAttribution)
 		) {

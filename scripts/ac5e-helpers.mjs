@@ -50,7 +50,7 @@ export function isD20SuppressionNeeded(ac5eConfig, mode) {
 }
 
 export function getNativeD20SourceState(ac5eConfig, state) {
-	if (_activeModule('midi-qol') || !['attack', 'check', 'save', 'init'].includes(ac5eConfig.hookType)) return state;
+	if ((_activeModule('midi-qol') && !ac5eConfig.systemRollMode?.midiAttack) || !['attack', 'check', 'save', 'init'].includes(ac5eConfig.hookType)) return state;
 	const override = ac5eConfig.systemRollMode?.override;
 	let { hasTransitAdvantage, hasTransitDisadvantage } = state;
 	if (override != null) {
@@ -2109,6 +2109,7 @@ export function _getMidiAttackAttributionEntries(workflow, type) {
 	const isAc5eAttributionSource = (source) => {
 		if (typeof source !== 'string') return false;
 		const normalized = source.trim();
+		if (['keyPress', 'forcedKeyPress', 'config-buttons'].includes(normalized)) return true;
 		return normalized.startsWith(`${Constants.MODULE_ID}:`) || /^ac5e(?:\b|[:\s-])/i.test(normalized);
 	};
 	const readStructuredAttribution = (source) => {
@@ -2307,8 +2308,8 @@ function _createMidiTrackerSyncContext(tracker, trackedTypes = []) {
 	};
 	const midiKeypressSources = new Set(['keyPress', 'forcedKeyPress']);
 	const keypressLabelsByType = {
-		ADV: new Set([_localize('AC5E.AdvantageKeypress'), _localize('AC5E.OverrideAdvantage')].map(normalizeLabel).filter(Boolean)),
-		DIS: new Set([_localize('AC5E.DisadvantageKeypress'), _localize('AC5E.OverrideDisadvantage')].map(normalizeLabel).filter(Boolean)),
+		ADV: new Set([_localize('AC5E.AdvantageKeypress'), _localize('AC5E.OverrideAdvantage'), 'Keypress', 'Override keypress'].map(normalizeLabel).filter(Boolean)),
+		DIS: new Set([_localize('AC5E.DisadvantageKeypress'), _localize('AC5E.OverrideDisadvantage'), 'Keypress', 'Override keypress'].map(normalizeLabel).filter(Boolean)),
 	};
 	const hasMidiKeypressAttribution = (type) => {
 		const typed = tracker?.attribution?.[type];
@@ -2543,8 +2544,8 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 
 	const { filterOptin, subject, opponent, enforcedD20Mode, enforcedModeLabels, advantageLabels, disadvantageLabels, infoLabels, noAdvantageLabels, noDisadvantageLabels } =
 		_collectMidiTrackerCoreLabels(ac5eConfig);
-	const midiTrackerAdvantageLabels = enforcedD20Mode ? [] : advantageLabels;
-	const midiTrackerDisadvantageLabels = enforcedD20Mode ? [] : disadvantageLabels;
+	const midiTrackerAdvantageLabels = enforcedD20Mode || isD20ModeSuppressed(ac5eConfig, 'advantage') ? [] : advantageLabels;
+	const midiTrackerDisadvantageLabels = enforcedD20Mode || isD20ModeSuppressed(ac5eConfig, 'disadvantage') ? [] : disadvantageLabels;
 	const midiTrackerNoAdvantageLabels = enforcedD20Mode ? [] : noAdvantageLabels;
 	const midiTrackerNoDisadvantageLabels = enforcedD20Mode ? [] : noDisadvantageLabels;
 	const hiddenResolvedD20AttributionEntries = enforcedD20Mode ? advantageLabels.length + disadvantageLabels.length + noAdvantageLabels.length + noDisadvantageLabels.length : 0;
@@ -2553,6 +2554,13 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const failLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.fail ?? [])).concat(labelsFromEntries(filterOptin(opponent?.fail ?? []))));
 	const successLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.success ?? [])).concat(labelsFromEntries(filterOptin(opponent?.success ?? []))));
 	const rangeNoteLabels = dedupeLabels(labelsFromEntries(subject?.rangeNotes ?? []));
+	if (!enforcedD20Mode && !ac5eConfig.explicitModeOverride?.replacesCalculatedMode) {
+		for (const [mode, type, key] of [['advantage', 'ADV', 'skipDialogAdvantage'], ['disadvantage', 'DIS', 'skipDialogDisadvantage']]) {
+			if (ac5eConfig.preAC5eConfig?.[key] && !isD20ModeSuppressed(ac5eConfig, mode)) {
+				_setMidiTrackerAttribution(tracker, type, 'keyPress', _localize('midi-qol.KeyPress'));
+			}
+		}
+	}
 	_addMidiTrackerEntries(tracker, trackerContext, 'ADV', midiTrackerAdvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'DIS', midiTrackerDisadvantageLabels);
 	_addMidiTrackerEntries(tracker, trackerContext, 'NOADV', midiTrackerNoAdvantageLabels);
@@ -2770,7 +2778,7 @@ export function _getD20TooltipOwnership(ac5eConfig, { midiRoller = _activeModule
 	const hookType = ac5eConfig?.hookType;
 	const forceAc5eD20Tooltip = hookType !== 'attack' && hookType !== 'damage' && !!ac5eConfig?.preAC5eConfig?.forceChatTooltip;
 	const midiOwnsD20Tooltip = !!midiRoller && !forceAc5eD20Tooltip && (hookType === 'attack' || (['check', 'save'].includes(hookType) && !!ac5eConfig?.preAC5eConfig?.midiOwnsAbilityTooltip));
-	const deferD20KeypressToMidi = midiOwnsD20Tooltip && hookType !== 'damage';
+	const deferD20KeypressToMidi = midiOwnsD20Tooltip && ['check', 'save'].includes(hookType);
 	const useMidiD20Attribution = midiOwnsD20Tooltip && hookType !== 'damage';
 	return {
 		forceAc5eD20Tooltip,

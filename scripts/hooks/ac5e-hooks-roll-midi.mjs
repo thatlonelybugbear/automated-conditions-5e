@@ -30,6 +30,16 @@ export function syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls,
 				trackerAttribution: foundry.utils.duplicate(tracker?.attribution ?? {}),
 			});
 		}
+		if (ac5eConfig.hookType === 'attack' && typeof tracker.setFinalMode === 'function') {
+			const source = explicitOverride?.replacesCalculatedMode
+				? explicitOverride.source === 'dialog' ? 'config-buttons' : 'forcedKeyPress'
+				: `${Constants.MODULE_ID}:resolved-mode`;
+			const label = explicitOverride?.replacesCalculatedMode
+				? game.i18n.localize(explicitOverride.source === 'dialog' ? 'midi-qol.ConfigButtons' : 'midi-qol.KeyPress')
+				: 'AC5E';
+			if (mode !== tracker.advantageMode || explicitOverride?.replacesCalculatedMode) tracker.setFinalMode(mode, source, label);
+			continue;
+		}
 		const hasAc5eAdv = hasAc5eAttributionForType(tracker, 'ADV');
 		const hasAc5eDis = hasAc5eAttributionForType(tracker, 'DIS');
 		if (hasAc5eAdv || hasAc5eDis) {

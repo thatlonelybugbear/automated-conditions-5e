@@ -521,7 +521,7 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const matchedDisadvantage = [...subjectDisadvantage, ...opponentDisadvantage].filter((entry) => _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
 		config.advantage = Boolean(matchedAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
 		config.disadvantage = Boolean(matchedDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
-		if (!_activeModule('midi-qol') && ac5eConfig.systemRollMode?.override != null) {
+		if ((!_activeModule('midi-qol') || ac5eConfig.systemRollMode?.midiAttack) && ac5eConfig.systemRollMode?.override != null) {
 			config.advantage = ac5eConfig.systemRollMode.override > 0;
 			config.disadvantage = ac5eConfig.systemRollMode.override < 0;
 		}
