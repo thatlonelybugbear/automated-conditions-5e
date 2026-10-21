@@ -75,7 +75,7 @@ const rollFunctionDispatch = {
 	postUse: (hook, [, usageConfig, results]) => _postUseActivity(usageConfig, results, hook),
 	preActivityConsumption: (hook, [activity, usageConfig, messageConfig]) => _preActivityConsumption(activity, usageConfig, messageConfig, hook),
 	buildRoll: (hook, [app, config, formData, index]) => _buildRollConfig(app, config, formData, index, hook),
-	postBuildRoll: (hook, [processConfig, config, index]) => _postBuildRollConfig(processConfig, config, index),
+	postBuildRoll: (hook, [processConfig, config, index, context]) => _postBuildRollConfig(processConfig, config, index, context),
 	postRollConfig: (hook, [rolls, config, dialog, message]) => _postRollConfiguration(rolls, config, dialog, message, hook),
 	save: (hook, [config, dialog, message]) => _preRollSavingThrow(config, dialog, message, hook),
 	attack: (hook, [config, dialog, message]) => _preRollAttack(config, dialog, message, hook),
@@ -92,8 +92,8 @@ export function _rollFunctions(hook, ...args) {
 	if (!handler) return;
 	return handler(hook, args);
 }
-function _postBuildRollConfig(processConfig, config, index) {
-	return postBuildRollConfig(processConfig, config, index);
+function _postBuildRollConfig(processConfig, config, index, context) {
+	return postBuildRollConfig(processConfig, config, index, context);
 }
 
 export function _preCreateItem(item, updates) {

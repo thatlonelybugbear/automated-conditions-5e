@@ -25,6 +25,21 @@ export function _cloneUseConfigShallow(useConfig) {
 	return cloned;
 }
 
+export function getNativeD20SourceState(ac5eConfig, state) {
+	if (_activeModule('midi-qol') || !['attack', 'check', 'save', 'init'].includes(ac5eConfig.hookType)) return state;
+	const override = ac5eConfig.systemRollMode?.override;
+	let { hasTransitAdvantage, hasTransitDisadvantage } = state;
+	if (override != null) {
+		hasTransitAdvantage = override > 0;
+		hasTransitDisadvantage = override < 0;
+	}
+	for (const side of [ac5eConfig.subject, ac5eConfig.opponent]) {
+		if (_filterOptinEntries(side?.noAdvantage ?? [], ac5eConfig.optinSelected).length) hasTransitAdvantage = false;
+		if (_filterOptinEntries(side?.noDisadvantage ?? [], ac5eConfig.optinSelected).length) hasTransitDisadvantage = false;
+	}
+	return { hasTransitAdvantage, hasTransitDisadvantage };
+}
+
 export function getResolvedD20BooleansFromMode(mode, fallback = {}) {
 	const advModes = CONFIG?.Dice?.D20Roll?.ADV_MODE;
 	if (typeof mode === 'number' && advModes) {

@@ -209,12 +209,71 @@ function _resolveSystemModeLabel(baseKey, detail) {
 	return `${base} (${detailLabel})`;
 }
 
-function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
+function collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config }) {
+	const { ability, skill, tool } = options;
+	const initiative = hookType === 'init' || options.isInitiative;
+	const type = initiative ? 'initiative' : config.hookNames?.includes('toolCheck') ? 'tool' : skill ? 'skill' : tool ? 'tool' : (config[`${hookType}Type`] ?? 'ability');
+	const activity = hookType === 'attack' ? (options.activity?.getRollData ? options.activity : _safeFromUuidSync(options.activity?.uuid)) : null;
+	const item = activity?.item ?? (hookType === 'attack' ? _safeFromUuidSync(options.item?.uuid) : null);
+	const rollData = activity?.getRollData({ roll: { ability, attackMode: options.attackMode } }) ?? actor.getRollData({ roll: true });
+	const proficiency = initiative ? actor.system.attributes?.init?.prof
+		: skill || tool ? dnd5e.dataModels.actor.CommonTemplate.calculateSkillToolProficiency(actor, ability, { ...config, skill, tool })
+		: actor.system.abilities?.[ability]?.[hookType]?.prof;
+	if (hookType !== 'attack') rollData.roll = { ...rollData.roll, ability, type, proficient: (proficiency?.multiplier ?? 0) >= 1, ...(type === 'skill' ? { skill } : type === 'tool' ? { tool } : {}) };
+	let category = hookType === 'attack' ? 'attack' : hookType === 'save' ? 'save' : 'check';
+	let fields;
+	if (hookType === 'attack') fields = [`abilities.${ability}.attack.roll`, 'rolls.attack', `rolls.attack.${options.actionType}`];
+	else if (options.isConcentration || options.isDeathSave) {
+		// These rolls merge their own mode options over the ordinary saving throw options.
+		fields = [options.isConcentration ? 'attributes.concentration.roll' : 'attributes.death.roll'];
+		category = null;
+	} else if (initiative) fields = [`abilities.${ability}.check.roll`, 'attributes.init.roll', 'rolls.ability.check'];
+	else if (skill || tool) fields = [`abilities.${ability}.check.roll`, 'rolls.ability.check', `rolls.ability.${type}`, `${type}s.${type === 'skill' ? skill : tool}.roll`];
+	else fields = [`abilities.${ability}.${hookType}.roll`, `rolls.ability.${hookType}`];
+	const counts = category ? dnd5e.documents.AppliedRules.collect(`${category}:advantage`, actor, item).filterWith(rollData).toAdvantageCounts()
+		: { override: null, advantages: { count: 0, suppressed: false }, disadvantages: { count: 0, suppressed: false } };
+	if (skill || tool) {
+		const relevant = type === 'skill' ? actor.system.skills?.[skill] : actor.system.tools?.[tool];
+		const alternate = type === 'skill' ? actor.system.tools?.[tool] : actor.system.skills?.[skill];
+		const pace = dnd5e.dataModels.actor.TravelField.getTravelPaceMode(config.pace, skill);
+		counts.advantages.count += Number(!!relevant?.prof?.hasProficiency && !!alternate?.prof?.hasProficiency) + Number(pace.advantage);
+		counts.disadvantages.count += Number(pace.disadvantage);
+	}
+	for (const field of fields) {
+		const source = foundry.utils.getProperty(actor.system, field);
+		const raw = foundry.utils.getProperty(actor.system._source, `${field}.mode`);
+		if (source?.max) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Maximum')} (${source.max})`);
+		if (source?.min) ac5eConfig.subject.modifiers.push(`${_localize('DND5E.ROLL.Range.Minimum')} (${source.min})`);
+		if (source?.modeCounts?.override != null) counts.override = source.modeCounts.override;
+		for (const [side, mode] of [['advantages', 1], ['disadvantages', -1]]) {
+			counts[side].count += (source?.modeCounts?.[side]?.count ?? 0) + Number(raw === mode);
+			counts[side].suppressed ||= !!source?.modeCounts?.[side]?.suppressed;
+		}
+	}
+	for (const [side, key, suppressedKey] of [['advantages', 'advantage', 'noAdvantage'], ['disadvantages', 'disadvantage', 'noDisadvantage']]) {
+		counts[side].count = Math.max(0, counts[side].count);
+		ac5eConfig.subject[key].push(...Array.from({ length: counts[side].count }, () => _localize('AC5E.SystemMode')));
+		if (counts[side].suppressed) ac5eConfig.subject[suppressedKey].push(_localize(side === 'advantages' ? 'AC5E.NoAdvantage' : 'AC5E.NoDisadvantage'));
+	}
+	if (counts.override != null) ac5eConfig.subject.modifiers.push(_localize(counts.override > 0 ? 'AC5E.ForcedAdvantage' : counts.override < 0 ? 'AC5E.ForcedDisadvantage' : 'AC5E.SystemMode'));
+	return { adv: counts.advantages.count, dis: counts.disadvantages.count, override: counts.override };
+}
+
+function getSystemRollConfig({ actor, options, hookType, ac5eConfig, config = {} }) {
 	if (!actor || hookType === 'damage' || hookType === 'use') return {};
 	const systemMode = { adv: 0, dis: 0 };
 	const autoArmorChecks = _autoArmor(actor);
 	const { ability, skill, tool } = options || {};
-	if (hookType === 'attack') {
+	const native = !_activeModule('midi-qol');
+	if (native) {
+		Object.assign(systemMode, collectNativeD20RollMode({ actor, options, hookType, ac5eConfig, config }));
+		if (options.isConcentration && _hasItem(actor, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
+		if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage) {
+			ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
+			systemMode.dis++;
+		}
+	}
+	if (!native && hookType === 'attack') {
 		const actionType = options?.actionType;
 		const abilityLabel = CONFIG?.DND5E?.abilities?.[ability]?.label ?? CONFIG?.DND5E?.abilities?.[ability] ?? ability;
 		const actionTypeLabel = CONFIG?.DND5E?.itemActionTypes?.[actionType] ?? actionType;
@@ -229,7 +288,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', detail), ac5eConfig, systemMode, modeCounts });
 		}
 	}
-	if (hookType === 'check' || hookType === 'init') {
+	if (!native && (hookType === 'check' || hookType === 'init')) {
 		if (skill) {
 			if (skill === 'ste' && autoArmorChecks.hasStealthDisadvantage)
 				ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.hasStealthDisadvantage)} (${_localize('ItemEquipmentStealthDisav')})`);
@@ -258,7 +317,7 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			});
 		}
 	}
-	if (ability && ['check', 'save'].includes(hookType)) {
+	if (!native && ability && ['check', 'save'].includes(hookType)) {
 		if (options.isConcentration) {
 			if (_hasItem(actor, _localize('AC5E.WarCaster'))) ac5eConfig.subject.advantage.push(_localize('AC5E.WarCaster'));
 			const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'concentration' }) || {};
@@ -269,10 +328,11 @@ function getSystemRollConfig({ actor, options, hookType, ac5eConfig }) {
 			collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', abilityLabel), ac5eConfig, systemMode, modeCounts });
 		}
 	}
-	if (options.isDeathSave && hookType === 'save') {
+	if (!native && options.isDeathSave && hookType === 'save') {
 		const { mode, max, min, modeCounts } = getConcOrDeathOrInitRollObject({ actor, type: 'death' }) || {};
 		collectRollMode({ actor, mode, max, min, hookType, typeLabel: _resolveSystemModeLabel('AC5E.SystemMode', _localize('DND5E.DeathSave')), ac5eConfig, systemMode, modeCounts });
 	}
+
 	if (autoArmorChecks.notProficient && ['dex', 'str'].includes(ability)) {
 		ac5eConfig.subject.disadvantageNames.add(`${_localize(autoArmorChecks.notProficient)} (${_localize('NotProficient')})`);
 		systemMode.dis++;
@@ -298,6 +358,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 	};
 	const isPressed = (name) => {
 		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
+		if (!_activeModule('midi-qol') && hookType !== 'damage' && hookType !== 'use' && areKeysPressed instanceof Function) return !!viaSystem;
 		if (viaSystem) return true;
 		switch (name) {
 			case 'skipDialogAdvantage':
@@ -553,7 +614,7 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 				replacesCalculatedMode: true,
 			};
 		}
-		ac5eConfig.returnEarly = true;
+		ac5eConfig.returnEarly = hookType === 'damage' || hookType === 'use' || midiRoller;
 		if (skipDialogAdvantage) {
 			if (hookType === 'damage') {
 				config.isCritical = true;
@@ -567,18 +628,18 @@ export function _getConfig(config, dialog, hookType, tokenId, targetId, options 
 			} else ac5eConfig.subject.disadvantage.push('Override keypress');
 		}
 		if (hookType !== 'damage' && explicitKeypressAction) _syncResolvedFastForwardD20Override(ac5eConfig, config, explicitKeypressAction);
-		if (settings.debug) console.warn('AC5E_getConfig returning early', { ac5eConfig });
-		return ac5eConfig;
+		if (settings.debug && ac5eConfig.returnEarly) console.warn('AC5E_getConfig returning early', { ac5eConfig });
+		if (ac5eConfig.returnEarly) return ac5eConfig;
 	}
-	if (skipDialogAdvantage && !deferD20KeypressToMidi) {
+	if (skipDialogAdvantage && !deferD20KeypressToMidi && !returnEarly) {
 		if (hookType === 'damage') ac5eConfig.subject.critical.push('Keypress');
 		else ac5eConfig.subject.advantage.push('Keypress');
 	}
-	if (skipDialogDisadvantage && !deferD20KeypressToMidi) {
+	if (skipDialogDisadvantage && !deferD20KeypressToMidi && !returnEarly) {
 		if (hookType === 'damage') ac5eConfig.subject.noCritical.push('Keypress');
 		else ac5eConfig.subject.disadvantage.push('Keypress');
 	}
-	const { adv, dis } = getSystemRollConfig({ actor, options, hookType, ac5eConfig });
+	const { adv, dis } = getSystemRollConfig({ actor, options, hookType, ac5eConfig, config });
 	const midiAttackAdvAttribution = midiRoller ? _getMidiAttackAttributionEntries(config?.workflow, 'ADV') : [];
 	const midiAttackDisAttribution = midiRoller ? _getMidiAttackAttributionEntries(config?.workflow, 'DIS') : [];
 	const midiAbilityAdvAttribution = midiRoller && ['check', 'save'].includes(hookType) ? _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, 'ADV') : [];
@@ -1034,6 +1095,7 @@ export function _getSafeDialogConfig(ac5eConfig) {
 		roller: ac5eConfig?.roller,
 		hasPlayerOwner: ac5eConfig?.hasPlayerOwner,
 		ownership: ac5eConfig?.ownership,
+		systemRollMode: foundry.utils.duplicate(ac5eConfig?.systemRollMode ?? {}),
 		advantageMode: ac5eConfig?.advantageMode ?? null,
 		defaultButton: ac5eConfig?.defaultButton ?? null,
 		hasTransitAdvantage: !!ac5eConfig?.hasTransitAdvantage,

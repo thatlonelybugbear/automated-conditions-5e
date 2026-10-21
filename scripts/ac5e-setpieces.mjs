@@ -1,6 +1,7 @@
 import {
 	_ac5eSafeEval,
 	_activeModule,
+	getNativeD20SourceState,
 	_dispositionCheck,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
@@ -2228,10 +2229,10 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const hasDisadvantageSources =
 			(subjectDisadvantage.length || opponentDisadvantage.length) ||
 			countEntries(ac5eConfig?.subject?.disadvantageNames) || countEntries(ac5eConfig?.opponent?.disadvantageNames);
-		return {
+		return getNativeD20SourceState(ac5eConfig, {
 			hasTransitAdvantage: hasAdvantageSources,
 			hasTransitDisadvantage: hasDisadvantageSources,
-		};
+		});
 	};
 	const getEnforcedD20ModeFromValidFlags = () => {
 		if (hook === 'damage') return null;

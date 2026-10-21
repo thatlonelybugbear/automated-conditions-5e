@@ -1,4 +1,6 @@
-import { _getTooltip, _localize, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { _activeModule, _getTooltip, _localize, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { _calcAdvantageMode } from '../ac5e-runtimeLogic.mjs';
+import { applyExplicitModeOverride } from './ac5e-hooks-roll-post.mjs';
 import { _getConfig } from '../ac5e-config-logic.mjs';
 import { runAc5eInitiativePhase } from './ac5e-hooks-roll-phase.mjs';
 
@@ -9,7 +11,7 @@ export function preConfigureInitiative(subject, rollConfig, hook, deps) {
 		hook,
 	};
 	const initAbility = rollConfig.data?.attributes?.init?.ability;
-	options.ability = initAbility === '' ? 'dex' : initAbility;
+	options.ability = initAbility || subject.system.attributes?.init?.ability || CONFIG.DND5E.defaultAbilities.initiative;
 	const ac5eConfig = runAc5eInitiativePhase({
 		hook,
 		subject,
@@ -21,10 +23,22 @@ export function preConfigureInitiative(subject, rollConfig, hook, deps) {
 		applyHookState: ({ ac5eConfig: phaseConfig }) => {
 			if (subject?.flags?.dnd5e?.initiativeAdv) phaseConfig.subject.advantage.push(_localize('AC5E.FlagsInitiativeAdv'));
 			if (subject?.flags?.dnd5e?.initiativeDisadv) phaseConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv'));
-			clearSuppressedInitiativeModes(phaseConfig);
+			let advantageMode;
+			if (!_activeModule('midi-qol')) {
+				const processConfig = { subject, rolls: [rollConfig], options: {} };
+				_calcAdvantageMode(phaseConfig, processConfig, { configure: false }, undefined, { skipSetProperties: true });
+				applyExplicitModeOverride(phaseConfig, processConfig);
+				phaseConfig.appliedParts = rollConfig.options[deps.Constants.MODULE_ID]?.appliedParts ?? [];
+				advantageMode = phaseConfig.advantageMode;
+				rollConfig.options.advantage = advantageMode > 0;
+				rollConfig.options.disadvantage = advantageMode < 0;
+				rollConfig.options.advantageMode = advantageMode;
+			} else {
+				clearSuppressedInitiativeModes(phaseConfig);
+				advantageMode = getInitiativeAdvantageMode(phaseConfig);
+			}
 			getRollModeCounts(phaseConfig);
-			const advantageMode = getInitiativeAdvantageMode(phaseConfig);
-			appendInitiativeParts(rollConfig, phaseConfig.parts);
+			if (_activeModule('midi-qol')) appendInitiativeParts(rollConfig, phaseConfig.parts);
 			applyInitiativeModeToRollOptions(rollConfig.options, advantageMode);
 			phaseConfig.advantageMode = advantageMode;
 			phaseConfig.defaultButton =

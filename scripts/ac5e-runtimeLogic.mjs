@@ -6,6 +6,7 @@ import Settings from './ac5e-settings.mjs';
 import { _resolveAddToSpec } from './ac5e-addTo.mjs';
 import {
 	_activeModule,
+	getNativeD20SourceState,
 	_ac5eSafeEval,
 	_entryMatchesTransientState,
 	_filterOptinEntries,
@@ -494,8 +495,10 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const baseOpponentAdvantage = opponentAdvantage.filter((entry) => !hasTransitRequirement(entry));
 		const baseSubjectDisadvantage = subjectDisadvantage.filter((entry) => !hasTransitRequirement(entry));
 		const baseOpponentDisadvantage = opponentDisadvantage.filter((entry) => !hasTransitRequirement(entry));
-		const hasAdvantageSources = Boolean(baseSubjectAdvantage.length || baseOpponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
-		const hasDisadvantageSources = Boolean(baseSubjectDisadvantage.length || baseOpponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
+		const { hasTransitAdvantage: hasAdvantageSources, hasTransitDisadvantage: hasDisadvantageSources } = getNativeD20SourceState(ac5eConfig, {
+			hasTransitAdvantage: Boolean(baseSubjectAdvantage.length || baseOpponentAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount),
+			hasTransitDisadvantage: Boolean(baseSubjectDisadvantage.length || baseOpponentDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount),
+		});
 		const transientRollState = {
 			hasTransitAdvantage: hasAdvantageSources,
 			hasTransitDisadvantage: hasDisadvantageSources,
@@ -518,6 +521,10 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		const matchedDisadvantage = [...subjectDisadvantage, ...opponentDisadvantage].filter((entry) => _entryMatchesTransientState(entry, ac5eConfig, transientRollState));
 		config.advantage = Boolean(matchedAdvantage.length || subjectAdvantageNamesCount || opponentAdvantageNamesCount);
 		config.disadvantage = Boolean(matchedDisadvantage.length || subjectDisadvantageNamesCount || opponentDisadvantageNamesCount);
+		if (!_activeModule('midi-qol') && ac5eConfig.systemRollMode?.override != null) {
+			config.advantage = ac5eConfig.systemRollMode.override > 0;
+			config.disadvantage = ac5eConfig.systemRollMode.override < 0;
+		}
 		if (subjectNoAdv.length || opponentNoAdv.length) {
 			config.advantage = false;
 			transientRollState.hasTransitAdvantage = false;

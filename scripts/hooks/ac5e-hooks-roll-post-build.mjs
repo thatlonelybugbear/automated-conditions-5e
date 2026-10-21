@@ -3,8 +3,20 @@ import Constants from '../ac5e-constants.mjs';
 import { mirrorD20ModeState } from './ac5e-hooks-roll-post.mjs';
 import { applyResolvedAbilityOverrideToRollConfig } from './ac5e-hooks-roll-build.mjs';
 
-export function postBuildRollConfig(processConfig, config, index) {
+export function preserveD20Mode(processConfig, config, index, { app } = {}) {
+	if (app || index !== 0) return;
+	const ac5eConfig = config?.options?.[Constants.MODULE_ID];
+	if (!['attack', 'check', 'save', 'init'].includes(ac5eConfig?.hookType) || typeof ac5eConfig.advantageMode !== 'number') return;
+	if (_activeModule('midi-qol')) return;
+	// Native keybindings run after the pre-roll hooks; retain AC5E's resolved suppression and enforcement.
+	const override = ac5eConfig.explicitModeOverride;
+	const action = override?.family === 'd20' ? override.action : ac5eConfig.defaultButton;
+	mirrorD20ModeState(ac5eConfig, config, { action, advantageMode: ac5eConfig.advantageMode, rollOptions: config.options });
+}
+
+export function postBuildRollConfig(processConfig, config, index, context) {
 	if (!processConfig || !config || typeof config !== 'object') return true;
+	preserveD20Mode(processConfig, config, index, context);
 	moveAttackOptinPartsToEnd(config);
 	const sourceAc5eConfig =
 		config?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
