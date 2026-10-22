@@ -273,6 +273,53 @@ export function _getLightLevel(token = null, options = {}) {
 	return _getTokenLightingState(resolvedToken, options)?.level ?? 'darkness';
 }
 
+export function _debugGetLightLevel(token = null, options = {}) {
+	const resolvedToken = _resolveTokenForLighting(token);
+	const state = _getTokenLightingState(resolvedToken, { ...options, considerSceneDarkness: true });
+	const effects = canvas?.effects;
+	const globalSource = canvas?.environment?.globalLightSource ?? effects?.globalLightSource;
+	const globalConfig = canvas?.scene?.environment?.globalLight;
+	const describeSource = (source) => ({
+		id: source.sourceId ?? source.object?.document?.uuid,
+		name: source.object?.document?.name ?? source.constructor?.name,
+		active: source.active,
+		preview: source.isPreview,
+		disabled: source.data?.disabled,
+		origin: {
+			x: source.origin?.x ?? source.x ?? source.data?.x,
+			y: source.origin?.y ?? source.y ?? source.data?.y,
+			elevation: source.origin?.elevation ?? source.data?.elevation,
+		},
+		brightRadiusPixels: _getLightSourceRadius(source, 'bright'),
+		dimRadiusPixels: _getLightSourceRadius(source, 'dim'),
+		walls: source.data?.walls,
+		darknessRange: source.data?.darkness ? { ...source.data.darkness } : undefined,
+		samples: state.samplePoints.map((point, index) => ({
+			index,
+			contains: source === globalSource
+				? effects?.testInsideLight?.(point, { condition: (candidate) => candidate === source })
+				: source.testPoint?.(point),
+		})),
+	});
+	return {
+		...state,
+		token: resolvedToken ? { uuid: resolvedToken.document?.uuid, name: resolvedToken.name, elevation: resolvedToken.document?.elevation } : null,
+		scene: { uuid: canvas?.scene?.uuid, name: canvas?.scene?.name, darkness: canvas?.environment?.darknessLevel, distancePixels: canvas?.dimensions?.distancePixels, distanceUnits: canvas?.scene?.grid?.units },
+		globalIllumination: { enabled: globalConfig?.enabled, active: globalSource?.active, bright: globalConfig?.bright, darknessRange: globalSource?.data?.darkness ? { ...globalSource.data.darkness } : undefined, level: state.baselineLevel },
+		samples: state.samplePoints.map((point, index) => ({
+			...point,
+			index,
+			level: state.sampleLevels[index],
+			darkness: effects?.getDarknessLevel?.(point),
+			insideLight: effects?.testInsideLight?.(point),
+			insideDarkness: effects?.testInsideDarkness?.(point),
+			globalLightLevel: _getSceneBaselineLightLevel(canvas?.scene, { considerSceneDarkness: true, point }),
+		})),
+		lightSources: Array.from(effects?.lightSources ?? [], describeSource),
+		darknessSources: Array.from(effects?.darknessSources ?? [], describeSource),
+	};
+}
+
 // Function adapted from @kgar's Tidy 5e Sheet utility.
 function simplifyFormula(formula = '', removeFlavor = false, debug = {}) {
 	try {

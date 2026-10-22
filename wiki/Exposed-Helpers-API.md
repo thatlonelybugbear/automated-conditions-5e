@@ -68,6 +68,14 @@ In Foundry v14, light level checks use canvas lighting, including point-sensitiv
 
 Global illumination follows Foundry's configured darkness range and bright/dim setting. Scene darkness alone does not supply illumination. `considerSceneDarkness` remains accepted, but no longer converts darkness percentages into fixed bright/dim/darkness bands; both calls above use the actual lighting state.
 
+For troubleshooting, use the separate diagnostic method:
+```js
+console.log(ac5e.debug.getLightLevel()); // Selected token
+console.log(ac5e.debug.getLightLevel(token));
+```
+
+It returns the light level, global illumination baseline, sample points and their darkness levels, scene settings, token elevation, and light/darkness source containment checks. `globalIllumination.level` describes the baseline at the first sample before local lights or darkness sources; each sample also reports its own `globalLightLevel`. The brightest token sample determines the final level. These are illumination checks, not darkvision or GM visibility checks. This method does not change lighting, enable debug logging, or alter the string returned by `ac5e.getLightLevel()`.
+
 ## Item helpers
 
 ```js

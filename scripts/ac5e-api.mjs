@@ -3,6 +3,7 @@ import {
 	_ac5eSafeEval,
 	_buildFlagRegistry,
 	_debugBenchmarkPerimeterGridSpaceCenters,
+	_debugGetLightLevel,
 	_getDistance,
 	_getItem,
 	_getItems,
@@ -1808,6 +1809,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 		usesCount: false,
 	};
 	ac5e.debug.timings ??= false;
+	ac5e.debug.getLightLevel = _debugGetLightLevel;
 	Object.defineProperty(ac5e, 'debugGetConfigLayers', {
 		get() {
 			return Boolean(ac5e?.debug?.getConfigLayers);
