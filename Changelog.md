@@ -1,3 +1,8 @@
+## 14.606.4.4
+
+- Fixed Midi-QOL cover attribution showing "Bonus: Cover: None". WAVES cover now lists each target's cover level only when at least one target has cover.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+
 ## 14.606.4.3
 
 - Light-level checks now follow Foundry's global illumination darkness range and bright/dim setting instead of fixed AC5E darkness thresholds. Fixed dim light downgrading bright illumination and fallback checks counting preview lights or rejected light sources.

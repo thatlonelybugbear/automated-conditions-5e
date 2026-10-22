@@ -2636,7 +2636,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 		_addMidiTrackerStandaloneAttributionEntries(tracker, trackerContext, ['Other roll-state modifiers were overridden.']);
 	}
 	_syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config);
-	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
+	const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? []).filter((entry) => !entry.suppressTooltipAttribution)));
 	const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
 	const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
 	const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));
@@ -2678,6 +2678,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 	const targetADCDisplayLabels = targetADCLabels.length ? targetADCLabels : dedupeLabels(targetValuePool.map((value) => String(value ?? '').trim()).filter(Boolean));
 	const modifyACPrefix = targetADCDisplayLabels.length ? `${_localize('AC5E.ModifyAC')}${alteredTargetADC !== undefined ? ` ${alteredTargetADC} (${baseTargetADC})` : ''}` : '';
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.Bonus'), subjectBonusLabels);
+	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, 'Cover', ac5eConfig.wavesCover?.attributionLabels ?? [], { combineLabelList: true });
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('DND5E.Modifier'), subjectModifierLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.ExtraDice'), subjectExtraDiceLabels);
 	_addMidiTrackerCustomAttributionEntries(tracker, trackerContext, _localize('AC5E.TargetGrantsBonus'), opponentBonusLabels);
@@ -2893,7 +2894,7 @@ export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) 
 			_addMidiTrackerStandaloneAttributionEntries(tracker, trackerContext, ['Other roll-state modifiers were overridden.']);
 		}
 		_syncMidiTrackerConfigButtonFallback(tracker, trackerContext, ac5eConfig, config);
-		const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? [])));
+		const subjectBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.bonus ?? []).filter((entry) => !entry.suppressTooltipAttribution)));
 		const subjectModifierLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.modifiers ?? [])));
 		const subjectExtraDiceLabels = dedupeLabels(labelsFromEntries(filterOptin(subject?.extraDice ?? [])));
 		const opponentBonusLabels = dedupeLabels(labelsFromEntries(filterOptin(opponent?.bonus ?? [])));

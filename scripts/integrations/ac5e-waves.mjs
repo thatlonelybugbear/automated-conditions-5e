@@ -99,6 +99,9 @@ function applyAttackCover(ac5eConfig) {
 
 function applyWavesCoverTooltip(ac5eConfig) {
 	const entries = ac5eConfig.wavesCover.entries;
+	ac5eConfig.wavesCover.attributionLabels = entries.some((entry) => entry.selected !== 'none')
+		? entries.map((entry) => `${entry.label} (${COVER_LEVEL_LABELS[COVER_TYPES.indexOf(entry.selected)]})`)
+		: [];
 	if (ac5eConfig.hookType === 'attack') {
 		ac5eConfig.simpleCoverEntries = entries.filter((entry) => entry.selected !== 'none').map((entry) => {
 			const total = entry.selected === 'total';
