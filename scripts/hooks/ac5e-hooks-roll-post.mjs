@@ -300,6 +300,7 @@ function normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps)
 	const currentMode = rolls[0].options.advantageMode;
 	const isNonNormalMode = advModes && (currentMode === advModes.ADVANTAGE || currentMode === advModes.DISADVANTAGE);
 	if (!isNonNormalMode || getExplicitModeOverride(ac5eConfig)?.replacesCalculatedMode) return;
+	if (isD20ModeSuppressed(ac5eConfig, 'advantage') || isD20ModeSuppressed(ac5eConfig, 'disadvantage')) return;
 	const modeCounts = ac5eConfig?.modeCounts ?? getRollModeCounts(ac5eConfig, { persist: false });
 	const hasAdvReasons = modeCounts?.advantages?.present;
 	const hasDisReasons = modeCounts?.disadvantages?.present;
