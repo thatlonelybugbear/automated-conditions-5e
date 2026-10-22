@@ -38,7 +38,17 @@
 	"AC5E.ShowTooltipChatVisibility.Owned": "Propri",
 	"AC5E.ShowTooltipChatVisibility.Players": "Giocatori",
 	"AC5E.ExpandedConditionsName": "Condizioni estese",
+	"AC5E.HeavyWeapon": "Arma Pesante",
 	"AC5E.ExpandedConditionsHint": "Abilita l'automazione per condizioni aggiuntive e stati di combattimento come Schivare, Nascondersi, restrizioni dell'Ira e combattimento subacqueo.",
+	"AC5E.AdditionalAutomations": {
+		"Name": "Regole aggiuntive automatizzate",
+		"Hint": "Scegli quali regole aggiuntive AC5E deve automatizzare: Schivare, Nascondersi, restrizioni agli incantesimi durante l'Ira, Combattimento subacqueo e proprietà delle armi Pesanti.",
+		"Migration": {
+			"Notification": "AC5E: le impostazioni delle automazioni aggiuntive sono state migrate. Consulta il messaggio privato in chat per i dettagli.",
+			"None": "Nessuna",
+			"Message": "<h3>Automated Conditions 5e: impostazioni migrate</h3><p>Le impostazioni salvate per Condizioni estese e per le armi Pesanti sono state trasferite alla selezione multipla Regole aggiuntive automatizzate. Condizioni estese abilita Schivare, Nascondersi, restrizioni agli incantesimi durante l'Ira e Combattimento subacqueo; Pesante è abilitato solo se la relativa impostazione precedente era attiva.</p><p><strong>Regole abilitate:</strong> {selected}</p><p>Ora puoi selezionare ciascuna regola in modo indipendente in Configura impostazioni → Automated Conditions 5e → Regole aggiuntive automatizzate.</p>"
+		}
+	},
 	"AC5E.VisibilityChecksSetting": {
 		"Name": "Regole di visibilità",
 		"Hint": "Utilizza le regole di visibilità degli attacchi di AC5E basate sulla vista e sui sensi dei token. Quando attivo, AC5E aggiunge le motivazioni 'Non può vedere il bersaglio' e 'Il bersaglio non può vedere l'attaccante'. Queste motivazioni vengono ignorate quando MidiQOL applica già le sue regole su invisibilità o attaccanti nascosti."
@@ -555,6 +565,7 @@
 			"OptinPreselected": "Scelta opzionale preselezionata",
 			"ItemLimited": "Limitato all'oggetto",
 			"CriticalStatic": "Critico statico",
+			"Cancel": "Annulla tiro",
 			"RangeBonus": "Bonus Gittata",
 			"ShortRange": "Gittata corta",
 			"LongRange": "Gittata lunga",
@@ -653,6 +664,7 @@
 			"UpdateAmountInspiration": "I valori positivi o =1 conferiscono Ispirazione. I valori zero, negativi o =0 la rimuovono.",
 			"UpdateAmountExhaustion": "I valori positivi aggiungono livelli di Indebolimento. I valori negativi rimuovono i livelli. Usa =0 per azzerare l'Indebolimento.",
 			"ToggleOptin": "Mostra questa voce come opzionale, in modo che gli utenti possano abilitarla per singolo tiro.",
+			"ToggleCancel": "Annulla il tiro prima della valutazione dei dadi quando questa voce informativa si applica. Per le opzioni facoltative, l'annullamento richiede una selezione. Gli aggiornamenti selezionati e il consumo di usesCount vengono comunque applicati.",
 			"ToggleItemLimited": "Applica l'effetto solo quando l'oggetto o l'attività di origine corrisponde al contesto limitato della fonte.",
 			"ToggleCriticalStatic": "Applica questo bonus ai danni o questi dadi aggiuntivi così come sono, senza seguire le normali regole dei colpi critici.",
 			"ToggleAllies": "L'aura si applica ai token alleati.",
