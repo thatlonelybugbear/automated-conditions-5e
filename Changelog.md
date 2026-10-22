@@ -1,3 +1,18 @@
+## 14.606.4.3
+
+- Light-level checks now follow Foundry's global illumination darkness range and bright/dim setting instead of fixed AC5E darkness thresholds. Fixed dim light downgrading bright illumination and fallback checks counting preview lights or rejected light sources.
+  - Added `ac5e.debug.getLightLevel(token)` for lighting diagnostics, including global illumination, sample levels, scene darkness, elevation, and light-source checks, without changing the existing light-level API
+- Fixed Midi-QOL rolls losing their Advantage or Disadvantage chat label when the opposite mode was suppressed.
+- Fixed numeric `usesCount` opt-in labels displaying the remaining counter as the resource name; `usesCount=2,1` now shows "costs 1 use".
+- Fixed Midi-QOL attacks combining keypresses, system advantage rules, and AC5E opt-ins while preserving suppression, enforcement, source counts, and attribution.
+- Fixed multi-target attacks restoring one shared AC to every target instead of preserving individual AC snapshots and adjustments.
+- Fixed native d20 rolls to respect system advantage rules, suppression, enforcement, and configured keybindings, including initiative.
+- Suppressed advantage and disadvantage sources are hidden from tooltips and no longer consume their once cadence or limited uses. System suppression rules now show their effect names.
+- Suppression rules appear in tooltips and consume uses only when there is an applicable advantage or disadvantage source to suppress. Final roll-mode overrides, including dialog button choices, preserve their uses.
+- Positioned AC5E roll-icon tooltips to the left to avoid overlapping BM5e roll details.
+- Fixed modified target AC, including aura bonuses, reverting to the original AC in attack messages and Midi-QOL hit checks.
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 14.606.4.2
 
 - Preserved DAE Attribute Key autocomplete suggestions when the change Type is not AC5E. AC5E now dismisses only its own autocomplete menu.
