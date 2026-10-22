@@ -503,6 +503,8 @@ ac5e.getLightLevel(token, { considerSceneDarkness: true })
 
 The same result is available in AC5E conditions as `lightLevel`.
 
+Global illumination respects Foundry's configured darkness range and bright/dim setting. Darkness percentages alone do not imply illumination. `considerSceneDarkness` remains accepted for compatibility; it no longer applies AC5E-specific darkness thresholds.
+
 ### Effect Origin Data (`originItem` / `originActivity`)
 
 AC5E also exposes origin-side item/activity data for cases where the currently rolled `item` is different from the effect's source context.

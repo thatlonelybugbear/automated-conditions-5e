@@ -97,10 +97,12 @@ export function _getTokenLightSamplePoints(token, { includeCenter = true } = {})
 
 function _getSceneBaselineLightLevel(scene = canvas?.scene, { considerSceneDarkness = false, point = null } = {}) {
 	if (!considerSceneDarkness) return 'darkness';
-	const darkness = Number((point ? canvas?.effects?.getDarknessLevel?.(point) : undefined) ?? scene?.environment?.darknessLevel ?? scene?.darkness ?? 1);
-	if (darkness <= 0.25) return 'bright';
-	if (darkness <= 0.75) return 'dim';
-	return 'darkness';
+	const source = canvas?.environment?.globalLightSource ?? canvas?.effects?.globalLightSource;
+	if (!source?.active || source.isPreview) return 'darkness';
+	const darkness = Number((point ? canvas?.effects?.getDarknessLevel?.(point) : undefined) ?? canvas?.environment?.darknessLevel ?? scene?.environment?.darknessLevel ?? scene?.darkness ?? 1);
+	const { min = 0, max = 1 } = source.data?.darkness ?? scene?.environment?.globalLight?.darkness ?? {};
+	if (!(darkness >= min && darkness <= max)) return 'darkness';
+	return _getLightSourceRadius(source, 'bright') > 0 ? 'bright' : 'dim';
 }
 
 function _toElevatedPoint(point, token) {
@@ -172,13 +174,16 @@ function _classifyPointLightLevel({ point, token, baseline = _getSceneBaselineLi
 	if (typeof canvas?.effects?.testInsideDarkness === 'function' && canvas.effects.testInsideDarkness(elevatedPoint)) return 'darkness';
 	if (typeof canvas?.effects?.testInsideLight === 'function' && canvas.effects.testInsideLight(elevatedPoint)) {
 		const globalLightSource = canvas?.environment?.globalLightSource ?? canvas?.effects?.globalLightSource;
-		if (globalLightSource?.active && canvas.effects.testInsideLight(elevatedPoint, { condition: (source) => source === globalLightSource })) return 'bright';
 		if (_isPointInsideBrightLight(elevatedPoint)) return 'bright';
-		if (_isPointInsideDimLight(elevatedPoint)) return 'dim';
+		if (globalLightSource?.active && !globalLightSource.isPreview && canvas.effects.testInsideLight(elevatedPoint, { condition: (source) => source === globalLightSource })) {
+			return _getSceneBaselineLightLevel(canvas?.scene, { considerSceneDarkness: true, point: elevatedPoint });
+		}
+		if (_isPointInsideDimLight(elevatedPoint)) return baseline === 'bright' ? 'bright' : 'dim';
 	}
 	let matchedLevel = baseline;
 	for (const lightSource of canvas?.effects?.lightSources ?? []) {
-		if (!lightSource?.active || lightSource?.data?.disabled) continue;
+		if (!lightSource?.active || lightSource?.isPreview || lightSource?.data?.disabled || lightSource === (canvas?.environment?.globalLightSource ?? canvas?.effects?.globalLightSource) || lightSource?.constructor?.name === 'GlobalLightSource') continue;
+		if (typeof lightSource.testPoint === 'function' && !lightSource.testPoint(elevatedPoint)) continue;
 		const shapeContains = typeof lightSource.shape?.contains === 'function' ? lightSource.shape.contains(elevatedPoint.x, elevatedPoint.y) : false;
 		const losContains = !shapeContains && typeof lightSource.los?.contains === 'function' ? lightSource.los.contains(elevatedPoint.x, elevatedPoint.y) : false;
 		const config = {
@@ -263,6 +268,7 @@ function _resolveTokenForLighting(token) {
 }
 
 export function _getLightLevel(token = null, options = {}) {
+	// considerSceneDarkness is a compatibility no-op; actual lighting always respects Foundry's global-light darkness range.
 	const resolvedToken = _resolveTokenForLighting(token);
 	return _getTokenLightingState(resolvedToken, options)?.level ?? 'darkness';
 }

@@ -59,12 +59,14 @@ ac5e.checkNearby(token.id, '!enemy', 0, { creatureTypes: ['dragon', 'fiend'] })
 - `dim`
 - `darkness`
 
-Useful option:
+Compatibility option:
 ```js
 ac5e.getLightLevel(token, { considerSceneDarkness: true })
 ```
 
 In Foundry v14, light level checks use canvas lighting, including point-sensitive darkness, global illumination, darkness sources, bright and dim radii, and token/light elevation.
+
+Global illumination follows Foundry's configured darkness range and bright/dim setting. Scene darkness alone does not supply illumination. `considerSceneDarkness` remains accepted, but no longer converts darkness percentages into fixed bright/dim/darkness bands; both calls above use the actual lighting state.
 
 ## Item helpers
 
