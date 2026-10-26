@@ -7,6 +7,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (!Array.isArray(config?.rolls) || !config.rolls.length) return true;
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const { message: messageForSource, messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
+	if ((configActivity ?? messageActivity)?.flags?.bm5e?.disallowRecipientBonuses === true) return true;
 	const moduleId = deps.Constants.MODULE_ID;
 	const optinCandidates = {
 		workflowState: config?.workflow?.ac5e?.attack?.optinSelected,

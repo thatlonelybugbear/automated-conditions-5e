@@ -18,6 +18,8 @@ Short alias is also accepted: `flags.ac5e.ACTIONTYPE.MODE`.
 
 `d20` is a valid ACTIONTYPE for d20 roll families. It covers attack, check (+initiative), save (+concentration/death), but not damage rolls.
 
+Since v14.606.4.5, BM5E-generated Damage and Heal activities with `activity.flags.bm5e.disallowRecipientBonuses === true` skip outgoing AC5E damage/healing bonus and condition evaluation in the native DamageRoll pipeline, including dialog reevaluation. The exclusion requires the explicit boolean `true`; the presence of `flags.bm5e` alone does not enable it. Activity use, consumption, normal hook cancellation, target defenses, and healing-received adjustments retain their normal handling. Checks, saves, and attacks retain normal recipient modifiers.
+
 ---
 
 ### `flags.automated-conditions-5e.aura.ACTIONTYPE.MODE`

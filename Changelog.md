@@ -1,6 +1,7 @@
 ## 14.606.4.5
 
 - Added active-concentration and spell-school filters (`concentrating`, `school`) to `ac5e.getItem`, `getItems`, and `hasItem`. `hasItem` now accepts a null item identifier to check any item matching the filters.
+- BM5E-generated Damage and Heal activities with `activity.flags.bm5e.disallowRecipientBonuses === true` now skip outgoing AC5E damage/healing bonuses and condition evaluation, including dialog reevaluation. Activity use, consumption, normal hook cancellation, target defenses, and healing-received adjustments retain their normal handling.
 
 ## 14.606.4.4
 
