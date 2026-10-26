@@ -9,6 +9,7 @@ Examples include AC5E `v14.605.2+` features. Older syntax variants are labelled 
 - [Bugbear's Surprise Attack](#bugbears-surprise-attack)
 - [Charger (incomplete)](#charger-incomplete)
 - [Cloak of Flies](#cloak-of-flies)
+- [Conjuration Adept (Persistent Conjuration)](#conjuration-adept-persistent-conjuration)
 - [Danger Sense 2024](#danger-sense-2024)
 - [Disciple of Life 2014](#disciple-of-life-2014)
 - [Divine Fury](#divine-fury)
@@ -120,6 +121,18 @@ key: flags.automated-conditions-5e.check.advantage
 
 value: ability.cha && skill.itm
 ```
+
+## Conjuration Adept (Persistent Conjuration)
+
+Requires AC5E v14.606.4.5+. Add this change to an effect on the feat and enable **Apply to Actor**. This example uses Wisdom; replace `wis` with `int` or `cha` to match the ability score increased by the feat.
+
+```text
+key: flags.automated-conditions-5e.concentration.bonus
+mode: AC5E
+value: bonus=rollingActor.abilities.wis.mod; ac5e.hasItem(rollingActor.uuid, null, { type: 'spell', concentrating: true, school: 'con' })
+```
+
+The condition checks all currently concentrated items. If your rules allow simultaneous concentration on spells of different schools, it grants the bonus to any concentration save while a Conjuration spell is active; it does not identify which spell the save maintains.
 
 ## Danger Sense 2024
 

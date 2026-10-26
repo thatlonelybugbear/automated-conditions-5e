@@ -586,9 +586,12 @@ ac5e.getItems(token.id, ['arts-dice', 'Superiority Die'], { getProperty: 'system
 ac5e.getItems(token.id, ['arts-dice', 'Superiority Die'], { getProperty: 'system.uses.value', match: 'name' }); // exact-name matching ignores 'arts-dice' and can return [3]
 ac5e.getItems(actor, null, { properties: 'mgc' }); // returns all items with the magical property on the actor
 ac5e.hasItem(token, 'shield', { type: 'spell' }); // returns true if the token.actor has the Shield spell
+ac5e.hasItem(rollingActor.uuid, null, { type: 'spell', concentrating: true, school: 'con' }); // currently concentrating on any Conjuration spell
 ```
 
 Useful options include `match: "name" | "identifier" | "id" | "uuid" | "any"`, `nameMode: "exact" | "partial"`, `type`, `properties`, `returnIds`, `returnUuids`, `returnIdentifiers`, and `getProperty`.
+
+Use `concentrating: true` or `false` to filter by active concentration, and `school` to filter by a spell school key (for example, `con` for Conjuration). Pass `null` as the item identifier to match any item satisfying the filters, including with `hasItem`.
 
 ---
 

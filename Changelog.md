@@ -1,3 +1,7 @@
+## 14.606.4.5
+
+- Added active-concentration and spell-school filters (`concentrating`, `school`) to `ac5e.getItem`, `getItems`, and `hasItem`. `hasItem` now accepts a null item identifier to check any item matching the filters.
+
 ## 14.606.4.4
 
 - Fixed Midi-QOL cover attribution showing "Bonus: Cover: None". WAVES cover now lists each target's cover level only when at least one target has cover.

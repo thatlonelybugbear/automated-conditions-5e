@@ -1261,6 +1261,8 @@ function _normalizeItemLookupOptions(options = {}) {
 		nameMode: _normalizeItemLookupNameModeOption(input.nameMode),
 		equipped: typeof input.equipped === 'boolean' ? input.equipped : undefined,
 		attuned: typeof input.attuned === 'boolean' ? input.attuned : undefined,
+		concentrating: typeof input.concentrating === 'boolean' ? input.concentrating : undefined,
+		school: typeof input.school === 'string' ? input.school.trim() : undefined,
 		hasUses: typeof input.hasUses === 'boolean' ? input.hasUses : undefined,
 		hasQuantity: typeof input.hasQuantity === 'boolean' ? input.hasQuantity : undefined,
 		properties: [...new Set(rawProperties.map((value) => String(value ?? '').trim()).filter(Boolean))],
@@ -1331,8 +1333,10 @@ function _itemHasProperty(item, property) {
 	return false;
 }
 
-function _itemMatchesLookupStateFilters(item, options = {}) {
+function _itemMatchesLookupStateFilters(item, options = {}, actor = item?.actor) {
 	if (!item) return false;
+	if (options.concentrating !== undefined && !!actor?.concentration?.items?.has(item) !== options.concentrating) return false;
+	if (options.school !== undefined && item.system?.school !== options.school) return false;
 	if (options.equipped !== undefined && !!item?.system?.equipped !== options.equipped) return false;
 	if (options.attuned !== undefined && _itemIsAttuned(item) !== options.attuned) return false;
 	if (options.hasUses !== undefined && _itemHasUses(item) !== options.hasUses) return false;
@@ -1404,6 +1408,8 @@ function _resolveActorForItemLookup(source) {
  * @param {string|string[]|object} [itemIdentifier] - Identifier/name/id/uuid query. If omitted, returns all actor items.
  * @param {object} [options]
  * @param {string} [options.type] - Optional item.type filter.
+ * @param {boolean} [options.concentrating] - Filter by whether the actor is currently concentrating on the item.
+ * @param {string} [options.school] - Optional spell school key, such as "con".
  * @param {string|string[]} [options.properties] - Optional item.system.properties filter; all requested properties must be present.
  * @param {string} [options.getProperty] - Optional property path to return from each matched item.
  * @param {boolean} [options.returnIds] - If true, returns matching item ids instead of documents.
@@ -1421,7 +1427,7 @@ export function _getItems(source, itemIdentifier, options = {}) {
 	const normalizedOptions = _normalizeItemLookupOptions(options);
 	const itemType = typeof normalizedOptions?.type === 'string' ? normalizedOptions.type.trim() : '';
 	const typeScopedItems = itemType ? actorItems.filter((item) => item?.type === itemType) : actorItems;
-	const scopedItems = typeScopedItems.filter((item) => _itemMatchesLookupStateFilters(item, normalizedOptions));
+	const scopedItems = typeScopedItems.filter((item) => _itemMatchesLookupStateFilters(item, normalizedOptions, actor));
 	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
 	if (!identifiers.length) return _shapeItemLookupResults(scopedItems, options);
 
@@ -1456,6 +1462,7 @@ export function _getItem(source, itemIdentifier, options = {}) {
  * @returns {boolean}
  */
 export function _hasItem(source, itemIdentifier, options = {}) {
+	if (itemIdentifier === null) return _getItems(source, itemIdentifier, options).length > 0;
 	const identifiers = _normalizeItemIdentifierInput(itemIdentifier);
 	if (!identifiers.length) return false;
 	return _getItems(source, identifiers, options).length > 0;

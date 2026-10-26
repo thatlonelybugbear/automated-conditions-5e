@@ -93,7 +93,10 @@ ac5e.getItem(actor, "arts-dice")
 ac5e.getItems(token.id, ["arts-dice", "Superiority Die"], { getProperty: "system.uses.value" })
 ac5e.getItems(actor, null, { properties: "mgc" })
 ac5e.hasItem(token, "shield", { type: "spell" })
+ac5e.hasItem(actor, null, { type: "spell", concentrating: true, school: "con" })
 ```
+
+Since v14.606.4.5, all three item lookup helpers accept `concentrating: true` or `false` to filter by active concentration and `school` to match a spell school key, such as `con` (Conjuration) or `nec` (Necromancy). The concentration filter checks the actor's current concentrated items, rather than whether a spell requires concentration. Pass `null` as the item identifier to match any item satisfying the filters, including with `hasItem`.
 
 ## Evaluation helpers
 
