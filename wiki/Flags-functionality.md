@@ -20,7 +20,7 @@ Short alias is also accepted: `flags.ac5e.ACTIONTYPE.MODE`.
 
 Since v14.606.4.5, BM5E-generated Damage and Heal activities with `activity.flags.bm5e.disallowRecipientBonuses === true` skip outgoing AC5E damage/healing bonus and condition evaluation in the native DamageRoll pipeline, including dialog reevaluation. The exclusion requires the explicit boolean `true`; the presence of `flags.bm5e` alone does not enable it. Activity use, consumption, normal hook cancellation, target defenses, and healing-received adjustments retain their normal handling. Checks, saves, and attacks retain normal recipient modifiers.
 
-These excluded activities retain AC5E button coloring and dialog/chat tooltips, subject to your display settings. A generic `BM5e Overtime: Activity name` attribution identifies the activity without evaluating outgoing bonuses or conditions.
+These excluded activities retain AC5E button coloring and dialog/chat tooltips, subject to your display settings. A generic `BM5e Overtime: Activity name` attribution, without an `Info:` prefix, identifies the activity without evaluating outgoing bonuses or conditions.
 
 ---
 

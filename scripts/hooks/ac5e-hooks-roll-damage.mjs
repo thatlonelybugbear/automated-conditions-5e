@@ -12,7 +12,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 		options.activity = recipientActivity;
 		options.hook = hook;
 		const ac5eConfig = deps.getConfig(config, dialog, hook, undefined, undefined, options, reEval);
-		ac5eConfig.subject.info.push(foundry.utils.escapeHTML(`BM5e Overtime: ${recipientActivity.name ?? recipientActivity.item?.name ?? 'Activity'}`));
+		ac5eConfig.subject.info.push({ name: foundry.utils.escapeHTML(`BM5e Overtime: ${recipientActivity.name ?? recipientActivity.item?.name ?? 'Activity'}`), hideInfoPrefix: true });
 		deps.captureFrozenDamageBaseline(ac5eConfig, config);
 		deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
 		deps.setAC5eProperties(ac5eConfig, config, dialog, message);

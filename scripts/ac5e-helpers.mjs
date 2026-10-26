@@ -2086,7 +2086,8 @@ export function _getTooltip(ac5eConfig = {}) {
 			),
 		),
 	];
-	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${_localize('AC5E.Info')}: ${infoLabels.join(', ')}</span>`);
+	const infoPrefix = infoEntries.length && infoEntries.every((entry) => entry?.hideInfoPrefix) ? '' : `${_localize('AC5E.Info')}: `;
+	addTooltip(infoLabels.length, `<span style="display: block; text-align: left;">${infoPrefix}${infoLabels.join(', ')}</span>`);
 	const enforcedModeLabel =
 		enforcedD20Mode === 'advantage' ? _localize('DND5E.Advantage')
 		: enforcedD20Mode === 'disadvantage' ? _localize('DND5E.Disadvantage')
