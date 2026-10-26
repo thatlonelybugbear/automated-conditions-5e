@@ -7,7 +7,17 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (!Array.isArray(config?.rolls) || !config.rolls.length) return true;
 	const { subject: configActivity, subject: { actor: sourceActor } = {}, rolls, attackMode, ammunition, mastery } = config || {};
 	const { message: messageForSource, messageForTargets, activity: messageActivity, messageTargets, options } = deps.getHookMessageData(config, hook, message, deps);
-	if ((configActivity ?? messageActivity)?.flags?.bm5e?.disallowRecipientBonuses === true) return true;
+	const recipientActivity = configActivity ?? messageActivity;
+	if (recipientActivity?.flags?.bm5e?.disallowRecipientBonuses === true) {
+		options.activity = recipientActivity;
+		options.hook = hook;
+		const ac5eConfig = deps.getConfig(config, dialog, hook, undefined, undefined, options, reEval);
+		ac5eConfig.subject.info.push(foundry.utils.escapeHTML(`BM5e Overtime: ${recipientActivity.name ?? recipientActivity.item?.name ?? 'Activity'}`));
+		deps.captureFrozenDamageBaseline(ac5eConfig, config);
+		deps.calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties: true });
+		deps.setAC5eProperties(ac5eConfig, config, dialog, message);
+		return ac5eConfig;
+	}
 	const moduleId = deps.Constants.MODULE_ID;
 	const optinCandidates = {
 		workflowState: config?.workflow?.ac5e?.attack?.optinSelected,
