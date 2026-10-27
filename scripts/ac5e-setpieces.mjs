@@ -4722,6 +4722,44 @@ function _isLiteralModifierSyntax(value, hook) {
 	return false;
 }
 
+// Return null for invalid expressions so permissive literal validation cannot accept them.
+function _resolveExplodeModifierExpressions(value, evaluationData, debug) {
+	const match = /^(xo?)(.*)$/i.exec(value);
+	if (!match || !/[().+\-*/%]/.test(match[2])) return undefined;
+	const [, prefix, argumentsValue] = match;
+	let depth = 0;
+	let separator = -1;
+	for (let index = 0; index < argumentsValue.length; index++) {
+		const character = argumentsValue[index];
+		if (character === '(' || character === '[') depth++;
+		else if (character === ')' || character === ']') depth--;
+		else if (!depth && separator < 0 && /[<>=]/.test(character)) separator = index;
+		if (depth < 0) return null;
+	}
+	if (depth) return null;
+	const capExpression = separator < 0 ? '' : argumentsValue.slice(0, separator).trim();
+	const triggerMatch = separator < 0 ? null : /^(<=|>=|=|<|>)([\s\S]*)$/.exec(argumentsValue.slice(separator));
+	if (separator >= 0 && !triggerMatch) return null;
+	const comparison = triggerMatch?.[1] ?? '';
+	const triggerExpression = (triggerMatch?.[2] ?? argumentsValue).trim();
+	const resolveInteger = (expression, minimum) => {
+		if (!expression) return '';
+		const formula = _ac5eSafeEval({ expression, sandbox: evaluationData, mode: 'formula', debug });
+		// Formula preparation returns the number 0 on failure, rather than a formula string.
+		if (typeof formula !== 'string' || !formula.trim()) return null;
+		const result = evalNumericFormulaExpression(formula, { debug });
+		return Number.isSafeInteger(result) && result >= minimum ? String(result) : null;
+	};
+	try {
+		const cap = resolveInteger(capExpression, 0);
+		const trigger = resolveInteger(triggerExpression, 1);
+		if (cap === null || trigger === null) return null;
+		return `${prefix}${cap}${comparison}${trigger}`;
+	} catch {
+		return null;
+	}
+}
+
 function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura, debug, chanceCache, chanceKey }) {
 	let bonus, set, modifier, threshold, chance;
 	const rawValue = String(value ?? '');
@@ -4769,6 +4807,7 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect, chanceKey);
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
 		if (typeof trimmedModifier === 'string') {
+			modifier = _resolveExplodeModifierExpressions(trimmedModifier, evaluationData, debug);
 			const extremeMatch = trimmedModifier.match(/^(min|max)\s*(.+)$/i);
 			if (extremeMatch && !/^(?:max|min|maximize|minimize)$/i.test(trimmedModifier.trim().replace(/\s+/g, ''))) {
 				let extremeValue = _ac5eSafeEval({ expression: extremeMatch[2], sandbox: evaluationData, mode: 'formula', debug });
