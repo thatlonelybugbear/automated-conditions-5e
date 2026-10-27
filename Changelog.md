@@ -1,4 +1,4 @@
-## Unreleased
+## 14.606.4.6
 
 - Added expression support for exploding-die caps and triggers in damage modifiers, including `modifier=x1=(baseDamage.denomination)` and `modifier=x(baseDamage.number * 2)=baseDamage.denomination`. Invalid expressions are skipped instead of reaching Foundry as partially parsed modifiers. Explosion caps apply per dice term, not per spell casting.
 

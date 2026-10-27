@@ -119,7 +119,7 @@ Replace `MODE` with one of the following:
    - Adds `max` or `min` modfiers to **d20 rolls**: `modifier=(rollingActor.attributes.hp.pct > 50 ? min15 : max10)` which will roll `1d20min15` when the rolling actor's health is above 50% and `1d20max10` otherwise
    - Adds [Foundry roll modifiers](https://foundryvtt.com/article/dice-modifiers/) to **damage rolls**.
       - Use `modifier=adv` for damage _advantage_ and `modifier=dis` for _disadvantage_.
-      - In the upcoming release, exploding-die caps and triggers can use parenthesized numeric expressions or dotted sandbox references: `modifier=x1=(baseDamage.denomination); addTo=base; isSpell` adds at most one matching die per base dice term when a die rolls its maximum.
+      - Since v14.606.4.6, exploding-die caps and triggers can use parenthesized numeric expressions or dotted sandbox references: `modifier=x1=(baseDamage.denomination); addTo=base; isSpell` adds at most one matching die per base dice term when a die rolls its maximum.
       - `modifier=x(baseDamage.number * 2)=baseDamage.denomination; addTo=base; isCritical` resolves the cap and trigger before passing the modifier to Foundry. For base damage of `1d10`, this becomes `x2=10`.
       - Both `x` (recursive explosions) and `xo` (only original dice can trigger) accept these expressions. Resolved caps must be nonnegative integers, and explicit triggers must be positive integers; invalid expressions do not apply a modifier. Existing literal modifiers remain supported.
       - Caps apply independently to each dice term and each damage roll. These modifiers do not track a once-per-spell limit across multiple parts or repeated damage rolls.
