@@ -1,5 +1,6 @@
 ## 14.606.4.7
 
+- Fixed actors with a proficiency bonus of 0 being incorrectly treated as untrained in equipped armor or shields, blocking spellcasting and imposing disadvantage on Strength and Dexterity rolls.
 - Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 - Updated Czech translation by [Lethrendis](<https://github.com/Lethrendis/>) 🤗
 
