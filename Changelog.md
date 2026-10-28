@@ -1,12 +1,15 @@
 ## 14.606.4.6
 
-- Preserved custom roll-dialog subtitles, including BM5E labels, alongside token names using a middle-dot separator.
-- Fixed actor-scoped Item targets resolving colliding world Item UUIDs instead of the selected actor's Item. The Consumption Type editor can now return to `effectActor` when its target is empty.
-- Added an actor selector at the top of the Consumption Type editor, defaulting to `effectActor`. Actor-scoped `usesCount` targets now also support HP, hit dice, spell-slot pools, flags, and other actor counters, with availability and updates using the selected actor's resource and ownership.
-- Fixed negative `usesCount` amounts and `recover` being blocked when a local effect counter or numeric actor resource (including spell slots) starts at zero. Positive consumption still requires available uses.
-- Item/activity lookup now prefers an explicit activity name, ID, identifier, or UUID before falling back to the first activity of the requested type.
-- Added actor-scoped Item/activity targets for `usesCount`, such as `opponentActor.Item.Skill Points,-3` and `rollingActor.Item.Some Item.Activity.heal,1`. Availability and queued consumption/restoration resolve the same actor and document. Unprefixed `Item` targets still use `effect.target`; missing explicit actors or documents do not fall back to another actor.
-- Added expression support for exploding-die caps and triggers in damage modifiers, including `modifier=x1=(baseDamage.denomination)` and `modifier=x(baseDamage.number * 2)=baseDamage.denomination`. Invalid expressions are skipped instead of reaching Foundry as partially parsed modifiers. Explosion caps apply per dice term, not per spell casting.
+- Changes in resource consumption and recovery (`usesCount`)
+  - Choose whose resources to use at the top of the Consumption Type editor. The default is `effectActor`, the actor carrying the effect. You can switch back to it even when no resource is selected.
+  - Use another actor's Items, activities, HP, hit dice, spell slots, flags, and other counters. For example, `usesCount=opponentActor.Item.Skill Points,-3` restores three uses to the opponent's Skill Points Item.
+  - Resource checks and updates use the selected actor. Existing targets without an actor prefix keep their usual behavior.
+  - Lookups for Item/Activity follow the `Item.<id>.Activity.<id>` syntax, where:
+    - Item's `<id>` can be a name, identifier, or ID.
+    - Activity is optional. Its `<id>` can be a name, identifier, ID, or activity type. Exact matches take priority; otherwise, the first activity of that type is used.
+  - Negative amounts and `recover` now work when local effect counters or numeric actor resources, including spell slots, start at zero. Positive consumption still requires available uses.
+- Dice Modifiers: Explosion limits and trigger values can use expressions, such as `modifier=x1=(baseDamage.denomination)` or `modifier=x(baseDamage.number * 2)=baseDamage.denomination`.
+- Roll configuration dialogs now show token names alongside custom subtitles, including BM5E labels, separated by a small middle dot.
 
 ## 14.606.4.5
 
