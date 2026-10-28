@@ -201,8 +201,9 @@ function applyDialogTitleOverrides(render, elem, getConfigAC5E) {
 	let newTitle;
 	if (tokenId && (hookType === 'save' || hookType === 'check')) {
 		const subtitleElement = elem.querySelector('.window-subtitle');
-		const tokenName = canvas.tokens.get(tokenId)?.name;
-		if (subtitleElement) subtitleElement.textContent = `${tokenName}`;
+		const token = canvas.tokens.get(tokenId);
+		const subtitle = render.options?.window?.subtitle;
+		if (subtitleElement && token?.name) subtitleElement.textContent = subtitle && subtitle !== token.actor?.name && subtitle !== token.name ? `${subtitle} · ${token.name}` : token.name;
 	}
 	if (render.config?.isConcentration) {
 		newTitle = `${game.i18n.translations.DND5E.AbbreviationDC} ${render.config.target} ${game.i18n.translations.DND5E.Concentration}`;
@@ -214,8 +215,9 @@ function applyDialogTitleOverrides(render, elem, getConfigAC5E) {
 		const actor = _safeFromUuidSync(actorUuid);
 		const tokenName = actor?.token?.name ?? actor?.getActiveTokens()?.[0]?.name;
 		const subtitleElement = elem.querySelector('.window-subtitle');
-		if (subtitleElement) {
-			subtitleElement.textContent = `${tokenName}`;
+		const subtitle = render.options?.window?.subtitle;
+		if (subtitleElement && tokenName) {
+			subtitleElement.textContent = subtitle && subtitle !== actor?.name && subtitle !== tokenName ? `${subtitle} · ${tokenName}` : tokenName;
 			subtitleElement.style.display = 'block';
 		}
 	}
