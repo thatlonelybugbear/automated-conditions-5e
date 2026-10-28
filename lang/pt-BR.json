@@ -622,7 +622,7 @@
       		"Root": "Raiz",
       		"Values": "Valores",
       		"Operators": "Operadores",
-      		"UsesCountQuickTargets": "Contagem de Uso de Alvos Rápidos (ator com este efeito)",
+      		"UsesCountQuickTargets": "Contagem de Uso de Alvos Rápidos",
       		"UpdateQuickTargets": "Atualizar Alvos Rápidos",
       		"DamageTypes": "Tipos de Dano",
       		"HealingTypes": "Tipos de Cura",
