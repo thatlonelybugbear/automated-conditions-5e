@@ -1,3 +1,7 @@
+## 13.5330.1.8
+
+- Fixed actors with a proficiency bonus of 0 being incorrectly treated as untrained in equipped armor or shields, blocking spellcasting and imposing disadvantage on Strength and Dexterity rolls.
+
 ## 13.5330.1.7
 
 - Fixed magical darkness being treated as a wall by distance checks using `wallsBlock`. Darkness still affects visibility normally.
