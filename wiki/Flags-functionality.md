@@ -224,8 +224,10 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `usesCount=origin`     | For actor owned items, uses from the item or activity origin of the effect will be consumed |
 | `usesCount=UUID`       | For actor owned items, uses from the item or activity retrivable by the UUID will be consumed |
 | `usesCount=Item.ID.Activity.ID`| `ID` can be either an `id`, `identifier` or `name`. The `Activity.ID` part is optional. If added, the uses from that activity will be consumed, otherwise from the relevant Item. |
+| `usesCount=opponentActor.Item.ID.Activity.ID` | Actor-scoped Item/activity lookup. Supported prefixes: `rollingActor`, `opponentActor`, `effectActor`, `nonEffectActor`, `effectOriginActor`, and `auraActor`. The `Activity.ID` part is optional. |
 | `usesCount=_, Number`  | If a comma separated Number is added, multiple uses will be consumed if available |
 | `usesCount=ActorAttr, Number`   | Use consumable resources on the Actor instead of item/activity uses |
+| `usesCount=opponentActor.hp, Number` | From 14.606.4.6, the actor prefixes listed above also apply to actor counters, including HP, hit dice, spell slots, flags, and other consumable resources. Examples: `effectOriginActor.hd.smallest,1`, `nonEffectActor.flags.points,-3`, and `opponentActor.spell[slot,pact],1`. |
 | `usesCount=spell[slot,pact]` | For opt-ins, choose an available spell or Pact slot and consume one slot. Use `spell[slot]` or `spell[pact]` to restrict pools. |
 | | `ActorAttr` can be `hp`, `hpmax`, `hptemp`, `hd`, `hdlargest`, `hdsmallest`, `abilityXYZ` (like `str`), `senseXYZ` (like `darkvision`), `currency` (like `gp`), `spellXYZ` (like `pact` or `spell3`), `movementXYZ` (like `walk`), `exhaustion`, `inspiration`, `resources` (like `primary`, `legact` etc), or any of the actor's `flags` . |
 | | For any hp `ActorAttr` which would lead to hp loss (temp or current), using `noconc` (or `noconcentration`, `noconcentrationcheck`) will disable concentration checks on that loss. |
@@ -290,9 +292,13 @@ Consumption, healing, and Prone removal complete asynchronously through AC5E's e
 
 > Examples:
 
+> The Consumption Type editor has an actor selector above its input. It defaults to `effectActor` (the actor carrying the effect), and also offers `rollingActor`, `opponentActor`, `nonEffectActor`, `effectOriginActor`, and `auraActor`. Changing actor preserves the selected counter or Item path. Unprefixed targets retain their existing behavior. `origin`, literal UUIDs, and numeric local counters retain their fixed meaning; selecting another actor starts a new actor-scoped path for those targets. Missing explicit actors do not fall back to the effect owner.
+
 >`usesCount=Scene.9gP78CMgo7ZmATt2.Token.B7sWVuLXxDn5v3gS.Actor.sa8PesDM1sZviqJ6.Item.42AGHJQzJZfUYxF9, 2`
 
 > `usesCount=Item.Longsword.Activity.attack, 2` will consume two uses of the activity with the `attack` identifier from the first item that is named Longsword on the Actor that has the effect applied.
+
+> Actor-scoped lookup (upcoming release): `usesCount=opponentActor.Item.Skill Points,-3; isHeal` restores three uses to the Skill Points Item on the current opponent. `usesCount=rollingActor.Item.Some Item.Activity.heal,1` consumes one use from an explicitly named/identified activity, or the first activity of type `heal` if there is no explicit match. It does not skip an exhausted first activity. Missing actors, Items, or activities make the entry unavailable. Scoped Item targets never fall back to a world Item UUID. Unprefixed `Item` targets continue to use `effect.target`. This syntax does not iterate over multiple targets.
 
 > `usesCount=Item.Longsword, Ablaze` will consume one use from an item named `Longsword, Ablaze`
 

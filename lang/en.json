@@ -622,7 +622,7 @@
 			"Root": "Root",
 			"Values": "Values",
 			"Operators": "Operators",
-			"UsesCountQuickTargets": "UsesCount quick targets (actor with this effect)",
+			"UsesCountQuickTargets": "UsesCount quick targets",
 			"UpdateQuickTargets": "Update quick targets",
 			"DamageTypes": "Damage Types",
 			"HealingTypes": "Healing Types",

@@ -174,7 +174,7 @@ const AC5E_USESCOUNT_BASE_ENTRIES = [
 	'Item.<itemId>.Activity.<activityId>',
 ];
 const AC5E_UPDATE_BASE_ENTRIES = ['rollingActor', 'opponentActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
-const AC5E_COUNTER_ACTOR_ROOTS = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
+const AC5E_COUNTER_ACTOR_ROOTS = ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'];
 
 export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 	static openEditors = new Map();
@@ -691,6 +691,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 					<form class="${dialogClass}" data-ac5e-lambda-assist data-ac5e-assist-scope="${escapeHtml(assistScope)}">
 						<div class="ac5e-effect-value-expand-layout${layoutSingleClass}">
 							<section class="ac5e-effect-value-expand-main">
+								${isUsesCountScope ? renderAssistActionFieldset(editorAssist('ActorEntries'), ['effectActor', ...AC5E_COUNTER_ACTOR_ROOTS.filter((root) => root !== 'effectActor')], 'ac5e-usescount-actor', 'entry', 'usesCount-actors', true) : ''}
 								<div class="form-group stacked">
 									<label for="ac5e-expand-value">${escapedLabel}</label>
 									<div class="form-fields">
@@ -1173,7 +1174,7 @@ function buildRenderedOptionalFieldRows(parsed, id, optionalFieldState, profile 
 						path: {
 							name: 'ui.usesCountPath',
 							label: game.i18n.localize('AC5E.EffectValueEditor.Label.ConsumptionType'),
-							hint: parseSpellSlotTarget(parsedUsesCountParts.path) ? getToggleHint('AC5E.OptinSpellSlot.EditorHint') : undefined,
+							hint: parseSpellSlotTarget(parseUsesCountAssistTarget(parsedUsesCountParts.path).target) ? getToggleHint('AC5E.OptinSpellSlot.EditorHint') : undefined,
 							value: parsedUsesCountParts.path,
 							inputId: `ac5e-value-usesCount-path-${id}`,
 							expandable: true,
@@ -2131,6 +2132,11 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 			}
 		});
 	}
+	for (const button of assistRoot.querySelectorAll('[data-ac5e-usescount-actor]')) {
+		button.addEventListener('click', () => {
+			applyCounterAssistRootSelection(textarea, button.dataset.ac5eUsescountActor, assistRoot, assist, selectionState);
+		});
+	}
 	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-entry]')) {
 		button.addEventListener('click', () => {
 			const value = (button.dataset.ac5eAssistEntry ?? '').trim();
@@ -2671,6 +2677,10 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 	const rawToken = extractAutocompleteToken(textarea.value, caret);
 	const token = rawToken.toLowerCase();
 	const assistScope = getAssistScope(root);
+	if (assistScope === 'usesCount') {
+		syncUsesCountActorAssist(root, textarea);
+		return;
+	}
 	const operatorOnlyMode = shouldIncludeOperatorMatches(rawToken, root, token);
 	const suggestedOperatorButtons = getSuggestedOperatorButtons(root, textarea);
 	const suggestedOperatorMode = shouldUseSuggestedOperatorMode(rawToken, suggestedOperatorButtons);
@@ -3194,15 +3204,52 @@ function getAssistScope(root) {
 }
 
 function isCounterActorRoot(value = '') {
-	return ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'].includes(value);
+	return AC5E_COUNTER_ACTOR_ROOTS.includes(value);
 }
 
 function isCounterPathRoot(value = '') {
-	return ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'].some((root) => value.startsWith(`${root}.`));
+	return AC5E_COUNTER_ACTOR_ROOTS.some((root) => value.startsWith(`${root}.`));
+}
+
+function parseUsesCountAssistTarget(value = '') {
+	const raw = String(value).trim().replace(/^targetActor\./i, 'opponentActor.');
+	const actorRoot = AC5E_COUNTER_ACTOR_ROOTS.find((root) => raw.toLowerCase().startsWith(`${root.toLowerCase()}.`));
+	return { actorRoot: actorRoot ?? 'effectActor', target: actorRoot ? raw.slice(actorRoot.length + 1) : raw };
+}
+
+function isFixedUsesCountAssistTarget(target) {
+	return target.toLowerCase() === 'origin' || (target !== '' && Number.isFinite(Number(target))) || /^(?:Actor|Scene|Compendium)\./.test(target);
+}
+
+function withUsesCountAssistActor(value, actorRoot) {
+	const { target } = parseUsesCountAssistTarget(value);
+	if (actorRoot === 'effectActor') return target;
+	return `${actorRoot}.${isFixedUsesCountAssistTarget(target) ? '' : target}`;
+}
+
+function syncUsesCountActorAssist(root, textarea) {
+	const { actorRoot, target } = parseUsesCountAssistTarget(textarea.value);
+	for (const button of root.querySelectorAll('[data-ac5e-usescount-actor]')) {
+		const selected = button.dataset.ac5eUsescountActor === actorRoot;
+		button.classList.toggle('active', selected);
+		button.setAttribute('aria-pressed', String(selected));
+	}
+	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
+		const entry = button.dataset.ac5eAssistEntry ?? '';
+		button.disabled = actorRoot !== 'effectActor' && isFixedUsesCountAssistTarget(entry);
+		button.hidden = false;
+		button.classList.toggle('active', target === entry);
+	}
 }
 
 function applyCounterAssistRootSelection(textarea, rootName, assistRoot, assist, selectionState = null) {
 	if (!(textarea instanceof HTMLTextAreaElement)) return;
+	if (assist?.scope === 'usesCount') {
+		const target = withUsesCountAssistActor(textarea.value, rootName);
+		if (target) applyCounterTargetTemplate(textarea, target, selectionState);
+		else setAssistFieldValue(textarea, '', 0, 0, selectionState);
+		return;
+	}
 	setAssistFieldValue(textarea, `${rootName}.`, `${rootName}.`.length, `${rootName}.`.length, selectionState);
 	assistRoot.dataset.ac5eAssistActiveRoot = rootName;
 	assistRoot.dataset.ac5eAssistChain = '[]';
@@ -3220,6 +3267,9 @@ function applyCounterAssistEntrySelection(textarea, entryValue, assistRoot, assi
 	if (assist?.scope === 'update' && !isCounterPathRoot(entryValue)) {
 		const actorRoot = textarea.value.split('.')[0];
 		if (isCounterActorRoot(actorRoot)) entryValue = `${actorRoot}.${entryValue}`;
+	}
+	if (assist?.scope === 'usesCount' && !isCounterPathRoot(entryValue)) {
+		entryValue = withUsesCountAssistActor(entryValue, parseUsesCountAssistTarget(textarea.value).actorRoot);
 	}
 	applyCounterTargetTemplate(textarea, entryValue, selectionState);
 	resetAssistBrowserContext(assistRoot, assist, selectionState, textarea);

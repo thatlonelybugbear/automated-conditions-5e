@@ -333,7 +333,7 @@ function isItemUsesCountTarget(target) {
 	const rawTarget = target.trim();
 	if (!rawTarget) return false;
 	if (Number.isFinite(Number(rawTarget))) return true;
-	if (/^item\./i.test(rawTarget)) return true;
+	if (/^(?:[a-z]+actor\.)?item\./i.test(rawTarget)) return true;
 	if (rawTarget.toLowerCase() === 'origin') return true;
 	const parsed = foundry?.utils?.parseUuid?.(rawTarget);
 	if (!parsed) return false;

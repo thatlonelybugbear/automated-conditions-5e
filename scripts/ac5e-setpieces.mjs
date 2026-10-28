@@ -3381,14 +3381,46 @@ function _applyUsesCountOperation(currentValue, consume, mode = 'delta') {
 
 function _parseUsesCountItemTarget(target) {
 	if (typeof target !== 'string') return null;
-	const match = target.trim().match(/^item\.(.+)$/i);
+	const match = target.trim().match(/^(?:([a-z]+actor)\.)?item\.(.+)$/i);
 	if (!match) return null;
-	const str = match[1].replace(/[\s,]+$/, '');
+	const str = match[2].replace(/[\s,]+$/, '');
 	const activitySeparatorMatch = str.match(/^(.*?)\.activity\.(.+)$/i);
 	const itemID = (activitySeparatorMatch ? activitySeparatorMatch[1] : str).trim();
 	const activityID = activitySeparatorMatch ? activitySeparatorMatch[2].trim() || null : null;
 	if (!itemID) return null;
-	return { itemID, activityID };
+	return { itemID, activityID, actorScope: match[1]?.toLowerCase() ?? null };
+}
+
+function _parseUsesCountActorTarget(target) {
+	const raw = String(target ?? '').trim();
+	const match = /^([a-z]+actor)\.(.*)$/i.exec(raw);
+	return { actorScope: match?.[1]?.toLowerCase() ?? null, target: match ? match[2].trim() : raw };
+}
+
+function _resolveUsesCountActor(actorScope, effect, evalData) {
+	let actor = effect?.target;
+	if (actorScope) {
+		const scopes = {
+			rollingactor: 'rollingActor',
+			opponentactor: 'opponentActor',
+			targetactor: 'opponentActor',
+			effectactor: 'effectActor',
+			noneffectactor: 'nonEffectActor',
+			effectoriginactor: 'effectOriginActor',
+			auraactor: 'auraActor',
+		};
+		const actorData = evalData?.[scopes[actorScope]];
+		actor = actorData instanceof Actor ? actorData : _safeFromUuidSync(actorData?.uuid ?? actorData?.actorUuid);
+	}
+	return actor instanceof Actor ? actor : null;
+}
+
+function _resolveUsesCountItemDocument(itemTarget, effect, evalData) {
+	const { itemID, activityID, actorScope } = itemTarget;
+	const actor = _resolveUsesCountActor(actorScope, effect, evalData);
+	if (!actor) return null;
+	const document = _getItemOrActivity(itemID, activityID, actor);
+	return document instanceof Item || document?.item instanceof Item ? document : null;
 }
 
 function _resolveUpdateTargetPropertyPath(target = '') {
@@ -3633,12 +3665,14 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 			return false;
 		}
 	}
-	if (!isOnce && hasCount && parseSpellSlotTarget(_parseUsesCountSpec(hasCount).target)) {
+	if (!isOnce && hasCount && parseSpellSlotTarget(_parseUsesCountActorTarget(_parseUsesCountSpec(hasCount).target).target)) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
+		const actorTarget = _parseUsesCountActorTarget(parsedCount.target);
 		if (!isOptin || recover || parsedCount.op !== 'delta' || parsedCount.scalingSign < 0) return false;
 		if (!parsedCount.scaling && Number(parsedCount.consume) !== 1) return false;
-		const actor = effect.target;
+		const actor = _resolveUsesCountActor(actorTarget.actorScope, effect, evalData);
 		if (!(actor instanceof Actor)) return false;
+		if (actorTarget.actorScope) _registerOriginUsesPermissionOverride({ updateArrays, id, baseId, ownerActor: actor, evalData });
 		const availability = _getUsesCountAvailabilityData({ rawUsesCount: hasCount, effect, evalData, debug });
 		const selection = _getOptinSelectionValueById(evalData, id, baseId);
 		const choice = selection?.slot ? availability.spellSlotChoices.find((choice) => choice.slot === selection.slot) : availability.spellSlotChoices[0];
@@ -3649,28 +3683,20 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		else actorUpdatesGM.push(entry);
 	} else if (!isOnce && hasCount) {
 		const parsedCount = _parseUsesCountSpec(hasCount);
-		const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
+		const actorTarget = _parseUsesCountActorTarget(parsedCount.target);
+		const consumptionTarget = _normalizeUsesCountTarget(actorTarget.target);
+		const scopedActor = actorTarget.actorScope ? _resolveUsesCountActor(actorTarget.actorScope, effect, evalData) : null;
+		if (actorTarget.actorScope && (!scopedActor || !consumptionTarget || consumptionTarget.toLowerCase() === 'origin' || Number.isFinite(Number(consumptionTarget)))) return false;
+		const isOwner = actorTarget.actorScope ? scopedActor.isOwner : effect.isOwner;
 		const consumptionValue = parsedCount.consume;
 		const usesCountOp = parsedCount.op === 'set' ? 'set' : 'delta';
 		if (usesCountOp === 'set' && !String(consumptionValue ?? '').trim()) return false;
 		const lowerConsumptionTarget = consumptionTarget.toLowerCase();
 		const hasOrigin = lowerConsumptionTarget === 'origin';
 		let isNumber;
-		if (!hasOrigin) {
-			const directTargetNumber = Number(consumptionTarget);
-			if (Number.isFinite(directTargetNumber)) isNumber = directTargetNumber;
-			else if (!_parseUsesCountItemTarget(consumptionTarget) && _looksLikeFormulaExpression(consumptionTarget)) {
-				isNumber = evalDiceExpression(consumptionTarget);
-				if (isNaN(isNumber)) {
-					let evaluatedTarget = _ac5eSafeEval({ expression: consumptionTarget, sandbox: evalData, mode: 'formula', debug });
-					const evaluatedTargetNumber = Number(evaluatedTarget);
-					if (Number.isFinite(evaluatedTargetNumber)) isNumber = evaluatedTargetNumber;
-					else {
-						evaluatedTarget = evalDiceExpression(String(evaluatedTarget ?? ''));
-						if (!isNaN(evaluatedTarget)) isNumber = evaluatedTarget;
-					}
-				}
-			}
+		if (!hasOrigin && !actorTarget.actorScope) {
+			const numericTarget = _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug);
+			if (Number.isFinite(numericTarget)) isNumber = numericTarget;
 		}
 		let consume = _resolveUsesCountConsumeValue(consumptionValue, evalData, debug); //consume Integer or 1; usage: usesCount=5,2 meaning consume 2 uses per activation. Can be negative, giving back.
 		if (recover && Number.isFinite(Number(consume))) consume = -Math.abs(Number(consume));
@@ -3780,7 +3806,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				}
 			}
 		} else {
-			let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
+			let itemActivityfromUuid = actorTarget.actorScope && _parseUsesCountItemTarget(parsedCount.target) ? null : _safeFromUuidSync(consumptionTarget);
 			if (hasOrigin) {
 				itemActivityfromUuid = _getEffectOriginItemOrActivity(effect);
 				if (!itemActivityfromUuid) {
@@ -3829,13 +3855,14 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 				});
 				if (!updated) return false;
 			} else {
-				const actor = effect.target;
-				if (!(actor instanceof Actor)) return false;
-				const itemTarget = _parseUsesCountItemTarget(consumptionTarget);
+				const actor = scopedActor ?? effect.target;
+				const itemTarget = _parseUsesCountItemTarget(parsedCount.target);
 				if (itemTarget) {
-					const { itemID, activityID } = itemTarget;
-					const document = _getItemOrActivity(itemID, activityID, actor);
+					const document = _resolveUsesCountItemDocument(itemTarget, effect, evalData);
 					if (!document) return false;
+					if (itemTarget.actorScope) {
+						_registerOriginUsesPermissionOverride({ updateArrays, id, baseId, ownerActor: _resolveUsesCountOwnerActor(document), evalData });
+					}
 					let item, activity;
 					if (document instanceof Item) item = document;
 					else {
@@ -3864,12 +3891,10 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 					});
 					if (!updated) return false;
 				} else {
+					if (!(actor instanceof Actor)) return false;
+					if (actorTarget.actorScope) _registerOriginUsesPermissionOverride({ updateArrays, id, baseId, ownerActor: actor, evalData });
 					/*if (['hp', 'hd', 'exhaustion', 'inspiration', 'death', 'currency', 'spell', 'resources', 'walk'].includes(commaSeparated[0].toLowerCase()))*/
-					const consumptionActor =
-						lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData.opponentActor
-						: lowerConsumptionTarget.startsWith('auraactor') ? evalData.auraActor
-						: lowerConsumptionTarget.startsWith('rollingactor') ? evalData.rollingActor
-						: actor.getRollData(); // actor is the effectActor
+					const consumptionActor = actorTarget.actorScope ? _ac5eActorRollData(null, null, actor) : actor.getRollData();
 					const uuid = consumptionActor?.uuid ?? actor.uuid;
 					_logUsesCount('resolve-actor-attr', {
 						effect: effect?.name,
@@ -4278,6 +4303,8 @@ function _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug) {
 	if (_parseUsesCountItemTarget(consumptionTarget)) return null;
 	const directTargetNumber = Number(consumptionTarget);
 	if (Number.isFinite(directTargetNumber)) return directTargetNumber;
+	if (/^(?:Actor|Scene|Compendium)\.|^flags?\./i.test(consumptionTarget)) return null;
+	if ((CONFIG?.DND5E?.consumableResources ?? []).some((path) => path.toLowerCase().includes(consumptionTarget.toLowerCase()))) return null;
 	if (_looksLikeFormulaExpression(consumptionTarget)) {
 		let evaluatedTarget = evalDiceExpression(consumptionTarget);
 		if (!isNaN(evaluatedTarget)) return evaluatedTarget;
@@ -4336,14 +4363,17 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	const result = (available = null, missing = null) => ({ available, missing });
 	if (typeof rawUsesCount !== 'string' || !rawUsesCount.trim()) return result();
 	const parsedCount = _parseUsesCountSpec(rawUsesCount);
-	const consumptionTarget = _normalizeUsesCountTarget(parsedCount.target);
+	const actorTarget = _parseUsesCountActorTarget(parsedCount.target);
+	const consumptionTarget = _normalizeUsesCountTarget(actorTarget.target);
 	if (!consumptionTarget) return result();
+	const actor = _resolveUsesCountActor(actorTarget.actorScope, effect, evalData);
+	if (actorTarget.actorScope && (!actor || consumptionTarget.toLowerCase() === 'origin' || Number.isFinite(Number(consumptionTarget)))) return result();
 	if (parseSpellSlotTarget(consumptionTarget)) {
 		const bound = (value, fallback) => {
 			const level = String(value ?? '').match(/^spell([1-9]\d*)$/i);
 			return level ? Number(level[1]) : _resolveUsesCountScalingNumber(value, {}, evalData, debug, fallback);
 		};
-		const spellSlotChoices = getSpellSlotChoices(consumptionTarget, effect?.target?.system?.spells, {
+		const spellSlotChoices = getSpellSlotChoices(consumptionTarget, actor?.system?.spells, {
 			min: bound(parsedCount.scaling?.min, 1),
 			max: bound(parsedCount.scaling?.max, getMaxSpellSlotLevel()),
 			step: bound(parsedCount.scaling?.step, 1),
@@ -4353,11 +4383,11 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	const lowerConsumptionTarget = consumptionTarget.toLowerCase();
 	const hasOrigin = lowerConsumptionTarget === 'origin';
 	const consume = _resolveUsesCountConsumeValue(parsedCount.consume, evalData, debug);
-	if (!hasOrigin) {
+	if (!hasOrigin && !actorTarget.actorScope) {
 		const numericTarget = _resolveUsesCountNumericTarget(consumptionTarget, evalData, debug);
 		if (Number.isFinite(numericTarget)) return result(numericTarget, null);
 	}
-	let itemActivityfromUuid = _safeFromUuidSync(consumptionTarget);
+	let itemActivityfromUuid = actorTarget.actorScope && _parseUsesCountItemTarget(parsedCount.target) ? null : _safeFromUuidSync(consumptionTarget);
 	if (hasOrigin) {
 		itemActivityfromUuid = _getEffectOriginItemOrActivity(effect);
 		if (!itemActivityfromUuid) return result();
@@ -4370,12 +4400,9 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 		if (currentQuantity !== false) return result(currentQuantity, null);
 		return result();
 	}
-	const actor = effect?.target;
-	if (!(actor instanceof Actor)) return result();
-	const itemTarget = _parseUsesCountItemTarget(consumptionTarget);
+	const itemTarget = _parseUsesCountItemTarget(parsedCount.target);
 	if (itemTarget) {
-		const { itemID, activityID } = itemTarget;
-		const document = _getItemOrActivity(itemID, activityID, actor);
+		const document = _resolveUsesCountItemDocument(itemTarget, effect, evalData);
 		if (!document) return result();
 		let item;
 		let activity;
@@ -4389,11 +4416,8 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 		if (currentQuantity !== false) return result(currentQuantity, null);
 		return result();
 	}
-	const consumptionActor =
-		lowerConsumptionTarget.startsWith('opponentactor') || lowerConsumptionTarget.startsWith('targetactor') ? evalData?.opponentActor
-		: lowerConsumptionTarget.startsWith('auraactor') ? evalData?.auraActor
-		: lowerConsumptionTarget.startsWith('rollingactor') ? evalData?.rollingActor
-		: actor.getRollData();
+	if (!(actor instanceof Actor)) return result();
+	const consumptionActor = actorTarget.actorScope ? _ac5eActorRollData(null, null, actor) : actor.getRollData();
 	if (!consumptionActor) return result();
 	if (lowerConsumptionTarget.includes('flag')) {
 		const value = lowerConsumptionTarget.startsWith('flag') ? foundry.utils.getProperty(consumptionActor, consumptionTarget) : foundry.utils.getProperty(evalData, consumptionTarget);
@@ -4453,9 +4477,10 @@ function _getUsesCountAvailabilityData({ rawUsesCount, effect, evalData, debug }
 	const type = availableResources.find((resourcePath) => resourcePath.includes(attr));
 	if (!type) return result();
 	const resource = foundry.utils.getProperty(consumptionActor, type);
-	if (!(resource instanceof Object)) return result();
-	const current = Number(resource.value);
-	const numericMax = Number(resource.max);
+	if (resource === null || resource === undefined) return result();
+	const isResourceObject = typeof resource === 'object';
+	const current = Number(isResourceObject ? resource.value : resource);
+	const numericMax = Number(isResourceObject ? resource.max : type.endsWith('.value') ? foundry.utils.getProperty(consumptionActor, `${type.slice(0, -6)}.max`) : undefined);
 	return result(Number.isFinite(current) ? current : null, Number.isFinite(current) && Number.isFinite(numericMax) ? Math.max(0, numericMax - current) : null);
 }
 
