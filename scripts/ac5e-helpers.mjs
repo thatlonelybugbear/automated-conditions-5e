@@ -830,8 +830,8 @@ export function _autoArmor(actor) {
 			: actor.itemTypes.equipment.some((item) => item.system.equipped && item.system.properties.has('stealthDisadvantage')) ? 'AC5E.Equipment'
 			: false,
 		notProficient:
-			!!hasArmor && !hasArmor.system.proficient && !hasArmor.system.prof.multiplier ? 'Armor'
-			: !!hasShield && !hasShield.system.proficient && !hasShield.system.prof.multiplier ? 'EquipmentShield'
+			!!hasArmor && !hasArmor.system.proficient && !(hasArmor.system.proficiencyMultiplier ?? hasArmor.system.prof.multiplier) ? 'Armor'
+			: !!hasShield && !hasShield.system.proficient && !(hasShield.system.proficiencyMultiplier ?? hasShield.system.prof.multiplier) ? 'EquipmentShield'
 			: false,
 	};
 }

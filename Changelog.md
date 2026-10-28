@@ -1,3 +1,7 @@
+## 13.5250.18.8
+
+- Fixed actors with a proficiency bonus of 0 being incorrectly treated as untrained in equipped armor or shields, blocking spellcasting and imposing disadvantage on Strength and Dexterity rolls.
+
 ## 13.5250.18.7
 
 - Fix for Paralyzed and Unconscious conditions not properly limiting the critical damage to Attack actions.
