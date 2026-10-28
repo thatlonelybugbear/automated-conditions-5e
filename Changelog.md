@@ -1,3 +1,8 @@
+## 14.606.4.7
+
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+- Updated Czech translation by [Lethrendis](<https://github.com/Lethrendis/>) 🤗
+
 ## 14.606.4.6
 
 - Changes in resource consumption and recovery (`usesCount`)
