@@ -290,6 +290,8 @@ Consumption, healing, and Prone removal complete asynchronously through AC5E's e
 
 > 💡 When using comma separated Number in usesCount, a negative value will recover uses!
 
+> Recovery can start at zero: negative amounts (or `recover`) restore empty Item/activity uses up to their maximum. From 14.606.4.6, local effect counters and numeric actor resources (including spell slots) at zero also permit recovery. Positive consumption remains blocked when no uses are available.
+
 > Examples:
 
 > The Consumption Type editor has an actor selector above its input. It defaults to `effectActor` (the actor carrying the effect), and also offers `rollingActor`, `opponentActor`, `nonEffectActor`, `effectOriginActor`, and `auraActor`. Changing actor preserves the selected counter or Item path. Unprefixed targets retain their existing behavior. `origin`, literal UUIDs, and numeric local counters retain their fixed meaning; selecting another actor starts a new actor-scoped path for those targets. Missing explicit actors do not fall back to the effect owner.

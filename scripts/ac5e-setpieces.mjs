@@ -3739,7 +3739,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 		});
 
 		if (!isNaN(isNumber)) {
-			if (isNumber === 0) {
+			if (isNumber === 0 && consume >= 0) {
 				_logUsesCount('blocked', { effect: effect?.name, id, reason: 'counter-is-zero', target: consumptionTarget });
 				return false;
 			}
@@ -4102,7 +4102,7 @@ function handleUses({ actorType, change, effect, evalData, updateArrays, debug, 
 							if (!type) return false;
 							const resource = foundry.utils.getProperty(consumptionActor, type);
 							let newValue;
-							if (!resource) return false;
+							if (!resource && resource !== 0) return false;
 							else if (resource instanceof Object) {
 								const { max, value } = resource;
 								newValue = _applyUsesCountOperation(value, consume, usesCountOp);
