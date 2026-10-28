@@ -1,3 +1,7 @@
+## 14.533.19.8
+
+- Fixed actors with a proficiency bonus of 0 being incorrectly treated as untrained in equipped armor or shields, blocking spellcasting and imposing disadvantage on Strength and Dexterity rolls.
+
 ## 14.533.19.7
 
 - Optional attack bonuses now appear after the normal attack modifiers and proficiency bonus in the roll formula.
