@@ -87,6 +87,8 @@ ac5e.getItemOrActivity(itemID, activityID, actor)
 
 `source` can be an actor, token, token ID, token UUID, actor ID, or actor UUID.
 
+`getItemOrActivity` matches an Item by name, identifier, ID, or UUID on the supplied actor. When an activity lookup is provided, an exact activity name, ID, identifier, or UUID takes precedence over a type match. Otherwise it returns the first result of `item.system.activities.getByType(type)`. Type lookup selects the first matching activity in collection order; it does not skip activities whose uses are exhausted.
+
 Examples:
 ```js
 ac5e.getItem(actor, "arts-dice")

@@ -1,6 +1,7 @@
 ## 14.606.4.6
 
 - Preserved custom roll-dialog subtitles, including BM5E labels, alongside token names using a middle-dot separator.
+- Item/activity lookup now prefers an explicit activity name, ID, identifier, or UUID before falling back to the first activity of the requested type.
 - Added expression support for exploding-die caps and triggers in damage modifiers, including `modifier=x1=(baseDamage.denomination)` and `modifier=x(baseDamage.number * 2)=baseDamage.denomination`. Invalid expressions are skipped instead of reaching Foundry as partially parsed modifiers. Explosion caps apply per dice term, not per spell casting.
 
 ## 14.606.4.5
