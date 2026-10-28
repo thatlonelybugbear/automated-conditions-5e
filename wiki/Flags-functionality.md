@@ -1,6 +1,6 @@
 # Automated Conditions 5e: Roll Flags Guide
 
-Applies to version: `13.5250.18`
+Applies to version: `14.606.4.6`
 
 AC5e processes Active Effects with relevant module flags. If the effect's condition evaluates to `true`, it alters the relevant roll accordingly.
 
@@ -223,7 +223,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | `usesCount=Number`     | Will limit the effect to the number of uses provided |
 | `usesCount=origin`     | For actor owned items, uses from the item or activity origin of the effect will be consumed |
 | `usesCount=UUID`       | For actor owned items, uses from the item or activity retrivable by the UUID will be consumed |
-| `usesCount=Item.ID.Activity.ID`| `ID` can be either an `id`, `identifier` or `name`. The `Activity.ID` part is optional. If added, the uses from that activity will be consumed, otherwise from the relevant Item. |
+| `usesCount=Item.ID.Activity.ID` | Item `ID` can be a name, identifier, ID, or UUID. The `Activity.ID` part is optional; omit it to use the Item's uses. Activity `ID` can be a name, identifier, ID, UUID, or activity type. Exact matches take priority; otherwise, the first activity of that type is used. |
 | `usesCount=opponentActor.Item.ID.Activity.ID` | Actor-scoped Item/activity lookup. Supported prefixes: `rollingActor`, `opponentActor`, `effectActor`, `nonEffectActor`, `effectOriginActor`, and `auraActor`. The `Activity.ID` part is optional. |
 | `usesCount=_, Number`  | If a comma separated Number is added, multiple uses will be consumed if available |
 | `usesCount=ActorAttr, Number`   | Use consumable resources on the Actor instead of item/activity uses |
@@ -300,7 +300,7 @@ Consumption, healing, and Prone removal complete asynchronously through AC5E's e
 
 > `usesCount=Item.Longsword.Activity.attack, 2` will consume two uses of the activity with the `attack` identifier from the first item that is named Longsword on the Actor that has the effect applied.
 
-> Actor-scoped lookup (upcoming release): `usesCount=opponentActor.Item.Skill Points,-3; isHeal` restores three uses to the Skill Points Item on the current opponent. `usesCount=rollingActor.Item.Some Item.Activity.heal,1` consumes one use from an explicitly named/identified activity, or the first activity of type `heal` if there is no explicit match. It does not skip an exhausted first activity. Missing actors, Items, or activities make the entry unavailable. Scoped Item targets never fall back to a world Item UUID. Unprefixed `Item` targets continue to use `effect.target`. This syntax does not iterate over multiple targets.
+> Actor-scoped lookup, from 14.606.4.6: `usesCount=opponentActor.Item.Skill Points,-3; isHeal` restores three uses to the Skill Points Item on the current opponent. `usesCount=rollingActor.Item.Some Item.Activity.heal,1` consumes one use from an explicitly named/identified activity, or the first activity of type `heal` if there is no explicit match. It does not skip an exhausted first activity. Missing actors, Items, or activities make the entry unavailable. Scoped Item targets never fall back to a world Item UUID. Unprefixed `Item` targets continue to use `effect.target`. This syntax does not iterate over multiple targets.
 
 > `usesCount=Item.Longsword, Ablaze` will consume one use from an item named `Longsword, Ablaze`
 
@@ -623,7 +623,7 @@ AC5E evaluates Actor flags, statuses, opt-ins, scaling, and resource updates whe
 flags.automated-conditions-5e.damage.bonus | AC5E | bonus=(optinScale)d8[radiant]; usesCount=spell[slot,pact],{min:1,max:4}; optin
 ```
 
-The dropdown offers only the effect actor's available slots within the configured level bounds. The same item works for actors with spell slots, Pact slots, or both. Spell and Pact pools remain separate choices even when their levels match. Pact uses its actual level; bounds also apply to Pact slots. Omit the bounds to allow levels 1 through the maximum configured in `CONFIG.DND5E.spellLevels`. Bounds accept numbers or slot names such as `spell1` or `spell10`.
+The dropdown offers only the selected actor's available slots within the configured level bounds. It defaults to `effectActor`, the actor carrying the effect. From 14.606.4.6, use an actor prefix such as `usesCount=opponentActor.spell[slot,pact],1` to choose another actor's slots. The same item works for actors with spell slots, Pact slots, or both. Spell and Pact pools remain separate choices even when their levels match. Pact uses its actual level; bounds also apply to Pact slots. Omit the bounds to allow levels 1 through the maximum configured in `CONFIG.DND5E.spellLevels`. Bounds accept numbers or slot names such as `spell1` or `spell10`.
 
 `optinScale` and `bonusScale` use the chosen slot's level, while consumption is always **one slot** from its selected pool. For example, selecting a level-3 Pact slot adds 3d8 and consumes one Pact slot. Exhausted pools are omitted; with no eligible slots the opt-in is unavailable. Availability is checked during flag evaluation and again immediately before consuming the slot, including GM-routed consumption. The dropdown's `Use <name>?` option disables the opt-in and does not consume a slot; choosing a slot enables it.
 
