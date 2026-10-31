@@ -18,6 +18,7 @@ export function postBuildRollConfig(processConfig, config, index, context) {
 	if (!processConfig || !config || typeof config !== 'object') return true;
 	preserveD20Mode(processConfig, config, index, context);
 	moveAttackOptinPartsToEnd(config);
+	preserveDamageFormulaFactors(processConfig, config);
 	const sourceAc5eConfig =
 		config?.rolls?.[index]?.options?.[Constants.MODULE_ID] ??
 		config?.rolls?.[0]?.options?.[Constants.MODULE_ID] ??
@@ -55,6 +56,17 @@ export function postBuildRollConfig(processConfig, config, index, context) {
 		: 'normal';
 	mirrorD20ModeState(ac5eConfig, config, { action: normalizedAction, advantageMode: ac5eMode, defaultButton: normalizedAction, explicitOverride });
 	return true;
+}
+
+function preserveDamageFormulaFactors(processConfig, config) {
+	if (!config.parts?.some((part) => String(part).includes('[ac5eStaticFactor:'))) return;
+	const roll = CONFIG.Dice.DamageRoll.fromConfig({ ...config, options: { ...config.options, configured: false } }, processConfig);
+	const formula = roll.formula.replace(/-?\d+(?:\.\d+)?\[ac5eStaticFactor:([^\]]+)\]/g, (_, factor) => factor);
+	config.parts = [formula];
+	config.formula = formula;
+	// Criticals have already been configured; keep the restored factors static.
+	config.options = { ...roll.options, configured: true };
+	if (config.options[Constants.MODULE_ID]) config.options[Constants.MODULE_ID].displayFormula = formula;
 }
 
 function moveAttackOptinPartsToEnd(config) {

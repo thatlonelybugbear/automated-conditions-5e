@@ -960,11 +960,13 @@ function applyFormulaOperatorToAllTerms(formula, token) {
 	if (typeof formula !== 'string') return formula;
 	const parsed = parseFormulaOperatorToken(token);
 	if (!parsed) return formula;
+	// Retain the original factor so post-build can restore it after critical scaling.
+	const operand = Number.isFinite(Number(parsed.operand)) ? `${parsed.operand}[ac5eStaticFactor:${parsed.operand}]` : parsed.operand;
 	const transformed = splitTopLevelSignedTerms(formula)
 		.map((term, index) => {
 			const rawExpression = String(term.expression ?? '').trim();
 			if (!rawExpression) return '';
-			const nextExpression = `${rawExpression} ${parsed.operator} ${parsed.operand}`;
+			const nextExpression = `${rawExpression} ${parsed.operator} ${operand}`;
 			if (index === 0) return term.sign === '-' ? `- ${nextExpression}` : nextExpression;
 			return `${term.sign} ${nextExpression}`;
 		})
