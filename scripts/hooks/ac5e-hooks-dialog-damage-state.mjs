@@ -1639,9 +1639,9 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 	};
 	const addSyntheticBonusRollPart = (types, part, criticalStatic = false) => {
 		const normalizedTypes = types.map((type) => String(type ?? '').trim().toLowerCase()).filter(Boolean);
-		if (!part || !normalizedTypes.length) return false;
+		if (!part) return false;
 		const key = getSyntheticBonusRollKey(normalizedTypes);
-		if (!key) return false;
+		if (!key && !criticalStatic) return false;
 		const targetMap = criticalStatic ? appendedCriticalBonusRollsByKey : appendedBonusRollsByKey;
 		const existing = targetMap.get(key) ?? {
 			type: normalizedTypes[0],
@@ -1735,7 +1735,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 			if (!shouldApplyDamageEntryToRoll(entry, index, rollType, { selectedTypes: allTypes })) return;
 				const criticalOnly = isCriticalStaticBonusEntry(entry);
 			for (const part of parts) {
-				if (criticalOnly && rollType) discoveredNewType = addSyntheticBonusRollPart([rollType], part, true) || discoveredNewType;
+				if (criticalOnly) discoveredNewType = addSyntheticBonusRollPart([rollType], part, true) || discoveredNewType;
 				else addBonusPart(index, part, entry);
 			}
 		});
@@ -1779,7 +1779,7 @@ export function applyOrResetFormulaChanges(elem, getConfigAC5E, mode = 'apply', 
 				if (!inlineDamageType) {
 					if (bonusPartsByRoll.length) {
 					const rollType = getEffectiveDamageRollType(0);
-						if (criticalOnly && rollType) shouldRetryPendingBonusEntries = addSyntheticBonusRollPart([rollType], part, true) || shouldRetryPendingBonusEntries;
+						if (criticalOnly) shouldRetryPendingBonusEntries = addSyntheticBonusRollPart([rollType], part, true) || shouldRetryPendingBonusEntries;
 						else addBonusPart(0, part, entry);
 					}
 					continue;
