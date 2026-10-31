@@ -1,3 +1,8 @@
+## 14.606.4.8
+
+- Fixed numeric damage multipliers and divisors, such as `modifier=*1.5`, being scaled by critical hits when the `Multiply Modifiers on a Critical` system option is enabled. These factors remain unchanged automatically.
+- Fixed `criticalStatic` damage bonuses without a resolved damage type being doubled when Multiply Modifiers on a Critical is enabled. For example, `bonus=5; criticalStatic` remains +5 on a critical hit.
+
 ## 14.606.4.7
 
 - Fixed actors with a proficiency bonus of 0 being incorrectly treated as untrained in equipped armor or shields, blocking spellcasting and imposing disadvantage on Strength and Dexterity rolls.
