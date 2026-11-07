@@ -1,4 +1,5 @@
 import Constants from './ac5e-constants.mjs';
+import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import { debugBenchmarkPerimeterGridSpaceCenters, getCachedDistanceCore, getPerimeterCenters } from './helpers/ac5e-helpers-distance.mjs';
 import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -1880,7 +1881,7 @@ export function _getTooltip(ac5eConfig = {}) {
 			.filter(Boolean);
 	const isUseOwnedSaveCheckDamageTooltip =
 		hookType === 'damage' &&
-		['save', 'check'].includes(String(ac5eConfig?.options?.activity?.type ?? '').toLowerCase()) &&
+		['save', 'check'].includes(getActivityBaseType(ac5eConfig?.options?.activity)) &&
 		!!(ac5eConfig?.useConfig?.targetADCResolvedAtUse || ac5eConfig?.targetADCResolvedAtUse || ac5eConfig?.preAC5eConfig?.forceChatTooltip);
 	const suppressUseOwnedTargetDCTooltip =
 		(['check', 'save'].includes(hookType) &&
@@ -3061,8 +3062,12 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 	const relativeDocument = relative ?? effect.parent ?? effect.target ?? null;
 	const actor = _isActorDocument(effect.target) ? effect.target : _isActorDocument(effect.parent) ? effect.parent : null;
 	const flags = effect.flags?.dnd5e ?? {};
-	const flagItem = _resolveEffectFlagItem(flags.item, actor, relativeDocument);
-	const flagActivity = _resolveEffectFlagActivity(flags.activity, flagItem, actor, relativeDocument);
+	const nativeOrigin = effect.system?.origin ?? {};
+	const nativeActor = _safeFromUuidSync(nativeOrigin.actor, { relative: relativeDocument });
+	if (_isActorDocument(nativeActor)) context.originActor = nativeActor;
+	const sourceActor = context.originActor ?? actor;
+	const flagItem = _resolveEffectFlagItem(nativeOrigin.item, sourceActor, relativeDocument) ?? _resolveEffectFlagItem(flags.item, sourceActor, relativeDocument);
+	const flagActivity = _resolveEffectFlagActivity(nativeOrigin.activity, flagItem, sourceActor, relativeDocument) ?? _resolveEffectFlagActivity(flags.activity, flagItem, sourceActor, relativeDocument);
 	const isConcentration = effect.statuses?.has?.(CONFIG.specialStatusEffects?.CONCENTRATING);
 	const isEnchantment = effect.type === 'enchantment';
 
@@ -3072,9 +3077,12 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 		context.originItem ??= _isItemDocument(flagActivity.item) ? flagActivity.item : _isItemDocument(flagActivity.parent) ? flagActivity.parent : null;
 	}
 
-	const origin = effect.origin ? _safeFromUuidSync(effect.origin, { relative: relativeDocument }) : null;
+	const nativeEffect = _safeFromUuidSync(nativeOrigin.effect, { relative: relativeDocument });
+	const origin = (_isActiveEffectDocument(nativeEffect) ? nativeEffect : null)
+		?? (effect.origin ? _safeFromUuidSync(effect.origin, { relative: relativeDocument }) : null)
+		?? flagActivity ?? flagItem ?? context.originActor;
 	context.sourceDocument = origin;
-	if (_isActorDocument(origin)) context.originActor = origin;
+	if (_isActorDocument(origin)) context.originActor ??= origin;
 	else if (_isItemDocument(origin)) context.originItem ??= origin;
 	else if (_isActivityDocument(origin)) {
 		context.originActivity ??= origin;
@@ -3109,9 +3117,11 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 
 function _resolveConcentrationEffectOrigin(effect, { actor, relative } = {}) {
 	const flags = effect?.flags?.dnd5e ?? {};
-	const concentrationActor = _isActorDocument(actor) ? actor : _isActorDocument(effect.target) ? effect.target : _isActorDocument(effect.parent) ? effect.parent : null;
-	const originItem = _resolveEffectFlagItem(flags.item, concentrationActor, relative);
-	const originActivity = _resolveEffectFlagActivity(flags.activity, originItem, concentrationActor, relative);
+	const nativeOrigin = effect?.system?.origin ?? {};
+	const nativeActor = _safeFromUuidSync(nativeOrigin.actor, { relative });
+	const concentrationActor = _isActorDocument(nativeActor) ? nativeActor : _isActorDocument(actor) ? actor : _isActorDocument(effect.target) ? effect.target : _isActorDocument(effect.parent) ? effect.parent : null;
+	const originItem = _resolveEffectFlagItem(nativeOrigin.item, concentrationActor, relative) ?? _resolveEffectFlagItem(flags.item, concentrationActor, relative);
+	const originActivity = _resolveEffectFlagActivity(nativeOrigin.activity, originItem, concentrationActor, relative) ?? _resolveEffectFlagActivity(flags.activity, originItem, concentrationActor, relative);
 	return { originItem, originActivity };
 }
 
@@ -3277,6 +3287,10 @@ export function _generateAC5eFlags() {
 		...actionTypesByMode,
 		success: noDamageNoInitiativeActionTypes,
 	};
+	for (const mode of ['bonus', 'modifier', 'info', 'advantage', 'disadvantage', 'noAdvantage', 'noDisadvantage']) {
+		actionTypesByMode[mode] = [...actionTypesByMode[mode], 'hitDie'];
+		actionTypesByModeNoDamageSuccess[mode] = [...actionTypesByModeNoDamageSuccess[mode], 'hitDie'];
+	}
 	const scopes = [
 		{ type: 'source', prefix: moduleFlagScope, actionTypes: actionTypesByMode },
 		{ type: 'grants', prefix: `${moduleFlagScope}.grants`, actionTypes: actionTypesByModeNoDamageSuccess },
@@ -3325,7 +3339,7 @@ export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', de
 
 export function _collectActivityDamageTypes(activity, options) {
 	//use for pre damageRolls tests. We won't know what bonus active effects could be added at any point.
-	if (!activity || !['attack', 'damage', 'heal', 'save'].includes(activity.type)) {
+	if (!activity || !['attack', 'damage', 'heal', 'save'].includes(getActivityBaseType(activity))) {
 		options.defaultDamageType = {};
 		options.damageTypes = {};
 		return;
@@ -3352,7 +3366,7 @@ export function _collectActivityDamageTypes(activity, options) {
 		}
 	};
 
-	const activityType = activity.type === 'heal' ? 'healing' : 'damage';
+	const activityType = getActivityBaseType(activity) === 'heal' ? 'healing' : 'damage';
 	if (activityType === 'healing') {
 		const part = activity[activityType];
 		partTypes(part);

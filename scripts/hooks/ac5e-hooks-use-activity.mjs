@@ -19,6 +19,7 @@ import {
 } from '../ac5e-helpers.mjs';
 import { _getConfig, _getSafeUseConfig } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { getActivityBaseType } from '../helpers/ac5e-helpers-activity.mjs';
 import { _setAC5eProperties } from '../ac5e-runtimeLogic.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { _ac5eChecks, _applyPendingUses } from '../ac5e-setpieces.mjs';
@@ -120,7 +121,7 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	});
 
 	const hasResolvedSingleTarget = isTargetSelf || targets?.size === 1;
-	const shouldCheckPreUseRange = sourceToken && singleTargetToken && hasResolvedSingleTarget && !placesTemplate && activity?.type !== 'attack';
+	const shouldCheckPreUseRange = sourceToken && singleTargetToken && hasResolvedSingleTarget && !placesTemplate && getActivityBaseType(activity) !== 'attack';
 	if (shouldCheckPreUseRange) {
 		ac5eConfig.subject.rangeNotes = [];
 		const failLabel = _localize('AC5E.OutOfRange');
@@ -241,7 +242,7 @@ export async function postUseActivity(usageConfig, results, hook) {
 }
 
 export function getTargetADCOptinChoices(ac5eConfig, activity) {
-	const activityType = activity?.type;
+	const activityType = getActivityBaseType(activity);
 	if (!['save', 'check'].includes(activityType)) return [];
 	const activityData = activity?.[activityType];
 	const baseDC = Number(ac5eConfig?.initialTargetADC ?? activityData?.dc?.value);
@@ -256,7 +257,7 @@ export function getCharmedUseOptinChoices(ac5eConfig) {
 }
 
 export function getAbilityOverrideOptinChoices(ac5eConfig, activity) {
-	const activityType = (activity?.type ?? '').toLowerCase();
+	const activityType = getActivityBaseType(activity);
 	if (!activityType) return [];
 	if (activityType === 'attack' && activity?.item?.type !== 'spell') return [];
 	const entries = [
@@ -294,7 +295,7 @@ export function getResolvedUseDisplayState(ac5eConfig, activity, { optinSelected
 	tempConfig.subject = foundry.utils.duplicate(ac5eConfig?.subject ?? {});
 	tempConfig.opponent = foundry.utils.duplicate(ac5eConfig?.opponent ?? {});
 	tempConfig.optinSelected = foundry.utils.duplicate(optinSelected ?? ac5eConfig?.optinSelected ?? {});
-	const activityType = (activity?.type ?? tempConfig?.options?.activity?.type ?? '').trim().toLowerCase();
+	const activityType = getActivityBaseType(activity ?? tempConfig?.options?.activity);
 	if (['save', 'check'].includes(activityType)) {
 		const activityData = activity?.[activityType];
 		const resolvedOverrideAbility = _getResolvedWinningAbilityOverride(activity, tempConfig);
@@ -333,7 +334,7 @@ function notifyPreUse(actorName, warning, type) {
 }
 
 function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
-	const activityType = activity?.type;
+	const activityType = getActivityBaseType(activity);
 	if (!['save', 'check'].includes(activityType)) return false;
 	const activityData = activity?.[activityType];
 	if (!activityData?.dc || typeof activityData.dc !== 'object') return false;
@@ -358,7 +359,7 @@ function _applyPreUseActivityAlteredDC(activity, ac5eConfig, deps) {
 }
 
 function _applyPreUseActivityAbilityOverride(activity, ac5eConfig) {
-	const activityType = activity?.type;
+	const activityType = getActivityBaseType(activity);
 	const isSaveOrCheck = ['save', 'check'].includes(activityType);
 	const activityData = isSaveOrCheck ? activity?.[activityType] : null;
 	if (isSaveOrCheck && (!activityData?.dc || typeof activityData.dc !== 'object')) return false;
@@ -467,7 +468,7 @@ function _ensureUsageConfigurationDialogForTargetADCOptins(activity, usageConfig
 }
 
 function _ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usageConfig, dialogConfig, ac5eConfig) {
-	const activityType = (activity?.type ?? '').toLowerCase();
+	const activityType = getActivityBaseType(activity);
 	if (!activityType) return;
 	if (activityType === 'attack' && activity?.item?.type !== 'spell') return;
 	const abilityOverrideEntries = [
@@ -481,7 +482,7 @@ function _ensureUsageConfigurationDialogForAbilityOverrideOptins(activity, usage
 }
 
 function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
-	const activityType = activity?.type;
+	const activityType = getActivityBaseType(activity);
 	if (!['save', 'check'].includes(activityType)) return;
 	const activityData = activity?.[activityType];
 	if (!activityData?.dc || typeof activityData.dc !== 'object') return;
@@ -493,7 +494,7 @@ function _refreshPreUseActivityTargetADCState(activity, ac5eConfig, deps) {
 }
 
 function _wireResolvedTargetADCButton(activity, ac5eConfig, usageConfig) {
-	const activityType = activity?.type;
+	const activityType = getActivityBaseType(activity);
 	if (!['save', 'check'].includes(activityType)) return;
 	const {
 		resolvedTargetADC: resolvedTargetADCState,
@@ -626,7 +627,7 @@ function _buildResolvedAbilityOverrideHoverText(ac5eConfig, activityLike) {
 }
 
 function _getResolvedTargetADCMessageState(ac5eConfig, activityLike) {
-	const activityType = (activityLike?.type ?? ac5eConfig?.options?.activity?.type ?? '').toLowerCase();
+	const activityType = getActivityBaseType(activityLike ?? ac5eConfig?.options?.activity);
 	if (!['save', 'check'].includes(activityType)) return null;
 	const baseDC = Number(ac5eConfig?.initialTargetADC);
 	const alteredDC = Number(ac5eConfig?.alteredTargetADC);
@@ -668,7 +669,7 @@ function _rebuildPreUseTargetADCState(ac5eConfig, activity) {
 function _resolvePreUseEvaluationHookType(ac5eConfig, activity) {
 	const hookType = (ac5eConfig?.hookType ?? '').toLowerCase();
 	if (hookType && hookType !== 'use') return hookType;
-	return (activity?.type ?? hookType ?? '').toLowerCase();
+	return getActivityBaseType(activity) || hookType;
 }
 
 function _rewriteTargetADCButtonLabel(baseLabel, choiceDC, baseDC) {

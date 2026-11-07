@@ -88,7 +88,7 @@ function valueHasMultipleInlineDamageTypes(value) {
 }
 
 export function forceDialogConfigureForOptins(ac5eConfig, config, dialog, hookType = ac5eConfig?.hookType, message = undefined) {
-	if (!_isFastForwardingModuleActive()) return false;
+	if (hookType !== 'hitDie' && !_isFastForwardingModuleActive()) return false;
 	const hasDialogObject = dialog && typeof dialog === 'object';
 	const hasConfigDialogObject = config?.dialog && typeof config.dialog === 'object';
 	if (!hasDialogObject && !hasConfigDialogObject) return false;

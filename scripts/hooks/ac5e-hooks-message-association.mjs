@@ -1,3 +1,4 @@
+import { getActivityBaseType } from '../helpers/ac5e-helpers-activity.mjs';
 export function getLatestAssociatedMessage(messageId, hook) {
 	if (!messageId) return undefined;
 	const preferredHooks = Array.isArray(hook) ? hook : [hook];
@@ -10,9 +11,7 @@ export function getLatestAssociatedMessage(messageId, hook) {
 
 export function getPreferredAssociatedHooks({ hook, activity } = {}) {
 	if (hook !== 'damage') return [hook];
-	const activityType = String(activity?.type ?? activity?.activity?.type ?? '')
-		.trim()
-		.toLowerCase();
+	const activityType = getActivityBaseType(activity?.type ? activity : activity?.activity);
 	if (['attack', 'save', 'check'].includes(activityType)) return [activityType];
 	return [];
 }

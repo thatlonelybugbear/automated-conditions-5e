@@ -1,3 +1,4 @@
+import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import Constants from './ac5e-constants.mjs';
 import { _activeModule, _dispositionCheck, _filterOptinEntries, _getDistance, _hasItem, _hasStatuses, _localize, _safeFromUuidSync } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
@@ -83,7 +84,7 @@ export function autoRanged(activity, token, target, options = {}) {
 	const distanceLabelUnit = canvas.grid.units || '';
 	const modernRules = settings.dnd5eModernRules;
 	const isSpell = activity.isSpell;
-	const isAttack = activity.type === 'attack';
+	const isAttack = getActivityBaseType(activity) === 'attack';
 	const hookType = options.ac5eConfig?.hookType ?? options?.hook;
 	const isRangeProfileContext = hookType === 'attack' || hookType === 'use' || !hookType;
 	const isAttackRangeContext = isAttack && isRangeProfileContext;
@@ -99,6 +100,17 @@ export function autoRanged(activity, token, target, options = {}) {
 	if (!token) return {};
 	const resolveBaseRange = () => {
 		const activityRange = activity?.range;
+		const properties = item?.system?.properties;
+		const nativeThrown = properties?.has?.('thr') ?? properties?.includes?.('thr') ?? false;
+		const improvisedThrow = isAttack && !isSpell && item?.type === 'weapon'
+			&& ((item.system.type?.value === 'improv' && actionType === 'rwak') || (options.attackMode?.includes('thrown') && !nativeThrown));
+		if (improvisedThrow && activityRange?.override !== true) {
+			const units = canvas.grid.units || 'ft';
+			const convert = value => foundry.utils.isNewerVersion(game.system.version, '6.1')
+				? dnd5e.utils.convertLength(value, 'ft', { to: units, strict: false, legacy: false }).value
+				: dnd5e.utils.convertLength(value, 'ft', units, { strict: false });
+			return { value: convert(20), long: convert(60), units };
+		}
 		if (activityRange?.override !== false) return activityRange;
 		const itemRange = item?.system?.range;
 		return itemRange ?? activityRange;

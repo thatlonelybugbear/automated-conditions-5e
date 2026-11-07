@@ -1,5 +1,6 @@
 import { _ac5eSafeEval, _getOptinSelectionScale, _isOptinSelectionActive, _localize, _resolveEffectOriginContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _ac5eActorRollData } from '../ac5e-runtimeLogic.mjs';
+import { syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-hooks-roll-selections.mjs';
 
 export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
@@ -629,6 +630,11 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 			semanticId: input?.dataset?.ac5eOptinSemanticId,
 		});
 		const hookType = activeConfig?.hookType;
+		if (hookType === 'hitDie') {
+			syncDialogAc5eState(activeDialog, activeConfig);
+			activeDialog.rebuild?.();
+			return;
+		}
 		if (['attack', 'save', 'check'].includes(hookType)) {
 			deps.handleD20OptinSelectionsChanged?.(activeDialog, activeConfig, deps);
 			return;

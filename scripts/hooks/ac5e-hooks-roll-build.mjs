@@ -38,6 +38,11 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 	}
 	if (activeHook === 'attack') applySimpleCover5eBuildOverride(ac5eConfig, rollConfig, targetMessage, formData, app);
 	if (activeHook === 'attack') applySimpleCover5eTooltip(ac5eConfig, app?.message ?? targetMessage);
+	if (ac5eConfig.hookType === 'hitDie') {
+		setOptinSelections(ac5eConfig, getOptinsFromForm(formData, ac5eConfig));
+		syncChatTooltipToRollConfigs(ac5eConfig, rollConfig);
+		return true;
+	}
 	if (ac5eConfig.hookType === 'damage') {
 		const optins = getOptinsFromForm(formData, ac5eConfig);
 		setOptinSelections(ac5eConfig, optins);

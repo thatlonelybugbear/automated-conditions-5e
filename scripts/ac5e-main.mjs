@@ -150,6 +150,7 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.preRollAbilityCheck', type: 'check' },
 		{ id: 'dnd5e.preRollAttack', type: 'attack' },
 		{ id: 'dnd5e.preRollDamage', type: 'damage' },
+		{ id: 'dnd5e.preRollHitDie', type: 'hitDie' },
 		{ id: 'dnd5e.preRollSavingThrow', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
 		{ id: 'dnd5e.preActivityConsumption', type: 'preActivityConsumption' },
@@ -180,6 +181,7 @@ function registerHooks(settings) {
 		{ id: 'rsreforged.renderRoll', type: 'chat' },
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
+		{ id: 'renderRollConfigurationDialog', type: 'hitDieDialog' },
 		{ id: 'renderActivityUsageDialog', type: 'usageDialog' },
 		{ id: 'renderDialog5e', type: 'usageDialog' },
 	];

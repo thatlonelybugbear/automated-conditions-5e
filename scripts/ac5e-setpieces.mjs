@@ -1,3 +1,4 @@
+import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import {
 	_ac5eSafeEval,
 	_activeModule,
@@ -1757,6 +1758,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const debug = { effectUuid: effect.uuid, changeKey: change.key, changeValue: change.value };
 		const isAC5eFlag = ['ac5e', 'automated-conditions-5e'].some((scope) => change.key.includes(scope));
 		if (!isAC5eFlag) return false;
+		if (hook === 'hitDie' && !/\.(?:bonus|modifier|info|advantage|disadvantage|noAdvantage|noDisadvantage)$/i.test(change.key)) return false;
 		const isAll = change.key.includes('all');
 		const isSkill = skill && change.key.includes('skill');
 		const isTool = tool && change.key.includes('tool');
@@ -1765,7 +1767,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const isDeath = isDeathSave && hook === 'save' && change.key.includes('death');
 		const isD20 = ['attack', 'check', 'save', 'initiative'].includes(hook) && change.key.includes('d20');
 		const isModifyAC = change.key.includes('modifyAC') && hook === 'attack';
-		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(activity?.type);
+		const isUseSaveOrCheck = hook === 'use' && ['save', 'check'].includes(getActivityBaseType(activity));
 		const isUseActivity = hook === 'use' && !!activity?.type;
 		const isModifyDC = change.key.includes('modifyDC') && (hook === 'check' || hook === 'save' || isUseSaveOrCheck || isSkill || isTool);
 		const isAbilityOverride = change.key.toLowerCase().includes('abilityoverride') && (hook === 'attack' || hook === 'damage' || hook === 'check' || hook === 'save' || isUseActivity || isSkill || isTool);
@@ -1783,12 +1785,12 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		}
 		const modifyHooks = isModifyAC || isModifyDC || isAbilityOverride;
 		const isRange = change.key.toLowerCase().includes('.range');
-		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && activity?.type === 'attack'));
+		const isAttackRangeHook = isRange && (hook === 'attack' || (hook === 'use' && getActivityBaseType(activity) === 'attack'));
 		const normalizedChangeValue = String(change.value ?? '').toLowerCase();
 		const isGrantsKey = change.key.includes('grants');
 		const dcActivityType = change.key.match(/\.(save|check)\.modifyDC$/)?.[1];
 		if (dcActivityType) {
-			if (hook !== 'use' || activity?.type !== dcActivityType) return false;
+			if (hook !== 'use' || getActivityBaseType(activity) !== dcActivityType) return false;
 			if (!change.key.includes('aura') && (isGrantsKey || actorType !== 'subject')) return false;
 		}
 		const hasHook = change.key.includes(hook) || isAll || isD20 || isConc || isDeath || isInit || isSkill || isTool || modifyHooks || isAttackRangeHook;
@@ -1949,6 +1951,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 	};
 	const hookLabel = (hookType) => {
 		if (hookType === 'attack') return localizeText('AC5E.OptinDescription.Roll.Attack', 'attack rolls');
+		if (hookType === 'hitDie') return localizeText('AC5E.OptinDescription.Roll.HitDie', 'Hit Dice rolls');
 		if (hookType === 'damage') return localizeText('AC5E.OptinDescription.Roll.Damage', 'damage rolls');
 		if (hookType === 'check') return localizeText('AC5E.OptinDescription.Roll.Check', 'checks');
 		if (hookType === 'save') return localizeText('AC5E.OptinDescription.Roll.Save', 'saving throws');
@@ -2422,7 +2425,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const requiresTransitDisadvantage = hasTransitDisadvantageKeyword(change.value);
 		const criticalStatic = (mode === 'extraDice' || mode === 'bonus') && hasCriticalStaticKeyword(change.value);
 		const enforceMode = mode === 'info' ? getEnforceMode(change.value) : undefined;
-		const autoDescriptionHook = hook === 'use' && ['attack', 'check', 'damage', 'save'].includes(activity?.type) ? activity.type : hook;
+		const autoDescriptionHook = hook === 'use' && ['attack', 'check', 'damage', 'save'].includes(getActivityBaseType(activity)) ? getActivityBaseType(activity) : hook;
 		const description = resolveDescription(getDescription(change.value), usesOverride?.description, getEffectDescriptionFallback(effect));
 		const autoDescription =
 			!description && (optin || usesOverride?.forceDescription) ?
@@ -3066,7 +3069,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 				if (!deferTransitBonus && !optin && configMode && !shouldDeferDamageBonusToDamagePipeline) ac5eConfig[configMode].push(...entryValues);
 			}
 			if (modifier) {
-				if (hook === 'damage') {
+				if (hook === 'damage' || hook === 'hitDie') {
 					ac5eConfig.damageModifiers.push({
 						id: entry.id,
 						value: modifier,
