@@ -69,7 +69,13 @@
 					<div class="form-group {{#if fullRow}}stacked ac5e-effect-value-editor-grid-span{{/if}}">
 						<label for="{{inputId}}" {{#if hint}}title="{{hint}}"{{/if}}>{{label}}</label>
 						<div class="form-fields ac5e-effect-value-editor-inline-field">
-							{{#if hideOverrideInput}}
+							{{#if choices}}
+								<select id="{{inputId}}" name="fields.{{name}}">
+									{{#each choices}}
+										<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+									{{/each}}
+								</select>
+							{{else if hideOverrideInput}}
 								<input id="{{inputId}}" type="hidden" name="fields.{{name}}" value="{{value}}">
 							{{else}}
 								<input id="{{inputId}}" type="text" name="fields.{{name}}" value="{{value}}">

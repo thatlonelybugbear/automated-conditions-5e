@@ -272,17 +272,19 @@ function ensureValueEditorWrapper(valueInput) {
 }
 
 function findKeyInput(row, valueInput) {
-	if (['key', 'type', 'value'].includes(valueInput.name)) return valueInput.ownerDocument.querySelector('[name="key"]');
+	const root = valueInput.form ?? valueInput.closest('form, .application');
+	if (['key', 'type', 'value'].includes(valueInput.name)) return root?.querySelector('[name="key"]');
 	const keyName = valueInput.name.replace(/\.(?:type|value)$/, '.key');
 	const escapedKeyName = globalThis.CSS?.escape?.(keyName) ?? keyName.replaceAll('"', '\\"');
-	return row?.querySelector(`[name="${escapedKeyName}"]`) ?? valueInput.ownerDocument.querySelector(`[name="${escapedKeyName}"]`) ?? row?.querySelector('input[name$=".key"], textarea[name$=".key"]');
+	return row?.querySelector(`[name="${escapedKeyName}"]`) ?? root?.querySelector(`[name="${escapedKeyName}"]`) ?? row?.querySelector('input[name$=".key"], textarea[name$=".key"]');
 }
 
 function findTypeInput(row, input) {
-	if (['key', 'type', 'value'].includes(input.name)) return input.ownerDocument.querySelector('[name="type"]');
+	const root = input.form ?? input.closest('form, .application');
+	if (['key', 'type', 'value'].includes(input.name)) return root?.querySelector('[name="type"]');
 	const typeName = input.name.replace(/\.(?:key|value)$/, '.type');
 	const escapedTypeName = globalThis.CSS?.escape?.(typeName) ?? typeName.replaceAll('"', '\\"');
-	return row?.querySelector(`[name="${escapedTypeName}"]`) ?? input.ownerDocument.querySelector(`[name="${escapedTypeName}"]`) ?? row?.querySelector('select[name$=".type"], input[name$=".type"]');
+	return row?.querySelector(`[name="${escapedTypeName}"]`) ?? root?.querySelector(`[name="${escapedTypeName}"]`) ?? row?.querySelector('select[name$=".type"], input[name$=".type"]');
 }
 
 function isAc5eChangeRow(row, input) {

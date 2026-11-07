@@ -59,6 +59,8 @@ const CURATED_AC5E_PATHS = [
 	'originActivity.range.units',
 	'originActivity.range.scalar',
 	'originActivity.range.special',
+	'isHitDie',
+	'hitDieDenomination',
 	'itemType',
 	'itemProperties',
 	'originItemType',

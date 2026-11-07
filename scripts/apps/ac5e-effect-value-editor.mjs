@@ -74,6 +74,7 @@ const SPELL_SLOT_USESCOUNT_ENTRIES = [
 	),
 ];
 const ENUM_ASSIST_ALIAS_ROOTS = new Set([
+	'hitDieDenomination',
 	'ability',
 	'skill',
 	'tool',
@@ -104,6 +105,7 @@ const AC5E_FUNCTION_ASSIST_ENTRIES = [
 ];
 const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'baseDamage.denomination', 'baseDamage.number', 'd20Result', 'd20TotalOverTarget', 'd20Total', 'opponentAC', 'targetValue']);
 const STRING_OPERATOR_ASSIST_ENTRIES = new Set([
+	'hitDieDenomination',
 	'actorId',
 	'actorUuid',
 	'opponentId',
@@ -123,6 +125,8 @@ const NUMBER_COMPARATOR_OPERATORS = new Set(['==', '===', '!=', '!==', '>', '>='
 const STRING_COMPARISON_OPERATORS = new Set(['==', '!=']);
 const BOOLEAN_LOGICAL_OPERATORS = new Set(['&&', '||', '!']);
 const ROLL_AWARE_ENTRIES = new Set([
+	'isHitDie',
+	'hitDieDenomination',
 	'hasAdvantage',
 	'hasDisadvantage',
 	'hasTransitAdvantage',
@@ -214,7 +218,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		this.activeEffectSheet = activeEffectSheet;
 		this.effect = effect;
 		this.changeIndex = changeIndex;
-		this.changeId = changeId;
+		this.changeId = changeId ?? activeEffectSheet?.options?.changeId;
 		this.keyInput = keyInput;
 		this.valueInput = valueInput;
 		this.keyInputName = keyInput?.name;
@@ -222,7 +226,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		this.draftKey = keyInput?.value ?? '';
 		this.draftData = null;
 		this.uiState = null;
-		this.instanceKey = buildEditorInstanceKey(effect, changeIndex);
+		this.instanceKey = buildEditorInstanceKey(effect, changeIndex, this.changeId);
 		this.autocompleteEntries = buildEffectValueAutocompleteEntries(effect);
 		const Autocomplete = foundry.applications.ux.Autocomplete.implementation ?? foundry.applications.ux.Autocomplete;
 		this.autocomplete = new Autocomplete({
@@ -250,7 +254,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	static open(args = {}, options = {}) {
-		const instanceKey = buildEditorInstanceKey(args?.effect, args?.changeIndex);
+		const instanceKey = buildEditorInstanceKey(args?.effect, args?.changeIndex, args?.changeId ?? args?.activeEffectSheet?.options?.changeId);
 		const existing = instanceKey ? this.openEditors.get(instanceKey) : null;
 		if (existing?.element?.isConnected) {
 			existing.render({ force: true });
@@ -546,7 +550,8 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	#getChangeUpdateData({ changeKey, value } = {}) {
-		if (!Number.isInteger(this.changeIndex)) return {};
+		if (this.changeId) this.changeIndex = this.effect?.system?.changes?.findIndex((change) => change._id === this.changeId);
+		if (!Number.isInteger(this.changeIndex) || this.changeIndex < 0) return {};
 		return {
 			system: {
 				changes: {
@@ -564,6 +569,15 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!Number.isInteger(this.changeIndex) || !this.effect?.update) return;
 		const expectedChange = updateData?.system?.changes?.[this.changeIndex];
 		if (!expectedChange) return;
+		if (this.changeId) {
+			const index = this.effect.system?.changes?.findIndex((change) => change._id === this.changeId);
+			if (!Number.isInteger(index) || index < 0) return;
+			this.changeIndex = index;
+		}
+		const sheet = this.activeEffectSheet;
+		if (sheet?.options?.changeId && Object.hasOwn(sheet, 'change') && sheet.change?._id === sheet.options.changeId) {
+			Object.assign(sheet.change, expectedChange);
+		}
 		const currentChange = this.effect.system?.changes?.[this.changeIndex];
 		if (currentChange?.key === expectedChange.key && currentChange?.type === expectedChange.type && currentChange?.value === expectedChange.value) return;
 		if (this.activeEffectSheet?.options?.changeId || this.changeId) {
@@ -864,21 +878,22 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 
 	#getKeyInput() {
 		if (this.keyInput?.ac5eVirtual || this.keyInput?.isConnected) return this.keyInput;
-		this.keyInput = findInputByName(this.keyInputName);
+		this.keyInput = findInputByName(this.keyInputName, this.activeEffectSheet?.element);
 		return this.keyInput;
 	}
 
 	#getValueInput() {
 		if (this.valueInput?.ac5eVirtual || this.valueInput?.isConnected) return this.valueInput;
-		this.valueInput = findInputByName(this.valueInputName);
+		this.valueInput = findInputByName(this.valueInputName, this.activeEffectSheet?.element);
 		return this.valueInput;
 	}
 }
 
-function findInputByName(name) {
-	if (!name) return null;
+function findInputByName(name, element) {
+	const root = element?.[0] ?? element;
+	if (!name || !root?.querySelector) return null;
 	const escapedName = globalThis.CSS?.escape?.(name) ?? name.replaceAll('"', '\\"');
-	return document.querySelector(`input[name="${escapedName}"], textarea[name="${escapedName}"]`);
+	return root.querySelector(`input[name="${escapedName}"], textarea[name="${escapedName}"]`);
 }
 
 function labelForField(name) {
@@ -950,9 +965,10 @@ function updateUpdateAmountHint(root) {
 	info.setAttribute('aria-label', hint);
 }
 
-function buildEditorInstanceKey(effect, changeIndex) {
-	if (!effect?.uuid || !Number.isInteger(changeIndex)) return '';
-	return `${effect.uuid}::${changeIndex}`;
+function buildEditorInstanceKey(effect, changeIndex, changeId) {
+	const identity = changeId ?? effect?.system?.changes?.[changeIndex]?._id ?? (Number.isInteger(changeIndex) ? changeIndex : null);
+	if (!effect?.uuid || identity == null) return '';
+	return `${effect.uuid}::${identity}`;
 }
 
 function getMigratedRangeChangeKey(changeKey = '') {
@@ -991,7 +1007,7 @@ function getEditorProfile(changeKey, parsed) {
 	if (isAura) auraFields.push('radius');
 	if (isRange) requiredFields.push(...RANGE_VALUE_FIELDS);
 	if (hasParsedValue(parsed, 'chance')) requiredFields.push('chance');
-	if (hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
+	if ((isInfo && normalized.includes('.hitdie.')) || hasParsedValue(parsed, 'enforceMode')) requiredFields.push('enforceMode');
 	const supportsAddTo = isDamageContext && (isBonus || isModifyDenomination || isTypeOverride || isModifier || isDamageAdvantage || isDamageCritical || hasParsedValue(parsed, 'addTo'));
 	const addToAnchorField =
 		isTypeOverride ? 'override'
@@ -1083,6 +1099,11 @@ function buildRenderedPrimaryFields(profile, parsed, id, { setMode = false, chan
 				hint: rangeFields.has(name) ? getToggleHint(rangeFieldHintKey(name)) : '',
 				value: profile.supportsSetMode && name === profile.setModeField ? (parsed.fields[setMode ? 'set' : profile.setModeField] ?? '') : (parsed.fields[name] ?? ''),
 				inputId: `ac5e-value-${name}-${id}`,
+				choices: name === 'enforceMode' && /\.hitdie\.info$/i.test(changeKey) ? ['', 'normal', 'advantage', 'disadvantage'].map((value) => ({
+					value,
+					label: editorLabel(`EnforceMode${value ? value[0].toUpperCase() + value.slice(1) : 'Default'}`),
+					selected: value === (parsed.fields.enforceMode ?? ''),
+				})) : null,
 				expandable: name === 'override' && isAbilityOverride && inlineOverrideEntries.length ? false : true,
 				inlineOverrideEntries: name === 'override' && isAbilityOverride ? inlineOverrideEntries : [],
 				hasInlineOverrideEntries: name === 'override' && isAbilityOverride && inlineOverrideEntries.length > 0,
@@ -1533,6 +1554,7 @@ function getContextSandboxFallbackEntries(changeKey) {
 		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC');
 	}
 	if (normalized.includes('damage')) entries.push('baseDamage.number', 'baseDamage.denomination');
+	if (actionType === 'hitdie' || actionType === 'all') entries.push('isHitDie', 'hitDieDenomination');
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
 }
@@ -3599,6 +3621,7 @@ function renderAssistNodeStage(nodes, headerPath, canGoBack, valueChoices = []) 
 function resolveAssistValueChoices(path, enumValues) {
 	const sourcePath = `${path ?? ''}`.trim();
 	if (!sourcePath) return [];
+	if (sourcePath === 'hitDieDenomination') return toAssistValueChoices(['d6', 'd8', 'd10', 'd12']);
 	if (/^(?:ability)$/.test(sourcePath)) return toAssistValueChoices(['physical', 'mental', ...(enumValues?.abilities ?? [])], CONFIG?.DND5E?.abilities);
 	if (/^(?:skill)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.skills ?? [], CONFIG?.DND5E?.skills);
 	if (/^(?:tool)$/.test(sourcePath)) return toAssistValueChoices(enumValues?.tools ?? [], getToolLabelConfig());
