@@ -3109,6 +3109,11 @@ export function _resolveEffectOriginContext(effect, { relative } = {}) {
 		}
 	}
 
+	const activityItem = _isItemDocument(context.originActivity?.item) ? context.originActivity.item
+		: _isItemDocument(context.originActivity?.parent) ? context.originActivity.parent : null;
+	// Applied effects can retain a compendium Item reference alongside the actual casting activity.
+	if (activityItem && (!context.originItem || (context.originItem.pack && !activityItem.pack))) context.originItem = activityItem;
+
 	if (!context.originActivity && !isConcentration && !isEnchantment) context.originActivity = _findActivityForEffect(context.originItem, effect, context.originEffect);
 
 	context.originActor ??= _resolveActorFromOrigin(context.originActivity) ?? _resolveActorFromOrigin(context.originItem) ?? _resolveActorFromOrigin(context.originEffect) ?? actor;
