@@ -7,6 +7,8 @@ import {
 	shouldActivateEffectValueAutocomplete,
 } from './ac5e-effect-value-autocomplete.mjs';
 import Constants from '../ac5e-constants.mjs';
+import Settings from '../ac5e-settings.mjs';
+import { AC5EFlagPicker, isSupportedFlag } from './ac5e-flag-picker.mjs';
 import { _resolveEffectOriginContext } from '../ac5e-helpers.mjs';
 import { parseSpellSlotTarget } from '../ac5e-spell-slots.mjs';
 import { AC5E_ACTOR_ROLLDATA_ADDED_FIELDS, AC5E_ACTOR_ROLLDATA_ADDED_PREFIX_FIELDS } from '../ac5e-runtimeLogic.mjs';
@@ -105,6 +107,11 @@ const AC5E_FUNCTION_ASSIST_ENTRIES = [
 ];
 const NUMBER_OPERATOR_ASSIST_ENTRIES = new Set(['attackRollD20', 'attackRollOverAC', 'attackRollTotal', 'baseDamage.denomination', 'baseDamage.number', 'd20Result', 'd20TotalOverTarget', 'd20Total', 'opponentAC', 'targetValue']);
 const STRING_OPERATOR_ASSIST_ENTRIES = new Set([
+	'ammunitionName',
+	'ammunition.id',
+	'ammunition.uuid',
+	'ammunition.name',
+	'ammunition.identifier',
 	'hitDieDenomination',
 	'actorId',
 	'actorUuid',
@@ -144,6 +151,7 @@ const ROLL_AWARE_ENTRIES = new Set([
 	'isDeathSave',
 	'isInitiative',
 	'isMagical',
+	'magicAvailable',
 	'isHeal',
 	'targetValue',
 	'isCritical',
@@ -192,6 +200,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			resizable: false,
 		},
 		actions: {
+			changeFlag: AC5EEffectValueEditor.#onChangeFlag,
 			apply: AC5EEffectValueEditor.#onApplyAction,
 			applyClose: AC5EEffectValueEditor.#onApplyCloseAction,
 			reset: AC5EEffectValueEditor.#onResetAction,
@@ -254,6 +263,14 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	static open(args = {}, options = {}) {
+		if (game.settings.get(Constants.MODULE_ID, Settings.FLAG_SELECTION) === 'picker' && !isSupportedFlag(args.keyInput?.value)) {
+			return new AC5EFlagPicker({ key: args.keyInput?.value, onSelect: key => {
+				args.keyInput.value = key;
+				args.keyInput.dispatchEvent(new Event('input', { bubbles: true }));
+				args.keyInput.dispatchEvent(new Event('change', { bubbles: true }));
+				return this.open(args, options);
+			} }).render({ force: true });
+		}
 		const instanceKey = buildEditorInstanceKey(args?.effect, args?.changeIndex, args?.changeId ?? args?.activeEffectSheet?.options?.changeId);
 		const existing = instanceKey ? this.openEditors.get(instanceKey) : null;
 		if (existing?.element?.isConnected) {
@@ -380,6 +397,15 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 
 	static #onApplyAction(event) {
 		return this._onApply(event, false);
+	}
+
+	static #onChangeFlag(event) {
+		event.preventDefault();
+		this.#captureDraftState(this.#getFormDataRoot(event));
+		return new AC5EFlagPicker({ key: this.draftKey, onSelect: async key => {
+			this.draftKey = key;
+			await this.render({ force: true });
+		} }).render({ force: true });
 	}
 
 	static #onApplyCloseAction(event) {
@@ -512,9 +538,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
 		const outputChangeKey = getMigratedRangeChangeKey(changeKey);
+		clearUnsupportedEditorFields(mergedData, profile);
 		const value = serializeAc5eEffectValue(mergedData, { changeKey: outputChangeKey });
 		const keyInput = this.#getKeyInput();
-		if (keyInput && outputChangeKey !== changeKey) {
+		if (keyInput && outputChangeKey !== keyInput.value) {
 			keyInput.value = outputChangeKey;
 			keyInput.dispatchEvent(new Event('input', { bubbles: true }));
 			keyInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1554,6 +1581,8 @@ function getContextSandboxFallbackEntries(changeKey) {
 		entries.push('hasAttack', 'hasDamage', 'hasHealing', 'hasSave', 'hasCheck', 'isHeal', 'opponentAC');
 	}
 	if (normalized.includes('damage')) entries.push('baseDamage.number', 'baseDamage.denomination');
+	if (['attack', 'damage', 'all'].includes(actionType)) entries.push('ammunition', 'ammunitionName', 'ammunition.identifier');
+	if (['attack', 'damage', 'use', 'all'].includes(actionType)) entries.push('magicAvailable');
 	if (actionType === 'hitdie' || actionType === 'all') entries.push('isHitDie', 'hitDieDenomination');
 	entries.push('actionType', 'attackMode', 'itemProperties', 'itemType', 'originItemProperties', 'originItemType', 'mastery');
 	return dedupe(entries);
@@ -1998,6 +2027,7 @@ function classifyContextEntry(identifier) {
 		'hasCheck',
 		'isSpell',
 		'isMagical',
+		'magicAvailable',
 		'isCantrip',
 		'spellcastingAbility',
 		'spellcastingMod',
@@ -4565,6 +4595,13 @@ function getPersistedFieldNames(profile) {
 	if (profile.supportsSetMode) fieldNames.push('set');
 	if (profile.supportsAddTo) fieldNames.push('addTo');
 	return dedupe(fieldNames);
+}
+
+function clearUnsupportedEditorFields(data, profile) {
+	const supported = new Set(getPersistedFieldNames(profile));
+	for (const field of Object.keys(data.fields)) {
+		if (!supported.has(field)) data.fields[field] = '';
+	}
 }
 
 function getRangeFieldUiState(root, profile = {}) {

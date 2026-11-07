@@ -97,7 +97,7 @@ function enhanceActiveEffectConfig(app, element) {
 	}
 	restoreAc5eChangeTypeSelections(root);
 	toggleDnd5eChangeConditions(root);
-	if (!isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
+	if (game.settings.get(Constants.MODULE_ID, Settings.FLAG_SELECTION) === 'legacy' && !isDaeActiveEffectSheet(app, root)) initializeKeyAutocomplete(app, root);
 	initializeEditorButtonSync(app, root);
 	if (!new Settings().enableAc5eUi) return;
 

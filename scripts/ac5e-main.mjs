@@ -50,7 +50,7 @@ function ac5eRegisterOnInit() {
 	registerKeybindings();
 	daeFlags = _generateAC5eFlags();
 	Hooks.on('dae.setFieldData', (fieldData) => {
-		fieldData.AC5E = daeFlags;
+		if (game.settings.get(Constants.MODULE_ID, Settings.FLAG_SELECTION) === 'legacy') fieldData.AC5E = daeFlags;
 	});
 	scopeUser = 'user';
 	return new Settings().registerSettings();
@@ -103,7 +103,7 @@ function ac5eReady() {
 	}
 	if (_activeModule('midi-qol')) Hooks.once('midi-qol.midiReady', ac5eSetup);
 	else ac5eSetup();
-	if (_activeModule('dae')) DAE.addAutoFields(daeFlags);
+	if (_activeModule('dae') && game.settings.get(Constants.MODULE_ID, Settings.FLAG_SELECTION) === 'legacy') DAE.addAutoFields(daeFlags);
 	_migrate();
 }
 

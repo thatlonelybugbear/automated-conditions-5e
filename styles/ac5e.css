@@ -1,3 +1,62 @@
+.ac5e-flag-picker {
+	max-height: calc(100vh - 24px);
+}
+
+.ac5e-flag-picker .window-content {
+	overflow-y: auto;
+}
+
+.ac5e-flag-picker .form-group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.ac5e-flag-picker-search-row {
+	display: flex;
+	gap: 8px;
+}
+
+.ac5e-flag-picker-row-break {
+	flex: 0 0 100%;
+	height: 0;
+}
+
+.ac5e-flag-picker-search-row input {
+	flex: 1;
+	min-width: 0;
+}
+
+.ac5e-flag-picker-search-row button {
+	flex: 0 0 auto;
+	width: auto;
+	white-space: nowrap;
+}
+
+.ac5e-flag-picker [data-action="choose"][aria-pressed="true"],
+.ac5e-flag-picker [role="option"][aria-selected="true"] {
+	background: var(--dnd5e-color-gold, #c98b38);
+	border-color: var(--dnd5e-color-gold-bright, #f0b65c);
+	color: var(--dnd5e-color-black, #111);
+	font-weight: bold;
+}
+
+.ac5e-flag-picker [data-flag-results] {
+	flex: 0 0 100%;
+	max-height: min(240px, 30vh);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.ac5e-flag-picker [data-flag-results] button {
+	display: block;
+	width: 100%;
+	text-align: left;
+	overflow-wrap: anywhere;
+	white-space: normal;
+	height: auto;
+}
+
 .active-effect-config .ac5e-effect-value-editor-control,
 .dnd5e2 .ac5e-effect-value-editor-control {
 	align-items: center;
@@ -349,11 +408,20 @@
 
 .ac5e-effect-value-editor-inline-meta p {
 	margin: 0 0 6px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.ac5e-effect-value-editor-inline-meta [data-action="changeFlag"] {
+	flex: 0 0 auto;
+	width: auto;
 }
 
 .ac5e-effect-value-editor-inline-meta span {
 	display: inline-block;
-	margin-left: 6px;
+	margin-left: 0;
+	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
