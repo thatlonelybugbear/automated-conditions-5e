@@ -149,7 +149,9 @@ function reduceTernaryParens(expr, { evaluateCondition, sandbox, debug } = {}) {
 
 		const qIndex = findTopLevelQuery(inner);
 		if (qIndex === -1) {
-			i = close + 1;
+			const reducedInner = reduceTernaryParens(inner, { evaluateCondition, sandbox, debug });
+			expr = expr.slice(0, i + 1) + reducedInner + expr.slice(close);
+			i += reducedInner.length + 2;
 			continue;
 		}
 
