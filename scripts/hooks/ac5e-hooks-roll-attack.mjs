@@ -5,6 +5,7 @@ import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configur
 import { applySimpleCover5eLibraryMode, applySimpleCover5eTooltip } from '../integrations/ac5e-simplecover5e.mjs';
 import { prepareWavesCover } from '../integrations/ac5e-waves.mjs';
 import { getHeavyWeaponStatusResult } from '../ac5e-setpieces.mjs';
+import { getAmmunitionRollData } from '../helpers/ac5e-helpers-ammunition.mjs';
 
 export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 	const timingStart = performance.now();
@@ -57,7 +58,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		}
 	}
 	options.ammo = ammunition;
-	options.ammunition = attackActor.items.get(ammunition)?.toObject();
+	options.ammunition = getAmmunitionRollData(ammunition, attackActor);
 	options.attackMode = attackMode;
 	const actionType = activity?.getActionType(attackMode);
 	options.actionType = actionType;
