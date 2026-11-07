@@ -7,7 +7,7 @@ export function preRollHitDie(config, dialog, message, deps) {
 	if (!config?.subject || !config.rolls?.length) return true;
 	const actor = config.subject;
 	const subjectToken = deps.getTokenFromActor(actor);
-	const options = { sourceActorUuid: actor.uuid, ability: 'con', denomination: config.denomination };
+	const options = { hook: 'hitDie', sourceActorUuid: actor.uuid, ability: 'con', denomination: config.denomination };
 	let ac5eConfig = deps.getConfig(config, dialog, 'hitDie', subjectToken?.id, undefined, options);
 	ac5eConfig = deps.ac5eChecks({ ac5eConfig, subjectToken, opponentToken: undefined });
 	deps.setAC5eProperties(ac5eConfig, config, dialog, message);
