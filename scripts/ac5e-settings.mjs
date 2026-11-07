@@ -97,7 +97,7 @@ export default class Settings {
 		game.settings.register(Constants.MODULE_ID, Settings.FLAG_SELECTION, {
 			name: 'AC5E.FlagPicker.SettingName',
 			hint: 'AC5E.FlagPicker.SettingHint',
-			scope: 'user', config: true, type: String, default: 'legacy', requiresReload: true,
+			scope: 'world', config: true, type: String, default: 'picker', requiresReload: true,
 			choices: { legacy: 'AC5E.FlagPicker.Legacy', picker: 'AC5E.FlagPicker.Title' },
 		});
 		game.settings.registerMenu(Constants.MODULE_ID, Settings.LINKS_MENU, {

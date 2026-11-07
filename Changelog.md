@@ -1,7 +1,7 @@
 ## 14.610.1
 
 - Added Hit Dice bonuses, dice modifiers, advantage/disadvantage, and optional effects. The effect editor supports conditions by Hit Die size and a roll-mode selector.
-- Added an optional AC5e flag picker with buttons and typing suggestions. Change flags from the Attribute Key button in the editor. The per-user setting retains legacy Attribute Key autocomplete by default.
+- Added an AC5e flag picker with buttons and typing suggestions, enabled by default. Change flags from the Attribute Key button in the editor. A world setting lets the GM restore legacy Attribute Key autocomplete for all users.
 - Added ammunition conditions for attack and damage effects, with editor autocomplete. Use `ammunitionName` or `ammunition.identifier` to match selected ammunition, and `ammunition` to check its properties or custom flags.
 - Fixed the effect value editor using fields from another open effect or editing the wrong change after rows are moved or deleted. Saving a changed flag now clears fields that do not apply to it.
 - Fixed effects losing their originating spell or activity, including effects linked through concentration. Conditions now use the cast activity's spell copy when an effect retains a compendium reference.

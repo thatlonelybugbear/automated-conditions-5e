@@ -400,6 +400,10 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 	}
 
 	static #onChangeFlag(event) {
+		return this._onChangeFlag(event);
+	}
+
+	_onChangeFlag(event) {
 		event.preventDefault();
 		this.#captureDraftState(this.#getFormDataRoot(event));
 		return new AC5EFlagPicker({ key: this.draftKey, onSelect: async key => {

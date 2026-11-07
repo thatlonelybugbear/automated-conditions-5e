@@ -10,7 +10,7 @@
 	"AC5E.FlagPicker.Continue": "Continue to editor",
 	"AC5E.FlagPicker.Change": "Change flag",
 	"AC5E.FlagPicker.SettingName": "AC5e flag selection",
-	"AC5E.FlagPicker.SettingHint": "Choose the independent AC5e picker (typing and buttons) or legacy Attribute Key autocomplete. Reload after changing this preference.",
+	"AC5E.FlagPicker.SettingHint": "Choose flag selection for all users in this world. Defaults to the AC5e picker (typing and buttons); legacy Attribute Key autocomplete remains available. Reload after changing this setting.",
 	"AC5E.FlagPicker.Legacy": "Attribute Key autocomplete (legacy)",
 	"AC5E.RegistryImport.InvalidSnapshot": "AC5E: This file is not a supported JSON export for this registry.",
 	"AC5E.RegistryImport.InvalidEntry": "AC5E: Entry {index} is invalid or repeats a key or ID. No entries were imported.",
