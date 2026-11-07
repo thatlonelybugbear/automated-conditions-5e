@@ -1199,7 +1199,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 		sandbox._evalConstants[item.type] = true;
 		if (itemData?.type?.value) sandbox._evalConstants[itemData.type.value] = true;
 		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
-		const ammoProperties = sandbox.ammunition?.system?.properties;
+		const ammoProperties = sandbox.ammunition?.properties;
 		const itemProperties = new Set([...(item?.system?.properties ?? []), ...(ammoProperties ?? [])]);
 		sandbox.item.properties = itemProperties;
 		for (const property of itemProperties) {

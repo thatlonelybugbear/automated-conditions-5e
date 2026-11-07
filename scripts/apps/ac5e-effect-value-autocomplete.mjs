@@ -20,7 +20,6 @@ const CURATED_AC5E_PATHS = [
 	'ammunition.identifier',
 	'ammunition.flags',
 	'ammunition.properties',
-	'ammunition.system',
 	'activity',
 	'originItem',
 	'originActivity',

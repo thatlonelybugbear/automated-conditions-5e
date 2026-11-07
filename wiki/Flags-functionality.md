@@ -448,15 +448,8 @@ In addition to actor data, some useful values are also available:
 | `isSpell`              | `true` if the rolling item is a spell |
 | `isMagical`            | `true` if the rolled item or ammunition has the magical (`mgc`) property |
 | `magicAvailable`       | Whether the current item's magical properties are available; exposed as a condition pill. In D&D5e 6.0.6, equippable items must have a valid Magical (`mgc`) property and satisfy required attunement. D&D5e 6.1 extends this check to other item types and antimagic. Undefined when the roll has no applicable item/getter. This checks the current item, not the effect's `originItem`. |
-| `ammunition`           | Selected ammunition's enriched item roll data on attack and damage rolls, including `id`, `uuid`, `name`, `identifier`, and `flags`. System fields are available directly; `ammunition.system` retains the original item system data for existing conditions. Undefined when no ammunition is selected. |
+| `ammunition`           | Selected ammunition's enriched item roll data on attack and damage rolls. Use fields directly, such as `ammunition.identifier === 'poison-arrow'`, `ammunition.quantity`, or `ammunition.flags`. The identifier includes its name-derived fallback. Undefined when no ammunition is selected. |
 | `ammunitionName`       | Selected ammunition's exact item name, if any. For example: `ammunitionName === 'Poison-tipped Arrow'`. |
-| `ammunition.name`      | The selected ammunition's item name; equivalent to `ammunitionName` when ammunition is selected. |
-| `ammunition.identifier` | The ammunition Item's resolved identifier, including its name-derived fallback. For example, use `flags.ac5e.damage.info` with `name=Poisoned Arrow (Target makes DC15 Con Save or is poisoned); ammunition.identifier === 'poison-arrow'` to show information without automatically rolling a save or applying a condition. |
-| `ammunition.id`        | The selected ammunition Item's ID within its owning actor. |
-| `ammunition.uuid`      | The selected ammunition Item's full UUID. |
-| `ammunition.properties` | The selected ammunition's properties from its item roll data. Other system fields, such as `ammunition.quantity`, are also available directly. |
-| `ammunition.flags`     | The selected ammunition's item flags, including custom flags used by conditions. |
-| `ammunition.system`    | The original item system data retained for existing conditions, such as `ammunition.system.identifier`. Use `ammunition.identifier` when matching the resolved identifier, including its name-derived fallback. |
 | `spellcastingAbility`  | the activity's spellcasting ability, falling back to the rolling actor's primary spellcasting ability |
 | `spellcastingMod`      | the rolling actor's modifier for `spellcastingAbility` |
 | `spellLevel`           | spell slot level used if relevant |
