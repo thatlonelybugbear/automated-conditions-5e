@@ -92,7 +92,7 @@ export function renderChatMessageHijack(render, elem, initialConfig, deps) {
 	tooltip = getConfigAC5E?.chatTooltip || messageFlags?.tooltipObj?.[effectiveHookType] || messageFlags?.tooltipObj?.[messageFlags.hookType] || messageFlags?.tooltipObj?.[resolvedHookType] || '';
 	if (resolvedRoller === 'Core') {
 		if (tooltip === '') return true;
-		targetElement = queryOne('.icon-row:has(> .dice-roll) > .bm5e-reroll-button, .icon-row:has(> .dice-roll) > i.fa-dice');
+		targetElement = queryOne('.icon-row:has(> .dice-roll) > .bm5e-reroll-button, .icon-row:has(> .dice-roll) > i.fa-dice') ?? queryOne('.dice-roll');
 	} else if (resolvedRoller === 'RSR') {
 		if (deps.hookDebugEnabled('renderHijackHook')) {
 			const sectionAttackCount = queryAll('.rsr-section-attack').length;
@@ -172,10 +172,11 @@ function applyRollResultTooltips(message, html, deps) {
 			const tooltip = payload?.chatTooltip || flags?.tooltipObj?.[payload?.hookType ?? rollMessage.type] || '';
 			if (!tooltip) continue;
 			const icon = result.closest('.icon-row')?.querySelector(':scope > .bm5e-reroll-button, :scope > i.fa-dice');
-			if (!icon) continue;
-			icon.setAttribute('data-tooltip', tooltip);
-			icon.setAttribute('data-tooltip-direction', 'LEFT');
-			icon.removeAttribute('title');
+			const target = icon ?? (!deps.activeModule('midi-qol') && !deps.activeModule('rsreforged') ? result : null);
+			if (!target) continue;
+			target.setAttribute('data-tooltip', tooltip);
+			target.setAttribute('data-tooltip-direction', 'LEFT');
+			target.removeAttribute('title');
 			incrementChatDomStat('tooltipWrites');
 		}
 	}

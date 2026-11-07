@@ -1,5 +1,6 @@
 import { _activeModule, _getTooltip } from '../ac5e-helpers.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { buildHitDieRollConfig } from './ac5e-hooks-roll-hit-die.mjs';
 import { mirrorD20ModeState } from './ac5e-hooks-roll-post.mjs';
 import { applyResolvedAbilityOverrideToRollConfig } from './ac5e-hooks-roll-build.mjs';
 
@@ -16,6 +17,11 @@ export function preserveD20Mode(processConfig, config, index, { app } = {}) {
 
 export function postBuildRollConfig(processConfig, config, index, context) {
 	if (!processConfig || !config || typeof config !== 'object') return true;
+	const hitDieConfig = config.options?.[Constants.MODULE_ID];
+	if (hitDieConfig?.hookType === 'hitDie') {
+		buildHitDieRollConfig(hitDieConfig, config, index);
+		return true;
+	}
 	preserveD20Mode(processConfig, config, index, context);
 	moveAttackOptinPartsToEnd(config);
 	preserveDamageFormulaFactors(processConfig, config);

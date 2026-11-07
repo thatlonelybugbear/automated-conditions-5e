@@ -50,7 +50,7 @@ function ac5eRegisterOnInit() {
 	registerKeybindings();
 	daeFlags = _generateAC5eFlags();
 	Hooks.on('dae.setFieldData', (fieldData) => {
-		fieldData.AC5E = daeFlags;
+		if (game.settings.get(Constants.MODULE_ID, Settings.FLAG_SELECTION) === 'legacy') fieldData.AC5E = daeFlags;
 	});
 	scopeUser = 'user';
 	return new Settings().registerSettings();
@@ -103,7 +103,7 @@ function ac5eReady() {
 	}
 	if (_activeModule('midi-qol')) Hooks.once('midi-qol.midiReady', ac5eSetup);
 	else ac5eSetup();
-	if (_activeModule('dae')) DAE.addAutoFields(daeFlags);
+	if (_activeModule('dae') && game.settings.get(Constants.MODULE_ID, Settings.FLAG_SELECTION) === 'legacy') DAE.addAutoFields(daeFlags);
 	_migrate();
 }
 
@@ -150,6 +150,7 @@ function registerHooks(settings) {
 		{ id: 'dnd5e.preRollAbilityCheck', type: 'check' },
 		{ id: 'dnd5e.preRollAttack', type: 'attack' },
 		{ id: 'dnd5e.preRollDamage', type: 'damage' },
+		{ id: 'dnd5e.preRollHitDie', type: 'hitDie' },
 		{ id: 'dnd5e.preRollSavingThrow', type: 'save' },
 		{ id: 'dnd5e.preUseActivity', type: 'use' },
 		{ id: 'dnd5e.preActivityConsumption', type: 'preActivityConsumption' },
@@ -180,6 +181,7 @@ function registerHooks(settings) {
 		{ id: 'rsreforged.renderRoll', type: 'chat' },
 		{ id: 'renderD20RollConfigurationDialog', type: 'd20Dialog' },
 		{ id: 'renderDamageRollConfigurationDialog', type: 'damageDialog' },
+		{ id: 'renderRollConfigurationDialog', type: 'hitDieDialog' },
 		{ id: 'renderActivityUsageDialog', type: 'usageDialog' },
 		{ id: 'renderDialog5e', type: 'usageDialog' },
 	];

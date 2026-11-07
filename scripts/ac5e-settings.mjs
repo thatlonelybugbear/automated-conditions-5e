@@ -87,12 +87,19 @@ export default class Settings {
 	static ADVANTAGE_BEHAVIOR_DIS_FORMULA = 'advantageBehaviorDisadvantageFormula';
 	static DISABLE_AC5E_UI = 'disableAc5eUi';
 	static LINKS_MENU = 'linksMenu';
+	static FLAG_SELECTION = 'flagSelection';
 
 	registerSettings() {
 		this._registerWorldSettings();
 	}
 
 	_registerWorldSettings() {
+		game.settings.register(Constants.MODULE_ID, Settings.FLAG_SELECTION, {
+			name: 'AC5E.FlagPicker.SettingName',
+			hint: 'AC5E.FlagPicker.SettingHint',
+			scope: 'user', config: true, type: String, default: 'legacy', requiresReload: true,
+			choices: { legacy: 'AC5E.FlagPicker.Legacy', picker: 'AC5E.FlagPicker.Title' },
+		});
 		game.settings.registerMenu(Constants.MODULE_ID, Settings.LINKS_MENU, {
 			name: 'AC5E.LinksMenu.Name',
 			label: 'AC5E.LinksMenu.Label',

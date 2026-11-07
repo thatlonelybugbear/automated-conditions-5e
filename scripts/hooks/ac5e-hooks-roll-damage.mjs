@@ -1,3 +1,5 @@
+import { getActivityBaseType } from '../helpers/ac5e-helpers-activity.mjs';
+import { getAmmunitionRollData } from '../helpers/ac5e-helpers-ammunition.mjs';
 import { _filterOptinEntries } from '../ac5e-helpers.mjs';
 import { runAc5eRollPhase } from './ac5e-hooks-roll-phase.mjs';
 import { forceDialogConfigureForOptins } from './ac5e-hooks-roll-dialog-configure.mjs';
@@ -51,9 +53,9 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	if (!damageActor && !activity) return true;
 	const resolvedAbilityOverride = _getResolvedUseAbilityOverride({ config, options, moduleId: deps?.Constants?.MODULE_ID });
 	if (resolvedAbilityOverride) applyDamageAbilityOverride(resolvedAbilityOverride, { config, options, rolls, actor: damageActor });
-	const directDamageTargets = deps.getAssociatedRollTargets(options?.originatingMessageId, activity?.type, messageForTargets, deps);
+	const directDamageTargets = deps.getAssociatedRollTargets(options?.originatingMessageId, getActivityBaseType(activity), messageForTargets, deps);
 	options.ammo = ammunition;
-	options.ammunition = ammunition?.toObject();
+	options.ammunition = getAmmunitionRollData(ammunition, damageActor);
 	options.attackMode = attackMode;
 	options.mastery = mastery;
 	options.baseDamage = getConfiguredBaseDamage(rolls);
@@ -72,7 +74,7 @@ export function preRollDamage(config, dialog, message, hook, reEval, deps) {
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
 	const selectedTarget = game.user?.targets?.size === 1 ? game.user.targets.first() : undefined;
 	const usesCoreRoller = !deps.activeModule('midi-qol') && !deps.activeModule('rsreforged');
-	const supportsSelectedTarget = usesCoreRoller && ['attack', 'save'].includes(activity?.type);
+	const supportsSelectedTarget = usesCoreRoller && ['attack', 'save'].includes(getActivityBaseType(activity));
 	const selectedActivityTarget = supportsSelectedTarget && selectedTarget && options.targets?.some((target) =>
 		target?.tokenUuid ? target.tokenUuid === selectedTarget.document?.uuid : target?.uuid === selectedTarget.actor?.uuid
 	) ? selectedTarget : undefined;

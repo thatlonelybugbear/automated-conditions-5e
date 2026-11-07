@@ -1,4 +1,5 @@
 import Constants from './ac5e-constants.mjs';
+import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import { _applyResolvedFastForwardMode, _ensureRoll0Options, _syncResolvedFastForwardD20Override } from './helpers/ac5e-helpers-fast-forward.mjs';
 import { lazySandbox } from './ac5e-main.mjs';
 import { canSee } from './ac5e-systemRules.mjs';
@@ -29,6 +30,7 @@ const MUTABLE_EVALUATION_STATE_KEYS = [
 	'isCantrip',
 	'isScroll',
 	'isHeal',
+	'isHitDie',
 	'isAoE',
 	'hasAttack',
 	'hasDamage',
@@ -1132,7 +1134,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.hasAttack = !foundry.utils.isEmpty(activity?.attack);
 	sandbox.hasDamage = !foundry.utils.isEmpty(activity?.damage?.parts);
 	sandbox.hasHealing = !foundry.utils.isEmpty(activity?.healing);
-	sandbox.isHeal = activity?.type === 'heal';
+	sandbox.isHitDie = hookType === 'hitDie';
+	sandbox.hitDieDenomination = sandboxOptions.denomination;
+	sandbox.isHeal = getActivityBaseType(activity) === 'heal';
 	sandbox.hasSave = !foundry.utils.isEmpty(activity?.save);
 	sandbox.hasCheck = !foundry.utils.isEmpty(activity?.check);
 	sandbox.isAoE = activity?.target?.template?.type in CONFIG.DND5E.areaTargetTypes;
@@ -1177,9 +1181,9 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.item.sourceItem = item?.system?.sourceItem ?? itemData?.sourceItem;
 	sandbox.itemType = item?.type;
 	sandbox.isCantrip = item?.system?.level === 0 || itemData?.level === 0;
-	sandbox.magicAvailable = item?.magicAvailable;
+	sandbox.magicAvailable = item?.system?.magicAvailable;
 	sandbox.isScroll = item?.type === 'consumable' && item?.system?.type?.value === 'scroll';
-	sandbox.isSpell = !!activity?.isSpell || activity?.type === 'cast';
+	sandbox.isSpell = !!activity?.isSpell || getActivityBaseType(activity) === 'cast';
 	sandbox.itemIdentifier = item ? { [itemData.identifier]: true } : {};
 	sandbox.itemName = item ? { [itemData.name]: true } : {};
 	sandbox.item.hasAttack = item?.hasAttack;
@@ -1195,7 +1199,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 		sandbox._evalConstants[item.type] = true;
 		if (itemData?.type?.value) sandbox._evalConstants[itemData.type.value] = true;
 		if (itemData.school) sandbox._evalConstants[itemData.school] = true;
-		const ammoProperties = sandbox.ammunition?.system?.properties;
+		const ammoProperties = sandbox.ammunition?.properties;
 		const itemProperties = new Set([...(item?.system?.properties ?? []), ...(ammoProperties ?? [])]);
 		sandbox.item.properties = itemProperties;
 		for (const property of itemProperties) {
@@ -1256,7 +1260,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.d20Total = sandboxOptions?.d20?.d20Total ?? sandboxOptions?.d20?.attackRollTotal;
 	sandbox.d20Result = sandboxOptions?.d20?.d20Result ?? sandboxOptions?.d20?.attackRollD20;
 	const resolvedD20TargetValue = sandboxOptions?.d20?.targetValue;
-	sandbox.targetValue = hookType === 'damage' && activity?.type === 'save' && resolvedD20TargetValue !== undefined ?
+	sandbox.targetValue = hookType === 'damage' && getActivityBaseType(activity) === 'save' && resolvedD20TargetValue !== undefined ?
 		resolvedD20TargetValue
 	: hookUsesTargetAC && Number.isFinite(sandbox.opponentAC) ? sandbox.opponentAC
 	: sandboxOptions?.target;

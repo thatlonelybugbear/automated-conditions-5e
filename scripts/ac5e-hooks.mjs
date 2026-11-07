@@ -53,6 +53,7 @@ import {
 } from './hooks/ac5e-hooks-target-context.mjs';
 import { buildRollConfig } from './hooks/ac5e-hooks-roll-build.mjs';
 import { preRollAttack } from './hooks/ac5e-hooks-roll-attack.mjs';
+import { preRollHitDie } from './hooks/ac5e-hooks-roll-hit-die.mjs';
 import { preRollDamage } from './hooks/ac5e-hooks-roll-damage.mjs';
 import { preRollAbilityCheck, preRollSavingThrow } from './hooks/ac5e-hooks-roll-d20.mjs';
 import { preConfigureInitiative } from './hooks/ac5e-hooks-roll-initiative.mjs';
@@ -79,6 +80,12 @@ const rollFunctionDispatch = {
 	postRollConfig: (hook, [rolls, config, dialog, message]) => _postRollConfiguration(rolls, config, dialog, message, hook),
 	save: (hook, [config, dialog, message]) => _preRollSavingThrow(config, dialog, message, hook),
 	attack: (hook, [config, dialog, message]) => _preRollAttack(config, dialog, message, hook),
+	hitDie: (_hook, [config, dialog, message]) => preRollHitDie(config, dialog, message, {
+		getTokenFromActor: _getTokenFromActor,
+		getConfig: _getConfig,
+		ac5eChecks: _ac5eChecks,
+		setAC5eProperties: _setAC5eProperties,
+	}),
 	damage: (hook, [config, dialog, message]) => _preRollDamage(config, dialog, message, hook),
 	check: (hook, [config, dialog, message]) => _preRollAbilityCheck(config, dialog, message, hook),
 	init: (hook, [actor, rollConfig]) => _preConfigureInitiative(actor, rollConfig, hook),
@@ -442,6 +449,10 @@ export function _renderHijack(hook, render, elem, ...extraArgs) {
 		:	getDialogAc5eConfig(render, undefined);
 	if (_hookDebugEnabled('renderHijackHook')) console.warn('AC5E._renderHijack:', { hook, render, elem });
 	if (!getConfigAC5E && hook !== 'chat') return;
+	if (hook === 'hitDieDialog') {
+		if (getConfigAC5E?.hookType !== 'hitDie') return;
+		return renderOptionalBonusesRoll(render, elem, getConfigAC5E, {});
+	}
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
 		return renderRollConfigDialogHijack(hook, render, elem, getConfigAC5E, {
 			Constants,

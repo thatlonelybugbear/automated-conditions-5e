@@ -1,6 +1,6 @@
 # Automated Conditions 5e: Roll Flags Guide
 
-Applies to version: `14.606.4.6`
+Applies to version: `14.610.1`
 
 AC5e processes Active Effects with relevant module flags. If the effect's condition evaluates to `true`, it alters the relevant roll accordingly.
 
@@ -16,7 +16,7 @@ Affects **rolls made by the actor** who has an Active effect with this flag.
 
 Short alias is also accepted: `flags.ac5e.ACTIONTYPE.MODE`.
 
-`d20` is a valid ACTIONTYPE for d20 roll families. It covers attack, check (+initiative), save (+concentration/death), but not damage rolls.
+`d20` is a valid ACTIONTYPE for d20 roll families. It covers attack, check (+initiative), save (+concentration/death), but not damage or Hit Dice rolls.
 
 Since v14.606.4.5, BM5E-generated Damage and Heal activities with `activity.flags.bm5e.disallowRecipientBonuses === true` skip outgoing AC5E damage/healing bonus and condition evaluation in the native DamageRoll pipeline, including dialog reevaluation. The exclusion requires the explicit boolean `true`; the presence of `flags.bm5e` alone does not enable it. Activity use, consumption, normal hook cancellation, target defenses, and healing-received adjustments retain their normal handling. Checks, saves, and attacks retain normal recipient modifiers.
 
@@ -86,6 +86,7 @@ Replace `ACTIONTYPE` with a roll type to affect:
 - `concentration`
 - `death`
 - `initiative`
+- `hitDie` - Hit Dice healing rolls
 - `skill`
 - `tool`
 - `use` (supported for `fail`)
@@ -100,6 +101,7 @@ Replace `MODE` with one of the following:
 - `noAdvantage` - Suppresses advantage
 - `disadvantage` - Imposes disadvantage
 - `noDisadvantage` - Suppresses disadvantage
+  - On Hit Dice rolls, advantage/disadvantage applies to each die using the same dice modifiers as damage rolls. Advantage and disadvantage cancel each other after suppression.
 - `critical` - Forces a critical success
   - For damage flags, `addTo=<damageType>` can localize critical application to matching damage parts.
 - `noCritical` - Suppresses criticals
@@ -115,9 +117,11 @@ Replace `MODE` with one of the following:
       - `auraActor` - e.g., `auraActor.attributes.ac.value` for any aura related ones.
    - For damage rolls, `bonus=1d6[fire]` adds 1d6 fire damage, and `bonus=2[necrotic]` adds 2 flat necrotic damage, while `bonus=1d6` adds 1d6 damage of the same type as the relevant damage part, and `bonus=1d6[random]` adds 1d6 damage of a random type every time the roll is evaluated.
    - Multi-type inline damage is also supported, for example `bonus=1d4[fire, lightning, thunder]`. AC5E creates a synthetic bonus damage part and D&D 5e's native damage-type dropdown chooses which of the offered types that part will use.
+   - For Hit Dice healing, use `flags.automated-conditions-5e.hitDie.bonus` with `bonus=5`, or `bonus=1d6; optin; name=Extra recovery` for an optional bonus. Conditions can restrict the denomination: `bonus=2; hitDieDenomination === 'd8'`.
 - `modifier`:
    - Adds `max` or `min` modfiers to **d20 rolls**: `modifier=(rollingActor.attributes.hp.pct > 50 ? min15 : max10)` which will roll `1d20min15` when the rolling actor's health is above 50% and `1d20max10` otherwise
    - Adds [Foundry roll modifiers](https://foundryvtt.com/article/dice-modifiers/) to **damage rolls**.
+   - Also applies to **Hit Dice rolls** through `flags.automated-conditions-5e.hitDie.modifier`: `modifier=min3` sets each die's minimum result to 3, `modifier=maximize` maximizes the dice, and `modifier=minimize` minimizes them. These dice modifiers leave the Constitution modifier unchanged.
       - Use `modifier=adv` for damage _advantage_ and `modifier=dis` for _disadvantage_.
       - Since v14.606.4.6, exploding-die caps and triggers can use parenthesized numeric expressions or dotted sandbox references: `modifier=x1=(baseDamage.denomination); addTo=base; isSpell` adds at most one matching die per base dice term when a die rolls its maximum.
       - `modifier=x(baseDamage.number * 2)=baseDamage.denomination; addTo=base; isCritical` resolves the cap and trigger before passing the modifier to Foundry. For base damage of `1d10`, this becomes `x2=10`.
@@ -183,7 +187,8 @@ Replace `MODE` with one of the following:
 - `info` - Adds an informational AC5E entry without changing the rolled formula by itself.
    - Roll `info` entries can include `cancel` to stop the roll after configuration but before dice evaluation. The Effect Value Editor exposes this as **Cancel roll** under **Toggle Behavior**.
    - Cancellation requires the entry's conditions to pass and, for opt-ins, the entry to be selected. Selected `usesCount=` consumption and `update=` operations are still queued. A cancelled death save does not roll dice or change death-save counters.
-   - Can be paired with `enforceMode=advantage`, `enforceMode=disadvantage`, or `enforceMode=normal` to force the final d20 roll mode after other advantage/disadvantage calculations.
+   - Can be paired with `enforceMode=advantage`, `enforceMode=disadvantage`, or `enforceMode=normal` to force the final d20 or Hit Dice roll mode after other advantage/disadvantage calculations.
+   - For Hit Dice, use `flags.automated-conditions-5e.hitDie.info` with `enforceMode=normal`, for example. The editor exposes an **Enforce Mode** selector, including **No override**. The highest-priority selected entry wins; later entries break ties.
    - Short aliases are also accepted: `adv`, `dis`, `norm`.
    - Canonical Active Effect usage:
      - `key: flags.automated-conditions-5e.attack.info`
@@ -217,7 +222,7 @@ rollingActor.abilities.cha.mod >= 4 &&  opponentActor.attributes.hp.pct < 50 && 
 | Key                    | Description |
 |------------------------|-------------|
 | `itemLimited`          | Limits the flag to rolls of its Item. For transferred Item effects, including enchantments, matches the Item carrying the effect; otherwise uses the resolved origin Item. UUIDs take precedence when both are available, with an ID fallback otherwise. A usable matching Item identity is required. |
-| `enforceMode=normal/advantage/disadvantage` | For `info` entries on d20 hooks, forces the final resolved roll mode |
+| `enforceMode=normal/advantage/disadvantage` | For `info` entries on d20 or Hit Dice hooks, forces the final resolved roll mode |
 | `cancel` | For roll `info` entries, cancels before dice evaluation while retaining selected consumption and updates |
 | `once`                 | Will apply the effect once |
 | `usesCount=Number`     | Will limit the effect to the number of uses provided |
@@ -437,9 +442,14 @@ In addition to actor data, some useful values are also available:
 | `isConcentration`      | `true` if this is a concentration check |
 | `isInitiative`         | `true` if this is an initiative roll |
 | `isDeathSave`          | `true` if this is a death saving throw |
+| `isHitDie`             | `true` if this is a Hit Dice healing roll |
+| `hitDieDenomination`   | The Hit Die denomination, such as `d8`; use `hitDieDenomination === 'd8'` to restrict an entry to that die size |
 | `isCantrip`            | `true` if the rolling item is a cantrip |
 | `isSpell`              | `true` if the rolling item is a spell |
 | `isMagical`            | `true` if the rolled item or ammunition has the magical (`mgc`) property |
+| `magicAvailable`       | Whether the current item's magical properties are available; exposed as a condition pill. In D&D5e 6.0.6, equippable items must have a valid Magical (`mgc`) property and satisfy required attunement. D&D5e 6.1 extends this check to other item types and antimagic. Undefined when the roll has no applicable item/getter. This checks the current item, not the effect's `originItem`. |
+| `ammunition`           | Selected ammunition's enriched item roll data on attack and damage rolls. Use fields directly, such as `ammunition.identifier === 'poison-arrow'`, `ammunition.quantity`, or `ammunition.flags`. The identifier includes its name-derived fallback. Undefined when no ammunition is selected. |
+| `ammunitionName`       | Selected ammunition's exact item name, if any. For example: `ammunitionName === 'Poison-tipped Arrow'`. |
 | `spellcastingAbility`  | the activity's spellcasting ability, falling back to the rolling actor's primary spellcasting ability |
 | `spellcastingMod`      | the rolling actor's modifier for `spellcastingAbility` |
 | `spellLevel`           | spell slot level used if relevant |

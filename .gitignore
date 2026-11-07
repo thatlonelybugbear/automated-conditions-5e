@@ -12,6 +12,11 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Local tests
+tests/
+*.test.*
+*.tests.*
+
 # Local workspace helpers
 worktrees/
 wiki-remote/

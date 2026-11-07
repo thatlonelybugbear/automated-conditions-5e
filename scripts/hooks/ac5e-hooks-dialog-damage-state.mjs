@@ -1262,7 +1262,7 @@ function shouldApplyDamageEntryToSyntheticRoll(entry, rollType, rollTypes = [], 
 	return [...normalizedRollTypes].some((type) => _addToAllowsRollType(addTo, type));
 }
 
-function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = '', diceStepTotal = 0 } = {}) {
+export function applyDamageFormulaModifiers(formula, modifierValues = [], { advDis = '', diceStepTotal = 0 } = {}) {
 	const suffix = modifierValues
 		.filter((value) => isDiceTermSuffixDamageModifier(value))
 		.map((value) => normalizeDiceTermModifier(value))

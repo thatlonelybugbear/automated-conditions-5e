@@ -1,3 +1,19 @@
+## 14.610.1
+
+- Added Hit Dice bonuses, dice modifiers, advantage/disadvantage, and optional effects. The effect editor supports conditions by Hit Die size and a roll-mode selector.
+- Added an optional AC5e flag picker with buttons and typing suggestions. Change flags from the Attribute Key button in the editor. The per-user setting retains legacy Attribute Key autocomplete by default.
+- Added ammunition conditions for attack and damage effects, with editor autocomplete. Use `ammunitionName` or `ammunition.identifier` to match selected ammunition, and `ammunition` to check its properties or custom flags.
+- Fixed the effect value editor using fields from another open effect or editing the wrong change after rows are moved or deleted. Saving a changed flag now clears fields that do not apply to it.
+- Fixed effects losing their originating spell or activity, including effects linked through concentration. Conditions now use the cast activity's spell copy when an effect retains a compendium reference.
+- Fixed magic availability conditions to respect attunement requirements and added the `magicAvailable` condition pill.
+- Fixed missing AC5e tooltips on core roll results without a separate dice icon, including Hit Dice recovery.
+- Improvised thrown weapons now use the standard 20/60-foot range, converted to scene units, while respecting your range automation settings.
+- Fixed conditional expressions in aura radii and ranges, such as choosing a Paladin aura's radius based on level.
+- D&D5e 6.1 Pre-release Compatibility
+  - This version remains compatible with D&D5e v6.0.6 while adding compatibility for the upcoming D&D5e 6.1.
+  - Improved support for custom activity types added by other modules. When an activity declares that it behaves like a standard Attack, Check, or other D&D5e activity, AC5e applies the corresponding roll and range handling.
+  - Updated effect editing and distance conversion for 6.1, and magic availability conditions now respect its antimagic checks.
+
 ## 14.606.4.8
 
 - Fixed numeric damage multipliers and divisors, such as `modifier=*1.5`, being scaled by critical hits when the `Multiply Modifiers on a Critical` system option is enabled. These factors remain unchanged automatically.

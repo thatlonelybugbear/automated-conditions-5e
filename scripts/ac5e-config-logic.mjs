@@ -359,6 +359,7 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 		return rollConfigs.find((entry) => entry?.hookType === desiredHookType) ?? rollConfigs[0];
 	};
 	const isPressed = (name) => {
+		if (hookType === 'hitDie') return false;
 		const viaSystem = areKeysPressed instanceof Function ? areKeysPressed(event, name) : false;
 		if ((!_activeModule('midi-qol') || hookType === 'attack') && hookType !== 'damage' && hookType !== 'use' && areKeysPressed instanceof Function) return !!viaSystem;
 		if (viaSystem) return true;

@@ -1,3 +1,4 @@
+import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import Constants from './ac5e-constants.mjs';
 
 const ROLL_RESULT_INFLIGHT_TTL_MS = 120000;
@@ -172,7 +173,7 @@ export function captureAllowEffectApplicationD20Result(rolls, options, hook = 's
 }
 
 export function hydrateDamageSaveRollResult(options, { targetToken, targetActor, originActivity } = {}) {
-	if (!options || originActivity?.type !== 'save' || !options.originatingMessageId || !targetActor?.uuid) return;
+	if (!options || getActivityBaseType(originActivity) !== 'save' || !options.originatingMessageId || !targetActor?.uuid) return;
 	pruneRollResultInflightCache();
 	const tokenKey = rollResultCacheKey({ messageId: options.originatingMessageId, tokenUuid: targetToken?.document?.uuid, activityUuid: originActivity.uuid });
 	const actorKey = rollResultCacheKey({ messageId: options.originatingMessageId, actorUuid: targetActor.uuid, activityUuid: originActivity.uuid });

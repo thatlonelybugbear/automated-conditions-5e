@@ -1,0 +1,21 @@
+<section>
+	<div class="form-group">
+		<label>{{localize "AC5E.FlagPicker.Search"}}</label>
+		<div class="ac5e-flag-picker-search-row">
+			<input type="search" data-flag-search value="{{flagPreview}}" role="combobox" aria-label="{{localize 'AC5E.FlagPicker.Search'}}" aria-autocomplete="list" aria-controls="{{listId}}" aria-expanded="false" autocomplete="off" placeholder="flags.automated-conditions-5e.hitDie.bonus">
+			<button type="button" data-action="continue" {{#unless selectedKey}}disabled{{/unless}}>{{localize "AC5E.FlagPicker.Continue"}}</button>
+		</div>
+		<div id="{{listId}}" data-flag-results role="listbox" aria-label="{{localize 'AC5E.FlagPicker.Search'}}" hidden></div>
+	</div>
+	{{#each rows}}
+	<fieldset {{#if disabled}}disabled{{/if}}>
+		<legend>{{localize label}}</legend>
+		<div class="flexrow" style="flex-wrap: wrap; gap: 4px;">
+		{{#each buttons}}
+			{{#if breakBefore}}<span class="ac5e-flag-picker-row-break" aria-hidden="true"></span>{{/if}}
+			<button type="button" data-action="choose" data-row="{{row}}" data-value="{{value}}" aria-pressed="{{selected}}" {{#if selected}}class="active"{{/if}} {{#if disabled}}disabled title="{{localize 'AC5E.FlagPicker.Unavailable'}}"{{/if}} style="flex: 0 1 auto;">{{label}}</button>
+		{{/each}}
+		</div>
+	</fieldset>
+	{{/each}}
+</section>
