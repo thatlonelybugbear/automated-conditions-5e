@@ -955,6 +955,10 @@ function _getSafeDialogOptions(options = {}) {
 		'selectedDamageTypesByIndex',
 		'skill',
 		'spellLevel',
+		'sourceActorUuid',
+		'sourceTokenUuid',
+		'targetActorUuid',
+		'targetTokenUuid',
 		'targets',
 		'tool',
 	]);
@@ -963,14 +967,22 @@ function _getSafeDialogOptions(options = {}) {
 			id: target?.id ?? target?._id ?? null,
 			key: target?.key ?? index,
 			uuid: target?.uuid ?? null,
-			tokenUuid: target?.tokenUuid ?? target?.token?.uuid ?? null,
+			actorUuid: target?.actorUuid ?? target?.actor?.uuid ?? (typeof target?.actor === 'string' ? target.actor : null),
+			tokenUuid: target?.tokenUuid ?? target?.token?.uuid ?? (typeof target?.token === 'string' ? target.token : null),
 			name: target?.name ?? '',
 			img: target?.img ?? null,
 			ac: target?.ac,
 		}));
 	}
+	const activityUuid = options.activity?.uuid ?? options.activityUuid ?? options.damageActivityUuid;
+	if (activityUuid) safe.activityUuid = activityUuid;
+	if (options.ammunition) safe.ammunition = _getSafeAmmunition(options.ammunition);
 	if (options.item?.uuid) safe.item = { id: options.item.id ?? options.item._id ?? options.item.uuid.split('.').at(-1), type: options.item.type, uuid: options.item.uuid };
 	return safe;
+}
+
+function _getSafeAmmunition(ammunition) {
+	return JSON.parse(JSON.stringify(ammunition, (_key, value) => value instanceof Set ? [...value] : value));
 }
 
 function _duplicateDialogEntries(entries = []) {
@@ -1087,7 +1099,7 @@ export function _getSafeDialogConfig(ac5eConfig) {
 			safe.options.damageActivityUuid = safe.options.activity?.uuid ?? safe.options.damageActivityUuid;
 			delete safe.options.activity;
 			delete safe.options.ammo;
-			delete safe.options.ammunition;
+			if (safe.options.ammunition) safe.options.ammunition = _getSafeAmmunition(safe.options.ammunition);
 			delete safe.options.originatingUseConfig;
 			delete safe.options._ac5eHookChecksCache;
 			for (const key of Object.keys(safe.options)) if (key.startsWith('_')) delete safe.options[key];

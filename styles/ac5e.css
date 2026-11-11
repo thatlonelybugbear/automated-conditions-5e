@@ -380,6 +380,22 @@
 	font-weight: 700;
 }
 
+.ac5e-effect-value-editor-integration-toggle {
+	grid-column: 1 / -1;
+	margin-top: 4px;
+}
+
+.ac5e-effect-value-editor-form .ac5e-effect-value-editor-action-select {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	align-items: center;
+	gap: 10px;
+}
+
+.ac5e-effect-value-editor-form .ac5e-effect-value-editor-action-select > label {
+	margin-bottom: 0;
+}
+
 .ac5e-effect-value-editor-range-field-toggles {
 	margin-top: 10px;
 }

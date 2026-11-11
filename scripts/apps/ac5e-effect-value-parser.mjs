@@ -1,4 +1,5 @@
 const ASSIGNMENT_FIELDS = [
+	'action',
 	'bonus',
 	'modify',
 	'modifier',

@@ -7,6 +7,7 @@ import {
 	shouldActivateEffectValueAutocomplete,
 } from './ac5e-effect-value-autocomplete.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { editInlineAa5eAction, getAa5eActionUnavailableReason } from '../ac5e-actions.mjs';
 import Settings from '../ac5e-settings.mjs';
 import { AC5EFlagPicker, isSupportedFlag } from './ac5e-flag-picker.mjs';
 import { _resolveEffectOriginContext } from '../ac5e-helpers.mjs';
@@ -303,6 +304,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		});
 		return {
 			...context,
+			aa5eAction: profile.supportsAction ? getAa5eActionEditorData(parsed, this.uiState) : null,
 			changeIndex: this.changeIndex,
 			headerLabel: game.i18n.format('AC5E.EffectValueEditor.ChangeHeader', {
 				effect: this.effect?.name ?? editorLabel('Effect'),
@@ -475,6 +477,33 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			input.dataset.ac5eUiToggleReady = 'true';
 			input.addEventListener('change', (event) => void this.#onUiToggleChange(event));
 		}
+		for (const select of htmlElement?.querySelectorAll('[data-ac5e-action-select]:not([data-ac5e-action-ready])') ?? []) {
+			select.dataset.ac5eActionReady = 'true';
+			select.dataset.ac5eActionValue = select.value;
+			select.addEventListener('change', async () => {
+				if (select.value !== '@custom') {
+					select.dataset.ac5eActionValue = select.value;
+					const editorOption = select.querySelector('option[value="@custom"]');
+					if (editorOption) editorOption.textContent = select.value.startsWith('inline:') ? 'Edit Custom Action…' : 'Create Custom Action…';
+					return;
+				}
+				const previous = select.dataset.ac5eActionValue;
+				select.value = previous;
+				select.disabled = true;
+				try {
+					const value = await editInlineAa5eAction(previous);
+					if (!select.isConnected || !this.element?.contains(select)) return;
+					if (value !== previous) {
+						if (![...select.options].some((option) => option.value === value)) select.add(new Option('Custom action (this effect only)', value));
+						select.value = value;
+						select.dataset.ac5eActionValue = value;
+						select.querySelector('option[value="@custom"]').textContent = 'Edit Custom Action…';
+						this.#captureDraftState(htmlElement);
+					}
+				} catch (error) { ui.notifications.warn(`AC5E: ${error.message}`); }
+				finally { select.disabled = false; }
+			});
+		}
 		for (const input of htmlElement?.querySelectorAll('[name="ui.updatePath"]:not([data-ac5e-update-hint-ready])') ?? []) {
 			input.dataset.ac5eUpdateHintReady = 'true';
 			const update = () => updateUpdateAmountHint(htmlElement);
@@ -518,6 +547,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (!showDescription) mergedData.fields.description = '';
 		if (!showUsesCount) mergedData.fields.usesCount = '';
 		if (!showUpdate) mergedData.fields.update = '';
+		if (!hasCheckedInput(form, 'ui.showAction')) mergedData.fields.action = '';
 		clearHiddenRangeFields(mergedData, profile, rangeFieldState);
 		const partialConsumeEnabled = Boolean(mergedData.toggles.partialConsume);
 		const scalingEnabled = showUsesCountScaling && !partialConsumeEnabled;
@@ -828,6 +858,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		const usesCountScaling = hasCheckedInput(form, 'ui.enableUsesCountScaling');
 		const partialConsume = hasCheckedInput(form, 'toggles.partialConsume');
 		this.uiState = {
+			action: hasCheckedInput(form, 'ui.showAction'),
 			cadence: hasCheckedInput(form, 'ui.showCadence'),
 			name: hasCheckedInput(form, 'ui.showName'),
 			description: hasCheckedInput(form, 'ui.showDescription'),
@@ -896,6 +927,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 			mergedData.fields.set = setMode ? mergedData.fields.set : '';
 		}
 		preserveHiddenRangeFields(mergedData, baseData, profile, rangeFieldState, form);
+		if (!hasCheckedInput(form, 'ui.showAction')) mergedData.fields.action = '';
 		this.draftData = mergedData;
 	}
 
@@ -1019,6 +1051,7 @@ function getEditorProfile(changeKey, parsed) {
 	const isDamageCritical = isDamageContext && normalized.endsWith('.critical');
 	const isTargetADC = normalized.endsWith('.modifyac') || normalized.endsWith('.modifydc');
 	const isInfo = normalized.endsWith('.info');
+	const supportsAction = isInfo && !normalized.includes('.use.');
 	const supportsUpdate = true;
 	const supportsCriticalStatic = isDamageContext && (normalized.endsWith('.bonus') || normalized.endsWith('.extradice'));
 	const isModifyDenomination = normalized.endsWith('.modifydenomination');
@@ -1058,6 +1091,7 @@ function getEditorProfile(changeKey, parsed) {
 	const renderedRequiredFields = supportsSetMode ? dedupe(requiredFields).filter((field) => field !== 'set') : dedupe(requiredFields);
 	const renderedContextToggles = dedupe(contextToggles).filter((toggle) => toggle !== 'partialConsume');
 	const optionalFields = supportsUpdate ? [...OPTIONAL_FIELD_NAMES, 'optinId', 'update'] : [...OPTIONAL_FIELD_NAMES, 'optinId'];
+	if (supportsAction) optionalFields.push('action');
 
 	return {
 		isAura,
@@ -1073,6 +1107,27 @@ function getEditorProfile(changeKey, parsed) {
 		supportsAddTo,
 		addToAnchorField,
 		supportsUpdate,
+		supportsAction,
+	};
+}
+
+function getAa5eActionEditorData(parsed, uiState) {
+	const module = game.modules.get('aa5e');
+	const available = Boolean(module?.active && module.api?.capabilities?.ac5eOffers);
+	const selectedId = parsed.fields.action;
+	const custom = selectedId?.startsWith('inline:');
+	const actions = available ? module.api.listActions() : [];
+	if (custom) actions.push({ id: selectedId, name: 'Custom action (this effect only)', spec: module?.api?.decodeInlineAction?.(selectedId) });
+	else if (selectedId && !actions.some((action) => action.id === selectedId)) actions.push({ id: selectedId, name: `${selectedId} (unavailable)` });
+	return {
+		enabled: uiState?.action ?? Boolean(selectedId),
+		available,
+		canEditCustom: available && module.api.capabilities.inlineActions,
+		editorLabel: custom ? 'Edit Custom Action…' : 'Create Custom Action…',
+		options: actions.map((action) => {
+			const reason = getAa5eActionUnavailableReason(action.spec);
+			return { value: action.id, label: reason ? `${action.name} (unsupported target scope)` : action.name, selected: action.id === selectedId, disabled: Boolean(reason), hint: reason };
+		}),
 	};
 }
 

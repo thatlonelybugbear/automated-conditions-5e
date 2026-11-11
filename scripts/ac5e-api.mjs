@@ -1014,6 +1014,7 @@ function _logLintReport(report) {
 
 export function lintAc5eFlags({ log = true, includeDisabled = true, includeSceneActors = true, includeWorldItems = true } = {}) {
 	const blacklist = new Set([
+		'action',
 		'ability',
 		'addto',
 		'allies',

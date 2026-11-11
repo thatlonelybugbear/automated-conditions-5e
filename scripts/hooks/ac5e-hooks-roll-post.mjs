@@ -5,6 +5,7 @@ import { syncMidiResolvedAdvantageMode } from './ac5e-hooks-roll-midi.mjs';
 import { getPersistedTargetsForHook, syncResolvedTargetsToMessage } from './ac5e-hooks-target-context.mjs';
 import { refreshAttackTargetsForSubmission } from './ac5e-hooks-target-attack.mjs';
 import { getExistingRoll, getExistingRollOptions } from './ac5e-hooks-ui-utils.mjs';
+import { prepareAa5eOffers } from '../ac5e-actions.mjs';
 
 export function postRollConfiguration(rolls, config, dialog, message, hook, deps) {
 	if (deps.buildDebug || deps.hookDebugEnabled('postRollConfigurationHook')) console.warn('AC5E._postRollConfiguration', { hook, rolls, config, dialog, message });
@@ -37,6 +38,10 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 		applyExplicitModeOverride,
 	});
 	syncPostRollTargets(ac5eConfig, config, rolls, message);
+	prepareAa5eOffers(_filterOptinEntries([
+		...(ac5eConfig?.subject?.info ?? []),
+		...(ac5eConfig?.opponent?.info ?? []),
+	], ac5eConfig?.optinSelected), { ac5eConfig, config, message, rolls });
 	applyPendingUsesIfNeeded(ac5eConfig, rolls);
 	restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts);
 	debugRollStateMigration('postRoll', { hook, config, rolls, ac5eConfig, extra: { hasMessage: !!message } });
