@@ -1,4 +1,5 @@
 import Constants from './ac5e-constants.mjs';
+import { getActorTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import { debugBenchmarkPerimeterGridSpaceCenters, getCachedDistanceCore, getPerimeterCenters } from './helpers/ac5e-helpers-distance.mjs';
 import { evaluateCondition, prepareRollFormula } from './ac5e-parser.mjs';
@@ -262,9 +263,9 @@ function _resolveTokenForLighting(token) {
 			resolvedToken = canvas?.tokens?.get?.(resolvedToken) ?? null;
 		}
 	}
-	if (resolvedToken instanceof TokenDocument) resolvedToken = resolvedToken.object;
+	if (resolvedToken instanceof TokenDocument) resolvedToken = getTokenPlaceable(resolvedToken);
 	if (_isActorDocument(resolvedToken)) resolvedToken = resolvedToken.getActiveTokens?.()[0] ?? _getTokenFromActor(resolvedToken) ?? null;
-	if (resolvedToken?.document instanceof TokenDocument && resolvedToken?.center) return resolvedToken;
+	if (resolvedToken?.document instanceof TokenDocument && resolvedToken?.center) return getTokenPlaceable(resolvedToken);
 	return null;
 }
 
@@ -900,17 +901,20 @@ export function _getDistance(tokenA, tokenB, includeUnits = false, overrideMidi 
 		let resolvedTokenA = tokenA;
 		let resolvedTokenB = tokenB;
 		if (typeof resolvedTokenA === 'string') {
-			if (resolvedTokenA.includes('.')) resolvedTokenA = _safeFromUuidSync(resolvedTokenA)?.object;
+			if (resolvedTokenA.includes('.')) resolvedTokenA = getTokenPlaceable(_safeFromUuidSync(resolvedTokenA));
 			else resolvedTokenA = canvas.tokens.get(resolvedTokenA);
 		}
 		if (typeof resolvedTokenB === 'string') {
-			if (resolvedTokenB.includes('.')) resolvedTokenB = _safeFromUuidSync(resolvedTokenB)?.object;
+			if (resolvedTokenB.includes('.')) resolvedTokenB = getTokenPlaceable(_safeFromUuidSync(resolvedTokenB));
 			else resolvedTokenB = canvas.tokens.get(resolvedTokenB);
 		}
-		if (resolvedTokenA instanceof TokenDocument) resolvedTokenA = resolvedTokenA.object;
-		if (resolvedTokenB instanceof TokenDocument) resolvedTokenB = resolvedTokenB.object;
+		if (resolvedTokenA instanceof TokenDocument) resolvedTokenA = getTokenPlaceable(resolvedTokenA);
+		if (resolvedTokenB instanceof TokenDocument) resolvedTokenB = getTokenPlaceable(resolvedTokenB);
 		if (_isActorDocument(resolvedTokenA)) resolvedTokenA = resolvedTokenA.getActiveTokens()[0] ?? null;
 		if (_isActorDocument(resolvedTokenB)) resolvedTokenB = resolvedTokenB.getActiveTokens()[0] ?? null;
+		resolvedTokenA = getTokenPlaceable(resolvedTokenA);
+		resolvedTokenB = getTokenPlaceable(resolvedTokenB);
+		if (!resolvedTokenA || !resolvedTokenB) return _getCachedDistance(tokenA, tokenB, includeUnits, checkCollision, includeHeight);
 		const result = MidiQOL.computeDistance(resolvedTokenA, resolvedTokenB);
 		const units = canvas?.grid?.units ?? '';
 		if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - Defer to MidiQOL.computeDistance():`, { sourceId: resolvedTokenA?.id, targetId: resolvedTokenB?.id, result, units });
@@ -3001,7 +3005,7 @@ function _getActionType(activity, returnClassifications = false) {
 	return actionType;
 }
 
-export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, id, uuid */) {
+export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* token, document, id, uuid */) {
 	if (!effect?.origin) return undefined;
 
 	const originContext = _resolveEffectOriginContext(effect);
@@ -3013,16 +3017,18 @@ export function _getEffectOriginToken(effect /* ActiveEffect */, type = 'id' /* 
 	}
 
 	if (!actor) return undefined;
-	const token = actor.token?.object || actor.getActiveTokens()[0];
-	if (!token) return undefined;
+	const tokenDocument = getActorTokenDocument(actor);
+	if (!tokenDocument) return undefined;
 
 	switch (type) {
 		case 'id':
-			return token.id;
+			return tokenDocument.id;
 		case 'uuid':
-			return token.document.uuid;
+			return tokenDocument.uuid;
+		case 'document':
+			return tokenDocument;
 		case 'token':
-			return token;
+			return getTokenPlaceable(tokenDocument) ?? undefined;
 		default:
 			return undefined;
 	}
@@ -3494,10 +3500,7 @@ export function _getItemOrActivity(itemID, activityID, actor) {
 }
 
 export function _getTokenFromActor(actor) {
-	let token = actor?.token?.object ?? actor?.getActiveTokens?.()?.[0] ?? null;
-	const tokenId = ChatMessage.getSpeaker({ actor })?.token;
-	const speakerToken = tokenId ? canvas?.tokens?.get(tokenId) : null;
-	if (speakerToken?.actor === actor) token = speakerToken;
+	const token = getTokenPlaceable(getActorTokenDocument(actor, ChatMessage.getSpeaker({ actor })));
 	if (!token && settings.tokenlessActorWarn) ui.notifications.warn(_localize('AC5E.TokenlessActorWarning.Text'));
 	return token;
 }

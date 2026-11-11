@@ -1,5 +1,6 @@
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import Constants from './ac5e-constants.mjs';
+import { getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import { _activeModule, _dispositionCheck, _filterOptinEntries, _getDistance, _hasItem, _hasStatuses, _localize, _safeFromUuidSync } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -26,6 +27,7 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 		const resolved = _safeFromUuidSync(token);
 		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
 	}
+	token = getTokenPlaceable(token);
 	if (!token) return false;
 	const requiredCreatureTypes = new Set((Array.isArray(creatureTypes) ? creatureTypes : []).map((value) => String(value).trim().toLowerCase()).filter(Boolean));
 	let mult;
@@ -447,16 +449,8 @@ function normalizeDetectionModes(modes) {
 }
 
 function _resolveVisibilityToken(token) {
-	const tokenInstance = foundry.canvas.placeables.Token;
-	if (token instanceof TokenDocument) return token.object;
-	if (token instanceof tokenInstance) return token;
-	if (typeof token === 'string') {
-		const resolved = _safeFromUuidSync(token);
-		if (resolved?.type === 'Token') return resolved.object;
-		if (resolved instanceof TokenDocument) return resolved.object;
-		return canvas?.tokens?.get?.(token) ?? null;
-	}
-	return token ?? null;
+	if (typeof token === 'string' && !token.includes('.')) token = canvas?.tokens?.get?.(token);
+	return getTokenPlaceable(token);
 }
 
 function _createVisibilityTests(target, visionSource) {

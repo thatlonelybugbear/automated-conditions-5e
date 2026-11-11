@@ -75,7 +75,7 @@ export function preRollAttack(config, dialog, message, hook, reEval, deps) {
 		options,
 		sourceActor: attackActor,
 		needsTarget,
-		getSubjectTokenForHook: (hookType, messageData, actor) => deps.getSubjectTokenForHook(hookType, messageData, actor, deps),
+		getSubjectTokenForHook: (hookType, messageData, actor) => deps.getSubjectTokenForHook(hookType, messageData, actor, deps, options),
 		getSingleTargetToken: deps.getSingleTargetToken,
 		logResolvedTargets: deps.logResolvedTargets,
 	});
@@ -226,6 +226,7 @@ export function resolveAttackRollTargetContext({ hook, config, messageForTargets
 	const hasResolvedTargets = Array.isArray(options.targets) && options.targets.length > 0;
 	let singleTargetToken = getSingleTargetToken(options.targets) ?? (isTargetSelf ? sourceToken : hasResolvedTargets ? undefined : game.user?.targets?.first());
 	const invalidTargets = !_hasValidTargets(activity, options.targets?.length ?? game.user?.targets?.size, needsTarget);
+	options._ac5eSourceOnly = invalidTargets && needsTarget === 'source';
 	if (invalidTargets) {
 		if (needsTarget !== 'source') return { invalidTargets, sourceToken, singleTargetToken };
 		singleTargetToken = undefined;

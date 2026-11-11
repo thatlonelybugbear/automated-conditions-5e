@@ -49,6 +49,7 @@ function createProxySandbox(sandbox, mode = 'formula') {
 /* CONDITION EVALUATION                                                 */
 /* -------------------------------------------------------------------- */
 export function evaluateCondition(expression, sandbox, debug) {
+	if (hasUnavailableDistance(expression, sandbox)) return false;
 	const proxySandbox = createProxySandbox(sandbox, 'condition');
 
 	try {
@@ -66,6 +67,12 @@ export function evaluateCondition(expression, sandbox, debug) {
 		if (debug.throwErrors) throw err;
 		return false; // always fail safe
 	}
+}
+
+export function hasUnavailableDistance(expression, sandbox) {
+	if (sandbox.distanceAvailable !== false) return false;
+	const code = expression.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\$]|\$(?!\{))*`|\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, ' ');
+	return /(?:^|[^\p{ID_Continue}$.])distance(?![\p{ID_Continue}$])/u.test(code.replace(/\.\s+/g, '.'));
 }
 
 /* -------------------------------------------------------------------- */
@@ -87,6 +94,7 @@ export function evaluateCondition(expression, sandbox, debug) {
  * @returns {string}
  */
 export function prepareRollFormula(expression, sandbox, debug) {
+	if (hasUnavailableDistance(expression, sandbox)) return undefined;
 	const proxySandbox = createProxySandbox(sandbox, 'formula');
 	// 0) Normalize: strip leading assignment and trailing identifier (common macro typos)
 	let resultExpr = normalizeExpr(expression); // could be safe to remove, but being a bugbear... ¯_(ツ)_/¯

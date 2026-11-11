@@ -1,6 +1,7 @@
 import { _activeModule, _cloneUseConfigShallow, _getMessageFlagScope, _getMessageOriginId, _getMessageScaling, _getMessageSpellLevel, _resolveUseMessageContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _mergeUseOptions } from '../ac5e-config-logic.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { getSpeakerTokenDocument, getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
 import { getAssociatedRollMessage } from './ac5e-hooks-message-association.mjs';
 
 export function resolveMessageDataContext(config, hook, messageConfig, deps) {
@@ -92,9 +93,10 @@ function resolveMessageFromConfig(config, messageConfig, hook, deps) {
 
 function resolveAttackerContext(message, item, deps) {
 	const { scene: sceneId, actor: actorId, token: tokenId, alias: tokenName } = message?.speaker || {};
-	const attackingToken = canvas.tokens.get(tokenId);
+	const tokenDocument = getSpeakerTokenDocument(message?.speaker);
+	const attackingToken = getTokenPlaceable(tokenDocument);
 	const messageTargets = message?.system?.targets;
-	const attackingActor = attackingToken?.actor ?? item?.actor;
+	const attackingActor = tokenDocument?.actor ?? item?.actor;
 	return { attackingActor, attackingToken, messageTargets, speaker: { sceneId, actorId, tokenId, tokenName } };
 }
 
@@ -175,7 +177,10 @@ function buildMessageOptions({ config, hook, message, triggerMessageId, resolved
 		}
 	}
 	if (originatingMessage?.id) options.originatingMessageId = originatingMessage.id;
-	if (originatingMessage?.speaker?.token) options.originatingSpeakerTokenId = originatingMessage.speaker.token;
+	if (originatingMessage?.speaker?.token) {
+		options.originatingSpeakerTokenId = originatingMessage.speaker.token;
+		if (originatingMessage.speaker.scene) options.originatingSpeakerTokenUuid = `Scene.${originatingMessage.speaker.scene}.Token.${originatingMessage.speaker.token}`;
+	}
 	const originatingUseConfig = useConfig ? _cloneUseConfigShallow(useConfig) : null;
 	if (originatingUseConfig) {
 		originatingUseConfig.options ??= {};

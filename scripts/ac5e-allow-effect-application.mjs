@@ -175,7 +175,8 @@ export function captureAllowEffectApplicationD20Result(rolls, options, hook = 's
 export function hydrateDamageSaveRollResult(options, { targetToken, targetActor, originActivity } = {}) {
 	if (!options || getActivityBaseType(originActivity) !== 'save' || !options.originatingMessageId || !targetActor?.uuid) return;
 	pruneRollResultInflightCache();
-	const tokenKey = rollResultCacheKey({ messageId: options.originatingMessageId, tokenUuid: targetToken?.document?.uuid, activityUuid: originActivity.uuid });
+	const tokenUuid = targetToken?.document?.uuid ?? (targetToken?.documentName === 'Token' ? targetToken.uuid : undefined);
+	const tokenKey = rollResultCacheKey({ messageId: options.originatingMessageId, tokenUuid, activityUuid: originActivity.uuid });
 	const actorKey = rollResultCacheKey({ messageId: options.originatingMessageId, actorUuid: targetActor.uuid, activityUuid: originActivity.uuid });
 	const rollResult = rollResultInflightCache.get(tokenKey)?.rollResult ?? rollResultInflightCache.get(actorKey)?.rollResult;
 	if (!rollResult || rollResult.hook !== 'save') return;

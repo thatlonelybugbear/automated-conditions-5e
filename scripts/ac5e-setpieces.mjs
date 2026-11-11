@@ -1,4 +1,6 @@
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
+import { hasUnavailableDistance } from './ac5e-parser.mjs';
+import { captureRollTokenDocuments, getTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import {
 	_ac5eSafeEval,
 	_activeModule,
@@ -603,6 +605,9 @@ export function onStatusEffectOverridesRegistrySettingUpdate(setting) {
 }
 
 export function _ac5eChecks({ ac5eConfig, subjectToken, opponentToken }) {
+	captureRollTokenDocuments(ac5eConfig.options, _safeFromUuidSync(ac5eConfig.options.sourceActorUuid), { subjectToken, opponentToken });
+	subjectToken = getTokenPlaceable(getTokenDocument(ac5eConfig.options.sourceTokenUuid) ?? subjectToken);
+	opponentToken = ac5eConfig.options._ac5eSourceOnly ? null : getTokenPlaceable(getTokenDocument(ac5eConfig.options.targetTokenUuid) ?? opponentToken);
 	const timingStart = performance.now();
 	//ac5eConfig.options {ability, activity, distance, hook, skill, tool, isConcentration, isDeathSave, isInitiative}
 	const checksCache = ac5eConfig.options._ac5eHookChecksCache ?? (ac5eConfig.options._ac5eHookChecksCache = {});
@@ -777,12 +782,12 @@ function recordChecksReuseStat(type) {
 function getChecksCacheKey({ ac5eConfig, subjectToken, opponentToken }) {
 	const hookType = ac5eConfig?.hookType ?? ac5eConfig?.options?.hook;
 	if (!hookType) return null;
-	const subjectTokenId = subjectToken?.id ?? ac5eConfig?.tokenId ?? 'none';
-	const opponentTokenId = opponentToken?.id ?? ac5eConfig?.targetId ?? 'none';
+	const subjectTokenId = ac5eConfig.options.sourceTokenUuid ?? subjectToken?.id ?? ac5eConfig?.tokenId ?? 'none';
+	const opponentTokenId = ac5eConfig.options.targetTokenUuid ?? opponentToken?.id ?? ac5eConfig?.targetId ?? 'none';
 	const subjectSignature = getActorContextSignature(subjectToken, ac5eConfig.options.sourceActorUuid);
 	const opponentSignature = getActorContextSignature(opponentToken, ac5eConfig.options.targetActorUuid);
 	const targetsSignature = getTargetsSignature(ac5eConfig?.options?.targets);
-	const distance = ac5eConfig?.options?.distance ?? 'none';
+	const distance = `${ac5eConfig?.options?.distanceMeasurement?.status ?? 'unknown'}:${ac5eConfig?.options?.distance ?? 'none'}`;
 	const rollProfileSignature = getRollProfileSignature(ac5eConfig?.options ?? {});
 	const optinSignature = JSON.stringify(Object.entries(ac5eConfig?.optinSelected ?? {}).sort(([left], [right]) => left.localeCompare(right)));
 	return `${hookType}:${subjectTokenId}:${opponentTokenId}:${distance}:${targetsSignature}:${subjectSignature}:${opponentSignature}:${rollProfileSignature}:${optinSignature}`;
@@ -885,7 +890,7 @@ function cloneCheckSide(side = {}) {
 
 function buildStatusEffectsContext({ ac5eConfig, subjectToken, opponentToken, exhaustionLvl, type, evaluationData } = {}) {
 	const { ability, activity, attackMode, distance, hook, skill, isConcentration, isDeathSave, isInitiative } = ac5eConfig.options;
-	const distanceUnit = canvas?.grid?.distance;
+	const distanceUnit = getTokenDocument(ac5eConfig.options.sourceTokenUuid)?.parent?.grid?.distance ?? canvas?.grid?.distance;
 	const subject = subjectToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.sourceActorUuid);
 	const opponent = opponentToken?.actor ?? _safeFromUuidSync(ac5eConfig.options.targetActorUuid);
 	const modernRules = settings.dnd5eModernRules;
@@ -2366,6 +2371,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		return undefined;
 	};
 	const buildValidFlagEntry = ({ change, changeIndex, effect, hook, sandbox, isAura = false, auraToken = null, sourceActor = null, sourceNameFallback = '' }) => {
+		if (hasUnavailableDistanceFields(change.value, sandbox)) return null;
 		const { actorType, mode } = getActorAndModeType(change, isAura);
 		if (!actorType || !mode) return null;
 		if (mode === 'range' && /\.attack\.range$/i.test(String(change?.key ?? ''))) {
@@ -2526,28 +2532,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			});
 		} catch (err) {
 			if (settings.debug || ac5e?.debug?.sandboxReadyTrace) console.warn('AC5E sandboxReady hook failed', err);
-		}
-		const aa5eMatch = /^flags\.aa5e\.(use|attack|damage|check|concentration|death|initiative|save|skill|tool)\.action$/.exec(normalizedChange?.key ?? '');
-		if (!isAura && aa5eMatch?.[1] === hook) {
-			try {
-				Hooks.callAll('ac5e.sandboxReady.aa5e', {
-					effectSandbox,
-					evaluateCondition: (expression, evaluationData = {}) => _ac5eSafeEval({ expression, sandbox: Object.assign(Object.create(effectSandbox), evaluationData), mode: 'condition' }),
-					context: {
-						hook,
-						changeIndex,
-						effect: effect.uuid,
-						effectId: effect.id,
-						isAura,
-						user: game.user.id,
-						changeKey: normalizedChange.key,
-						value: normalizedChange.value,
-						actorType,
-					},
-				});
-			} catch (err) {
-				if (settings.debug || ac5e?.debug?.sandboxReadyTrace) console.warn('AC5E AA5E sandboxReady hook failed', err);
-			}
 		}
 		if (
 			!effectChangesTest({
@@ -2807,6 +2791,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		if (!runtimeConditionOk) continue;
 
 		const ruleValue = fragments.join(';');
+		if (hasUnavailableDistanceFields(ruleValue, evaluationData)) continue;
 		const pseudoEffect = {
 			id: `usage-rule-${rule.key}`,
 			uuid: `UsageRule.${rule.key}`,
@@ -3186,6 +3171,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const mergedConstants = { ...baseConstants, ...statusConstants };
 
 		return clauses.some((clause) => {
+			if (hasUnavailableDistance(clause, sandbox)) return false;
 			let mult = null;
 			if (clause.startsWith('!') && !clause.includes('&') && !clause.includes('?') && !clause.includes('|')) {
 				clause = clause.slice(1).trim();
@@ -4725,8 +4711,8 @@ function bonusReplacements(expression, evalData, isAura, effect, entryId = null)
 	if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
 	if (expression.includes('##')) expression = isAura ? expression.replaceAll('##', 'rollingActor.') : expression.replaceAll('##', 'opponentActor.');
 	if (expression.includes('effectOriginActor')) {
-		const tok = _getEffectOriginToken(effect, 'token');
-		evalData.effectOriginActor = _ac5eActorRollData(tok);
+		const tok = _getEffectOriginToken(effect, 'document');
+		evalData.effectOriginActor = _ac5eActorRollData(tok, null, _resolveEffectOriginContext(effect).originActor);
 	}
 	return expression;
 }
@@ -4786,6 +4772,11 @@ function _resolveExplodeModifierExpressions(value, evaluationData, debug) {
 	} catch {
 		return null;
 	}
+}
+
+function hasUnavailableDistanceFields(value, sandbox) {
+	return sandbox?.distanceAvailable === false && ['bonus', 'modifier', 'threshold', 'chance', 'set', 'modify', 'usescount', 'update'].some((key) =>
+		hasUnavailableDistance(String(getBlacklistedKeysValue(key, value) || ''), sandbox));
 }
 
 function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAura, debug, chanceCache, chanceKey }) {

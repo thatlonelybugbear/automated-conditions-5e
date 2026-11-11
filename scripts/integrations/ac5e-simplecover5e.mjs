@@ -3,13 +3,15 @@ const TOTAL_COVER_AC = 999;
 const COVER_TYPES = new Set(['none', 'half', 'threeQuarters', 'total']);
 
 import { getAlteredTargetValueOrThreshold } from '../ac5e-helpers.mjs';
+import { getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
 
 
 export function applySimpleCover5eLibraryMode({ config, message, messages = [], activity, attacker, targets } = {}) {
 	const api = game.modules.get(MODULE_ID)?.api;
+	attacker = getTokenPlaceable(attacker);
 	if (_activeModule('midi-qol') || !api?.getCoverForTargets || !api.getLibraryMode?.() || !attacker || !Array.isArray(targets) || !targets.length) return;
 	const targetMessages = [...new Set([message, ...messages])].filter(Boolean);
-	const targetTokens = targets.map((target) => fromUuidSync(target?.tokenUuid)?.object).filter(Boolean);
+	const targetTokens = targets.map((target) => getTokenPlaceable(target?.tokenUuid)).filter(Boolean);
 	if (!targetTokens.length) return;
 	const results = api.getCoverForTargets({
 		activity,

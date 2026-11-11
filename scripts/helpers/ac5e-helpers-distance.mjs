@@ -1,4 +1,5 @@
 import Constants from '../ac5e-constants.mjs';
+import { getActorTokenDocument, getTokenDocument, getTokenPlaceable } from './ac5e-helpers-token.mjs';
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import Settings from '../ac5e-settings.mjs';
 
@@ -11,28 +12,25 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 	const meleeDiagonals = settings.autoRangeChecks.has('meleeDiagonals');
 	let adjacent2D;
 
-	const tokenInstance = foundry.canvas.placeables.Token;
-	tokenA = resolveDistanceToken(tokenA);
-	tokenB = resolveDistanceToken(tokenB);
-	if (!(tokenA instanceof tokenInstance) || !(tokenB instanceof tokenInstance)) return totalDistance;
-
-	const { grid } = canvas || {};
-	if (foundry.utils.isEmpty(grid)) return totalDistance;
+	const pair = resolveDistancePair(tokenA, tokenB, checkCollision);
+	if (!pair) return totalDistance;
+	({ tokenA, tokenB } = pair);
+	const { grid } = pair;
 	const { distance: gridDistance, units, isGridless, isHexagonal, isSquare } = grid;
 
 	let diagonals;
 	let spaces;
 
 	if (isHexagonal) {
-		const tokenAHexes = getHexesOnPerimeter(tokenA);
-		if (settings.debug) tokenAHexes.forEach((e) => canvas.ping(e));
-		const tokenBHexes = getHexesOnPerimeter(tokenB);
-		if (settings.debug) tokenBHexes.forEach((e) => canvas.ping(e));
+		const tokenAHexes = getHexesOnPerimeter(tokenA, grid);
+		if (settings.debug && grid === globalThis.canvas?.grid) tokenAHexes.forEach((e) => canvas.ping(e));
+		const tokenBHexes = getHexesOnPerimeter(tokenB, grid);
+		if (settings.debug && grid === globalThis.canvas?.grid) tokenBHexes.forEach((e) => canvas.ping(e));
 
 		outer: for (const pointA of tokenAHexes) {
 			for (const pointB of tokenBHexes) {
 				if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
-				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
+				adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals, grid });
 				if (adjacent2D && meleeDiagonals) {
 					totalDistance = gridDistance;
 					diagonals = 0;
@@ -54,10 +52,10 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 			diagonals = 0;
 			spaces = 0;
 		} else if (isGridless) {
-			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA);
-			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
-			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB);
-			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+			const tokenASquares = getGridlessSquaresOnPerimeter(tokenA, grid);
+			if (settings.debug && grid === globalThis.canvas?.grid) tokenASquares.forEach((s) => canvas.ping(s));
+			const tokenBSquares = getGridlessSquaresOnPerimeter(tokenB, grid);
+			if (settings.debug && grid === globalThis.canvas?.grid) tokenBSquares.forEach((s) => canvas.ping(s));
 			for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
 					if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
@@ -71,15 +69,15 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 				}
 			}
 		} else if (isSquare) {
-			const tokenASquares = getSquaresOnPerimeter(tokenA);
-			if (settings.debug) tokenASquares.forEach((s) => canvas.ping(s));
-			const tokenBSquares = getSquaresOnPerimeter(tokenB);
-			if (settings.debug) tokenBSquares.forEach((s) => canvas.ping(s));
+			const tokenASquares = getSquaresOnPerimeter(tokenA, grid);
+			if (settings.debug && grid === globalThis.canvas?.grid) tokenASquares.forEach((s) => canvas.ping(s));
+			const tokenBSquares = getSquaresOnPerimeter(tokenB, grid);
+			if (settings.debug && grid === globalThis.canvas?.grid) tokenBSquares.forEach((s) => canvas.ping(s));
 
 			outer: for (const pointA of tokenASquares) {
 				for (const pointB of tokenBSquares) {
 					if (_testDistanceCollision(pointA, pointB, tokenA.document, checkCollision)) continue;
-					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals });
+					adjacent2D = testDistanceAdjacency(pointA, pointB, { meleeDiagonals, grid });
 					if (adjacent2D && meleeDiagonals) {
 						totalDistance = gridDistance;
 						diagonals = 0;
@@ -97,17 +95,32 @@ export function getPerimeterDistanceCore(tokenA, tokenB, includeUnits = false, c
 		}
 	}
 
-	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
+	if (includeHeight && Number.isFinite(totalDistance)) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
 	if (settings.debug) console.log(`${Constants.MODULE_NAME_SHORT} - getDistance():`, { sourceId: tokenA.id, opponentId: tokenB.id, result: totalDistance, units });
 	if (includeUnits) return roundDistance(totalDistance) + units;
 	return roundDistance(totalDistance);
 }
 
 export function getCachedDistanceCore(tokenA, tokenB, includeUnits = false, checkCollision = false, includeHeight = true) {
+	const documentA = resolveDistanceDocument(tokenA);
+	const documentB = resolveDistanceDocument(tokenB);
+	if (!documentA || !documentB || documentA.parent !== documentB.parent) return Infinity;
+	if (checkCollision && !CONFIG.Canvas?.polygonBackends?.[checkCollision]?.testCollision) return Infinity;
+	if (checkCollision && documentA.level !== documentB.level) return Infinity;
+	if (!getTokenPlaceable(documentA) || !getTokenPlaceable(documentB)) return getPerimeterDistanceCore(documentA, documentB, includeUnits, checkCollision, includeHeight);
 	const result = getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision, includeHeight });
 	if (!result) return Infinity;
 	if (includeUnits) return `${result.distance}${canvas?.grid?.units ?? ''}`;
 	return result.distance;
+}
+
+export function getDistanceMeasurement(tokenA, tokenB, { checkCollision = false, includeHeight = true } = {}) {
+	const pair = resolveDistancePair(tokenA, tokenB, checkCollision);
+	if (!pair || !(pair.grid.isGridless || pair.grid.isSquare || pair.grid.isHexagonal)) return { status: 'unavailable', distance: null };
+	const distance = getCachedDistanceCore(tokenA, tokenB, false, checkCollision, includeHeight);
+	if (Number.isFinite(distance)) return { status: 'measured', distance };
+	const hasPerimeters = getPerimeterCenters(pair.tokenA, pair.grid).length && getPerimeterCenters(pair.tokenB, pair.grid).length;
+	return { status: checkCollision && hasPerimeters ? 'blocked' : 'unavailable', distance: null };
 }
 
 export async function debugBenchmarkPerimeterGridSpaceCenters(token, { iterations = 100, data = {}, useFoundryBenchmark = false } = {}) {
@@ -149,12 +162,42 @@ function _testDistanceCollision(pointA, pointB, source, checkCollision) {
 function resolveDistanceToken(token) {
 	const tokenInstance = foundry.canvas.placeables.Token;
 	if (typeof token === 'string') {
-		if (token.includes('.')) token = _safeFromUuidSync(token)?.object;
+		if (token.includes('.')) token = getTokenPlaceable(token);
 		else token = canvas.tokens.get(token);
 	}
-	if (token instanceof TokenDocument) token = token.object;
+	if (token instanceof TokenDocument) token = getTokenPlaceable(token);
 	if (token instanceof Actor) token = token.getActiveTokens()[0] ?? null;
-	return token instanceof tokenInstance ? token : null;
+	return token instanceof tokenInstance ? getTokenPlaceable(token) : null;
+}
+
+function resolveDistanceDocument(token) {
+	if (typeof token === 'string' && !token.includes('.')) token = globalThis.canvas?.tokens?.get(token);
+	if (token?.documentName === 'Actor') return getActorTokenDocument(token);
+	return getTokenDocument(token);
+}
+
+function resolveDistancePair(tokenA, tokenB, checkCollision) {
+	const documentA = resolveDistanceDocument(tokenA);
+	const documentB = resolveDistanceDocument(tokenB);
+	const scene = documentA?.parent;
+	if (!scene || scene !== documentB?.parent || !scene.grid) return null;
+	const placeableA = getTokenPlaceable(documentA);
+	const placeableB = getTokenPlaceable(documentB);
+	// The active canvas collision backend cannot stand in for another Level.
+	if (checkCollision && (!placeableA || !placeableB || documentA.level !== documentB.level || !CONFIG.Canvas?.polygonBackends?.[checkCollision]?.testCollision)) return null;
+	return {
+		grid: scene.grid,
+		tokenA: placeableA ?? getDocumentDistanceGeometry(documentA, scene.grid),
+		tokenB: placeableB ?? getDocumentDistanceGeometry(documentB, scene.grid),
+	};
+}
+
+function getDocumentDistanceGeometry(document, grid) {
+	const { x, y, id } = document;
+	const { width, height } = document.getSize();
+	const bounds = new PIXI.Rectangle(x, y, width, height);
+	const shape = grid.isGridless ? new PIXI.Rectangle(0, 0, width, height) : new PIXI.Polygon(document.getGridSpacePolygon());
+	return { id, x, y, document, bounds, shape, center: document.getCenterPoint() };
 }
 
 function centerKey(point) {
@@ -201,8 +244,7 @@ function getPerimeterOffsetsFromOccupiedOffsets(offsets = []) {
 	return perimeter;
 }
 
-function testDistanceAdjacency(coords1, coords2, { meleeDiagonals = false } = {}) {
-	const { grid } = canvas ?? {};
+function testDistanceAdjacency(coords1, coords2, { meleeDiagonals = false, grid = canvas?.grid } = {}) {
 	if (!grid) return false;
 	if (grid.isHexagonal && typeof grid.getCube === 'function') {
 		const c1 = grid.getCube(coords1);
@@ -216,14 +258,14 @@ function testDistanceAdjacency(coords1, coords2, { meleeDiagonals = false } = {}
 		if (grid.diagonals === CONST.GRID_DIAGONALS.ILLEGAL) return d0 + d1 === 1;
 		return d0 + d1 !== 0;
 	}
-	return testAdjacency(coords1, coords2);
+	return testAdjacency(coords1, coords2, grid);
 }
 
-export function getPerimeterCenters(token) {
-	const { isGridless, isHexagonal, isSquare } = canvas.grid;
-	if (isHexagonal) return getHexesOnPerimeter(token);
-	if (isGridless) return getGridlessSquaresOnPerimeter(token);
-	if (isSquare) return getSquaresOnPerimeter(token);
+export function getPerimeterCenters(token, grid = canvas.grid) {
+	const { isGridless, isHexagonal, isSquare } = grid;
+	if (isHexagonal) return getHexesOnPerimeter(token, grid);
+	if (isGridless) return getGridlessSquaresOnPerimeter(token, grid);
+	if (isSquare) return getSquaresOnPerimeter(token, grid);
 	return [];
 }
 
@@ -282,6 +324,8 @@ function getTokenPerimeterCacheKey(token) {
 		doc.width,
 		doc.height,
 		doc.elevation ?? 0,
+		doc.level,
+		canvas.grid.diagonals,
 		canvas.grid.type,
 		canvas.grid.size,
 		canvas.grid.sizeX,
@@ -408,7 +452,7 @@ function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false
 		}
 	}
 
-	if (includeHeight) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
+	if (includeHeight && Number.isFinite(totalDistance)) totalDistance = heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid, adjacent2D);
 	return {
 		tokenA,
 		tokenB,
@@ -421,9 +465,9 @@ function getCachedPerimeterDistanceData(tokenA, tokenB, { checkCollision = false
 	};
 }
 
-function testAdjacency(coords1, coords2) {
-	const { i: i1, j: j1, k: k1 } = canvas.grid.getOffset(coords1);
-	const { i: i2, j: j2, k: k2 } = canvas.grid.getOffset(coords2);
+function testAdjacency(coords1, coords2, grid = canvas.grid) {
+	const { i: i1, j: j1, k: k1 } = grid.getOffset(coords1);
+	const { i: i2, j: j2, k: k2 } = grid.getOffset(coords2);
 	const di = Math.abs(i1 - i2);
 	const dj = Math.abs(j1 - j2);
 	const dk = k1 !== undefined ? Math.abs(k1 - k2) : 0;
@@ -452,7 +496,7 @@ function heightDifference(tokenA, tokenB, totalDistance, diagonals, spaces, grid
 	return totalDistance;
 }
 
-function getHexesOnPerimeter(t) {
+function getHexesOnPerimeter(t, grid = canvas.grid) {
 	const perimeterPoints = getHexPerimeterPoints(t);
 	if (!perimeterPoints || perimeterPoints.length === 0) {
 		console.warn('No perimeter points found for the token.');
@@ -463,9 +507,9 @@ function getHexesOnPerimeter(t) {
 
 	for (let i = 0; i < perimeterPoints.length; i += 1) {
 		const p = perimeterPoints[i];
-		const nudged = nudgeToward(p, t.center);
-		const pointToCube = canvas.grid.pointToCube({ x: nudged[0], y: nudged[1] });
-		const hex = canvas.grid.getCenterPoint(pointToCube);
+		const nudged = nudgeToward(p, t.center, 0.2, grid);
+		const pointToCube = grid.pointToCube({ x: nudged[0], y: nudged[1] });
+		const hex = grid.getCenterPoint(pointToCube);
 		hex.id = hex.x + hex.y;
 		if (!foundHexes[hex.id] && hex.x > t.bounds.left && hex.x < t.bounds.right && hex.y < t.bounds.bottom && hex.y > t.bounds.top) {
 			foundHexes[hex.id] = hex;
@@ -474,12 +518,12 @@ function getHexesOnPerimeter(t) {
 	return Object.values(foundHexes);
 }
 
-function nudgeToward(point, center, distance = 0.2) {
+function nudgeToward(point, center, distance = 0.2, grid = canvas.grid) {
 	const dx = center.x - point.x;
 	const dy = center.y - point.y;
 	const radians = Math.atan2(dy, dx);
 	const degrees = radians * (180 / Math.PI);
-	const nudgedPoint = getHexTranslatedPoint(point, degrees, distance);
+	const nudgedPoint = getHexTranslatedPoint(point, degrees, distance, grid);
 	return [nudgedPoint.x, nudgedPoint.y];
 }
 
@@ -491,33 +535,33 @@ function getHexPerimeterPoints(t) {
 	return points;
 }
 
-function getHexTranslatedPoint(point, direction, distance) {
+function getHexTranslatedPoint(point, direction, distance, grid = canvas.grid) {
 	direction = Math.toRadians(direction);
 	const dx = Math.cos(direction);
 	const dy = Math.sin(direction);
 	let q;
 	let r;
-	if (canvas.grid.columns) {
+	if (grid.columns) {
 		q = 2 * Math.SQRT1_3 * dx;
 		r = -0.5 * q + dy;
 	} else {
 		r = 2 * Math.SQRT1_3 * dy;
 		q = -0.5 * r + dx;
 	}
-	const s = ((distance / canvas.grid.distance) * canvas.grid.size) / ((Math.abs(r) + Math.abs(q) + Math.abs(q + r)) / 2);
+	const s = ((distance / grid.distance) * grid.size) / ((Math.abs(r) + Math.abs(q) + Math.abs(q + r)) / 2);
 	return { x: point.x + dx * s, y: point.y + dy * s };
 }
 
-function getGridlessSquaresOnPerimeter(t) {
+function getGridlessSquaresOnPerimeter(t, grid = canvas.grid) {
 	const perimeterCenterPoints = {};
-	if (t.bounds.width === canvas.grid.sizeX && t.bounds.height === canvas.grid.sizeY) {
-		perimeterCenterPoints.one = { x: t.x + Math.floor(canvas.grid.size / 2), y: t.y + Math.floor(canvas.grid.size / 2) };
+	if (t.bounds.width === grid.sizeX && t.bounds.height === grid.sizeY) {
+		perimeterCenterPoints.one = { x: t.x + Math.floor(grid.size / 2), y: t.y + Math.floor(grid.size / 2) };
 	} else {
 		const bounds = t.bounds;
-		for (let x = bounds.x; x < bounds.right; x += canvas.grid.size) {
-			for (let y = bounds.y; y < bounds.bottom; y += canvas.grid.size) {
-				if (x === bounds.x || x === bounds.right - canvas.grid.size || y === bounds.y || y === bounds.bottom - canvas.grid.size) {
-					const centerPoint = { x: x + Math.floor(canvas.grid.size / 2), y: y + Math.floor(canvas.grid.size / 2) };
+		for (let x = bounds.x; x < bounds.right; x += grid.size) {
+			for (let y = bounds.y; y < bounds.bottom; y += grid.size) {
+				if (x === bounds.x || x === bounds.right - grid.size || y === bounds.y || y === bounds.bottom - grid.size) {
+					const centerPoint = { x: x + Math.floor(grid.size / 2), y: y + Math.floor(grid.size / 2) };
 					const newID = `${centerPoint.x}_${centerPoint.y}`;
 					if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
 				}
@@ -527,15 +571,15 @@ function getGridlessSquaresOnPerimeter(t) {
 	return Object.values(perimeterCenterPoints);
 }
 
-function getSquaresOnPerimeter(t) {
+function getSquaresOnPerimeter(t, grid = canvas.grid) {
 	const perimeterCenterPoints = {};
 	const clipperPoints = (t.shape ?? t.getShape()).toClipperPoints();
-	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += canvas.grid.size) {
-		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += canvas.grid.size) {
-			if (x === 0 || x === clipperPoints[1].X - canvas.grid.size || y === 0 || y === clipperPoints[3].Y - canvas.grid.size) {
+	for (let x = clipperPoints[0].X; x < clipperPoints[1].X; x += grid.size) {
+		for (let y = clipperPoints[0].Y; y < clipperPoints[3].Y; y += grid.size) {
+			if (x === 0 || x === clipperPoints[1].X - grid.size || y === 0 || y === clipperPoints[3].Y - grid.size) {
 				const newX = t.x + x;
 				const newY = t.y + y;
-				const centerPoint = canvas.grid.getCenterPoint({ i: Math.floor(newY / canvas.grid.size), j: Math.floor(newX / canvas.grid.size) });
+				const centerPoint = grid.getCenterPoint({ i: Math.floor(newY / grid.size), j: Math.floor(newX / grid.size) });
 				const newID = `${centerPoint.x}_${centerPoint.y}`;
 				if (!perimeterCenterPoints[newID]) perimeterCenterPoints[newID] = { x: centerPoint.x, y: centerPoint.y };
 			}

@@ -10,7 +10,7 @@ export function preRollSavingThrow(config, dialog, message, hook, deps) {
 	if (deps.hookDebugEnabled('preRollSavingThrowHook')) console.error('ac5e _preRollSavingThrow:', hook, options, { config, dialog, message });
 	const { subject, ability } = config || {};
 	options.ability = ability;
-	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps);
+	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps, options);
 	let opponentToken = deps.getOpponentTokenForSave(options, activity, subjectToken, deps);
 	if (opponentToken === subjectToken) opponentToken = undefined;
 	if (opponentToken && subjectToken) options.distance = deps.getDistance(opponentToken, subjectToken);
@@ -41,7 +41,7 @@ export function preRollAbilityCheck(config, dialog, message, hook, reEval, deps)
 	options.tool = tool;
 	options.ability = ability;
 	deps.prepareHookTargetsAndDamage({ options, hook, activity, messageConfig: message, messageForTargets, messageTargets, damageSource: 'activity' }, deps);
-	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps);
+	const subjectToken = deps.getSubjectTokenForHook(hook, messageForTargets, subject, deps, options);
 	let opponentToken = deps.getOpponentTokenForSave(options, activity, subjectToken, deps);
 	if (opponentToken === subjectToken) opponentToken = undefined;
 	if (opponentToken && subjectToken) options.distance = deps.getDistance(opponentToken, subjectToken);

@@ -1,4 +1,5 @@
 import Constants from './ac5e-constants.mjs';
+import { getTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import { _applyResolvedFastForwardMode, _ensureRoll0Options, _syncResolvedFastForwardD20Override } from './helpers/ac5e-helpers-fast-forward.mjs';
 import { lazySandbox } from './ac5e-main.mjs';
@@ -99,9 +100,11 @@ export function _buildRollEvaluationData({ subjectToken, opponentToken, sourceAc
 		dataSourceActor && (subjectToken?.actor ?? sourceActor) === dataSourceActor ? 'rollingActor'
 		: dataSourceActor && (opponentToken?.actor ?? targetActor) === dataSourceActor ? 'opponentActor'
 		: null;
-	const rollingActor = dataActor === 'rollingActor' ? _ac5eActorRollData(subjectToken, formulaData, sourceActor) : _ac5eActorRollData(subjectToken, null, sourceActor);
+	const sourceDocument = getTokenDocument(options?.sourceTokenUuid) ?? subjectToken;
+	const targetDocument = getTokenDocument(options?.targetTokenUuid) ?? opponentToken;
+	const rollingActor = dataActor === 'rollingActor' ? _ac5eActorRollData(sourceDocument, formulaData, sourceActor) : _ac5eActorRollData(sourceDocument, null, sourceActor);
 	const rollingActorCompletedAt = performance.now();
-	const opponentActor = dataActor === 'opponentActor' ? _ac5eActorRollData(opponentToken, formulaData, targetActor) : _ac5eActorRollData(opponentToken, null, targetActor);
+	const opponentActor = dataActor === 'opponentActor' ? _ac5eActorRollData(targetDocument, formulaData, targetActor) : _ac5eActorRollData(targetDocument, null, targetActor);
 	const completedAt = performance.now();
 	if (globalThis.ac5e?.debug?.timings && opponentToken && completedAt - timingStart >= 25) {
 		console.warn(JSON.stringify({
@@ -192,6 +195,7 @@ export function _ac5eActorRollData(token, rollData, actor, initializing = false)
 		: null;
 	if (!(resolvedActor instanceof CONFIG.Actor.documentClass)) return {};
 	const resolvedToken = token ?? resolvedActor.getActiveTokens?.()?.[0] ?? null;
+	const tokenDocument = getTokenDocument(resolvedToken);
 	if (initializing || !rollData) actorData = resolvedActor.getRollData?.();
 	else actorData = { ...rollData };
 	actorData ??= {};
@@ -218,22 +222,24 @@ export function _ac5eActorRollData(token, rollData, actor, initializing = false)
 	actorData.actorId ??= actorId;
 	actorData.actorType ??= resolvedActor.type;
 	actorData.actorUuid ??= actorUuid;
-	actorData.token = resolvedToken ?? null;
+	actorData.token = getTokenPlaceable(tokenDocument);
 	actorData.tokenId ??= resolvedToken?.id ?? null;
-	actorData.tokenSize = resolvedToken?.document ? resolvedToken.document.width * resolvedToken.document.height : null;
-	actorData.tokenElevation = resolvedToken?.document?.elevation ?? null;
-	actorData.tokenSenses = resolvedToken?.document?.detectionModes ?? null;
-	actorData.tokenUuid = resolvedToken?.document?.uuid ?? null;
+	actorData.tokenSize = tokenDocument ? tokenDocument.width * tokenDocument.height : null;
+	actorData.tokenElevation = tokenDocument?.elevation ?? null;
+	actorData.tokenSenses = tokenDocument?.detectionModes ?? null;
+	actorData.tokenUuid = tokenDocument?.uuid ?? null;
 	actorData.uuid = actorUuid;
 	const active = game.combat?.active;
 	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
-	actorData.isTurn = active && !!resolvedToken && currentCombatant === resolvedToken.id;
-	actorData.combatTurn = active && resolvedToken ? game.combat.turns.findIndex((combatant) => combatant.tokenId === resolvedToken.id) : undefined;
+	const inCombatScene = tokenDocument?.parent?.id === game.combat?.scene?.id;
+	actorData.isTurn = active && inCombatScene && !!resolvedToken && currentCombatant === resolvedToken.id;
+	actorData.combatTurn = active && inCombatScene && resolvedToken ? game.combat.turns.findIndex((combatant) => combatant.tokenId === resolvedToken.id) : undefined;
 	defineLazyAc5eActorRollDataViews(actorData, resolvedActor, resolvedToken, active);
 	return actorData;
 }
 
 function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
+	const tokenDocument = getTokenDocument(token);
 	let itemViewsCache;
 	const defineCachedValue = (key, resolver) => {
 		Object.defineProperty(actorData, key, {
@@ -305,17 +311,17 @@ function defineLazyAc5eActorRollDataViews(actorData, actor, token, active) {
 	});
 	defineCachedValue('creatureType', () => Array.from(new Set(Object.values(_raceOrType(actor, 'all')).filter(Boolean))));
 	defineCachedValue('movementLastSegment', () => {
-		if (!active || !token?.document) return active ? false : active;
-		const history = token.document.movementHistory;
+		if (!active || !tokenDocument) return active ? false : active;
+		const history = tokenDocument.movementHistory;
 		const movementId = history?.at(-1)?.movementId;
 		if (!movementId) return false;
 		return history.filter((entry) => entry.movementId === movementId).reduce((acc, entry) => (acc += entry.cost ?? 0), 0);
 	});
 	defineCachedValue('movementTurn', () => {
-		if (!active || !token?.document) return active ? false : active;
-		return token.document.movementHistory?.reduce((acc, entry) => (acc += entry.cost ?? 0), 0);
+		if (!active || !tokenDocument) return active ? false : active;
+		return tokenDocument.movementHistory?.reduce((acc, entry) => (acc += entry.cost ?? 0), 0);
 	});
-	defineCachedValue('lightLevel', () => (token ? { [_getLightLevel(token)]: true } : {}));
+	defineCachedValue('lightLevel', () => (getTokenPlaceable(tokenDocument) ? { [_getLightLevel(tokenDocument)]: true } : {}));
 }
 
 export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSetProperties = false } = {}) {
@@ -1009,7 +1015,7 @@ export function _setAC5eProperties(ac5eConfig, config, dialog, message) {
 	const safeDialogConfig = _getSafeDialogConfig(ac5eConfig);
 	const ac5eConfigDialog = { [Constants.MODULE_ID]: safeDialogConfig };
 	if (dialog?.options) dialog.options.classes = dialog.options.classes?.concat('ac5e') ?? ['ac5e'];
-	const optionSnapshotKeys = ['ability', 'attackMode', 'skill', 'tool', 'targets', 'target', 'defaultDamageType', 'damageTypes', 'distance'];
+	const optionSnapshotKeys = ['ability', 'attackMode', 'skill', 'tool', 'targets', 'target', 'defaultDamageType', 'damageTypes', 'distance', 'distanceAvailable', 'distanceMeasurement'];
 	if (!['attack', 'damage'].includes(ac5eConfig.hookType)) optionSnapshotKeys.splice(6, 0, 'initialTargetADC', 'alteredTargetADC');
 	const optionsSnapshot = pickOptions(ac5eConfig.options ?? {}, optionSnapshotKeys);
 	const ac5eConfigMessage = {
@@ -1074,8 +1080,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.mod = formulaData?.mod;
 	sandbox.prof = formulaData?.prof;
 	sandbox.optinSelected = _getOptinSelectionBooleans(sandboxOptions?.[Constants.MODULE_ID]?.optinSelected);
-	sandbox.tokenId = subjectToken?.id;
-	sandbox.tokenUuid = subjectToken?.document?.uuid;
+	const sourceTokenDocument = getTokenDocument(options.sourceTokenUuid) ?? getTokenDocument(subjectToken);
+	const targetTokenDocument = getTokenDocument(options.targetTokenUuid) ?? getTokenDocument(opponentToken);
+	sandbox.tokenId = sourceTokenDocument?.id;
+	sandbox.tokenUuid = sourceTokenDocument?.uuid;
 	sandbox.actorId = subjectToken?.actor?.id ?? sourceActor?.id;
 	sandbox.actorUuid = subjectToken?.actor?.uuid ?? sourceActor?.uuid;
 	sandbox.canMove = sandbox.rollingActor?.canMove;
@@ -1092,10 +1100,10 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	const hookUsesTargetAC = hookType === 'attack' || hookType === 'damage';
 	sandbox.opponentAC =
 		hookUsesTargetAC ?
-			(sandboxOptions?.targets?.find?.((t) => t.tokenUuid === opponentToken?.document?.uuid)?.ac ?? sandboxOptions?.targets?.find?.((t) => t.uuid === opponentToken?.actor?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value ?? targetActor?.system?.attributes?.ac?.value)
+			(sandboxOptions?.targets?.find?.((t) => targetTokenDocument?.uuid && t.tokenUuid === targetTokenDocument.uuid)?.ac ?? sandboxOptions?.targets?.find?.((t) => t.uuid === (opponentToken?.actor ?? targetActor)?.uuid)?.ac ?? opponentToken?.actor?.system?.attributes?.ac?.value ?? targetActor?.system?.attributes?.ac?.value)
 		:	(opponentToken?.actor ?? targetActor)?.system?.attributes?.ac?.value;
-	sandbox.opponentId = opponentToken?.id;
-	sandbox.opponentUuid = opponentToken?.document?.uuid;
+	sandbox.opponentId = targetTokenDocument?.id;
+	sandbox.opponentUuid = targetTokenDocument?.uuid;
 	sandbox.opponentActorId = opponentToken?.actor?.id ?? targetActor?.id;
 	sandbox.opponentActorUuid = opponentToken?.actor?.uuid ?? targetActor?.uuid;
 	let isSeenValue;
@@ -1107,7 +1115,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	});
 	const isSeenCompletedAt = performance.now();
 	sandbox.targetActor = sandbox.opponentActor;
-	sandbox.targetId = opponentToken?.id;
+	sandbox.targetId = targetTokenDocument?.id;
 
 	sandbox.activity = activityData;
 	if (activity) {
@@ -1249,7 +1257,8 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	sandbox.isConcentration = sandboxOptions?.isConcentration;
 	sandbox.isDeathSave = sandboxOptions?.isDeathSave;
 	sandbox.isInitiative = sandboxOptions?.isInitiative;
-	sandbox.distance = sandboxOptions?.distance;
+	sandbox.distanceAvailable = sandboxOptions?.distanceAvailable ?? Number.isFinite(sandboxOptions?.distance);
+	sandbox.distance = sandbox.distanceAvailable ? sandboxOptions.distance : undefined;
 	sandbox.hook = sandboxOptions?.hook;
 	sandbox.targets = sandboxOptions?.targets ?? [];
 	sandbox.singleTarget = sandboxOptions?.targets?.length === 1 && true;

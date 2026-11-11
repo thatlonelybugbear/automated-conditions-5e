@@ -1,4 +1,6 @@
 import Constants from './ac5e-constants.mjs';
+import { captureRollTokenDocuments, getTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
+import { getDistanceMeasurement } from './helpers/ac5e-helpers-distance.mjs';
 import Settings from './ac5e-settings.mjs';
 import { _syncResolvedFastForwardD20Override } from './helpers/ac5e-helpers-fast-forward.mjs';
 import {
@@ -127,7 +129,7 @@ const REEVAL_POLICY_BY_HOOK = {
 
 function _getReEvalPolicy({ hookType, phase = 'hook' } = {}) {
 	const base = REEVAL_POLICY_BY_HOOK[hookType] ?? REEVAL_POLICY_BY_HOOK.default;
-	let options = [...base.options];
+	let options = [...base.options, 'distanceAvailable'];
 	if (phase === 'dialog') options = options.filter((key) => key !== 'riderStatuses');
 	return {
 		policyName: hookType in REEVAL_POLICY_BY_HOOK ? hookType : 'default',
@@ -141,7 +143,7 @@ function _categorizeChangedOptionKeys(changedKeys = []) {
 	const keys = new Set(changedKeys);
 	const known = new Set(['targets', 'distance', 'ability', 'attackMode', 'baseDamage', 'skill', 'tool', 'mastery', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'spellLevel', 'scaling']);
 	return {
-		targeting: ['targets', 'distance'].some((key) => keys.has(key)),
+		targeting: ['targets', 'distance', 'distanceAvailable'].some((key) => keys.has(key)),
 		rollProfile: ['ability', 'attackMode', 'baseDamage', 'skill', 'tool', 'mastery'].some((key) => keys.has(key)),
 		damageTyping: ['defaultDamageType', 'damageTypes', 'riderStatuses'].some((key) => keys.has(key)),
 		scaling: ['spellLevel', 'scaling'].some((key) => keys.has(key)),
@@ -374,15 +376,22 @@ function _buildBaseConfig(config, dialog, hookType, tokenId, targetId, options, 
 				return false;
 		}
 	};
-	const token = canvas?.tokens?.get(tokenId);
+	const explicitSource = getTokenDocument(options.sourceTokenUuid);
+	const token = options.sourceTokenUuid ? getTokenPlaceable(explicitSource) : canvas?.tokens?.get(tokenId);
 	const rollSubject = config?.subject;
-	const actor = token?.actor ?? rollSubject?.actor ?? (rollSubject?.documentName === 'Actor' ? rollSubject : null) ?? _safeFromUuidSync(options.sourceActorUuid) ?? options.activity?.actor;
+	const actor = explicitSource?.actor ?? token?.actor ?? rollSubject?.actor ?? (rollSubject?.documentName === 'Actor' ? rollSubject : null) ?? _safeFromUuidSync(options.sourceActorUuid) ?? options.activity?.actor;
+	const documents = captureRollTokenDocuments(options, actor, { subjectToken: token, opponentToken: targetId && (options.targets?.length || !options.targetTokenUuid) ? canvas?.tokens?.get(targetId) : null });
 	options.sourceActorUuid = actor?.uuid;
-	const targetToken = canvas?.tokens?.get(targetId);
+	const targetToken = getTokenPlaceable(documents.target);
 	const activityActor = options.activity?.actor;
-	const targetActor = targetToken?.actor ?? (['save', 'check'].includes(hookType) && activityActor !== actor ? activityActor : null);
-	options.targetActorUuid = targetActor?.uuid ?? (options.activity?.target?.affects?.type === 'self' && !['save', 'check'].includes(hookType) ? actor?.uuid : undefined);
-	if (!token || !targetToken) delete options.distance;
+	const targetActor = options._ac5eSourceOnly ? null : documents.target?.actor ?? _safeFromUuidSync(options.targetActorUuid) ?? (['save', 'check'].includes(hookType) && activityActor !== actor ? activityActor : null);
+	options.targetActorUuid = targetActor?.uuid ?? (!options._ac5eSourceOnly && options.activity?.target?.affects?.type === 'self' && !['save', 'check'].includes(hookType) ? actor?.uuid : undefined);
+	options.distanceMeasurement = getTokenPlaceable(documents.source) && targetToken && Number.isFinite(options.distance)
+		? { status: 'measured', distance: options.distance }
+		: getDistanceMeasurement(documents.source, documents.target);
+	options.distanceAvailable = options.distanceMeasurement.status === 'measured';
+	if (options.distanceAvailable) options.distance = options.distanceMeasurement.distance;
+	else delete options.distance;
 	const persistedAc5eConfig = getPersistedHookConfig(config, hookType) ?? getPersistedHookConfig(dialog?.config, hookType);
 	const originatingUseConfig = options?.originatingUseConfig;
 	const ac5eConfig = {
@@ -818,7 +827,7 @@ export function _getSafeUseConfig(ac5eConfig) {
 	delete options.originatingUseConfig;
 	delete options._ac5eHookChecksCache;
 	for (const key of Object.keys(options)) if (key.startsWith('_')) delete options[key];
-	const optionsSnapshot = pickOptions(options, ['ability', 'activityAbilityResolved', 'attackMode', 'skill', 'tool', 'targets', 'distance', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'scaling', 'spellLevel']);
+	const optionsSnapshot = pickOptions(options, ['ability', 'activityAbilityResolved', 'attackMode', 'skill', 'tool', 'targets', 'distance', 'distanceAvailable', 'defaultDamageType', 'damageTypes', 'riderStatuses', 'scaling', 'spellLevel']);
 	const sanitizeBonuses = (entries = []) =>
 		Array.isArray(entries) ?
 			entries.map((entry) => ({

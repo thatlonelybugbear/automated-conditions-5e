@@ -1,9 +1,16 @@
 import { debugMessageData, resolveMessageDataContext } from './ac5e-hooks-message-data.mjs';
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { getTargets } from './ac5e-hooks-target-context.mjs';
+import { getActorTokenDocument, getSpeakerTokenDocument, getTokenDocument, getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
 
 export function getHookMessageData(config, hook, fallbackMessage, deps) {
 	const context = resolveMessageDataContext(config, hook, fallbackMessage, deps) ?? {};
+	const actor = config?.subject?.actor ?? (config?.subject?.documentName === 'Actor' ? config.subject : null) ?? context.activity?.actor;
+	context.options ??= {};
+	const storedSource = getTokenDocument(context.options.sourceTokenUuid);
+	const source = storedSource?.actor === actor ? storedSource : getActorTokenDocument(actor, context.messageForTargets?.speaker ?? context.message?.speaker ?? (actor ? ChatMessage.getSpeaker({ actor }) : undefined));
+	if (source) context.options.sourceTokenUuid = source.uuid;
+	else delete context.options.sourceTokenUuid;
 	debugMessageData(hook, context, deps);
 	return {
 		...context,
@@ -35,13 +42,11 @@ export function logResolvedTargets(label, subjectToken, opponentToken, options) 
 	});
 }
 
-export function getSubjectTokenForHook(hook, message, actor, deps) {
-	if (hook === 'save' || hook === 'check') {
-		if (actor) return deps.getTokenFromActor(actor) ?? actor.getActiveTokens?.()?.[0];
-	}
-	const speakerTokenId = message?.speaker?.token;
-	const speakerToken = speakerTokenId ? canvas?.tokens?.get(speakerTokenId) : null;
-	if (speakerToken && (!actor || speakerToken.actor === actor)) return speakerToken;
+export function getSubjectTokenForHook(hook, message, actor, deps, options = {}) {
+	const explicitSource = getTokenDocument(options.sourceTokenUuid);
+	if (explicitSource && (!actor || explicitSource.actor === actor)) return getTokenPlaceable(explicitSource) ?? undefined;
+	const speakerDocument = getSpeakerTokenDocument(message?.speaker);
+	if (speakerDocument && (!actor || speakerDocument.actor === actor)) return getTokenPlaceable(speakerDocument) ?? undefined;
 	if (actor) return deps.getTokenFromActor(actor) ?? actor.getActiveTokens?.()?.[0];
 	return undefined;
 }
@@ -49,8 +54,9 @@ export function getSubjectTokenForHook(hook, message, actor, deps) {
 export function getOpponentTokenForSave(options, activity, subjectToken, deps) {
 	const useTokenId = options?.originatingSpeakerTokenId ?? options?.originatingUseConfig?.tokenId;
 	if (useTokenId) {
-		const token = canvas.tokens.get(useTokenId);
+		const token = options.originatingSpeakerTokenUuid ? getTokenPlaceable(options.originatingSpeakerTokenUuid) : canvas.tokens.get(useTokenId);
 		if (token && token !== subjectToken) return token;
+		if (options.originatingSpeakerTokenUuid) return undefined;
 	}
 	const activityActor = activity?.actor ?? activity?.item?.actor;
 	const activityToken = activityActor ? (deps.getTokenFromActor(activityActor) ?? activityActor.getActiveTokens?.()?.[0]) : undefined;
@@ -67,5 +73,5 @@ export function getSingleTargetToken(messageTargets) {
 	const tokenUuid = messageTargets[0]?.tokenUuid;
 	if (!tokenUuid) return undefined;
 	const tokenDoc = _safeFromUuidSync(tokenUuid);
-	return tokenDoc?.object ?? canvas.tokens?.get(tokenDoc?.id);
+	return getTokenPlaceable(tokenDoc) ?? undefined;
 }

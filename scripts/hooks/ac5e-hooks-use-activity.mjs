@@ -1,3 +1,4 @@
+import { getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
 import {
 	_autoArmor,
 	_collectActivityDamageTypes,
@@ -71,12 +72,13 @@ export function preUseActivity(activity, usageConfig, dialogConfig, messageConfi
 	const sourceToken = _getTokenFromActor(sourceActor) ?? sourceActor?.getActiveTokens?.()?.[0];
 	const isTargetSelf = activity.target?.affects?.type === 'self';
 	const targets = options.targets.length
-		? new Set(options.targets.map((target) => _safeFromUuidSync(target.tokenUuid ?? target.token)?.object).filter(Boolean))
+		? new Set(options.targets.map((target) => getTokenPlaceable(target.tokenUuid ?? target.token)).filter(Boolean))
 		: game.user?.targets;
 	let singleTargetToken = isTargetSelf ? sourceToken : targets?.values().next().value;
 	const needsTarget = deps.settings.needsTarget;
 	const placesTemplate = !!activity?.target?.template?.type;
-	const invalidTargets = !_hasValidTargets(activity, targets?.size, needsTarget);
+	const invalidTargets = !_hasValidTargets(activity, options.targets.length || targets?.size, needsTarget);
+	options._ac5eSourceOnly = invalidTargets && needsTarget === 'source';
 	if (invalidTargets) {
 		if (needsTarget !== 'source') return false;
 		singleTargetToken = undefined;

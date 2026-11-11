@@ -1,4 +1,5 @@
 import { _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { getSpeakerTokenDocument } from '../helpers/ac5e-helpers-token.mjs';
 
 export function getMessageTargets(messageLike) {
 	return normalizeMessageTargets(messageLike?.system?.targets ?? messageLike?.data?.system?.targets);
@@ -31,15 +32,15 @@ export function resolveTargets(message, messageTargets, { hook, activity } = {},
 	if (Array.isArray(messageTargets) && messageTargets.length) return hydrateTargetACs(captureTargetTokenUuids(messageTargets), { allowLiveFallback: false });
 	if (hook === 'save' && activity?.target?.affects?.type === 'self') {
 		const explicitMessage = message?.document ?? message;
-		const speakerToken = explicitMessage?.speaker?.token ? canvas.tokens.get(explicitMessage.speaker.token) : null;
+		const speakerToken = getSpeakerTokenDocument(explicitMessage?.speaker);
 		if (speakerToken?.actor) {
 			return [
 				{
 					ac: speakerToken.actor.system?.attributes?.ac?.value ?? null,
 					uuid: speakerToken.actor.uuid,
-					tokenUuid: speakerToken.document?.uuid,
+					tokenUuid: speakerToken.uuid,
 					name: speakerToken.name,
-					img: speakerToken.document?.texture?.src,
+					img: speakerToken.texture?.src,
 				},
 			];
 		}

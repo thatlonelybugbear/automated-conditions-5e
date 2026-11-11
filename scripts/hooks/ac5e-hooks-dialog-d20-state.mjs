@@ -1,4 +1,5 @@
 import { _getDistance, _getTokenFromActor, _isOptinSelectionActive, _localize, _safeFromUuidSync } from '../ac5e-helpers.mjs';
+import { getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { autoRanged } from '../ac5e-systemRules.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
@@ -329,12 +330,13 @@ export function refreshAttackAutoRangeState(ac5eConfig, config) {
 	if (!activity) return;
 	const sourceTokenId = ac5eConfig.tokenId ?? getSubjectTokenIdFromConfig(config);
 	const sourceToken =
-		sourceTokenId ? canvas.tokens.get(sourceTokenId)
+		options.sourceTokenUuid ? getTokenPlaceable(options.sourceTokenUuid)
+		: sourceTokenId ? canvas.tokens.get(sourceTokenId)
 		: activity?.actor ? (_getTokenFromActor(activity.actor) ?? activity.actor.getActiveTokens?.()?.[0])
 		: undefined;
 	const isTargetSelf = activity?.target?.affects?.type === 'self';
 	const targets = Array.isArray(options.targets) ? options.targets : [];
-	const singleTargetToken = getSingleTargetToken(targets) ?? (isTargetSelf ? sourceToken : game.user?.targets?.first());
+	const singleTargetToken = getSingleTargetToken(targets) ?? (isTargetSelf ? sourceToken : targets.length ? undefined : game.user?.targets?.first());
 	if (!sourceToken || !singleTargetToken) return;
 	const failLabel = _localize('AC5E.OutOfRange');
 	const nearbyLabel = _localize('AC5E.NearbyFoe');
@@ -521,5 +523,5 @@ function getSingleTargetToken(messageTargets) {
 	const tokenUuid = messageTargets[0]?.tokenUuid;
 	if (!tokenUuid) return undefined;
 	const tokenDoc = _safeFromUuidSync(tokenUuid);
-	return tokenDoc?.object ?? canvas.tokens?.get(tokenDoc?.id);
+	return getTokenPlaceable(tokenDoc) ?? undefined;
 }

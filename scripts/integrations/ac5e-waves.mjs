@@ -1,3 +1,5 @@
+import { getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
+
 const MODULE_ID = 'waves';
 const COVER_TYPES = ['none', 'half', 'threeQuarters', 'total'];
 const COVER_BONUSES = [0, 2, 5, 5];
@@ -5,6 +7,8 @@ const COVER_LEVEL_LABELS = ['None', '1/2', '3/4', 'Total'];
 const TOTAL_COVER_AC = 999;
 
 export function prepareWavesCover(ac5eConfig, config, { sourceToken, targetTokens = [], ability } = {}) {
+	sourceToken = getTokenPlaceable(sourceToken);
+	targetTokens = targetTokens.map(getTokenPlaceable).filter(Boolean);
 	if (!game.settings.get('automated-conditions-5e', 'wavesCover') || !game.modules.get(MODULE_ID)?.active || game.modules.get('simplecover5e')?.active) return;
 	const api = game.modules.get(MODULE_ID)?.api;
 	if (!api?.measureVisibility || !sourceToken) return;

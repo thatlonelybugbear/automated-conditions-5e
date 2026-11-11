@@ -1,6 +1,7 @@
 import { _filterOptinEntries, _getOptinSelectionScale, _isOptinSelectionActive, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _addToAllowsAnySelectedType, _addToAllowsRollType, _resolveAddToSpec, _shouldApplyAddToRoll } from '../ac5e-addTo.mjs';
 import Constants from '../ac5e-constants.mjs';
+import { getTokenPlaceable } from '../helpers/ac5e-helpers-token.mjs';
 import { _buildRollEvaluationData } from '../ac5e-runtimeLogic.mjs';
 
 export function doDialogDamageRender(dialog, elem, getConfigAC5E, deps) {
@@ -1003,7 +1004,7 @@ function wrapDamageFormulaAdvantage(formula, advDis = '') {
 }
 
 function getDamageFormulaReplacementData(ac5eConfig) {
-	const subjectToken = canvas?.tokens?.get(ac5eConfig?.tokenId);
+	const subjectToken = ac5eConfig?.options?.sourceTokenUuid ? getTokenPlaceable(ac5eConfig.options.sourceTokenUuid) : canvas?.tokens?.get(ac5eConfig?.tokenId);
 	return _buildRollEvaluationData({
 		subjectToken,
 		sourceActor: _safeFromUuidSync(ac5eConfig?.options?.sourceActorUuid),
