@@ -3091,14 +3091,14 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 					}
 				}
 			}
-			if (mode === 'criticalThreshold') {
+			if (mode === 'criticalThreshold' && !optin) {
 				if (threshold) {
 					if (typeof threshold === 'string' && !(threshold.includes('+') || threshold.includes('-'))) threshold = `+${threshold}`;
 					ac5eConfig.threshold.push(threshold);
 				}
 				if (set) ac5eConfig.threshold.push(`${set}`);
 			}
-			if (mode === 'fumbleThreshold') {
+			if (mode === 'fumbleThreshold' && !optin) {
 				if (threshold) {
 					if (typeof threshold === 'string' && !(threshold.includes('+') || threshold.includes('-'))) threshold = `+${threshold}`;
 					ac5eConfig.fumbleThreshold.push(threshold);

@@ -598,13 +598,30 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		if (hook === 'attack' || hook === 'damage') {
 			ac5eConfig.initialTargetADCs = {};
 			ac5eConfig.alteredTargetADCs = {};
-			if (ac5eConfig.threshold?.length) {
-				const finalThreshold = getAlteredTargetValueOrThreshold(getNumericOrFallback(roll0.options.criticalSuccess, defaultCriticalSuccess), ac5eConfig.threshold, 'critThreshold');
+			const getThresholdValues = (mode, automaticValues = []) => {
+				const entries = [...(ac5eConfig.subject?.[mode] ?? []), ...(ac5eConfig.opponent?.[mode] ?? [])]
+					.filter((entry) => entry?.optin && (!entry.hook || entry.hook === hook));
+				const values = [...automaticValues];
+				for (const entry of _filterOptinEntries(entries, ac5eConfig.optinSelected)) {
+					if (!_entryMatchesTransientState(entry, ac5eConfig)) continue;
+					let threshold = entry.threshold;
+					if (typeof threshold === 'string' && !(threshold.includes('+') || threshold.includes('-'))) threshold = `+${threshold}`;
+					if (threshold) values.push(threshold);
+					if (entry.set) values.push(`${entry.set}`);
+				}
+				return values;
+			};
+			const criticalThresholdValues = getThresholdValues('criticalThreshold', ac5eConfig.threshold);
+			const fumbleThresholdValues = getThresholdValues('fumbleThreshold', ac5eConfig.fumbleThreshold);
+			delete ac5eConfig.alteredCritThreshold;
+			delete ac5eConfig.alteredFumbleThreshold;
+			if (criticalThresholdValues.length) {
+				const finalThreshold = getAlteredTargetValueOrThreshold(getNumericOrFallback(roll0.options.criticalSuccess, defaultCriticalSuccess), criticalThresholdValues, 'critThreshold');
 				roll0.options.criticalSuccess = finalThreshold;
 				ac5eConfig.alteredCritThreshold = finalThreshold;
 			}
-			if (ac5eConfig.fumbleThreshold?.length) {
-				const finalThreshold = getAlteredTargetValueOrThreshold(getNumericOrFallback(roll0.options.criticalFailure, defaultCriticalFailure), ac5eConfig.fumbleThreshold, 'fumbleThreshold');
+			if (fumbleThresholdValues.length) {
+				const finalThreshold = getAlteredTargetValueOrThreshold(getNumericOrFallback(roll0.options.criticalFailure, defaultCriticalFailure), fumbleThresholdValues, 'fumbleThreshold');
 				roll0.options.criticalFailure = finalThreshold;
 				ac5eConfig.alteredFumbleThreshold = finalThreshold;
 			}

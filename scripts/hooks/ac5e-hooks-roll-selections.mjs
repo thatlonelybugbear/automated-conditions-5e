@@ -42,7 +42,7 @@ export function getSelectedOptinEntries(ac5eConfig, optins, selectedTypes, hookT
 
 export function getAllOptinEntriesForHook(ac5eConfig, hookType) {
 	const modes =
-		hookType === 'attack' ? ['bonus', 'info', 'targetADC', 'range', 'abilityOverride']
+		hookType === 'attack' ? ['bonus', 'info', 'targetADC', 'range', 'abilityOverride', 'criticalThreshold', 'fumbleThreshold']
 		: ['bonus', 'info', 'targetADC', 'range'];
 	const entries = getConfigEntriesByModes(ac5eConfig, modes, hookType, (entry) => entry.optin);
 	return entries;
