@@ -33,6 +33,7 @@ import {
 	readOptinSelections,
 	renderOptionalBonusesFieldset,
 	renderOptionalBonusesRoll,
+	renderHitDieOptins,
 	setOptinSelections,
 } from './hooks/ac5e-hooks-dialog-optins.mjs';
 import {
@@ -89,6 +90,7 @@ const rollFunctionDispatch = {
 	damage: (hook, [config, dialog, message]) => _preRollDamage(config, dialog, message, hook),
 	check: (hook, [config, dialog, message]) => _preRollAbilityCheck(config, dialog, message, hook),
 	init: (hook, [actor, rollConfig]) => _preConfigureInitiative(actor, rollConfig, hook),
+	initiative: (hook, [actor, rollConfig]) => _preConfigureInitiative(actor, rollConfig, hook),
 	preCreateItem: (hook, [item, updates]) => _preCreateItem(item, updates),
 	preCreateChatMessage: (hook, [message, data]) => _preCreateChatMessage(message, data),
 	preCreateActiveEffect: (hook, [effect, updates, options, userId]) => _preCreateActiveEffect(effect, updates, options, userId),
@@ -149,6 +151,7 @@ function _formatAllowEffectApplicationBypassKeys(bindings) {
 }
 
 export function _preCreateActiveEffect(effect, updates, options, userId) {
+	if (_activeModule('dae')) return true;
 	try {
 		const trace = _hookDebugEnabled('allowEffectApplicationTrace');
 		const traceSkip = (reason, extra = {}) => {
@@ -451,7 +454,14 @@ export function _renderHijack(hook, render, elem, ...extraArgs) {
 	if (!getConfigAC5E && hook !== 'chat') return;
 	if (hook === 'hitDieDialog') {
 		if (getConfigAC5E?.hookType !== 'hitDie') return;
-		return renderOptionalBonusesRoll(render, elem, getConfigAC5E, {});
+		return renderHitDieOptins(render, elem, getConfigAC5E, {
+			preRollHitDie: (config, dialog, message) => preRollHitDie(config, dialog, message, {
+				getTokenFromActor: _getTokenFromActor,
+				getConfig: _getConfig,
+				ac5eChecks: _ac5eChecks,
+				setAC5eProperties: _setAC5eProperties,
+			}),
+		});
 	}
 	if (hook === 'd20Dialog' || hook === 'damageDialog') {
 		return renderRollConfigDialogHijack(hook, render, elem, getConfigAC5E, {

@@ -1,10 +1,11 @@
-import { _activeModule, _getTooltip, _localize, getRollModeCounts } from '../ac5e-helpers.mjs';
+import { _activeModule, _captureFrozenD20Baseline, _getTooltip, _localize, getRollModeCounts } from '../ac5e-helpers.mjs';
 import { _calcAdvantageMode } from '../ac5e-runtimeLogic.mjs';
 import { applyExplicitModeOverride } from './ac5e-hooks-roll-post.mjs';
 import { _getConfig } from '../ac5e-config-logic.mjs';
 import { runAc5eInitiativePhase } from './ac5e-hooks-roll-phase.mjs';
 
 export function preConfigureInitiative(subject, rollConfig, hook, deps) {
+	if (hook === 'initiative') hook = 'init';
 	const config = rollConfig.options;
 	const options = {
 		isInitiative: true,
@@ -21,6 +22,7 @@ export function preConfigureInitiative(subject, rollConfig, hook, deps) {
 		deps,
 		getConfig: _getConfig,
 		applyHookState: ({ ac5eConfig: phaseConfig }) => {
+			_captureFrozenD20Baseline(phaseConfig, { subject, rolls: [rollConfig], options: {} });
 			if (subject?.flags?.dnd5e?.initiativeAdv) phaseConfig.subject.advantage.push(_localize('AC5E.FlagsInitiativeAdv'));
 			if (subject?.flags?.dnd5e?.initiativeDisadv) phaseConfig.subject.disadvantage.push(_localize('AC5E.FlagsInitiativeDisadv'));
 			let advantageMode;

@@ -78,7 +78,7 @@ export function doDialogAttackRender(dialog, elem, getConfigAC5E, deps) {
 }
 
 export function handleD20OptinSelectionsChanged(dialog, ac5eConfig, deps) {
-	if (!dialog?.config || !['attack', 'save', 'check', 'initiative'].includes(ac5eConfig?.hookType)) return false;
+	if (!dialog?.config || !['attack', 'save', 'check', 'init', 'initiative'].includes(ac5eConfig?.hookType)) return false;
 	if (dialog._ac5eOptinReevalInProgress) return false;
 	dialog._ac5eOptinReevalInProgress = true;
 	try {

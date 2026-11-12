@@ -1641,7 +1641,7 @@ export function _entryMatchesTransientState(entry, ac5eConfig = {}, fallback = {
 	return true;
 }
 
-const D20_BASELINE_HOOKS = new Set(['attack', 'save', 'check']);
+const D20_BASELINE_HOOKS = new Set(['attack', 'save', 'check', 'init', 'initiative']);
 
 function getD20BaselineRollProfile(ac5eConfig, config) {
 	const hookType = ac5eConfig?.hookType;

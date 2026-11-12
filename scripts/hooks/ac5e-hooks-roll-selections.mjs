@@ -13,7 +13,7 @@ export function getConfigEntriesByModes(ac5eConfig, modes, hookType, predicate =
 		return subjectEntries.concat(opponentEntries).filter((entry) =>
 			entry
 			&& typeof entry === 'object'
-			&& (!entry.hook || entry.hook === hookType)
+			&& (!entry.hook || entry.hook === hookType || (['init', 'initiative'].includes(entry.hook) && ['init', 'initiative'].includes(hookType)))
 			&& (!predicate || predicate(entry, mode))
 		);
 	});

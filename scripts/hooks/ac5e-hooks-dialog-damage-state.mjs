@@ -619,14 +619,8 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 		return normalized === 'core flags' || normalized.endsWith(' flags');
 	};
 	const optionBaseCritical = config?.options?.[Constants.MODULE_ID]?.baseCritical ?? config?.rolls?.[0]?.options?.[Constants.MODULE_ID]?.baseCritical;
-	const selectedIds = new Set(Object.keys(ac5eConfig.optinSelected ?? {}).filter((key) => _isOptinSelectionActive(ac5eConfig.optinSelected[key])));
 	const hasNoCritical = _filterOptinEntries([...(ac5eConfig.subject?.noCritical ?? []), ...(ac5eConfig.opponent?.noCritical ?? [])], ac5eConfig.optinSelected).length > 0;
-	const allCriticalEntries = (ac5eConfig.subject?.critical ?? [])
-		.concat(ac5eConfig.opponent?.critical ?? [])
-		.filter((entry) => {
-			if (entry && typeof entry === 'object') return !entry.optin || selectedIds.has(entry.id);
-			return Boolean(entry);
-		});
+	const allCriticalEntries = _filterOptinEntries([...(ac5eConfig.subject?.critical ?? []), ...(ac5eConfig.opponent?.critical ?? [])], ac5eConfig.optinSelected).filter(Boolean);
 	const globalCriticalEntries = allCriticalEntries.filter((entry) => {
 		if (!entry || typeof entry !== 'object') return true;
 		const addTo = resolveEntryAddTo(entry, 'global');
@@ -679,6 +673,15 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 	if (ac5eConfig.isCritical === undefined && config.isCritical !== undefined) {
 		ac5eConfig.isCritical = config.isCritical;
 	}
+	const override = ac5eConfig.explicitModeOverride;
+	const explicitCritical = override?.family === 'damage' && override.replacesCalculatedMode && ['critical', 'normal'].includes(override.action) ? override.action === 'critical' : undefined;
+	if (explicitCritical !== undefined) {
+		config.isCritical = ac5eConfig.isCritical = explicitCritical;
+		ac5eConfig.options.isCritical = explicitCritical;
+		if (config.midiOptions) config.midiOptions.isCritical = explicitCritical;
+	}
+	// Build hooks receive an individual roll configuration rather than the process.
+	if (!Array.isArray(config.rolls) && config.options && explicitCritical !== undefined) config.options.isCritical = explicitCritical;
 
 	if (Array.isArray(config.rolls)) {
 		const rollCriticalByIndex = [];
@@ -701,7 +704,7 @@ export function applyOptinCriticalToDamageConfig(ac5eConfig, config, formData) {
 					roll.options.type.toLowerCase()
 				:	(getRollDamageTypeFromForm(formData, config, i) ?? getDamageRollTypeAtIndex(ac5eConfig, undefined, i));
 			const localizedCritical = localizedCriticalEntries.some((entry) => shouldApplyCriticalToRoll(entry, i, rollType, allTypes));
-			const effectiveRollCritical = !hasNoCritical && (config.isCritical || localizedCritical);
+			const effectiveRollCritical = explicitCritical ?? (!hasNoCritical && (config.isCritical || localizedCritical));
 			roll.options.isCritical = effectiveRollCritical;
 			rollCriticalByIndex[i] = effectiveRollCritical;
 		}

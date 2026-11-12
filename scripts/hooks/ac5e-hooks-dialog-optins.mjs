@@ -1,5 +1,6 @@
 import { _ac5eSafeEval, _getOptinSelectionScale, _isOptinSelectionActive, _localize, _resolveEffectOriginContext, _safeFromUuidSync } from '../ac5e-helpers.mjs';
 import { _ac5eActorRollData } from '../ac5e-runtimeLogic.mjs';
+import { getTokenDocument } from '../helpers/ac5e-helpers-token.mjs';
 import { syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { getAllOptinEntriesForHook, getRollNonBonusOptinEntries } from './ac5e-hooks-roll-selections.mjs';
 
@@ -7,6 +8,22 @@ export function renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps) {
 	const entries = [...getAllOptinEntriesForHook(ac5eConfig, ac5eConfig.hookType), ...getRollNonBonusOptinEntries(ac5eConfig, ac5eConfig.hookType)]
 		.filter((entry) => Boolean(entry?.optin || entry?.forceOptin));
 	renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps);
+}
+
+export function renderHitDieOptins(dialog, elem, ac5eConfig, deps) {
+	renderOptionalBonusesRoll(dialog, elem, ac5eConfig, deps);
+	const previous = JSON.stringify(ac5eConfig.optinSelected ?? {});
+	setOptinSelections(ac5eConfig, readOptinSelections(elem, ac5eConfig));
+	syncDialogAc5eState(dialog, ac5eConfig);
+	if (previous !== JSON.stringify(ac5eConfig.optinSelected)) refreshHitDieOptinState(dialog, ac5eConfig, deps);
+}
+
+function refreshHitDieOptinState(dialog, ac5eConfig, deps) {
+	syncDialogAc5eState(dialog, ac5eConfig);
+	const refreshed = deps.preRollHitDie?.(dialog.config, {}, dialog.message) ?? ac5eConfig;
+	syncDialogAc5eState(dialog, refreshed);
+	dialog.rebuild?.();
+	dialog.render?.();
 }
 
 export function renderOptionalBonusesFieldset(dialog, elem, ac5eConfig, entries, deps) {
@@ -90,6 +107,7 @@ export function readOptinSelections(elem, ac5eConfig) {
 		const scale = Number(slotOption?.dataset.scale ?? slider.value);
 		if (!Number.isFinite(scale)) continue;
 		selected[id] = { enabled: true, scale, ...(slotOption ? { slot: slider.value } : {}) };
+		if (slider.dataset.ac5eOptinSemanticId) selected[slider.dataset.ac5eOptinSemanticId] = selected[id];
 	}
 	return selected;
 }
@@ -128,17 +146,18 @@ function updateSingleOptinSelection(ac5eConfig, optinId, checked, { scaleMin = n
 		...previous,
 		[optinId]: checked ? (Number.isFinite(nextScale) ? { enabled: true, scale: nextScale, ...(priorSelection?.slot ? { slot: priorSelection.slot } : {}) } : true) : false,
 	};
-	if (semanticId) nextSelections[semanticId] = checked;
+	if (semanticId) nextSelections[semanticId] = nextSelections[optinId];
 	setOptinSelections(ac5eConfig, nextSelections);
 }
 
-function updateSingleOptinScale(ac5eConfig, optinId, scale) {
+function updateSingleOptinScale(ac5eConfig, optinId, scale, semanticId) {
 	if (!ac5eConfig || !optinId) return;
 	const numericScale = Number(scale);
 	if (!Number.isFinite(numericScale)) return;
 	const previous = ac5eConfig.optinSelected ?? {};
 	const enabled = _isOptinSelectionActive(previous[optinId]);
 	const nextSelections = { ...previous, [optinId]: { enabled, scale: numericScale } };
+	if (semanticId) nextSelections[semanticId] = nextSelections[optinId];
 	setOptinSelections(ac5eConfig, nextSelections);
 }
 
@@ -148,9 +167,11 @@ function normalizeOptinScaleSelection(entry, scaling, ac5eConfig) {
 	const boundedScale = Number.isFinite(selectedScale) ? Math.min(scaling.max, Math.max(scaling.min, selectedScale)) : scaling.min;
 	const scale = scaling.min + Math.floor((boundedScale - scaling.min) / scaling.step) * scaling.step;
 	if (Number.isFinite(selectedScale) && selectedScale !== scale) {
+		const normalized = { enabled: _isOptinSelectionActive(selection), scale };
 		setOptinSelections(ac5eConfig, {
 			...ac5eConfig.optinSelected,
-			[entry.id]: { enabled: _isOptinSelectionActive(selection), scale },
+			[entry.id]: normalized,
+			...(entry.optinId ? { [entry.optinId]: normalized } : {}),
 		});
 	}
 	return scale;
@@ -244,8 +265,9 @@ function parseScalingObjectEntries(scaling) {
 }
 
 function buildScalingEvaluationSandbox(context, ac5eConfig, entry) {
-	const token = canvas?.tokens?.get(ac5eConfig?.tokenId) ?? null;
-	const targetToken = canvas?.tokens?.get(ac5eConfig?.targetId) ?? null;
+	const options = ac5eConfig?.options ?? {};
+	const token = options.sourceTokenUuid ? getTokenDocument(options.sourceTokenUuid) : options.sourceActorUuid ? null : globalThis.canvas?.tokens?.get(ac5eConfig?.tokenId) ?? null;
+	const targetToken = options._ac5eSourceOnly ? null : options.targetTokenUuid ? getTokenDocument(options.targetTokenUuid) : options.targetActorUuid ? null : globalThis.canvas?.tokens?.get(ac5eConfig?.targetId) ?? null;
 	const effect = _safeFromUuidSync(entry?.effectUuid);
 	const originContext = effect ? _resolveEffectOriginContext(effect, { relative: effect.parent ?? effect.target }) : null;
 	return {
@@ -624,18 +646,17 @@ function attachOptinFieldsetChangeHandler(fieldset, dialog, elem, ac5eConfig, de
 		const activeConfig = activeFieldset?._ac5eConfig ?? ac5eConfig;
 		const input = event.target;
 		if (input?.tagName === 'SELECT' && input?.dataset?.ac5eOptinScale === 'true') setOptinSelections(activeConfig, readOptinSelections(elem, activeConfig));
-		else if (input?.dataset?.ac5eOptinScale === 'true') updateSingleOptinScale(activeConfig, input?.dataset?.ac5eOptinId, input?.value);
+		else if (input?.dataset?.ac5eOptinScale === 'true') updateSingleOptinScale(activeConfig, input?.dataset?.ac5eOptinId, input?.value, input?.dataset?.ac5eOptinSemanticId);
 		else updateSingleOptinSelection(activeConfig, input?.dataset?.ac5eOptinId, input?.checked, {
 			scaleMin: Number(input?.dataset?.ac5eOptinScaleMin),
 			semanticId: input?.dataset?.ac5eOptinSemanticId,
 		});
 		const hookType = activeConfig?.hookType;
 		if (hookType === 'hitDie') {
-			syncDialogAc5eState(activeDialog, activeConfig);
-			activeDialog.rebuild?.();
+			refreshHitDieOptinState(activeDialog, activeConfig, deps);
 			return;
 		}
-		if (['attack', 'save', 'check'].includes(hookType)) {
+		if (['attack', 'save', 'check', 'init', 'initiative'].includes(hookType)) {
 			deps.handleD20OptinSelectionsChanged?.(activeDialog, activeConfig, deps);
 			return;
 		}
@@ -809,6 +830,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			slider.type = 'range';
 			slider.name = `ac5eOptinScale.${entry.id}`;
 			slider.dataset.ac5eOptinId = entry.id;
+			if (entry.optinId) slider.dataset.ac5eOptinSemanticId = entry.optinId;
 			slider.dataset.ac5eOptinScale = 'true';
 			slider.min = scaling.min;
 			slider.max = scaling.max;
@@ -829,7 +851,7 @@ function renderOptinRows(fieldset, visibleEntries, ac5eConfig, { askPermission =
 			valueLabel.style.flex = '0 0 3.5rem';
 			slider.addEventListener('input', () => {
 				valueLabel.textContent = getScaleLabel();
-				updateSingleOptinScale(ac5eConfig, entry.id, slider.value);
+				updateSingleOptinScale(ac5eConfig, entry.id, slider.value, entry.optinId);
 				entry.selectedScale = Number(slider.value);
 				refreshScaleText();
 			});

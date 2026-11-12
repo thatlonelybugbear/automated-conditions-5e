@@ -54,7 +54,7 @@ export function buildRollConfig(app, rollConfig, formData, index, hook, deps) {
 		debugRollStateMigration('build.damage', { hook: activeHook, config: rollConfig, rolls: rollConfig?.rolls, ac5eConfig, extra: { index, optins } });
 		return true;
 	}
-	if (!ac5eConfig.hookType || !['attack', 'save', 'check'].includes(ac5eConfig.hookType)) return true;
+	if (!ac5eConfig.hookType || !['attack', 'save', 'check', 'init', 'initiative'].includes(ac5eConfig.hookType)) return true;
 	if (index !== 0) return true;
 
 	const preRestoreParts = getD20ActivePartsSnapshot(rollConfig);

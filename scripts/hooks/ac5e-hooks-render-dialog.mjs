@@ -104,7 +104,7 @@ function syncAttackDialogState(render, elem, initialConfig, deps) {
 
 function syncNonInitiativeD20DialogState(hook, render, elem, initialConfig, deps) {
 	const getConfigAC5E = initialConfig;
-	if (hook !== 'd20Dialog' || !['attack', 'save', 'check', 'initiative'].includes(getConfigAC5E?.hookType)) return getConfigAC5E;
+	if (hook !== 'd20Dialog' || !['attack', 'save', 'check', 'init', 'initiative'].includes(getConfigAC5E?.hookType)) return getConfigAC5E;
 	deps.renderOptionalBonusesRoll(render, elem, getConfigAC5E, deps);
 	const optinSelections = deps.readOptinSelections(elem, getConfigAC5E);
 	deps.setOptinSelections(getConfigAC5E, optinSelections);
