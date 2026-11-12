@@ -52,6 +52,8 @@ Affects **rolls made against the actor** (i.e., when the actor is the *target* o
 
 Controls whether an enabled Active Effect is allowed to be created on an Actor at initial application time.
 
+When DAE is active, AC5E skips this check and leaves effect application to DAE. DAE performs stacking and replacement before AC5E's creation hook, so this flag cannot reliably prevent those operations.
+
 - Evaluated in `preCreateActiveEffect`.
 - If the expression evaluates to `false`, AC5E blocks the effect creation.
 - If it evaluates to `true`, the effect is created normally.

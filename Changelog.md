@@ -1,6 +1,7 @@
 ## 14.610.2
 
 - Added clickable roll-modifier pills to the expanded Edit Modifier editors, with options suited to d20, damage, and Hit Die rolls.
+- Fixed conditional dice modifiers such as `modifier=(rollingActor.attributes.hp.pct < 50 ? maximize : minimize)`. Modifier pills preserve surrounding expressions and select numeric placeholders for typing; operator buttons now position the cursor correctly.
 - Fixed initiative opt-ins not consistently appearing or applying their selected bonuses and roll modes.
 - Fixed Hit Die opt-ins not refreshing their effects when selections change, including initially selected options.
 - Fixed scaled opt-ins losing their selected scale when referenced by a custom `optinId`, and improved their token context across scenes and Levels.

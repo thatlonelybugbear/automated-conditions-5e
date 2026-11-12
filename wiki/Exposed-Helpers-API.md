@@ -26,7 +26,7 @@ ac5e.checkVisibility(sourceToken, targetToken)
 ac5e.getLightLevel(token, options = {})
 ```
 
-`ac5e.checkNearby(token, disposition, distance, options)` supports:
+`ac5e.checkNearby(token, disposition, distance, options)` supports in the options object:
 ```js
 {
   count: false,
@@ -42,6 +42,12 @@ ac5e.getLightLevel(token, options = {})
   creatureTypes: []
 }
 ```
+
+Nearby searches use the reference Token's owning Scene, including TokenDocuments on unrendered Levels. Short Token IDs resolve only in the viewed Scene; use a Token UUID or TokenDocument for another Scene. Distance checks use the Scene grid and token elevations. A distance of `0` removes the distance limit.
+
+With `count` omitted or `false`, results are an array of rendered Tokens where available and TokenDocuments otherwise. Use `entry.document ?? entry` to access each result's document. Missing references return `[]`. With `count: true`, the result is a number (`0` for a missing reference); a numeric `count` returns whether that many matches exist and returns `false` for a missing reference. Check `.length` when testing an array for matches.
+
+`canSee: true` still requires rendered source and target Tokens; unavailable visibility does not count as visible. Hidden and incapacitated creatures remain excluded unless enabled through the corresponding options.
 
 Use `canSee: true` to return only tokens visible to the source token:
 ```js
