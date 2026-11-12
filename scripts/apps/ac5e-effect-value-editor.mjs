@@ -1676,8 +1676,8 @@ function resolveAssistScope(inputName, currentValue, changeKey = '') {
 }
 
 function buildModifierAssistEntries(changeKey = '') {
-	if (!/\.(?:damage|hitdie)\./i.test(changeKey)) return ['min10', 'max10'];
-	return ['min3', 'max3', 'maximize', 'minimize', 'adv', 'dis', 'r1', 'rr1', 'x', 'xo', 'kh1', 'kl1', 'dh1', 'dl1', 'even', 'odd', 'cs>=5', 'cf<=1', 'df<=1', 'sf<=1', 'ms>=5'];
+	if (!/\.(?:damage|hitdie)\./i.test(changeKey)) return ['minX', 'maxX'];
+	return ['minX', 'maxX', 'maximize', 'minimize', 'adv', 'dis', 'rX', 'rrX', 'x', 'xo', 'khX', 'klX', 'dhX', 'dlX', 'even', 'odd', 'cs>=X', 'cf<=X', 'df<=X', 'sf<=X', 'ms>=X'];
 }
 
 function buildScopedAssistEntries(scope, entries, changeKey = '', { includeEffectOriginActor = true } = {}) {
@@ -2190,7 +2190,7 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 	}
 	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-modifier]')) {
 		button.addEventListener('click', () => {
-			insertAtCursor(textarea, button.dataset.ac5eAssistModifier ?? '', selectionState);
+			selectModifierAssist(textarea, button.dataset.ac5eAssistModifier ?? '', selectionState);
 			resetAssistBrowserContext(assistRoot, assist, selectionState, textarea);
 		});
 	}
@@ -4253,7 +4253,7 @@ function replaceTokenAtCursorOrInsert(input, replacement, selectionState = null)
 	const end = Number(input.selectionEnd ?? cursor);
 	const replacementText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${replacementText}${input.value.slice(end)}`;
-	const nextStart = start + (isOperatorInsertion(insertion.text) ? replacementText.length : Math.min(insertion.selectionStartOffset, replacementText.length));
+	const nextStart = start + (isOperatorInsertion(insertion.text) ? replacementText.length : Math.max(0, replacementText.indexOf(insertion.text)) + insertion.selectionStartOffset);
 	const nextEnd = nextStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(nextStart, nextEnd);
@@ -4266,6 +4266,37 @@ function replaceTokenAtCursorOrInsert(input, replacement, selectionState = null)
 	input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function selectModifierAssist(input, text, selectionState) {
+	const source = input.value;
+	let start = source.length;
+	let end = source.length;
+	const modifierPattern = /\b(?:maximize|minimize|adv|dis|even|odd|(?:min|max|rr|r|kh|kl|dh|dl)(?:X|\d+)|(?:cs|cf|df|sf|ms)[<>=]+(?:X|\d+)|xo|x)\b/g;
+	if (Array.from(source.matchAll(modifierPattern)).some((match) => match[0] === source.trim())) start = 0;
+	if (selectionState?.userMovedCaret) {
+		const selectedStart = selectionState.start;
+		const selectedEnd = selectionState.end;
+		start = selectedStart;
+		end = selectedEnd;
+		const tokens = source.matchAll(modifierPattern);
+		const token = Array.from(tokens).find((match) => match.index <= selectedStart && match.index + match[0].length >= selectedEnd);
+		if (token) {
+			start = token.index;
+			end = start + token[0].length;
+		} else if (selectedEnd > selectedStart) {
+			start = selectedStart;
+			end = selectedEnd;
+		}
+	}
+	input.value = source.slice(0, start) + text + source.slice(end);
+	const placeholder = text.indexOf('X');
+	const selectionStart = start + (placeholder < 0 ? text.length : placeholder);
+	const selectionEnd = selectionStart + (placeholder < 0 ? 0 : 1);
+	input.focus();
+	input.setSelectionRange(selectionStart, selectionEnd);
+	Object.assign(selectionState, { start: selectionStart, end: selectionEnd, userMovedCaret: true });
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function insertAtCursor(input, text, selectionState = null) {
 	if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
 	if (!text) return;
@@ -4275,7 +4306,7 @@ function insertAtCursor(input, text, selectionState = null) {
 	const end = hasExplicitSelection ? selectionState.end : input.value.length;
 	const insertionText = normalizeOperatorInsertion(input.value, start, end, insertion.text);
 	input.value = `${input.value.slice(0, start)}${insertionText}${input.value.slice(end)}`;
-	const selectionStart = start + (isOperatorInsertion(insertion.text) ? insertionText.length : Math.min(insertion.selectionStartOffset, insertionText.length));
+	const selectionStart = start + (isOperatorInsertion(insertion.text) ? insertionText.length : Math.max(0, insertionText.indexOf(insertion.text)) + insertion.selectionStartOffset);
 	const selectionEnd = selectionStart + insertion.selectionLength;
 	input.focus();
 	input.setSelectionRange(selectionStart, selectionEnd);
@@ -4653,7 +4684,7 @@ function shouldUseSetMode(parsed, field = 'bonus') {
 }
 
 function isOperatorInsertion(text) {
-	return ['&&', '||'].includes(`${text ?? ''}`.trim());
+	return ['&&', '||', '==', '===', '!=', '!==', '>', '>=', '<', '<=', '!'].includes(`${text ?? ''}`.trim());
 }
 
 function applySetModeToFormData(formData, setMode, field = 'bonus') {
