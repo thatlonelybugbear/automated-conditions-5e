@@ -745,6 +745,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 						${assistScope === 'update' ? '<div class="ac5e-effect-value-assist-stage ac5e-effect-value-assist-main-stage" data-ac5e-main-assist-stage data-ac5e-assist-stage hidden></div>' : ''}
 					`
 			:	`
+					${assist.modifierEntries.length ? renderAssistActionFieldset(editorAssist('RollModifiers'), assist.modifierEntries, 'ac5e-assist-modifier', 'entry') : ''}
 					${renderAssistActionFieldset(editorAssist('Operators'), assist.operators, 'ac5e-assist-insert', 'button')}
 					<div class="ac5e-effect-value-assist-groups" data-ac5e-assist-entry-groups>
 						${renderAssistEntryGroups(assist)}
@@ -1519,6 +1520,7 @@ function buildLambdaAssistData(
 		:	dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries, ...AC5E_FUNCTION_ASSIST_ENTRIES]).sort((a, b) => a.localeCompare(b));
 	return {
 		scope: assistScope,
+		modifierEntries: assistScope === 'modifier' ? buildModifierAssistEntries(changeKey) : [],
 		entryPoints: resolvedEntryPoints,
 		actorEntryButtons,
 		itemActivityEntryButtons,
@@ -1660,6 +1662,7 @@ function resolveAssistScope(inputName, currentValue, changeKey = '') {
 	const fieldName = `${inputName ?? ''}`.trim().toLowerCase();
 	if (fieldName === 'fields.usescount' || fieldName === 'ui.usescountpath') return 'usesCount';
 	if (fieldName === 'fields.update' || fieldName === 'ui.updatepath') return 'update';
+	if (fieldName === 'fields.modifier') return 'modifier';
 	const normalizedKey = `${changeKey ?? ''}`.trim().toLowerCase();
 	if (fieldName === 'fields.override') {
 		if (normalizedKey.endsWith('.typeoverride')) return 'typeOverride';
@@ -1670,6 +1673,11 @@ function resolveAssistScope(inputName, currentValue, changeKey = '') {
 	if (/(?:^|[;\s])usescount\s*[:=]/.test(raw)) return 'usesCount';
 	if (/(?:^|[;\s])update\s*[:=]/.test(raw)) return 'update';
 	return 'default';
+}
+
+function buildModifierAssistEntries(changeKey = '') {
+	if (!/\.(?:damage|hitdie)\./i.test(changeKey)) return ['min10', 'max10'];
+	return ['min3', 'max3', 'maximize', 'minimize', 'adv', 'dis', 'r1', 'rr1', 'x', 'xo', 'kh1', 'kl1', 'dh1', 'dl1', 'even', 'odd', 'cs>=5', 'cf<=1', 'df<=1', 'sf<=1', 'ms>=5'];
 }
 
 function buildScopedAssistEntries(scope, entries, changeKey = '', { includeEffectOriginActor = true } = {}) {
@@ -2177,6 +2185,12 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-insert]')) {
 		button.addEventListener('click', () => {
 			insertOperatorAtCursor(textarea, button.dataset.ac5eAssistInsert ?? '', assistRoot, selectionState);
+			resetAssistBrowserContext(assistRoot, assist, selectionState, textarea);
+		});
+	}
+	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-modifier]')) {
+		button.addEventListener('click', () => {
+			insertAtCursor(textarea, button.dataset.ac5eAssistModifier ?? '', selectionState);
 			resetAssistBrowserContext(assistRoot, assist, selectionState, textarea);
 		});
 	}
