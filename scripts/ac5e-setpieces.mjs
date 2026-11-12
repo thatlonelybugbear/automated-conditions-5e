@@ -1,5 +1,5 @@
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
-import { hasUnavailableDistance } from './ac5e-parser.mjs';
+import { hasUnavailableDistance, resolveModifierTernaries } from './ac5e-parser.mjs';
 import { captureRollTokenDocuments, getTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import {
 	_ac5eSafeEval,
@@ -4830,7 +4830,9 @@ function preEvaluateExpression({ value, mode, hook, effect, evaluationData, isAu
 	}
 	const isModifier = lowerValue.includes('modifier') && mode === 'modifiers' ? getBlacklistedKeysValue('modifier', rawValue) : false;
 	if (isModifier) {
-		const replacementModifier = bonusReplacements(isModifier, evaluationData, isAura, effect, chanceKey);
+		const rawModifier = bonusReplacements(isModifier, evaluationData, isAura, effect, chanceKey);
+		const replacementModifier = typeof rawModifier === 'string' && rawModifier.includes('?') ?
+			resolveModifierTernaries(rawModifier, evaluationData, debug ?? {}) : rawModifier;
 		const trimmedModifier = typeof replacementModifier === 'string' ? replacementModifier.trim() : replacementModifier;
 		if (typeof trimmedModifier === 'string') {
 			modifier = _resolveExplodeModifierExpressions(trimmedModifier, evaluationData, debug);

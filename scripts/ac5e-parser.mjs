@@ -131,6 +131,12 @@ function normalizeExpr(expr) {
 }
 
 /* TERNARY REDUCER */
+export function resolveModifierTernaries(expression, sandbox, debug = {}) {
+	let result = reduceTernaryParens(`(${expression})`, { evaluateCondition, sandbox, debug }).trim();
+	while (result.startsWith('(') && findMatchingParen(result, 0) === result.length - 1) result = result.slice(1, -1).trim();
+	return result;
+}
+
 function reduceTernaryParens(expr, { evaluateCondition, sandbox, debug } = {}) {
 	if (!(expr.includes('?') && expr.includes(':'))) return expr;
 
