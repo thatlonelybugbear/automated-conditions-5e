@@ -1,3 +1,14 @@
+## 14.610.2
+
+- Added clickable roll-modifier pills to the expanded Edit Modifier editors, with options suited to d20, damage, and Hit Die rolls.
+- Fixed initiative opt-ins not consistently appearing or applying their selected bonuses and roll modes.
+- Fixed Hit Die opt-ins not refreshing their effects when selections change, including initially selected options.
+- Fixed scaled opt-ins losing their selected scale when referenced by a custom `optinId`, and improved their token context across scenes and Levels.
+- Fixed optional damage critical effects not respecting custom `optinId` selections, and preserved explicit normal/critical choices when rebuilding damage rolls.
+- Nearby checks now include unrendered Tokens on other Levels and search the reference Token's own scene. Distance checks account for elevation; visibility checks still require rendered Tokens.
+- `allowEffectApplication` is now skipped while DAE is active, leaving effect application to DAE because its stacking and replacement operations run before AC5E can reject creation.
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 14.610.1
 
 - Added Hit Dice bonuses, dice modifiers, advantage/disadvantage, and optional effects. The effect editor supports conditions by Hit Die size and a roll-mode selector.
