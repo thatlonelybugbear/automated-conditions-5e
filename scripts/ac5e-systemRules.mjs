@@ -1,6 +1,6 @@
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
 import Constants from './ac5e-constants.mjs';
-import { getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
+import { getTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import { _activeModule, _dispositionCheck, _filterOptinEntries, _getDistance, _hasItem, _hasStatuses, _localize, _safeFromUuidSync } from './ac5e-helpers.mjs';
 import Settings from './ac5e-settings.mjs';
 
@@ -19,16 +19,10 @@ function _matchesCreatureType(actor, creatureTypes) {
 }
 
 export function findNearby({ token, disposition = 'all', radius = 5, lengthTest = false, hasEffects = [], hasItems = [], itemOptions = {}, hasStatuses = [], includeToken = false, includeIncapacitated = false, includeHidden = false, partyMember = false, canSee: requireCanSee = false, creatureTypes = [] }) {
-	if (!canvas || !canvas.tokens?.placeables) return false;
-	const tokenInstance = foundry.canvas.placeables.Token;
-	if (token instanceof TokenDocument) {
-		token = token.object;
-	} else if (!(token instanceof tokenInstance)) {
-		const resolved = _safeFromUuidSync(token);
-		token = resolved?.type === 'Token' ? resolved.object : canvas.tokens.get(token);
-	}
-	token = getTokenPlaceable(token);
-	if (!token) return false;
+	const emptyResult = () => lengthTest === true ? 0 : typeof lengthTest === 'number' ? false : [];
+	token = getTokenDocument(token) ?? (typeof token === 'string' ? globalThis.canvas?.scene?.tokens?.get(token) : null);
+	if (!token?.parent?.tokens) return emptyResult();
+	if (requireCanSee && !getTokenPlaceable(token)) return emptyResult();
 	const requiredCreatureTypes = new Set((Array.isArray(creatureTypes) ? creatureTypes : []).map((value) => String(value).trim().toLowerCase()).filter(Boolean));
 	let mult;
 	const foundryDispositionCONST = CONST.TOKEN_DISPOSITIONS;
@@ -50,9 +44,9 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 		}
 	} else disposition = 'all';
 
-	const nearbyTokens = canvas.tokens.placeables.filter((target) => {
-		if (!includeToken && target === token) return false;
-		if (!includeHidden && target.document?.hidden) return false;
+	const nearbyTokens = token.parent.tokens.filter((target) => {
+		if (!includeToken && target.uuid === token.uuid) return false;
+		if (!includeHidden && target.hidden) return false;
 		if (partyMember && game.actors.party) {
 			const {
 				members: { ids },
@@ -66,10 +60,13 @@ export function findNearby({ token, disposition = 'all', radius = 5, lengthTest 
 		if (hasItems.length && !_hasItem(target, hasItems, itemOptions)) return false;
 		if (hasStatuses.length && !_hasStatuses(target.actor, hasStatuses, true)) return false;
 		if (!_matchesCreatureType(target.actor, requiredCreatureTypes)) return false;
-		if (radius !== 0 && _getDistance(token, target) > radius) return false;
+		if (radius !== 0) {
+			const distance = _getDistance(token, target);
+			if (!Number.isFinite(distance) || distance > radius) return false;
+		}
 		if (requireCanSee && !canSee(token, target)) return false;
 		return true;
-	});
+	}).map((target) => getTokenPlaceable(target) ?? target);
 	if (settings.debug) console.log('AC5E - findNearby():', nearbyTokens);
 	if (lengthTest === true) return nearbyTokens.length;
 	if (typeof lengthTest === 'number') return nearbyTokens.length >= lengthTest;
