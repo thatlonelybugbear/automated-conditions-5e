@@ -1,6 +1,6 @@
 ## 14.610.3
 
-- Verified for for D&D5e 6.1.0 on Foundry 14.370, and backwards compatible with D&D5e 6.0.x compatibility.
+- Verified compatibility with D&D5e 6.1.0 on Foundry 14.370, while retaining support for D&D5e 6.0.x.
 - Fixed optional damage bonuses and modifiers being missing or having no effect on damage added by another AC5e bonus, such as extra force damage.
 - Fixed additional bonuses failing to apply to extra damage that does not double on critical hits.
 - Fixed damage-type-specific opt-ins being missed when deciding whether to open the damage dialog.
