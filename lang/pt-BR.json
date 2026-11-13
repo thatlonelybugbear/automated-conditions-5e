@@ -641,6 +641,7 @@
       		"Root": "Raiz",
       		"Values": "Valores",
       		"Operators": "Operadores",
+			"RollModifiers": "Modificadores de Rolagem",
       		"UsesCountQuickTargets": "Contagem de Uso de Alvos Rápidos",
       		"UpdateQuickTargets": "Atualizar Alvos Rápidos",
       		"DamageTypes": "Tipos de Dano",
