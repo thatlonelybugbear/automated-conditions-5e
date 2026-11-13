@@ -1087,7 +1087,7 @@ function getEditorProfile(changeKey, parsed) {
 		if (parsed?.toggles?.[toggle] && !contextToggles.includes(toggle)) contextToggles.push(toggle);
 	}
 
-	const supportsSetMode = !isTypeOverride && (isTargetADC || isCriticalThreshold || isFumbleThreshold || hasParsedValue(parsed, 'set'));
+	const supportsSetMode = isTargetADC || isCriticalThreshold || isFumbleThreshold || (normalized.endsWith('.bonus') && hasParsedValue(parsed, 'set'));
 	const setModeField = isCriticalThreshold || isFumbleThreshold ? 'threshold' : 'bonus';
 	const renderedRequiredFields = supportsSetMode ? dedupe(requiredFields).filter((field) => field !== 'set') : dedupe(requiredFields);
 	const renderedContextToggles = dedupe(contextToggles).filter((toggle) => toggle !== 'partialConsume');
