@@ -1,3 +1,14 @@
+## 14.610.3
+
+- Verified for for D&D5e 6.1.0 on Foundry 14.370, and backwards compatible with D&D5e 6.0.x compatibility.
+- Fixed optional damage bonuses and modifiers being missing or having no effect on damage added by another AC5e bonus, such as extra force damage.
+- Fixed additional bonuses failing to apply to extra damage that does not double on critical hits.
+- Fixed damage-type-specific opt-ins being missed when deciding whether to open the damage dialog.
+- Fixed effects that add dice or change die sizes leaving AC5e bonus damage unchanged, whether automatic or optional.
+- Fixed the effect editor keeping the Set checkbox and its old value after switching to a flag that does not support it.
+- Updated Italian translation by [GregoryWarn](<https://github.com/GregoryWarn/>) 🤗
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
+
 ## 14.610.2
 
 - Added clickable roll-modifier pills to the expanded Edit Modifier editors, with options suited to d20, damage, and Hit Die rolls.
