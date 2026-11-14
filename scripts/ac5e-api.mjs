@@ -1,3 +1,5 @@
+import { validateCondition } from './ac5e-condition-authoring.mjs';
+import { getConditionAutocompleteEntries, openConditionEditor } from './apps/ac5e-effect-value-editor.mjs';
 import {
 	_autoArmor,
 	_ac5eSafeEval,
@@ -1777,6 +1779,13 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	ac5e.debugBenchmarkPerimeterGridSpaceCenters = _debugBenchmarkPerimeterGridSpaceCenters;
 	ac5e.evaluationData = _createEvaluationSandbox;
 	ac5e.safeEval = _ac5eSafeEval;
+	ac5e.conditions = Object.freeze({
+		version: 1,
+		capabilities: Object.freeze({ editor: true, syntaxValidation: true, autocomplete: true, contextualEntries: true }),
+		openEditor: openConditionEditor,
+		validate: validateCondition,
+		getAutocompleteEntries: getConditionAutocompleteEntries,
+	});
 	ac5e.getItems = _getItems;
 	ac5e.getItem = _getItem;
 	ac5e.getItemOrActivity = _getItemOrActivity;
@@ -1897,6 +1906,7 @@ export function createAc5eGlobalSpace({ hooksRegistered = {}, buildId = null } =
 	Hooks.callAll('ac5e.usageRulesReady', {
 		usageRules: ac5e.usageRules,
 	});
+	Hooks.callAll('ac5e.ready', ac5e);
 	return ac5e;
 }
 

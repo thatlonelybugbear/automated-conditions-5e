@@ -1,3 +1,4 @@
+import { conditionExpressionRestriction } from './ac5e-condition-authoring.mjs';
 import Constants from './ac5e-constants.mjs';
 import { getActorTokenDocument, getTokenPlaceable } from './helpers/ac5e-helpers-token.mjs';
 import { getActivityBaseType } from './helpers/ac5e-helpers-activity.mjs';
@@ -3305,9 +3306,8 @@ export function _generateAC5eFlags() {
  */
 export function _ac5eSafeEval({ expression, sandbox = {}, mode = 'condition', debug }) {
 	if (!expression || typeof expression !== 'string') return undefined;
-	const code = expression.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\$]|\$(?!\{))*`|\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, ' ');
-	const identifiers = code.match(/[\p{ID_Start}$_][\p{ID_Continue}$\u200c\u200d]*/gu) ?? [];
-	if (identifiers.some((identifier) => identifier === 'game' || identifier === 'canvas')) throw new Error(`Roll.safeEval expression cannot access game/canvas identifiers; use sandbox fields instead.`);
+	const restriction = conditionExpressionRestriction(expression);
+	if (restriction) throw new Error(restriction);
 
 	debug ??= {};
 	const debugLoggingEnabled = !!(ac5e?.devModeEnabled || ac5e?.debug?.evaluations);

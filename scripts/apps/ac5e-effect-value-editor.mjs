@@ -6,6 +6,7 @@ import {
 	replaceAutocompletePrefix,
 	shouldActivateEffectValueAutocomplete,
 } from './ac5e-effect-value-autocomplete.mjs';
+import { normalizeConditionContext, validateCondition } from '../ac5e-condition-authoring.mjs';
 import Constants from '../ac5e-constants.mjs';
 import Settings from '../ac5e-settings.mjs';
 import { AC5EFlagPicker, isSupportedFlag } from './ac5e-flag-picker.mjs';
@@ -4883,4 +4884,60 @@ function normalizeScalingConfig(scalingInputs) {
 		max: maxRaw,
 		step: stepRaw || String(DEFAULT_USESCOUNT_SCALING.step),
 	};
+}
+
+/** Return fresh suggestion metadata. Extensions do not register evaluation variables. */
+export function getConditionAutocompleteEntries({ context = {} } = {}) {
+	const entries = new Map(buildEffectValueAutocompleteEntries().map((entry) => [entry.identifier, { ...entry, hint: entry.source ?? '' }]));
+	for (const entry of normalizeConditionContext(context)) entries.set(entry.identifier, entry);
+	return [...entries.values()].sort((a, b) => a.identifier.localeCompare(b.identifier));
+}
+
+/** Standalone authoring only: no documents, effects, or actions are changed. */
+export async function openConditionEditor({ expression = '', context = {}, title = '' } = {}) {
+	if (typeof expression !== 'string') throw new TypeError('Condition must be a string.');
+	const entries = getConditionAutocompleteEntries({ context });
+	const assist = buildLambdaAssistData(entries, { assistScope: 'conditions' });
+	let textarea;
+	return new Promise((resolve, reject) => {
+		let result = null;
+		const dialog = new foundry.applications.api.DialogV2({
+			window: { title: title || editorLabel('Condition'), resizable: false },
+			position: { width: 720 },
+			form: { closeOnSubmit: false },
+			content: `<div class="ac5e-effect-value-expand-dialog scrollable" style="max-height: calc(100vh - 10rem)" data-ac5e-lambda-assist data-ac5e-assist-scope="conditions">
+				<div class="form-group stacked"><label>${escapeHtml(editorLabel('Condition'))}</label>
+				<textarea name="value" rows="5" aria-label="${escapeHtml(editorLabel('Condition'))}">${escapeHtml(expression)}</textarea></div>
+				<p data-condition-diagnostics role="status" aria-live="polite"></p>
+				${renderAssistActionFieldset(editorAssist('Operators'), assist.operators, 'ac5e-assist-insert', 'button')}
+				<div class="ac5e-effect-value-assist-groups" data-ac5e-assist-entry-groups>${renderAssistEntryGroups(assist)}</div>
+				<div class="ac5e-effect-value-assist-stage ac5e-effect-value-assist-main-stage" data-ac5e-main-assist-stage data-ac5e-assist-stage hidden></div>
+			</div>`,
+			buttons: [
+				{ action: 'apply', label: game.i18n.localize('AC5E.EffectValueEditor.Button.Apply'), default: true, callback: () => textarea.value },
+				{ action: 'cancel', label: 'COMMON.Cancel', callback: () => false },
+			],
+			submit: async (value) => {
+				if (typeof value === 'string' && !validateCondition({ expression: value, context }).valid) return;
+				result = typeof value === 'string' ? value : null;
+				await dialog.close();
+			},
+		});
+		dialog.addEventListener('render', () => {
+			textarea = dialog.element.querySelector('textarea[name="value"]');
+			prepareLambdaAssist(dialog.element, assist, 'conditions');
+			const update = () => {
+				const validation = validateCondition({ expression: textarea.value, context });
+				dialog.element.querySelector('[data-condition-diagnostics]').textContent = validation.diagnostics.map((entry) => entry.message).join(' ');
+				dialog.element.querySelector('[data-action="apply"]').disabled = !validation.valid;
+			};
+			textarea.addEventListener('input', update);
+			update();
+			textarea.focus();
+		}, { once: true });
+		dialog.addEventListener('close', () => {
+			resolve(result);
+		}, { once: true });
+		dialog.render({ force: true }).catch(reject);
+	});
 }
