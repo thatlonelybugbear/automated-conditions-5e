@@ -2717,7 +2717,7 @@ export function _syncMidiAttackRollModifierTracker(ac5eConfig, config) {
 export function _getMidiAbilityAttributionEntries(ac5eConfig, config, dialog, type) {
 	if (!type) return [];
 	const entries = [];
-	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
+	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: false });
 	for (const tracker of trackers) {
 		const typeEntries = tracker?.attribution?.[type];
 		if (!typeEntries || typeof typeEntries !== 'object') continue;
@@ -2743,27 +2743,19 @@ function _resolveMidiAbilityWorkflow(config) {
 
 function _matchingMidiAbilityWorkflowSaveDetails(ac5eConfig, config) {
 	const workflow = _resolveMidiAbilityWorkflow(config);
-	const targetSaveDetails = workflow?.targetSaveDetails;
-	if (!targetSaveDetails || typeof targetSaveDetails !== 'object') return [];
-	const token = canvas?.tokens?.get?.(ac5eConfig?.tokenId);
-	const actorUuid = token?.actor?.uuid;
-	const tokenDocUuid = token?.document?.uuid;
-	const rollActorUuid = config?.rolls?.[0]?.options?.actorUuid ?? config?.rolls?.[0]?.data?.actorUuid;
-	const candidateActorUuids = new Set([actorUuid, rollActorUuid].filter((value) => typeof value === 'string' && value.trim()));
-	const candidateTokenDocUuids = new Set([tokenDocUuid].filter((value) => typeof value === 'string' && value.trim()));
-	const entries = Object.entries(targetSaveDetails ?? {}).filter(([, saveDetails]) => saveDetails && typeof saveDetails === 'object');
-	const hasActorCandidates = candidateActorUuids.size > 0;
-	const hasTokenCandidates = candidateTokenDocUuids.size > 0;
-	if (!hasActorCandidates && !hasTokenCandidates) return entries.length === 1 ? entries : [];
-	const matches = entries.filter(([workflowTokenDocUuid, saveDetails]) => {
-		const entryActorUuid = saveDetails?.actorUuid;
-		const actorMatch = hasActorCandidates && typeof entryActorUuid === 'string' ? candidateActorUuids.has(entryActorUuid) : false;
-		const tokenMatch = hasTokenCandidates ? candidateTokenDocUuids.has(workflowTokenDocUuid) : false;
-		return actorMatch || tokenMatch;
-	});
-	if (matches.length) return matches;
-	if (entries.length === 1) return entries;
-	return [];
+	const details = workflow?.targetSaveDetails;
+	if (!details || typeof details !== 'object') return [];
+	const token = globalThis.canvas?.tokens?.get?.(ac5eConfig?.tokenId);
+	const roll = config?.rolls?.[0];
+	const tokenUuid = ac5eConfig?.options?.sourceTokenUuid ?? config?.options?.sourceTokenUuid ?? roll?.options?.tokenUuid ?? token?.document?.uuid;
+	const actorUuid = ac5eConfig?.options?.sourceActorUuid ?? roll?.options?.actorUuid ?? roll?.data?.actorUuid ?? ((!tokenUuid || token?.document?.uuid === tokenUuid) ? token?.actor?.uuid : undefined);
+	const entries = Object.entries(details).filter(([, value]) => value && typeof value === 'object');
+	if (tokenUuid) return entries.filter(([uuid, value]) => uuid === tokenUuid && (!actorUuid || !value.actorUuid || value.actorUuid === actorUuid));
+	if (actorUuid) {
+		const matches = entries.filter(([, value]) => value.actorUuid === actorUuid);
+		return matches.length === 1 ? matches : [];
+	}
+	return entries.length === 1 ? entries : [];
 }
 
 function _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable = true, includeAllChoices = false } = {}) {
@@ -2782,51 +2774,29 @@ function _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { r
 		seen.add(tracker);
 		collected.push(tracker);
 	};
-	const maps = [config?.midiOptions?.advantageByChoice, config?.options?.advantageByChoice, dialog?.options?.advantageByChoice].filter((candidate) => candidate && typeof candidate === 'object');
 	const choiceKeys = [
-		config?.skill,
-		config?.tool,
-		config?.ability,
 		config?.rolls?.[0]?.options?.midiChosenId,
-		config?.rolls?.[0]?.options?.ability,
-		config?.rolls?.[0]?.options?.skill,
-		config?.rolls?.[0]?.options?.tool,
-		ac5eConfig?.options?.skill,
-		ac5eConfig?.options?.tool,
-		ac5eConfig?.options?.ability,
-	]
-		.map((value) => (typeof value === 'string' ? value.trim() : ''))
-		.filter(Boolean);
+		config?.skill, config?.tool, config?.ability,
+		config?.rolls?.[0]?.options?.skill, config?.rolls?.[0]?.options?.tool, config?.rolls?.[0]?.options?.ability,
+		ac5eConfig?.options?.skill, ac5eConfig?.options?.tool, ac5eConfig?.options?.ability,
+	];
+	const chosenId = choiceKeys.find((value) => typeof value === 'string' && value.trim())?.trim();
+	const matches = _matchingMidiAbilityWorkflowSaveDetails(ac5eConfig, config);
+	const maps = [config?.midiOptions?.advantageByChoice, config?.options?.advantageByChoice, dialog?.options?.advantageByChoice,
+		...matches.map(([, details]) => details.advantageByChoice),
+	].filter((map) => map && typeof map === 'object' && Object.keys(map).length);
 	for (const map of maps) {
-		for (const key of choiceKeys) {
-			collect(map?.[key]);
-		}
-	}
-	if (includeAllChoices) {
-		for (const map of maps) {
-			for (const value of Object.values(map ?? {})) collect(value);
-		}
-	}
-	const chosenId = config?.rolls?.[0]?.options?.midiChosenId;
-	const workflowSaveDetailsMatches = _matchingMidiAbilityWorkflowSaveDetails(ac5eConfig, config);
-	for (const [, saveDetails] of workflowSaveDetailsMatches) {
-		collect(saveDetails?.modifierTracker);
-		const choiceMap = saveDetails?.advantageByChoice;
-		if (!choiceMap || typeof choiceMap !== 'object') continue;
-		if (typeof chosenId === 'string' && chosenId.trim()) collect(choiceMap[chosenId.trim()]);
 		if (includeAllChoices) {
-			for (const value of Object.values(choiceMap ?? {})) collect(value);
-		}
-		const choiceEntries = Object.values(choiceMap ?? {});
-		if (choiceEntries.length === 1) collect(choiceEntries[0]);
+			for (const value of Object.values(map)) collect(value);
+		} else if (chosenId) collect(map[chosenId]);
+		else if (Object.keys(map).length === 1) collect(Object.values(map)[0]);
 	}
-	for (const map of maps) {
-		const entries = Object.values(map ?? {});
-		if (entries.length !== 1) continue;
-		collect(entries[0]);
+	// A workflow's default tracker may belong to an unselected alternative.
+	if (!maps.length) {
+		for (const [, details] of matches) collect(details.modifierTracker);
+		collect(config?.midiOptions?.modifierTracker);
+		collect(config?.midiOptions?.tracker);
 	}
-	collect(config?.midiOptions?.modifierTracker);
-	collect(config?.midiOptions?.tracker);
 	return collected;
 }
 
@@ -2858,7 +2828,7 @@ export function _getD20TooltipOwnership(ac5eConfig, { midiRoller = _activeModule
 export function _syncMidiAbilityRollModifierTracker(ac5eConfig, config, dialog) {
 	if (!_activeModule('midi-qol')) return;
 	if (!['check', 'save'].includes(ac5eConfig?.hookType)) return;
-	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: true });
+	const trackers = _collectMidiAbilityRollModifierTrackers(ac5eConfig, config, dialog, { requireWritable: false, includeAllChoices: false });
 	if (!trackers.length) return;
 	_logMidiTrackerBuildMarkerOnce('helpers._syncMidiAbilityRollModifierTracker');
 	for (const [trackerIndex, tracker] of trackers.entries()) {
