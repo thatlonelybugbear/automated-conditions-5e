@@ -1615,7 +1615,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 	};
 
 	const blacklist = new Set([
-		'action',
 		'addto',
 		'ability',
 		'allies',
@@ -2423,11 +2422,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 		const optin = /(?:^|[;|])\s*optin\s*(?:$|[;|])/i.test(normalizedChangeValue) || forceOptin;
 		const preselected = optin && /(?:^|[;|])\s*preselected\s*(?:$|[;|])/i.test(normalizedChangeValue);
 		const cadence = _extractCadenceFromValue(change.value);
-		const actionId = mode === 'info' ? getBlacklistedKeysValue('action', change.value) : '';
-		if (actionId && (getBlacklistedKeysValue('usescount', change.value) || getBlacklistedKeysValue('update', change.value) || cadence)) {
-			console.warn('AC5E: AA5E action offers use the configured Activity resources; usesCount, update, and cadence on the offer are not supported.', { effect: effect.uuid, changeIndex });
-			return null;
-		}
 		const priority = getPriorityValue(change.value);
 		const customName = getCustomName(change.value);
 		const requiredDamageTypes = getRequiredDamageTypes(change.value);
@@ -2457,7 +2451,6 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 			name: effect.name,
 			label,
 			customName,
-			actionId,
 			description,
 			autoDescription,
 			actorType,
@@ -3012,7 +3005,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 				const preserveEntryObject =
 					(hook === 'damage' && mode === 'critical' && Boolean(entry?.addTo)) ||
 					(mode === 'fail' && Boolean(entry?.description)) ||
-					(mode === 'info' && Boolean(entry?.enforceMode || entry?.cancel || entry?.actionId)) ||
+					(mode === 'info' && Boolean(entry?.enforceMode || entry?.cancel)) ||
 					(hook === 'damage' && ['advantage', 'disadvantage'].includes(mode)) ||
 					!!entry?.chance?.enabled;
 				ac5eConfig[actorType][mode].push(

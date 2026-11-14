@@ -196,12 +196,6 @@
 					<span>{{label}}</span>
 				</label>
 			{{/each}}
-			{{#with aa5eAction}}
-				<label class="ac5e-effect-value-editor-integration-toggle" title="Offer an AA5E action when this condition matches. The action runs only when clicked. Configure resources on the Activity; usesCount, update, and cadence on action offers are not supported.{{#unless available}} Enable Automated Actions 5e with action integration support to configure and execute these actions.{{/unless}}">
-					<input type="checkbox" name="ui.showAction" {{checked enabled}}>
-					<span>Automated Actions 5e Integration</span>
-				</label>
-			{{/with}}
 		</div>
 		{{#if showCadence}}
 			<div class="form-group ac5e-effect-value-editor-fieldset-select">
@@ -215,20 +209,6 @@
 				</div>
 			</div>
 		{{/if}}
-		{{#with aa5eAction}}
-			{{#if enabled}}
-				<div class="form-group ac5e-effect-value-editor-action-select">
-					<label title="Choose a saved action or create a custom action stored only on this effect change. Conditions are configured in AC5E. Supported target scopes: self, source, target, targets, selected. Hit, applied-damage, and nearby group scopes are unavailable on roll offers.">AA5E Action</label>
-					<div class="form-fields">
-						<select name="fields.action" data-ac5e-action-select>
-							<option value="">Select an action</option>
-							{{#if canEditCustom}}<option value="@custom">{{editorLabel}}</option>{{/if}}
-							{{#each options}}<option value="{{value}}" title="{{hint}}" {{#if selected}}selected{{/if}} {{#if disabled}}disabled{{/if}}>{{label}}</option>{{/each}}
-						</select>
-					</div>
-				</div>
-			{{/if}}
-		{{/with}}
 		{{#if hasOptionalFieldRows}}
 			<section class="ac5e-effect-value-editor-grid">
 				{{#with optionalFieldRows.nameDescription}}
