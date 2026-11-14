@@ -1,9 +1,9 @@
-## 14.610.3
-
+## 14.610.4
 - Added a standalone condition editor API for other modules, with AC5E suggestions, contextual hints, and syntax checking.
-
 - Fixed Midi-QOL save/check choices sharing advantage or disadvantage with unselected abilities, skills, or tools.
 - Fixed Midi-QOL save tracker lookup confusing linked Tokens that share an Actor, including Tokens on other scenes or Levels.
+
+## 14.610.3
 
 - Verified compatibility with D&D5e 6.1.0 on Foundry 14.370, while retaining support for D&D5e 6.0.x.
 - Fixed optional damage bonuses and modifiers being missing or having no effect on damage added by another AC5e bonus, such as extra force damage.
