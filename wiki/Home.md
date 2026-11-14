@@ -21,3 +21,5 @@ Welcome to the Automated Conditions 5e wiki!
 #### [Usage Rules API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Usage-Rules-API>)
 
 #### [Exposed Helpers API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Exposed-Helpers-API>)
+
+#### [Condition Authoring API](<https://github.com/thatlonelybugbear/automated-conditions-5e/wiki/Condition-Authoring-API>)

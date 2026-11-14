@@ -2,6 +2,10 @@
 
 AC5E exposes helper functions on the global `ac5e` object for macros, module integrations, and advanced condition authoring.
 
+## Standalone condition authoring
+
+See the [Condition Authoring API](Condition-Authoring-API) for the versioned `ac5e.conditions` editor, syntax validation, contextual suggestions, and `ac5e.ready` lifecycle hook.
+
 ## Chat tooltip visibility
 
 `ac5e.canSeeChatTooltip(roll)` returns whether the current client may display AC5E attribution for a roll. It respects the user's Show AC5E Tooltips setting and the world's Show Chat Tooltips to Players for setting. GMs bypass only the world filter. Player ownership checks use the roll's AC5E context; missing context fails those checks.

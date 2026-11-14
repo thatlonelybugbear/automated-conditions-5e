@@ -1,5 +1,7 @@
 ## 14.610.3
 
+- Added a standalone condition editor API for other modules, with AC5E suggestions, contextual hints, and syntax checking.
+
 - Fixed Midi-QOL save/check choices sharing advantage or disadvantage with unselected abilities, skills, or tools.
 - Fixed Midi-QOL save tracker lookup confusing linked Tokens that share an Actor, including Tokens on other scenes or Levels.
 
