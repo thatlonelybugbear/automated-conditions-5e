@@ -1,3 +1,4 @@
+import { applyDefaultButtonStyles } from './ac5e-hooks-ui-utils.mjs';
 import Constants from '../ac5e-constants.mjs';
 import { _buildStandardTooltipFromLines, _isOptinSelectionActive, _localize } from '../ac5e-helpers.mjs';
 import { getAskPermissionSourceSuffix, getRollingActorIdForOptins, shouldAskPermissionForOptinEntry } from './ac5e-hooks-dialog-optins.mjs';
@@ -161,13 +162,6 @@ function syncSelectionsToUsageConfig(fieldset, usageConfig, root, choices, ac5eC
 function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, deps = {}, activity = null) {
 	if (!(root instanceof HTMLElement)) return;
 	const allButtons = root.querySelectorAll('button');
-	for (const button of allButtons) {
-		button.classList.remove('ac5e-button');
-		button.style.backgroundColor = '';
-		button.style.border = '';
-		button.style.color = '';
-		button.removeAttribute('data-tooltip');
-	}
 	const button =
 		root.querySelector('button[data-action="use"]') ??
 		root.querySelector('button[type="submit"]') ??
@@ -179,17 +173,14 @@ function applyUsageDialogButtonState(root, usageConfig, choices, ac5eConfig, dep
 		buttonText: button?.textContent?.trim?.() ?? null,
 		totalButtons: allButtons?.length ?? 0,
 	});
-	if (!(button instanceof HTMLButtonElement)) return;
-	const tooltip = buildUsageDialogTooltip(usageConfig, choices, ac5eConfig, deps, activity);
-	if (deps?.enforceDefaultButtonFocus) deps.enforceDefaultButtonFocus(root, button);
-	if (tooltip) button.classList.add('ac5e-button');
-	if (deps?.settings?.buttonColorEnabled && tooltip) {
-		if (deps.settings.buttonColorBackground) button.style.backgroundColor = deps.settings.buttonColorBackground;
-		if (deps.settings.buttonColorBorder) button.style.border = `1px solid ${deps.settings.buttonColorBorder}`;
-		if (deps.settings.buttonColorText) button.style.color = deps.settings.buttonColorText;
+	if (!(button instanceof HTMLButtonElement)) {
+		applyDefaultButtonStyles(allButtons, null, { clearTooltips: true });
+		return;
 	}
+	const tooltip = buildUsageDialogTooltip(usageConfig, choices, ac5eConfig, deps, activity);
+	applyDefaultButtonStyles(allButtons, button, { settings: deps.settings, tooltip, highlight: !!tooltip, clearTooltips: true });
+	if (deps?.enforceDefaultButtonFocus) deps.enforceDefaultButtonFocus(root, button);
 	if (tooltip) {
-		button.setAttribute('data-tooltip', tooltip);
 		if (deps?.hookDebugEnabled?.('renderHijackHook')) {
 			console.warn('ac5e usage getTooltip', tooltip);
 			console.warn('ac5e usage targetElement:', button);

@@ -1,3 +1,4 @@
+import { applyDefaultButtonStyles } from './ac5e-hooks-ui-utils.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { doDialogAttackRender, refreshDialogAbilityState } from './ac5e-hooks-dialog-d20-state.mjs';
 import { applyOptinCriticalToDamageConfig, doDialogDamageRender } from './ac5e-hooks-dialog-damage-state.mjs';
@@ -253,22 +254,10 @@ function applyRenderHijackDialogButtonState(render, elem, getConfigAC5E, tooltip
 		if (ac5eForButton && typeof ac5eForButton === 'object') ac5eForButton.defaultButton = defaultButton;
 	}
 	const allButtons = elem.querySelectorAll('button[data-action]');
-	for (const button of allButtons) {
-		button.classList.remove('ac5e-button');
-		button.style.backgroundColor = '';
-		button.style.border = '';
-		button.style.color = '';
-	}
 	const targetElement = elem.querySelector(`button[data-action="${defaultButton}"]`);
+	applyDefaultButtonStyles(allButtons, targetElement, { settings: deps.settings, tooltip });
 	if (!targetElement) return true;
 	deps.enforceDefaultButtonFocus(elem, targetElement);
-	if (deps.settings.buttonColorEnabled) {
-		if (deps.settings.buttonColorBackground) targetElement.style.backgroundColor = deps.settings.buttonColorBackground;
-		if (deps.settings.buttonColorBorder) targetElement.style.border = `1px solid ${deps.settings.buttonColorBorder}`;
-		if (deps.settings.buttonColorText) targetElement.style.color = deps.settings.buttonColorText;
-	}
-	targetElement.classList.add('ac5e-button');
-	targetElement.setAttribute('data-tooltip', tooltip);
 	if (deps.hookDebugEnabled('renderHijackHook')) {
 		console.warn('ac5e hijack getTooltip', tooltip);
 		console.warn('ac5e hijack targetElement:', targetElement);
