@@ -240,20 +240,39 @@ function _getOriginActivityRollData(activity) {
 }
 
 function _withEffectOriginEvaluationData(sandbox, effect) {
-	const originContext = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target });
-	const originItem = originContext.originItem;
-	const originActivity = originContext.originActivity;
-	const originItemData = _getOriginItemRollData(originItem);
-	const originActivityData = _getOriginActivityRollData(originActivity);
-	const originItemProperties = _getItemPropertiesMap(originItem);
-	if (originItemData) originItemData.properties = _getItemPropertiesSet(originItem);
-	return Object.assign(Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox)), {
-		effectOriginActor: _ac5eActorRollData(null, null, originContext.originActor),
-		originItem: originItemData,
-		originActivity: originActivityData,
-		originItemType: originItem?.type,
-		originItemProperties,
+	const scopedSandbox = Object.defineProperties({}, Object.getOwnPropertyDescriptors(sandbox));
+	let originContext;
+	const getOriginContext = () => (originContext ??= _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target }));
+	const defineLazy = (key, prepare) => {
+		let initialized = false;
+		let value;
+		Object.defineProperty(scopedSandbox, key, {
+			configurable: true,
+			enumerable: true,
+			get() {
+				if (!initialized) {
+					value = prepare();
+					initialized = true;
+				}
+				return value;
+			},
+			set(next) {
+				value = next;
+				initialized = true;
+			},
+		});
+	};
+	defineLazy('effectOriginActor', () => _ac5eActorRollData(null, null, getOriginContext().originActor));
+	defineLazy('originItem', () => {
+		const item = getOriginContext().originItem;
+		const data = _getOriginItemRollData(item);
+		data.properties = _getItemPropertiesSet(item);
+		return data;
 	});
+	defineLazy('originActivity', () => _getOriginActivityRollData(getOriginContext().originActivity));
+	defineLazy('originItemType', () => getOriginContext().originItem?.type);
+	defineLazy('originItemProperties', () => _getItemPropertiesMap(getOriginContext().originItem));
+	return scopedSandbox;
 }
 
 function _getItemPropertiesMap(item) {

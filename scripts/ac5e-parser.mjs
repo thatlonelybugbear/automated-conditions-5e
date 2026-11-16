@@ -329,8 +329,6 @@ function findMatchingColon(str, qIndex) {
 function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 	let out = expr;
 	for (const actorName of actorNames) {
-		const actor = sandbox[actorName];
-		if (!actor) continue;
 		const quotedString = '"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\'|`(?:\\\\.|[^`\\\\])*`';
 		const helperRanges = [];
 		const helperRegex = new RegExp(`${quotedString}|([A-Za-z_$][\\w$]*)\\(`, 'g');
@@ -345,6 +343,8 @@ function resolveActorAtRefs(expr, sandbox, actorNames, Roll, debug) {
 		out = out.replace(refRegex, (match, ref, diceCount, attachedRef, offset) => {
 			ref ??= attachedRef;
 			if (!ref) return match;
+			const actor = sandbox[actorName];
+			if (!actor) return match;
 			try {
 				const path = ref.slice(actorName.length + 1).replace(/\[\s*([^\]]+?)\s*\]/g, (_, index) => {
 					if (index.split('.').some((key) => BLOCKED.has(key))) throw new Error('Blocked actor index');
