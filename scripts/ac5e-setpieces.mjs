@@ -3114,10 +3114,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 					}),
 				);
 				allPromises.push(
-					...validItemUpdates.map((v) => {
-						const doc = _safeFromUuidSync(v.uuid);
-						return doc ? doc.update(v.updates) : Promise.resolve(null);
-					}),
+					..._applyUsesCountUpdates(validItemUpdates),
 				);
 				allPromises.push(
 					...validActorUpdates.map((v) => {
@@ -3126,10 +3123,7 @@ function ac5eFlags({ ac5eConfig, subjectToken, opponentToken, evaluationData: ex
 					}),
 				);
 				allPromises.push(
-					...validActivityUpdates.map((v) => {
-						const act = _safeFromUuidSync(v.uuid);
-						return act ? act.update(v.updates) : Promise.resolve(null);
-					}),
+					..._applyUsesCountUpdates(validActivityUpdates),
 				);
 				const settled = await Promise.allSettled(allPromises);
 
@@ -4209,13 +4203,7 @@ export function _applyPendingUses(pendingUses = []) {
 					}),
 				);
 				allPromises.push(
-					...validItemUpdates.map((v) => {
-						const uuid = getUuid(v);
-						const updates = getUpdates(v);
-						if (typeof uuid !== 'string' || !updates) return Promise.resolve(null);
-						const doc = _safeFromUuidSync(uuid);
-						return doc ? doc.update(updates) : Promise.resolve(null);
-					}),
+					..._applyUsesCountUpdates(validItemUpdates),
 				);
 				allPromises.push(
 					...validActorUpdates.map((v) => {
@@ -4237,13 +4225,7 @@ export function _applyPendingUses(pendingUses = []) {
 					}),
 				);
 				allPromises.push(
-					...validActivityUpdates.map((v) => {
-						const uuid = getUuid(v);
-						const updates = getUpdates(v);
-						if (typeof uuid !== 'string' || !updates) return Promise.resolve(null);
-						const act = _safeFromUuidSync(uuid);
-						return act ? act.update(updates) : Promise.resolve(null);
-					}),
+					..._applyUsesCountUpdates(validActivityUpdates),
 				);
 				const settled = await Promise.allSettled(allPromises);
 
@@ -4551,6 +4533,41 @@ function _registerOriginUsesPermissionOverride({ updateArrays, id, baseId, owner
 	});
 }
 
+// Accumulate resource operations per document before issuing a single update.
+function _applyUsesCountUpdates(entries) {
+	const grouped = new Map();
+	for (const entry of entries) {
+		const context = entry?.context ?? entry;
+		const { uuid, updates } = context ?? {};
+		if (typeof uuid !== 'string' || !updates) continue;
+		if (!grouped.has(uuid)) grouped.set(uuid, []);
+		grouped.get(uuid).push(context);
+	}
+	return [...grouped].map(async ([uuid, contexts]) => {
+		const doc = _safeFromUuidSync(uuid);
+		if (!doc) return null;
+		const accumulated = {};
+		for (const { updates, usesCount } of contexts) {
+			if (!usesCount) {
+				Object.assign(accumulated, updates);
+				continue;
+			}
+			const { path, max, consume, mode, partialConsume } = usesCount;
+			const spent = Number(accumulated[path] ?? foundry.utils.getProperty(doc, path));
+			if (!Number.isFinite(spent) || max === null) {
+				Object.assign(accumulated, updates);
+				continue;
+			}
+			const current = Math.max(0, max - spent);
+			const amount = mode === 'delta' && partialConsume && consume > 0 ? Math.min(consume, current) : consume;
+			const next = _applyUsesCountOperation(current, amount, mode);
+			if (next < 0) continue;
+			Object.assign(accumulated, updates, { [path]: Math.max(0, max - Math.min(next, max)) });
+		}
+		return Object.keys(accumulated).length ? doc.update(accumulated) : null;
+	});
+}
+
 function updateUsesCount({
 	effect,
 	item,
@@ -4609,12 +4626,12 @@ function updateUsesCount({
 		const spent = max !== null ? Math.max(0, max - boundedUses) : 0;
 		if (usesSource === 'activity' && activity) {
 			_logUsesCount('queue-update', { effect: effect?.name, id, usesSource: 'activity', targetUuid: activity.uuid, spent, max, boundedUses, owner: usesDocumentOwner });
-			if (usesDocumentOwner) activityUpdates.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
-			else activityUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent } } });
+			if (usesDocumentOwner) activityUpdates.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent }, usesCount: { path: 'uses.spent', max, consume, mode, partialConsume } } });
+			else activityUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: activity.uuid, updates: { 'uses.spent': spent }, usesCount: { path: 'uses.spent', max, consume, mode, partialConsume } } });
 		} else if (usesSource === 'item' && item) {
 			_logUsesCount('queue-update', { effect: effect?.name, id, usesSource: 'item', targetUuid: item.uuid, spent, max, boundedUses, owner: usesDocumentOwner });
-			if (usesDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
-			else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent } } });
+			if (usesDocumentOwner) itemUpdates.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent }, usesCount: { path: 'system.uses.spent', max, consume, mode, partialConsume } } });
+			else itemUpdatesGM.push({ id, baseId, name: effect.name, context: { uuid: item.uuid, updates: { 'system.uses.spent': spent }, usesCount: { path: 'system.uses.spent', max, consume, mode, partialConsume } } });
 		} else {
 			_logUsesCount('blocked', { effect: effect?.name, id, reason: 'missing-uses-document', usesSource });
 			return false;
