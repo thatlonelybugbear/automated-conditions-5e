@@ -1,3 +1,9 @@
+## 14.610.5
+
+- Fixed multiple effects restoring or consuming uses on the same Item or activity overwriting one another. Changes now accumulate into a single update per document, respecting available uses and maximums, including recovery after a maximum decreases.
+- Avoid preparing effect-origin actor, Item, and activity data when conditions or formulas do not use it.
+- Improved roll dialog responsiveness while keeping the suggested roll button selected until you interact with the dialog.
+
 ## 14.610.4
 - Added a standalone condition editor API for other modules, with AC5E suggestions, contextual hints, and syntax checking.
 - Fixed Midi-QOL save/check choices sharing advantage or disadvantage with unselected abilities, skills, or tools.
