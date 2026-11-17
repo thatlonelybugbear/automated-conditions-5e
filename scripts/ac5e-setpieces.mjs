@@ -4578,6 +4578,7 @@ function _applyUsesCountUpdates(entries) {
 				continue;
 			}
 			const current = Math.max(0, max - spent);
+			if (mode === 'delta' && partialConsume && consume > 0 && current <= 0) continue;
 			const amount = mode === 'delta' && partialConsume && consume > 0 ? Math.min(consume, current) : consume;
 			const next = _applyUsesCountOperation(current, amount, mode);
 			if (next < 0) continue;
@@ -4607,6 +4608,10 @@ function updateUsesCount({
 }) {
 	const hasUses = currentUses !== false;
 	const hasQuantity = currentQuantity !== false;
+	if (mode === 'delta' && partialConsume && consume > 0 && ((hasUses && currentUses <= 0) || (hasQuantity && currentQuantity <= 0))) {
+		_logUsesCount('blocked', { effect: effect?.name, id, reason: 'resource-is-zero', usesSource, currentUses, currentQuantity, consume });
+		return false;
+	}
 	const usesDocumentOwner =
 		usesSource === 'activity' ? !!activity?.isOwner
 		: usesSource === 'item' ? !!item?.isOwner

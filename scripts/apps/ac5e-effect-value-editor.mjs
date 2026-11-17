@@ -509,7 +509,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover', 'preselected'],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, ...CONDITIONAL_TOGGLE_FIELDS, 'recover', 'preselected'],
 		});
 		if (!showName) mergedData.fields.name = '';
 		if (!mergedData.toggles.optin) {
@@ -861,7 +861,7 @@ export class AC5EEffectValueEditor extends HandlebarsApplicationMixin(Applicatio
 		if (profile.supportsSetMode) applySetModeToFormData(formData, setMode, profile.setModeField);
 		const mergedData = mergeAc5eEffectValueFormData(baseData, formData, {
 			fieldNames: [...getPersistedFieldNames(profile)],
-			toggleNames: [...profile.commonToggles, ...profile.contextToggles, 'recover', 'preselected'],
+			toggleNames: [...profile.commonToggles, ...profile.contextToggles, ...CONDITIONAL_TOGGLE_FIELDS, 'recover', 'preselected'],
 		});
 		if (!showName) mergedData.fields.name = baseData.fields.name;
 		if (!showDescription) mergedData.fields.description = baseData.fields.description;

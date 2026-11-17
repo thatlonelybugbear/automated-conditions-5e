@@ -3,6 +3,8 @@
 - Fixed multiple effects restoring or consuming uses on the same Item or activity overwriting one another. Changes now accumulate into a single update per document, respecting available uses and maximums, including recovery after a maximum decreases.
 - Avoid preparing effect-origin actor, Item, and activity data when conditions or formulas do not use it.
 - Improved roll dialog responsiveness while keeping the suggested roll button selected until you interact with the dialog.
+- Fixed the Partial consumption checkbox not saving in the effect editor, including for optional effects.
+- Fixed the Partial consumption allowing use when the resource is at zero.
 - Verified for D&D5e 6.1.1.
 
 ## 14.610.4
