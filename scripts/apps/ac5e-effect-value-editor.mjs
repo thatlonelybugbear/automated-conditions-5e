@@ -1331,6 +1331,10 @@ function buildLambdaAssistData(
 		{ label: 'originItem', value: 'originItem' },
 		{ label: 'originActivity', value: 'originActivity' },
 	];
+	const callerPaths = new Set(entryRecords.filter((entry) => entry.source === 'Caller context').map((entry) => entry.identifier));
+	const callerRoots = dedupe([...callerPaths].filter((identifier) => identifier.includes('.')).map((identifier) => identifier.split('.')[0]))
+		.filter((root) => !allEntryPoints.some((entry) => entry.value === root));
+	allEntryPoints.push(...callerRoots.map((value) => ({ label: value, value })));
 	const entryPoints = allEntryPoints.filter((entry) => includeAuraActor || entry.value !== 'auraActor').filter((entry) => includeEffectOriginActor || entry.value !== 'effectOriginActor');
 	const actorEntryButtons = entryPoints
 		.filter((entry) => ['rollingActor', 'opponentActor', 'auraActor', 'effectActor', 'nonEffectActor', 'effectOriginActor'].includes(entry.value))
@@ -1350,7 +1354,7 @@ function buildLambdaAssistData(
 		{ label: editorAssist('Ternary'), value: '(condition ? trueValue : falseValue)' },
 	];
 	const sandboxIdentifiers = dedupe(entryRecords.filter((entry) => isSandboxAssistIdentifier(entry)).map((entry) => entry.identifier));
-	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier));
+	const compatibilityFiltered = sandboxIdentifiers.filter((identifier) => !isLegacyCompatibilityIdentifier(identifier) && !callerRoots.includes(identifier));
 	const contextualFallbacks = getContextSandboxFallbackEntries(changeKey);
 	const contextualIdentifiers = dedupe([...compatibilityFiltered, ...contextualFallbacks]);
 	const rollAwareEntries = dedupe([...contextualIdentifiers, "optinSelected['']"].filter((identifier) => isConditionEntry(identifier))).sort((a, b) => a.localeCompare(b));
@@ -1361,7 +1365,7 @@ function buildLambdaAssistData(
 		entryPoints.map((entry) => {
 			const fromEntries = uniqueIdentifiers
 				.filter((identifier) => identifier === entry.value || identifier.startsWith(`${entry.value}.`))
-				.filter((identifier) => !identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`)
+				.filter((identifier) => callerPaths.has(identifier) || (!identifier.startsWith(`${entry.value}.system.`) && identifier !== `${entry.value}.system`))
 				.filter((identifier) => isAssistPathIdentifier(identifier));
 			return [entry.value, dedupe(fromEntries)];
 		}),
@@ -1465,10 +1469,12 @@ function buildLambdaAssistData(
 			[...flatScopedEntries]
 		:	dedupe([...contextRollAwareEntries, ...actorContextEntries, ...itemActivityContextEntries, ...AC5E_FUNCTION_ASSIST_ENTRIES]).sort((a, b) => a.localeCompare(b));
 	return {
+		availability: new Map(entryRecords.map((entry) => [entry.identifier, entry])),
 		scope: assistScope,
 		modifierEntries: assistScope === 'modifier' ? buildModifierAssistEntries(changeKey) : [],
 		entryPoints: resolvedEntryPoints,
 		actorEntryButtons,
+		callerEntryButtons: callerRoots,
 		itemActivityEntryButtons,
 		actorContextEntries,
 		itemActivityContextEntries,
@@ -1975,6 +1981,7 @@ function renderAssistEntryGroups(assist) {
 		`;
 	}
 	return `
+		${assist.callerEntryButtons?.length ? renderAssistCombinedFieldset('Context entries', assist.callerEntryButtons, [], 'context', true) : ''}
 		${renderAssistCombinedFieldset(editorAssist('ActorEntries'), assist.actorEntryButtons, assist.actorContextEntries, 'actor', true)}
 		${renderAssistCombinedFieldset(editorAssist('ItemActivityEntries'), assist.itemActivityEntryButtons, assist.itemActivityContextEntries, 'item-activity', true)}
 		${renderAssistActionFieldset(editorAssist('RollAwareEntries'), assist.rollAwareEntries, 'ac5e-assist-entry', 'entry', 'roll-aware', true)}
@@ -2058,8 +2065,60 @@ function resetAssistBrowserContext(root, assist, selectionState, textarea) {
 	root.dataset.ac5eAssistActiveRoot = '';
 	root.dataset.ac5eAssistChain = '[]';
 	root.dataset.ac5eAssistFilter = '';
+	root.dataset.ac5eAssistEntryFocus = '';
 	setAssistActivePath(root, '');
 	renderAssistStage(root, assist, selectionState, textarea);
+	for (const button of root.querySelectorAll('[data-ac5e-assist-entry], [data-ac5e-assist-root-insert]')) {
+		button.hidden = false;
+		button.classList.remove('active', 'ac5e-effect-value-assist-focused', 'ac5e-effect-value-assist-single-match');
+	}
+	applyAssistAvailability(root, assist);
+}
+
+function returnToAssistRoots(root, assist, selectionState, textarea) {
+	const caret = Number(textarea.selectionStart ?? 0);
+	const token = extractAutocompleteToken(textarea.value, caret);
+	const activeRoot = root.dataset.ac5eAssistActiveRoot;
+	const tree = assist?.treesByRoot?.[activeRoot];
+	// Remove only an unfinished path at the caret; keep completed fields and other text.
+	if (token.startsWith(`${activeRoot}.`) && !/[\w.]/.test(textarea.value[caret] ?? '')
+		&& (token.endsWith('.') || !findTreeNodeByPath(tree, token)?.terminal)) {
+		textarea.value = textarea.value.slice(0, caret - token.length) + textarea.value.slice(caret);
+		textarea.setSelectionRange(caret - token.length, caret - token.length);
+		if (selectionState) {
+			selectionState.start = selectionState.end = caret - token.length;
+			selectionState.recentAssistInsert = null;
+		}
+		textarea.dispatchEvent(new Event('input', { bubbles: true }));
+	}
+	resetAssistBrowserContext(root, assist, selectionState, textarea);
+}
+
+function isAssistEntryDisabled(assist, identifier) {
+	return assist?.availability?.get(identifier)?.disabled === true;
+}
+
+function applyAssistAvailability(root, assist) {
+	if (!assist?.availability) return;
+	for (const button of root.querySelectorAll('[data-ac5e-assist-entry], [data-ac5e-assist-root-insert], [data-ac5e-assist-node], [data-ac5e-assist-value]')) {
+		const identifier = button.dataset.ac5eAssistEntry ?? button.dataset.ac5eAssistRootInsert ?? button.dataset.ac5eAssistNode ?? root.dataset.ac5eAssistValuePath;
+		if (!isAssistEntryDisabled(assist, identifier)) continue;
+		button.disabled = true;
+		button.setAttribute('aria-disabled', 'true');
+		const reason = assist.availability.get(identifier).disabledReason;
+		if (reason) {
+			button.title = reason;
+			// A wrapper receives hover even when the browser suppresses disabled-button events.
+			if (!button.parentElement?.classList.contains('ac5e-assist-unavailable')) {
+				const wrapper = document.createElement('span');
+				wrapper.className = 'ac5e-assist-unavailable';
+				button.before(wrapper);
+				wrapper.append(button);
+			}
+			button.parentElement.title = reason;
+			button.parentElement.hidden = button.hidden;
+		}
+	}
 }
 
 function prepareLambdaAssist(root, assist, scopeOverride = '') {
@@ -2211,7 +2270,7 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-entry]')) {
 		button.addEventListener('click', () => {
 			const value = (button.dataset.ac5eAssistEntry ?? '').trim();
-			if (!value) return;
+			if (!value || isAssistEntryDisabled(assist, value)) return;
 			if (isCounterAssistScope(assistScope)) {
 				applyCounterAssistEntrySelection(textarea, value, assistRoot, assist, selectionState);
 				return;
@@ -2228,7 +2287,7 @@ function prepareLambdaAssist(root, assist, scopeOverride = '') {
 	for (const button of assistRoot.querySelectorAll('[data-ac5e-assist-root-insert]')) {
 		button.addEventListener('click', () => {
 			const rootName = (button.dataset.ac5eAssistRootInsert ?? '').trim();
-			if (!rootName) return;
+			if (!rootName || isAssistEntryDisabled(assist, rootName)) return;
 			if (isCounterAssistScope(assistScope)) {
 				applyCounterAssistRootSelection(textarea, rootName, assistRoot, assist, selectionState);
 				return;
@@ -2344,6 +2403,7 @@ function renderAssistStage(root, assist, selectionState, textarea) {
 		: [];
 	for (const container of containers) {
 		container.innerHTML = renderAssistNodeStage(activeValueChoices.length || exactValueNode ? [] : nodes, headerPath, chain.length > 0, valueChoices);
+		applyAssistAvailability(root, assist);
 		bindAssistStageContainer(container, root, assist, selectionState, textarea, tree, nodes, activeRoot, chain);
 	}
 	updateAssistEntryHighlights(root, textarea, assist);
@@ -2366,7 +2426,7 @@ function bindAssistStageContainer(container, root, assist, selectionState, texta
 	});
 	const rootsButton = container.querySelector('[data-ac5e-assist-roots]');
 	rootsButton?.addEventListener('click', () => {
-		resetAssistBrowserContext(root, assist, selectionState, textarea);
+		returnToAssistRoots(root, assist, selectionState, textarea);
 	});
 	for (const nodeButton of container.querySelectorAll('[data-ac5e-assist-node]')) {
 		const nodePath = nodeButton.dataset.ac5eAssistNode ?? '';
@@ -2393,6 +2453,7 @@ function bindAssistStageContainer(container, root, assist, selectionState, texta
 			const value = valueButton.dataset.ac5eAssistValue ?? '';
 			if (!value) return;
 			const valuePath = root.dataset.ac5eAssistValuePath ?? '';
+			if (isAssistEntryDisabled(assist, valuePath)) return;
 			const activeRoot = root.dataset.ac5eAssistActiveRoot ?? '';
 			const chain = root.dataset.ac5eAssistChain ?? '[]';
 			insertAssistValueAtCursor(textarea, value, valuePath, selectionState);
@@ -2408,7 +2469,7 @@ function bindAssistStageContainer(container, root, assist, selectionState, texta
 }
 
 function applyAssistNodeButton(node, textarea, root, assist, selectionState, tree, activeRoot) {
-	if (!node) return;
+	if (!node || isAssistEntryDisabled(assist, node.path)) return;
 	if (node.isVirtualArrayMethod) {
 		replaceTokenAtCursorOrInsert(textarea, node.insertion ?? '', selectionState);
 		resetAssistBrowserContext(root, assist, selectionState, textarea);
@@ -2442,7 +2503,7 @@ function applyAssistNodeButton(node, textarea, root, assist, selectionState, tre
 }
 
 function applyFocusedAssistStageButton(button, textarea, root, assist, selectionState) {
-	if (!(button instanceof HTMLElement)) return false;
+	if (!(button instanceof HTMLElement) || button.disabled) return false;
 	const value = button.dataset.ac5eAssistValue ?? '';
 	if (value) {
 		const valuePath = root.dataset.ac5eAssistValuePath ?? '';
@@ -2639,7 +2700,7 @@ function applyAssistTabRootCompletion(textarea, root, assist, selectionState) {
 	const normalized = (token ?? '').trim();
 	if (!normalized || normalized.includes('.')) return false;
 	const roots = (assist?.entryPoints ?? []).map((entry) => (entry?.value ?? '').trim()).filter(Boolean);
-	const matches = roots.filter((entry) => assistEntryMatchesToken(entry, normalized));
+	const matches = roots.filter((entry) => !isAssistEntryDisabled(assist, entry) && assistEntryMatchesToken(entry, normalized));
 	if (!matches.length) return false;
 	const entryMatches = getAssistEntryMatchesInUiOrder(root, normalized);
 	const uniqueMatches = new Set([...matches, ...entryMatches]);
@@ -2674,7 +2735,7 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 			const parentNode = chain.length ? findTreeNodeByPath(tree, chain[chain.length - 1]) : tree;
 			const headerPath = chain.length ? chain[chain.length - 1] : activeRoot;
 			const stageNodes = getAssistStageNodes(parentNode, headerPath);
-			const match = stageNodes.find((node) => assistEntryMatchesToken(node?.label, normalized));
+			const match = stageNodes.find((node) => !isAssistEntryDisabled(assist, node.path) && assistEntryMatchesToken(node?.label, normalized));
 			if (match?.path) {
 				const insertion = match.isVirtualArrayMethod ? (match.insertion ?? '') : resolveAssistNodeCompletionInsertion(textarea, match);
 				const assistScope = getAssistScope(root);
@@ -2706,7 +2767,7 @@ function applyAssistTabPathCompletion(textarea, root, assist, selectionState) {
 	const headerPath = chain.length ? chain[chain.length - 1] : context.root;
 	const stageNodes = getAssistStageNodes(parentNode, headerPath);
 	const filterText = (context.filter ?? '').trim().toLowerCase();
-	const nodes = filterText ? stageNodes.filter((node) => assistEntryMatchesToken(node?.label, filterText)) : stageNodes;
+	const nodes = stageNodes.filter((node) => !isAssistEntryDisabled(assist, node.path) && (!filterText || assistEntryMatchesToken(node?.label, filterText)));
 	if (!nodes.length) return false;
 	const insertion = nodes[0].isVirtualArrayMethod ? (nodes[0].insertion ?? '') : resolveAssistNodeCompletionInsertion(textarea, nodes[0]);
 	const assistScope = getAssistScope(root);
@@ -2744,6 +2805,7 @@ function applyAssistTabEntryCompletion(textarea, root, assist, selectionState, d
 
 function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = null) {
 	if (!(root instanceof HTMLElement) || !(textarea instanceof HTMLTextAreaElement)) return;
+	applyAssistAvailability(root, assist);
 	const caret = Number(textarea.selectionStart ?? 0);
 	const rawToken = extractAutocompleteToken(textarea.value, caret);
 	const token = rawToken.toLowerCase();
@@ -2827,6 +2889,7 @@ function updateAssistEntryHighlights(root, textarea, assist, explicitMatches = n
 		button.hidden = false;
 	}
 	updateAssistStageHighlights(root, rawToken);
+	applyAssistAvailability(root, assist);
 }
 
 function updateAssistStageHighlights(root, rawToken) {
@@ -2905,7 +2968,7 @@ function cycleAssistEntryFromInput(textarea, root, assist, selectionState = null
 }
 
 function openAssistValuePathIfAvailable(textarea, root, assist, tree, activeRoot, path, selectionState = null) {
-	if (!resolveAssistValueChoices(path, assist?.enumValues).length) return false;
+	if (isAssistEntryDisabled(assist, path) || !resolveAssistValueChoices(path, assist?.enumValues).length) return false;
 	setAssistActivePath(root, path);
 	root.dataset.ac5eAssistActiveRoot = activeRoot;
 	root.dataset.ac5eAssistChain = JSON.stringify(buildAssistChainForPath(tree, activeRoot, path));
@@ -3411,6 +3474,7 @@ function getAssistMatchButtonsInUiOrder(root, token, rawToken = '') {
 	}
 	for (const button of root.querySelectorAll('[data-ac5e-assist-root-insert], [data-ac5e-assist-entry], [data-ac5e-assist-insert]')) {
 		if (button.dataset.ac5eAssistInsert && !shouldIncludeOperatorMatches(rawToken, root, query)) continue;
+		if (button.disabled) continue;
 		const value = getAssistButtonValue(button).trim();
 		if (!value) continue;
 		if (!assistEntryMatchesToken(value, query)) continue;
@@ -3425,6 +3489,7 @@ function getAssistStageMatchButtonsInUiOrder(root, token) {
 	if (!query || !root.dataset.ac5eAssistActiveRoot) return [];
 	const buttons = [];
 	for (const button of root.querySelectorAll('[data-ac5e-main-assist-stage] [data-ac5e-assist-node], [data-ac5e-main-assist-stage] [data-ac5e-assist-value]')) {
+		if (button.disabled) continue;
 		const value = getAssistStageButtonMatchText(button);
 		if (!value || !assistEntryMatchesToken(value, query)) continue;
 		buttons.push(button);
@@ -3595,6 +3660,7 @@ function getAssistEntryMatchesInUiOrder(root, token) {
 	if (!token) return [];
 	const matches = [];
 	for (const button of root.querySelectorAll('[data-ac5e-assist-entry]')) {
+		if (button.disabled) continue;
 		const value = (button.dataset.ac5eAssistEntry ?? '').trim();
 		if (!value) continue;
 		if (!assistEntryMatchesToken(value, token)) continue;
@@ -4891,6 +4957,11 @@ function normalizeScalingConfig(scalingInputs) {
 export function getConditionAutocompleteEntries({ context = {} } = {}) {
 	const entries = new Map(buildEffectValueAutocompleteEntries().map((entry) => [entry.identifier, { ...entry, hint: entry.source ?? '' }]));
 	for (const entry of normalizeConditionContext(context)) entries.set(entry.identifier, entry);
+	for (const entry of entries.values()) {
+		const availability = Object.hasOwn(context.availability ?? {}, entry.identifier) ? context.availability[entry.identifier] : null;
+		entry.disabled = availability?.disabled === true;
+		entry.disabledReason = typeof availability?.disabledReason === 'string' ? availability.disabledReason : '';
+	}
 	return [...entries.values()].sort((a, b) => a.identifier.localeCompare(b.identifier));
 }
 
@@ -4903,22 +4974,36 @@ export async function openConditionEditor({ expression = '', context = {}, title
 	return new Promise((resolve, reject) => {
 		let result = null;
 		const dialog = new foundry.applications.api.DialogV2({
-			window: { title: title || editorLabel('Condition'), resizable: false },
+			classes: ['ac5e-condition-editor'],
+			window: { title: title || editorLabel('Condition'), resizable: true },
 			position: { width: 720 },
 			form: { closeOnSubmit: false },
-			content: `<div class="ac5e-effect-value-expand-dialog scrollable" style="max-height: calc(100vh - 10rem)" data-ac5e-lambda-assist data-ac5e-assist-scope="conditions">
+			content: `<div class="ac5e-effect-value-expand-dialog" data-ac5e-lambda-assist data-ac5e-assist-scope="conditions">
 				<div class="form-group stacked"><label>${escapeHtml(editorLabel('Condition'))}</label>
 				<textarea name="value" rows="5" aria-label="${escapeHtml(editorLabel('Condition'))}">${escapeHtml(expression)}</textarea></div>
 				<p data-condition-diagnostics role="status" aria-live="polite"></p>
+				<label class="ac5e-effect-value-editor-inline-toggle"><input type="checkbox" data-ac5e-hide-unavailable><span>${escapeHtml(editorAssist('HideUnavailable'))}</span></label>
 				${renderAssistActionFieldset(editorAssist('Operators'), assist.operators, 'ac5e-assist-insert', 'button')}
 				<div class="ac5e-effect-value-assist-groups" data-ac5e-assist-entry-groups>${renderAssistEntryGroups(assist)}</div>
 				<div class="ac5e-effect-value-assist-stage ac5e-effect-value-assist-main-stage" data-ac5e-main-assist-stage data-ac5e-assist-stage hidden></div>
 			</div>`,
 			buttons: [
-				{ action: 'apply', label: game.i18n.localize('AC5E.EffectValueEditor.Button.Apply'), default: true, callback: () => textarea.value },
-				{ action: 'cancel', label: 'COMMON.Cancel', callback: () => false },
+				{ action: 'reset', label: game.i18n.localize('AC5E.EffectValueEditor.Button.Reset'), callback: () => ({ action: 'reset' }) },
+				{ action: 'apply', label: game.i18n.localize('AC5E.EffectValueEditor.Button.Apply'), callback: () => ({ action: 'apply', value: textarea.value }) },
+				{ action: 'applyClose', label: game.i18n.localize('AC5E.EffectValueEditor.Button.ApplyClose'), default: true, callback: () => textarea.value },
 			],
 			submit: async (value) => {
+				if (value?.action === 'reset') {
+					textarea.value = '';
+					textarea.setSelectionRange(0, 0);
+					textarea.dispatchEvent(new Event('input', { bubbles: true }));
+					textarea.focus();
+					return;
+				}
+				if (value?.action === 'apply') {
+					if (validateCondition({ expression: value.value, context }).valid) result = value.value;
+					return;
+				}
 				if (typeof value === 'string' && !validateCondition({ expression: value, context }).valid) return;
 				result = typeof value === 'string' ? value : null;
 				await dialog.close();
@@ -4927,10 +5012,19 @@ export async function openConditionEditor({ expression = '', context = {}, title
 		dialog.addEventListener('render', () => {
 			textarea = dialog.element.querySelector('textarea[name="value"]');
 			prepareLambdaAssist(dialog.element, assist, 'conditions');
+			dialog.element.querySelector('[data-ac5e-hide-unavailable]').addEventListener('change', (event) => {
+				dialog.element.dataset.ac5eHideUnavailable = String(event.currentTarget.checked);
+			});
+			dialog.element.querySelector('[data-action="reset"]').addEventListener('click', (event) => {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				void dialog.options.submit({ action: 'reset' });
+			}, { capture: true });
 			const update = () => {
 				const validation = validateCondition({ expression: textarea.value, context });
 				dialog.element.querySelector('[data-condition-diagnostics]').textContent = validation.diagnostics.map((entry) => entry.message).join(' ');
 				dialog.element.querySelector('[data-action="apply"]').disabled = !validation.valid;
+				dialog.element.querySelector('[data-action="applyClose"]').disabled = !validation.valid;
 			};
 			textarea.addEventListener('input', update);
 			update();

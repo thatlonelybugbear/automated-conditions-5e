@@ -638,6 +638,7 @@
 			"Edit": "Edit {label}"
 		},
 		"Assist": {
+			"HideUnavailable": "Hide unavailable",
 			"Root": "Root",
 			"Values": "Values",
 			"Operators": "Operators",

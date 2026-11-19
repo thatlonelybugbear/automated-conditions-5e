@@ -792,3 +792,52 @@
 		flex: 1 1 0;
 	}
 }
+
+.ac5e-effect-value-expand-dialog button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ac5e-assist-unavailable {
+  display: inline-flex;
+  cursor: not-allowed;
+}
+.ac5e-assist-unavailable[hidden] { display: none; }
+.ac5e-assist-unavailable > button { pointer-events: none; }
+
+.application.ac5e-condition-editor {
+  min-width: min(480px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
+.application.ac5e-condition-editor .window-content,
+.application.ac5e-condition-editor .dialog-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.application.ac5e-condition-editor .dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.application.ac5e-condition-editor textarea {
+  min-height: clamp(6rem, 20vh, 12rem);
+}
+.application.ac5e-condition-editor .form-footer {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.application.ac5e-condition-editor .form-footer > button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  padding: 0.3rem 0.65rem;
+}
+
+.application.ac5e-condition-editor[data-ac5e-hide-unavailable="true"] button[aria-disabled="true"],
+.application.ac5e-condition-editor[data-ac5e-hide-unavailable="true"] .ac5e-assist-unavailable {
+  display: none;
+}
