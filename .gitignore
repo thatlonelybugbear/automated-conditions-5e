@@ -12,11 +12,6 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Local tests
-tests/
-*.test.*
-*.tests.*
-
 # Local workspace helpers
 worktrees/
 wiki-remote/
@@ -25,6 +20,3 @@ snapshots/
 # Local release artifacts
 module.zip
 *.zip
-
-# Not ready
-scripts/ac5e-ui.mjs
