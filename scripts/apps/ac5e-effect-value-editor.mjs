@@ -4089,11 +4089,12 @@ function tryReplaceEmptyCreatureTypeIncludesValue(input, quotedValue, path, sele
 	const escapedPath = escapeRegExp(path);
 	const beforePattern = new RegExp(`${escapedPath}\\.includes\\(\\s*'\\s*$`);
 	if (!beforePattern.test(before)) return false;
-	if (!/^'\s*\)/.test(after)) return false;
+	const closing = after.match(/^'\s*\)/);
+	if (!closing) return false;
 	const rawValue = `${quotedValue ?? ''}`.trim().replace(/^'/, '').replace(/'$/, '').replace(/\\'/g, "'");
 	const nextBefore = `${before}${rawValue}`;
 	input.value = `${nextBefore}${after}`;
-	const nextCursor = nextBefore.length;
+	const nextCursor = nextBefore.length + closing[0].length;
 	input.focus();
 	input.setSelectionRange(nextCursor, nextCursor);
 	if (selectionState) {
