@@ -3048,6 +3048,7 @@ function applyFocusedAssistMatch(textarea, root, assist, selectionState) {
 
 function resolveAssistEntryInsertion(entry) {
 	const value = `${entry ?? ''}`.trim();
+	if (value === 'itemName') return 'itemName[""]';
 	if (!value) return '';
 	if (value === "optinSelected['']" || /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)$/.test(value)) return value;
 	if (isEqualityAssistValuePath(value)) return value;
@@ -4425,6 +4426,9 @@ function insertAssistPathAtCursor(input, path, selectionState = null) {
 }
 
 function resolveAssistInsertion(text) {
+	if (text === 'itemName' || text === 'itemName[""]') {
+		return { text: 'itemName[""]', selectionStartOffset: 'itemName["'.length, selectionLength: 0 };
+	}
 	const rawText = String(text ?? '');
 	const trimmed = rawText.trim();
 	const placeholderMatch = rawText.match(/<[^>]+>/);

@@ -242,6 +242,7 @@ export function shouldActivateEffectValueAutocomplete(input, prefix = '') {
 }
 
 export function replaceAutocompletePrefix(input, prefix, replacement) {
+	if (replacement === 'itemName') replacement = 'itemName[""]';
 	const cursor = input.selectionStart ?? input.value.length;
 	const start = Math.max(0, cursor - prefix.length);
 	input.value = `${input.value.slice(0, start)}${replacement}${input.value.slice(cursor)}`;
@@ -253,6 +254,7 @@ export function replaceAutocompletePrefix(input, prefix, replacement) {
 
 function getAutocompleteInsertionCursorOffset(replacement) {
 	const text = String(replacement ?? '');
+	if (text === 'itemName[""]') return text.indexOf('""') + 1;
 	if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)$/.test(text)) return text.indexOf('(') + 1;
 	if (/\.creatureType\.includes\(''\)$/.test(text) || text === "optinSelected['']") return text.indexOf("''") + 1;
 	return text.length;

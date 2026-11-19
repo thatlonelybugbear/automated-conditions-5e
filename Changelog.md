@@ -1,3 +1,7 @@
+## 14.611.2.1
+
+- Fix for proper `itemName[""]` autocomplete suggestions in the Effect Value Editor.
+
 ## 14.611.2
 
 - Added reroll, exploding-die, keep/drop, and success/failure counting modifiers to d20 rolls. The modifier editor now offers the corresponding pills.
