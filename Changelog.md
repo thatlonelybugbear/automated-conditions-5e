@@ -1,3 +1,11 @@
+## 14.611.2
+
+- Added reroll, exploding-die, keep/drop, and success/failure counting modifiers to d20 rolls. The modifier editor now offers the corresponding pills.
+- Improved the condition editor used by integrations such as BM5e, with clearer suggestions, explanations for unavailable options, an optional Hide unavailable toggle, and a resizable window with accessible action buttons.
+- Native `@` formula references now follow D&D5e's roll context, including source-item data, scaling, and recursive references.
+- **Replacement setting:** for an effect applied to another actor, select **Origin** in the change's **Replacement** dropdown when `@` references should use the source's values. For example, `bonus=@abilities.cha.mod` will capture the source's Charisma modifier when the effect is applied. **No Change** leaves `@` references to resolve from the later roll context; it does not select the origin actor. Use explicit `effectOriginActor` or `auraActor` paths when the condition or formula should read that actor's current values instead.
+- **Compatibility note:** formulas relying on legacy origin or aura meanings of `@` may need explicit `effectOriginActor`, `originItem`, `originActivity`, or `auraActor` paths. Existing effects are not automatically rewritten.
+
 ## 14.611.1
 
 - Fixed multiple effects restoring or consuming uses on the same Item or activity overwriting one another. Changes now accumulate into a single update per document, respecting available uses and maximums, including recovery after a maximum decreases.
