@@ -262,6 +262,7 @@ function _withEffectOriginEvaluationData(sandbox, effect) {
 			},
 		});
 	};
+	defineLazy('_formulaData', () => effect?.getReplacementData?.(sandbox._formulaData ?? {}) ?? sandbox._formulaData ?? {});
 	defineLazy('effectOriginActor', () => _ac5eActorRollData(null, null, getOriginContext().originActor));
 	defineLazy('originItem', () => {
 		const item = getOriginContext().originItem;
@@ -4699,14 +4700,11 @@ function bonusReplacements(expression, evalData, isAura, effect, entryId = null)
 		: scalingIncrease + 1;
 	
 	const staticMap = {
-		'@spellLevel': spellLevel,
-		spellLevel: spellLevel,
-		'@castingLevel': spellLevel,
+		spellLevel,
 		castingLevel: spellLevel,
-		'@baseSpellLevel': evalData.baseSpellLevel ?? 0,
 		baseSpellLevel: evalData.baseSpellLevel ?? 0,
-		effectStacks: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
-		stackCount: effect.flags?.dae?.stacks ?? effect.flags?.statuscounter?.value ?? 1,
+		effectStacks: effect?.flags?.dae?.stacks ?? effect?.flags?.statuscounter?.value ?? 1,
+		stackCount: effect?.flags?.dae?.stacks ?? effect?.flags?.statuscounter?.value ?? 1,
 	};
 	if (Number.isFinite(Number(evalData?.baseValue))) {
 		const baseValue = Number(evalData.baseValue);
@@ -4720,42 +4718,17 @@ function bonusReplacements(expression, evalData, isAura, effect, entryId = null)
 		if (Number.isFinite(optinScale)) selectedOptinScaling = optinScale;
 	}
 	const resolvedBonusScale = selectedOptinScaling ?? scalingValue;
-	if (selectedOptinScaling !== null) {
-		expression = expression
-			.replace(/\(optinScale\)/gi, selectedOptinScaling)
-			.replace(/\boptinScale\b/gi, selectedOptinScaling);
-	}
-	expression = expression
-		.replace(/\(bonusScale\)/gi, resolvedBonusScale)
-		.replace(/\bbonusScale\b/gi, resolvedBonusScale);
-	expression = expression.replace(/@scaling\.increase\b/g, scalingIncrease);
-	expression = expression.replace(/\bscaling\.increase\b/g, scalingIncrease);
-	expression = expression.replace(/@scaling\b/g, scalingValue);
-	expression = expression.replace(/\bscaling\b/g, scalingValue);
-
-	const pattern = new RegExp(Object.keys(staticMap).join('|'), 'g');
-	expression = expression.replace(pattern, (match) => staticMap[match]);
-	if (expression.includes('@item')) {
-		const originItem = _resolveEffectOriginContext(effect, { relative: effect?.parent ?? effect?.target }).originItem;
-		if (originItem instanceof Item) {
-			const itemIndex = isAura ? evalData.auraActor.items.findIndex((i) => i.uuid === originItem.uuid) : evalData.rollingActor.items.findIndex((i) => i.uuid === originItem.uuid);
-			if (itemIndex >= 0) {
-				foundry.utils.logCompatibilityWarning('AC5E: Using @item to reference an effect origin item is deprecated. Use originItem instead.', {
-					since: '14.532.2',
-					until: '14.600.1',
-					once: true,
-				});
-				expression = isAura ? expression.replaceAll('@item', `auraActor.items[${itemIndex}]`) : expression.replaceAll('@item', `rollingActor.items.${itemIndex}`);
-			}
-		}
-	}
-	if (expression.includes('@')) expression = isAura ? expression.replaceAll('@', 'auraActor.') : expression.replaceAll('@', 'rollingActor.');
-	if (expression.includes('##')) expression = isAura ? expression.replaceAll('##', 'rollingActor.') : expression.replaceAll('##', 'opponentActor.');
-	if (expression.includes('effectOriginActor')) {
-		const tok = _getEffectOriginToken(effect, 'document');
-		evalData.effectOriginActor = _ac5eActorRollData(tok, null, _resolveEffectOriginContext(effect).originActor);
-	}
-	return expression;
+	staticMap.bonusScale = resolvedBonusScale;
+	if (selectedOptinScaling !== null) staticMap.optinScale = selectedOptinScaling;
+	staticMap['scaling.increase'] = scalingIncrease;
+	staticMap.scaling = scalingValue;
+	// Consume entire tokens so bare keywords cannot rewrite native or explicit paths.
+	return expression.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|@[\w.-]+|(?<![\w.@#])##([\w-]+(?:\.[\w-]+)*)|[A-Za-z_$][\w$]*(?:\.[\w$-]+)*/g, (token, actorPath) => {
+		if (actorPath) return `${isAura ? 'rollingActor' : 'opponentActor'}.${actorPath}`;
+		if (/^bonusScale$/i.test(token)) token = 'bonusScale';
+		if (/^optinScale$/i.test(token)) token = 'optinScale';
+		return Object.hasOwn(staticMap, token) ? String(staticMap[token]) : token;
+	});
 }
 
 function _normalizeLiteralModifierSyntax(value) {

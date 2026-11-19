@@ -1094,6 +1094,7 @@ export function _createEvaluationSandbox({ subjectToken, opponentToken, sourceAc
 	const resolvedMastery = sandboxOptions.mastery || itemData?.mastery || item?.system?.mastery;
 	sandbox.rollingActor = rollingActor || {};
 	sandbox.opponentActor = opponentActor || {};
+	sandbox._formulaData = formulaData;
 	sandbox.mod = formulaData?.mod;
 	sandbox.prof = formulaData?.prof;
 	sandbox.optinSelected = _getOptinSelectionBooleans(sandboxOptions?.[Constants.MODULE_ID]?.optinSelected);

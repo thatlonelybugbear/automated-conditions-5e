@@ -179,6 +179,7 @@ export function buildEffectValueAutocompleteEntries(effect) {
 	addCuratedEntries(entries);
 	addConfigConstantEntries(entries);
 	addKnownValueLiteralEntries(entries);
+	addEntry(entries, '@abilities.cha.mod', 'Native formula: current roll actor data; item-linked effects can override @item and @scaling. Use explicit AC5e paths in conditions.');
 	addEntry(entries, "optinSelected['']", 'AC5E roll-aware condition');
 
 	return Array.from(entries.values()).sort((a, b) => a.identifier.localeCompare(b.identifier));

@@ -82,7 +82,7 @@ export function hasUnavailableDistance(expression, sandbox) {
  * Prepare a Foundry roll formula string:
  * - strip leading assignment & trailing var noise
  * - reduce parenthesized ternaries (outer→inner, chosen branch only)
- * - resolve @-actor refs
+ * - resolve native formula data and explicit actor refs
  * - resolve whitelisted function calls (and property/index chains)
  * - pre-evaluate deterministic Math.* constants/calls
  * - inline simple identifiers from sandbox
@@ -98,9 +98,14 @@ export function prepareRollFormula(expression, sandbox, debug) {
 	const proxySandbox = createProxySandbox(sandbox, 'formula');
 	// 0) Normalize: strip leading assignment and trailing identifier (common macro typos)
 	let resultExpr = normalizeExpr(expression); // could be safe to remove, but being a bugbear... ¯_(ツ)_/¯
+	// Native references use system replacement data, independently of JS conditions.
+	resultExpr = resultExpr.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|[^"'`]+/g, (part) => {
+		if (/^["'`]/.test(part) || !part.includes('@')) return part;
+		return dnd5e.utils.replaceFormulaData(part, sandbox._formulaData ?? {});
+	});
 	// 1) Reduce only parens that contain a *top-level* ternary; dive only into chosen branch
 	resultExpr = reduceTernaryParens(resultExpr, { evaluateCondition, sandbox: proxySandbox, debug });
-	// 2) Resolve @ actor references (mutate rollingActor.x into @x, via Roll(formula, actorData))
+	// 2) Resolve explicit AC5e actor paths through their actor roll data
 	const actorNames = ['rollingActor', 'opponentActor', 'targetActor', 'auraActor', 'effectActor', 'effectOriginActor'];
 	resultExpr = resolveActorAtRefs(resultExpr, sandbox, actorNames, Roll, debug);
 	// 3) Resolve whitelisted helper calls + property chains up-front
