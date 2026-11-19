@@ -1622,8 +1622,8 @@ function resolveAssistScope(inputName, currentValue, changeKey = '') {
 }
 
 function buildModifierAssistEntries(changeKey = '') {
-	if (!/\.(?:damage|hitdie)\./i.test(changeKey)) return ['minX', 'maxX'];
-	return ['minX', 'maxX', 'maximize', 'minimize', 'adv', 'dis', 'rX', 'rrX', 'x', 'xo', 'khX', 'klX', 'dhX', 'dlX', 'even', 'odd', 'cs>=X', 'cf<=X', 'df<=X', 'sf<=X', 'ms>=X'];
+	const entries = ['minX', 'maxX', 'maximize', 'minimize', 'adv', 'dis', 'rX', 'r<=X', 'rrX', 'rr<=X', 'x', 'xo', 'khX', 'klX', 'dhX', 'dlX', 'even', 'odd', 'cs>=X', 'cf<=X', 'df<=X', 'sf<=X', 'ms>=X'];
+	return /\.(?:damage|hitdie)\./i.test(changeKey) ? entries : entries.filter((entry) => !['even', 'odd', 'df<=X', 'sf<=X', 'ms>=X'].includes(entry));
 }
 
 function buildScopedAssistEntries(scope, entries, changeKey = '', { includeEffectOriginActor = true } = {}) {

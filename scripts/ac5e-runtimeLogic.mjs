@@ -923,14 +923,6 @@ export function _calcAdvantageMode(ac5eConfig, config, dialog, message, { skipSe
 		effectiveModifiers.literals = retainedLiterals;
 	}
 	ac5eConfig.effectiveModifiers = effectiveModifiers;
-	if (Array.isArray(effectiveModifiers?.literals) && effectiveModifiers.literals.length) {
-		console.warn('AC5E unsupported literal die modifiers on d20 roll ignored', {
-			hook,
-			modifiers: [...effectiveModifiers.literals],
-			id: ac5eConfig?.id,
-			itemUuid: ac5eConfig?.item?.uuid ?? ac5eConfig?.itemUuid,
-		});
-	}
 	if (roll0?.options) {
 		const d20Faces = Number(roll0?.dice?.[0]?.faces);
 		const dieMax = Number.isFinite(d20Faces) && d20Faces > 0 ? d20Faces : 20;

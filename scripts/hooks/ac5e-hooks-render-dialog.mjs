@@ -1,3 +1,4 @@
+import { syncLiteralD20DialogFormula } from './ac5e-hooks-roll-post.mjs';
 import { applyDefaultButtonStyles } from './ac5e-hooks-ui-utils.mjs';
 import { getDialogAc5eConfig, syncDialogAc5eState } from './ac5e-hooks-dialog-state.mjs';
 import { doDialogAttackRender, refreshDialogAbilityState } from './ac5e-hooks-dialog-d20-state.mjs';
@@ -38,6 +39,7 @@ export function renderRollConfigDialogHijack(hook, render, elem, initialConfig, 
 	getConfigAC5E = hook === 'damageDialog' ? syncDamageDialogState(render, elem, getConfigAC5E, deps) : syncD20DialogState(hook, render, elem, getConfigAC5E, deps);
 	const { hookType } = getConfigAC5E || {};
 	if (!hookType) return true;
+	if (hook === 'd20Dialog' && syncLiteralD20DialogFormula(render, elem, getConfigAC5E)) applyLiteralD20CountToDialogFormula(render, elem, getConfigAC5E);
 	bindDialogModeOverrides(render, elem, getConfigAC5E, deps);
 	const { title, newTitle } = applyDialogTitleOverrides(render, elem, getConfigAC5E);
 	if (newTitle && title) title.textContent = newTitle;

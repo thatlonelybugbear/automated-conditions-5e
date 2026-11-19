@@ -114,7 +114,7 @@ Replace `MODE` with one of the following:
   - When using `MODE = bonus`, include: `bonus=XXX;` where XXX is:
     - A fixed number (e.g., bonus=2;)
     - A formula, referencing actors via:
-      - `@` or `rollingActor` - e.g., `@abilities.cha.mod` or `rollingActor.cha.mod`
+      - `@` uses native D&D5e replacement data, e.g., `@abilities.cha.mod`. Use `rollingActor.cha.mod` for an explicit AC5e actor path.
       - `#` or `opponentActor` - e.g., `##attributes.spell.dc` or `opponentActor.concentration.effects.size`
       - `auraActor` - e.g., `auraActor.attributes.ac.value` for any aura related ones.
    - For damage rolls, `bonus=1d6[fire]` adds 1d6 fire damage, and `bonus=2[necrotic]` adds 2 flat necrotic damage, while `bonus=1d6` adds 1d6 damage of the same type as the relevant damage part, and `bonus=1d6[random]` adds 1d6 damage of a random type every time the roll is evaluated.
@@ -123,6 +123,8 @@ Replace `MODE` with one of the following:
 - `modifier`:
    - Adds `max` or `min` modfiers to **d20 rolls**: `modifier=(rollingActor.attributes.hp.pct > 50 ? min15 : max10)` which will roll `1d20min15` when the rolling actor's health is above 50% and `1d20max10` otherwise
    - Adds [Foundry roll modifiers](https://foundryvtt.com/article/dice-modifiers/) to **damage rolls**.
+   - D20 rolls (attacks, checks, saves, and initiative) also support reroll, explosion, keep/drop, and success/failure counting modifiers. `modifier=r9` rerolls an initial result of exactly 9 once; `modifier=r<=9` rerolls an initial result of 9 or lower once; `modifier=rr<=9` keeps rerolling matching results, subject to Foundry's recursion limit. These options are available as pills in the expanded modifier editor, including comparison variants with numeric placeholders.
+   - Modifiers affect the primary d20, preserving native advantage/disadvantage and Halfling Lucky. AC5e inserts them before native minimum/maximum limits so Reliable Talent also applies to rerolled results. Optional selections are respected without accumulating duplicate AC5e modifiers.
    - Also applies to **Hit Dice rolls** through `flags.automated-conditions-5e.hitDie.modifier`: `modifier=min3` sets each die's minimum result to 3, `modifier=maximize` maximizes the dice, and `modifier=minimize` minimizes them. These dice modifiers leave the Constitution modifier unchanged.
       - Use `modifier=adv` for damage _advantage_ and `modifier=dis` for _disadvantage_.
       - Since v14.606.4.6, exploding-die caps and triggers can use parenthesized numeric expressions or dotted sandbox references: `modifier=x1=(baseDamage.denomination); addTo=base; isSpell` adds at most one matching die per base dice term when a die rolls its maximum.

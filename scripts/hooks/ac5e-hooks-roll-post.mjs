@@ -26,7 +26,6 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 	const stableModeCounts = ac5eConfig?.modeCounts && typeof ac5eConfig.modeCounts === 'object' ? foundry.utils.duplicate(ac5eConfig.modeCounts) : null;
 	reconcileResolvedD20Mode(ac5eConfig, config, rolls, message);
 	applyLiteralD20AdvantageCounts(ac5eConfig, config, rolls);
-	syncChatRollPayloads(rolls, message, ac5eConfig, deps);
 	normalizeCollapsedMidiD20Mode(ac5eConfig, config, rolls, options, deps);
 	syncMidiResolvedAdvantageMode(ac5eConfig, config, dialog, rolls, {
 		hookDebugEnabled: deps.hookDebugEnabled,
@@ -36,10 +35,50 @@ export function postRollConfiguration(rolls, config, dialog, message, hook, deps
 		calcAdvantageMode: deps.calcAdvantageMode,
 		applyExplicitModeOverride,
 	});
+	applyLiteralD20Modifiers(ac5eConfig, config, rolls);
+	syncChatRollPayloads(rolls, message, ac5eConfig, deps);
 	syncPostRollTargets(ac5eConfig, config, rolls, message);
 	applyPendingUsesIfNeeded(ac5eConfig, rolls);
 	restoreStableModeCounts(ac5eConfig, config, rolls, stableModeCounts);
 	debugRollStateMigration('postRoll', { hook, config, rolls, ac5eConfig, extra: { hasMessage: !!message } });
+	return true;
+}
+
+const appliedD20Literals = new WeakMap();
+
+function applyLiteralD20Modifiers(ac5eConfig, config, rolls) {
+	if (!['attack', 'check', 'save', 'init', 'initiative'].includes(ac5eConfig?.hookType)) return;
+	const literals = [...new Set((ac5eConfig.effectiveModifiers?.literals ?? []).filter((modifier) =>
+		typeof modifier === 'string' && /^(?:rr?\d*(?:[<>=]+\d+)?|xo?\d*(?:[<>=]+\d+)?|[dk][hl]?\d*|c[sf](?:[<>=]+)?\d*)$/i.test(modifier)
+		&& globalThis.dnd5e?.utils?.isValidDieModifier?.(modifier)))];
+	for (const roll of new Set([rolls?.[0], config?.rolls?.[0]])) {
+		if (!roll || roll._evaluated) continue;
+		const die = roll.d20 ?? roll.dice?.find((term) => Number(term.faces) === 20);
+		if (!die || Number(die.faces) !== 20 || !Array.isArray(die.modifiers) || die._evaluated) continue;
+		const modifiers = [...die.modifiers];
+		for (const previous of appliedD20Literals.get(die) ?? []) {
+			const index = modifiers.lastIndexOf(previous);
+			if (index >= 0) modifiers.splice(index, 1);
+		}
+		const added = literals.filter((modifier) => !modifiers.includes(modifier));
+		// Reroll/explode before native limits so Reliable Talent also covers new results.
+		const rangeIndex = modifiers.findIndex((modifier) => /^(?:min|max)\d/i.test(modifier));
+		modifiers.splice(rangeIndex < 0 ? modifiers.length : rangeIndex, 0, ...added);
+		appliedD20Literals.set(die, added);
+		if (modifiers.length === die.modifiers.length && modifiers.every((modifier, index) => modifier === die.modifiers[index])) continue;
+		die.modifiers = modifiers;
+		roll.resetFormula?.();
+	}
+}
+
+export function syncLiteralD20DialogFormula(dialog, element, ac5eConfig) {
+	const roll = dialog?.rolls?.[0];
+	if (!roll) return;
+	const before = roll.formula;
+	applyLiteralD20Modifiers(ac5eConfig, {}, dialog.rolls);
+	if (roll.formula === before) return;
+	const formula = element?.querySelector('.formulas .formula');
+	if (formula) formula.textContent = roll.formula;
 	return true;
 }
 
