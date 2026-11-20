@@ -1,6 +1,7 @@
 ## 14.611.2.2
 
 - Fixed an effect editor bug where apostrophes in names or descriptions could swallow subsequent fields and conditions.
+- Updated pt_BR translation by [Kharmans](<https://github.com/Kharmans>) 🤗
 
 ## 14.611.2.1
 
