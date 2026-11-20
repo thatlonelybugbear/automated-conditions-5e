@@ -1,3 +1,7 @@
+## 14.611.2.2
+
+- Fixed an effect editor bug where apostrophes in names or descriptions could swallow subsequent fields and conditions.
+
 ## 14.611.2.1
 
 - Fix for proper `itemName[""]` autocomplete suggestions in the Effect Value Editor.

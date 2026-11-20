@@ -206,7 +206,8 @@ function splitEffectValueFragments(value) {
 			continue;
 		}
 		if (char === "'" || char === '"' || char === '`') {
-			quote = char;
+			// In plain-text fields an apostrophe is punctuation unless it opens the value.
+			if (char !== "'" || !/^\s*(?:name|description)\s*[:=]\s*\S/i.test(current)) quote = char;
 			current += char;
 			continue;
 		}
