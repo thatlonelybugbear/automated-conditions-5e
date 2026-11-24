@@ -230,10 +230,12 @@ export function _ac5eActorRollData(token, rollData, actor, initializing = false)
 	actorData.tokenUuid = tokenDocument?.uuid ?? null;
 	actorData.uuid = actorUuid;
 	const active = game.combat?.active;
-	const currentCombatant = active ? game.combat.combatant?.tokenId : null;
-	const inCombatScene = tokenDocument?.parent?.id === game.combat?.scene?.id;
-	actorData.isTurn = active && inCombatScene && !!resolvedToken && currentCombatant === resolvedToken.id;
-	actorData.combatTurn = active && inCombatScene && resolvedToken ? game.combat.turns.findIndex((combatant) => combatant.tokenId === resolvedToken.id) : undefined;
+	const combatSceneId = game.combat?.scene?.id;
+	const inCombatScene = !!tokenDocument && (!combatSceneId || tokenDocument.parent?.id === combatSceneId);
+	const matchesToken = (combatant) =>
+		combatant?.tokenId === tokenDocument.id && (!combatant.sceneId || combatant.sceneId === tokenDocument.parent?.id);
+	actorData.isTurn = active && inCombatScene && matchesToken(game.combat.combatant);
+	actorData.combatTurn = active && inCombatScene ? game.combat.turns.findIndex(matchesToken) : undefined;
 	defineLazyAc5eActorRollDataViews(actorData, resolvedActor, resolvedToken, active);
 	return actorData;
 }
