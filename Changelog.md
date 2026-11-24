@@ -1,3 +1,7 @@
+## 14.611.2.3
+
+- Fix turn lookup for unlinked combats
+
 ## 14.611.2.2
 
 - Fixed an effect editor bug where apostrophes in names or descriptions could swallow subsequent fields and conditions.
